@@ -20,15 +20,12 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
-#include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/persistent_file.hh"
+#include "com/centreon/broker/neb/service.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -96,7 +93,7 @@ class OutputTest : public ::testing::Test {
 // function.
 TEST_F(OutputTest, WriteService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::shared_ptr<neb::service> svc(std::make_shared<neb::service>());
   svc->host_id = 12345;
@@ -141,7 +138,7 @@ TEST_F(OutputTest, WriteService) {
 
 TEST_F(OutputTest, WriteLongService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 12;
@@ -189,7 +186,7 @@ TEST_F(OutputTest, WriteLongService) {
 
 TEST_F(OutputTest, WriteReadService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
   svc->host_id = 12345;
@@ -233,7 +230,7 @@ TEST_F(OutputTest, WriteReadService) {
 
 TEST_F(OutputTest, ShortPersistentFile) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::shared_ptr<neb::service_status> svc(new neb::service_status);
   svc->host_id = 12345;
@@ -278,7 +275,7 @@ TEST_F(OutputTest, ShortPersistentFile) {
 
 TEST_F(OutputTest, LongPersistentFile) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
   svc->host_id = 12345;
@@ -322,7 +319,7 @@ TEST_F(OutputTest, LongPersistentFile) {
 
 TEST_F(OutputTest, WriteReadBadChksum) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
   svc->host_id = 12345;
@@ -361,7 +358,7 @@ TEST_F(OutputTest, WriteReadBadChksum) {
 
 TEST_F(OutputTest, ServiceTooShort) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
   svc->host_id = 12345;
@@ -407,7 +404,7 @@ TEST_F(OutputTest, ServiceTooShort) {
 
 TEST_F(OutputTest, ServiceTooShortAndAGoodOne) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::shared_ptr<neb::service> svc(new neb::service);
   svc->host_id = 12345;

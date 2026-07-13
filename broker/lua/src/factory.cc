@@ -17,15 +17,24 @@
  */
 
 #include "com/centreon/broker/lua/factory.hh"
+#include <absl/crc/crc32c.h>
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
+#include <string>
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/lua/connector.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/aes256.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::lua;
 using namespace nlohmann;
+
+extern std::shared_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
 
 /**
  *  Find a parameter in configuration.
@@ -50,15 +59,32 @@ static std::string find_param(config::endpoint const& cfg,
  *
  *  @return true if the endpoint match the configuration.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("LUA", false, false);
-  bool is_lua{absl::EqualsIgnoreCase(cfg.type, "lua")};
-  if (is_lua) {
-    cfg.params["cache"] = "yes";
-    cfg.cache_enabled = true;
+  return absl::EqualsIgnoreCase(cfg.type, "lua");
+}
+
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["cache"] = "no";
+  cfg.cache_enabled = false;
+  // in order to detect script change, we calculate a checksum of lua script
+  std::string script_path(find_param(cfg, "path"));
+  std::stringstream script_content;
+  {
+    std::ifstream file(script_path);
+    if (file.is_open()) {
+      script_content << file.rdbuf();
+    }
   }
-  return is_lua;
+  cfg.params["script_sha"] =
+      std::to_string(uint32_t(absl::ComputeCrc32c(script_content.str())));
 }
 
 /**
@@ -76,76 +102,111 @@ io::endpoint* factory::new_endpoint(
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
   std::map<std::string, misc::variant> conf_map;
-  std::string err;
 
   std::string filename(find_param(cfg, "path"));
-  json const& js{cfg.cfg["lua_parameter"]};
 
-  if (!err.empty())
-    throw msg_fmt("lua: couldn't read a configuration json");
+  auto lua_parameters = cfg.cfg.find("lua_parameter");
+  if (lua_parameters != cfg.cfg.end()) {
+    json const& js{*lua_parameters};
 
-  if (js.is_object()) {
-    json const& name{js.at("name")};
-    json const& type{js.at("type")};
-    json const& value{js.at("value")};
-
-    if (name.get<std::string>().empty())
-      throw msg_fmt(
-          "lua: couldn't read a configuration field because"
-          " its name is empty");
-    std::string t((type.get<std::string>().empty()) ? "string"
-                                                    : type.get<std::string>());
-    if (t == "string" || t == "password")
-      conf_map.insert(
-          {name.get<std::string>(), misc::variant(value.get<std::string>())});
-    else if (t == "number") {
-      bool ko = false;
-      std::string const& v(value.get<std::string>());
-      int32_t val;
-      if (!absl::SimpleAtoi(v, &val))
-        ko = true;
-      else
-        conf_map.insert({name.get<std::string>(), misc::variant(val)});
-
-      // Second attempt using floating point numbers
-      if (ko) {
-        double val;
-        if (absl::SimpleAtod(v, &val)) {
-          conf_map.insert({name.get<std::string>(), misc::variant(val)});
-          ko = false;
-        } else
-          ko = true;
+    auto decrypt_param = [](const std::string_view& value_name,
+                            const std::string_view& raw_val) -> std::string {
+      if (raw_val.substr(0, 9) == "encrypt::") {
+        if (!credentials_decrypt) {
+          throw msg_fmt(
+              "lua: unable to decrypt {}, no encryption key file available",
+              value_name);
+        }
+        try {
+          return credentials_decrypt->decrypt(raw_val.substr(9));
+        } catch (const std::exception& e) {
+          throw msg_fmt("lua: unable to decrypt {}: {}", value_name, e.what());
+        }
       }
-      if (ko)
-        throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
-                      name.get<std::string>(), value.get<std::string>());
-    }
-  } else if (js.is_array()) {
-    for (json const& obj : js) {
-      json const& name{obj.at("name")};
-      json const& type{obj.at("type")};
-      json const& value{obj.at("value")};
+      return std::string(raw_val);
+    };
 
-      if (name.get<std::string>().empty())
+    if (js.is_object()) {
+      json const& name{js.at("name")};
+      json const& type{js.at("type")};
+      json const& value{js.at("value")};
+
+      std::string_view value_name = name.get<std::string_view>();
+      if (value_name.empty())
         throw msg_fmt(
             "lua: couldn't read a configuration field because"
             " its name is empty");
       std::string t((type.get<std::string>().empty())
                         ? "string"
                         : type.get<std::string>());
-      if (t == "string" || t == "password")
-        conf_map.insert(
-            {name.get<std::string>(), misc::variant(value.get<std::string>())});
+      if (t == "string") {
+        conf_map.insert({std::string(value_name),
+                         misc::variant(value.get<std::string_view>())});
+      } else if (t == "password")
+        conf_map.insert({std::string(value_name),
+                         misc::variant(decrypt_param(
+                             value_name, value.get<std::string_view>()))});
       else if (t == "number") {
+        bool ko = false;
+        std::string const& v(value.get<std::string>());
         int32_t val;
-        if (absl::SimpleAtoi(value.get<std::string>(), &val))
-          conf_map.insert({name.get<std::string>(), misc::variant(val)});
+        if (!absl::SimpleAtoi(v, &val))
+          ko = true;
         else
+          conf_map.insert({std::string(value_name), misc::variant(val)});
+
+        // Second attempt using floating point numbers
+        if (ko) {
+          double val;
+          if (absl::SimpleAtod(v, &val)) {
+            conf_map.insert({std::string(value_name), misc::variant(val)});
+            ko = false;
+          } else
+            ko = true;
+        }
+        if (ko)
           throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
-                        name.get<std::string>(), value.get<std::string>());
+                        std::string(value_name), value.get<std::string>());
+      }
+    } else if (js.is_array()) {
+      for (json const& obj : js) {
+        json const& name{obj.at("name")};
+        json const& type{obj.at("type")};
+        json const& value{obj.at("value")};
+
+        std::string_view value_name = name.get<std::string_view>();
+        if (value_name.empty())
+          throw msg_fmt(
+              "lua: couldn't read a configuration field because"
+              " its name is empty");
+        std::string t((type.get<std::string>().empty())
+                          ? "string"
+                          : type.get<std::string>());
+        if (t == "string") {
+          conf_map.insert({std::string(value_name),
+                           misc::variant(value.get<std::string_view>())});
+        } else if (t == "password") {
+          conf_map.insert({std::string(value_name),
+                           misc::variant(decrypt_param(
+                               value_name, value.get<std::string_view>()))});
+        } else if (t == "number") {
+          int32_t val;
+          if (absl::SimpleAtoi(value.get<std::string>(), &val))
+            conf_map.insert({std::string(value_name), misc::variant(val)});
+          else
+            throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
+                          std::string(value_name), value.get<std::string>());
+        }
       }
     }
   }
+
+  if (config::applier::state::loaded()) {  // false only happens in UTs
+    cache::global_cache::load(
+        com::centreon::common::pool::io_context_ptr(),
+        config::applier::state::instance().cache_dir() + ".cache.global");
+  }
+
   // Connector.
   auto c{std::make_unique<lua::connector>()};
   c->connect_to(filename, conf_map, cache);

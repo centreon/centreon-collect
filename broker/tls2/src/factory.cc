@@ -41,7 +41,8 @@ using namespace com::centreon::broker::tls2;
  *  is running. We will be able to add this endpoint later, following the ext
  *  value.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext) {
     auto it = cfg.params.find("tls2");
     if (it == cfg.params.end() || absl::EqualsIgnoreCase(it->second, "no"))
@@ -92,7 +93,7 @@ io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const absl::flat_hash_map<std::string, std::string>& global_params,
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache[[maybe_unused]]) const {
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Find TLS parameters (optional).
   bool tls2 = false;
   std::string private_key;

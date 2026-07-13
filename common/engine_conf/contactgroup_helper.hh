@@ -30,7 +30,6 @@ namespace com::centreon::engine::configuration {
  * several methods to help the developer to fill the message fields.
  */
 class contactgroup_helper : public message_helper {
-  void _init();
   static void _resolve_members(
       configuration::State& s,
       configuration::Contactgroup& obj,

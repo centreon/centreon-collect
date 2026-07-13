@@ -19,7 +19,6 @@
 #ifndef CCB_STORAGE_REBUILDER_HH
 #define CCB_STORAGE_REBUILDER_HH
 
-#include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/common/pool.hh"
 
@@ -55,7 +54,6 @@ class rebuilder {
   struct metric_info {
     std::string metric_name;
     int32_t data_source_type;
-    int32_t rrd_retention;
     uint32_t check_interval;
   };
 

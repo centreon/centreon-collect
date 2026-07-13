@@ -87,7 +87,7 @@ void agent_stat::add_agent(const com::centreon::agent::AgentInfo& agent_info,
                            bool reversed,
                            const void* reactor) {
   group_by_key key(agent_info, reversed);
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   auto it = _data.find(key);
   if (it == _data.end()) {
     it = _data.emplace(key, agent_info_set()).first;
@@ -115,7 +115,7 @@ void agent_stat::remove_agent(const com::centreon::agent::AgentInfo& agent_info,
                               bool reversed,
                               const void* reactor) {
   group_by_key key(agent_info, reversed);
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   auto it = _data.find(key);
   if (it != _data.end()) {
     size_t erased = it->second.erase(reactor);
@@ -156,8 +156,8 @@ void agent_stat::_on_stat_update() const {
 }
 
 void agent_stat::_start_send_timer() {
-  absl::MutexLock l(&_protect);
-  _send_timer.expires_from_now(std::chrono::minutes(1));
+  absl::MutexLock l(_protect);
+  _send_timer.expires_after(std::chrono::minutes(1));
   _send_timer.async_wait(
       [this, me = shared_from_this()](const boost::system::error_code& err) {
         _send_timer_handler(err);
@@ -169,7 +169,7 @@ void agent_stat::_send_timer_handler(const boost::system::error_code& err) {
     return;
   }
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (_dirty) {
       _dirty = false;
       _on_stat_update();
@@ -183,6 +183,6 @@ void agent_stat::_send_timer_handler(const boost::system::error_code& err) {
  *
  */
 void agent_stat::stop_send_timer() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   _send_timer.cancel();
 }

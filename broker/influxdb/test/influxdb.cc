@@ -19,13 +19,18 @@
 
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include <gtest/gtest.h>
-#include "../../core/test/test_server.hh"
+#include <boost/asio/io_context.hpp>
+#include <memory>
+#include "broker/test/test_server.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class InfluxDB12 : public testing::Test {
  public:
@@ -41,66 +46,69 @@ class InfluxDB12 : public testing::Test {
     _thread.join();
   }
 
+  static void SetUpTestSuite() {
+    cache::global_cache::load(g_io_context, "/tmp/test_influxdb");
+  }
+
+  static void TearDownTestSuite() {
+    cache::global_cache::unload();
+    ::remove("/tmp/test_influxdb.cnf");
+    ::remove("/tmp/test_influxdb.rt");
+  }
+
   test_server _server;
   std::thread _thread;
   std::shared_ptr<spdlog::logger> _logger;
 };
 
 TEST_F(InfluxDB12, BadConnection) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
 
-  ASSERT_THROW(
-      influxdb::influxdb idb("centreon", "pass", "localhost", 4243, "centreon",
-                             "host_status", scolumns, "host_metrics", mcolumns,
-                             mcache, _logger),
-      msg_fmt);
+  ASSERT_THROW(influxdb::influxdb idb("centreon", "pass", "localhost", 4243,
+                                      "centreon", "host_status", scolumns,
+                                      "host_metrics", mcolumns, _logger),
+               msg_fmt);
 }
 
 TEST_F(InfluxDB12, Empty) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
   idb.clear();
   ASSERT_NO_THROW(idb.commit());
 }
 
 TEST_F(InfluxDB12, Simple) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 
-  std::vector<influxdb::column> mcolumns;
+  std::vector<http_tsdb::column> mcolumns;
   mcolumns.push_back(
-      influxdb::column{"mhost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"mhost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"mhost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"mhost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"most2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"most2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"most3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"most3", "43.0", true, http_tsdb::column::number});
 
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> scolumns;
   mcolumns.push_back(
-      influxdb::column{"shost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"shost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"shost3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"shost3", "43.0", true, http_tsdb::column::number});
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
   m1.set_time(2000llu);
   m1.set_interval(60);
   m1.set_metric_id(42u);
@@ -139,16 +147,14 @@ TEST_F(InfluxDB12, Simple) {
 }
 
 TEST_F(InfluxDB12, BadServerResponse1) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
 
   influxdb::influxdb idb("centreon", "fail1", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
 
   m1.set_time(2000llu);
   m1.set_interval(60);
@@ -188,34 +194,32 @@ TEST_F(InfluxDB12, BadServerResponse1) {
 }
 
 TEST_F(InfluxDB12, BadServerResponse2) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 
-  std::vector<influxdb::column> mcolumns;
+  std::vector<http_tsdb::column> mcolumns;
   mcolumns.push_back(
-      influxdb::column{"mhost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"mhost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"mhost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"mhost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"most2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"most2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"most3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"most3", "43.0", true, http_tsdb::column::number});
 
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> scolumns;
   mcolumns.push_back(
-      influxdb::column{"shost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"shost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"shost3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"shost3", "43.0", true, http_tsdb::column::number});
 
   influxdb::influxdb idb("centreon", "fail2", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
 
   m1.set_time(2000llu);
   m1.set_interval(60);

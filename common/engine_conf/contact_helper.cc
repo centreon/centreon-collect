@@ -17,6 +17,7 @@
  *
  */
 #include "common/engine_conf/contact_helper.hh"
+#include <charconv>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -37,7 +38,11 @@ contact_helper::contact_helper(Contact* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      Contact::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
+  // add default addresses
+  for (int i = 0; i < 6; ++i) {
+    obj->add_address("");
+  }
 }
 
 /**
@@ -51,15 +56,7 @@ bool contact_helper::hook(std::string_view key, std::string_view value) {
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
-  if (key == "contact_name") {
-    obj->set_contact_name(std::string(value));
-    set_changed(obj->descriptor()->FindFieldByName("contact_name")->index());
-    if (obj->alias().empty()) {
-      obj->set_alias(obj->contact_name());
-      set_changed(obj->descriptor()->FindFieldByName("alias")->index());
-    }
-    return true;
-  } else if (key == "host_notification_options") {
+  if (key == "host_notification_options") {
     uint16_t options = action_hst_none;
     if (fill_host_notification_options(&options, value)) {
       obj->set_host_notification_options(options);
@@ -89,9 +86,20 @@ bool contact_helper::hook(std::string_view key, std::string_view value) {
     fill_string_group(obj->mutable_service_notification_commands(), value);
     return true;
   } else if (key.compare(0, 7, "address") == 0) {
-    obj->add_address(value.data(), value.size());
-    set_changed(obj->descriptor()->FindFieldByName("address")->index());
-    return true;
+    // key is "address" + N, Replace corresponding entry.
+    int idx = 0;
+    auto suffix = key.substr(7);
+    auto err_code =
+        std::from_chars(suffix.data(), suffix.data() + suffix.size(), idx);
+    if (err_code.ec != std::errc{} ||
+        err_code.ptr != suffix.data() + suffix.size())
+      return false;
+
+    if (idx >= 1 && idx <= 6) {
+      obj->set_address(idx - 1, std::string(value));
+      return true;
+    }
+    return false;
   }
   return false;
 }
@@ -114,16 +122,18 @@ void contact_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Contact object, in other words set its default
  * values.
  */
-void contact_helper::_init() {
+void contact_helper::set_default_values() {
   Contact* obj = static_cast<Contact*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_can_submit_commands(true);
-  obj->set_host_notifications_enabled(true);
-  obj->set_host_notification_options(action_hst_none);
-  obj->set_retain_nonstatus_information(true);
-  obj->set_retain_status_information(true);
-  obj->set_service_notification_options(action_svc_none);
-  obj->set_service_notifications_enabled(true);
+  DEFAULT_PB_FIELD_SET(can_submit_commands, true);
+  DEFAULT_PB_FIELD_SET(host_notifications_enabled, true);
+  DEFAULT_PB_FIELD_SET(host_notification_options, action_hst_none);
+  DEFAULT_PB_FIELD_SET(retain_nonstatus_information, true);
+  DEFAULT_PB_FIELD_SET(retain_status_information, true);
+  DEFAULT_PB_FIELD_SET(service_notification_options, action_svc_none);
+  DEFAULT_PB_FIELD_SET(service_notifications_enabled, true);
+  if (obj->has_contact_name() && obj->alias().empty()) {
+    obj->set_alias(obj->contact_name());
+  }
 }
 
 /**

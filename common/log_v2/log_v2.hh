@@ -83,6 +83,7 @@ class log_v2 {
     MACROS = 27,
     RUNTIME = 28,
     OTL = 29,
+    EVENT_SCRIPT = 30,
     LOGGER_SIZE
   };
 
@@ -95,10 +96,11 @@ class log_v2 {
   size_t _current_max_size = 0U;
   bool _log_pid = false;
   bool _log_source = false;
+  bool _absl_sink = false;
 
  public:
   static void load(std::string name);
-  static void unload();
+  static void unload(bool delete_instance = false);
   static log_v2& instance();
   log_v2(std::string name);
   log_v2(const log_v2&) = delete;

@@ -56,6 +56,11 @@ sub register {
         $options{logger}->writeLogError('[pullwss] token option mandatory');
         $loaded = 0;
     }
+    # max size from the socket doc is 262144, but for some reason it doesn't work for some message.
+    # making it 130 000 make it work every time I tested. Maybe each character is 2 bytes in perl on some specific conditions.
+    # https://docs.mojolicious.org/Mojo/Transaction/WebSocket#max_websocket_size
+    $config->{max_msg_size} = 130_000
+        if (!defined($config->{max_msg_size}) || $config->{max_msg_size} !~ /\d+/);
 
     return ($loaded, NAMESPACE, NAME, EVENTS);
 }

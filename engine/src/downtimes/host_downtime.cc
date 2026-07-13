@@ -62,7 +62,7 @@ host_downtime::~host_downtime() {
                        downtime::host_downtime, host_id(), 0, _entry_time,
                        _author.c_str(), _comment.c_str(), get_start_time(),
                        get_end_time(), is_fixed(), get_triggered_by(),
-                       get_duration(), get_downtime_id(), nullptr);
+                       get_duration(), get_downtime_id());
 }
 
 /* adds a host downtime entry to the list in memory */
@@ -172,7 +172,7 @@ int host_downtime::unschedule() {
         NEBTYPE_DOWNTIME_STOP, NEBATTR_DOWNTIME_STOP_CANCELLED, get_type(),
         host_id(), 0, _entry_time, get_author().c_str(), get_comment().c_str(),
         get_start_time(), get_end_time(), is_fixed(), get_triggered_by(),
-        get_duration(), get_downtime_id(), nullptr);
+        get_duration(), get_downtime_id());
 
     it->second->dec_scheduled_downtime_depth();
     it->second->update_status();
@@ -356,7 +356,7 @@ int host_downtime::handle() {
                          _entry_time, get_author().c_str(),
                          get_comment().c_str(), get_start_time(),
                          get_end_time(), is_fixed(), get_triggered_by(),
-                         get_duration(), get_downtime_id(), nullptr);
+                         get_duration(), get_downtime_id());
 
     /* decrement the downtime depth variable */
     it_hst->second->dec_scheduled_downtime_depth();
@@ -435,7 +435,7 @@ int host_downtime::handle() {
                          host_id(), 0, _entry_time, get_author().c_str(),
                          get_comment().c_str(), get_start_time(),
                          get_end_time(), is_fixed(), get_triggered_by(),
-                         get_duration(), get_downtime_id(), nullptr);
+                         get_duration(), get_downtime_id());
 
     if (it_hst->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
@@ -507,5 +507,5 @@ void host_downtime::schedule() {
   broker_downtime_data(
       NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::host_downtime, host_id(),
       0, _entry_time, _author.c_str(), _comment.c_str(), _start_time, _end_time,
-      _fixed, _triggered_by, _duration, _downtime_id, nullptr);
+      _fixed, _triggered_by, _duration, _downtime_id);
 }

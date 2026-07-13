@@ -32,7 +32,6 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
 using log_v2 = com::centreon::common::log_v2::log_v2;
-using namespace com::centreon::common::crypto;
 
 /**
  *  Constructor.
@@ -45,8 +44,7 @@ stream::stream(std::string const& metric_naming,
                std::string const& db_password,
                std::string const& db_host,
                unsigned short db_port,
-               uint32_t queries_per_transaction,
-               std::shared_ptr<persistent_cache> const& cache)
+               uint32_t queries_per_transaction)
     : io::stream("graphite"),
       _metric_naming{metric_naming},
       _status_naming{status_naming},
@@ -59,53 +57,37 @@ stream::stream(std::string const& metric_naming,
       _pending_queries{0},
       _actual_query{0},
       _commit_flag{false},
-      _metric_query{_metric_naming, escape_string, query::metric, _cache},
-      _status_query{_status_naming, escape_string, query::status, _cache},
+      _metric_query{_metric_naming, escape_string, query::data_type::metric,
+                    log_v2::instance().get(log_v2::GRAPHITE)},
+      _status_query{_status_naming, escape_string, query::data_type::status,
+                    log_v2::instance().get(log_v2::GRAPHITE)},
       _socket{_io_context},
-      _logger{log_v2::instance().get(log_v2::GRAPHITE)},
-      _cache{cache} {
+      _logger{log_v2::instance().get(log_v2::GRAPHITE)} {
   _logger->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
-    std::string auth{_db_user};
-    auth.append(":").append(_db_password);
-
-    _auth_query.append("Authorization: Basic ")
-        .append(base64_encode(auth))
-        .append("\n");
+    std::string auth = fmt::format("{}:{}", _db_user, _db_password);
+    _auth_query = fmt::format("Authorization: Basic {}\n",
+                              common::crypto::base64_encode(auth));
     _query.append(_auth_query);
   }
 
+  boost::system::error_code err;
   ip::tcp::resolver resolver{_io_context};
-  ip::tcp::resolver::query query{_db_host, std::to_string(_db_port)};
 
-  try {
-    ip::tcp::resolver::iterator it{resolver.resolve(query)};
-    ip::tcp::resolver::iterator end;
+  auto endpoint = resolver.resolve(_db_host, std::to_string(_db_port), err);
 
-    boost::system::error_code err{
-        make_error_code(asio::error::host_unreachable)};
+  if (err) {
+    throw msg_fmt(
+        "graphite: can't resolve graphite on host '{}', port '{}' : {}",
+        _db_host, _db_port, err.message());
+  }
 
-    // it can resolve to multiple addresses like ipv4 and ipv6
-    // we need to try all to find the first available socket
-    while (err && it != end) {
-      _socket.connect(*it, err);
-
-      if (err)
-        _socket.close();
-
-      ++it;
-    }
-
-    if (err) {
-      throw msg_fmt(
-          "graphite: can't connect to graphite on host '{}', port '{}' : {}",
-          _db_host, _db_port, err.message());
-    }
-  } catch (boost::system::system_error const& se) {
+  asio::connect(_socket, endpoint, err);
+  if (err) {
     throw msg_fmt(
         "graphite: can't connect to graphite on host '{}', port '{}' : {}",
-        _db_host, _db_port, se.what());
+        _db_host, _db_port, err.message());
   }
 }
 
@@ -183,9 +165,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   if (!validate(data, get_name()))
     return 0;
 
-  // Give the event to the cache.
-  _cache.write(data);
-
   // Process metric events.
   switch (data->type()) {
     case storage::metric::static_type():
@@ -235,7 +214,7 @@ bool stream::_process_metric(storage::metric const& me) {
  *  @param[in] me  The event to process.
  */
 bool stream::_process_metric(storage::pb_metric const& me) {
-  std::string to_append = _metric_query.generate_metric(me);
+  std::string to_append = _metric_query.append_metric(me);
   _query.append(to_append);
   return !to_append.empty();
 }
@@ -257,7 +236,7 @@ bool stream::_process_status(storage::status const& st) {
  *  @param[in] st  The status event.
  */
 bool stream::_process_status(storage::pb_status const& st) {
-  std::string to_append = _status_query.generate_status(st);
+  std::string to_append = _status_query.append_status(st);
   _query.append(to_append);
   return !to_append.empty();
 }

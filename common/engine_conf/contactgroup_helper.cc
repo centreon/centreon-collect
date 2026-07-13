@@ -35,7 +35,7 @@ contactgroup_helper::contactgroup_helper(Contactgroup* obj)
                      obj,
                      {},
                      Contactgroup::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -71,14 +71,6 @@ void contactgroup_helper::check_validity(error_cnt& err) const {
     err.config_errors++;
     throw msg_fmt("Contactgroup has no name (property 'contactgroup_name')");
   }
-}
-
-/**
- * @brief The initializer of the Contactgroup message.
- */
-void contactgroup_helper::_init() {
-  Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
 }
 
 /**

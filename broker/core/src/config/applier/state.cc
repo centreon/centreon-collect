@@ -22,7 +22,6 @@
 #include <fmt/format.h>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common.pb.h"
@@ -54,7 +53,8 @@ state::state(common::PeerType peer_type,
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
-      _modules{logger} {}
+      _modules{logger},
+      _center{std::make_shared<com::centreon::broker::stats::center>()} {}
 
 /**
  *  Apply a configuration state.
@@ -167,14 +167,6 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   // Apply input and output configuration.
   endpoint::instance().apply(st.endpoints(), st.params());
 
-  // Create instance broadcast event.
-  auto ib{std::make_shared<instance_broadcast>()};
-  ib->broker_id = io::data::broker_id;
-  ib->poller_id = _poller_id;
-  ib->poller_name = _poller_name;
-  ib->enabled = true;
-  com::centreon::broker::multiplexing::engine::instance_ptr()->publish(ib);
-
   // Enable multiplexing loop.
   if (run_mux)
     com::centreon::broker::multiplexing::engine::instance_ptr()->start();
@@ -230,7 +222,7 @@ bool state::loaded() {
  *
  *  @return Poller ID of this Broker instance.
  */
-uint32_t state::poller_id() const noexcept {
+uint64_t state::poller_id() const noexcept {
   return _poller_id;
 }
 
@@ -294,7 +286,7 @@ void state::add_peer(uint64_t poller_id,
                      common::PeerType peer_type,
                      bool extended_negotiation) {
   assert(poller_id && !broker_name.empty());
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found == _connected_peers.end()) {
@@ -319,7 +311,7 @@ void state::remove_peer(uint64_t poller_id,
                         const std::string& poller_name,
                         const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found != _connected_peers.end()) {
@@ -328,7 +320,7 @@ void state::remove_peer(uint64_t poller_id,
     _connected_peers.erase(found);
   } else {
     logger->warn(
-        "Peer poller: '{}' - broker: '{}' with id {} and type '{}' not found "
+        "Peer poller: '{}' - broker: '{}' with id {} not found "
         "in connected peers",
         poller_name, broker_name, poller_id);
   }
@@ -340,7 +332,7 @@ void state::remove_peer(uint64_t poller_id,
  * @param poller_id The poller to check.
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   for (auto& p : _connected_peers)
     if (p.second.poller_id == poller_id && p.second.peer_type == common::ENGINE)
       return true;
@@ -353,7 +345,7 @@ bool state::has_connection_from_poller(uint64_t poller_id) const {
  * @return A vector of pairs containing the poller id and the poller name.
  */
 std::vector<state::peer> state::connected_peers() const {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   std::vector<peer> retval;
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
     retval.push_back(it->second);
@@ -440,7 +432,7 @@ void state::set_broker_needs_update(uint64_t poller_id,
                                     const std::string& broker_name,
                                     common::PeerType peer_type,
                                     bool need_update) {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found != _connected_peers.end()) {
     found->second.needs_update = need_update;
@@ -459,7 +451,7 @@ void state::set_broker_needs_update(uint64_t poller_id,
  * negociation available).
  */
 void state::set_peers_ready() {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   for (auto& p : _connected_peers)
     p.second.ready = true;
 }
@@ -498,7 +490,7 @@ bool state::broker_needs_update() const {
     return true;
   };
 
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   // Let's wait for at most 20 seconds for all brokers to be ready.
   _connected_peers_m.AwaitWithTimeout(absl::Condition(&brokers_ready),
                                       absl::Seconds(20));
@@ -520,7 +512,7 @@ bool state::broker_needs_update() const {
  */
 void state::set_engine_configuration(uint64_t poller_id,
                                      const std::string& version) {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   _engine_configuration[poller_id] = version;
 }
 
@@ -533,10 +525,19 @@ void state::set_engine_configuration(uint64_t poller_id,
  * @return The engine configuration as a string.
  */
 std::string state::engine_configuration(uint64_t poller_id) const {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::MutexLock lck(_connected_peers_m);
   auto found = _engine_configuration.find(poller_id);
   if (found != _engine_configuration.end())
     return found->second;
   else
     return "";
+}
+
+/**
+ * @brief Get the stats center.
+ *
+ * @return The stats center.
+ */
+std::shared_ptr<com::centreon::broker::stats::center> state::center() const {
+  return _center;
 }

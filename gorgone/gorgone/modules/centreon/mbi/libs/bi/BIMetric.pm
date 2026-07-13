@@ -83,7 +83,7 @@ sub insertMetricsIntoTable {
 	$query .= " s.`sc_id`, s.`sc_name`, s.`host_id`, s.`host_name`, `hc_id`, `hc_name`, `hg_id`, `hg_name`";
 	$query .= " FROM `mod_bi_tmp_today_services` s, `metrics` m, `index_data` i";
 	$query .= " WHERE i.id = m.index_id and i.host_id=s.host_id and i.service_id=s.service_id";
-	$query .= " group by s.hg_id, s.hc_id, s.sc_id, m.index_id, m.metric_id, m.metric_name, m.unit_name, s.service_description, s.sc_name, s.host_name, s.host_id, hc_name, s.hg_name";
+	$query .= " group by s.hg_id, s.hc_id, s.sc_id, m.index_id, m.metric_id, m.metric_name, m.unit_name, s.service_id, s.service_description, s.sc_name, s.host_name, s.host_id, hc_name, s.hg_name";
 	my $sth = $db->query({ query => $query });
 	return $sth;
 }
@@ -94,7 +94,7 @@ sub createTempTable {
 	my $db = $self->{"centstorage"};
 	$db->query({ query => "DROP TABLE IF EXISTS `".$self->{"tmpTable"}."`" });
 	my $query = "CREATE TABLE `".$self->{"tmpTable"}."` (";
-	$query .= "`metric_id` int(11) NOT NULL,`metric_name` varchar(255) NOT NULL,`metric_unit` char(32) DEFAULT NULL,";
+	$query .= "`metric_id` int(11) NOT NULL,`metric_name` varchar(1021) NOT NULL,`metric_unit` char(32) DEFAULT NULL,";
 	$query .= "`service_id` int(11) NOT NULL,`service_description` varchar(255) DEFAULT NULL,";
 	$query .= "`sc_id` int(11) DEFAULT NULL,`sc_name` varchar(255) DEFAULT NULL,";
 	$query .= "`host_id` int(11) DEFAULT NULL,`host_name` varchar(255) DEFAULT NULL,";
@@ -155,7 +155,7 @@ sub createTodayTable {
 	my $query = "CREATE TABLE `" . $self->{"today_table"} . "` (";
 	$query .= "`id` BIGINT(20) UNSIGNED NOT NULL,";
 	$query .= "`metric_id` BIGINT(20) UNSIGNED NOT NULL,";
-	$query .= "`metric_name` varchar(255) NOT NULL,";
+	$query .= "`metric_name` varchar(1021) NOT NULL,";
 	$query .= "`sc_id` int(11) NOT NULL,";
 	$query .= "`hg_id` int(11) NOT NULL,";
 	$query .= "`hc_id` int(11) NOT NULL,";

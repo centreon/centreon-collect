@@ -25,10 +25,12 @@ BEACK1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    processing    trace
+    Ctn Broker Config Log    module0    processing    trace
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
@@ -131,6 +133,8 @@ BEACK3
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
@@ -382,6 +386,64 @@ BEACK8
 
     ${content}    Create List    Still 0 running acknowledgements
     Ctn Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
+
+BEACK_DT
+    [Documentation]    Scenario: a downtime must not remove an acknowledgement
+    ...    Given a configuration with BBDO3 and a critical service that is acknowledged
+    ...    When a downtime is scheduled on this service and starts
+    ...    Then the acknowledgement must not be deleted
+    ...    And the acknowledgements, services and resources tables must stay consistent.
+    [Tags]    broker    engine    services    extcmd    downtime    MON-197301
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
+    # Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    (1;1) is critical
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (1;1) should be critical HARD
+
+    # The service is acknowledged (sticky).
+    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    Ctn Acknowledge Service Problem    host_1    service_1    STICKY
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
+    Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
+
+    # Both services and resources tables report the acknowledgement.
+    ${result}    Ctn Check Service Resource Acknowledged With Timeout    host_1    service_1    ${1}    30
+    Should Be True    ${result}    Service (1;1) should be acknowledged in services and resources tables.
+
+    # A fixed downtime is scheduled and starts now.
+    ${start_dt}    Ctn Get Round Current Date
+    Ctn Schedule Service Fixed Downtime    host_1    service_1    ${3600}
+    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start_dt}    ${60}
+    Should Be True    ${result}    We should have 1 downtime enabled.
+
+    # The downtime has started on the service.
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    ${1}    60
+    Should Be True    ${result}    The downtime should be active on service (1;1).
+
+    # the downtime must NOT terminate the acknowledgement, which would
+    # set acknowledgements.deletion_time while services/resources stay acknowledged.
+    ${result}    Ctn Check Acknowledgement Inconsistency With Timeout    host_1    service_1    60
+    Should Not Be True    ${result}    A downtime must not terminate the acknowledgement on service (1;1).
+
+    # And the service must stay acknowledged in both services and resources tables.
+    ${result}    Ctn Check Service Resource Acknowledged With Timeout    host_1    service_1    ${1}    15
+    Should Be True    ${result}    Service (1;1) must stay acknowledged in services and resources tables.
 
 
 *** Keywords ***

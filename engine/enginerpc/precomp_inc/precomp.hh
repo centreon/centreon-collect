@@ -24,6 +24,7 @@
 #include <string_view>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/fmt/ostr.h>
 
 #include <absl/container/btree_map.h>
@@ -31,6 +32,9 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/exception/diagnostic_information.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <boost/optional.hpp>
 
 #endif  // CCE_PRECOMP_HH

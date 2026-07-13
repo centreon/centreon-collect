@@ -33,6 +33,7 @@ dependency::dependency(size_t key,
                        bool fail_on_pending,
                        const std::string& dependency_period)
     : _internal_key{key},
+      dependency_period_ptr(nullptr),
       _dependency_type{dependency_type},
       _dependent_hostname{dependent_hostname},
       _hostname{hostname},
@@ -45,9 +46,8 @@ dependency::dependency(size_t key,
     engine_logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
     config_logger->error("Error: NULL host name in host dependency definition");
-    throw engine_error() << "Could not create execution "
-                         << "dependency of '" << dependent_hostname << "' on '"
-                         << hostname << "'";
+    throw engine_error() << "Could not create execution " << "dependency of '"
+                         << dependent_hostname << "' on '" << hostname << "'";
   }
 }
 
@@ -123,7 +123,7 @@ void dependency::set_contains_circular_path(bool contains_circular_path) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool dependency::operator==(dependency const& obj) noexcept {
+bool dependency::operator==(const dependency& obj) const {
   return _dependency_type == obj.get_dependency_type() &&
          _dependent_hostname == obj.get_dependent_hostname() &&
          _hostname == obj.get_hostname() &&
@@ -142,7 +142,7 @@ bool dependency::operator==(dependency const& obj) noexcept {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool dependency::operator!=(dependency const& obj) noexcept {
+bool dependency::operator!=(dependency const& obj) const {
   return !(*this == obj);
 }
 
@@ -154,7 +154,7 @@ bool dependency::operator!=(dependency const& obj) noexcept {
  *
  *  @return True if the first object is strictly less than the second.
  */
-bool dependency::operator<(dependency const& obj) noexcept {
+bool dependency::operator<(dependency const& obj) const {
   if (_dependent_hostname != obj.get_dependent_hostname())
     return _dependent_hostname < obj.get_dependent_hostname();
   else if (_hostname != obj.get_hostname())

@@ -20,8 +20,8 @@
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_CLIENT_HH
 
 #include "centreon_agent/agent.grpc.pb.h"
-#include "centreon_agent/agent_stat.hh"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
+#include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_stat.hh"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_data_point.hh"
@@ -69,9 +69,6 @@ class to_agent_connector
       const metric_handler& handler,
       const std::shared_ptr<spdlog::logger>& logger,
       const agent_stat::pointer& stats);
-
-  void refresh_agent_configuration_if_needed(
-      const agent_config::pointer& new_conf);
 
   virtual void shutdown();
 

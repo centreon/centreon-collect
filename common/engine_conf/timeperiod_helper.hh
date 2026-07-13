@@ -26,7 +26,6 @@
 namespace com::centreon::engine::configuration {
 
 class timeperiod_helper : public message_helper {
-  void _init();
   bool _add_week_day(std::string_view key, std::string_view value);
   bool _add_calendar_date(const std::string& line);
   bool _add_other_date(const std::string& line);

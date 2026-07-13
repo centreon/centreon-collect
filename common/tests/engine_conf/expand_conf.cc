@@ -80,9 +80,10 @@ TEST_F(Pb_Expand, host) {
   state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   std::string json_output;
-  google::protobuf::util::MessageToJsonString(pb_config, &json_output, options);
+  auto status = google::protobuf::util::MessageToJsonString(
+      pb_config, &json_output, options);
 
   rapidjson::Document doc1;
 
@@ -221,9 +222,10 @@ TEST_F(Pb_Expand, service) {
   state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   std::string json_output;
-  google::protobuf::util::MessageToJsonString(pb_config, &json_output, options);
+  auto status = google::protobuf::util::MessageToJsonString(
+      pb_config, &json_output, options);
 
   rapidjson::Document doc1;
 
@@ -367,9 +369,10 @@ TEST_F(Pb_Expand, contact) {
   state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   std::string json_output;
-  google::protobuf::util::MessageToJsonString(pb_config, &json_output, options);
+  auto status = google::protobuf::util::MessageToJsonString(
+      pb_config, &json_output, options);
 
   rapidjson::Document doc1;
 
@@ -444,9 +447,10 @@ TEST_F(Pb_Expand, contactgroup) {
   state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   std::string json_output;
-  google::protobuf::util::MessageToJsonString(pb_config, &json_output, options);
+  auto status = google::protobuf::util::MessageToJsonString(
+      pb_config, &json_output, options);
 
   rapidjson::Document doc1;
 
@@ -513,9 +517,10 @@ TEST_F(Pb_Expand, serviceescalation) {
   state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   std::string json_output;
-  google::protobuf::util::MessageToJsonString(pb_config, &json_output, options);
+  auto status = google::protobuf::util::MessageToJsonString(
+      pb_config, &json_output, options);
 
   rapidjson::Document doc1;
 
@@ -586,9 +591,10 @@ TEST_F(Pb_Expand, hostescalation) {
   state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   std::string json_output;
-  google::protobuf::util::MessageToJsonString(pb_config, &json_output, options);
+  auto status = google::protobuf::util::MessageToJsonString(
+      pb_config, &json_output, options);
 
   rapidjson::Document doc1;
 
@@ -637,9 +643,10 @@ TEST_F(Pb_Expand, anomalydetection) {
   state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   std::string json_output;
-  google::protobuf::util::MessageToJsonString(pb_config, &json_output, options);
+  auto status = google::protobuf::util::MessageToJsonString(
+      pb_config, &json_output, options);
 
   rapidjson::Document doc1;
 

@@ -16,17 +16,13 @@
  * For more information : contact@centreon.com
  *
  */
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/contactgroup.hh"
-#endif
+#include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -34,23 +30,6 @@ using namespace com::centreon::engine::logging;
 
 contactgroup_map contactgroup::contactgroups;
 
-#ifdef LEGACY_CONF
-/**
- *  Constructor from a configuration contactgroup
- *
- * @param obj Configuration contactgroup
- */
-contactgroup::contactgroup(configuration::contactgroup const& obj)
-    : _alias(obj.alias().empty() ? obj.contactgroup_name() : obj.alias()),
-      _name(obj.contactgroup_name()) {
-  // Make sure we have the data we need.
-  if (_name.empty())
-    throw engine_error() << "contactgroup: Contact group name is empty";
-
-  // Notify event broker.
-  broker_group(NEBTYPE_CONTACTGROUP_ADD, this);
-}
-#else
 /**
  *  Constructor from a protobuf configuration contactgroup
  *
@@ -63,7 +42,6 @@ contactgroup::contactgroup(const configuration::Contactgroup& obj)
   // Notify event broker.
   broker_group(NEBTYPE_CONTACTGROUP_ADD, this);
 }
-#endif
 
 /**
  * Assignment operator.
@@ -94,11 +72,11 @@ void contactgroup::clear_members() {
   _members.clear();
 }
 
-contact_map_unsafe& contactgroup::get_members() {
+contact_map& contactgroup::get_members() {
   return _members;
 }
 
-contact_map_unsafe const& contactgroup::get_members() const {
+const contact_map& contactgroup::get_members() const {
   return _members;
 }
 
@@ -110,8 +88,8 @@ void contactgroup::set_alias(std::string const& alias) {
   _alias = alias;
 }
 
-std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
-  for (contactgroup_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
+std::ostream& operator<<(std::ostream& os, const contactgroup_map& obj) {
+  for (contactgroup_map::const_iterator it = obj.begin(), end = obj.end();
        it != end; ++it) {
     os << it->first;
     if (std::next(it) != end)
@@ -125,7 +103,7 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
 void contactgroup::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
   uint32_t errors = 0;
 
-  for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
+  for (contact_map::iterator it = _members.begin(), end = _members.end();
        it != end; ++it) {
     /* Check members */
     if (!it->second) {

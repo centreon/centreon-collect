@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Run Keywords    Ctn Stop engine    AND    Ctn Save Logs If Failed
+Test Teardown       Run Keywords    Ctn Stop Engine    AND    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -91,4 +91,4 @@ VERIFIY_CONF
     ...    ${result}
     ...    A message telling auto_rescheduling_window is deprecated. should be available in config0/centengine-stdout.log.
 
-    Ctn Stop engine
+    Ctn Stop Engine

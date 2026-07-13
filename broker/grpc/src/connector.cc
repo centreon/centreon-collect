@@ -47,8 +47,7 @@ connector::connector(const grpc_config::pointer& conf)
       com::centreon::common::grpc::grpc_client_base(
           conf,
           log_v2::instance().get(log_v2::GRPC)) {
-  _stub = std::move(
-      com::centreon::broker::stream::centreon_bbdo::NewStub(_channel));
+  _stub = com::centreon::broker::stream::centreon_bbdo::NewStub(_channel);
 }
 
 /**
@@ -87,7 +86,7 @@ class client_stream : public stream_base_class {
   void shutdown() override;
 
  public:
-  client_stream(const grpc_config::pointer& conf);
+  client_stream(const io::endpoint* parent, const grpc_config::pointer& conf);
   ::grpc::ClientContext& get_context() { return _context; }
 };
 
@@ -96,8 +95,9 @@ class client_stream : public stream_base_class {
  *
  * @param conf
  */
-client_stream::client_stream(const grpc_config::pointer& conf)
-    : stream_base_class(conf, "client") {
+client_stream::client_stream(const io::endpoint* parent,
+                             const grpc_config::pointer& conf)
+    : stream_base_class(parent, conf, "client", conf->get_hostport()) {
   if (!conf->get_authorization().empty()) {
     _context.AddMetadata(authorization_header, conf->get_authorization());
   }
@@ -123,7 +123,7 @@ void client_stream::shutdown() {
  */
 std::shared_ptr<io::stream> connector::create_stream() {
   std::shared_ptr<client_stream> new_stream = std::make_shared<client_stream>(
-      std::static_pointer_cast<grpc_config>(get_conf()));
+      this, std::static_pointer_cast<grpc_config>(get_conf()));
   client_stream::register_stream(new_stream);
   _stub->async()->exchange(&new_stream->get_context(), new_stream.get());
   new_stream->start_read();

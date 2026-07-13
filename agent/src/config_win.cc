@@ -94,19 +94,45 @@ config::config(const std::string& registry_key) {
   _log_file = get_sz_reg_or_default("log_file", "");
   _log_max_file_size = get_unsigned("log_max_file_size");
   _log_max_files = get_unsigned("log_max_files");
-  _encryption = get_bool("encryption");
+  std::string encryption = get_sz_reg_or_default("encryption", "no");
+  if (encryption == "full") {
+    _security_mode = common::grpc::grpc_config::TLS_SECURE;
+  } else if (encryption == "insecure") {
+    _security_mode = common::grpc::grpc_config::TLS_INSECURE;
+  } else if (encryption == "no") {
+    _security_mode = common::grpc::grpc_config::NONE;
+  } else {
+    RegCloseKey(h_key);
+    throw exceptions::msg_fmt(
+        "invalid value for registry key 'encryption' ('{}'), accepted values "
+        "are: full, insecure, no",
+        encryption);
+  }
   _public_cert_file = get_sz_reg_or_default("public_cert", "");
   _private_key_file = get_sz_reg_or_default("private_key", "");
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
   _ca_name = get_sz_reg_or_default("ca_name", "");
+  _ca_fingerprint = get_sz_reg_or_default("fingerprint", "");
   _host = get_sz_reg_or_default("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
+
+  _host_template = get_sz_reg_or_default(
+      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom");
+
   _reverse_connection = get_bool("reversed_grpc_streaming");
   _second_max_reconnect_backoff =
       get_unsigned("second_max_reconnect_backoff", 60);
   _max_message_length = get_unsigned("max_message_length", 4) * 1024 * 1024;
+
+  if (_reverse_connection)
+    _trusted_tokens = std::make_shared<const absl::flat_hash_set<std::string>>(
+        absl::flat_hash_set<std::string>{get_sz_reg_or_default("token", "")});
+  else
+    _token = get_sz_reg_or_default("token", "");
+
+  _path_to_custom_checks = get_sz_reg_or_default("custom_check_file", "");
 
   RegCloseKey(h_key);
 }

@@ -22,6 +22,7 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -54,6 +55,12 @@ std::array<std::pair<uint32_t, std::string>, 3> const host::tab_host_states{
 
 host_map host::hosts;
 host_id_map host::hosts_by_id;
+
+static inline struct tm local_tm(time_t when) {
+  struct tm t;
+  localtime_r(&when, &t);
+  return t;
+}
 
 /*
  *  @param[in] name                          Host name.
@@ -1249,13 +1256,8 @@ int host::handle_async_check_result_3x(
   time_t current_time = std::time(nullptr);
   bool accept_passive_host_checks;
   uint32_t cached_host_check_horizon;
-#ifdef LEGACY_CONF
-  accept_passive_host_checks = config->accept_passive_host_checks();
-  cached_host_check_horizon = config->cached_host_check_horizon();
-#else
   accept_passive_host_checks = pb_config.accept_passive_host_checks();
   cached_host_check_horizon = pb_config.cached_host_check_horizon();
-#endif
 
   double execution_time =
       static_cast<double>(queued_check_result.get_finish_time().tv_sec -
@@ -1346,8 +1348,12 @@ int host::handle_async_check_result_3x(
 
   /*
    * clear the freshening flag (it would have been set if this host was
-   * determined to be stale) */
-  if (queued_check_result.get_check_options() & CHECK_OPTION_FRESHNESS_CHECK)
+   * determined to be stale)
+   * NOTE: we clear the flag for cma checks results
+   */
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_FRESHNESS_CHECK | CHECK_OPTION_PASSIVE_IS_HARD |
+       CHECK_OPTION_PASSIVE_IS_SOFT))
     set_is_being_freshened(false);
 
   /* DISCARD INVALID FRESHNESS CHECK RESULTS */
@@ -1440,8 +1446,8 @@ int host::handle_async_check_result_3x(
   std::string plugin_output;
   std::string long_plugin_output;
   std::string perf_data;
-  parse_check_output(output, plugin_output, long_plugin_output, perf_data, true,
-                     false);
+  common::parse_check_output(output, plugin_output, long_plugin_output,
+                             perf_data, true, false);
   set_plugin_output(plugin_output);
   set_long_plugin_output(long_plugin_output);
   set_perf_data(perf_data);
@@ -1565,9 +1571,27 @@ int host::handle_async_check_result_3x(
   }
 
   /******************* PROCESS THE CHECK RESULTS ******************/
+  // before processing the check result, we force current attempt to cma
+  // attempts , only for passive checks cma
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT)) {
+    set_current_attempt(queued_check_result.get_current_attempt());
+  }
+
+  if (queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) {
+    // as check is passive and done by cma, we have to send command line to
+    // broker
+    nagios_macros* macros(get_global_macros());
+    std::string cmdline = get_check_command_line(macros);
+    if (!cmdline.empty()) {
+      broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this,
+                        checkable::check_passive, cmdline.c_str());
+    }
+  }
 
   /* process the host check result */
-  process_check_result_3x(hst_res, old_plugin_output, CHECK_OPTION_NONE,
+  process_check_result_3x(hst_res, old_plugin_output,
+                          queued_check_result.get_check_options(),
                           reschedule_check, true, cached_host_check_horizon);
 
   engine_logger(dbg_checks, more)
@@ -1584,9 +1608,15 @@ int host::handle_async_check_result_3x(
   /* high resolution end time for event broker */
   gettimeofday(&end_time_hires, nullptr);
 
-  /* send data to event broker */
-  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(),
-                    nullptr, const_cast<char*>(get_plugin_output().c_str()));
+  /* ───────────────────── CMA FORCE THE HOST STATUS ──────────────────── */
+  // this only for passive checks that come from CMA guarded by
+  // CHECK_OPTION_PASSIVE_IS_HARD or CHECK_OPTION_PASSIVE_IS_SOFT
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_HARD)
+    set_state_type(hard);
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_SOFT)
+    set_state_type(soft);
+  /* ─────────────────────────────────────────────────────────────────────── */
+
   return OK;
 }
 
@@ -1599,11 +1629,7 @@ int host::run_scheduled_check(int check_options, double latency) {
   bool time_is_valid = true;
 
   uint32_t interval_length;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-#else
   interval_length = pb_config.interval_length();
-#endif
 
   engine_logger(dbg_functions, basic) << "run_scheduled_host_check_3x()";
   SPDLOG_LOGGER_TRACE(functions_logger, "run_scheduled_host_check_3x()");
@@ -1687,7 +1713,8 @@ int host::run_scheduled_check(int check_options, double latency) {
     }
 
     /* update the status log */
-    update_status();
+    update_status(status_attribute::NEXT_CHECK |
+                  status_attribute::SHOULD_BE_SCHEDULED);
 
     /* reschedule the next host check - unless we couldn't find a valid next
      * check time */
@@ -1740,11 +1767,7 @@ int host::run_async_check(int check_options,
     return ERROR;
 
   int32_t host_check_timeout;
-#ifdef LEGACY_CONF
-  host_check_timeout = config->host_check_timeout();
-#else
   host_check_timeout = pb_config.host_check_timeout();
-#endif
 
   // If this check is a rescheduled check, propagate the rescheduled check
   // flag to the host. This solves the problem when a new host check is bound
@@ -1768,29 +1791,6 @@ int host::run_async_check(int check_options,
 
   // Send broker event.
   timeval start_time{0, 0};
-  int res = broker_host_check(NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, this,
-                              checkable::check_active, nullptr, nullptr);
-
-  // Host check was cancel by NEB module. Reschedule check later.
-  if (NEBERROR_CALLBACKCANCEL == res) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Some broker module cancelled check of host '" << name()
-        << "'";
-    runtime_logger->error(
-        "Error: Some broker module cancelled check of host '{}'", name());
-    return ERROR;
-  }
-  // Host check was overriden by NEB module.
-  else if (NEBERROR_CALLBACKOVERRIDE == res) {
-    engine_logger(dbg_functions, basic)
-        << "Some broker module overrode check of host '" << name()
-        << "' so we'll bail out";
-    SPDLOG_LOGGER_TRACE(
-        functions_logger,
-        "Some broker module overrode check of host '{}' so we'll bail out",
-        name());
-    return OK;
-  }
 
   // Checking starts.
   engine_logger(dbg_functions, basic) << "Checking host '" << name() << "'...";
@@ -1828,7 +1828,7 @@ int host::run_async_check(int check_options,
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this, checkable::check_active,
-                    processed_cmd.c_str(), nullptr);
+                    processed_cmd.c_str());
 
   // Restore latency.
   set_latency(old_latency);
@@ -1878,7 +1878,7 @@ int host::run_async_check(int check_options,
       try {
         // Run command.
         get_check_command_ptr()->run(processed_cmd, *macros, host_check_timeout,
-                                     check_result_info);
+                                     check_result_info, this);
       } catch (std::exception const& e) {
         // Update check result.
         run_failure("(Execute command failed)");
@@ -1906,7 +1906,7 @@ int host::run_async_check(int check_options,
  */
 bool host::schedule_check(time_t check_time,
                           uint32_t options,
-                          bool no_update_status_now) {
+                          bool no_call_update_status) {
   engine_logger(dbg_functions, basic) << "schedule_host_check()";
   SPDLOG_LOGGER_TRACE(functions_logger, "schedule_host_check()");
 
@@ -1931,6 +1931,7 @@ bool host::schedule_check(time_t check_time,
 
   /* default is to use the new event */
   int use_original_event = false;
+  bool next_check_has_changed = false;
 
 #ifdef PERFORMANCE_INCREASE_BUT_VERY_BAD_IDEA_INDEED
 /* WARNING! 1/19/07 on-demand async host checks will end up causing mutliple
@@ -2017,6 +2018,7 @@ bool host::schedule_check(time_t check_time,
     else {
       /* reset the next check time (it may be out of sync) */
       set_next_check(temp_event->run_time);
+      next_check_has_changed = true;
 
       engine_logger(dbg_checks, most)
           << "Keeping original host check event (ignoring the new one).";
@@ -2024,7 +2026,7 @@ bool host::schedule_check(time_t check_time,
           checks_logger,
           "Keeping original host check event at {:%Y-%m-%dT%H:%M:%S} (ignoring "
           "the new one at {:%Y-%m-%dT%H:%M:%S}).",
-          fmt::localtime(get_next_check()), fmt::localtime(check_time));
+          local_tm(get_next_check()), local_tm(check_time));
     }
   }
 
@@ -2038,6 +2040,7 @@ bool host::schedule_check(time_t check_time,
 
     /* set the next host check time */
     set_next_check(check_time);
+    next_check_has_changed = true;
 
     /* place the new event in the event queue */
     auto new_event{std::make_unique<timed_event>(
@@ -2049,8 +2052,10 @@ bool host::schedule_check(time_t check_time,
   }
 
   /* update the status log */
-  if (!no_update_status_now) {
-    update_status();
+  if (!no_call_update_status) {
+    if (next_check_has_changed) {
+      update_status(status_attribute::NEXT_CHECK);
+    }
     return true;
   } else
     return false;
@@ -2079,17 +2084,10 @@ void host::check_for_flapping(bool update,
   float high_host_flap_threshold;
   bool enable_flap_detection;
 
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-  low_host_flap_threshold = config->low_host_flap_threshold();
-  high_host_flap_threshold = config->high_host_flap_threshold();
-  enable_flap_detection = config->enable_flap_detection();
-#else
   interval_length = pb_config.interval_length();
   low_host_flap_threshold = pb_config.low_host_flap_threshold();
   high_host_flap_threshold = pb_config.high_host_flap_threshold();
   enable_flap_detection = pb_config.enable_flap_detection();
-#endif
 
   engine_logger(dbg_functions, basic) << "host::check_for_flapping()";
   SPDLOG_LOGGER_TRACE(functions_logger, "host::check_for_flapping()");
@@ -2326,7 +2324,7 @@ void host::clear_flap(double percent_change,
  * STATUS_ALL).
  */
 void host::update_status(uint32_t attributes) {
-  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this, attributes);
+  broker_host_status(this, attributes);
 }
 
 /**
@@ -2356,15 +2354,9 @@ int host::handle_state() {
   time_t current_time;
   bool log_host_retries;
 
-#ifdef LEGACY_CONF
-  log_host_retries = config->log_host_retries();
-  bool use_host_down_disable_service_checks =
-      config->use_host_down_disable_service_checks();
-#else
   log_host_retries = pb_config.log_host_retries();
   bool use_host_down_disable_service_checks =
       pb_config.host_down_disable_service_checks();
-#endif
 
   engine_logger(dbg_functions, basic) << "handle_host_state()";
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_host_state()");
@@ -2506,11 +2498,7 @@ int host::handle_state() {
 void host::update_performance_data() {
   /* should we be processing performance data for anything? */
 
-#ifdef LEGACY_CONF
-  bool process_performance_data = config->process_performance_data();
-#else
   bool process_performance_data = pb_config.process_performance_data();
-#endif
   if (!process_performance_data)
     return;
 
@@ -2528,8 +2516,7 @@ void host::update_performance_data() {
  */
 void host::update_adaptive_data() {
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_BBDO3_ONLY, this,
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, this,
                             get_modified_attributes());
 }
 
@@ -2547,11 +2534,7 @@ bool host::verify_check_viability(int check_options,
   SPDLOG_LOGGER_TRACE(functions_logger, "check_host_check_viability_3x()");
 
   uint32_t interval_length;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-#else
   interval_length = pb_config.interval_length();
-#endif
   /* get the check interval to use if we need to reschedule the check */
   if (this->get_state_type() == soft &&
       this->get_current_state() != host::state_up)
@@ -2616,15 +2599,13 @@ int host::notify_contact(nagios_macros* mac,
                          const std::string& not_author,
                          const std::string& not_data,
                          int options __attribute((unused)),
-                         int escalated) {
+                         int escalated [[maybe_unused]]) {
   std::string raw_command;
   std::string processed_command;
   bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
-  struct timeval method_start_time, method_end_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  int neb_result;
 
   engine_logger(dbg_functions, basic) << "notify_contact_of_host()";
   SPDLOG_LOGGER_TRACE(functions_logger, "notify_contact_of_host()");
@@ -2634,48 +2615,15 @@ int host::notify_contact(nagios_macros* mac,
 
   bool log_notifications;
   uint32_t notification_timeout;
-#ifdef LEGACY_CONF
-  log_notifications = config->log_notifications();
-  notification_timeout = config->notification_timeout();
-#else
   log_notifications = pb_config.log_notifications();
   notification_timeout = pb_config.notification_timeout();
-#endif
 
   /* get start time */
   gettimeofday(&start_time, nullptr);
 
-  /* send data to event broker */
-  end_time.tv_sec = 0L;
-  end_time.tv_usec = 0L;
-  neb_result = broker_contact_notification_data(
-      NEBTYPE_CONTACTNOTIFICATION_START, NEBFLAG_NONE, NEBATTR_NONE,
-      host_notification, type, start_time, end_time, (void*)this, cntct,
-      not_author.c_str(), not_data.c_str(), escalated, nullptr);
-  if (NEBERROR_CALLBACKCANCEL == neb_result)
-    return ERROR;
-  else if (NEBERROR_CALLBACKOVERRIDE == neb_result)
-    return OK;
-
   /* process all the notification commands this user has */
   for (std::shared_ptr<commands::command> const& cmd :
        cntct->get_host_notification_commands()) {
-    /* get start time */
-    gettimeofday(&method_start_time, nullptr);
-
-    /* send data to event broker */
-    method_end_time.tv_sec = 0L;
-    method_end_time.tv_usec = 0L;
-    neb_result = broker_contact_notification_method_data(
-        NEBTYPE_CONTACTNOTIFICATIONMETHOD_START, NEBFLAG_NONE, NEBATTR_NONE,
-        host_notification, type, method_start_time, method_end_time,
-        (void*)this, cntct, not_author.c_str(), not_data.c_str(), escalated,
-        nullptr);
-    if (NEBERROR_CALLBACKCANCEL == neb_result)
-      break;
-    else if (NEBERROR_CALLBACKOVERRIDE == neb_result)
-      continue;
-
     /* get the raw command line */
     get_raw_command_line_r(mac, cmd, cmd->get_command_line().c_str(),
                            raw_command, macro_options);
@@ -2728,7 +2676,7 @@ int host::notify_contact(nagios_macros* mac,
           << "HOST NOTIFICATION: " << cntct->get_name() << ';' << this->name()
           << ';' << host_notification_state << ";" << cmd->get_name() << ';'
           << this->get_plugin_output() << info;
-      notifications_logger->info("HOST NOTIFICATION: {};{};{};{};{};{}",
+      notifications_logger->info("HOST NOTIFICATION: {};{};{};{};{}{}",
                                  cntct->get_name(), this->name(),
                                  host_notification_state, cmd->get_name(),
                                  this->get_plugin_output(), info);
@@ -2766,16 +2714,6 @@ int host::notify_contact(nagios_macros* mac,
           "after {} seconds",
           cntct->get_name(), processed_command, notification_timeout);
     }
-
-    /* get end time */
-    gettimeofday(&method_end_time, nullptr);
-
-    /* send data to event broker */
-    broker_contact_notification_method_data(
-        NEBTYPE_CONTACTNOTIFICATIONMETHOD_END, NEBFLAG_NONE, NEBATTR_NONE,
-        host_notification, type, method_start_time, method_end_time,
-        (void*)this, cntct, not_author.c_str(), not_data.c_str(), escalated,
-        nullptr);
   }
 
   /* get end time */
@@ -2783,12 +2721,6 @@ int host::notify_contact(nagios_macros* mac,
 
   /* update the contact's last host notification time */
   cntct->set_last_host_notification(start_time.tv_sec);
-
-  /* send data to event broker */
-  broker_contact_notification_data(
-      NEBTYPE_CONTACTNOTIFICATION_END, NEBFLAG_NONE, NEBATTR_NONE,
-      host_notification, type, start_time, end_time, (void*)this, cntct,
-      not_author.c_str(), not_data.c_str(), escalated, nullptr);
 
   return OK;
 }
@@ -2823,8 +2755,8 @@ void host::disable_flap_detection() {
   set_flap_detection_enabled(false);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, this, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, this,
+                            attr);
 
   /* handle the details... */
   handle_flap_detection_disabled();
@@ -2853,8 +2785,8 @@ void host::enable_flap_detection() {
   set_flap_detection_enabled(true);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, this, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, this,
+                            attr);
 
   /* check for flapping */
   check_for_flapping(false, false, true);
@@ -2944,15 +2876,9 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   uint32_t interval_length;
   int32_t additional_freshness_latency;
   uint32_t max_host_check_spread;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-  additional_freshness_latency = config->additional_freshness_latency();
-  max_host_check_spread = config->max_host_check_spread();
-#else
   interval_length = pb_config.interval_length();
   additional_freshness_latency = pb_config.additional_freshness_latency();
   max_host_check_spread = pb_config.max_host_check_spread();
-#endif
 
   engine_logger(dbg_checks, most)
       << "Checking freshness of host '" << name() << "'...";
@@ -3170,17 +3096,10 @@ int host::process_check_result_3x(enum host::host_state new_state,
   uint32_t interval_length;
   bool log_passive_checks;
   bool enable_predictive_host_dependency_checks;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-  log_passive_checks = config->log_passive_checks();
-  enable_predictive_host_dependency_checks =
-      config->enable_predictive_host_dependency_checks();
-#else
   interval_length = pb_config.interval_length();
   log_passive_checks = pb_config.log_passive_checks();
   enable_predictive_host_dependency_checks =
       pb_config.enable_predictive_host_dependency_checks();
-#endif
 
   time_t next_check{get_last_check() + check_interval() * interval_length};
   time_t preferred_time = 0L;
@@ -3209,9 +3128,11 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   /* we have to adjust current attempt # for passive checks, as it isn't done
    * elsewhere */
-  if (get_check_type() == check_passive)
-    adjust_check_attempt(false);
-
+  if (!(check_options &
+        (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))) {
+    if (get_check_type() == check_passive)
+      adjust_check_attempt(false);
+  }
   /* log passive checks - we need to do this here, as some my bypass external
    * commands by getting dropped in checkresults dir */
   if (get_check_type() == check_passive) {
@@ -3603,7 +3524,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   /* reschedule the next check of the host (usually ONLY for scheduled, active
    * checks, unless overridden above) */
-  bool sent = false;
   if (reschedule_check) {
     engine_logger(dbg_checks, more)
         << "Rescheduling next check of host at " << my_ctime(&next_check);
@@ -3611,8 +3531,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
                         "Rescheduling next check of host: {} of last check at "
                         "{:%Y-%m-%dT%H:%M:%S} and next "
                         "check at {:%Y-%m-%dT%H:%M:%S}",
-                        name(), fmt::localtime(get_last_check()),
-                        fmt::localtime(next_check));
+                        name(), local_tm(get_last_check()),
+                        local_tm(next_check));
 
     /* default is to reschedule host check unless a test below fails... */
     set_should_be_scheduled(true);
@@ -3646,14 +3566,12 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
     /* schedule a non-forced check if we can */
     if (get_should_be_scheduled())
-      sent = schedule_check(get_next_check(), CHECK_OPTION_NONE);
+      schedule_check(get_next_check(), CHECK_OPTION_NONE, true);
   }
 
   /* update host status - for both active (scheduled) and passive
    * (non-scheduled) hosts */
-  /* This condition is to avoid to send host status twice. */
-  if (!sent)
-    update_status();
+  update_status();
 
   /* run async checks of all hosts we added above */
   /* don't run a check if one is already executing or we can get by with a
@@ -3782,11 +3700,7 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
   engine_logger(dbg_functions, basic) << "host::authorized_by_dependencies()";
   SPDLOG_LOGGER_TRACE(functions_logger, "host::authorized_by_dependencies()");
 
-#ifdef LEGACY_CONF
-  bool soft_state_dependencies = config->soft_state_dependencies();
-#else
   bool soft_state_dependencies = pb_config.soft_state_dependencies();
-#endif
 
   auto p(hostdependency::hostdependencies.equal_range(name()));
   for (hostdependency_mmap::const_iterator it{p.first}, end{p.second};
@@ -3839,11 +3753,7 @@ void host::check_result_freshness() {
   time_t current_time = 0L;
 
   bool check_host_freshness;
-#ifdef LEGACY_CONF
-  check_host_freshness = config->check_host_freshness();
-#else
   check_host_freshness = pb_config.check_host_freshness();
-#endif
 
   engine_logger(dbg_functions, basic) << "check_host_result_freshness()";
   SPDLOG_LOGGER_TRACE(functions_logger, "check_host_result_freshness()");
@@ -3864,43 +3774,39 @@ void host::check_result_freshness() {
   time(&current_time);
 
   /* check all hosts... */
-  for (host_map::iterator it{host::hosts.begin()}, end{host::hosts.end()};
-       it != end; ++it) {
+  for (const auto& [host_name, host_ptr] : host::hosts) {
     /* skip hosts we shouldn't be checking for freshness */
-    if (!it->second->check_freshness_enabled())
+    if (!host_ptr->check_freshness_enabled())
       continue;
 
     /* skip hosts that have both active and passive checks disabled */
-    if (!it->second->active_checks_enabled() &&
-        !it->second->passive_checks_enabled())
+    if (!host_ptr->active_checks_enabled() &&
+        !host_ptr->passive_checks_enabled())
       continue;
 
     /* skip hosts that are currently executing (problems here will be caught by
      * orphaned host check) */
-    if (it->second->get_is_executing())
+    if (host_ptr->get_is_executing() && !host_ptr->is_cma_host())
       continue;
 
     /* skip hosts that are already being freshened */
-    if (it->second->get_is_being_freshened())
+    if (host_ptr->get_is_being_freshened())
       continue;
 
     // See if the time is right...
     {
-      timezone_locker lock(it->second->get_timezone());
-      if (!check_time_against_period(current_time,
-                                     it->second->check_period_ptr))
+      timezone_locker lock(host_ptr->get_timezone());
+      if (!check_time_against_period(current_time, host_ptr->check_period_ptr))
         continue;
     }
-
     /* the results for the last check of this host are stale */
-    if (!it->second->is_result_fresh(current_time, true)) {
+    if (!host_ptr->is_result_fresh(current_time, true)) {
       /* set the freshen flag */
-      it->second->set_is_being_freshened(true);
+      host_ptr->set_is_being_freshened(true);
 
       /* schedule an immediate forced check of the host */
-      it->second->schedule_check(
-          current_time,
-          CHECK_OPTION_FORCE_EXECUTION | CHECK_OPTION_FRESHNESS_CHECK);
+      host_ptr->schedule_check(current_time, CHECK_OPTION_FORCE_EXECUTION |
+                                                 CHECK_OPTION_FRESHNESS_CHECK);
     }
   }
 }
@@ -3958,13 +3864,8 @@ void host::check_for_orphaned() {
 
   int32_t host_check_timeout;
   uint32_t check_reaper_interval;
-#ifdef LEGACY_CONF
-  host_check_timeout = config->host_check_timeout();
-  check_reaper_interval = config->check_reaper_interval();
-#else
   host_check_timeout = pb_config.host_check_timeout();
   check_reaper_interval = pb_config.check_reaper_interval();
-#endif
 
   /* get the current time */
   time(&current_time);
@@ -3979,6 +3880,9 @@ void host::check_for_orphaned() {
 
     /* skip hosts that are not currently executing */
     if (!it->second->get_is_executing())
+      continue;
+
+    if (it->second->is_cma_host())
       continue;
 
     /* determine the time at which the check results should have come in (allow
@@ -4137,6 +4041,24 @@ void host::resolve(uint32_t& w, uint32_t& e) {
     warnings++;
   }
 
+  /* check if the host has a CMA cmd */
+  bool is_cma = false;
+  if (get_check_command_ptr()) {
+    if (get_check_command_ptr()->get_type() == commands::command::e_type::otel)
+      is_cma = true;
+    if (get_check_command_ptr()->get_type() ==
+        commands::command::e_type::forward) {
+      is_cma =
+          std::static_pointer_cast<commands::forward>(get_check_command_ptr())
+              ->get_sub_command()
+              ->get_type() == commands::command::e_type::otel;
+    }
+  }
+  set_is_cma_host(is_cma);
+  if (is_cma) {
+    config_logger->info("Host '{}' is detected as a CMA host.", name());
+  }
+
   w += warnings;
   e += errors;
 
@@ -4176,11 +4098,15 @@ void host::set_check_command_ptr(
  * @return std::string
  */
 std::string host::get_check_command_line(nagios_macros* macros) {
-  grab_host_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
-  return get_check_command_ptr()->process_cmd(macros);
+  auto cmd = get_check_command_ptr();
+  if (cmd) {
+    grab_host_macros_r(macros, this);
+    std::string tmp;
+    get_raw_command_line_r(macros, cmd, check_command().c_str(), tmp, 0);
+    return cmd->process_cmd(macros);
+  } else {
+    return "";
+  }
 }
 
 /**

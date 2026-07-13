@@ -1,23 +1,23 @@
 /**
-* Copyright 1999-2011 Ethan Galstad
-* Copyright 2011-2013 Merethis
+ * Copyright 1999-2011 Ethan Galstad
+ * Copyright 2011-2013 Merethis
  * Copyright 2023-2024 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/shared.hh"
 #include <random>
@@ -143,11 +143,7 @@ void get_datetime_string(time_t const* raw_time,
 #endif /* HAVE_TM_ZONE || HAVE_TZNAME */
 
   int32_t date_format;
-#ifdef LEGACY_CONF
-  date_format = config->date_format();
-#else
   date_format = pb_config.date_format();
-#endif
 
   /* ctime() style date/time */
   if (type == LONG_DATE_TIME)

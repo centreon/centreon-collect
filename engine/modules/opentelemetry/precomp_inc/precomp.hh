@@ -20,6 +20,7 @@
 #ifndef CCE_MOD_OTL_SERVER_PRECOMP_HH
 #define CCE_MOD_OTL_SERVER_PRECOMP_HH
 
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
@@ -41,10 +42,12 @@ namespace asio = boost::asio;
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
+
 namespace po = boost::program_options;
 
 #include <fmt/chrono.h>

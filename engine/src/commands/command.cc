@@ -41,7 +41,7 @@ command_map commands::command::commands;
  */
 commands::command::command(const std::string& name,
                            const std::string& command_line,
-                           command_listener* listener,
+                           const std::shared_ptr<command_listener>& listener,
                            e_type cmd_type)
     : _type(cmd_type),
       _command_line(command_line),
@@ -50,7 +50,12 @@ commands::command::command(const std::string& name,
   if (_name.empty())
     throw engine_error() << "Could not create a command with an empty name";
   if (_listener) {
-    std::function<void()> f = [this] { _listener = nullptr; };
+    std::function<void()> f = [weak_me = weak_from_this()] {
+      auto me = weak_me.lock();
+      if (me) {
+        me->_listener.reset();
+      }
+    };
     _listener->reg(this, f);
   }
 }
@@ -114,17 +119,22 @@ void commands::command::set_command_line(const std::string& command_line) {
 }
 
 /**
- *  Set the command listener.
+ *  Set the command listener. ⚠️ no thread safe, used only for tests
  *
  *  @param[in] listener  The listener who catch events.
  */
 void commands::command::set_listener(
-    commands::command_listener* listener) noexcept {
+    const std::shared_ptr<commands::command_listener>& listener) noexcept {
   if (_listener)
     _listener->unreg(this);
   _listener = listener;
   if (_listener) {
-    std::function<void()> f([this] { _listener = nullptr; });
+    std::function<void()> f = [weak_me = weak_from_this()] {
+      auto me = weak_me.lock();
+      if (me) {
+        me->_listener.reset();
+      }
+    };
     _listener->reg(this, f);
   }
 }
@@ -178,11 +188,7 @@ bool commands::command::gest_call_interval(
     caller_to_last_call_map::iterator group_search = _result_cache.find(caller);
     if (group_search != _result_cache.end()) {
       time_t now = time(nullptr);
-#ifdef LEGACY_CONF
-      uint32_t interval_length = config->interval_length();
-#else
       uint32_t interval_length = pb_config.interval_length();
-#endif
       if (group_search->second->launch_time + interval_length >= now &&
           group_search->second->res) {  // old check is too recent
         result_to_reuse = std::make_shared<result>(*group_search->second->res);

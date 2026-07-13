@@ -48,10 +48,8 @@ overrides:
       - centreon-engine-daemon (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-dbgsym
-      - centreon-engine-dbgsym
       - centreon-engine-extcommands-dbgsym
     replaces:
-      - centreon-engine-dbgsym
       - centreon-engine-dbgsym
       - centreon-engine-extcommands-dbgsym
     provides:

@@ -354,6 +354,8 @@ sub execute_cmd {
                     cache_dir => $cache_dir,
                     owner => 'centreon',
                     group => 'centreon',
+                    # With SYNCTRAP the destination file must have permissions 0664
+                    mode => '0664',
                     metadata => {
                         centcore_proxy => 1,
                         centcore_cmd => 'SYNCTRAP'
@@ -362,22 +364,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERESTART') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
@@ -397,22 +383,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RESTART') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
@@ -433,22 +403,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERELOAD') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         my $cmd = $self->{pollers}->{ $options{target} }->{engine_reload_command};
         $self->send_internal_action({
             action => 'ACTIONENGINE',
@@ -467,22 +421,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RELOAD') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         my $cmd = $self->{pollers}->{$options{target}}->{engine_reload_command};
         $self->send_internal_action({
             action => 'COMMAND',
@@ -600,10 +538,20 @@ sub execute_cmd {
         if (!defined($self->{clapi_password})) {
             return (-1, 'need centreon clapi password to execute STARTWORKER command');
         }
+        my $task_timeout;
+        # need to send to clapi the timeout that gorgone is using from the action module
+        foreach my $module (@{$self->{config_core}->{modules}}) {
+            if ($module->{package} eq 'gorgone::modules::core::action::hooks') {
+                $task_timeout = $module->{command_timeout};
+                last
+            }
+        }
+        $task_timeout ||= 60;
+
         my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
             $connector->{config}->{centreon_dir} : '/usr/share/centreon';
         my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
-            $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
+            $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue --commandTimeout '.$task_timeout;
         $self->send_internal_action({
             action => 'COMMAND',
             target => undef,
@@ -613,6 +561,7 @@ sub execute_cmd {
                 content => [
                     {
                         command => $cmd,
+                        timeout => $task_timeout,
                         metadata => {
                             centcore_cmd => 'STARTWORKER'
                         }
@@ -620,8 +569,22 @@ sub execute_cmd {
                 ]
             }
         });
+    }
+    elsif ($options{cmd} eq 'VMWARERESTART') {
+
+        $self->send_internal_action({
+            action => 'ACTIONENGINE',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    command => 'sudo systemctl restart centreon_vmware.service',
+                }
+            }
+        });
     } else{
-        $self->{logger}->writeLogError('[legacycmd] Cannot process message type ' . $options{cmd} . "throwing it away.");
+        $self->{logger}->writeLogWarning('[legacycmd] Cannot process message type ' . $options{cmd} . "throwing it away.");
     }
 
     return 0;
@@ -636,7 +599,7 @@ sub action_addimporttaskwithparent {
             token => $options{token},
             logging => $options{data}->{logging},
             data => {
-                message => "expected parent_id task ID, found '" . $options{data}->{content}->{parent_id} . "'",
+                message => "expected parent_id task ID",
             }
         );
         return -1;
@@ -660,10 +623,20 @@ sub action_addimporttaskwithparent {
         return -1;
     }
 
-    my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
-        $connector->{config}->{centreon_dir} : '/usr/share/centreon';
+    my $task_timeout;
+    foreach my $module (@{$self->{config_core}->{modules}}) {
+        # need to send to clapi the timeout that gorgone is using from the action module
+        if ($module->{package} eq 'gorgone::modules::core::action::hooks') {
+            $task_timeout = $module->{command_timeout};
+            last
+        }
+    }
+
+    $task_timeout ||= 60;
+
+    my $centreon_dir = $connector->{config}->{centreon_dir} // '/usr/share/centreon';
     my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
-        $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
+        $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue --commandTimeout '.$task_timeout;
     $self->send_internal_action({
         action => 'COMMAND',
         token => $options{token},
@@ -671,7 +644,8 @@ sub action_addimporttaskwithparent {
             logging => $options{data}->{logging},
             content => [
                 {
-                    command => $cmd
+                    command => $cmd,
+                    timeout => $task_timeout,
                 }
             ],
             parameters => { no_fork => 1 }

@@ -18,7 +18,10 @@
 
 #include "com/centreon/broker/graphite/factory.hh"
 #include <absl/strings/match.h>
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/graphite/connector.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -93,15 +96,21 @@ static uint32_t get_uint_param(config::endpoint const& cfg,
  *
  *  @return true if the configuration matches the storage layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("GRAPHITE", false, false);
-  bool is_gpdb{absl::EqualsIgnoreCase(cfg.type, "graphite")};
-  if (is_gpdb) {
-    cfg.params["cache"] = "yes";
-    cfg.cache_enabled = true;
-  }
-  return is_gpdb;
+  return absl::EqualsIgnoreCase(cfg.type, "graphite");
+}
+
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["cache"] = "no";
+  cfg.cache_enabled = false;
 }
 
 /**
@@ -117,7 +126,7 @@ io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+    std::shared_ptr<persistent_cache>) const {
   std::string db_host(find_param(cfg, "db_host"));
   unsigned short db_port(get_uint_param(cfg, "db_port", 2003));
   std::string db_user(get_string_param(cfg, "db_user", ""));
@@ -130,10 +139,16 @@ io::endpoint* factory::new_endpoint(
       get_string_param(cfg, "status_naming", "centreon.statuses.$INDEXID$"));
   std::string escape_string(get_string_param(cfg, "escape_string", "_"));
 
+  if (config::applier::state::loaded()) {  // false only happens in UTs
+    cache::global_cache::load(
+        com::centreon::common::pool::io_context_ptr(),
+        config::applier::state::instance().cache_dir() + ".cache.global");
+  }
+
   // Connector.
   std::unique_ptr<graphite::connector> c(new graphite::connector);
   c->connect_to(metric_naming, status_naming, escape_string, db_user,
-                db_password, db_host, db_port, queries_per_transaction, cache);
+                db_password, db_host, db_port, queries_per_transaction);
   is_acceptor = false;
   return (c.release());
 }

@@ -19,7 +19,10 @@
 #ifndef CENTREON_AGENT_SCHEDULER_HH
 #define CENTREON_AGENT_SCHEDULER_HH
 
+#include <memory>
 #include "check.hh"
+#include "common/crypto/aes256.hh"
+#include "common/engine_conf/timeperiod.pb.h"
 
 namespace com::centreon::agent {
 
@@ -37,17 +40,23 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>&,
       const std::shared_ptr<spdlog::logger>& /*logger*/,
       time_point /* start expected*/,
-      duration /* check interval */,
-      const std::string& /*service*/,
-      const std::string& /*cmd_name*/,
-      const std::string& /*cmd_line*/,
+      const Service& /*service*/,
       const engine_to_agent_request_ptr& /*engine to agent request*/,
       check::completion_handler&&,
-      const checks_statistics::pointer& /*stat*/)>;
+      const checks_statistics::pointer& /*stat*/,
+      const std::shared_ptr<common::crypto::aes256> /*credentials_decrypt*/
+      )>;
 
  private:
+  /**
+   * @brief we split time in slots, length of a time slot is given by
+   * _check_time_step._step As we start at most one check per time slot, queue
+   * is indexed by step number from scheduling calculation (the time we receive
+   * configuration from engine)
+   *
+   */
   using check_queue =
-      absl::btree_set<check::pointer, check::pointer_start_compare>;
+      absl::btree_map<uint64_t /*number of steps*/, check::pointer>;
 
   check_queue _waiting_check_queue;
   // running check counter that must not exceed max_concurrent_check
@@ -84,10 +93,18 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // last received configuration
   engine_to_agent_request_ptr _conf;
 
-  // As protobuf message calculation can be expensive, we measure size of first protobuf message of ten metrics for example,
-  // then we devide it by the number of metrics and we store it in this variable
-  // For the next frames, we multiply metrics number by this variable to estimate message length
+  // As protobuf message calculation can be expensive, we measure size of first
+  // protobuf message of ten metrics for example, then we devide it by the
+  // number of metrics and we store it in this variable For the next frames, we
+  // multiply metrics number by this variable to estimate message length
   unsigned _average_metric_length;
+
+  std::shared_ptr<common::crypto::aes256> _credentials_decrypt;
+
+  // Map from timeperiod_name to Timeperiod proto pointer
+  absl::flat_hash_map<std::string,
+                      const com::centreon::engine::configuration::Timeperiod*>
+      _timeperiods;
 
   void _start();
   void _start_send_timer();
@@ -132,6 +149,10 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const char* label,
       bool value,
       ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_point);
+  void _add_exemplar(
+      const char* label,
+      int value,
+      ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_point);
 
   void _start_waiting_check();
 
@@ -147,9 +168,21 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   scheduler(const scheduler&) = delete;
   scheduler operator=(const scheduler&) = delete;
 
+  ~scheduler();
+
+  void on_engine_request(const engine_to_agent_request_ptr& request);
+
   void update(const engine_to_agent_request_ptr& conf);
 
+  void force_check(const engine_to_agent_request_ptr& request);
+
   static std::shared_ptr<com::centreon::agent::MessageToAgent> default_config();
+
+  // Compare the host's configured timezone vs agent timezone
+  static void check_host_timezone(const std::shared_ptr<spdlog::logger>& logger,
+                                  int32_t cfg_offset,
+                                  bool cfg_dst,
+                                  const std::string& cfg_tz_name);
 
   template <typename sender, typename chck_builder>
   static std::shared_ptr<scheduler> load(
@@ -166,13 +199,11 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
-      duration check_interval,
-      const std::string& service,
-      const std::string& cmd_name,
-      const std::string& cmd_line,
+      const Service& service,
       const engine_to_agent_request_ptr& conf,
       check::completion_handler&& handler,
-      const checks_statistics::pointer& stat);
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
 
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;

@@ -56,14 +56,10 @@ class contact {
   contact& operator=(contact const& other) = delete;
   bool operator==(contact const& other) = delete;
   bool operator!=(contact const& other) = delete;
-  void update_status_info(bool aggregated_dump);
 
   // Base properties.
   std::string const& get_address(int index) const;
   std::vector<std::string> const& get_addresses() const;
-#ifdef LEGACY_CONF
-  void set_addresses(const std::vector<std::string>& addresses);
-#endif
   void set_addresses(std::vector<std::string>&& addresses);
   std::string const& get_alias() const;
   void set_alias(std::string const& alias);
@@ -209,6 +205,6 @@ std::shared_ptr<com::centreon::engine::contact> add_contact(
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::contact const& obj);
-std::ostream& operator<<(std::ostream& os, contact_map_unsafe const& obj);
+std::ostream& operator<<(std::ostream& os, const contact_map& obj);
 
 #endif  // !CCE_CONTACT_HH

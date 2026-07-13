@@ -101,7 +101,7 @@ void engine::logging::broker::log(uint64_t types [[maybe_unused]],
       copy.get()[size] = 0;
 
       // Event broker callback.
-      broker_log_data(copy.get(), time(NULL));
+      broker_log_data_legacy(copy.get(), time(NULL));
       _thread_id = std::thread::id();
     }
   }

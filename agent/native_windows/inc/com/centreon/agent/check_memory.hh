@@ -21,8 +21,6 @@
 
 #include "native_check_base.hh"
 
-struct _PERFORMANCE_INFORMATION;
-
 namespace com::centreon::agent {
 namespace native_check_detail {
 
@@ -53,10 +51,12 @@ class w_memory_info
 
   w_memory_info(unsigned flags);
   w_memory_info(const MEMORYSTATUSEX& mem_status,
-                const struct _PERFORMANCE_INFORMATION& perf_mem_status,
+                uint64_t pagefile_total_bytes,
+                uint64_t pagefile_used_bytes,
                 unsigned flags = 0);
   void init(const MEMORYSTATUSEX& mem_status,
-            const struct _PERFORMANCE_INFORMATION& perf_mem_status);
+            uint64_t pagefile_total_bytes,
+            uint64_t pagefile_used_bytes);
 
   void dump_to_output(std::string* output) const override;
 };
@@ -76,10 +76,7 @@ class check_memory : public native_check_base<
   check_memory(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                time_point first_start_expected,
-               duration check_interval,
-               const std::string& serv,
-               const std::string& cmd_name,
-               const std::string& cmd_line,
+               const Service& serv,
                const rapidjson::Value& args,
                const engine_to_agent_request_ptr& cnf,
                check::completion_handler&& handler,

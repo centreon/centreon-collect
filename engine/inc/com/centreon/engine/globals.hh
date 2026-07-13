@@ -21,22 +21,20 @@
 #ifndef CCE_GLOBALS_HH
 #define CCE_GLOBALS_HH
 
-#include <stdio.h>
-
+#include "com/centreon/broker/neb/cbmod.hh"
 #include "com/centreon/engine/circular_buffer.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/state.hh"
-#else
-#endif
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 extern std::shared_ptr<spdlog::logger> checks_logger;
 extern std::shared_ptr<spdlog::logger> commands_logger;
@@ -47,17 +45,15 @@ extern std::shared_ptr<spdlog::logger> events_logger;
 extern std::shared_ptr<spdlog::logger> external_command_logger;
 extern std::shared_ptr<spdlog::logger> functions_logger;
 extern std::shared_ptr<spdlog::logger> macros_logger;
+extern std::shared_ptr<spdlog::logger> neb_logger;
 extern std::shared_ptr<spdlog::logger> notifications_logger;
 extern std::shared_ptr<spdlog::logger> process_logger;
 extern std::shared_ptr<spdlog::logger> runtime_logger;
 extern std::shared_ptr<spdlog::logger> otel_logger;
 
-#ifdef LEGACY_CONF
-extern com::centreon::engine::configuration::state* config;
-#else
 extern com::centreon::engine::configuration::State pb_config;
-#endif
 extern std::string config_file;
+extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 
 extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
 extern com::centreon::engine::commands::command*
@@ -144,6 +140,15 @@ extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
 
+extern std::unique_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
+
 void init_loggers();
+
+constexpr std::string_view default_cma_pki_dir = "/etc/pki/centreon-engine";
+constexpr std::string_view default_cma_ca_key =
+    "/etc/pki/centreon-engine/default_cma_ca.key";
+constexpr std::string_view default_cma_ca_crt =
+    "/etc/pki/centreon-engine/default_cma_ca.crt";
 
 #endif /* !CCE_GLOBALS_HH */

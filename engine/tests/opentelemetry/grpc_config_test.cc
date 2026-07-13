@@ -29,21 +29,24 @@ using namespace com::centreon::common::literals;
 TEST(otl_grpc_config, nor_host_nor_port_json) {
   ASSERT_THROW(grpc_config t(R"(
 {   "toto":5
-})"_json),
+})"_json,
+                             "", ""),
                std::exception);
 }
 
 TEST(otl_grpc_config, no_port_json) {
   ASSERT_THROW(grpc_config t(R"(
 {   "host":"127.0.0.1"
-})"_json),
+})"_json,
+                             "", ""),
                std::exception);
 }
 
 TEST(otl_grpc_config, no_host_json) {
   ASSERT_THROW(grpc_config t(R"(
 {   "port":5678
-})"_json),
+})"_json,
+                             "", ""),
                std::exception);
 }
 
@@ -52,7 +55,8 @@ TEST(otl_grpc_config, bad_port_json) {
 {   
     "host":"127.0.0.1",
     "port":1000
-})"_json),
+})"_json,
+                             "", ""),
                std::exception);
 }
 
@@ -61,7 +65,8 @@ TEST(otl_grpc_config, bad_port_json2) {
 {   
     "host":"127.0.0.1",
     "port":"2500"
-})"_json),
+})"_json,
+                             "", ""),
                std::exception);
 }
 
@@ -70,7 +75,8 @@ TEST(otl_grpc_config, bad_port_json3) {
 {   
     "host":"127.0.0.1",
     "port":250000
-})"_json),
+})"_json,
+                             "", ""),
                std::exception);
 }
 
@@ -79,7 +85,8 @@ TEST(otl_grpc_config, good_host_port) {
 {   
     "host":"127.0.0.1",
     "port":2500
-})"_json);
+})"_json,
+                "", "");
   ASSERT_EQ(c.get_hostport(), "127.0.0.1:2500");
   ASSERT_FALSE(c.is_compressed());
   ASSERT_FALSE(c.is_crypted());
@@ -95,10 +102,11 @@ TEST(otl_grpc_config, good_host_port2) {
 {   
     "host":"127.0.0.1",
     "port":2500,
-    "encryption":true,
+    "encryption":"full",
     "compression": true,
     "ca_name":"toto"
-})"_json);
+})"_json,
+                "", "");
   ASSERT_EQ(c.get_hostport(), "127.0.0.1:2500");
   ASSERT_TRUE(c.is_compressed());
   ASSERT_TRUE(c.is_crypted());
@@ -107,4 +115,169 @@ TEST(otl_grpc_config, good_host_port2) {
   ASSERT_EQ(c.get_ca_name(), "toto");
   ASSERT_TRUE(c.get_ca().empty());
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
+}
+
+// test if we can set trusted tokens
+TEST(otl_grpc_config, tokens) {
+  grpc_config c(R"(
+{   
+    "host":"127.0.0.1",
+    "port":2500,
+    "encryption":"full",
+    "compression": true,
+    "ca_name":"toto",
+    "token":"token1",
+    "trusted_tokens":["toto","titi"]
+})"_json,
+                "", "");
+  ASSERT_EQ(c.get_hostport(), "127.0.0.1:2500");
+  ASSERT_TRUE(c.is_compressed());
+  ASSERT_TRUE(c.is_crypted());
+  ASSERT_TRUE(c.get_cert().empty());
+  ASSERT_TRUE(c.get_key().empty());
+  ASSERT_EQ(c.get_ca_name(), "toto");
+  ASSERT_TRUE(c.get_ca().empty());
+  ASSERT_EQ(c.get_second_keepalive_interval(), 30);
+  ASSERT_EQ(c.get_token(), "token1");
+  ASSERT_EQ(c.get_trusted_tokens()->size(), 2);
+  ASSERT_TRUE(c.get_trusted_tokens()->contains("toto"));
+  ASSERT_TRUE(c.get_trusted_tokens()->contains("titi"));
+}
+
+//  test if we can compare trusted tokens
+TEST(otl_grpc_config, tokencompare) {
+  grpc_config c(R"(
+{   
+    "host":"127.0.0.1",
+    "port":2500,
+    "encryption":"full",
+    "compression": true,
+    "ca_name":"toto"
+})"_json,
+                "", "");
+  grpc_config c_same(R"(
+  {   
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"full",
+      "compression": true,
+      "ca_name":"toto"
+  })"_json,
+                     "", "");
+  grpc_config c2(R"(
+  {   
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"full",
+      "compression": true,
+      "ca_name":"toto",
+      "trusted_tokens":["toto","titi"]
+  })"_json,
+                 "", "");
+  grpc_config c2_same(R"(
+  {   
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"full",
+      "compression": true,
+      "ca_name":"toto",
+      "trusted_tokens":["toto","titi"]
+  })"_json,
+                      "", "");
+  grpc_config c2_minos(R"(
+    {   
+        "host":"127.0.0.1",
+        "port":2500,
+        "encryption":"full",
+        "compression": true,
+        "ca_name":"toto",
+        "trusted_tokens":["toto"]
+    })"_json,
+                       "", "");
+  grpc_config c2_plus(R"(
+      {   
+          "host":"127.0.0.1",
+          "port":2500,
+          "encryption":"full",
+          "compression": true,
+          "ca_name":"toto",
+          "trusted_tokens":["toto","titi","tata"]
+      })"_json,
+                      "", "");
+
+  ASSERT_EQ(c.compare(c_same), 0);
+  ASSERT_EQ(c.compare(c2), -1);
+  ASSERT_EQ(c2.compare(c), 1);
+  ASSERT_EQ(c2.compare(c2_same), 0);
+  ASSERT_EQ(c2.compare(c2_minos), 1);
+  ASSERT_EQ(c2.compare(c2_plus), -1);
+}
+
+//  test all allow encryption values
+//  full, insecure, no, true, false
+TEST(otl_grpc_config, encryption_value) {
+  grpc_config conf_full(R"(
+{
+    "host":"127.0.0.1",
+    "port":2500,
+    "encryption":"full"
+})"_json,
+                        "", "");
+  grpc_config conf_insecure(R"(
+  {
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"insecure"
+  })"_json,
+                            "", "");
+  grpc_config conf_no(R"(
+  {
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"no"
+  })"_json,
+                      "", "");
+  grpc_config conf_true_s(R"(
+  {
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"true"
+  })"_json,
+                          "", "");
+  grpc_config conf_false_s(R"(
+    {
+        "host":"127.0.0.1",
+        "port":2500,
+        "encryption":"false"
+    })"_json,
+                           "", "");
+  grpc_config conf_true(R"(
+      {
+          "host":"127.0.0.1",
+          "port":2500,
+          "encryption":true
+      })"_json,
+                        "", "");
+  grpc_config conf_false(R"(
+      {
+          "host":"127.0.0.1",
+          "port":2500,
+          "encryption":false
+      })"_json,
+                         "", "");
+
+  ASSERT_EQ(conf_full.get_security_mode(), grpc_config::TLS_SECURE);
+  ASSERT_TRUE(conf_full.is_crypted());
+  ASSERT_EQ(conf_insecure.get_security_mode(), grpc_config::TLS_INSECURE);
+  ASSERT_TRUE(conf_insecure.is_crypted());
+  ASSERT_EQ(conf_no.get_security_mode(), grpc_config::NONE);
+  ASSERT_FALSE(conf_no.is_crypted());
+  ASSERT_EQ(conf_true_s.get_security_mode(), grpc_config::TLS_INSECURE);
+  ASSERT_TRUE(conf_true_s.is_crypted());
+  ASSERT_EQ(conf_false_s.get_security_mode(), grpc_config::NONE);
+  ASSERT_FALSE(conf_false_s.is_crypted());
+  ASSERT_EQ(conf_true.get_security_mode(), grpc_config::TLS_INSECURE);
+  ASSERT_TRUE(conf_true.is_crypted());
+  ASSERT_EQ(conf_false.get_security_mode(), grpc_config::NONE);
+  ASSERT_FALSE(conf_false.is_crypted());
 }

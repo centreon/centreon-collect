@@ -20,6 +20,7 @@
 #define CENTREON_AGENT_NATIVE_CHECK_CPU_BASE_HH
 
 #include "check.hh"
+#include "com/centreon/common/threshold.hh"
 
 namespace com::centreon::agent {
 
@@ -145,22 +146,22 @@ class cpu_to_status {
   e_status _status;
   unsigned _data_index;
   bool _average;
-  double _threshold;
+  common::threshold _threshold;
 
  public:
   cpu_to_status(e_status status,
                 unsigned data_index,
                 bool average,
-                double threshold)
+                common::threshold threshold)
       : _status(status),
         _data_index(data_index),
         _average(average),
-        _threshold(threshold) {}
+        _threshold(std::move(threshold)) {}
 
   unsigned get_proc_stat_index() const { return _data_index; }
   bool is_critical() const { return _status == e_status::critical; }
   bool is_average() const { return _average; }
-  double get_threshold() const { return _threshold; }
+  const common::threshold& get_threshold() const { return _threshold; }
   e_status get_status() const { return _status; }
 
   void compute_status(
@@ -215,10 +216,7 @@ class native_check_cpu : public check {
   native_check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    time_point first_start_expected,
-                   duration check_interval,
-                   const std::string& serv,
-                   const std::string& cmd_name,
-                   const std::string& cmd_line,
+                   const Service& serv,
                    const rapidjson::Value& args,
                    const engine_to_agent_request_ptr& cnf,
                    check::completion_handler&& handler,

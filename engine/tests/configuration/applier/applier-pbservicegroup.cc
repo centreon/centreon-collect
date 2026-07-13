@@ -134,6 +134,7 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   aply_hst.add_object(hst);
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
@@ -147,6 +148,7 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  svc_hlp.set_default_values();
   aply_svc.add_object(svc);
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
@@ -176,6 +178,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   aply_hst.add_object(hst);
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
@@ -190,6 +193,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   svc.set_host_id(12);
 
   configuration::error_cnt err;
+  svc_hlp.set_default_values();
   aply_svc.add_object(svc);
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
@@ -235,6 +239,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   aply_hst.add_object(hst);
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
@@ -248,6 +253,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  svc_hlp.set_default_values();
   aply_svc.add_object(svc);
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
@@ -300,6 +306,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   aply_hst.add_object(hst);
 
   configuration::Service svc;
@@ -311,6 +318,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
   svc.set_check_command("cmd");
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
+  svc_hlp.set_default_values();
   aply_svc.add_object(svc);
   svc_hlp.hook("servicegroups", "test_group");
 

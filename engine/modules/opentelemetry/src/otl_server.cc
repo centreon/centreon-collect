@@ -94,7 +94,7 @@ class request_response_allocator
  */
 metric_request_ptr request_response_allocator::get_metric_request_ptr_from_raw(
     const otl_col_metrics::ExportMetricsServiceRequest* raw_request) {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   auto found = _allocated.find(raw_request);
   if (found != _allocated.end()) {
     return found->second;
@@ -110,7 +110,7 @@ metric_request_ptr request_response_allocator::get_metric_request_ptr_from_raw(
  */
 void request_response_allocator::release_request(
     const otl_col_metrics::ExportMetricsServiceRequest* raw_request) {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   _allocated.erase(raw_request);
 }
 
@@ -126,7 +126,7 @@ void request_response_allocator::release_request(
 request_response_allocator::AllocateMessages() {
   request_response_holder* ret =
       new request_response_holder(shared_from_this());
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   _allocated.emplace(ret->request(), ret->get_request());
   return ret;
 }
@@ -262,7 +262,7 @@ std::shared_ptr<metric_service> metric_service::load(
   metric_request_ptr shared_request =
       _allocator->get_metric_request_ptr_from_raw(request);
 
-  SPDLOG_LOGGER_TRACE(_logger, "receive:{}", *request);
+  SPDLOG_LOGGER_TRACE(_logger, "receive:{}", otl_formatter{*request});
   if (shared_request) {
     _request_handler(shared_request);
   } else {
@@ -283,21 +283,12 @@ std::shared_ptr<metric_service> metric_service::load(
  * @param conf grpc configuration
  * @param handler handler that will be called on every request
  */
-otl_server::otl_server(
-    const std::shared_ptr<boost::asio::io_context>& io_context,
-    const grpc_config::pointer& conf,
-    const centreon_agent::agent_config::pointer& agent_config,
-    const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger,
-    const centreon_agent::agent_stat::pointer& agent_stats)
+otl_server::otl_server(const grpc_config::pointer& conf,
+                       const metric_handler& handler,
+                       const std::shared_ptr<spdlog::logger>& logger)
 
     : common::grpc::grpc_server_base(conf, logger),
-      _service(detail::metric_service::load(handler, logger)),
-      _agent_service(centreon_agent::agent_service::load(io_context,
-                                                         agent_config,
-                                                         handler,
-                                                         logger,
-                                                         agent_stats)) {}
+      _service(detail::metric_service::load(handler, logger)) {}
 
 /**
  * @brief Destroy the otl server::otl server object
@@ -321,8 +312,29 @@ otl_server::pointer otl_server::load(
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
     const centreon_agent::agent_stat::pointer& agent_stats) {
-  otl_server::pointer ret(new otl_server(io_context, conf, agent_config,
-                                         handler, logger, agent_stats));
+  otl_server::pointer ret(new otl_server(conf, handler, logger));
+
+  // create token validator that capture weak ptr
+  validator token_validator = [weak_self = ret->weak_from_this()](
+                                  grpc::CallbackServerContext* ctx,
+                                  std::chrono::system_clock::time_point& exp) {
+    if (auto me = weak_self.lock()) {
+      return me->is_token_valid(ctx, exp);
+    }
+    // server was destroyed → safe reject
+    return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                          "Server destroyed");
+  };
+
+  ret->_agent_service = centreon_agent::agent_service::load(
+      io_context, agent_config, handler, logger, agent_stats,
+      conf->is_crypted(), std::move(token_validator));
+
+  if (conf->is_crypted() && !conf->get_ca().empty()) {
+    ret->_ca_service =
+        centreon_agent::certificate_service::load(logger, conf->get_ca());
+  }
+
   ret->start();
   return ret;
 }
@@ -335,6 +347,9 @@ void otl_server::start() {
   _init([this](::grpc::ServerBuilder& builder) {
     builder.RegisterService(_service.get());
     builder.RegisterService(_agent_service.get());
+    if (_ca_service) {
+      builder.RegisterService(_ca_service.get());
+    }
   });
 }
 

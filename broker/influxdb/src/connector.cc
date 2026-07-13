@@ -21,22 +21,18 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
-#include "com/centreon/broker/persistent_cache.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/service.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _influxdb_stream_filter = {
     storage::metric::static_type(), storage::status::static_type(),
     storage::pb_metric::static_type(), storage::pb_status::static_type(),
-    // cache events
-    neb::instance::static_type(), neb::pb_instance::static_type(),
-    neb::host::static_type(), neb::pb_host::static_type(),
-    neb::service::static_type(), neb::pb_service::static_type(),
-    storage::index_mapping::static_type(),
-    storage::pb_index_mapping::static_type(),
-    storage::metric_mapping::static_type(),
-    storage::pb_metric_mapping::static_type(),
     make_type(io::extcmd, extcmd::de_pb_bench)};
 
 static constexpr multiplexing::muxer_filter _influxdb_forbidden_filter =
@@ -60,10 +56,9 @@ void connector::connect_to(std::string const& user,
                            std::string const& db,
                            uint32_t queries_per_transaction,
                            std::string const& status_ts,
-                           std::vector<column> const& status_cols,
+                           std::vector<http_tsdb::column> const& status_cols,
                            std::string const& metric_ts,
-                           std::vector<column> const& metric_cols,
-                           std::shared_ptr<persistent_cache> const& cache) {
+                           std::vector<http_tsdb::column> const& metric_cols) {
   _user = user;
   _password = passwd;
   _addr = addr;
@@ -73,7 +68,6 @@ void connector::connect_to(std::string const& user,
   _status_cols = status_cols;
   _metric_ts = metric_ts;
   _metric_cols = metric_cols;
-  _cache = cache;
 }
 
 /**
@@ -82,7 +76,13 @@ void connector::connect_to(std::string const& user,
  * @return An Influxdb connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  return std::unique_ptr<stream>(
-      new stream(_user, _password, _addr, _port, _db, _queries_per_transaction,
-                 _status_ts, _status_cols, _metric_ts, _metric_cols, _cache));
+  try {
+    return std::unique_ptr<stream>(new stream(
+        _user, _password, _addr, _port, _db, _queries_per_transaction,
+        _status_ts, _status_cols, _metric_ts, _metric_cols));
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::INFLUXDB),
+                        "Fail to init influxdb connexion: {}", e.what());
+    throw;
+  }
 }

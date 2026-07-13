@@ -45,7 +45,6 @@ class TestFeeder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    stats::center::load();
     config::applier::state::load(com::centreon::common::BROKER);
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
@@ -67,7 +66,6 @@ class TestFeeder : public ::testing::Test {
     config::applier::state::unload();
     io::events::unload();
     io::protocols::unload();
-    stats::center::unload();
     file::disk_accessor::unload();
   }
 };

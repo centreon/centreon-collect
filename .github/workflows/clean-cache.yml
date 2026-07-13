@@ -1,0 +1,36 @@
+name: clean-cache-on-pr-close
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  clean-cache:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - name: Delete all caches for closed PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          BRANCH="refs/pull/$PR_NUMBER/merge"
+
+          echo "Fetching cache keys for: $BRANCH"
+          mapfile -t cache_keys < <(gh cache list --ref "$BRANCH" --json key -q '.[] | .key' -R "$REPO")
+
+          if [ ${#cache_keys[@]} -eq 0 ]; then
+            echo "No caches found for this PR."
+            exit 0
+          fi
+
+          echo "Found ${#cache_keys[@]} cache(s) to delete."
+          set +e
+          for key in "${cache_keys[@]}"; do
+            gh cache delete "$key" --ref "$BRANCH" -R "$REPO"
+            echo "Deleted cache: $key"
+          done
+          echo "Done."

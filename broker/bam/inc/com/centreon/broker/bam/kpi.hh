@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker::bam {

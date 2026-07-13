@@ -153,6 +153,7 @@ message Service {
    * here. */
   uint64 internal_id = 86;
   uint64 icon_id = 87;
+  uint64 instance_id = 88;
 }
 
 /**
@@ -168,6 +169,8 @@ message AdaptiveServiceStatus {
   optional int32 scheduled_downtime_depth = 5;
   optional AckType acknowledgement_type = 6;
   optional int32 notification_number = 7;
+  optional int64 next_check = 8;
+  optional bool should_be_scheduled = 9;
 }
 
 /**
@@ -343,7 +346,7 @@ message Host {
   string name = 59;
   string icon_image = 60;
   string icon_image_alt = 61;
-  int32 instance_id = 62;
+  uint64 instance_id = 62;
   double low_flap_threshold = 63;
   string notes = 64;
   string notes_url = 65;
@@ -430,6 +433,8 @@ message AdaptiveHostStatus {
   optional int32 scheduled_downtime_depth = 2;
   optional AckType acknowledgement_type = 3;
   optional int32 notification_number = 4;
+  optional int64 next_check = 5;
+  optional bool should_be_scheduled = 6;
 }
 /**
  * @brief Message used to send adaptive host configuration. When only one
@@ -650,6 +655,10 @@ message Instance {
   int64 start_time = 8;
   string version = 9;
   string engine_config_version = 10;
+  bool is_encryption_ready = 11;
+  string cma_cert_sha = 12;
+  string cma_cert_cn = 13;
+  uint64 cma_cert_peremption = 14; 
 }
 
 /* io::neb, neb::de_pb_responsive_instance, 19 */
@@ -680,34 +689,6 @@ message Acknowledgement {
   uint32 state = 12;
 }
 
-/* io::neb, neb::de_pb_host_dependency, 21 */
-message HostDependency {
-  BBDOHeader header = 1;
-
-  string dependency_period = 2;
-  uint64 dependent_host_id = 3;
-  bool enabled = 4;
-  string execution_failure_options = 5;
-  uint64 host_id = 6;
-  bool inherits_parent = 7;
-  string notification_failure_options = 8;
-}
-
-/* io::neb, neb::de_pb_service_dependency, 22 */
-message ServiceDependency {
-  BBDOHeader header = 1;
-
-  string dependency_period = 2;
-  uint64 dependent_host_id = 3;
-  bool enabled = 4;
-  string execution_failure_options = 5;
-  uint64 host_id = 6;
-  bool inherits_parent = 7;
-  string notification_failure_options = 8;
-  uint64 dependent_service_id = 9;
-  uint64 service_id = 10;
-}
-
 /* io::neb, neb::de_pb_host_group, 23 */
 message HostGroup {
   BBDOHeader header = 1;
@@ -716,6 +697,7 @@ message HostGroup {
   uint64 hostgroup_id = 3;
   string name = 4;
   uint64 poller_id = 5;
+  string alias = 6;
 }
 
 /* io::neb, neb::de_pb_service_group, 24 */
@@ -726,6 +708,7 @@ message ServiceGroup {
   uint64 servicegroup_id = 3;
   string name = 4;
   uint64 poller_id = 5;
+  string alias = 6;
 }
 
 /* io::neb, neb::de_pb_host_group_member, 25 */
@@ -835,7 +818,7 @@ message Tag {
   Action action = 2;
   TagType type = 3;
   string name = 4;
-  int64 poller_id = 5;
+  uint64 poller_id = 5;
 }
 /* Ignore */
 message TagInfo {
@@ -851,11 +834,43 @@ message AgentInfo {
   bool reverse = 4;
   string os = 5;
   string os_version = 6;
-  uint32 nb_agent = 7; 
+  uint32 nb_agent = 7;
 }
 
 /* io::neb, neb::de_pb_agent_stats, 57 */
 message AgentStats {
-  int64 poller_id = 1;
+  uint64 poller_id = 1;
   repeated AgentInfo stats = 2;
+}
+
+/* This message is sent to broker when a cma connect to engine with an unknown hostname */
+/* io::neb, neb::de_pb_unknown_host, 58 */
+message UnknownHost {
+  uint64 poller_id = 1;
+  string host_name = 2;
+  string host_template = 3;
+  string os = 4;
+  string os_version = 5;
+  repeated string ips = 6; /*ips of host interfaces*/
+  string incoming_ip = 7; /*ip of cma host seen from engine */
+}
+
+/* io::neb, neb::de_pb_custom_variable_status, 59 */
+message CustomVariableStatus {
+  enum VarType {
+    HOST = 0;
+    SERVICE = 1;
+  }
+
+  BBDOHeader header = 1;
+  uint64 host_id = 2;
+  uint64 service_id = 3;
+  bool modified = 4;
+  string name = 5;
+  uint64 update_time = 6;
+  string value = 7;
+  string default_value = 8;
+  bool enabled = 9;
+  bool password = 10;
+  VarType type = 11;
 }

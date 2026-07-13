@@ -32,11 +32,11 @@ BECT1
             Ctn Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date
             Ctn Start Broker
-            Ctn Start engine
+            Ctn Start Engine
             ${result}    Ctn Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Ctn Kindly Stop Broker
-            Ctn Stop engine
+            Ctn Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
@@ -113,11 +113,11 @@ BECT2
     Ctn Broker Config Output Set    module0    central-module-master-output    tls    yes
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -158,11 +158,11 @@ BECT3
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -242,11 +242,11 @@ BECT4
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -278,11 +278,11 @@ BECT_GRPC1
             Ctn Change Broker Tcp Input To Grpc    central
             ${start}    Get Current Date
             Ctn Start Broker
-            Ctn Start engine
+            Ctn Start Engine
             ${result}    Ctn Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Ctn Kindly Stop Broker
-            Ctn Stop engine
+            Ctn Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
@@ -360,11 +360,11 @@ BECT_GRPC2
     Ctn Change Broker Tcp Input To Grpc    central
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -409,11 +409,11 @@ BECT_GRPC3
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -495,11 +495,11 @@ BECT_GRPC4
     # We get the current date just before starting broker
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}

@@ -1,0 +1,579 @@
+{
+  "uuid": "2a0ddaa7-4a72-4ceb-a8b4-a79ac18ebeab",
+  "lastMigration": 33,
+  "name": "Web api mockoon",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3002,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "a4dd7254-ee90-4e32-b63a-2827eff8c15a",
+      "type": "http",
+      "documentation": "list version of centreon and all it's modules",
+      "method": "get",
+      "endpoint": "centreon/api/latest/platform/versions",
+      "responses": [
+        {
+          "uuid": "e539bc2f-c7a7-4a53-8ec5-ce4ac28e3411",
+          "body": "{\n  \"modules\": {\n    \"centreon-autodiscovery-server\": {}\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "only send back autodiscovery with empty body as gorgone don't check for exact version, only presence.",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "476d442e-e1ab-4e6f-a862-0e2b3fc18bda",
+      "type": "http",
+      "documentation": "",
+      "method": "post",
+      "endpoint": "centreon/api/latest/login",
+      "responses": [
+        {
+          "uuid": "fe2868c7-3ace-400f-a871-774d93cd3850",
+          "body": "{\n  \"contact\": {\n    \"id\": 4,\n    \"name\": \"centreon-gorgone\",\n    \"alias\": \"centreon-gorgone\",\n    \"email\": \"gorgone@localhost\",\n    \"is_admin\": true\n  },\n  \"security\": {\n    \"token\": \"Pg2cfT4JecKcuWu43WVH9z0V+4hNcXStIXp2Ahs4SaKJWLRQg+pksf+vtsacgPTB\"\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "ba98e287-c8dd-4661-9b6f-7c0f52635199",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "centreon/api/latest/auto-discovery/scheduling/jobs",
+      "responses": [
+        {
+          "uuid": "e481c56a-632a-4147-84a7-2c7f22236d5a",
+          "body": "{\n  \"result\": [\n    [],\n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 9,\n      \"token\": \"discovery_9_9be3be3d\",\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"target\": 2,\n      \"status\": 1,\n      \"last_execution\": {\n        \"date\": \"2025-06-03 13:03:00.000000\",\n        \"timezone_type\": 3,\n        \"timezone\": \"Europe/Paris\"\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    },\n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 10,\n      \"token\": \"discovery_10_24be3d\",\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"command_line\": \"echo '{\\\"discovered_items\\\":9,\\\"duration\\\":0,\\\"end_time\\\":1750779641,\\\"results\\\":[{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth1\\\",\\\"ip\\\":\\\"fe80::a00:27ff:fe79:e8ea\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"10.0.2.255\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"fd00::a00:27ff:fe8d:c04d\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"10.0.2.15\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth1\\\",\\\"ip\\\":\\\"192.168.56.106\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"lo\\\",\\\"interface_name\\\":\\\"lo\\\",\\\"ip\\\":\\\"127.0.0.1\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth1\\\",\\\"ip\\\":\\\"192.168.56.255\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"lo\\\",\\\"interface_name\\\":\\\"lo\\\",\\\"ip\\\":\\\"::1\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"fe80::a00:27ff:fe8d:c04d\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"}],\\\"start_time\\\":1750779641}'\",\n      \"target\": 2,\n      \"status\": 0,\n      \"last_execution\": null,\n      \"post_execution\": {\n        \"commands\": [\n          {\n            \"action\": \"COMMAND\",\n            \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\"\n          }\n        ]\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    }, \n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 11,\n      \"token\": \"discovery_11_9ae7be2a\",\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"command_line\": \"echo $(date)\",\n      \"target\": 2,\n      \"status\": 0,\n      \"last_execution\": null,\n      \"post_execution\": {\n        \"commands\": [\n          {\n            \"action\": \"COMMAND\",\n            \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\"\n          }\n        ]\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10000,\n    \"search\": {},\n    \"sort_by\": {},\n    \"total\": 3\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "80f8b00f-6bf8-49ef-8704-3e1aff571bd6",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "",
+      "responses": [
+        {
+          "uuid": "b06bdd40-8eeb-4e0f-88fc-bf06542ef851",
+          "body": "{\n  \"variables\": [],\n  \"parameters\": {},\n  \"content\": {\n    \"plugins\": {\n      \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n    },\n    \"post_execution\": {\n      \"commands\": {\n        \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\",\n        \"action\": \"COMMAND\"\n      }\n    },\n    \"execution\": {\n      \"mode\": 0\n    },\n    \"command_line\": \"/usr/lib/centreon/plugins//centreon_generic_snmp.pl --plugin=apps::protocols::snmp::plugin --mode=discovery --hostname='localhost' --snmp-port='161' --snmp-community='public' --snmp-version='2c' --snmp-timeout='5' --snmp-username='$_SNMPUSERNAME$' --authpassphrase='$_SNMPAUTHPASSPHRASE$' --authprotocol='$_SNMPAUTHPROTOCOL$' --privpassphrase='$_SNMPPRIVPASSPHRASE$' --privprotocol='$_SNMPPRIVPROTOCOL$' ; touch /tmp/inject11-06-extraoptions\",\n    \"target\": 1,\n    \"job_id\": 10\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "dd3a5560-0ea2-4f9f-8628-622f2189d9ff",
+      "type": "http",
+      "documentation": "Vault authentication   {\"role_id\":\"role-id-for-test\",\"secret_id\":\"secret-id-for-test\"}",
+      "method": "post",
+      "endpoint": "v1/auth/approle/login",
+      "responses": [
+        {
+          "uuid": "388470e3-d774-4520-906e-1e6e888bf01f",
+          "body": "{\"auth\":{\"lease_duration\": 999999999, \"client_token\": \"TokenFromVaultAuthentication\"}}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "body",
+              "modifier": "role_id",
+              "value": "role-id-for-test",
+              "invert": false,
+              "operator": "equals"
+            },
+            {
+              "target": "body",
+              "modifier": "secret_id",
+              "value": "secret-id-for-test",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "AND",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "06c7ad23-3bc4-4290-aa88-9681a6c9cb27",
+          "body": "{\"errors\": \"TODO update mockoon\"}",
+          "latency": 0,
+          "statusCode": 401,
+          "label": "when not authenticated vault should response this",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "18c69e8b-3ed3-423b-8aa1-09108774c004",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "v1/evan/data/monitoring/hosts/b89fde74-44ac-4e2e-a897-df49f0d1fd55",
+      "responses": [
+        {
+          "uuid": "ba234177-f616-4240-82b1-df1d751b920b",
+          "body": "{\"request_id\": \"ARandomString\", \"data\": {\"data\" : {\"_HOSTMACROPARAMETER\": \"<?xml\"}}}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "1f01381d-3bec-4b5e-b88a-b04cff57e023",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "centreon/api/latest/administration/tokens/:tokenName",
+      "responses": [
+        {
+          "uuid": "63de4aa2-3cc2-4939-8043-cd4ad5d49c95",
+          "body": "{\n  \"name\": \"poller-1\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "poller-1",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-1",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "47ad8f64-2726-4988-b211-4237cacb390d",
+          "body": "{\n  \"name\": \"poller-2\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": true,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "poller-2",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-2",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "f5b5c6ca-166c-491d-8d49-5434e26590c8",
+          "body": "{\n  \"name\": \"poller-4\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.recent'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "poller-3",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-3",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "a878a73d-33b2-4818-8f8b-93c822f3ab57",
+          "body": "{\n  \"name\": \"poller-4\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{getGlobalVar 'expired'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": {{getGlobalVar 'revoked'}},\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "poller-4",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-4",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "e6040a74-02a4-4f7d-be61-61621c67724e",
+          "body": "{\n  \"name\": \"Central-1\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"cma\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"centralCMAtoken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "Central-1",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "Central-1",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "0fa0168d-5d20-4755-a136-1de4d28b58b9",
+          "body": "{\n  \"code\": 404,\n  \"message\": \"Token not found\"\n}",
+          "latency": 0,
+          "statusCode": 404,
+          "label": "token not found",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-1",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-2",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-3",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-4",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "Central-1",
+              "invert": true,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "AND",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "d22f9a5c-5390-4870-9f3d-7bf7004aafc4",
+      "type": "http",
+      "documentation": "",
+      "method": "put",
+      "endpoint": "set-poller-4-is-revoked/:revoked",
+      "responses": [
+        {
+          "uuid": "2c070a93-177c-42b7-9bfd-c8694bd2b168",
+          "body": "{{setGlobalVar 'revoked' (urlParam 'revoked')}}\n{\n  \"is_revoked\": \"{{getGlobalVar 'revoked'}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "adaab563-b466-418a-a5e9-5c9842e67273",
+      "type": "http",
+      "documentation": "",
+      "method": "put",
+      "endpoint": "set-poller-4-is-expired/:expired",
+      "responses": [
+        {
+          "uuid": "6b3bc02d-ad54-4154-87ff-bf87e7aee8e5",
+          "body": "{{#if (eq (urlParam 'expired') 'true')}}\n  {{setGlobalVar 'expired' (faker 'date.recent')}}\n{{else}}\n  {{setGlobalVar 'expired' (faker 'date.future')}}\n{{/if}}\n{\n  \"expired\": \"{{getGlobalVar 'expired'}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "a4dd7254-ee90-4e32-b63a-2827eff8c15a"
+    },
+    {
+      "type": "route",
+      "uuid": "476d442e-e1ab-4e6f-a862-0e2b3fc18bda"
+    },
+    {
+      "type": "route",
+      "uuid": "ba98e287-c8dd-4661-9b6f-7c0f52635199"
+    },
+    {
+      "type": "route",
+      "uuid": "80f8b00f-6bf8-49ef-8704-3e1aff571bd6"
+    },
+    {
+      "type": "route",
+      "uuid": "dd3a5560-0ea2-4f9f-8628-622f2189d9ff"
+    },
+    {
+      "type": "route",
+      "uuid": "18c69e8b-3ed3-423b-8aa1-09108774c004"
+    },
+    {
+      "type": "route",
+      "uuid": "1f01381d-3bec-4b5e-b88a-b04cff57e023"
+    },
+    {
+      "type": "route",
+      "uuid": "d22f9a5c-5390-4870-9f3d-7bf7004aafc4"
+    },
+    {
+      "type": "route",
+      "uuid": "adaab563-b466-418a-a5e9-5c9842e67273"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    },
+    {
+      "key": "Access-Control-Allow-Origin",
+      "value": "*"
+    },
+    {
+      "key": "Access-Control-Allow-Methods",
+      "value": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+    },
+    {
+      "key": "Access-Control-Allow-Headers",
+      "value": "Content-Type, Origin, Accept, Authorization, Content-Length, X-Requested-With"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": [],
+  "callbacks": []
+}

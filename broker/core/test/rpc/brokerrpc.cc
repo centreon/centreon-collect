@@ -18,7 +18,7 @@
  */
 
 #include "com/centreon/broker/brokerrpc.hh"
-#include "com/centreon/broker/stats/center.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 
 #include <gtest/gtest.h>
 
@@ -34,7 +34,7 @@ using namespace com::centreon::broker;
 class BrokerRpc : public ::testing::Test {
  public:
   void SetUp() override {
-    stats::center::load();
+    config::applier::state::load(common::PeerType::BROKER);
     io::protocols::load();
     io::events::load();
   }
@@ -42,7 +42,7 @@ class BrokerRpc : public ::testing::Test {
   void TearDown() override {
     io::events::unload();
     io::protocols::unload();
-    stats::center::unload();
+    config::applier::state::unload();
   }
 
   std::list<std::string> execute(const std::string& command) {
@@ -91,7 +91,8 @@ TEST_F(BrokerRpc, GetMuxerStats) {
       "unacknowledged_events: "
       "1790\n"};
 
-  auto center = stats::center::instance_ptr();
+  auto center = config::applier::state::instance().center();
+
   center->update_muxer("mx1", "qufl_", 18u, 1789u);
 
   center->update_muxer("mx2", "_qufl", 18u, 1790u);

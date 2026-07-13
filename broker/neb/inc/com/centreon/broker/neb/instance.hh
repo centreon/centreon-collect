@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 
@@ -47,7 +46,7 @@ class instance : public io::data {
   bool is_running;
   std::string name;
   uint32_t pid;
-  uint32_t poller_id;
+  uint64_t poller_id;
   timestamp program_end;
   timestamp program_start;
   std::string version;
@@ -60,6 +59,6 @@ class instance : public io::data {
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_INSTANCE_HH

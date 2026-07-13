@@ -24,6 +24,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/logging/logger.hh"
 #include "com/centreon/process_listener.hh"
@@ -174,8 +175,11 @@ void process_manager::_update_list() {
  *  @return the process manager.
  */
 process_manager& process_manager::instance() {
-  static process_manager instance;
-  return instance;
+  static std::unique_ptr<process_manager> instance;
+  if (!instance) {
+    instance = std::unique_ptr<process_manager>(new process_manager);
+  }
+  return *instance;
 }
 
 /**
@@ -283,7 +287,7 @@ void process_manager::_run() {
   try {
     for (;;) {
       // Update the file descriptor list.
-      if (_update)
+      if (_update || _finished)
         _update_list();
       if (_finished)
         _stop_processes();
@@ -293,8 +297,9 @@ void process_manager::_run() {
           break;
         else {
           /* After 20s with only orphans pid, we quit if asked. */
-          std::time_t now;
-          std::time(&now);
+          auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
           if (now - _finished_time > 20)
             break;
         }

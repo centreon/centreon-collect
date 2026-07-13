@@ -57,15 +57,16 @@ add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(
   centreon_connector_ssh
   centreon_clib
+  Boost::process
   spdlog::spdlog
   fmt::fmt
   ssh2
   absl::any absl::log absl::base absl::bits
-  absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
+  absl::raw_hash_set absl::hash
+  absl::hashtablez_sampler
   pthread)
 
-target_precompile_headers(centreon_connector_ssh REUSE_FROM
-                          centreon_connector_perl)
+target_precompile_headers(centreon_connector_ssh PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 
 # Install rules.
 install(TARGETS centreon_connector_ssh RUNTIME DESTINATION ${PREFIX_CONNECTORS})

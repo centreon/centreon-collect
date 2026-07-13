@@ -24,10 +24,10 @@ import os
 
 dico = {}
 pattern_ct = re.compile(
-    'CREATE TABLE( IF NOT EXISTS)? (centreon_storage\.)?`?([^`]*)`? \(')
-column_ct = re.compile('\s*`?([^`]*)`? (varchar\(([0-9]*)\)|text)')
-column_ct_nb = re.compile('\s*`?([^`]*)`? (float|double)')
-end_ct = re.compile('^\)')
+    r'CREATE TABLE( IF NOT EXISTS)? (centreon_storage\.)?`?([^`]*)`? \(')
+column_ct = re.compile(r'\s*`?([^`]*)`? (varchar\(([0-9]*)\)|text)')
+column_ct_nb = re.compile(r'\s*`?([^`]*)`? (float|double)')
+end_ct = re.compile(r'^\)')
 
 debug = False
 

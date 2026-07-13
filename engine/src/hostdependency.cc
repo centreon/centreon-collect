@@ -102,6 +102,8 @@ void hostdependency::set_fail_on_unreachable(bool fail_on_unreachable) {
   _fail_on_unreachable = fail_on_unreachable;
 }
 
+namespace com::centreon::engine {
+
 /**
  *  Dump hostdependency content into the stream.
  *
@@ -110,7 +112,7 @@ void hostdependency::set_fail_on_unreachable(bool fail_on_unreachable) {
  *
  *  @return The output stream.
  */
-std::ostream& operator<<(std::ostream& os, hostdependency const& obj) {
+std::ostream& operator<<(std::ostream& os, const hostdependency& obj) {
   std::string dependency_period_str;
   if (obj.dependency_period_ptr)
     dependency_period_str = obj.dependency_period_ptr->get_name();
@@ -161,6 +163,8 @@ std::ostream& operator<<(std::ostream& os, hostdependency const& obj) {
         "}\n";
   return os;
 }
+
+}  // namespace com::centreon::engine
 
 /**
  *  Checks to see if there exists a circular dependency for a host.
@@ -301,48 +305,3 @@ void hostdependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Find a service dependency from its key.
- *
- *  @param[in] k The service dependency configuration.
- *
- *  @return Iterator to the element if found,
- *          servicedependencies().end() otherwise.
- */
-hostdependency_mmap::iterator hostdependency::hostdependencies_find(
-    const com::centreon::engine::configuration::hostdependency& k) {
-  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
-
-  size_t key = configuration::hostdependency_key(k);
-
-  p = hostdependencies.equal_range(*k.dependent_hosts().begin());
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == key)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? hostdependencies.end() : p.first;
-}
-#else
-/**
- *  Find a service dependency from its key.
- *
- *  @param[in] k The service dependency configuration.
- *
- *  @return Iterator to the element if found,
- *          servicedependencies().end() otherwise.
- */
-hostdependency_mmap::iterator hostdependency::hostdependencies_find(
-    const std::pair<std::string_view, size_t>& key) {
-  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
-
-  p = hostdependencies.equal_range(key.first);
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == key.second)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? hostdependencies.end() : p.first;
-}
-#endif

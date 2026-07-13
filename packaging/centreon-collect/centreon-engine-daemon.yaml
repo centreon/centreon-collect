@@ -24,6 +24,14 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - src: "../../broker/config/central-module.json"
+    dst: "/etc/centreon-broker/central-module.json"
+    type: config|noreplace
+    file_info:
+      mode: 0664
+      owner: centreon-engine
+      group: centreon-engine
+
   - src: "../../engine/conf/resource.cfg"
     dst: "/etc/centreon-engine/resource.cfg"
     type: config|noreplace
@@ -48,6 +56,9 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - dst: "/etc/centreon-engine/engine-context.json"
+    type: ghost
+
   - src: "../../engine/scripts/logrotate.conf"
     dst: "/etc/logrotate.d/centengine"
     type: config|noreplace
@@ -66,6 +77,14 @@ contents:
   - src: "../../build/engine/centengine"
     dst: "/usr/sbin/centengine"
 
+  - src: "../../build/broker/neb/cbmod.so"
+    dst: "/usr/lib64/"
+    packager: rpm
+
+  - src: "../../build/broker/neb/cbmod.so"
+    dst: "/usr/lib/"
+    packager: deb
+
   - src: "../../build/engine/centenginestats"
     dst: "/usr/sbin/centenginestats"
 
@@ -76,6 +95,13 @@ contents:
     type: dir
     file_info:
       mode: 0775
+      owner: centreon-engine
+      group: centreon-engine
+
+  - dst: "/etc/pki/centreon-engine"
+    type: dir
+    file_info:
+      mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
@@ -125,32 +151,47 @@ overrides:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine = ${VERSION}-${RELEASE}${DIST}
-      - centreon-broker-cbmod = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine-opentelemetry = ${VERSION}-${RELEASE}${DIST}
+      - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-devel
     replaces:
       - centreon-engine-extcommands
       - centreon-engine-devel
+      - centreon-engine-bench
+      - centreon-broker-cbmod
     provides:
       - centreon-engine-extcommands
       - centreon-engine-devel
+      - centreon-engine-bench
+      - centreon-broker-cbmod
+    recommends:
+      - logrotate
+
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-broker-cbmod (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine-opentelemetry (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev
+      - centreon-engine-bench
+      - centreon-broker-cbmod
     replaces:
       - centreon-engine-extcommands
       - centreon-engine-dev
+      - centreon-engine-bench
+      - centreon-broker-cbmod
     provides:
       - centreon-engine-extcommands
       - centreon-engine-dev
+      - centreon-engine-bench
+      - centreon-broker-cbmod
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon Engine Daemon is the daemon to schedule checks.

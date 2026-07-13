@@ -17,9 +17,6 @@
  *
  */
 
-#include <cstring>
-#include <regex>
-
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -28,14 +25,10 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "com/centreon/process_manager.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/host.hh"
-#include "common/engine_legacy_conf/service.hh"
-#endif
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -51,58 +44,32 @@ class ServiceFlappingNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
-#ifdef LEGACY_CONF
-    configuration::contact ctct{new_configuration_contact("admin", true)};
-#else
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
-#endif
     ct_aply.add_object(ctct);
-#ifdef LEGACY_CONF
-    ct_aply.expand_objects(*config);
-#else
     ct_aply.expand_objects(pb_config);
-#endif
     ct_aply.resolve_object(ctct, err);
 
     configuration::applier::command cmd_aply;
-#ifdef LEGACY_CONF
-    configuration::command cmd("cmd");
-    cmd.parse("command_line", "echo 1");
-#else
     configuration::Command cmd;
     configuration::command_helper cmd_hlp(&cmd);
     cmd.set_command_name("cmd");
     cmd.set_command_line("echo 1");
-#endif
     cmd_aply.add_object(cmd);
 
     configuration::applier::host hst_aply;
-#ifdef LEGACY_CONF
-    configuration::host hst;
-    hst.parse("host_name", "test_host");
-    hst.parse("address", "127.0.0.1");
-    hst.parse("_HOST_ID", "12");
-    hst.parse("check_command", "cmd");
-#else
     configuration::Host hst;
     configuration::host_helper hst_hlp(&hst);
     hst.set_host_name("test_host");
     hst.set_address("127.0.0.1");
     hst.set_host_id(12);
     hst.set_check_command("cmd");
-#endif
+    hst.set_checks_active(false);
+    hst.set_checks_passive(true);
+    hst_hlp.set_default_values();
     hst_aply.add_object(hst);
     hst_aply.resolve_object(hst, err);
 
     configuration::applier::service svc_aply;
-#ifdef LEGACY_CONF
-    configuration::service svc;
-    svc.parse("host", "test_host");
-    svc.parse("service_description", "test_description");
-    svc.parse("_SERVICE_ID", "12");
-    svc.parse("check_command", "cmd");
-    svc.parse("contacts", "admin");
-#else
     configuration::Service svc;
     configuration::service_helper svc_hlp(&svc);
     svc.set_host_name("test_host");
@@ -110,11 +77,10 @@ class ServiceFlappingNotification : public TestEngine {
     svc.set_service_id(12);
     svc.set_check_command("cmd");
     svc_hlp.hook("contacts", "admin");
-#endif
 
     // We fake here the expand_object on configuration::service
     svc.set_host_id(12);
-
+    svc_hlp.set_default_values();
     svc_aply.add_object(svc);
     svc_aply.resolve_object(svc, err);
 
@@ -133,6 +99,7 @@ class ServiceFlappingNotification : public TestEngine {
     _host->set_state_type(checkable::hard);
     _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
+    _host->set_check_type(checkable::check_type::check_passive);
   }
 
   void TearDown() override {
@@ -281,11 +248,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlapping) {
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
   pb_config.set_enable_flap_detection(true);
-#endif
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -377,11 +340,7 @@ TEST_F(ServiceFlappingNotification, CheckFlapping) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
   pb_config.set_enable_flap_detection(true);
-#endif
   _service->set_flap_detection_enabled(true);
   _service->set_is_volatile(true);
   _service->add_flap_detection_on(engine::service::ok);
@@ -480,14 +439,16 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
   ASSERT_EQ(m9, std::string::npos);
 }
 
+/**
+ * @brief Given a host down, we generate a flapping service and notifications
+ * should not be called
+ *
+ */
 TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _host->set_current_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
+  _host->set_check_type(checkable::check_type::check_passive);
   pb_config.set_enable_flap_detection(true);
-#endif
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -500,6 +461,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _service->set_state_type(checkable::hard);
   _service->set_first_notification_delay(3);
   _service->set_max_attempts(1);
+
+  commands_logger->set_level(spdlog::level::trace);
 
   // This loop is to store many OK in the state history.
   for (int i = 1; i < 22; i++) {
@@ -576,11 +539,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
   pb_config.set_enable_flap_detection(true);
-#endif
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -669,11 +628,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
 }
 
 TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
   pb_config.set_enable_flap_detection(true);
-#endif
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);

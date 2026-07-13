@@ -148,10 +148,11 @@ absl::optional<std::string> parser::check_and_read<std::string>(
  *  Parse a configuration file.
  *
  *  @param[in]  file File to process.
+ *  @param[in]  neb_module true if we are in case of neb module
  *
  *  @return a state corresponding to the json file processed.
  */
-state parser::parse(std::string const& file) {
+state parser::parse(std::string const& file, bool neb_module) {
   state retval;
   // Parse JSON document.
   std::ifstream f(file);
@@ -179,6 +180,7 @@ state parser::parse(std::string const& file) {
     if (json_document.is_object() &&
         json_document["centreonBroker"].is_object()) {
       std::string module;
+      bool uid_set = false;
       for (auto it = json_document["centreonBroker"].begin();
            it != json_document["centreonBroker"].end(); ++it) {
         if (it.key() == "command_file" && it.value().is_object())
@@ -243,12 +245,26 @@ state parser::parse(std::string const& file) {
                                    retval, &state::broker_name,
                                    &json::is_string))
           ;
-        else if (get_conf<int, state>({it.key(), it.value()}, "poller_id",
-                                      retval, &state::poller_id,
-                                      &json::is_number, &json::get<int>))
-          ;
-        else if (get_conf<state>({it.key(), it.value()}, "poller_name", retval,
-                                 &state::poller_name, &json::is_string))
+        else if (it.key() == "uid") {
+          const json& v = it.value();
+          if (v.is_number()) {
+            retval.poller_id(v.get<uint64_t>());
+            uid_set = true;
+          } else
+            throw msg_fmt(
+                "config parser: cannot parse key 'uid': value must be a "
+                "64-bit integer");
+        } else if (it.key() == "poller_id" && !uid_set) {
+          const json& v = it.value();
+          if (v.is_number())
+            retval.poller_id(static_cast<uint64_t>(v.get<int64_t>()));
+          else
+            throw msg_fmt(
+                "config parser: cannot parse key 'poller_id': value must be "
+                "an integer");
+        } else if (get_conf<state>({it.key(), it.value()}, "poller_name",
+                                   retval, &state::poller_name,
+                                   &json::is_string))
           ;
         else if (get_conf<state>({it.key(), it.value()}, "module_directory",
                                  retval, &state::module_directory,
@@ -359,7 +375,6 @@ state parser::parse(std::string const& file) {
             throw msg_fmt(
                 "config parser: cannot parse key '"
                 "'input':  value type must be an object");
-
         } else if (it.key() == "log") {
           if (!it.value().is_object())
             throw msg_fmt(
@@ -371,54 +386,62 @@ state parser::parse(std::string const& file) {
             throw msg_fmt("the log configuration should be a json object");
 
           auto& conf = retval.mut_log_conf();
-          if (conf_js.contains("directory") && conf_js["directory"].is_string())
-            conf.set_dirname(conf_js["directory"].get<std::string>());
-          else if (conf_js.contains("directory") &&
-                   !conf_js["directory"].is_null())
-            throw msg_fmt(
-                "'directory' key in the log configuration must contain a "
-                "directory name");
-          if (conf.dirname().empty())
-            conf.set_dirname("/var/log/centreon-broker");
-
-          if (!misc::filesystem::writable(conf.dirname()))
-            throw msg_fmt("The log directory '{}' is not writable",
-                          conf.dirname());
-
-          conf.set_filename("");
-
-          if (conf_js.contains("filename") && conf_js["filename"].is_string()) {
-            conf.set_filename(conf_js["filename"].get<std::string>());
-            if (conf.filename().find("/") != std::string::npos)
+          // In case of neb used by centengine, many logs parameters are yet set
+          // by engine configuration
+          if (!neb_module) {
+            if (conf_js.contains("directory") &&
+                conf_js["directory"].is_string())
+              conf.set_dirname(conf_js["directory"].get<std::string>());
+            else if (conf_js.contains("directory") &&
+                     !conf_js["directory"].is_null())
               throw msg_fmt(
-                  "'filename' must only contain a filename without directory");
+                  "'directory' key in the log configuration must contain a "
+                  "directory name");
+            if (conf.dirname().empty())
+              conf.set_dirname("/var/log/centreon-broker");
 
-          } else if (conf_js.contains("filename") &&
-                     !conf_js["filename"].is_null())
-            throw msg_fmt(
-                "'filename' key in the log configuration must contain the log "
-                "file name");
+            if (!misc::filesystem::writable(conf.dirname()))
+              throw msg_fmt("The log directory '{}' is not writable",
+                            conf.dirname());
 
-          auto ms = check_and_read<int64_t>(conf_js, "max_size");
-          conf.set_max_size(ms ? ms.value() : 0u);
+            conf.set_filename("");
 
-          auto fp = check_and_read<int64_t>(conf_js, "flush_period");
-          if (fp) {
-            if (fp.value() < 0)
+            if (conf_js.contains("filename") &&
+                conf_js["filename"].is_string()) {
+              conf.set_filename(conf_js["filename"].get<std::string>());
+              if (conf.filename().find("/") != std::string::npos)
+                throw msg_fmt(
+                    "'filename' must only contain a filename without "
+                    "directory");
+
+            } else if (conf_js.contains("filename") &&
+                       !conf_js["filename"].is_null())
               throw msg_fmt(
-                  "'flush_period' key in the log configuration must contain a "
-                  "positive number or 0.");
+                  "'filename' key in the log configuration must contain the "
+                  "log "
+                  "file name");
 
-            conf.set_flush_interval(fp.value());
-          } else
-            conf.set_flush_interval(0u);
+            auto ms = check_and_read<int64_t>(conf_js, "max_size");
+            conf.set_max_size(ms ? ms.value() : 0u);
 
-          auto lp = check_and_read<bool>(conf_js, "log_pid");
-          conf.set_log_pid(lp ? lp.value() : false);
+            auto fp = check_and_read<int64_t>(conf_js, "flush_period");
+            if (fp) {
+              if (fp.value() < 0)
+                throw msg_fmt(
+                    "'flush_period' key in the log configuration must contain "
+                    "a "
+                    "positive number or 0.");
 
-          auto ls = check_and_read<bool>(conf_js, "log_source");
-          conf.set_log_source(ls ? ls.value() : false);
+              conf.set_flush_interval(fp.value());
+            } else
+              conf.set_flush_interval(0u);
 
+            auto lp = check_and_read<bool>(conf_js, "log_pid");
+            conf.set_log_pid(lp ? lp.value() : false);
+
+            auto ls = check_and_read<bool>(conf_js, "log_source");
+            conf.set_log_source(ls ? ls.value() : false);
+          }
           if (conf_js.contains("loggers") && conf_js["loggers"].is_object()) {
             conf.loggers().clear();
             for (auto it = conf_js["loggers"].begin();
@@ -565,17 +588,40 @@ void parser::_parse_endpoint(const json& elem,
       else  // Output.
         member = &endpoint::write_filters;
       (e.*member).clear();
-      if (it.value().is_object() && it.value()["category"].is_array())
-        for (auto& cat : it.value()["category"])
-          (e.*member).insert(cat.get<std::string>());
-      else if (it.value().is_object() && it.value()["category"].is_string())
-        (e.*member).insert(it.value()["category"].get<std::string>());
-      else if (it.value().is_string() && it.value().get<std::string>() == "all")
+      const auto& filter_obj = it.value();
+      if (filter_obj.is_string() && filter_obj.get<std::string>() == "all") {
         (e.*member).insert("all");
-      else
+      } else if (!filter_obj.is_object()) {
         throw msg_fmt(
             "config parser: cannot parse key "
-            "'filters':  value is invalid");
+            "'filters':  value is not an object");
+      }
+
+      if (filter_obj.contains("category")) {
+        const auto& category = filter_obj["category"];
+        if (category.is_array())
+          for (auto& cat : category)
+            (e.*member).insert(cat.get<std::string>());
+        else if (category.is_string())
+          (e.*member).insert(category.get<std::string>());
+        else
+          throw msg_fmt(
+              "config parser: cannot parse key "
+              "'filters':  value is invalid");
+      }
+      if (filter_obj.contains("event")) {
+        const auto& event = filter_obj["event"];
+        if (event.is_array())
+          for (auto& cat : event)
+            (e.*member).insert(cat.get<std::string>());
+        else if (event.is_string())
+          (e.*member).insert(event.get<std::string>());
+        else
+          throw msg_fmt(
+              "config parser: cannot parse key "
+              "'filters':  value is invalid");
+      }
+
     } else if (it.key() == "cache") {
       auto cc = check_and_read<bool>(elem, "cache");
       e.cache_enabled = cc ? cc.value() : false;
@@ -605,6 +651,8 @@ void parser::_parse_endpoint(const json& elem,
         module = "70-influxdb.so";
       else if (e.type == "victoria_metrics")
         module = "70-victoria_metrics.so";
+      else if (e.type == "event_script")
+        module = "80-event_script.so";
       else if (e.type == "grpc")
         module = "50-grpc.so";
       else if (e.type == "bbdo_server" || e.type == "bbdo_client") {

@@ -141,6 +141,8 @@ void servicedependency::set_fail_on_critical(bool fail_on_critical) {
   _fail_on_critical = fail_on_critical;
 }
 
+namespace com::centreon::engine {
+
 /**
  *  Dump servicedependency content into the stream.
  *
@@ -221,6 +223,8 @@ std::ostream& operator<<(std::ostream& os, servicedependency const& obj) {
         "}\n";
   return os;
 }
+
+}  // namespace com::centreon::engine
 
 /**
  *  Checks to see if there exists a circular dependency for a service.
@@ -377,50 +381,3 @@ void servicedependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
     throw engine_error() << "Cannot resolve service dependency";
   }
 }
-
-#ifdef LEGACY_CONF
-/**
- *  Find a service dependency from its key.
- *
- *  @param[in] k The service dependency configuration.
- *
- *  @return Iterator to the element if found,
- *          servicedependencies().end() otherwise.
- */
-servicedependency_mmap::iterator servicedependency::servicedependencies_find(
-    configuration::servicedependency const& k) {
-  size_t key = configuration::servicedependency_key(k);
-  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
-      p = servicedependencies.equal_range(
-          std::make_pair(k.dependent_hosts().front(),
-                         k.dependent_service_description().front()));
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == key)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? servicedependencies.end() : p.first;
-}
-#else
-/**
- * @brief Find a service dependency from the given key.
- *
- * @param key A tuple containing a host name, a service description and a hash
- * matching the service dependency.
- *
- * @return Iterator to the element if found, servicedependencies().end()
- * otherwise.
- */
-servicedependency_mmap::iterator servicedependency::servicedependencies_find(
-    const std::tuple<std::string, std::string, size_t>& key) {
-  size_t k = std::get<2>(key);
-  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
-      p = servicedependencies.equal_range({std::get<0>(key), std::get<1>(key)});
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == k)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? servicedependencies.end() : p.first;
-}
-#endif

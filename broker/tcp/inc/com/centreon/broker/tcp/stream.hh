@@ -19,6 +19,7 @@
 #ifndef CCB_TCP_STREAM_HH
 #define CCB_TCP_STREAM_HH
 
+#include <absl/base/thread_annotations.h>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/tcp/tcp_config.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
@@ -36,27 +37,47 @@ class acceptor;
  *  TCP stream.
  */
 class stream : public io::stream {
-  static std::atomic<size_t> _total_tcp_count;
+  static absl::flat_hash_set<const stream*>* _instances
+      ABSL_GUARDED_BY(_instances_m);
+  static absl::Mutex _instances_m;
 
   tcp_config::pointer _conf;
   tcp_connection::pointer _connection;
-  acceptor* _parent;
+  const io::endpoint* _parent;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  stream(const tcp_config::pointer& conf);
-  stream(const tcp_connection::pointer& conn, const tcp_config::pointer& conf);
+  stream(const io::endpoint* parent, const tcp_config::pointer& conf);
+  stream(const io::endpoint* parent,
+         const tcp_connection::pointer& conn,
+         const tcp_config::pointer& conf);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
+
+  const io::endpoint* parent() const { return _parent; }
   std::string peer() const override final;
+  std::string raw_peer() const {
+    return _connection ? _connection->peer() : "";
+  }
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  void set_parent(acceptor* parent);
   int32_t flush() override;
   int32_t stop() override;
   int32_t write(std::shared_ptr<io::data> const& d) override;
   bool wait_for_all_events_written(unsigned ms_timeout) override;
+
+  template <class visitor>
+  static void visit_all_instances(visitor&& visit);
 };
+
+template <class visitor>
+void stream::visit_all_instances(visitor&& visit) {
+  absl::MutexLock l(_instances_m);
+  for (const auto& inst : *_instances) {
+    visit(*inst);
+  }
+}
+
 }  // namespace tcp
 
 }  // namespace com::centreon::broker

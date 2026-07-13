@@ -419,12 +419,15 @@ sub setmodulekey {
 sub setcoreid {
     my (%options) = @_;
 
+    my $data = $options{frame}->decodeData();
+    if (defined($data) && defined($data->{uid})) {
+        $options{gorgone}->{uid} = $data->{uid};
+    }
+
     if (defined($options{gorgone}->{config}->{configuration}->{gorgone}->{gorgonecore}->{id}) &&
         $options{gorgone}->{config}->{configuration}->{gorgone}->{gorgonecore}->{id} =~ /\d+/) {
         return (GORGONE_ACTION_FINISH_OK, { action => 'setcoreid', message => 'setcoreid unchanged, use config value' })
     }
-
-    my $data = $options{frame}->decodeData();
     if (!defined($data)) {
         return (GORGONE_ACTION_FINISH_KO, { message => 'request not well formatted' });
     }
@@ -497,20 +500,30 @@ sub getlog {
     my %filters = ();
     my ($filter, $filter_append) = ('', '');
     my @bind_values = ();
-    foreach ((['id', '>'], ['token', '='], ['ctime', '>'], ['etime', '>'], ['code', '='])) {
+    foreach ((['id', '>'], ['token', '='], ['code', '='])) {
         if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
             $filter .= $filter_append . $_->[0] . ' ' . $_->[1] . ' ?';
             $filter_append = ' AND ';
             push @bind_values, $data->{ $_->[0] };
         }
     }
-
+    # sqlite don't round correctly float. to be sure the same log is not sent over and over we round to 4 digits
+    # (input should contains 5 digit as it use time::hires)
+    foreach ((['ctime', '>'], ['etime', '>'])){
+        if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
+            $filter .= $filter_append . "ROUND(" . $_->[0] . ', 4) ' . $_->[1] . ' ROUND( ?, 4)';
+            $filter_append = ' AND ';
+            push @bind_values, $data->{ $_->[0] };
+        }
+    }
     if ($filter eq '') {
         return (GORGONE_ACTION_FINISH_KO, { message => 'need at least one filter' });
     }
 
     my $query = "SELECT * FROM gorgone_history WHERE " . $filter;
-    $query .= " ORDER BY id DESC LIMIT " . $data->{limit} if (defined($data->{limit}) && $data->{limit} ne '');
+    $query .= " ORDER BY id DESC ";
+    $query .= "LIMIT " . $data->{limit} if (defined($data->{limit}) && $data->{limit} ne '');
+    $query .= " OFFSET " . $data->{offset} if (defined($data->{offset}) && $data->{offset} ne '');
 
     my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => $query, bind_values => \@bind_values });
     if ($status == -1) {
@@ -824,22 +837,25 @@ sub zmq_read_message {
 sub create_schema {
     my (%options) = @_;
 
-    $options{logger}->writeLogInfo("[core] create schema $options{version}");
+    my $dbh = $options{gorgone}->{db_gorgone};
+    unless ($dbh) {
+        $options{logger}->writeLogError("[core] cannot connect to db_gorgone");
+        exit(1);
+    }
+
+    $options{logger}->writeLogInfo("[core] use schema $options{version}");
     my $schema = [
         q{
             PRAGMA encoding = "UTF-8"
         },
         q{
-            CREATE TABLE `gorgone_information` (
+            CREATE TABLE IF NOT EXISTS `gorgone_information` (
               `key` varchar(1024) DEFAULT NULL,
               `value` varchar(1024) DEFAULT NULL
             );
         },
-        qq{
-            INSERT INTO gorgone_information (`key`, `value`) VALUES ('version', '$options{version}');
-        },
         q{
-            CREATE TABLE `gorgone_identity` (
+            CREATE TABLE IF NOT EXISTS `gorgone_identity` (
               `id` INTEGER PRIMARY KEY,
               `ctime` int(11) DEFAULT NULL,
               `mtime` int(11) DEFAULT NULL,
@@ -852,13 +868,13 @@ sub create_schema {
             );
         },
         q{
-            CREATE INDEX idx_gorgone_identity ON gorgone_identity (identity);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_identity ON gorgone_identity (identity);
         },
         q{
-            CREATE INDEX idx_gorgone_parent ON gorgone_identity (parent);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_parent ON gorgone_identity (parent);
         },
         q{
-            CREATE TABLE `gorgone_history` (
+            CREATE TABLE IF NOT EXISTS `gorgone_history` (
               `id` INTEGER PRIMARY KEY,
               `token` varchar(2048) DEFAULT NULL,
               `code` int(11) DEFAULT NULL,
@@ -869,59 +885,115 @@ sub create_schema {
             );
         },
         q{
-            CREATE INDEX idx_gorgone_history_id ON gorgone_history (id);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_history_id ON gorgone_history (id);
         },
         q{
-            CREATE INDEX idx_gorgone_history_token ON gorgone_history (token);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_history_token ON gorgone_history (token);
         },
         q{
-            CREATE INDEX idx_gorgone_history_etime ON gorgone_history (etime);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_history_etime ON gorgone_history (etime);
         },
         q{
-            CREATE INDEX idx_gorgone_history_code ON gorgone_history (code);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_history_code ON gorgone_history (code);
         },
         q{
-            CREATE INDEX idx_gorgone_history_ctime ON gorgone_history (ctime);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_history_ctime ON gorgone_history (ctime);
         },
         q{
-            CREATE INDEX idx_gorgone_history_instant ON gorgone_history (instant);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_history_instant ON gorgone_history (instant);
         },
         q{
-            CREATE TABLE `gorgone_synchistory` (
+            CREATE TABLE IF NOT EXISTS `gorgone_synchistory` (
               `id` int(11) NOT NULL,
               `ctime` FLOAT DEFAULT NULL,
               `last_id` int(11) DEFAULT NULL
             );
         },
         q{
-            CREATE UNIQUE INDEX idx_gorgone_synchistory_id ON gorgone_synchistory (id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_gorgone_synchistory_id ON gorgone_synchistory (id);
         },
         q{
-            CREATE TABLE `gorgone_target_fingerprint` (
+            CREATE TABLE IF NOT EXISTS `gorgone_target_fingerprint` (
               `id` INTEGER PRIMARY KEY,
               `target` varchar(2048) DEFAULT NULL,
               `fingerprint` varchar(4096) DEFAULT NULL
             );
         },
         q{
-            CREATE INDEX idx_gorgone_target_fingerprint_target ON gorgone_target_fingerprint (target);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_target_fingerprint_target ON gorgone_target_fingerprint (target);
         },
         q{
-            CREATE TABLE `gorgone_centreon_judge_spare` (
+            CREATE TABLE IF NOT EXISTS `gorgone_centreon_judge_spare` (
               `cluster_name` varchar(2048) NOT NULL,
               `status` int(11) NOT NULL,
               `data` TEXT DEFAULT NULL
             );
         },
         q{
-            CREATE INDEX idx_gorgone_centreon_judge_spare_cluster_name ON gorgone_centreon_judge_spare (cluster_name);
+            CREATE INDEX IF NOT EXISTS idx_gorgone_centreon_judge_spare_cluster_name ON gorgone_centreon_judge_spare (cluster_name);
         }
     ];
-    foreach (@$schema) {
-        my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => $_ });
+    foreach my $sql (@$schema) {
+        my ($status, $sth) = $dbh->query({ query => $sql });
         if ($status == -1) {
             $options{logger}->writeLogError("[core] create schema issue");
             exit(1);
+        }
+    }
+
+    # Update schema if some columns are missing to keep compatibility
+
+    my @columns = ({ name => 'mtime', type => 'int(11)', },
+                   { name => 'oldkey', type => 'varchar(1024)', },
+                   { name => 'oldiv', type => 'varchar(1024)', },
+                   { name => 'iv', type => 'varchar(1024)', },
+               );
+    foreach my $col (@columns) {
+        my ($status, $sth) = $dbh->query({ query =>
+            qq{ SELECT count(*) FROM pragma_table_info('gorgone_identity') where name='$col->{name}' },
+        });
+
+        if ($status == -1) {
+            $options{logger}->writeLogError("[core] create schema issue");
+            exit(1);
+        }
+
+        my $row = $sth->fetchrow_arrayref();
+        my $col_exist = $row ? $row->[0] : 0;
+
+        next if $col_exist;
+
+        ($status, $sth) = $dbh->query({ query =>
+           qq{ ALTER TABLE `gorgone_identity` ADD COLUMN `$col->{name}` $col->{type} DEFAULT NULL },
+        });
+
+        if ($status == -1) {
+            $options{logger}->writeLogError("[core] create schema issue");
+            exit(1);
+        }
+    }
+
+    # Update version if needed
+    my ($status, $sth) = $dbh->query({ query =>
+        q{ SELECT value FROM gorgone_information WHERE `key` = 'version' },
+    });
+    if ($status == -1) {
+       $options{logger}->writeLogError("[core] create schema issue");
+       exit(1);
+    }
+    my $row = $sth->fetchrow_arrayref();
+    my $db_version = $row ? $row->[0] : '';
+
+    if ($db_version ne $options{version}) {
+        $options{logger}->writeLogInfo("[core] update schema $db_version -> $options{version}") if $db_version ne '';
+
+        # When no version is found we initialize it otherwise we update it
+        my $query = $db_version eq '' ? qq{ INSERT INTO gorgone_information (`key`, `value`) VALUES ('version', '$options{version}') }
+                                         : qq{ UPDATE gorgone_information SET `value` = '$options{version}' WHERE `key` = 'version' };
+        ($status, $sth) = $dbh->query({ query => $query });
+        if ($status == -1) {
+           $options{logger}->writeLogError("[core] create schema issue");
+           exit(1);
         }
     }
 }
@@ -951,61 +1023,7 @@ sub init_database {
 
     return if (!defined($options{autocreate_schema}) || $options{autocreate_schema} != 1);
 
-    my $db_version = '1.0';
-    my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT `value` FROM gorgone_information WHERE `key` = 'version'} });
-    if ($status == -1) {
-        ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT 1 FROM gorgone_identity LIMIT 1} });
-        if ($status == -1) {
-            create_schema(gorgone => $options{gorgone}, logger => $options{logger}, version => $options{version});
-            return ;
-        }
-    } else {
-        my $row = $sth->fetchrow_arrayref();
-        $db_version = $row->[0] if (defined($row));
-    }
-
-    $options{logger}->writeLogInfo("[core] update schema $db_version -> $options{version}");
-    
-    if ($db_version eq '1.0') {
-        my $schema = [
-            q{
-                PRAGMA encoding = "UTF-8"
-            },
-            q{
-                CREATE TABLE `gorgone_information` (
-                  `key` varchar(1024) DEFAULT NULL,
-                  `value` varchar(1024) DEFAULT NULL
-                );
-            },
-            qq{
-                INSERT INTO gorgone_information (`key`, `value`) VALUES ('version', '$options{version}');
-            },
-            q{
-                ALTER TABLE `gorgone_identity` ADD COLUMN `mtime` int(11) DEFAULT NULL DEFAULT NULL;
-            },
-            q{
-                ALTER TABLE `gorgone_identity` ADD COLUMN `oldkey` varchar(1024) DEFAULT NULL;
-            },
-            q{
-                ALTER TABLE `gorgone_identity` ADD COLUMN `oldiv` varchar(1024) DEFAULT NULL;
-            },
-            q{
-                ALTER TABLE `gorgone_identity` ADD COLUMN `iv` varchar(1024) DEFAULT NULL;
-            }
-        ];
-        foreach (@$schema) {
-            my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => $_ });
-            if ($status == -1) {
-                $options{logger}->writeLogError("[core] update schema issue");
-                exit(1);
-            }
-        }
-        $db_version = '22.04.0';
-    }
-
-    if ($db_version ne $options{version}) {
-        $options{gorgone}->{db_gorgone}->query({ query => "UPDATE gorgone_information SET `value` = '$options{version}' WHERE `key` = 'version'" });
-    }
+    create_schema(gorgone => $options{gorgone}, logger => $options{logger}, version => $options{version});
 }
-        
+
 1;

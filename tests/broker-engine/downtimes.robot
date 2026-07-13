@@ -11,7 +11,13 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BEDTMASS1
-    [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
+    [Documentation]    Scenario: Setting and Removing Downtimes on Configured Hosts and Services
+    ...    Given new services with several pollers are created
+    ...    When downtimes are set on all configured hosts
+    ...    Then the total number of downtimes, including impacted services, is 1050
+    ...    And all these downtimes are removed
+    ...    And the test is performed with BBDO 3.0.0
+
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Engine Config Set Value    ${0}    log_level_functions    trace
@@ -25,13 +31,15 @@ BEDTMASS1
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    module2    neb    debug
 
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
@@ -55,11 +63,16 @@ BEDTMASS1
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTMASS2
-    [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
+    [Documentation]    Scenario: Setting and Removing Downtimes on Configured Hosts and Services
+    ...    Given new services with several pollers are created
+    ...    When downtimes are set on all configured hosts
+    ...    Then the total number of downtimes, including impacted services, is 1050
+    ...    And all these downtimes are removed
+    ...    And the test is performed with BBDO 2.0.0
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${3}    ${50}    ${20}
     Ctn Engine Config Set Value    ${0}    log_level_functions    trace
@@ -77,7 +90,7 @@ BEDTMASS2
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
@@ -101,14 +114,17 @@ BEDTMASS2
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTSVCREN1
-    [Documentation]    A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
+    [Documentation]    Given a downtime set on a service
+    ...    When the service is renamed
+    ...    Then the downtime is still active on the renamed service
+    ...    When the downtime is removed from the renamed service
+    ...    Then the downtime is well removed
     [Tags]    broker    engine    services    downtime
     Ctn Config Engine    ${1}
-    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -116,12 +132,13 @@ BEDTSVCREN1
     Ctn Broker Config Log    module0    neb    debug
 
     Ctn Clear Retention
-    ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
+    ${start}    Ctn Get Round Current Date
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
@@ -141,14 +158,63 @@ BEDTSVCREN1
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BEDTSVCREN2
+    [Documentation]    Given a configuration with BBDO3 and a downtime set on a service
+    ...    When the service is renamed
+    ...    Then the downtime is still active on the renamed service
+    ...    When the downtime is removed from the renamed service
+    ...    Then the downtime is well removed
+    [Tags]    broker    engine    services    downtime
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
+    Ctn Config BBDO3    1
+
+    Ctn Clear Retention
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # It's time to schedule a downtime
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Service Downtime    host_1    service_1    ${3600}
+
+    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
+    Should Be True    ${result}    We should have 1 downtime enabled.
+
+    # Let's rename the service service_1
+    Ctn Rename Service    ${0}    host_1    service_1    toto_1
+
+    Ctn Reload Engine
+    # Let's wait for the check of external commands
+    ${content}    Create List    check_for_external_commands
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No check for external commands executed for 1mn.
+
+    Ctn Delete Service Downtime Full    ${0}    host_1    toto_1
+
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
+    Should Be True    ${result}    We should have no downtime enabled.
+
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTSVCFIXED
-    [Documentation]    A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
+    [Documentation]    Given a unique downtime set on a service
+    ...    When the downtime is removed
+    ...    Then the downtime is well removed
+    ...    And the number of downtimes is 0
     [Tags]    broker    engine    downtime
     Ctn Config Engine    ${1}
-    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -156,13 +222,14 @@ BEDTSVCFIXED
     Ctn Broker Config Log    module0    neb    debug
 
     Ctn Clear Retention
-    ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
+    ${start}    Ctn Get Round Current Date
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
@@ -173,9 +240,114 @@ BEDTSVCFIXED
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+BEDTSVCFIXED1
+    [Documentation]    Given a configuration with BBDO3 and a unique downtime set on a service
+    ...    When the downtime is removed
+    ...    Then the downtime is well removed
+    ...    And the number of downtimes is 0
+    [Tags]    broker    engine    downtime
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # It's time to schedule a downtime
+    ${start}    Ctn Get Round Current Date
+    Ctn Schedule Service Downtime    host_1    service_1    ${3600}
+
+    ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
+    Should Be True    ${result}    We should have 1 downtime enabled.
+
+    Ctn Delete Service Downtime Full    ${0}    host_1    service_1
+
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
+    Should Be True    ${result}    We should have no downtime enabled.
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BEDSVCDTDEL
+    [Documentation]    Given a configuration with BBDO3 and a unique downtime set on a service
+    ...    When the downtime is finished
+    ...    Then the downtime is well removed
+    ...    And the number of downtimes is 0
+    [Tags]    broker    engine    downtime    MON-18350
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    rrd    rrd    debug
+
+    FOR    ${service_id}    IN RANGE    1    1001
+        Ctn Engine Config Set Value    ${0}    service_${service_id}    check_interval    1
+        Ctn Engine Config Set Value    ${0}    service_${service_id}    retry_interval    1
+    END
+
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Log To Console    Let's do some forced service checks
+    ${service_id}    Set Variable    ${1}
+    FOR    ${host_id}    IN RANGE    1    51
+        FOR    ${count}    IN RANGE    20
+            Ctn Schedule Forced Service Check    host_${host_id}    service_${service_id}
+	    ${service_id}    Set Variable    ${service_id + 1}
+        END
+    END
+    Log To Console    We wait a bit to have service checks processed.
+    Sleep    2m
+    # It's time to schedule some downtimes
+    Log To Console    All the 50 hosts are set in downtime.
+    ${start}    Ctn Get Round Current Date
+    FOR    ${host_id}    IN RANGE    50
+        Ctn Schedule Host Downtime    0    host_${host_id}    ${180}
+    END
+    Sleep    1m
+
+    Log To Console    We should have more than 1000 downtimes enabled.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT count(*) FROM downtimes WHERE start_time >= ${start} AND deletion_time IS NULL    >    ${1000}    retry_timeout=120s    retry_pause=1s
+    Disconnect From Database
+
+    # After one minute, the downtime should be automatically removed
+
+    FOR    ${count}    IN RANGE    180
+        Log To Console    Downtimes will be removed in about ${180 - ${count}} seconds
+	Sleep    1s
+    END
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
+    Should Be True    ${result}    We should have no downtime enabled.
+
+    Log To Console    We wait a bit to be sure all RRD updates are done.
+    Sleep    2m
+    Ctn Stop Engine
+    # We should not find any error in RRD logs even if the downtime has been removed.
+    Ctn Kindly Stop Broker
 BEDTHOSTFIXED
     [Documentation]    A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
     [Tags]    broker    engine    downtime
@@ -191,7 +363,7 @@ BEDTHOSTFIXED
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     log to console    step1
@@ -256,7 +428,97 @@ BEDTHOSTFIXED
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BEDTHOSTFIXED1
+    [Documentation]    Scenario: Setting and Removing Downtime on a Host and its Services
+    ...    Given a downtime is set on a host
+    ...    Then the total number of downtimes is 21
+    ...    And this includes 1 for the host and 20 for its services
+    ...    When the downtime is deleted
+    ...    Then the total number of downtimes is 0
+    [Tags]    broker    engine    downtime
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
+    Ctn Config BBDO3	1
+
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    log to console    step1
+    # It's time to schedule downtimes
+    Ctn Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
+    log to console    step2
+    ${content}    Create List    HOST DOWNTIME ALERT: host_1;STARTED; Host has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_2;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_3;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_4;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_5;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_6;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_7;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_8;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_9;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_10;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_11;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_12;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_13;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_14;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_15;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_16;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_17;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_18;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_19;STARTED; Service has entered a period of scheduled downtime
+    ...    SERVICE DOWNTIME ALERT: host_1;service_20;STARTED; Service has entered a period of scheduled downtime
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    We should have 1 host downtime and 20 service downtimes on engine side.
+
+    ${result}    Ctn Check Number Of Downtimes    ${21}    ${start}    ${60}
+    log to console    step3
+    Should Be True    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
+    log to console    step4
+
+    # It's time to delete downtimes
+    Ctn Delete Host Downtimes    ${0}    host_1
+    ${content}    Create List    HOST DOWNTIME ALERT: host_1;CANCELLED; Scheduled downtime for host has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_2;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_3;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_4;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_5;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_6;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_7;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_8;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_9;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_10;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_11;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_12;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_13;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_14;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_15;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_16;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_17;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_18;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_19;CANCELLED; Scheduled downtime for service has been cancelled.
+    ...    SERVICE DOWNTIME ALERT: host_1;service_20;CANCELLED; Scheduled downtime for service has been cancelled.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    We should have 1 host downtime and 20 service downtimes on engine side.
+
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
+    Should Be True    ${result}    We should have no downtime enabled.
+
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 DTIM
@@ -283,7 +545,7 @@ DTIM
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${5}
 
@@ -311,7 +573,7 @@ DTIM
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    There are still some downtimes enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 
@@ -321,6 +583,8 @@ BEDTRRD1
     ...    This test is done with BBDO 3.0.0.
     ...    Then we should not get any error in cbd RRD of kind 'ignored update error in file...'.
     [Tags]    broker    engine    services    protobuf    MON-150015
+    # We were in BBDO2 just before, so we can have RRD duplicates in logs.
+    Ctn Clear Logs
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
@@ -380,9 +644,39 @@ BEDTRRD1
     Ctn Kindly Stop Broker
 
 
+DT_WITH_QUOTES
+    [Documentation]    Given a centreon running, we set a downtime with quotes
+    ...     Then we expect to get these quotes in bdd
+    [Tags]    broker    engine    services    protobuf    MON-92052
+    Ctn Clear Logs
+    Ctn Config Engine    ${1}     ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Schedule Host Downtime    ${0}    host_1    ${60}    'author with quotes'    "comment with quotes"
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    
+    ${query}     Catenate     SELECT downtime_id FROM downtimes WHERE author="'author with quotes'" AND comment_data = '"comment with quotes"'
+    Check Row Count    ${query}    ==    21    retry_timeout=60s    retry_pause=2s
+
+    Disconnect From Database    pymysql
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
 *** Keywords ***
 Ctn Clean Downtimes Before Suite
     Ctn Clean Before Suite
-
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL
+    Ctn Clear Downtimes

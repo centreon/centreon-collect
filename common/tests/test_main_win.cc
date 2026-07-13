@@ -22,6 +22,8 @@
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 
+std::shared_ptr<spdlog::logger> glogger;
+
 class CentreonEngineEnvironment : public testing::Environment {
  public:
   void TearDown() override { return; }
@@ -43,6 +45,8 @@ int main(int argc, char* argv[]) {
 
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
+
+  glogger = spdlog::default_logger();
 
   std::thread asio_thread([] { g_io_context->run(); });
   // Run all tests.

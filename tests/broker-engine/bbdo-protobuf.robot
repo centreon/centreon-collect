@@ -13,17 +13,23 @@ Test Teardown       Ctn Save Logs If Failed
 BEPBBEE1
     [Documentation]    central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
     [Tags]    broker    engine    protobuf    bbdo
+
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
-    Ctn Broker Config Log    module0    bbdo    debug
-    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    trace
+    Ctn Broker Config Log    central    bbdo    trace
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about not matching bbdo versions not available
@@ -33,6 +39,12 @@ BEPBBEE1
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
     [Tags]    broker    engine    protobuf    bbdo
+
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -45,12 +57,12 @@ BEPBBEE2
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about a missing config of unified_sql not available.
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BEPBBEE3
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service status messages.
@@ -67,7 +79,7 @@ BEPBBEE3
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
@@ -87,7 +99,7 @@ BEPBBEE4
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
@@ -107,7 +119,7 @@ BEPBBEE5
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
@@ -131,12 +143,12 @@ BEPBRI1
     Execute SQL String    DELETE FROM instances
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbresponsiveinstance.log    30s
     ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
     ${grep_res}    Get Lines Containing String    ${grep_res}    "poller_id":1, "responsive":true
     Should Not Be Empty    ${grep_res}    "responsive":true not found
-    Ctn Stop engine
+    Ctn Stop Engine
     FOR    ${index}    IN RANGE    60
         Sleep    1s
         ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
@@ -152,13 +164,14 @@ BEPBCVS
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -188,7 +201,7 @@ BEPBHostParent
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    30
@@ -224,12 +237,17 @@ BEPBINST_CONF
     [Tags]    broker    engine    protobuf    bbdo    MON-38007
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    ${1}
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    module0    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start Broker    True
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    muxer centreon-broker-master-rrd event of type 10036 pushed
@@ -237,13 +255,13 @@ BEPBINST_CONF
     Should Be True    ${result}    log about pb_instance_configuration not found
 
     Sleep    2
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    log about pb_instance_configuration not found
 
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 GRPC_CLOUD_FAILURE
     [Documentation]    simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok
@@ -271,7 +289,7 @@ GRPC_CLOUD_FAILURE
     Ctn Config BBDO3    ${1}
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}
 
     ${grpc_bbdo_server}    Ctn Create Bbdo Grpc Server    5669
@@ -301,7 +319,7 @@ GRPC_RECONNECT
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker    True
     Ctn Wait For Engine To Be Ready    ${start}
     Ctn Restart Broker    True
@@ -309,5 +327,37 @@ GRPC_RECONNECT
     Ctn Process Service Result Hard    host_1    service_2    2    service critical
     ${result}    Ctn Check Service Status With Timeout    host_1    service_2    2    60    HARD
     Should Be True    ${result}    The service (host_1,service_2) is not CRITICAL as expected
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+
+BEPBUID1
+    [Documentation]    uid > 2^32 in broker module config overrides poller_id.
+    ...    The instances, hosts and resources tables must store this 64-bit value.
+    [Tags]    broker    engine    protobuf    bbdo    MON-200521
+    Ctn Config Engine    ${1}    ${2}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Add Item    module0    uid    ${5000000000}
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    True
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Row Count
+    ...    SELECT instance_id FROM instances WHERE instance_id=5000000000 AND running=1
+    ...    ==    1    retry_timeout=60s    retry_pause=2s
+    Check Row Count
+    ...    SELECT instance_id FROM hosts WHERE instance_id=5000000000 AND enabled=1
+    ...    >=    1    retry_timeout=60s    retry_pause=2s
+    Check Row Count
+    ...    SELECT id FROM resources WHERE poller_id=5000000000 AND enabled=1
+    ...    >=    1    retry_timeout=60s    retry_pause=2s
+    Disconnect From Database    pymysql
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True

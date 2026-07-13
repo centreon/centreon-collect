@@ -27,6 +27,7 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
 use gorgone::modules::centreon::autodiscovery::services::discovery;
+use centreon::common::centreonvault;
 use gorgone::class::tpapi::clapi;
 use gorgone::class::tpapi::centreonv2;
 use gorgone::class::sqlquery;
@@ -34,6 +35,8 @@ use gorgone::class::frame;
 use JSON::XS;
 use Time::HiRes;
 use POSIX qw(strftime);
+use DateTime;
+use DateTime::Format::Strptime;
 use Digest::MD5 qw(md5_hex);
 use Try::Tiny;
 use EV;
@@ -72,7 +75,14 @@ sub new {
     $connector->{tpapi_clapi_name} = defined($options{config}->{tpapi_clapi}) && $options{config}->{tpapi_clapi} ne '' ? $options{config}->{tpapi_clapi} : 'clapi';
     $connector->{tpapi_centreonv2_name} = defined($options{config}->{tpapi_centreonv2}) && $options{config}->{tpapi_centreonv2} ne '' ? 
         $options{config}->{tpapi_centreonv2} : 'centreonv2';
-
+    # disable shell interpretation by default, can be enabled back by user in the config file
+    $connector->{config}->{no_shell_interpretation} = defined($options{config}->{no_shell_interpretation})
+        && $options{config}->{no_shell_interpretation} =~ /^(0|false)$/i ? 0 : 1;
+    # allow service discovery to unvault data from db, for host disco it's php who query db and send via api the data to gorgone, so it's php who must handle vault.
+    $connector->{vault} = centreon::common::centreonvault->new(
+        logger => $connector->{logger},
+        config_file => $connector->{config_core}->{vault_file}
+    );
     $connector->{is_module_installed} = 0;
     $connector->{is_module_installed_check_interval} = 60;
     $connector->{is_module_installed_last_check} = -1;
@@ -140,6 +150,125 @@ sub hdisco_is_running_job {
     }
 
     return 0;
+}
+=head3 $self->hdisco_can_start_job(job => $jobRef)
+
+Check if we can start a host discovery job.
+If the job is in timeout, update the job status in db and run the job again
+
+For now there is no real mutex on the execution except the db column status,
+so if the post execution command outlive the timeout undefined behaviour may appear.
+
+Parameters:
+
+=over 4
+
+=item * job: job information hash ref. Required data to work correctly are :
+
+=over 4
+
+=item * status: the job status (see JOB_FINISH and other constant for possible states)
+
+=item * job_id: the job unique identifier. Used to set the job as failure if timeout is reached.
+
+=item * last_execution : hash containing 'timezone' and 'date' (ex 'Europe/Paris',  '2026-01-30 20:31:00.000000')
+
+=back
+
+=back
+
+Output : Bool
+
+1 if the job should be started
+
+0 if invalid data given, or job correctly running and should not be started.
+=cut
+sub hdisco_can_start_job {
+    my ($self, %options) = @_;
+    if (!$options{job} || !defined($options{job}->{status}) || !defined($options{job}->{job_id})){
+        return 0;
+    }
+    if ($options{job}->{status} != JOB_RUNNING &&
+        $options{job}->{status} != SAVE_RUNNING) {
+        # if job is not running, we can start it safely
+        return 1;
+    }
+    if (!defined($options{job}->{last_execution}) || !defined($options{job}->{last_execution}->{date})) {
+        # probably first run of the job
+        return 1;
+    }
+    if ($options{job}->{execution}->{mode} != 1){
+        # never timeout manual or paused jobs, only retry automatic jobs
+        return 0;
+    }
+
+    my $second_since_last_exec = $self->_get_duration_since_last_exec(
+        date     => $options{job}->{last_execution}->{date},
+        timezone => $options{job}->{last_execution}->{timezone} // 'UTC'
+    ) or return 0; # could not parse the date, don't try to start the job again.
+
+    my $timeout = $options{timeout} // $self->{global_timeout};
+    if ($second_since_last_exec <= $timeout * 2 + 10) {
+        # job did not reach timeout, let it run, don't start it again.
+        return 0;
+    }
+
+    # job is in timeout, restarting it.
+    $self->{logger}->writeLogError(
+        "[autodiscovery] job is timing out (last execution: '" . $options{job}->{last_execution}->{date} . "'), we set it as failed and restart it");
+    return 0 if -1 == $self->update_job_information(
+        values       => {
+            status  => JOB_FAILED,
+            message => 'Job timed out and will be restarted by Gorgone',
+        },
+        where_clause => [
+            { id => $options{job}->{job_id} }
+        ]);
+    $self->{hdisco_jobs_ids}->{ $options{job}->{job_id} }->{status} = JOB_FAILED;
+    return 1;
+
+}
+=head3 $self->_get_duration_since_last_exec(date => $dateStr, timezone => $tzStr)
+
+Calculate the duration in seconds since the last job execution.
+
+Parameters:
+
+=over 4
+
+=item * date: execution date string in format 'YYYY-MM-DD HH:MM:SS.NNNNNN' (e.g., '2026-01-30 20:31:00.000000')
+
+=item * timezone: timezone string for the date (e.g., 'Europe/Paris', 'UTC')
+
+=back
+
+Output : Int or undef
+
+Number of seconds since the last execution.
+
+Returns undef if the date cannot be parsed or if the date is in the future.
+
+=cut
+sub _get_duration_since_last_exec {
+    my ($self, %options) = @_;
+
+    # parse format "2026-01-29 15:35:12.000000" given by php api.
+    my $last_exec = DateTime::Format::Strptime->new(
+        pattern   => '%Y-%m-%d %H:%M:%S.%6N',
+        time_zone => $options{timezone},
+    )->parse_datetime($options{date}); # will return undef on any failure.
+
+    if (!defined($last_exec)) {
+        $self->{logger}->writeLogWarning("[autodiscovery] can not parse last execution date '" . $options{date} . "from job, job won't start.");
+        return undef;
+    }
+
+    my $duration = DateTime->now()->epoch() - $last_exec->epoch();
+    if ($duration < 0) {
+        $self->{logger}->writeLogWarning("[autodiscovery] last execution date '" . $options{date} . "' is in the future, job won't start.");
+        return undef;
+    }
+    return $duration;
 }
 
 sub hdisco_add_cron {
@@ -435,7 +564,7 @@ sub launchhostdiscovery {
     if (!defined($job_id) || !defined($self->{hdisco_jobs_ids}->{$job_id})) {
         return (1, 'trying to launch discovery for inexistant job');
     }
-    if ($self->hdisco_is_running_job(status => $self->{hdisco_jobs_ids}->{$job_id}->{status})) {
+    if (! $self->hdisco_can_start_job(job => $self->{hdisco_jobs_ids}->{$job_id})) {
         return (1, 'job is already running');
     }
     if ($self->{hdisco_jobs_ids}->{$job_id}->{execution}->{mode} == EXECUTION_MODE_PAUSE && $options{source} eq 'cron') {
@@ -494,6 +623,7 @@ sub launchhostdiscovery {
                 {
                     command => $self->{hdisco_jobs_ids}->{$job_id}->{command_line},
                     timeout => $timeout,
+                    no_shell_interpretation => $self->{config}->{no_shell_interpretation},
                     metadata => {
                         job_id => $job_id,
                         source => 'autodiscovery-host-job-discovery',
@@ -735,24 +865,24 @@ sub discovery_command_result {
     my $duration = 0;
 
     try {
-        my $json = JSON::XS->new();
-        $json->incr_parse($data->{data}->{result}->{stdout});
-        while (my $obj = $json->incr_parse()) {
-            if (ref($obj) eq 'HASH') {
-                foreach my $host (@{$obj->{results}}) {
-                    my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
-                    return 1 if ($rv);
-                }
-                $duration = $obj->{duration};
-            } elsif (ref($obj) eq 'ARRAY') {
-                foreach my $host (@$obj) {
-                    my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
-                    return 1 if ($rv);
-                }
+        # decode_json can throw an error if the JSON is not valid, so we use try/catch to handle it.
+        my $json = decode_json($data->{data}->{result}->{stdout});
+
+        if (ref($json) eq 'HASH') { # only behavior I saw, an hash with 'results' key containing an array of hosts
+            foreach my $host (@{$json->{results}}) {
+                my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
+                return 1 if ($rv);
+            }
+            $duration = $json->{duration};
+        } elsif (ref($json) eq 'ARRAY') { # existing code, I don't know of plugin that return directly an array of hosts.
+            foreach my $host (@$json) {
+                my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
+                return 1 if ($rv);
             }
         }
+
     } catch {
-        $self->{logger}->writeLogError("[autodiscovery] -class- host discovery - failed to decode discovery plugin response job '$job_id'");
+        $self->{logger}->writeLogError("[autodiscovery] -class- host discovery - failed to decode discovery plugin response job '$job_id' " . $@);
         $self->update_job_status(
             job_id => $job_id,
             status => JOB_FAILED,
@@ -918,7 +1048,7 @@ sub update_job_information {
 
     my ($status) = $self->{class_object_centreon}->custom_execute(request => $query, bind_values => \@bind_values);
     if ($status == -1) {
-        $self->{logger}->writeLogError('[autodiscovery] Failed to update job information');
+        $self->{logger}->writeLogError('[autodiscovery] Failed to update job information for ' . join(', ', @bind_values));
         return -1;
     }
 

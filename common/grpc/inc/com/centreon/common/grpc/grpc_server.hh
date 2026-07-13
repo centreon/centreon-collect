@@ -22,6 +22,8 @@
 #include <grpcpp/server_builder.h>
 
 #include "com/centreon/common/grpc/grpc_config.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/jwt.hh"
 
 namespace com::centreon::common::grpc {
 
@@ -53,6 +55,10 @@ class grpc_server_base {
   const std::shared_ptr<spdlog::logger>& get_logger() const { return _logger; }
 
   bool initialized() const { return _server.get(); }
+
+  ::grpc::Status is_token_valid(
+      ::grpc::CallbackServerContext* context,
+      std::chrono::system_clock::time_point& exp_time);
 };
 
 }  // namespace com::centreon::common::grpc

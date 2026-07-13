@@ -52,11 +52,11 @@ static std::string const& find_param(config::endpoint const& cfg,
  *
  *  @return true if the configuration matches the storage layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("STORAGE", false, false);
-  bool is_storage{absl::EqualsIgnoreCase(cfg.type, "storage")};
-  return is_storage;
+  return absl::EqualsIgnoreCase(cfg.type, "storage");
 }
 
 /**

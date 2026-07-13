@@ -16,8 +16,9 @@ Whitelist_No_Whitelist_Directory
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    module    ${1}
     Remove Directory    /etc/centreon-engine-whitelist    recursive=${True}
+    Remove Directory    /usr/share/centreon-engine/whitelist.conf.d    recursive=${True}
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List
     ...    no whitelist directory found, all commands are accepted
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -30,7 +31,7 @@ Whitelist_Empty_Directory
     Ctn Config Broker    module    ${1}
     Empty Directory    /etc/centreon-engine-whitelist
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List
     ...    whitelist directory found, but no restrictions, all commands are accepted
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -43,7 +44,7 @@ Whitelist_Directory_Rights
     Ctn Config Broker    module    ${1}
     Run    chown root:root /etc/centreon-engine-whitelist
     ${start}    Ctn Get Round Current Date
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List
     ...    directory /etc/centreon-engine-whitelist must be owned by root@centreon-engine
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
@@ -66,7 +67,7 @@ Whitelist_Directory_Rights
     Should Not Be True    ${result}    must have 750 right access must not be found in logs
 
 Whitelist_Host
-    [Documentation]    test allowed and forbidden commands for hosts
+    [Documentation]    Test on allowed and forbidden commands for hosts
     [Tags]    whitelist    engine
     Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
@@ -74,50 +75,66 @@ Whitelist_Host
     Ctn Config Broker    module    ${1}
     Ctn Engine Config Set Value    0    log_level_checks    trace    True
     Ctn Engine Config Set Value    0    log_level_commands    trace    True
-    Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
+    Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl --id 0 $HOSTADDRESS$
     Ctn Engine Config Replace Value In Hosts    0    host_1    check_command    command_1
 
-    ${start}    Get Current Date
     Ctn Start Broker    only_central=${True}
-    Ctn Start engine
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # no file => no restriction
-    ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
-    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl --id 0 1.0.0.0'
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    No check result found for host_1
 
-    # create non matching file with /tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0
+    # Create non matching file with /tmp/var/lib/centreon-engine/check.pl --id 0 1.0.0.0
     ${whitelist_content}    Catenate
-    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+    Run    chown root:centreon-engine /etc/centreon-engine-whitelist/test
+    Run    chmod 750 -R /etc/centreon-engine-whitelist
+
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
-    ${start}    Get Current Date
+
+    ${content}    Create List    Reload configuration finished
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Configuration reloaded must be found in Logs
+
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List
     ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No command not allowed found for host_1
 
-    # matching with /tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]
-    Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
+    # matching with /tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]
+    Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl --id 1 $HOSTADDRESS$
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
-    ${start}    Get Current Date
-    Ctn Schedule Forced Host Check    host_1
-    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
+
+    ${content}    Create List    Configuration reloaded, main loop continuing.
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
+    Should Be True    ${result}    Configuration reloaded must be found in Logs
+
+    Ctn Schedule Forced Host Check    host_1
+    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl --id 1 1.0.0.0'
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl --id 1 not run
 
     # matching with /tmp/var/lib/centreon-engine/toto* * */etc/centreon-engine-whitelist/test
     Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
+
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
-    ${start}    Get Current Date
+
+    ${content}    Create List    Configuration reloaded, main loop continuing.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Configuration reloaded must be found in Logs
+
     Ctn Schedule Forced Host Check    host_1
-    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
+    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
@@ -143,7 +160,7 @@ Whitelist_Service_EH
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
     ${start}    Get Current Date
     Ctn Start Broker    only_central=${True}
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     ${cmd}    Ctn Get Service Command Id    1
     Ctn Set Command Status    ${cmd}    0
@@ -191,7 +208,7 @@ Whitelist_Service
 
     ${start}    Get Current Date
     Ctn Start Broker    only_central=${True}
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -199,7 +216,7 @@ Whitelist_Service
     # no file => no restriction
     ${start}    Get Current Date
     Ctn Schedule Forced Service Check    host_1    service_1
-    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
+    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check result found for service_1
 
@@ -220,7 +237,7 @@ Whitelist_Service
     Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Service Check    host_1    service_1
-    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
+    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
 
@@ -229,7 +246,7 @@ Whitelist_Service
     Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Service Check    host_1    service_1
-    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
+    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
@@ -252,7 +269,7 @@ Whitelist_Perl_Connector
 
     ${start}    Get Current Date
     Ctn Start Broker    only_central=${True}
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -274,6 +291,79 @@ Whitelist_Perl_Connector
     ...    connector::run: connector='Perl Connector', cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0 not found
+
+Whitelist_NotReadable
+    [Documentation]    Given a centengine started by centreon-engine user, whitelist files are not readable and centengine must log an error
+    [Tags]    whitelist    engine MON-175809
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Empty Directory    /etc/centreon-engine-whitelist
+    Ctn Config Broker    module    ${1}
+
+
+    ${whitelist_content}    Catenate
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+    Run    chown root:centreon-engine /etc/centreon-engine-whitelist/test
+    Run    chmod 755 -R /etc/centreon-engine-whitelist
+    Run    chmod 200 -R /etc/centreon-engine-whitelist/test
+
+    Create File    /usr/share/centreon-engine/whitelist.conf.d/test    ${whitelist_content}
+    Run    chown root:centreon-engine /usr/share/centreon-engine/whitelist.conf.d/test
+    Run    chmod 755 -R /usr/share/centreon-engine/whitelist.conf.d
+    Run    chmod 200 -R /usr/share/centreon-engine/whitelist.conf.d/test
+
+    Run    chown centreon-engine: /usr/sbin/centengine
+    Run    chmod +s /usr/sbin/centengine
+
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+    Ctn Start Engine    with_centreon_engine_user=${True}
+
+    Sleep    1s
+    Run    chown root: /usr/sbin/centengine
+    Run    chmod 711 /usr/sbin/centengine
+
+    ${content}    Create List
+    ...    fail to read /etc/centreon-engine-whitelist/test
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /etc/centreon-engine-whitelist/test
+
+    ${content}    Create List
+    ...    fail to read /usr/share/centreon-engine/whitelist.conf.d/test
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /usr/share/centreon-engine/whitelist.conf.d/test
+
+Whitelist_Directory_NotReadable
+    [Documentation]    Given a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
+    [Tags]    whitelist    engine MON-175809
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    module    ${1}
+
+
+    Run    chmod 700 -R /etc/centreon-engine-whitelist
+    Run    chmod 700 -R /usr/share/centreon-engine/whitelist.conf.d
+
+    Run    chown centreon-engine: /usr/sbin/centengine
+    Run    chmod +s /usr/sbin/centengine
+
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+    Ctn Start Engine    with_centreon_engine_user=${True}
+
+    Sleep    1s
+    Run    chown root: /usr/sbin/centengine
+    Run    chmod 711 /usr/sbin/centengine
+
+    ${content}    Create List
+    ...    fail to read /etc/centreon-engine-whitelist directory: filesystem error: directory iterator cannot open directory: Permission denied
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /etc/centreon-engine-whitelist
+
+    ${content}    Create List
+    ...    fail to read /usr/share/centreon-engine/whitelist.conf.d directory: filesystem error: directory iterator cannot open directory: Permission denied
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /usr/share/centreon-engine/whitelist.conf.d
+
 
 
 *** Keywords ***

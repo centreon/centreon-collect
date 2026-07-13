@@ -20,7 +20,11 @@
 
 using namespace com::centreon::common;
 
-std::unique_ptr<pool> pool::_instance;
+/**
+ * @brief As it can be called after exit() by another thread, it's never deleted
+ *
+ */
+pool* pool::_instance;
 
 /**
  * @brief The way to access to the pool.
@@ -42,20 +46,9 @@ pool& pool::instance() {
 void pool::load(const std::shared_ptr<asio::io_context>& io_context,
                 const std::shared_ptr<spdlog::logger>& logger) {
   if (_instance == nullptr)
-    _instance = std::make_unique<pool>(io_context, logger);
+    _instance = new pool(io_context, logger);
   else
     SPDLOG_LOGGER_ERROR(logger, "pool already started.");
-}
-
-/**
- * @brief unload singleton
- * must be called in main only
- *
- * @param io_context
- * @param logger
- */
-void pool::unload() {
-  _instance.reset();
 }
 
 /**
@@ -97,6 +90,7 @@ pool::~pool() {
   _stop();
   if (_original_pid == getpid() && _pool) {
     delete _pool;
+    _pool = nullptr;
   }
 }
 
@@ -105,7 +99,7 @@ pool::~pool() {
  */
 void pool::_stop() {
   SPDLOG_LOGGER_DEBUG(_logger, "Stopping the thread pool");
-  std::lock_guard<std::mutex> lock(_pool_m);
+  absl::MutexLock l(_pool_m);
   _worker.reset();
   if (_original_pid == getpid()) {
     for (auto& t : *_pool)
@@ -134,8 +128,8 @@ void pool::_set_pool_size(size_t pool_size) {
                         ? std::max(std::thread::hardware_concurrency(), 3u)
                         : pool_size;
 
-  std::lock_guard<std::mutex> lock(_pool_m);
-  if (new_size <= _pool_size) {
+  absl::MutexLock l(_pool_m);
+  if (new_size <= _pool_size || _io_context->stopped()) {
     return;
   }
 

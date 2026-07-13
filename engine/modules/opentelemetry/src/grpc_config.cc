@@ -39,8 +39,11 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "maximum": 65535
         },
         "encryption": {
-            "description": "true if https",
-            "type": "boolean"
+            "description": "encryption mode: full, insecure, or no",
+            "anyOf": [
+              { "type": "boolean" },
+              { "type": "string", "enum": ["full", "insecure", "no", "true", "false"] }
+            ]
         },
         "public_cert": {
             "description": "path of certificate file .crt",
@@ -74,10 +77,24 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "minimum": 0,
             "maximum": 600
         },
+        "minute_certificate_ttl": {
+            "description:": "peremption in minutes of certificate built from self signed ca",
+            "type": "integer",
+            "min": 1
+        },
         "max_message_length": {
             "description": "maximum protobuf message length in Mo",
             "type": "integer",
             "minimum": 4
+        },"token":{
+          "description": "key for token",
+          "type": "string"
+      },"trusted_tokens":{
+            "description": "tokens for authentication",
+            "type": "array",
+              "items": {
+                "type": "string"
+              }
         }
     },
     "required": [
@@ -96,7 +113,9 @@ using namespace com::centreon::engine::modules::opentelemetry;
  *
  * @param json_config_v content of the json config file
  */
-grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
+grpc_config::grpc_config(const rapidjson::Value& json_config_v,
+                         const std::string_view& default_cert_path,
+                         const std::string_view& default_key_path) {
   common::rapidjson_helper json_config(json_config_v);
 
   static common::json_validator validator(_grpc_config_schema);
@@ -110,22 +129,62 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
 
   std::string hostport = fmt::format("{}:{}", json_config.get_string("host"),
                                      json_config.get_unsigned("port"));
-  bool crypted = false;
+  grpc_config::e_security_mode security_mode = NONE;
   std::string certificate, cert_key, ca_cert;
   std::string ca_name;
   bool compress = false;
   int second_keepalive_interval;
 
-  if (json_config.has_member("encryption"))
-    crypted = json_config.get_bool("encryption");
+  if (json_config.has_member("encryption")) {
+    const auto& encryption_value = json_config_v["encryption"];
+    if (encryption_value.IsString()) {
+      const std::string& encryption = json_config.get_string("encryption");
+      if (encryption == "full") {
+        security_mode = TLS_SECURE;
+      } else if (encryption == "insecure" || encryption == "true") {
+        security_mode = TLS_INSECURE;
+      } else {
+        security_mode = NONE;
+      }
+    } else if (encryption_value.IsBool()) {
+      bool crypted = encryption_value.GetBool();
+      if (crypted) {
+        security_mode = TLS_INSECURE;
+      } else {
+        security_mode = NONE;
+      }
+    }
+  }
 
-  read_file(json_config_v, "public_cert", certificate);
-  read_file(json_config_v, "private_key", cert_key);
-  read_file(json_config_v, "ca_certificate", ca_cert);
-  if (json_config.has_member("ca_name"))
-    ca_name = json_config.get_string("ca_name");
+  if (security_mode != NONE) {
+    _cert_path = json_config.get_string("public_cert", "");
+    if (_cert_path.empty()) {
+      _cert_path = default_cert_path;
+    }
+    if (!_cert_path.empty()) {
+      _cert_mtime = read_file(_cert_path, certificate);
+    }
+
+    _key_path = json_config.get_string("private_key", "");
+    if (_key_path.empty()) {
+      _key_path = default_key_path.data();
+    }
+    if (!_key_path.empty()) {
+      _key_mtime = read_file(_key_path, cert_key);
+    }
+
+    _ca_path = json_config.get_string("ca_certificate", "");
+    if (!_ca_path.empty()) {
+      _ca_mtime = read_file(_ca_path, ca_cert);
+    }
+    if (json_config.has_member("ca_name"))
+      ca_name = json_config.get_string("ca_name");
+  }
   if (json_config.has_member("compression"))
     compress = json_config.get_bool("compression");
+
+  _minute_certificate_ttl = json_config.get_unsigned(
+      "minute_certificate_ttl", 30 * 24 * 60);  // 30 days by default
 
   if (json_config.has_member("keepalive_interval"))
     second_keepalive_interval = json_config.get_int("keepalive_interval");
@@ -138,38 +197,48 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   unsigned max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 
+  std::string token;
+  if (json_config.has_member("token")) {
+    token = json_config.get_string("token");
+  }
+  absl::flat_hash_set<std::string> trusted_tokens;
+  if (json_config.has_member("trusted_tokens")) {
+    const rapidjson::Value& tokens_v = json_config.get_member("trusted_tokens");
+    for (const auto& v : tokens_v.GetArray()) {
+      trusted_tokens.insert(v.GetString());
+    }
+  }
+
   static_cast<common::grpc::grpc_config&>(*this) = common::grpc::grpc_config(
-      hostport, crypted, certificate, cert_key, ca_cert, ca_name, compress,
-      second_keepalive_interval, second_max_reconnect_backoff,
-      max_message_length);
+      hostport, security_mode, certificate, cert_key, ca_cert, ca_name,
+      compress, second_keepalive_interval, second_max_reconnect_backoff,
+      max_message_length, token,
+      std::make_shared<const absl::flat_hash_set<std::string>>(
+          std::move(trusted_tokens)));
 }
 
 /**
  * @brief read a file as certificate
  *
- * @param json_config
- * @param key json key that contains file path
+ * @param path of file
  * @param file_content out: file content
+ * @return mtime of the file if file path is not empty
  */
-void grpc_config::read_file(const rapidjson::Value& json_config,
-                            const std::string_view& key,
-                            std::string& file_content) {
-  std::string path;
+std::filesystem::file_time_type grpc_config::read_file(
+    std::string_view path,
+    std::string& file_content) {
   try {
-    path = rapidjson_helper(json_config).get_string(key.data());
-  } catch (const std::exception&) {
-    return;
-  }
-  try {
-    boost::trim(path);
+    path = absl::StripLeadingAsciiWhitespace(path);
+    path = absl::StripTrailingAsciiWhitespace(path);
     if (path.empty()) {
-      return;
+      return {};
     }
-    std::ifstream file(path);
+    std::ifstream file(path.data());
     std::stringstream ss;
     ss << file.rdbuf();
     file.close();
     file_content = ss.str();
+    return std::filesystem::last_write_time((path));
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}: {}", path, e.what());
     throw;
@@ -178,5 +247,72 @@ void grpc_config::read_file(const rapidjson::Value& json_config,
 
 bool grpc_config::operator==(const grpc_config& right) const {
   return static_cast<const common::grpc::grpc_config>(*this) ==
-         static_cast<const common::grpc::grpc_config>(right);
+             static_cast<const common::grpc::grpc_config>(right) &&
+         _minute_certificate_ttl == right._minute_certificate_ttl;
+}
+
+/**
+ * @brief reload certificate if usefull (changed on disk)
+ *
+ * @return true certificate had been reloaded
+ * @return false
+ */
+bool grpc_config::reload_certificates() {
+  std::filesystem::file_time_type cert_mtime, key_mtime, ca_mtime;
+  std::error_code err;
+  if (!_cert_path.empty()) {
+    cert_mtime = std::filesystem::last_write_time(_cert_path, err);
+    if (err) {
+      return false;
+    }
+  }
+  if (!_key_path.empty()) {
+    key_mtime = std::filesystem::last_write_time(_key_path, err);
+    if (err) {
+      return false;
+    }
+  }
+  if (!_ca_path.empty()) {
+    ca_mtime = std::filesystem::last_write_time(_ca_path, err);
+    if (err) {
+      return false;
+    }
+  }
+
+  std::string cert, key, ca;
+  unsigned ret = 0;
+  if (!_cert_path.empty() && cert_mtime != _cert_mtime) {
+    try {
+      _cert_mtime = read_file(_cert_path, cert);
+      ret |= 1;
+    } catch (const std::exception&) {
+      return false;
+    }
+  }
+  if (!_key_path.empty() && key_mtime != _key_mtime) {
+    try {
+      _key_mtime = read_file(_key_path, key);
+      ret |= 2;
+    } catch (const std::exception&) {
+      return false;
+    }
+  }
+  if (!_ca_path.empty() && ca_mtime != _ca_mtime) {
+    try {
+      _ca_mtime = read_file(_ca_path, ca);
+      ret |= 4;
+    } catch (const std::exception&) {
+      return false;
+    }
+  }
+  if (ret & 1) {
+    set_cert(cert);
+  }
+  if (ret & 2) {
+    set_key(key);
+  }
+  if (ret & 4) {
+    set_ca(ca);
+  }
+  return ret;
 }

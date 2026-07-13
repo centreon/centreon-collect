@@ -375,9 +375,9 @@ sub get_hosts {
                 $datas->{$host_id}->{macros} = $done_macro_host->{ $host_id };
             } else {
                 ($status, my $message, my $macros) = get_macros_host(
-                    host_id => $host_id,
+                    host_id               => $host_id,
                     class_object_centreon => $options{class_object_centreon},
-                    vault_count => $options{vault_count}
+                    vault                 => $options{vault},
                 );
                 if ($status == -1) {
                     return (-1, $message);
@@ -409,6 +409,8 @@ sub get_macros_host {
     my %macros = ();
     my %loop_stop = ();
     my @stack = ($options{host_id});
+
+    my $vault = $options{vault};
     
     while ((my $lhost_id = shift(@stack))) {
         if (defined($loop_stop{$lhost_id})) {
@@ -426,7 +428,7 @@ sub get_macros_host {
         }
 
         if (defined($datas->[0]->[0]) && $datas->[0]->[0] ne '') {
-            set_macro(\%macros, '$_HOSTSNMPCOMMUNITY$', $datas->[0]->[0]);
+            set_macro(\%macros, '$_HOSTSNMPCOMMUNITY$', $vault->get_secret($datas->[0]->[0]));
         }
         if (defined($datas->[0]->[1]) && $datas->[0]->[1] ne '') {
             set_macro(\%macros, '$_HOSTSNMPVERSION$', $datas->[0]->[1]);
@@ -441,14 +443,9 @@ sub get_macros_host {
         }
         foreach (@$datas) {
             my $macro_name = $_->[0];
-            my $macro_value = $_->[1];
-            my $is_password = $_->[2];
-            # Replace macro value if a vault is used
-            if (defined($options{vault_count}) && $options{vault_count} > 0 && defined($is_password) && $is_password == 1) {
-                set_macro(\%macros, $macro_name, "{" . $macro_name . "::secret::" . $macro_value . "}");
-            } else {
-                set_macro(\%macros, $macro_name, $macro_value);
-            }
+            my $macro_value = $vault->get_secret($_->[1]);
+            # Replace macro value if a vault is used, otherwise use the value as is
+            set_macro(\%macros, $macro_name, $macro_value);
         }
 
         ($status, $datas) = $options{class_object_centreon}->custom_execute(
@@ -483,10 +480,6 @@ sub substitute_service_discovery_command {
     
     $command =~ s/\$HOSTADDRESS\$/$options{host}->{host_address}/g;
     $command =~ s/\$HOSTNAME\$/$options{host}->{host_name}/g;
-
-    if (defined($options{vault_count}) && $options{vault_count} > 0) {
-        $command .= ' --pass-manager="centreonvault"';
-    }
     
     return $command;
 }

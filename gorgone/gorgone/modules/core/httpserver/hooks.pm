@@ -152,6 +152,7 @@ sub create_child {
     my $child_pid = fork();
     if ($child_pid == 0) {
         $0 = 'gorgone-httpserver';
+
         my $module = gorgone::modules::core::httpserver::class->new(
             logger => $options{logger},
             module_id => NAME,

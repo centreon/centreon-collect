@@ -64,25 +64,23 @@ template <unsigned nb_metric>
 class measure_to_status {
   e_status _status;
   unsigned _data_index;
-  double _threshold;
+  common::threshold _threshold;
   unsigned _total_data_index;
   bool _percent;
-  bool _free_threshold;
 
  public:
   measure_to_status(e_status status,
                     unsigned data_index,
-                    double threshold,
+                    common::threshold threshold,
                     unsigned total_data_index,
-                    bool _percent,
-                    bool free_threshold);
+                    bool _percent);
 
   virtual ~measure_to_status() = default;
 
   unsigned get_data_index() const { return _data_index; }
   unsigned get_total_data_index() const { return _total_data_index; }
   e_status get_status() const { return _status; }
-  double get_threshold() const { return _threshold; }
+  const common::threshold& get_threshold() const { return _threshold; }
 
   virtual void compute_status(const snapshot<nb_metric>& to_test,
                               e_status* status) const;
@@ -129,10 +127,7 @@ class native_check_base : public check {
   native_check_base(const std::shared_ptr<asio::io_context>& io_context,
                     const std::shared_ptr<spdlog::logger>& logger,
                     time_point first_start_expected,
-                    duration check_interval,
-                    const std::string& serv,
-                    const std::string& cmd_name,
-                    const std::string& cmd_line,
+                    const Service& serv,
                     const rapidjson::Value& args,
                     const engine_to_agent_request_ptr& cnf,
                     check::completion_handler&& handler,

@@ -19,9 +19,7 @@
 #include <mysqld_error.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -31,7 +29,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 
 constexpr const char* mysql_error::msg[];
 
-const int MAX_ATTEMPTS = 2;
+const int MAX_ATTEMPTS = 3;
 
 void (mysql_connection::*const mysql_connection::_task_processing_table[])(
     mysql_task* task) = {
@@ -56,7 +54,7 @@ void (mysql_connection::*const mysql_connection::_task_processing_table[])(
 
 /**
  * @brief check if the error code is a server error. At the moment, we only
- * check two errors. Maybe we will need to add some.
+ * check three errors. Maybe we will need to add some.
  *
  * @param code the code to check
  *
@@ -66,6 +64,11 @@ bool mysql_connection::_server_error(int code) const {
   switch (code) {
     case CR_SERVER_GONE_ERROR:
     case CR_SERVER_LOST:
+      /* This last error has been seen with MySql when the server is behind
+       * a virtual IP and the VIP changes after an upgrade of the server. Broker
+       * does not know that the server has changed, so it tries to
+       * use a prepared statement that is not valid anymore. */
+    case ER_UNKNOWN_STMT_HANDLER:
       return true;
     default:
       return false;
@@ -193,6 +196,28 @@ bool mysql_connection::_try_to_reconnect() {
 
   mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
                  (const void*)_extension_directory.c_str());
+
+  // Configure SSL/TLS if enabled
+  if (_ssl_enabled) {
+    mysql_ssl_set(_conn, _ssl_key.empty() ? nullptr : _ssl_key.c_str(),
+                  _ssl_cert.empty() ? nullptr : _ssl_cert.c_str(),
+                  _ssl_ca.empty() ? nullptr : _ssl_ca.c_str(), nullptr,
+                  nullptr);
+
+    if (!_tls_version.empty()) {
+      mysql_options(_conn, MYSQL_OPT_TLS_VERSION, _tls_version.c_str());
+    }
+
+    // Configure certificate verification based on configuration
+    if (_ssl_verify_cert) {
+      bool verify = true;
+      mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
+    }
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "mysql_connection: configuring SSL/TLS for reconnection (verify={})",
+        _ssl_verify_cert);
+  }
 
   if (!mysql_real_connect(_conn, _host.c_str(), _user.c_str(), _pwd.c_str(),
                           _name.c_str(), _port,
@@ -423,12 +448,152 @@ void mysql_connection::_prepare(mysql_task* t) {
   }
 }
 
+/**
+ * @brief Set the exception object except mysql_task_statement
+ *
+ * @tparam task_type mysql_task_statement_res or mysql_task_statement_int
+ * @param task
+ * @param ex
+ */
+template <typename task_type>
+void set_exception(task_type* task, msg_fmt&& ex) {
+  task->promise.set_exception(std::make_exception_ptr<msg_fmt>(std::move(ex)));
+}
+
+void set_exception(mysql_task_statement*, msg_fmt&&) {}
+
+/**
+ * @brief Get the error code object of mysql_task_statement
+ *
+ * @tparam task_type
+ * @return int task->error_code for mysql_task_statement, 0 instead
+ */
+template <typename task_type>
+int get_error_code(const task_type*) {
+  return 0;
+}
+
+int get_error_code(const mysql_task_statement* task) {
+  return task->error_code;
+}
+
+/**
+ * @brief Execute a prepared statement with retry logic, dispatching to a
+ * success handler on success or setting an exception on the task on failure.
+ *
+ * Attempts to execute the prepared statement identified by task->statement_id
+ * up to MAX_ATTEMPTS times, with exponential back-off (100 ms * 2^attempt)
+ * between retries.
+ *
+ * Error handling:
+ * - Server-lost / connection errors: marks the connection broken via
+ *   set_error_message() and sets an exception on the task — no retry.
+ * - Deadlock (ER_LOCK_DEADLOCK) or lock-wait timeout
+ *   (ER_LOCK_WAIT_TIMEOUT): issues a COMMIT to clean the transaction, then
+ *   retries up to MAX_ATTEMPTS.  If the commit itself fails with a server
+ *   error the connection is also marked broken.
+ * - MariaDB error 5026 (unknown internal error): closes the connection — no
+ *   retry.
+ * - Any other error: sets an exception on the task immediately — no retry.
+ * - errno == 0 returned by mysql_stmt_errno(): treated as CR_SERVER_LOST so
+ *   the connection is marked broken (workaround for MariaDB bug).
+ *
+ * On success, success_handler() is called and the function returns.
+ *
+ * @tparam task_type           A mysql_task derivative that exposes
+ *                             statement_id and error_code.
+ * @tparam success_handler_type Callable invoked with no arguments on success.
+ * @param task            Non-owning pointer to the task being executed.
+ * @param success_handler Callable invoked when mysql_stmt_execute() succeeds.
+ */
+template <typename task_type, typename success_handler_type>
+void mysql_connection::_execute_stmt(task_type* task,
+                                     success_handler_type&& success_handler) {
+  int32_t attempts = 0;
+  MYSQL_STMT* stmt(_stmt[task->statement_id]);
+  const std::string& query = _stmt_query[task->statement_id];
+  for (;;) {
+    SPDLOG_LOGGER_TRACE(
+        _logger, "mysql_connection {:p}: execute statement {:x} attempt {}: {}",
+        static_cast<const void*>(this), task->statement_id, attempts, query);
+    if (mysql_stmt_execute(stmt)) {
+      int32_t stmt_error = ::mysql_stmt_errno(stmt);
+      std::string err_msg(fmt::format("{} errno={} {}",
+                                      mysql_error::msg[get_error_code(task)],
+                                      stmt_error, ::mysql_stmt_error(stmt)));
+      if (stmt_error == 0) {
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "mysql_connection: errno=0, so we simulate a "
+                            "server error CR_SERVER_LOST");
+        err_msg = fmt::format(
+            "{} mysql_connection: errno=0, so we simulate a "
+            "server error CR_SERVER_LOST",
+            mysql_error::msg[get_error_code(task)]);
+        stmt_error = CR_SERVER_LOST;
+      } else {
+        SPDLOG_LOGGER_ERROR(
+            _logger, "connection {:p} fail to execute statement {:x}: {}: {}",
+            static_cast<const void*>(this), task->statement_id, query, err_msg);
+      }
+      if (_server_error(stmt_error)) {
+        /* Server is gone, mark the connection as broken so it gets
+         * reconnected.  */
+        set_error_message(err_msg);
+        set_exception(task, msg_fmt(err_msg));
+        return;
+      } else if (stmt_error == ER_LOCK_DEADLOCK ||
+                 stmt_error ==
+                     ER_LOCK_WAIT_TIMEOUT) {  // Dead Lock error => retry
+        // commit to clean after deadlock
+        if (mysql_commit(_conn)) {
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "connection fail commit after execute statement failure {:p}",
+              static_cast<const void*>(this));
+          set_error_message("Commit failed after executing statement: {}",
+                            ::mysql_error(_conn));
+          set_exception(task, msg_fmt("Failed to execute statement because of "
+                                      "deadlock and failed to "
+                                      "commit: {}",
+                                      ::mysql_error(_conn)));
+          return;
+        }
+      } else if (stmt_error ==
+                 5026) {  // unknown mariadb error => close connection
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "mysql_connection: unknown mariadb error 5026 => close connection");
+        set_error_message(
+            "mysql_connection: unknown mariadb error 5026 => close connection");
+        set_exception(
+            task, msg_fmt("unknown database error: 5026 => close connection"));
+        return;
+      } else {
+        /* Here the error is not due to a deadlock in database, we throw an
+         * exception, this query won't be played again. */
+        set_exception(task, msg_fmt(err_msg));
+        return;
+      }
+
+      if (++attempts >= MAX_ATTEMPTS) {
+        set_exception(task, msg_fmt(err_msg));
+        return;
+      }
+    } else {
+      success_handler();
+      return;
+    }
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(100 * (1 << attempts)));
+  }
+}
+
 void mysql_connection::_statement(mysql_task* t) {
   mysql_task_statement* task(static_cast<mysql_task_statement*>(t));
 
   uint32_t array_size = 1;
 
-  std::string& query = _stmt_query[task->statement_id];
+  const std::string& query = _stmt_query[task->statement_id];
   sql::stats::stmt_span stats(&_stats, task->statement_id, query);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
@@ -452,71 +617,22 @@ void mysql_connection::_statement(mysql_task* t) {
         "mysql_connection: Error while binding values in statement: {}",
         ::mysql_stmt_error(stmt));
   } else {
-    int32_t attempts = 0;
     std::chrono::system_clock::time_point request_begin =
         std::chrono::system_clock::now();
-    for (;;) {
-      SPDLOG_LOGGER_TRACE(
-          _logger,
-          "mysql_connection {:p}: execute statement {:x} attempt {}: {}",
-          static_cast<const void*>(this), task->statement_id, attempts, query);
-      if (mysql_stmt_execute(stmt)) {
-        int32_t err_code = ::mysql_stmt_errno(stmt);
-        std::string err_msg(fmt::format("{} errno={} {}",
-                                        mysql_error::msg[task->error_code],
-                                        err_code, ::mysql_stmt_error(stmt)));
-        if (err_code == 0) {
-          SPDLOG_LOGGER_ERROR(_logger,
-                              "mysql_connection: errno=0, so we simulate a "
-                              "server error CR_SERVER_LOST");
-          err_code = CR_SERVER_LOST;
-        } else {
-          SPDLOG_LOGGER_ERROR(_logger,
-                              "connection fail to execute statement {:p}: {}",
-                              static_cast<const void*>(this), err_msg);
-        }
-        if (_server_error(err_code)) {
-          set_error_message(err_msg);
-          break;
-        }
-        if (err_code != ER_LOCK_DEADLOCK &&
-            err_code != ER_LOCK_WAIT_TIMEOUT)  // Dead Lock error
-          attempts = MAX_ATTEMPTS;
+    _execute_stmt(task, [&]() {
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "mysql_connection {:p}: success execute statement "
+                          "{:x}: {}",
+                          static_cast<const void*>(this), task->statement_id,
+                          _stmt_query[task->statement_id]);
+      _last_access = time(nullptr);
+      set_need_to_commit();
+    });
 
-        if (mysql_commit(_conn)) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "connection fail commit after execute statement failure {:p}",
-              static_cast<const void*>(this));
-          set_error_message("Commit failed after execute statement");
-          break;
-        }
-
-        SPDLOG_LOGGER_ERROR(_logger, "mysql_connection {:p} attempts {}: {}",
-                            static_cast<const void*>(this), attempts, err_msg);
-        if (++attempts >= MAX_ATTEMPTS) {
-          if (_server_error(::mysql_stmt_errno(stmt)))
-            set_error_message("{} {}", mysql_error::msg[task->error_code],
-                              ::mysql_stmt_error(stmt));
-          break;
-        }
-      } else {
-        SPDLOG_LOGGER_TRACE(_logger,
-                            "mysql_connection {:p}: success execute statement "
-                            "{:x} attempt {}",
-                            static_cast<const void*>(this), task->statement_id,
-                            _stmt_query[task->statement_id]);
-        _last_access = time(nullptr);
-        set_need_to_commit();
-        break;
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
     SPDLOG_LOGGER_TRACE(_logger,
                         "mysql_connection {:p}: end execute statement "
-                        "{:x} attempt {} duration {}s: {}",
+                        "{:x} duration {}s: {}",
                         static_cast<const void*>(this), task->statement_id,
-                        attempts,
                         std::chrono::duration_cast<std::chrono::seconds>(
                             std::chrono::system_clock::now() - request_begin)
                             .count(),
@@ -553,93 +669,46 @@ void mysql_connection::_statement_res(mysql_task* t) {
     msg_fmt e("statement and get result failed: {}", err_msg);
     task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
-    int32_t attempts = 0;
-    for (;;) {
-      if (mysql_stmt_execute(stmt)) {
-        std::string err_msg(::mysql_stmt_error(stmt));
-        SPDLOG_LOGGER_ERROR(_logger, "mysql_connection: {}", err_msg);
-        if (_server_error(mysql_stmt_errno(stmt))) {
-          /* In case of server error, no exception because we will try again
-           * very soon */
-          set_error_message(err_msg);
-          return;
-        } else if (mysql_stmt_errno(stmt) != 1213 &&
-                   mysql_stmt_errno(stmt) != 1205) {  // Dead Lock error
-          /* Here the error is not due to a deadlock in database, we throw an
-           * exception, this query won't be played again. */
+    _execute_stmt(task, [&]() {
+      _last_access = time(nullptr);
+      mysql_result res(this, task->statement_id);
+      MYSQL_RES* prepare_meta_result(mysql_stmt_result_metadata(stmt));
+      if (prepare_meta_result == nullptr) {
+        if (mysql_stmt_errno(stmt)) {
+          std::string err_msg(::mysql_stmt_error(stmt));
           msg_fmt e(err_msg);
           task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-          return;
-        }
-
-        if (mysql_commit(_conn)) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "connection fail commit after execute statement failure {:p}",
-              static_cast<const void*>(this));
-          if (_server_error(mysql_errno(_conn))) {
-            set_error_message("Commit failed after executing statement: {}",
-                              ::mysql_error(_conn));
-          } else {
-            msg_fmt e(
-                "Failed to execute statement because of deadlock and failed to "
-                "commit: {}",
-                ::mysql_error(_conn));
-            task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-          }
-          return;
-        }
-
-        if (++attempts >= MAX_ATTEMPTS) {
-          msg_fmt e(err_msg);
-          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-          return;
-        }
+        } else
+          task->promise.set_value(nullptr);
       } else {
-        _last_access = time(nullptr);
-        mysql_result res(this, task->statement_id);
-        MYSQL_STMT* stmt(_stmt[task->statement_id]);
-        MYSQL_RES* prepare_meta_result(mysql_stmt_result_metadata(stmt));
-        if (prepare_meta_result == nullptr) {
-          if (mysql_stmt_errno(stmt)) {
-            std::string err_msg(::mysql_stmt_error(stmt));
-            msg_fmt e(err_msg);
-            task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-          } else
-            task->promise.set_value(nullptr);
-        } else {
-          int size(mysql_num_fields(prepare_meta_result));
-          auto bind =
-              std::make_unique<mysql_bind_result>(size, task->length, _logger);
+        int size(mysql_num_fields(prepare_meta_result));
+        auto bind =
+            std::make_unique<mysql_bind_result>(size, task->length, _logger);
 
-          if (mysql_stmt_bind_result(stmt, bind->get_bind())) {
+        if (mysql_stmt_bind_result(stmt, bind->get_bind())) {
+          std::string err_msg(::mysql_stmt_error(stmt));
+          msg_fmt e(err_msg);
+          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
+          return;
+        } else {
+          if (mysql_stmt_store_result(stmt)) {
             std::string err_msg(::mysql_stmt_error(stmt));
-            msg_fmt e(err_msg);
-            task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-            return;
-          } else {
-            if (mysql_stmt_store_result(stmt)) {
-              std::string err_msg(::mysql_stmt_error(stmt));
-              if (_server_error(::mysql_stmt_errno(stmt)))
-                set_error_message(err_msg);
-              else {
-                msg_fmt e(err_msg);
-                task->promise.set_exception(
-                    std::make_exception_ptr<msg_fmt>(e));
-              }
-              return;
+            if (_server_error(::mysql_stmt_errno(stmt)))
+              set_error_message(err_msg);
+            else {
+              msg_fmt e(err_msg);
+              task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
             }
-            // Here, we have the first row.
-            res.set(prepare_meta_result);
-            bind->set_empty();
+            return;
           }
-          res.set_bind(move(bind));
-          task->promise.set_value(std::move(res));
+          // Here, we have the first row.
+          res.set(prepare_meta_result);
+          bind->set_empty();
         }
-        break;
+        res.set_bind(std::move(bind));
+        task->promise.set_value(std::move(res));
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
+    });
   }
 }
 
@@ -674,61 +743,16 @@ void mysql_connection::_statement_int(mysql_task* t) {
     msg_fmt e(err_msg);
     task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
   } else {
-    int32_t attempts = 0;
-    for (;;) {
-      if (mysql_stmt_execute(stmt)) {
-        std::string err_msg(::mysql_stmt_error(stmt));
-        SPDLOG_LOGGER_ERROR(_logger, "mysql_connection: {}", err_msg);
-        if (_server_error(mysql_stmt_errno(stmt))) {
-          /* In case of server error, no exception because we will try again
-           * very soon */
-          set_error_message(err_msg);
-          return;
-        } else if (mysql_stmt_errno(stmt) != 1213 &&
-                   mysql_stmt_errno(stmt) != 1205) {  // Dead Lock error
-          /* Here the error is not due to a deadlock in database, we throw an
-           * exception, this query won't be played again. */
-          msg_fmt e(err_msg);
-          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-          return;
-        }
-
-        if (mysql_commit(_conn)) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "connection fail commit after execute statement failure {:p}",
-              static_cast<const void*>(this));
-          if (_server_error(mysql_errno(_conn))) {
-            set_error_message("Commit failed after executing statement: {}",
-                              ::mysql_error(_conn));
-          } else {
-            msg_fmt e(
-                "Failed to execute statement because of deadlock and failed to "
-                "commit: {}",
-                ::mysql_error(_conn));
-            task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-          }
-          return;
-        }
-
-        if (++attempts >= MAX_ATTEMPTS) {
-          msg_fmt e("run statement and get result failed: {}", err_msg);
-          task->promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-          return;
-        }
-      } else {
-        _last_access = time(nullptr);
-        set_need_to_commit();
-        if (task->return_type == mysql_task::AFFECTED_ROWS)
-          task->promise.set_value(
-              mysql_stmt_affected_rows(_stmt[task->statement_id]));
-        else /* LAST_INSERT_ID */
-          task->promise.set_value(
-              mysql_stmt_insert_id(_stmt[task->statement_id]));
-        break;
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
+    _execute_stmt(task, [&]() {
+      _last_access = time(nullptr);
+      set_need_to_commit();
+      if (task->return_type == mysql_task::AFFECTED_ROWS)
+        task->promise.set_value(
+            mysql_stmt_affected_rows(_stmt[task->statement_id]));
+      else /* LAST_INSERT_ID */
+        task->promise.set_value(
+            mysql_stmt_insert_id(_stmt[task->statement_id]));
+    });
   }
 }
 
@@ -834,6 +858,9 @@ void mysql_connection::_run() {
   std::unique_lock<std::mutex> lck(_start_m);
   _conn = mysql_init(nullptr);
   if (!_conn) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "mysql_connection: connection initialization failed: {}",
+        ::mysql_error(_conn));
     set_error_message(::mysql_error(_conn));
     _state = finished;
     _start_condition.notify_all();
@@ -844,6 +871,28 @@ void mysql_connection::_run() {
 
     mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
                    (const void*)_extension_directory.c_str());
+
+    // Configure SSL/TLS if enabled
+    if (_ssl_enabled) {
+      mysql_ssl_set(_conn, _ssl_key.empty() ? nullptr : _ssl_key.c_str(),
+                    _ssl_cert.empty() ? nullptr : _ssl_cert.c_str(),
+                    _ssl_ca.empty() ? nullptr : _ssl_ca.c_str(), nullptr,
+                    nullptr);
+
+      if (!_tls_version.empty()) {
+        mysql_options(_conn, MYSQL_OPT_TLS_VERSION, _tls_version.c_str());
+      }
+
+      // Configure certificate verification based on configuration
+      if (_ssl_verify_cert) {
+        bool verify = true;
+        mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
+      }
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "mysql_connection: configuring SSL/TLS connection (verify={})",
+          _ssl_verify_cert);
+    }
 
     while (config::applier::mode != config::applier::finished &&
            !mysql_real_connect(_conn, _host.c_str(), _user.c_str(),
@@ -907,8 +956,10 @@ void mysql_connection::_run() {
             break;
           }
           std::this_thread::sleep_for(std::chrono::seconds(10));
-        } else
+        } else {
+          _logger->info("SQL: Reconnection successful.");
           reconnect_failed_logged = false;
+        }
       } else {
         if (!tasks_list.empty()) {
           stats.start_activity();
@@ -918,6 +969,7 @@ void mysql_connection::_run() {
       }
     }
   }
+  lck.lock();
   _clear_connection();
   _state = finished;
   _start_condition.notify_all();
@@ -1061,6 +1113,8 @@ void mysql_connection::_process_while_empty_task(
   }
 
   if (_tasks_list.empty()) {
+    lock.unlock();
+    std::unique_lock<std::mutex> l(_start_m);
     _state = finished;
     _start_condition.notify_all();
   } else {
@@ -1093,6 +1147,12 @@ mysql_connection::mysql_connection(
       _port(db_cfg.get_port()),
       _extension_directory(db_cfg.get_extension_directory()),
       _max_second_commit_delay(db_cfg.get_max_commit_delay()),
+      _ssl_enabled(db_cfg.get_ssl_enabled()),
+      _ssl_ca(db_cfg.get_ssl_ca()),
+      _ssl_cert(db_cfg.get_ssl_cert()),
+      _ssl_key(db_cfg.get_ssl_key()),
+      _tls_version(db_cfg.get_tls_version()),
+      _ssl_verify_cert(db_cfg.get_ssl_verify_cert()),
       _last_commit(db_cfg.get_queries_per_transaction() > 1
                        ? 0
                        : std::numeric_limits<time_t>::max()),
@@ -1237,8 +1297,12 @@ bool mysql_connection::match_config(database_config const& db_cfg) const {
          db_cfg.get_user() == _user && db_cfg.get_password() == _pwd &&
          db_cfg.get_name() == _name && db_cfg.get_port() == _port &&
          db_cfg.get_queries_per_transaction() == _qps &&
-         db_cfg.get_category() == _category;
-  ;
+         db_cfg.get_category() == _category &&
+         db_cfg.get_ssl_enabled() == _ssl_enabled &&
+         db_cfg.get_ssl_ca() == _ssl_ca && db_cfg.get_ssl_cert() == _ssl_cert &&
+         db_cfg.get_ssl_key() == _ssl_key &&
+         db_cfg.get_ssl_verify_cert() == _ssl_verify_cert &&
+         db_cfg.get_tls_version() == _tls_version;
 }
 
 int mysql_connection::get_tasks_count() const {

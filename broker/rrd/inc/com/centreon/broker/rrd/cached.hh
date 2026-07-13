@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2024 Centreon
+ * Copyright 2020-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #define CCB_RRD_CACHED_HH
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
@@ -30,9 +31,7 @@ using namespace com::centreon;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-namespace com::centreon::broker {
-
-namespace rrd {
+namespace com::centreon::broker::rrd {
 
 template <typename T>
 class cached : public backend {
@@ -213,42 +212,32 @@ class cached : public backend {
    *  @param[in] address Server address.
    *  @param[in] port    Port to connect to.
    */
-  void connect_remote(std::string const& address, unsigned short port) {
+  void connect_remote(const std::string& address, uint16_t port) {
     asio::ip::tcp::resolver resolver{_io_context};
-    asio::ip::tcp::resolver::query query{address, std::to_string(port)};
-
-    try {
-      asio::ip::tcp::resolver::iterator it{resolver.resolve(query)};
-      asio::ip::tcp::resolver::iterator end;
-
-      boost::system::error_code err{
-          make_error_code(asio::error::host_unreachable)};
-
-      // it can resolve to multiple addresses like ipv4 and ipv6
-      // we need to try all to find the first available socket
-      while (err && it != end) {
-        _socket.connect(*it, err);
-
-        if (err)
-          _socket.close();
-
-        ++it;
-      }
-
-      if (err) {
-        throw msg_fmt(
-            "RRD: could not connect to remote server '{}"
-            ":{} : {}",
-            address, port, err.message());
-      }
-
-      asio::socket_base::keep_alive option{true};
-      _socket.set_option(option);
-    } catch (boost::system::system_error const& se) {
+    boost::system::error_code ec;
+    asio::ip::tcp::resolver::results_type endpoints =
+        resolver.resolve(address, std::to_string(port), ec);
+    if (ec) {
       throw msg_fmt(
           "RRD: could not resolve remove server '{}"
           ":{} : {}",
-          address, port, se.what());
+          address, port, ec.message());
+    }
+
+    asio::connect(_socket, endpoints, ec);
+    if (ec) {
+      throw msg_fmt(
+          "RRD: could not connect to remote server '{}"
+          ":{} : {}",
+          address, port, ec.message());
+    }
+    asio::socket_base::keep_alive option{true};
+    _socket.set_option(option, ec);
+    if (ec) {
+      throw msg_fmt(
+          "RRD: could not set keep alive option on socket '{}"
+          ":{} : {}",
+          address, port, ec.message());
     }
   }
 
@@ -305,8 +294,7 @@ class cached : public backend {
     }
   }
 };
-}  // namespace rrd
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::rrd
 
 #endif /* !CCB_RRD_CACHED_HH */

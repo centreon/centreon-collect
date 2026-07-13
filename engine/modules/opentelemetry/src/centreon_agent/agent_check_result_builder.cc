@@ -135,9 +135,25 @@ bool agent_check_result_builder::build_result_from_metrics(
   if (status_metric == data_pts.end()) {
     return false;
   }
+  res.set_check_options(res.get_check_options() | CHECK_OPTION_CMA_RESULT);
+
   const auto& last_sample = status_metric->second.rbegin();
   last_time = last_sample->get_nano_timestamp();
   res.set_return_code(last_sample->get_value());
+  for (const auto& exemplar : last_sample->get_exemplars()) {
+    auto key = exemplar.filtered_attributes().begin()->key();
+    if (key == "status_confirmed") {
+      if (exemplar.as_int() == 1) {
+        res.set_check_options(res.get_check_options() |
+                              CHECK_OPTION_PASSIVE_IS_HARD);
+      } else {
+        res.set_check_options(res.get_check_options() |
+                              CHECK_OPTION_PASSIVE_IS_SOFT);
+      }
+    } else if (key == "current_attempt") {
+      res.set_current_attempt(exemplar.as_int());
+    }
+  }
 
   // output of plugins is stored in description metric field
   std::string output = last_sample->get_metric().description();

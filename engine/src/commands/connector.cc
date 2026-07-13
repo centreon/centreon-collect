@@ -18,102 +18,63 @@
  */
 #include "com/centreon/engine/commands/connector.hh"
 
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/common/hex_dump.hh"
+#include "com/centreon/engine/commands/result.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/my_lock.hh"
 #include "com/centreon/engine/version.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
 
-// #define DEBUG_CONFIG
-
-#ifdef DEBUG_CONFIG
-#define LOCK_GUARD(lck, m) \
-  my_lock_guard<std::mutex> lck(m, __FILE__ ":" #m, __LINE__)
-#define UNIQUE_LOCK(lck, m) \
-  my_unique_lock<std::mutex> lck(m, __FILE__ ":" #m, __LINE__)
-#define UNLOCK(lck) lck.unlock(__LINE__)
-#define LOCK(lck) lck.lock(__LINE__)
-#else
-#define LOCK_GUARD(lck, m) std::lock_guard<std::mutex> lck(m)
-#define UNIQUE_LOCK(lck, m) std::unique_lock<std::mutex> lck(m)
-#define UNLOCK(lck) lck.unlock()
-#define LOCK(lck) lck.lock()
-#endif
-
 connector_map connector::connectors;
+
+constexpr std::string_view _query_ending("\0\0\0\0", 4);
 
 /**
  *  Constructor.
  *
  *  @param[in] connector_name  The connector name.
  *  @param[in] connector_line  The connector command line.
- *  @param[in] listener        The listener who catch events.
  */
 connector::connector(const std::string& connector_name,
                      const std::string& connector_line,
-                     command_listener* listener)
+                     const std::shared_ptr<asio::io_context>& io_context,
+                     const std::shared_ptr<command_listener>& listener)
     : command(connector_name, connector_line, listener, e_type::connector),
-      process_listener(),
-      _is_running(false),
-      _query_quit_ok(false),
-      _version_set{false},
-      _query_version_ok(false),
-      _process(this, true, true, false),  // Disable stderr.
-      _try_to_restart(true),
-      _thread_running(false),
-      _thread_action(none) {
-  // Set use setpgid.
-  {
-    UNIQUE_LOCK(lck, _thread_m);
-    _restart = std::thread(&connector::_restart_loop, this),
-    _thread_cv.wait(lck, [this] { return _thread_running; });
-  }
-  {
-    UNIQUE_LOCK(lck, _lock);
-#ifdef LEGACY_CONF
-    _process.setpgid_on_exec(config->use_setpgid());
-#else
-    _process.setpgid_on_exec(pb_config.use_setpgid());
-#endif
-  }
-#ifdef LEGACY_CONF
-  bool enable_environment_macros = config->enable_environment_macros();
-#else
+      _state(e_state::not_started),
+      _logger(commands_logger),
+      _io_context(io_context),
+      _timeout_timer(*io_context) {
   bool enable_environment_macros = pb_config.enable_environment_macros();
-#endif
   if (enable_environment_macros) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector does not enable environment macros";
-    runtime_logger->warn(
-        "Warning: Connector does not enable environment macros");
+    SPDLOG_LOGGER_WARN(runtime_logger,
+                       "Warning: Connector does not enable environment macros");
   }
+  SPDLOG_LOGGER_DEBUG(_logger, "create connector {} with cmdline: {}",
+                      connector_name, connector_line);
+}
+
+connector::~connector() {
+  SPDLOG_LOGGER_DEBUG(_logger, "delete connector {}", get_name());
 }
 
 /**
- *  Destructor.
+ * @brief constructor is protected and it is mandatory to use this function to
+ * create a connector
+ *
+ *  @param[in] connector_name  The connector name.
+ *  @param[in] connector_line  The connector command line.
+ * @return std::shared_ptr<connector>
  */
-connector::~connector() noexcept {
-  // Close connector properly.
-  try {
-    _connector_close();
-  } catch (const std::exception& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: could not stop connector properly: " << e.what();
-    runtime_logger->error("Error: could not stop connector properly: {}",
-                          e.what());
-  }
-
-  // Wait restart thread.
-  {
-    UNIQUE_LOCK(lck, _thread_m);
-    _thread_action = stop;
-    _thread_cv.notify_all();
-    UNLOCK(lck);
-    _restart.join();
-  }
+std::shared_ptr<connector> connector::load(
+    std::string const& connector_name,
+    std::string const& connector_line,
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<command_listener>& listener) {
+  std::shared_ptr<connector> ret(
+      new connector(connector_name, connector_line, io_context, listener));
+  ret->_timeout_timer_start();
+  return ret;
 }
 
 /**
@@ -129,12 +90,10 @@ uint64_t connector::run(const std::string& processed_cmd,
                         nagios_macros&,
                         uint32_t timeout,
                         const check_result::pointer& to_push_to_checker,
-                        const void* caller) {
-  engine_logger(dbg_commands, basic)
-      << "connector::run: connector='" << _name << "', cmd='" << processed_cmd
-      << "', timeout=" << timeout;
-  commands_logger->trace("connector::run: connector='{}', cmd='{}', timeout={}",
-                         _name, processed_cmd, timeout);
+                        const notifier* caller) {
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "connector::run: connector='{}', cmd='{}', timeout={}",
+                      _name, processed_cmd, timeout);
 
   // Set query informations.
   uint64_t command_id(get_uniq_id());
@@ -143,44 +102,28 @@ uint64_t connector::run(const std::string& processed_cmd,
     return command_id;
   }
 
-  auto info = std::make_shared<query_info>();
-  info->processed_cmd = processed_cmd;
-  info->start_time = timestamp::now();
-  info->timeout = timeout;
-  info->waiting_result = false;
+  timestamp start_time = timestamp::now();
 
-  engine_logger(dbg_commands, basic) << "connector::run: id=" << command_id;
-  commands_logger->trace("connector::run: id={}", command_id);
+  SPDLOG_LOGGER_TRACE(_logger, "connector::run: id={}", command_id);
   try {
     {
-      UNIQUE_LOCK(lock, _lock);
+      std::lock_guard l(_lock);
 
-      // Start connector if is not running.
-      if (!_is_running) {
-        if (!_try_to_restart)
-          throw engine_error()
-              << "Connector '" << _name << "' failed to restart";
-        _queries[command_id] = info;
-        UNLOCK(lock);
-        _connector_start();
-        LOCK(lock);
+      _queries.emplace(command_id, processed_cmd, start_time, timeout, false);
+      if (_state == e_state::not_started) {
+        _connector_start_nolock();  // check will be sent once connector started
+      } else if (_state == e_state::running) {
+        // Send check to the connector.
+        _send_query_execute_nolock(processed_cmd, command_id, start_time,
+                                   timeout);
       }
-
-      // Send check to the connector.
-      _send_query_execute(info->processed_cmd, command_id, info->start_time,
-                          info->timeout);
-      _queries[command_id] = info;
     }
 
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command success: id=" << command_id;
-    commands_logger->trace("connector::run: start command success: id={}",
-                           command_id);
+    SPDLOG_LOGGER_TRACE(_logger, "connector::run: start command success: id={}",
+                        command_id);
   } catch (...) {
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command failed: id=" << command_id;
-    commands_logger->trace("connector::run: start command failed: id={}",
-                           command_id);
+    SPDLOG_LOGGER_TRACE(_logger, "connector::run: start command failed: id={}",
+                        command_id);
     throw;
   }
   return command_id;
@@ -200,65 +143,68 @@ void connector::run(const std::string& processed_cmd,
                     result& res) {
   (void)macros;
 
-  engine_logger(dbg_commands, basic)
-      << "connector::run: connector='" << _name << "', cmd='" << processed_cmd
-      << "', timeout=" << timeout;
-  commands_logger->trace("connector::run: connector='{}', cmd='{}', timeout={}",
-                         _name, processed_cmd, timeout);
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "connector::run: connector='{}', cmd='{}', timeout={}",
+                      _name, processed_cmd, timeout);
 
   // Set query informations.
   uint64_t command_id(get_uniq_id());
-  auto info = std::make_shared<query_info>();
-  info->processed_cmd = processed_cmd;
-  info->start_time = timestamp::now();
-  info->timeout = timeout;
-  info->waiting_result = true;
+  timestamp start_time = timestamp::now();
 
-  engine_logger(dbg_commands, basic) << "connector::run: id=" << command_id;
-  commands_logger->trace("connector::run: id={}", command_id);
+  SPDLOG_LOGGER_TRACE(_logger, "connector::run: id={}", command_id);
 
   try {
     {
-      UNIQUE_LOCK(lock, _lock);
+      std::lock_guard l(_lock);
 
-      // Start connector if is not running.
-      if (!_is_running) {
-        if (!_try_to_restart)
-          throw engine_error()
-              << "Connector '" << _name << "' failed to restart";
-        UNLOCK(lock);
-        _connector_start();
-        LOCK(lock);
+      _queries.emplace(command_id, processed_cmd, start_time, timeout, false);
+      if (_state == e_state::not_started) {
+        _connector_start_nolock();  // check will be sent once connector started
+      } else if (_state == e_state::running) {
+        // Send check to the connector.
+        _send_query_execute_nolock(processed_cmd, command_id, start_time,
+                                   timeout);
       }
-
-      // Send check to the connector.
-      _send_query_execute(info->processed_cmd, command_id, info->start_time,
-                          info->timeout);
-      _queries[command_id] = info;
     }
 
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command success: id=" << command_id;
-    commands_logger->trace("connector::run: start command success: id={}",
-                           command_id);
+    SPDLOG_LOGGER_TRACE(_logger, "connector::run: start command success: id={}",
+                        command_id);
   } catch (...) {
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command failed: id=" << command_id;
-    commands_logger->trace("connector::run: start command failed: id={}",
-                           command_id);
+    SPDLOG_LOGGER_TRACE(_logger, "connector::run: start command failed: id={}",
+                        command_id);
     throw;
   }
 
-  // Waiting result.
-  UNIQUE_LOCK(lock, _lock);
-  for (;;) {
-    auto it = _results.find(command_id);
-    if (it != _results.end()) {
-      res = it->second;
-      _results.erase(it);
-      break;
+  struct {
+    const std::shared_ptr<connector> me;
+    const uint64_t cmd_id;
+    result& to_fill;
+
+    bool operator()() const {
+      auto result = me->_results.find(cmd_id);
+      if (result != me->_results.end()) {
+        to_fill = result->second;
+        me->_results.erase(result);
+        return true;
+      } else {
+        return false;
+      }
     }
-    _cv_query.wait(lock);
+
+  } result_waiter = {shared_from_this(), command_id, res};
+
+  absl::MutexLock lck(_results_m);
+  bool have_result = _results_m.AwaitWithTimeout(
+      absl::Condition(&result_waiter), absl::Seconds(timeout));
+
+  if (!have_result) {
+    SPDLOG_LOGGER_ERROR(_logger, "time out to execute {}", processed_cmd);
+    res.command_id = command_id;
+    res.exit_code = service::state_unknown;
+    res.exit_status = common::e_exit_status::timeout;
+    res.start_time = start_time;
+    res.end_time = timestamp::now();
+    res.output = "(Process Timeout)";
   }
 }
 
@@ -270,22 +216,30 @@ void connector::run(const std::string& processed_cmd,
 void connector::set_command_line(const std::string& command_line) {
   // Close connector properly.
   _connector_close();
-  _try_to_restart = true;
 
   // Change command line.
   {
-    LOCK_GUARD(lck, _lock);
+    std::lock_guard l(_lock);
     command::set_command_line(command_line);
   }
 }
 
 /**
- *  Provide by process_listener interface to get data on stdout.
+ * @brief Handles data received from the standard output stream of the
+ * associated process.
  *
- *  @param[in] p  The process to get data on stdout.
+ * This function is called whenever new data is available on the stdout of the
+ * managed process. It checks if the data originates from the expected process,
+ * and process response(s).
+ *
+ * @param caller Shared pointer to the process instance emitting the stdout
+ * data.
+ * @param data   The data received from the process's stdout stream.
  */
-void connector::data_is_available(process& p) noexcept {
-  typedef void (connector::*recv_query)(char const*);
+void connector::_on_stdout_recv(
+    const std::shared_ptr<common::process<true>>& caller,
+    const std::string_view& data) {
+  typedef void (connector::*recv_query)(const std::string_view&);
   static const std::array<recv_query, 8> tab_recv_query{
       nullptr,
       &connector::_recv_query_version,
@@ -297,111 +251,120 @@ void connector::data_is_available(process& p) noexcept {
       nullptr};
 
   try {
-    engine_logger(dbg_commands, basic)
-        << "connector::data_is_available: process=" << (void*)&p;
-    commands_logger->trace("connector::data_is_available: process={}",
-                           (void*)&p);
-
-    // Read process output.
-    std::string data;
-    p.read(data);
+    SPDLOG_LOGGER_TRACE(
+        _logger, "{} received: {}", get_name(),
+        common::hex_dump((const unsigned char*)data.data(), data.size(), 16));
 
     // Split output into queries responses.
     std::list<std::string> responses;
     {
-      std::string ending(_query_ending());
-      ending.append("\0", 1);
-
-      {
-        LOCK_GUARD(lock, _lock);
-        _data_available.append(data);
-        while (_data_available.size() > 0) {
-          size_t pos(_data_available.find(ending));
-          if (pos == std::string::npos)
-            break;
-          responses.emplace_back(_data_available.substr(0, pos));
-          _data_available.erase(0, pos + ending.size());
-        }
+      std::lock_guard l(_lock);
+      if (caller != _process) {
+        return;
       }
-
-      engine_logger(dbg_commands, basic)
-          << "connector::data_is_available: responses.size="
-          << responses.size();
-      commands_logger->trace("connector::data_is_available: responses.size={}",
-                             responses.size());
+      _data_available.append(data);
+      size_t end_search = _data_available.find(_query_ending);
+      while (end_search != std::string::npos) {
+        responses.emplace_back(_data_available.substr(0, end_search));
+        _data_available.erase(0, end_search + _query_ending.size());
+        end_search = _data_available.find(_query_ending);
+      }
     }
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "connector::data_is_available: responses.size={}",
+                        responses.size());
 
     // Parse queries responses.
-    for (auto& str : responses) {
-      char const* data = str.c_str();
-      char* endptr(nullptr);
-      uint32_t id(strtol(data, &endptr, 10));
-      engine_logger(dbg_commands, basic)
-          << "connector::data_is_available: request id=" << id;
-      commands_logger->trace("connector::data_is_available: request id={}", id);
+    for (std::string_view str : responses) {
+      auto first_sep = str.find('\0');
+      if (first_sep == std::string::npos) {
+        SPDLOG_LOGGER_ERROR(_logger, "bad response received from connector {}",
+                            get_name());
+        continue;
+      }
+      uint32_t id;
+      if (!absl::SimpleAtoi(str.substr(0, first_sep), &id)) {
+        SPDLOG_LOGGER_ERROR(
+            _logger, "bad response id received from connector {}", get_name());
+        continue;
+      }
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "connector::data_is_available: request id={}", id);
 
-      // Invalid query.
-      if (data == endptr || id >= tab_recv_query.size() ||
-          !tab_recv_query[id]) {
-        engine_logger(log_runtime_warning, basic)
-            << "Warning: Connector '" << _name
-            << "' "
-               "received bad request ID: "
-            << id;
-        runtime_logger->warn(
-            "Warning: Connector '{}' received bad request ID: {}", _name, id);
-        // Valid query, so execute it.
-      } else
-        (this->*tab_recv_query[id])(endptr + 1);
+      if (id >= tab_recv_query.size() || !tab_recv_query[id]) {
+        SPDLOG_LOGGER_ERROR(_logger, "unknown query type: {}", id);
+        continue;
+      }
+      if (first_sep >= str.size()) {
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "no response data received from connector {} for "
+                            "response of type {}",
+                            get_name(), id);
+        continue;
+      }
+      (this->*tab_recv_query[id])(str.substr(first_sep + 1));
     }
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "' error: " << e.what();
     runtime_logger->warn("Warning: Connector '{}' error: {}", _name, e.what());
   }
 }
 
 /**
- *  Provide by process_listener interface but not used.
+ * @brief Handles data received from the standard error stream of the associated
+ * process.
  *
- *  @param[in] p  Unused param.
+ * This function is called whenever new data is available on the standard error
+ * (stderr) output of the managed process. It checks if the data originates from
+ * the expected process, and logs the error message using the configured logger.
+ *
+ * @param caller Shared pointer to the process instance emitting the stderr
+ * data.
+ * @param data   The data received from the process's standard error stream.
  */
-void connector::data_is_available_err(process& p) noexcept {
-  (void)p;
+void connector::_on_stderr_recv(
+    const std::shared_ptr<common::process<true>>& caller,
+    const std::string_view& data) {
+  std::lock_guard l(_lock);
+  if (caller == _process) {
+    SPDLOG_LOGGER_ERROR(_logger, "connector error:{}", data);
+  }
 }
 
 /**
- *  Provide by process_listener interface. Call at the end
- *  of the process execution.
+ *  Called at the end of the process execution. It checks if the event
+ *  originates from the expected process.
  *
- *  @param[in] p  The process to finished.
+ *  @param[in] caller Shared pointer to the ended process instance
  */
-void connector::finished(process& p) noexcept {
+void connector::_on_process_end(const common::process<true>& caller) {
   try {
-    engine_logger(dbg_commands, basic) << "connector::finished: process=" << &p;
-    commands_logger->trace("connector::finished: process={}", (void*)&p);
-
-    UNIQUE_LOCK(lock, _lock);
-    _is_running = false;
-    _data_available.clear();
-
-    // The connector is stop, restart it if necessary.
-    if (_try_to_restart && !sigshutdown) {
-      restart_connector();
-    }
-    // Connector probably quit without sending exit return.
-    else {
-      _cv_query.notify_all();
-      UNLOCK(lock);
+    std::lock_guard l(_lock);
+    SPDLOG_LOGGER_TRACE(_logger, "end of connector process {} process: {}",
+                        get_name(), caller.get_pid());
+    if (&caller != _process.get()) {
+      return;
     }
 
+    SPDLOG_LOGGER_TRACE(_logger, "end of connector process {}", get_name());
+    _state = e_state::not_started;
+    _process.reset();
+    _connector_start_nolock();
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Connector '" << _name
-        << "' termination routine failed: " << e.what();
-    runtime_logger->error(
-        "Error: Connector '{}' termination routine failed: {}", _name,
-        e.what());
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Error: Connector '{}' termination routine failed: {}",
+                        get_name(), e.what());
+  }
+}
+
+/**
+ * @brief Stop connector.
+ */
+void connector::stop_connector() {
+  try {
+    _connector_close();
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "Error: could not stop connector properly: {}",
+                        e.what());
   }
 }
 
@@ -409,140 +372,84 @@ void connector::finished(process& p) noexcept {
  *  Close connection with the process.
  */
 void connector::_connector_close() {
-  UNIQUE_LOCK(lock, _lock);
+  std::lock_guard l(_lock);
 
+  _timeout_timer.cancel();
   // Exit if connector is not running.
-  if (!_is_running)
+  if (_state == e_state::not_started)
     return;
 
-  engine_logger(dbg_commands, basic)
-      << "connector::_connector_close: process=" << &_process;
-  commands_logger->trace("connector::_connector_close: process={:p}",
-                         (void*)&_process);
-  // Set variable to dosn't restart connector.
-  {
-    LOCK_GUARD(lck, _thread_m);
-    _try_to_restart = false;
-    _thread_cv.notify_all();
-  }
-
-  // Reset variables.
-  _query_quit_ok = false;
+  SPDLOG_LOGGER_TRACE(_logger, "_connector_close {}: process={}", get_name(),
+                      _process->get_pid());
 
   // Ask connector to quit properly.
-  _send_query_quit();
-
-  // Waiting connector quit.
-#ifdef LEGACY_CONF
-  bool is_timeout{
-      _cv_query.wait_for(
-          lock, std::chrono::seconds(config->service_check_timeout())) ==
-      std::cv_status::timeout};
-#else
-  bool is_timeout{
-      _cv_query.wait_for(
-          lock, std::chrono::seconds(pb_config.service_check_timeout())) ==
-      std::cv_status::timeout};
-#endif
-  if (is_timeout || !_query_quit_ok) {
-    _process.kill();
-    if (is_timeout) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: Cannot close connector '" << _name << "': Timeout";
-      runtime_logger->warn("Warning: Cannot close connector '{}': Timeout",
-                           _name);
-    }
-  }
-  UNLOCK(lock);
-
-  // Waiting the end of the process.
-  _process.wait();
+  _send_query_quit_nolock();
+  _process->kill();
+  _process.reset();
+  _state = e_state::not_started;
 }
 
 /**
  *  Start connection with the process.
  */
-void connector::_connector_start() {
-  engine_logger(dbg_commands, basic)
-      << "connector::_connector_start: process=" << &_process;
-  commands_logger->trace("connector::_connector_start: process={:p}",
-                         (void*)&_process);
-  {
-    LOCK_GUARD(lock, _lock);
+void connector::_connector_start_nolock() {
+  if (_state != e_state::not_started)
+    return;
 
-    // Reset variables.
-    _query_quit_ok = false;
-    _version_set = false;
-    _query_version_ok = false;
-    _is_running = false;
+  _state = e_state::starting;
+
+  common::process<true>::shared_env no_env;
+  try {
+    _process = std::make_shared<common::process<true>>(
+        _io_context, _logger, get_command_line(), true, true, no_env);
+
+    _state = e_state::starting;
+    _process->start_process(
+        [me = shared_from_this()](const common::process<true>& proc,
+                                  int /*exit_code*/, int, /*exit status*/
+                                  const std::string& /*stdout*/,
+                                  const std::string& /*stderr*/
+        ) { me->_on_process_end(proc); },
+        [me = shared_from_this(), proc = _process->weak_from_this()](
+            const boost::system::error_code& err,
+            const std::string_view& received) {
+          if (!err) {
+            auto sub_process = proc.lock();
+            if (sub_process) {
+              me->_on_stdout_recv(
+                  std::static_pointer_cast<common::process<true>>(sub_process),
+                  received);
+            }
+          }
+        },
+        [me = shared_from_this(), proc = _process->weak_from_this()](
+            const boost::system::error_code& err,
+            const std::string_view& received) {
+          if (!err) {
+            auto sub_process = proc.lock();
+            if (sub_process) {
+              me->_on_stderr_recv(
+                  std::static_pointer_cast<common::process<true>>(sub_process),
+                  received);
+            }
+          }
+        },
+        {
+
+        });
+
+    SPDLOG_LOGGER_TRACE(_logger, "connector {} process {} started", get_name(),
+                        _process->get_pid());
+    _send_query_version_nolock();
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to start connector {} : {}", get_name(),
+                        e.what());
+    _process.reset();
+    _state = e_state::not_started;
+    throw;
   }
 
-  // Start connector execution.
-  _process.exec(_command_line);
-
-  {
-    UNIQUE_LOCK(lock, _lock);
-
-    // Ask connector version.
-    _send_query_version();
-
-    // Waiting connector version, or 1 seconds.
-#ifdef LEGACY_CONF
-    bool is_timeout{!_cv_query.wait_for(
-        lock, std::chrono::seconds(config->service_check_timeout()),
-        [this] { return _version_set; })};
-#else
-    bool is_timeout{!_cv_query.wait_for(
-        lock, std::chrono::seconds(pb_config.service_check_timeout()),
-        [this] { return _version_set; })};
-#endif
-
-    if (is_timeout || !_query_version_ok) {
-      _process.kill();
-      _try_to_restart = false;
-      _thread_cv.notify_all();
-
-      if (is_timeout)
-        throw engine_error()
-            << "Cannot start connector '" << _name << "': Timeout";
-      throw engine_error() << "Cannot start connector '" << _name
-                           << "': Bad protocol version";
-    }
-    _is_running = true;
-  }
-
-  engine_logger(log_info_message, basic)
-      << "Connector '" << _name << "' has started";
   runtime_logger->info("Connector '{}' has started", _name);
-
-  {
-    LOCK_GUARD(lock, _lock);
-    engine_logger(dbg_commands, basic)
-        << "connector::_connector_start: resend queries: queries.size="
-        << _queries.size();
-    commands_logger->trace(
-        "connector::_connector_start: resend queries: queries.size={}",
-        _queries.size());
-    // Resend commands.
-    for (std::unordered_map<uint64_t, std::shared_ptr<query_info> >::iterator
-             it(_queries.begin()),
-         end(_queries.end());
-         it != end; ++it) {
-      uint64_t command_id(it->first);
-      std::shared_ptr<query_info> info(it->second);
-      _send_query_execute(info->processed_cmd, command_id, info->start_time,
-                          info->timeout);
-    }
-  }
-}
-
-/**
- *  Get the ending string for connector protocole.
- *
- *  @return The ending string.
- */
-std::string connector::_query_ending() noexcept {
-  return std::string(3, '\0');
 }
 
 /**
@@ -550,41 +457,39 @@ std::string connector::_query_ending() noexcept {
  *
  *  @param[in] data  The query to parse.
  */
-void connector::_recv_query_error(char const* data) {
+void connector::_recv_query_error(const std::string_view& data) {
   try {
-    engine_logger(dbg_commands, basic) << "connector::_recv_query_error";
-    commands_logger->trace("connector::_recv_query_error");
-    char* endptr(nullptr);
-    int code(strtol(data, &endptr, 10));
-    if (data == endptr)
-      throw engine_error() << "Invalid query for connector '" << _name
-                           << "': Bad number of arguments";
-    char const* message(endptr + 1);
+    SPDLOG_LOGGER_TRACE(_logger, "connector::_recv_query_error");
+    auto code_mess_sep = data.find('\0');
+    if (code_mess_sep == std::string_view::npos) {
+      throw exceptions::msg_fmt("invalid error message format");
+    }
+    unsigned code;
+    if (!absl::SimpleAtoi(data.substr(0, code_mess_sep), &code) || code > 2) {
+      throw exceptions::msg_fmt("invalid code value from error message: {}",
+                                data);
+    }
 
     switch (code) {
         // Information message.
       case 0:
-        engine_logger(log_info_message, basic)
-            << "Info: Connector '" << _name << "': " << message;
-        runtime_logger->info("Info: Connector '{}': {}", _name, message);
+        SPDLOG_LOGGER_INFO(_logger, "Info: Connector '{}': {}", _name,
+                           data.substr(code_mess_sep + 1));
         break;
         // Warning message.
       case 1:
-        engine_logger(log_runtime_warning, basic)
-            << "Warning: Connector '" << _name << "': " << message;
-        runtime_logger->warn("Warning: Connector '{}': {}", _name, message);
+        SPDLOG_LOGGER_WARN(_logger, "Warning: Connector '{}': {}", _name,
+                           data.substr(code_mess_sep + 1));
         break;
         // Error message.
       case 2:
-        engine_logger(log_runtime_error, basic)
-            << "Error: Connector '" << _name << "': " << message;
-        runtime_logger->error("Error: Connector '{}': {}", _name, message);
+        SPDLOG_LOGGER_ERROR(_logger, "Error: Connector '{}': {}", _name,
+                            data.substr(code_mess_sep + 1));
         break;
     }
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
-    runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "Warning: Connector '{}': {}", _name,
+                        e.what());
   }
 }
 
@@ -593,48 +498,47 @@ void connector::_recv_query_error(char const* data) {
  *
  *  @param[in] data  The query to parse.
  */
-void connector::_recv_query_execute(char const* data) {
+void connector::_recv_query_execute(const std::string_view& data) {
   try {
-    engine_logger(dbg_commands, basic) << "connector::_recv_query_execute";
-    commands_logger->trace("connector::_recv_query_execute");
+    SPDLOG_LOGGER_TRACE(_logger, "connector::_recv_query_execute");
     // Get query informations.
-    char* endptr(nullptr);
-    uint64_t command_id(strtol(data, &endptr, 10));
-    if (data == endptr)
-      throw engine_error() << "Invalid execution result: Invalid command ID";
-    data = endptr + 1;
-    bool is_executed(strtol(data, &endptr, 10));
-    if (data == endptr)
-      throw engine_error() << "Invalid execution result: Invalid executed flag";
-    data = endptr + 1;
-    int exit_code(strtol(data, &endptr, 10));
-    if (data == endptr)
-      throw engine_error() << "Invalid execution result: Invalid exit code";
-    char const* std_err(endptr + 1);
-    char const* std_out(std_err + strlen(std_err) + 1);
-
-    engine_logger(dbg_commands, basic)
-        << "connector::_recv_query_execute: id=" << command_id;
-    commands_logger->trace("connector::_recv_query_execute: id={}", command_id);
-    std::shared_ptr<query_info> info;
+    auto fields = absl::StrSplit(data, '\0');
+    if (std::distance(fields.begin(), fields.end()) < 5) {
+      throw exceptions::msg_fmt("no enough fields received: {}", data);
+    }
+    auto field_iter = fields.begin();
+    uint64_t command_id;
+    if (!absl::SimpleAtoi(*field_iter, &command_id)) {
+      throw exceptions::msg_fmt("invalid command_id: {}", *field_iter);
+    }
+    ++field_iter;
+    bool is_executed = (*field_iter == "1");
+    ++field_iter;
+    int exit_code;
+    if (!absl::SimpleAtoi(*field_iter, &exit_code)) {
+      throw exceptions::msg_fmt("invalid exit_code: {}", *field_iter);
+    }
+    ++field_iter;
+    auto std_err = *field_iter;
+    ++field_iter;
+    auto std_out = *field_iter;
+    SPDLOG_LOGGER_TRACE(_logger, "connector::_recv_query_execute: id={}",
+                        command_id);
+    query_info info;
     {
-      LOCK_GUARD(lock, _lock);
+      std::lock_guard l(_lock);
 
       // Get query information with the command_id.
-      std::unordered_map<uint64_t, std::shared_ptr<query_info> >::iterator it(
-          _queries.find(command_id));
-      if (it == _queries.end()) {
-        engine_logger(dbg_commands, basic)
-            << "recv query failed: command_id(" << command_id
-            << ") "
-               "not found into queries";
-        commands_logger->trace(
-            "recv query failed: command_id({}) not found into queries",
+      auto& command_id_index = _queries.get<0>();
+      auto it = command_id_index.find(command_id);
+      if (it == command_id_index.end()) {
+        SPDLOG_LOGGER_ERROR(
+            _logger, "recv query failed: command_id({}) not found into queries",
             command_id);
         return;
       }
       // Get data.
-      info = it->second;
+      info = *it;
       // Remove query from queries.
       _queries.erase(it);
     }
@@ -644,14 +548,14 @@ void connector::_recv_query_execute(char const* data) {
     res.command_id = command_id;
     res.end_time = timestamp::now();
     res.exit_code = service::state_unknown;
-    res.exit_status = process::normal;
-    res.start_time = info->start_time;
+    res.exit_status = common::e_exit_status::normal;
+    res.start_time = info.start_time;
 
     uint32_t execution_time((res.end_time - res.start_time).to_mseconds());
 
     // Check if the check timeout.
-    if (info->timeout > 0 && execution_time > info->timeout * 1000) {
-      res.exit_status = process::timeout;
+    if (info.timeout > 0 && execution_time > info.timeout * 1000) {
+      res.exit_status = common::e_exit_status::timeout;
       res.output = "(Process Timeout)";
     }
     // The check result was properly returned.
@@ -663,60 +567,45 @@ void connector::_recv_query_execute(char const* data) {
       res.output = (is_executed ? std_out : std_err);
     }
 
-    engine_logger(dbg_commands, basic) << "connector::_recv_query_execute: "
-                                          "id="
-                                       << command_id
-                                       << ", "
-                                          "start_time="
-                                       << res.start_time.to_mseconds()
-                                       << ", "
-                                          "end_time="
-                                       << res.end_time.to_mseconds()
-                                       << ", "
-                                          "exit_code="
-                                       << res.exit_code
-                                       << ", "
-                                          "exit_status="
-                                       << res.exit_status
-                                       << ", "
-                                          "output='"
-                                       << res.output << "'";
-    commands_logger->trace(
-        "connector::_recv_query_execute: "
-        "id={}, {}",
-        command_id, res);
+    if (res.exit_status == common::e_exit_status::normal) {
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "connector::_recv_query_execute: "
+                          "id={}, {}",
+                          command_id, res);
+    }
+
+    if (res.exit_status == common::e_exit_status::timeout) {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "connector::_recv_query_execute timeout of: "
+                          "id={}, {}",
+                          command_id, res);
+    }
 
     update_result_cache(command_id, res);
 
-    if (!info->waiting_result) {
+    if (!info.waiting_result) {
       // Forward result to the listener.
       if (_listener)
         (_listener->finished)(res);
     } else {
-      LOCK_GUARD(lock, _lock);
+      absl::MutexLock l(_results_m);
       // Push result into list of results.
       _results[command_id] = res;
-      _cv_query.notify_all();
     }
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
-    runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "Connector '{}': {}", _name, e.what());
   }
 }
 
 /**
  *  Receive response to the query quit.
  *
- *  @param[in] data  Unused param.
  */
-void connector::_recv_query_quit(char const* data) {
-  (void)data;
-  engine_logger(dbg_commands, basic) << "connector::_recv_query_quit";
-  commands_logger->trace("connector::_recv_query_quit");
-  LOCK_GUARD(lock, _lock);
-  _query_quit_ok = true;
-  _cv_query.notify_all();
+void connector::_recv_query_quit(const std::string_view&) {
+  SPDLOG_LOGGER_TRACE(_logger, "connector::_recv_query_quit");
+  std::lock_guard l(_lock);
+  _process.reset();
+  _state = e_state::not_started;
 }
 
 /**
@@ -724,45 +613,60 @@ void connector::_recv_query_quit(char const* data) {
  *
  *  @param[in] data  Has version of engine to use with the connector.
  */
-void connector::_recv_query_version(char const* data) {
-  engine_logger(dbg_commands, basic) << "connector::_recv_query_version";
-  commands_logger->trace("connector::_recv_query_version");
-  bool version_ok(false);
+void connector::_recv_query_version(const std::string_view& data) {
+  SPDLOG_LOGGER_TRACE(_logger, "connector::_recv_query_version");
   try {
     // Parse query version response to get major and minor
     // engine version supported by the connector.
-    unsigned version[2];
-    char* endptr(nullptr);
-    for (uint32_t i(0); i < 2; ++i) {
-      version[i] = strtoul(data, &endptr, 10);
-      if (data == endptr)
-        throw engine_error() << "Invalid version query: Bad format";
-      data = endptr + 1;
+    unsigned major, minor;
+    auto major_minor_sep = data.find('\0');
+    if (major_minor_sep == std::string_view::npos) {
+      throw exceptions::msg_fmt(
+          "bad version format receive from connector => kill connector");
     }
 
-    engine_logger(dbg_commands, basic)
-        << "connector::_recv_query_version: "
-           "major="
-        << version[0] << ", minor=" << version[1];
-    commands_logger->trace(
-        "connector::_recv_query_version: "
-        "major={}, minor={}",
-        version[0], version[1]);
-    // Check the version.
-    if (version[0] < CENTREON_ENGINE_VERSION_MAJOR ||
-        (version[0] == CENTREON_ENGINE_VERSION_MAJOR &&
-         version[1] <= CENTREON_ENGINE_VERSION_MINOR))
-      version_ok = true;
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
-    runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
-  }
+    if (!absl::SimpleAtoi(data.substr(0, major_minor_sep), &major)) {
+      throw exceptions::msg_fmt("bad major version received from connector: {}",
+                                data);
+    }
 
-  LOCK_GUARD(lock, _lock);
-  _query_version_ok = version_ok;
-  _version_set = true;
-  _cv_query.notify_all();
+    if (!absl::SimpleAtoi(data.substr(major_minor_sep + 1), &minor)) {
+      throw exceptions::msg_fmt("bad minor version received from connector: {}",
+                                data);
+    }
+
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "connector::_recv_query_version: "
+                        "major={}, minor={}",
+                        major, minor);
+    // Check the version.
+    if (major < CENTREON_ENGINE_VERSION_MAJOR ||
+        (major == CENTREON_ENGINE_VERSION_MAJOR &&
+         minor <= CENTREON_ENGINE_VERSION_MINOR)) {
+      std::lock_guard l(_lock);
+      _state = e_state::running;
+      SPDLOG_LOGGER_TRACE(
+          _logger, "connector::_connector_start: send queries: queries.size={}",
+          _queries.size());
+      // Resend commands.
+      for (const auto& query : _queries) {
+        _send_query_execute_nolock(query.processed_cmd, query.command_id,
+                                   query.start_time, query.timeout);
+      }
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "incompatible version of connector {}: {}:{}",
+                          get_name(), major, minor);
+      std::lock_guard l(_lock);
+      _process.reset();
+      _state = e_state::not_started;
+    }
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "Connector '{}': {}", _name, e.what());
+    std::lock_guard l(_lock);
+    _process.reset();
+    _state = e_state::not_started;
+  }
 }
 
 /**
@@ -773,163 +677,101 @@ void connector::_recv_query_version(char const* data) {
  *  @param[in]  start       The start time.
  *  @param[in]  timeout     The timeout.
  */
-void connector::_send_query_execute(const std::string& cmdline,
-                                    uint64_t command_id,
-                                    timestamp const& start,
-                                    uint32_t timeout) {
-  engine_logger(dbg_commands, basic) << "connector::_send_query_execute: "
-                                        "id="
-                                     << command_id
-                                     << ", "
-                                        "cmd='"
-                                     << cmdline
-                                     << "', "
-                                        "start="
-                                     << start.to_seconds()
-                                     << ", "
-                                        "timeout="
-                                     << timeout;
-  commands_logger->trace(
-      "connector::_send_query_execute: "
-      "id={}, "
-      "cmd='{}', "
-      "start={}, "
-      "timeout={}",
-      command_id, cmdline, start.to_seconds(), timeout);
+void connector::_send_query_execute_nolock(const std::string& cmdline,
+                                           uint64_t command_id,
+                                           timestamp const& start,
+                                           uint32_t timeout) {
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "connector::_send_query_execute: "
+                      "id={}, "
+                      "cmd='{}', "
+                      "start={}, "
+                      "timeout={}",
+                      command_id, cmdline, start.to_seconds(), timeout);
   std::ostringstream oss;
   oss << "2" << '\0' << command_id << '\0' << timeout << '\0'
-      << start.to_seconds() << '\0' << cmdline << '\0' << _query_ending();
+      << start.to_seconds() << '\0' << cmdline << _query_ending;
 
-  _process.write(oss.str());
+  _process->write_to_child_stdin(oss.str());
 }
 
 /**
  *  Send query quit. To ask connector to quit properly.
  */
-void connector::_send_query_quit() {
-  engine_logger(dbg_commands, basic) << "connector::_send_query_quit";
-  commands_logger->trace("connector::_send_query_quit");
+void connector::_send_query_quit_nolock() {
+  SPDLOG_LOGGER_TRACE(_logger, "connector::_send_query_quit");
   std::string query("4\0", 2);
-  _process.write(query + _query_ending());
+  _process->write_to_child_stdin(query);
 }
 
 /**
  *  Send query verion. To ask connector version.
  */
-void connector::_send_query_version() {
-  engine_logger(dbg_commands, basic) << "connector::_send_query_version";
-  commands_logger->trace("connector::_send_query_version");
-  std::string query("0\0", 2);
-  query.append(_query_ending());
-  _process.write(query);
+void connector::_send_query_version_nolock() {
+  SPDLOG_LOGGER_TRACE(_logger, "connector::_send_query_version");
+  std::string query("0");
+  query.append(_query_ending);
+  _process->write_to_child_stdin(query);
 }
 
 /**
- * @brief This function is useful to restart the connector. This is the first
- * step to then execute a check.
+ * @brief start timeout timer that will expire in one second
+ *
  */
-void connector::restart_connector() {
-  LOCK_GUARD(lck, _thread_m);
-  _thread_action = start;
-  _thread_cv.notify_all();
+void connector::_timeout_timer_start() {
+  std::lock_guard l(_lock);
+  _timeout_timer.expires_after(std::chrono::seconds(1));
+  _timeout_timer.async_wait(
+      [me = shared_from_this()](const boost::system::error_code& err) {
+        if (!err) {
+          me->_timeout_timer_handler();
+          me->_timeout_timer_start();
+        }
+      });
 }
 
 /**
- * @brief The restart loop used to restart in background the connector.
+ * @brief this handler called every second will check expired commands and then
+ * generate a timeout result
+ * expired commands are also removed from _queries queue so their results will
+ * be ignored
+ *
  */
-void connector::_restart_loop() {
-  UNIQUE_LOCK(lck, _thread_m);
-  _thread_running = true;
-  _thread_cv.notify_all();
-  for (;;) {
-    _thread_cv.wait(lck, [this] { return _thread_action != none; });
-    UNLOCK(lck);
-
-    if (_thread_action == stop) {
-      _try_to_restart = false;
+void connector::_timeout_timer_handler() {
+  // check time out for commands
+  timestamp now = timestamp::now();
+  std::vector<result> results;
+  {
+    std::lock_guard l(_lock);
+    if (_queries.empty()) {
       return;
     }
-
-    _thread_action = none;
-    _run_restart();
-    LOCK(lck);
-  }
-}
-
-/**
- *  Execute restart.
- */
-void connector::_run_restart() {
-  try {
-    _connector_start();
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
-    runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
-
-    std::unordered_map<uint64_t, std::shared_ptr<query_info> > tmp_queries;
-    {
-      LOCK_GUARD(lck, _lock);
-      _try_to_restart = false;
-      _thread_cv.notify_all();
-      std::swap(tmp_queries, _queries);
-    }
-
-    // Resend commands.
-    for (std::unordered_map<uint64_t, std::shared_ptr<query_info> >::iterator
-             it(tmp_queries.begin()),
-         end(tmp_queries.end());
-         it != end; ++it) {
-      uint64_t command_id(it->first);
-      std::shared_ptr<query_info> info(it->second);
-
-      result res;
-      res.command_id = command_id;
-      res.end_time = timestamp::now();
-      res.exit_code = service::state_unknown;
-      res.exit_status = process::normal;
-      res.start_time = info->start_time;
-      res.output = "(Failed to execute command with connector '" + _name + "')";
-
-      engine_logger(dbg_commands, basic) << "connector::_recv_query_execute: "
-                                            "id="
-                                         << command_id
-                                         << ", "
-                                            "start_time="
-                                         << res.start_time.to_mseconds()
-                                         << ", "
-                                            "end_time="
-                                         << res.end_time.to_mseconds()
-                                         << ", "
-                                            "exit_code="
-                                         << res.exit_code
-                                         << ", "
-                                            "exit_status="
-                                         << res.exit_status
-                                         << ", "
-                                            "output='"
-                                         << res.output << "'";
-      commands_logger->trace(
-          "connector::_recv_query_execute: "
-          "id={}, "
-          "start_time={}, "
-          "end_time={}, "
-          "exit_code={}, "
-          "exit_status={}, "
-          "output='{}'",
-          command_id, res.start_time.to_mseconds(), res.end_time.to_mseconds(),
-          res.exit_code, static_cast<uint32_t>(res.exit_status), res.output);
-      if (!info->waiting_result) {
-        // Forward result to the listener.
-        if (_listener)
-          (_listener->finished)(res);
+    auto& timeout_index = _queries.get<1>();
+    for (auto query_iter = timeout_index.begin();
+         !_queries.empty() && query_iter != timeout_index.end() &&
+         query_iter->abs_timeout <= now;) {
+      if (query_iter->waiting_result) {
+        ++query_iter;
       } else {
-        LOCK_GUARD(lock, _lock);
-        // Push result into list of results.
-        _results[command_id] = res;
-        _cv_query.notify_all();
+        results.emplace_back(query_iter->command_id, now,
+                             service::state_unknown,
+                             common::e_exit_status::timeout,
+                             query_iter->start_time, "(Process Timeout)");
+        query_iter = timeout_index.erase(query_iter);
       }
     }
+  }
+  for (const auto& res : results) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "time out of "
+                        "id={}, {}",
+                        res.command_id, res);
+
+    update_result_cache(res.command_id, res);
+
+    // Forward result to the listener.
+    if (_listener)
+      (_listener->finished)(res);
   }
 }
 

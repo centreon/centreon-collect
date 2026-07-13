@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2024 Centreon
+ * Copyright 2020-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,14 @@
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
+#include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
-using com::centreon::broker::misc::string::debug_buf;
+using com::centreon::common::debug_buf;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static const boost::system::error_code _eof_error =
@@ -108,7 +109,7 @@ int32_t tcp_connection::flush() {
   if (!_writing) {
     _writing = true;
     // The strand is useful because of the flush() method.
-    _strand.context().post(std::bind(&tcp_connection::writing, ptr()));
+    asio::post(_strand.context(), std::bind(&tcp_connection::writing, ptr()));
   }
   return retval;
 }
@@ -139,6 +140,15 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
 
   {
     std::lock_guard<std::mutex> lck(_exposed_write_queue_m);
+    if (_exposed_write_queue.size() >
+        multiplexing::muxer::event_queue_max_size()) {
+      time_t now = time(nullptr);
+      if (now > _last_full_write_queue_error) {
+        _last_full_write_queue_error = now;
+        SPDLOG_LOGGER_ERROR(_logger, "write queue full => remove oldest event");
+      }
+      _exposed_write_queue.pop();
+    }
     _exposed_write_queue.push(v);
   }
 
@@ -147,7 +157,7 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
   if (!_writing) {
     _writing = true;
     // The strand is useful because of the flush() method.
-    _strand.context().post(std::bind(&tcp_connection::writing, ptr()));
+    asio::post(_strand.context(), std::bind(&tcp_connection::writing, ptr()));
   }
 
   int32_t retval = _acks;
@@ -195,9 +205,10 @@ void tcp_connection::writing() {
     return;
   }
 
-  asio::async_write(_socket, asio::buffer(_write_queue.front()),
-                    _strand.wrap(std::bind(&tcp_connection::handle_write, ptr(),
-                                           std::placeholders::_1)));
+  asio::async_write(
+      _socket, asio::buffer(_write_queue.front()),
+      asio::bind_executor(_strand, std::bind(&tcp_connection::handle_write,
+                                             ptr(), std::placeholders::_1)));
 }
 
 /**
@@ -224,7 +235,8 @@ void tcp_connection::handle_write(const boost::system::error_code& ec) {
     if (_write_queue_has_events) {
       // The strand is useful because of the flush() method.
       asio::async_write(_socket, asio::buffer(_write_queue.front()),
-                        _strand.wrap(std::bind(&tcp_connection::handle_write,
+                        asio::bind_executor(
+                            _strand, std::bind(&tcp_connection::handle_write,
                                                ptr(), std::placeholders::_1)));
     } else
       writing();
@@ -245,7 +257,8 @@ void tcp_connection::start_reading() {
   }
   _socket.async_read_some(
       asio::buffer(_read_buffer),
-      _strand.wrap(std::bind(&tcp_connection::handle_read, ptr(),
+      asio::bind_executor(
+          _strand, std::bind(&tcp_connection::handle_read, ptr(),
                              std::placeholders::_1, std::placeholders::_2)));
 }
 
@@ -281,14 +294,14 @@ void tcp_connection::close() {
   if (!_closed) {
     std::chrono::system_clock::time_point timeout =
         std::chrono::system_clock::now() + std::chrono::seconds(10);
-    while (!_closed &&
-           (_writing || (_write_queue_has_events &&
-                         std::chrono::system_clock::now() < timeout))) {
+    while (!_closed && (_writing || _write_queue_has_events) &&
+           std::chrono::system_clock::now() < timeout) {
       _logger->debug("Finishing to write data before closing the connection");
       if (!_writing) {
         _writing = true;
         // The strand is useful because of the flush() method.
-        _strand.context().post(std::bind(&tcp_connection::writing, ptr()));
+        asio::post(_strand.context(),
+                   std::bind(&tcp_connection::writing, ptr()));
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
@@ -322,7 +335,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
   }
 
   if (!_reading)
-    _strand.post(std::bind(&tcp_connection::start_reading, this));
+    asio::post(_strand, std::bind(&tcp_connection::start_reading, this));
 
   std::vector<char> retval;
 

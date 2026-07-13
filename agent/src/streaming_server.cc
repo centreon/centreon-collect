@@ -28,7 +28,9 @@ class server_reactor
     : public bireactor<
           ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>> {
   std::shared_ptr<scheduler> _sched;
-  std::string _supervised_host;
+  const std::string _supervised_host;
+  const std::string _host_template;
+  boost::asio::system_timer _jwt_timer;
 
   void _start();
 
@@ -36,13 +38,15 @@ class server_reactor
   server_reactor(const std::shared_ptr<boost::asio::io_context>& io_context,
                  const std::shared_ptr<spdlog::logger>& logger,
                  const std::string& supervised_hosts,
-                 const std::string& peer);
+                 const std::string& peer,
+                 const std::string host_template);
 
   static std::shared_ptr<server_reactor> load(
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       const std::string& supervised_hosts,
-      const std::string& peer);
+      const std::string& peer,
+      const std::string& host_template);
 
   std::shared_ptr<server_reactor> shared_from_this() {
     return std::static_pointer_cast<server_reactor>(
@@ -53,6 +57,8 @@ class server_reactor
   void on_incomming_request(
       const std::shared_ptr<MessageToAgent>& request) override;
 
+  void set_expiration(const std::chrono::system_clock::time_point& exp_time);
+
   void on_error() override;
 
   void shutdown() override;
@@ -62,13 +68,16 @@ server_reactor::server_reactor(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& supervised_host,
-    const std::string& peer)
+    const std::string& peer,
+    const std::string host_template)
     : bireactor<::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>>(
           io_context,
           logger,
           "server",
           peer),
-      _supervised_host(supervised_host) {}
+      _supervised_host(supervised_host),
+      _host_template(host_template),
+      _jwt_timer(*io_context) {}
 
 void server_reactor::_start() {
   std::weak_ptr<server_reactor> weak_this(shared_from_this());
@@ -87,26 +96,52 @@ void server_reactor::_start() {
   // identifies to engine
   std::shared_ptr<MessageFromAgent> who_i_am =
       std::make_shared<MessageFromAgent>();
-  fill_agent_info(_supervised_host, who_i_am->mutable_init());
+  fill_agent_info(_supervised_host, _host_template, who_i_am->mutable_init(),
+                  _logger);
 
   write(who_i_am);
+}
+
+void server_reactor::set_expiration(
+    const std::chrono::system_clock::time_point& tp) {
+  if (tp == std::chrono::system_clock::time_point::max()) {
+    _jwt_timer.cancel();
+    SPDLOG_LOGGER_TRACE(_logger, "No JWT expiry for peer {}, timer cancelled",
+                        get_peer());
+    return;
+  }
+  _jwt_timer.expires_at(tp);
+  _jwt_timer.async_wait(
+      [self = shared_from_this()](const boost::system::error_code& ec) {
+        if (!ec) {
+          if (!self->_alive)  // already shutdown
+            return;
+
+          SPDLOG_LOGGER_WARN(self->_logger,
+                             "JWT expired for peer {}, closing stream",
+                             self->get_peer());
+          self->shutdown();
+        }
+      });
 }
 
 std::shared_ptr<server_reactor> server_reactor::load(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& supervised_host,
-    const std::string& peer) {
+    const std::string& peer,
+    const std::string& host_template) {
   std::shared_ptr<server_reactor> ret = std::make_shared<server_reactor>(
-      io_context, logger, supervised_host, peer);
+      io_context, logger, supervised_host, peer, host_template);
   ret->_start();
   return ret;
 }
 
 void server_reactor::on_incomming_request(
     const std::shared_ptr<MessageToAgent>& request) {
-  asio::post(*_io_context,
-             [sched = _sched, request]() { sched->update(request); });
+  asio::post(*_io_context, [sched = _sched, request]() {
+    sched->on_engine_request(request);
+  });
 }
 
 void server_reactor::on_error() {
@@ -138,11 +173,13 @@ streaming_server::streaming_server(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::shared_ptr<common::grpc::grpc_config>& conf,
-    const std::string& supervised_host)
+    const std::string& supervised_host,
+    const std::string& host_template)
     : com::centreon::common::grpc::grpc_server_base(conf, logger),
       _io_context(io_context),
       _logger(logger),
-      _supervised_host(supervised_host) {
+      _supervised_host(supervised_host),
+      _host_template(host_template) {
   SPDLOG_LOGGER_INFO(_logger, "create grpc server listening on {}",
                      conf->get_hostport());
 }
@@ -183,9 +220,10 @@ std::shared_ptr<streaming_server> streaming_server::load(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::shared_ptr<common::grpc::grpc_config>& conf,
-    const std::string& supervised_host) {
+    const std::string& supervised_host,
+    const std::string& host_template) {
   std::shared_ptr<streaming_server> ret = std::make_shared<streaming_server>(
-      io_context, logger, conf, supervised_host);
+      io_context, logger, conf, supervised_host, host_template);
   ret->_start();
   return ret;
 }
@@ -216,14 +254,23 @@ void streaming_server::shutdown() {
  */
 ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>*
 streaming_server::Import(::grpc::CallbackServerContext* context) {
+  std::chrono::system_clock::time_point exp_time{
+      std::chrono::system_clock::time_point::min()};
+  auto status = is_token_valid(context, exp_time);
+  if (!status.ok()) {
+    return new ImmediateFinishReactor(status);
+  }
+
   SPDLOG_LOGGER_INFO(_logger, "incoming connection from {}", context->peer());
   std::lock_guard l(_protect);
   if (_incoming) {
     _incoming->shutdown();
   }
   _incoming = server_reactor::load(_io_context, _logger, _supervised_host,
-                                   context->peer());
+                                   context->peer(), _host_template);
   server_reactor::register_stream(_incoming);
   _incoming->start_read();
+  _incoming->set_expiration(exp_time);
+
   return _incoming.get();
 }

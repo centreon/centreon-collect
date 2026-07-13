@@ -21,10 +21,7 @@
 #define CCE_OBJECTS_DATERANGE_HH
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/timerange.hh"
-
-#ifndef LEGACY_CONF
 #include "common/engine_conf/state.pb.h"
-#endif
 
 struct timeperiod_struct;
 
@@ -49,21 +46,6 @@ class daterange {
     week_day = 4
   };
 
-#ifdef LEGACY_CONF
-  daterange(type_range type,
-            int syear,
-            int smon,
-            int smday,
-            int swday,
-            int swday_offset,
-            int eyear,
-            int emon,
-            int emday,
-            int ewday,
-            int ewday_offset,
-            int skip_interval,
-            const std::list<configuration::timerange>& timeranges);
-#else
   daterange(type_range type,
             int syear,
             int smon,
@@ -78,7 +60,6 @@ class daterange {
             int skip_interval,
             const google::protobuf::RepeatedPtrField<configuration::Timerange>&
                 timeranges);
-#endif
 
   daterange(type_range type);
 

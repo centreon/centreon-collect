@@ -51,7 +51,9 @@ class factory : public io::factory {
 
   static std::vector<column> get_columns(const nlohmann::json& cfg);
   factory& operator=(factory const& other) = delete;
-  bool has_endpoint(config::endpoint& cfg, io::extension* ext) override;
+  bool has_endpoint(const config::endpoint& cfg,
+                    io::extension* ext) const override;
+  void set_default_values(config::endpoint& cfg) const override;
 };
 }  // namespace http_tsdb
 

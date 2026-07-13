@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/neb/acknowledgement.hh"
 
-#include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;

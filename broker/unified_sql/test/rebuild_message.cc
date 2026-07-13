@@ -20,17 +20,11 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
-#include <google/protobuf/util/message_differencer.h>
-
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
-#include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/persistent_file.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -100,7 +94,7 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
 // Then the receiver can deserialize it.
 TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
 
   std::shared_ptr<storage::pb_rebuild_message> r(
       std::make_shared<storage::pb_rebuild_message>());
@@ -142,7 +136,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
 // Then the receiver can deserialize it.
 TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
 
   std::shared_ptr<storage::pb_rebuild_message> r(
       std::make_shared<storage::pb_rebuild_message>());

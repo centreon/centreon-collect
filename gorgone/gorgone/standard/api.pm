@@ -44,7 +44,9 @@ sub root {
     $module = $options{module};
 
     my $response;
-    if ($options{method} eq 'GET' && $options{uri} =~ /^\/api\/(nodes\/(\w*)\/)?log\/(.*)$/) {
+    if ($options{method} eq 'GET' && $options{uri} =~ /^\/api\/internal\/nodes\/(\w*)\/ping\/?$/) {
+        $response = do_ping(target => $1);
+    } elsif ($options{method} eq 'GET' && $options{uri} =~ /^\/api\/(nodes\/(\w*)\/)?log\/(.*)$/) {
         $response = get_log(
             target => $2,
             token => $3,
@@ -189,9 +191,9 @@ sub get_log {
 
     if (defined($options{target}) && $options{target} ne '') {
         $options{module}->send_internal_action({
-            socket => $socket,
-            target => $options{target},
-            action => 'GETLOG',
+            socket      => $socket,
+            target      => $options{target},
+            action      => 'GETLOG',
             json_encode => 1
         });
 
@@ -201,10 +203,10 @@ sub get_log {
 
     my $token_log = $options{token} . '-log';
     $options{module}->send_internal_action({
-        socket => $socket,
-        action => 'GETLOG',
-        token => $token_log,
-        data => {
+        socket      => $socket,
+        action      => 'GETLOG',
+        token       => $token_log,
+        data        => {
             token => $options{token},
             %{$options{parameters}}
         },
@@ -249,6 +251,52 @@ sub get_log {
     }
 
     return $response;
+}
+
+=head2 do_ping(%options)
+
+Sends a ping request to a specific node and waits for the response.
+This function requires a 'target' parameter specifying the node ID to ping.
+
+Returns a JSON string containing the ping result.
+
+Example of usage:
+    my $response = do_ping(target => "2");
+
+Example of successful response:
+    {
+        "code": 0,
+        "data": null
+    }
+
+Example of error response when target is missing:
+    {
+        "error": "missing_parameter",
+        "message": "target_node parameter is required"
+    }
+
+Example of error response on timeout:
+    {
+        "error": "timeout",
+        "message": "No response received within 10 seconds"
+    }
+
+=cut
+
+sub do_ping {
+    my (%options) = @_;
+
+    return '{"error":"missing_parameter","message":"node id parameter is required"}'
+        if (!defined($options{target}));
+    my $token = gorgone::standard::library::generate_token();
+
+    $module->send_internal_action({
+        action => 'PING',
+        token => $token,
+        target => $options{target},
+        data => {}}
+    );
+    return '{"message":"ping sent, check /api/internal/constatus for response"}';
 }
 
 1;

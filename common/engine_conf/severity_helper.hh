@@ -26,8 +26,6 @@
 namespace com::centreon::engine::configuration {
 
 class severity_helper : public message_helper {
-  void _init();
-
  public:
   using key_type = std::pair<uint64_t, uint16_t>;
   severity_helper(Severity* obj);
@@ -35,6 +33,8 @@ class severity_helper : public message_helper {
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+
+  void set_default_values() override;
 };
 }  // namespace com::centreon::engine::configuration
 

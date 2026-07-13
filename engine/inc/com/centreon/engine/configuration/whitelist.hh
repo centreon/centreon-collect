@@ -27,6 +27,33 @@ using com::centreon::common::log_v2::log_v2;
 extern const std::string command_blacklist_output;
 
 /**
+ * @brief this struct is used to store the regex and wildcards.
+ */
+struct rule_set {
+  std::vector<std::unique_ptr<re2::RE2>> regex;
+  std::vector<std::string> wildcard;
+};
+
+/**
+ * @brief this struct is used to store the cma-whitelist rules.
+ * cma-whitelist is a special whitelist that is used by the CMA to restrict
+ * commands that can be executed.
+ */
+struct cma_whitelist {
+  rule_set defaults;
+  std::unordered_map<std::string, rule_set> hosts;
+};
+
+/**
+ * @brief this struct is used to store the top-level whitelist configuration.
+ * It contains the main whitelist rules and an optional cma-whitelist.
+ */
+struct whitelist_config {
+  rule_set engine;
+  cma_whitelist cma;
+};
+
+/**
  * @brief the goal of this class is to parse yaml or json file with the
 structure whitelist: wildcard:
     - /usr/lib/centreon/plugins/centreon_toto*titi
@@ -41,6 +68,7 @@ string
  *
  */
 class whitelist {
+  static std::atomic_uint _instance_gen;
   std::shared_ptr<spdlog::logger> _logger;
 
   // don't reorder values
@@ -52,9 +80,7 @@ class whitelist {
    *
    */
   uint _instance_id;
-  std::vector<std::string> _wildcards;
-  std::vector<std::unique_ptr<re2::RE2>> _regex;
-
+  whitelist_config _config;
   static std::unique_ptr<whitelist> _instance;
 
   template <class ryml_tree>
@@ -66,6 +92,12 @@ class whitelist {
 
   e_refresh_result parse_dir(const std::string_view directory);
 
+  bool _empty(const rule_set& rules) const {
+    return rules.wildcard.empty() && rules.regex.empty();
+  }
+
+  bool _is_allowed(const std::string& cmdline, const rule_set& rules);
+
  public:
   template <typename string_iter>
   whitelist(string_iter dir_path_begin, string_iter dir_path_end);
@@ -75,18 +107,47 @@ class whitelist {
   static whitelist& instance();
   static void reload();
 
-  bool empty() const { return _wildcards.empty() && _regex.empty(); }
+  bool is_engine_whitelist_empty() const { return _empty(_config.engine); }
 
-  bool is_allowed(const std::string& cmdline);
+  bool is_cma_whitelist_empty() const {
+    return (_empty(_config.cma.defaults) && _config.cma.hosts.empty());
+  }
+
+  /**
+   * @brief check if the command line is allowed by the whitelist engine.
+   * @param cmdline the command line to check.
+   * @return true if the command line is allowed, false otherwise.
+   */
+  bool is_allowed_by_engine(const std::string& cmdline) {
+    return _is_allowed(cmdline, _config.engine);
+  }
+
+  /**
+   * @brief check if the command line is allowed by the cma-whitelist.
+   * @param cmdline the command line to check.
+   * @param hostname the hostname to check.
+   * @return true if the command line is allowed, false otherwise.
+   */
+  bool is_allowed_by_cma(const std::string& cmdline,
+                         const std::string& hostname);
 
   uint instance_id() const { return _instance_id; }
 
-  const std::vector<std::string> get_wildcards() const { return _wildcards; }
+  /**
+   * @brief Get the wildcards from the engine whitelist.
+   * @return A vector of wildcards.
+   *
+   * This method is intended to be used in unit tests.
+   */
+  const std::vector<std::string> get_wildcards_engine() const {
+    return _config.engine.wildcard;
+  }
 };
 
 template <typename string_iter>
 whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end)
-    : _logger{log_v2::instance().get(log_v2::CONFIG)} {
+    : _logger{log_v2::instance().get(log_v2::CONFIG)},
+      _instance_id{_instance_gen.fetch_add(1)} {
   init_ryml_error_handler();
   e_refresh_result res = e_refresh_result::no_directory;
   for (; dir_path_begin != dir_path_end; ++dir_path_begin) {

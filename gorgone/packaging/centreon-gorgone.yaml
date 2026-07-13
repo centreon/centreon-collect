@@ -126,27 +126,27 @@ contents:
     expand: true
 
   - src: "../contrib/gorgone_config_init.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0755
 
   - src: "../contrib/gorgone_audit.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0755
 
   - src: "../contrib/gorgone_install_plugins.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
   - src: "../contrib/gorgone_key_thumbprint.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
   - src: "../contrib/gorgone_key_generation.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
@@ -158,7 +158,6 @@ scripts:
 overrides:
   rpm:
     depends:
-      - centreon-common
       - centreon-perl-libs-common
       - bzip2
       - initscripts
@@ -198,9 +197,12 @@ overrides:
       - perl(lib)
       - perl(Safe)
       - perl(Tie::File) # required by MBI module
+      - perl(DateTime::Format::Strptime)
+    recommends:
+      - logrotate
+
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
-      - centreon-common
       - centreon-perl-libs-common
       - libdatetime-perl
       - libtime-parsedate-perl
@@ -214,6 +216,7 @@ overrides:
       - libdbi-perl
       - libdbd-sqlite3-perl
       - libdbd-mysql-perl
+      - libdbd-mariadb-perl
       - libhttp-daemon-perl
       - libhttp-daemon-ssl-perl
       - libnetaddr-ip-perl
@@ -231,9 +234,12 @@ overrides:
       - libzmq-ffi-perl
       - libclone-choose-perl
       - libjson-perl # gorgone_key_thumbprint.pl needs the json module, even when json::xs is already installed
+      - libdatetime-format-strptime-perl # autodiscovery uses it to retry job scheduling
       - librrds-perl
       - perl-base
       - perl-modules
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon gorgone daemon

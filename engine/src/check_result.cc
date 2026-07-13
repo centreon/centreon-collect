@@ -36,7 +36,8 @@ check_result::check_result()
       _finish_time{0, 0},
       _early_timeout{false},
       _exited_ok{false},
-      _return_code{0} {}
+      _return_code{0},
+      _current_attempt(0) {}
 
 check_result::check_result(enum check_source object_check_type,
                            notifier* notifier,
@@ -61,7 +62,8 @@ check_result::check_result(enum check_source object_check_type,
       _early_timeout{early_timeout},
       _exited_ok{exited_ok},
       _return_code{return_code},
-      _output{std::move(output)} {}
+      _output{std::move(output)},
+      _current_attempt(0) {}
 
 void check_result::set_object_check_type(enum check_source object_check_type) {
   _object_check_type = object_check_type;
@@ -122,7 +124,10 @@ void check_result::set_check_options(unsigned check_options) {
 namespace com::centreon::engine {
 
 std::ostream& operator<<(std::ostream& stream, const check_result& res) {
-  stream << " start_time=" << res.get_start_time().tv_sec
+  stream << (res.get_object_check_type() == check_source::service_check
+                 ? "service_check"
+                 : "host_check")
+         << " start_time=" << res.get_start_time().tv_sec
          << " finish_time=" << res.get_finish_time().tv_sec
          << " timeout=" << res.get_early_timeout()
          << " ok=" << res.get_exited_ok()

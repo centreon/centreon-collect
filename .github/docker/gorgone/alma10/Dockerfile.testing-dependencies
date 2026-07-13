@@ -1,0 +1,66 @@
+FROM almalinux:10
+
+ARG VERSION=25.10
+ARG IS_CLOUD=0
+
+ARG NODE_VERSION=24
+ARG PNPM_VERSION=10.24.0
+
+COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /usr/local/src/
+
+RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
+    --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
+    bash -e <<EOF
+
+echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
+echo 'max_parallel_downloads=10' >> /etc/dnf/dnf.conf
+echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
+
+dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
+dnf config-manager --set-enabled crb
+
+if [[ "${IS_CLOUD}" == "true" ]]; then
+  dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el10/centreon-${VERSION}-internal.repo
+  sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
+else
+  dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el10/centreon-${VERSION}.repo
+fi
+dnf config-manager --set-enabled 'centreon*'
+
+dnf install -y python3.12 python3.12-pip
+pip3.12 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
+pip3.12 cache purge
+
+curl -fsSL https://rpm.nodesource.com/setup_24.x | bash - && \
+  dnf install -y nodejs && \
+  dnf clean all
+
+curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} sh -
+source ~/.bashrc
+cd /usr/local/src
+pnpm install \
+  --frozen-lockfile \
+  --config.trustPolicy=no-downgrade \
+  --config.minimumReleaseAge=2880 \
+  --config.blockExoticSubdeps=true
+
+dnf install -y \
+  "perl-Libssh-Session" \
+  "perl-Mojolicious" \
+  "perl(lib)" \
+  "perl(Clone)" \
+  "perl(DateTime)" \
+  "perl(DBD::mysql)" \
+  "perl(EV)" \
+  "perl(HTTP::Daemon::SSL)" \
+  "perl(Net::Curl::Easy)" \
+  "perl(JSON)" \
+  "perl(RRDs)" \
+  "perl(XML::Simple)" \
+  "perl(ZMQ::FFI)"
+
+dnf clean all
+
+EOF
+
+ENV PATH="/usr/local/src/node_modules/.bin/:$PATH"

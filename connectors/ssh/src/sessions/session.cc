@@ -426,8 +426,8 @@ void session::error() {
       _creds.get_user(), _creds.get_host(), _creds.get_port());
   close();
 
-  _io_context->post(
-      [me = shared_from_this()]() { me->notify_listeners(true); });
+  asio::post(*_io_context,
+             [me = shared_from_this()]() { me->notify_listeners(true); });
 
   _step = e_step::session_error;
   _step_string = "error";

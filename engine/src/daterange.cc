@@ -23,58 +23,9 @@
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timerange.hh"
-#include "common/engine_legacy_conf/daterange.hh"
 
 using namespace com::centreon::engine;
 
-#ifdef LEGACY_CONF
-/**
- *  Create a new exception to a timeperiod.
- *
- *  @param[in] period        Base period.
- *  @param[in] type
- *  @param[in] syear
- *  @param[in] smon
- *  @param[in] smday
- *  @param[in] swday
- *  @param[in] swday_offset
- *  @param[in] eyear
- *  @param[in] emon
- *  @param[in] emday
- *  @param[in] ewday
- *  @param[in] ewday_offset
- *  @param[in] skip_interval
- *  @param[in] a list of timeranges.
- */
-daterange::daterange(type_range type,
-                     int syear,
-                     int smon,
-                     int smday,
-                     int swday,
-                     int swday_offset,
-                     int eyear,
-                     int emon,
-                     int emday,
-                     int ewday,
-                     int ewday_offset,
-                     int skip_interval,
-                     const std::list<configuration::timerange>& timeranges)
-    : _type{type},
-      _syear{syear},
-      _smon{smon},
-      _smday{smday},
-      _swday{swday},
-      _swday_offset{swday_offset},
-      _eyear{eyear},
-      _emon{emon},
-      _emday{emday},
-      _ewday{ewday},
-      _ewday_offset{ewday_offset},
-      _skip_interval{skip_interval} {
-  for (auto& tr : timeranges)
-    add_timerange({tr.range_start(), tr.range_end()});
-}
-#else
 /**
  *  Create a new exception to a timeperiod.
  *
@@ -123,7 +74,6 @@ daterange::daterange(
   for (auto& tr : timeranges)
     add_timerange({tr.range_start(), tr.range_end()});
 }
-#endif
 
 daterange::daterange(type_range type)
     : _type(type),

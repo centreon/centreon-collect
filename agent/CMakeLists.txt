@@ -24,6 +24,15 @@ set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/agent")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/scripts")
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  file(GLOB_RECURSE STATIC_LIBSTDCXX /usr/*/libstdc++.a)
+
+  if (STATIC_LIBSTDCXX)
+    message(STATUS "libstdc++.a found at ${STATIC_LIBSTDCXX}")
+  else()
+    message(FATAL_ERROR "libstdc++.a not found. Please install it to proceed.")
+  endif()
+endif()
 
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
@@ -81,19 +90,23 @@ endforeach()
 #centagent server and client
 add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
+          ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
   COMMENT "Generating interface files from the conf centagent proto file (grpc)"
   OUTPUT ${SRC_DIR}/agent.grpc.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${PROJECT_SOURCE_DIR}/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
     --grpc_out=${SRC_DIR} ${PROJECT_SOURCE_DIR}/proto/agent.proto
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
+          ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
   COMMENT "Generating interface files from the conf centagent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/agent.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${PROJECT_SOURCE_DIR}/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
     ${PROJECT_SOURCE_DIR}/proto/agent.proto
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -106,6 +119,13 @@ endif()
 set(NATIVE_INC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/inc/com/centreon/agent")
 set(NATIVE_SRC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/src")
 
+set ( SRC_PB_OTEL
+  ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/common/v1/common.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
+)
+
 set( SRC_COMMON
   ${NATIVE_SRC}/agent_info.cc
   ${NATIVE_SRC}/check_cpu.cc
@@ -115,13 +135,10 @@ set( SRC_COMMON
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
+  ${SRC_DIR}/grpc_ca_bootstrap.cc
   ${SRC_DIR}/check_health.cc
   ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/common/v1/common.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
   ${SRC_DIR}/scheduler.cc
   ${SRC_DIR}/streaming_client.cc
   ${SRC_DIR}/streaming_server.cc
@@ -134,6 +151,8 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_event_log.cc
   ${NATIVE_SRC}/check_process.cc
   ${NATIVE_SRC}/check_uptime.cc
+  ${NATIVE_SRC}/check_counter.cc
+  ${NATIVE_SRC}/check_sched.cc
   ${NATIVE_SRC}/event_log/container.cc
   ${NATIVE_SRC}/event_log/data.cc
   ${NATIVE_SRC}/event_log/uniq.cc
@@ -144,6 +163,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/process/process_container.cc
   ${NATIVE_SRC}/process/process_data.cc
   ${NATIVE_SRC}/process/process_filter.cc
+  ${NATIVE_SRC}/check_files.cc
 )
 
 set( SRC_LINUX
@@ -158,10 +178,10 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SRC ${SRC_COMMON} ${SRC_LINUX})
+  set(SRC ${SRC_COMMON} ${SRC_LINUX} ${SRC_PB_OTEL} )
 else()
   add_compile_options("/wd5232")
-  set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
+  set(SRC ${SRC_COMMON} ${SRC_WINDOWS} ${SRC_PB_OTEL})
   set_source_files_properties(${SRC_DIR}/filter.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
@@ -172,11 +192,14 @@ add_library(centagent_lib STATIC
 
 include_directories(
   ${INCLUDE_DIR}
-  ${NATIVE_INC} 
-  ${SRC_DIR} 
+  ${NATIVE_INC}
+  ${SRC_DIR}
+  ${CMAKE_SOURCE_DIR}/bbdo
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
   ${CMAKE_SOURCE_DIR}/common/process/inc
+  ${CMAKE_BINARY_DIR}
+  ${CMAKE_BINARY_DIR}/common/engine_conf
 )
 
 target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
@@ -184,35 +207,51 @@ target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
 SET(CENTREON_AGENT centagent)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_dependencies(centagent_lib pb_open_telemetry_lib target_timeperiod_proto)
+
   add_executable(${CENTREON_AGENT} ${SRC_DIR}/main.cc)
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
-    -L${PROTOBUF_LIB_DIR}
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    -Wl,--whole-archive
+    gRPC::grpc++
+    -Wl,--no-whole-archive
+    absl::any absl::log absl::base absl::bits
     centagent_lib
+    centreon_common_timeperiod
     centreon_common
     centreon_grpc
     centreon_process
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
+    centreon_hexdump
+    centreon_file_system
+    ctncrypto
+    Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)
 else()
+  add_dependencies(centagent_lib target_timeperiod_proto)
+
   add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc  ${SRC_DIR}/agent.rc)
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
     centagent_lib
+    centreon_common_timeperiod
     centreon_common
     centreon_grpc
     centreon_process
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    centreon_hexdump
+    ctncrypto
+    gRPC::grpc++
     absl::any absl::log absl::base absl::bits
     Boost::program_options
+    Boost::process
     fmt::fmt
-    pdh)
+    pdh
+    taskschd
+    Crypt32
+    Version.lib)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # The linker needs to know to retain debug symbols.

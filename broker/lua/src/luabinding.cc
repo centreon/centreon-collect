@@ -16,10 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include <spdlog/fmt/ostr.h>
-
-#include <cassert>
-
+#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/lua/broker_cache.hh"
 #include "com/centreon/broker/lua/broker_event.hh"
 #include "com/centreon/broker/lua/broker_log.hh"
@@ -56,12 +53,10 @@ static int l_pairs(lua_State* L) {
  *  @param[in] cache the persistent cache.
  */
 luabinding::luabinding(std::string const& lua_script,
-                       std::map<std::string, misc::variant> const& conf_params,
-                       macro_cache& cache)
+                       std::map<std::string, misc::variant> const& conf_params)
     : _L{nullptr},
       _filter{false},
       _flush{false},
-      _cache(cache),
       _total{0},
       _broker_api_version{1},
       _logger{log_v2::instance().get(log_v2::LUA)} {
@@ -73,6 +68,8 @@ luabinding::luabinding(std::string const& lua_script,
   SPDLOG_LOGGER_DEBUG(_logger, "lua: initializing the Lua virtual machine");
 
   try {
+    static absl::Mutex _init_mut;
+    absl::MutexLock l(_init_mut);
     _load_script(lua_script);
     _init_script(conf_params);
   } catch (std::exception const& e) {
@@ -265,7 +262,7 @@ void luabinding::_load_script(const std::string& lua_script) {
   broker_utils::broker_utils_reg(_L);
 
   // Registers the broker cache
-  broker_cache::broker_cache_reg(_L, _cache, _broker_api_version);
+  broker_cache::broker_cache_reg(_L, _broker_api_version);
   assert(lua_gettop(_L) == 0);
 }
 
@@ -338,9 +335,6 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     SPDLOG_LOGGER_DEBUG(_logger, "lua: luabinding::write call");
   }
 
-  // Give data to cache.
-  _cache.write(data);
-
   // Process event.
   uint32_t mess_type(data->type());
   uint16_t cat(category_of_type(mess_type));
@@ -365,16 +359,16 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
       else
         SPDLOG_LOGGER_ERROR(
             _logger, "lua: unknown error while running function `filter()'");
-      RETURN_AND_POP(0);
+      RETURN_AND_POP(-1);
     }
 
     if (!lua_isboolean(_L, -1)) {
       SPDLOG_LOGGER_ERROR(_logger, "lua: `filter' must return a boolean");
-      RETURN_AND_POP(0);
+      RETURN_AND_POP(-1);
     }
 
     execute_write = lua_toboolean(_L, -1);
-    SPDLOG_LOGGER_DEBUG(_logger, "lua: `filter' returned {}",
+    SPDLOG_LOGGER_TRACE(_logger, "lua: `filter' returned {}",
                         (execute_write ? "true" : "false"));
     lua_pop(_L, lua_gettop(_L));
   }
@@ -406,12 +400,14 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     else
       SPDLOG_LOGGER_ERROR(_logger,
                           "lua: unknown error running function `write'");
-    RETURN_AND_POP(0);
+    RETURN_AND_POP(-1);
   }
 
   if (!lua_isboolean(_L, -1)) {
-    SPDLOG_LOGGER_ERROR(_logger, "lua: `write' must return a boolean");
-    RETURN_AND_POP(0);
+    // despite the fact that it's an error, we log it as an info because some SC
+    // use it to delay next event write
+    SPDLOG_LOGGER_INFO(_logger, "lua: `write' must return a boolean");
+    RETURN_AND_POP(-1);
   }
   int acknowledge = lua_toboolean(_L, -1);
 

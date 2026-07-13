@@ -22,18 +22,25 @@ ${engineLog1}       ${ENGINE_LOG}/config1/centengine.log
 ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
+@{TCPDUMP_PATHS}    /usr/sbin/tcpdump    /sbin/tcpdump    /usr/bin/tcpdump    /bin/tcpdump
 
 ${agentlog}       ${VarRoot}/log/centreon-engine/centreon-agent.log
 
 *** Keywords ***
 Ctn Config BBDO3
-    [Arguments]    ${nbEngine}    ${version}=3.0.1
-    Ctn Config Broker Sql Output    central    unified_sql
-    Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
-    Ctn Broker Config Add Item    central    bbdo_version    ${version}
-    FOR    ${i}    IN RANGE    ${nbEngine}
-        ${mod}    Catenate    SEPARATOR=    module    ${i}
-        Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
+    [Arguments]    ${nbEngine}    ${version}=3.0.1    ${only_central}=False    ${only_engine}=False
+    IF    not ${only_central} and not ${only_engine}
+        Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
+    END
+    IF    not ${only_engine}
+	Ctn Config Broker Sql Output    central    unified_sql
+        Ctn Broker Config Add Item    central    bbdo_version    ${version}
+    END
+    IF    not ${only_central}
+        FOR    ${i}    IN RANGE    ${nbEngine}
+            ${mod}    Catenate    SEPARATOR=    module    ${i}
+            Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
+        END
     END
     # We replace the global Bbdo2 Variable to False
     Ctn Set Bbdo2    ${False}
@@ -86,7 +93,6 @@ Ctn Stop Vault
 Ctn Start Broker
     [Arguments]    ${only_central}=False
     # Currently we are in BBDO2 by default.
-    Ctn Set Bbdo2    ${True}
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
@@ -108,7 +114,7 @@ Ctn Kindly Stop Broker
     ...    If only_central is set to True, only the central broker will be stopped.
     ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
     ...    since there are still bugs in this context.
-    [Arguments]    ${only_central}=False
+    [Arguments]    ${only_central}=False    ${no_rrd_test}=False
 
     #in some case tear down calls this function whereas broker has not been started
     ${b1_obj}    Get Process Object   b1
@@ -133,15 +139,24 @@ Ctn Kindly Stop Broker
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
         ELSE
-	    ${Bbdo2}   Ctn In Bbdo2
-            IF    not ${Bbdo2}
-		Log To Console    "We are in BBDO3, so we also check RRD duplicates"
-                Log To Console    "central broker stopped"
-                # We have to check if central RRD logs contain errors about data sent in the past.
-                ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-                Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
-	    ELSE
-		Log To Console    "We are in BBDO2, so we don't check RRD duplicates"
+            ${Bbdo2}   Ctn In Bbdo2
+            IF    not ${Bbdo2} and not ${no_rrd_test}
+                IF    not ${only_central}
+                        Log To Console    We are in BBDO3, so we also check RRD duplicates
+                        Log To Console    central broker stopped
+                        # We have to check if central RRD logs contain errors about data sent in the past.
+                        ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                        IF    len("""${result}""") > 0
+                            Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
+                            Ctn Save Logs
+                            Remove File    ${rrdLog}
+                        END
+                        Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+                ELSE
+                    Log To Console    Broker RRD was not started, so we don't check RRD duplicates
+                END
+            ELSE
+                Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
             END
         END
     END
@@ -180,13 +195,13 @@ Ctn Stop Processes
     Ctn Kill Engine
 
 Ctn Start Engine
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False
     # Currently we are in BBDO2 by default.
-    Ctn Set Bbdo2    ${True}
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
-        ${log}    Catenate    SEPARATOR=    ${VarRoot}    /log/centreon-engine/config    ${idx}
+        ${log}    Catenate    SEPARATOR=    ${ENGINE_LOG}    /config    ${idx}
         ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
         Create Directory    ${log}
         Create Directory    ${lib}
@@ -195,7 +210,14 @@ Ctn Start Engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
-        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        IF    ${with_centreon_engine_user}
+            Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
+        END
+        IF    ${newGeneration}
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        ELSE
+            Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        END
     END
 
 Ctn Start Engine With Extend Conf
@@ -214,18 +236,21 @@ Ctn Start Engine With Extend Conf
         END
         Start Process
         ...    /usr/sbin/centengine
-        ...    --config-file\=/tmp/centengine_extend.json
+        ...    --extended-config\=/tmp/centengine_extend.json
         ...    ${conf}
         ...    alias=${alias}
     END
 
 Ctn Restart Engine
-    Ctn Stop engine
-    Ctn Start engine
+    [Arguments]    ${newGeneration}=False
+    Ctn Stop Engine
+    Ctn Start Engine    ${newGeneration}
 
 Ctn Start Custom Engine
-    [Arguments]    ${conf_path}    ${process_alias}
-    Start Process    /usr/sbin/centengine    ${conf_path}    alias=${process_alias}
+    [Arguments]    ${broker_conf}    ${conf_path}    ${process_alias}
+    Start Process    /usr/sbin/centengine
+    ...    ${conf_path}
+    ...    alias=${process_alias}
 
 Ctn Stop Custom Engine
     [Arguments]    ${process_alias}
@@ -235,10 +260,10 @@ Ctn Stop Custom Engine
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Ctn Stop Engine
-    Log To Console    "stop centengine"
+    Log To Console    Stop centengine
     ${count}    Ctn Get Engines Count
     IF    ${count} == 0
-        Log To Console    "no engine to stop"
+        Log To Console    No engine to stop
         RETURN
     END
     FOR    ${idx}    IN RANGE    0    ${count}
@@ -248,7 +273,7 @@ Ctn Stop Engine
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${result}    Wait For Process    ${alias}    timeout=60s
         IF    "${result}" == "${None}"
-            Log To Console    "fail to stop centengine"
+            Log To Console    Failed to stop centengine
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
             Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
             Send Signal To Process    SIGKILL    ${alias}
@@ -265,14 +290,14 @@ Ctn Stop Engine
     END
 
 Ctn Stop Engine Broker And Save Logs
-    [Arguments]    ${only_central}=False
+    [Arguments]    ${only_central}=False    ${no_rrd_test}=False
     TRY
-        Ctn Stop engine
+        Ctn Stop Engine
     EXCEPT
         Log    can't kindly stop engine
     END
     TRY
-        Ctn Kindly Stop Broker    only_central=${only_central}
+        Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
     EXCEPT
         Log    Can't kindly stop Broker
     END
@@ -289,9 +314,15 @@ Ctn Get Engine Pid
     RETURN    ${pid}
 
 Ctn Reload Engine
-    ${count}    Ctn Get Engines Count
-    FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+    [Arguments]    ${poller_index}=-1
+    IF    ${poller_index} == -1
+        ${count}    Ctn Get Engines Count
+        FOR    ${idx}    IN RANGE    0    ${count}
+            ${alias}    Catenate    SEPARATOR=    e    ${idx}
+            Send Signal To Process    SIGHUP    ${alias}
+        END
+    ELSE
+        ${alias}    Catenate    SEPARATOR=    e    ${poller_index}
         Send Signal To Process    SIGHUP    ${alias}
     END
 
@@ -327,14 +358,26 @@ Ctn Save Logs
     Log To Console      Save test logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${failDir0}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config0
+    ${failDir1}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config1
     Create Directory    ${failDir}
+    Create Directory    ${failDir0}
+    Create Directory    ${failDir1}
     Copy Files    ${BROKER_LOG}/*    ${failDir}
-    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir}
+    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir0}
+    Copy Files    ${ENGINE_LOG}/config0/*.dat    ${failDir0}
+    Copy Files    ${ENGINE_LOG}/config1/*.log    ${failDir1}
+    Copy Files    ${ENGINE_LOG}/config1/*.dat    ${failDir1}
+
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
-    Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
+    Copy Files    ${EtcRoot}/centreon-engine/config0/*    ${failDir}/etc/centreon-engine/config0
+    Copy Files    ${EtcRoot}/centreon-engine/config1/*    ${failDir}/etc/centreon-engine/config1
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
+    Move Files    /tmp/mariadb.log    ${failDir}
+    Move Files    /tmp/tcpdump.pcap    ${failDir}
+    Run Process    chmod    -R    a+rwX    ${failDir}
 
 Ctn Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
@@ -357,6 +400,7 @@ Ctn Dump Process
         ...    stdout=${gdb_output}
         ...    stderr=${gdb_output}
         Log To Console    Done...
+	Run Process    chmod    -R    666    ${failDir}
     END
 
 Ctn Coredump Info
@@ -375,6 +419,7 @@ Ctn Coredump Info
     ...    /tmp/core.${pid}
     ...    stdout=${output}
     ...    stderr=${output}
+    Run Process    chmod    -R    666    ${failDir}
 
 Ctn Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
@@ -384,11 +429,12 @@ Ctn Copy Coredump In Failed Dir
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
         Copy File    /tmp/core.${pid}    ${failDir}
+	Run Process    chmod    -R    666    ${failDir}
     END
 
 Ctn Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${binary_path}    ${timeout}
-    ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
+    ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continue
     ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
     IF    ${test_none} == "not killed"
         ${pid}    Get Process Id    ${process_name}
@@ -402,6 +448,8 @@ Ctn Clear Metrics
     Execute SQL String    DELETE FROM metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin
+    Disconnect From Database
+    Remove Files     ${VarRoot}/lib/centreon/metrics/*
 
 Ctn Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
@@ -448,10 +496,13 @@ Ctn Wait For Engine To Be Ready
 
 
 Ctn Start Agent
+    [Arguments]    ${nb_agent}=1
     ${run_env}    Ctn Run Env
 
     IF    "${run_env}" != "WSL"
-        Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+        FOR    ${index_agent}    IN RANGE    ${nb_agent}
+            Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent${index_agent}.json    alias=centreon_agent${index_agent}     stdout=${ENGINE_LOG}/centagent-stdout.log    stderr=${ENGINE_LOG}/centagent-stderr.log
+        END
     END
 
 Ctn Workspace Win
@@ -464,39 +515,124 @@ Ctn Workspace Win
     RETURN    None
     
 Ctn Kindly Stop Agent
+    [Arguments]    ${nb_agent}=1
     ${run_env}    Ctn Run Env
 
     IF    "${run_env}" == "WSL"
         RETURN
     END
 
-    #in most case centreon_agent is not started
-    ${centreon_agent_process}    Get Process Object  centreon_agent
+    FOR    ${index_agent}    IN RANGE    ${nb_agent}
+        #in most case centreon_agent is not started
+        ${centreon_agent_process}    Get Process Object  centreon_agent${index_agent}
 
-    IF  ${{$centreon_agent_process is None}}  RETURN
+        IF  ${{$centreon_agent_process is None}}  RETURN
 
-    Send Signal To Process    SIGTERM    centreon_agent
-    ${result}    Wait For Process    centreon_agent    timeout=60s
-    # In case of process not stopping
-    IF    "${result}" == "${None}"
-        Log To Console    "fail to stop centreon_agent"
-        Ctn Save Logs
-        Ctn Dump Process    centreon_agent    /usr/bin/centagent   centreon_agent
-        Send Signal To Process    SIGKILL    centreon_agent
-        Fail    centreon_agent not correctly stopped (coredump generated)
-    ELSE
-        IF    ${result.rc} != 0
+        Send Signal To Process    SIGTERM    centreon_agent${index_agent}
+        ${result}    Wait For Process    centreon_agent${index_agent}    timeout=60s
+        # In case of process not stopping
+        IF    "${result}" == "${None}"
+            Log To Console    "fail to stop centreon_agent"
             Ctn Save Logs
-            Ctn Coredump Info    centreon_agent    /usr/bin/centagent    centreon_agent
-            Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
+            Ctn Dump Process    centreon_agent${index_agent}    /usr/bin/centagent   centreon_agent${index_agent}
+            Send Signal To Process    SIGKILL    centreon_agent${index_agent}
+            Fail    centreon_agent not correctly stopped (coredump generated)
+        ELSE
+            IF    ${result.rc} != 0
+                Ctn Save Logs
+                Ctn Coredump Info    centreon_agent${index_agent}    /usr/bin/centagent    centreon_agent${index_agent}
+                Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
+            END
         END
     END
 
-
 Ctn Wait For Otel Server To Be Ready
     [Documentation]    Wait for engine otel server to be ready
-    [Arguments]    ${start}
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    [Arguments]    ${start}    ${port}=4317
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:${port}
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:${port}" should be available.
 
+Ctn Create Otl Request
+    [Documentation]    create an otl request with nagios telegraf style
+    [Arguments]    ${state}    ${host}    ${service}=
+    ${state_attrib}    Create Dictionary    host=${host}    service=${service}
+    ${rta_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rta    unit=ms
+    ${rtmax_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rtmax    unit=ms
+    ${pl_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=pl    unit=%
+
+    # state
+    ${state_metric}    Ctn Create Otl Metric    check_icmp_state    1    ${state_attrib}    ${state}
+    # value
+    ${value_metric}    Ctn Create Otl Metric    check_icmp_value    1    ${rta_attrib}    ${0.022}
+    Ctn Add Data Point To Metric    ${value_metric}    ${rtmax_attrib}    ${0.071}
+    Ctn Add Data Point To Metric    ${value_metric}    ${pl_attrib}    ${0.001}
+
+    ${critical_gt_metric}    Ctn Create Otl Metric    check_icmp_critical_gt    1    ${rta_attrib}    ${500}
+    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${80}
+    ${critical_lt_metric}    Ctn Create Otl Metric    check_icmp_critical_lt    1    ${rta_attrib}    ${1}
+    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${0.00001}
+
+    ${metrics_list}    Create List
+    ...    ${state_metric}
+    ...    ${value_metric}
+    ...    ${critical_gt_metric}
+    ...    ${critical_lt_metric}
+
+    ${scope_attrib}    Create Dictionary
+    ${scope_metric}    Ctn Create Otl Scope Metrics    ${scope_attrib}    ${metrics_list}
+
+    ${scope_metrics_list}    Create List    ${scope_metric}
+
+    ${resource_attrib}    Create Dictionary
+    ${resource_metrics}    Ctn Create Otl Resource Metrics    ${resource_attrib}    ${scope_metrics_list}
+    ${resources_list}    Create List    ${resource_metrics}
+
+    RETURN    ${resources_list}
+
+Ctn Dump Database
+    [Documentation]    Dump the database in a file. This is useful for debugging.
+    [Arguments]    ${file}
+    Create Directory    failed
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    Create Directory    ${failDir}
+    Run Process    mysqldump    ${DBName}    stdout=${failDir}/${file}
+
+Ctn Enable General Log
+    [Documentation]    Enable the general log of the database.
+    [Arguments]    ${file}
+    Create Directory    failed
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    Create Directory    ${failDir}
+    ${query}    Set Variable    SET GLOBAL general_log=1;SET GLOBAL general_log_file='/tmp/${file}'
+    Run Process    mysql    -u${DBUserRoot}    -p${DBPassRoot}    -e    ${query}
+
+Ctn Disable General Log
+    [Documentation]    Disable the general log of the database.
+    ${query}    Set Variable    SET GLOBAL general_log=0
+    Run Process    mysql    -u${DBUserRoot}    -p${DBPassRoot}    -e    ${query}
+
+Ctn Start Tcpdump
+    ${file_exists}    Run Keyword And Return Status    File Should Exist    /tmp/tcpdump.pcap
+    IF    ${file_exists}
+        Remove File    /tmp/tcpdump.pcap
+    END
+    FOR    ${path}    IN    @{TCPDUMP_PATHS}
+        ${exists}    Run Keyword And Return Status    File Should Exist    ${path}
+	IF    ${exists}
+            Log To Console    ${path} -i lo -w /tmp/tcpdump.pcap
+            Start Process    ${path}    -i    lo    port    3306    -w    /tmp/tcpdump.pcap    alias=tcpdump
+	    BREAK
+	END
+    END
+
+Ctn Stop Tcpdump
+    Terminate Process    tcpdump    kill=False
+
+Ctn Clear Downtimes
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    #${output}    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL
+    Execute SQL String    UPDATE services SET scheduled_downtime_depth=0
+    Execute SQL String    UPDATE hosts SET scheduled_downtime_depth=0
+    Execute SQL String    UPDATE resources SET in_downtime=0
+    Disconnect From Database

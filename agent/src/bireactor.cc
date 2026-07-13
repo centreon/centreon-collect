@@ -87,14 +87,12 @@ void bireactor<bireactor_class>::OnReadDone(bool ok) {
       std::lock_guard l(_protect);
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} peer {} receive: {}",
                           static_cast<const void*>(this), _class_name, _peer,
-                          _read_current->ShortDebugString());
+                          *_read_current);
       read = _read_current;
       _read_current.reset();
     }
     start_read();
-    if (read->has_config()) {
-      on_incomming_request(read);
-    }
+    on_incomming_request(read);
   } else {
     SPDLOG_LOGGER_ERROR(_logger, "{:p} {} peer:{} fail read from stream",
                         static_cast<void*>(this), _class_name, _peer);
@@ -141,7 +139,7 @@ void bireactor<bireactor_class>::OnWriteDone(bool ok) {
                           (*_write_queue.begin())->ByteSizeLong());
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} {} sent",
                           static_cast<const void*>(this), _class_name,
-                          (*_write_queue.begin())->ShortDebugString());
+                          **_write_queue.begin());
       _write_queue.pop_front();
     }
     start_write();

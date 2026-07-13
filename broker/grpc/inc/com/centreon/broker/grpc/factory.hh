@@ -33,6 +33,7 @@ namespace grpc {
 class factory : public io::factory {
   io::endpoint* _new_endpoint_bbdo_cs(
       com::centreon::broker::config::endpoint& cfg,
+      const std::map<std::string, std::string>& global_params,
       bool& is_acceptor) const;
 
  public:
@@ -40,8 +41,8 @@ class factory : public io::factory {
   factory(factory const& other) = delete;
   ~factory() = default;
   factory& operator=(factory const& other) = delete;
-  bool has_endpoint(com::centreon::broker::config::endpoint& cfg,
-                    io::extension* ext) override;
+  bool has_endpoint(const com::centreon::broker::config::endpoint& cfg,
+                    io::extension* ext) const override;
   io::endpoint* new_endpoint(
       com::centreon::broker::config::endpoint& cfg,
       const std::map<std::string, std::string>& global_params,

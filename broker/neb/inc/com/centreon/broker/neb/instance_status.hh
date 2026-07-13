@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/status.hh"
 
 namespace com::centreon::broker {
@@ -58,7 +57,7 @@ class instance_status : public status {
   bool obsess_over_services;
   bool passive_host_checks_enabled;
   bool passive_service_checks_enabled;
-  uint32_t poller_id;
+  uint64_t poller_id;
 
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;

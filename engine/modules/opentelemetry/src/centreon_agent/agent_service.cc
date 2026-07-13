@@ -17,6 +17,7 @@
  */
 
 #include "centreon_agent/agent_service.hh"
+#include "common/crypto/jwt.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 
@@ -38,6 +39,7 @@ class server_bireactor
                    const otel_request_handler& handler,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const std::string& peer,
+                   bool is_crypted,
                    agent_stat::pointer& stats)
       : agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
                                              agent::MessageToAgent>>(
@@ -47,7 +49,32 @@ class server_bireactor
             handler,
             logger,
             false,
+            is_crypted,
             stats),
+        _peer(peer) {
+    SPDLOG_LOGGER_DEBUG(_logger, "connected with agent {}", _peer);
+  }
+
+  template <class otel_request_handler>
+  server_bireactor(const std::shared_ptr<boost::asio::io_context>& io_context,
+                   const agent_config::pointer& conf,
+                   const otel_request_handler& handler,
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   const std::string& peer,
+                   bool is_crypted,
+                   agent_stat::pointer& stats,
+                   const std::chrono::system_clock::time_point& exp_time)
+      : agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
+                                             agent::MessageToAgent>>(
+            io_context,
+            "agent_server",
+            conf,
+            handler,
+            logger,
+            false,
+            is_crypted,
+            stats,
+            exp_time),
         _peer(peer) {
     SPDLOG_LOGGER_DEBUG(_logger, "connected with agent {}", _peer);
   }
@@ -63,7 +90,7 @@ void server_bireactor::on_error() {
 }
 
 void server_bireactor::shutdown() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   if (_alive) {
     _alive = false;
     agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
@@ -88,14 +115,18 @@ agent_service::agent_service(
     const agent_config::pointer& conf,
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
-    const agent_stat::pointer& stats)
+    const agent_stat::pointer& stats,
+    const bool& is_crypted,
+    validator&& is_token_valid)
     : _io_context(io_context),
       _conf(conf),
       _metric_handler(handler),
       _logger(logger),
-      _stats(stats) {
+      _stats(stats),
+      _is_crypted(is_crypted),
+      _is_token_valid(std::move(is_token_valid)) {
   if (!_conf) {
-    _conf = std::make_shared<agent_config>(60, 100, 10, 30);
+    _conf = std::make_shared<agent_config>(100, 10, 30);
     SPDLOG_LOGGER_INFO(logger,
                        "no centreon_agent configuration given => we use a "
                        "default configuration ");
@@ -115,9 +146,12 @@ std::shared_ptr<agent_service> agent_service::load(
     const agent_config::pointer& conf,
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
-    const agent_stat::pointer& stats) {
+    const agent_stat::pointer& stats,
+    const bool& is_crypted,
+    validator&& is_token_valid) {
   std::shared_ptr<agent_service> ret = std::make_shared<agent_service>(
-      io_context, conf, std::move(handler), logger, stats);
+      io_context, conf, std::move(handler), logger, stats, is_crypted,
+      std::move(is_token_valid));
   ret->init();
   return ret;
 }
@@ -146,11 +180,21 @@ void agent_service::init() {
 ::grpc::ServerBidiReactor<com::centreon::agent::MessageFromAgent,
                           com::centreon::agent::MessageToAgent>*
 agent_service::Export(::grpc::CallbackServerContext* context) {
+  std::chrono::system_clock::time_point exp_time =
+      std::chrono::system_clock::time_point::min();
+
+  ::grpc::Status status = _is_token_valid(context, exp_time);
+  if (!status.ok()) {
+    return new ImmediateFinishReactor(status);
+  }
+  // If we reach here, the token is valid:
+
   std::shared_ptr<server_bireactor> new_reactor;
   {
-    absl::MutexLock l(&_conf_m);
+    absl::MutexLock l(_conf_m);
     new_reactor = std::make_shared<server_bireactor>(
-        _io_context, _conf, _metric_handler, _logger, context->peer(), _stats);
+        _io_context, _conf, _metric_handler, _logger, context->peer(),
+        _is_crypted, _stats, exp_time);
   }
   server_bireactor::register_stream(new_reactor);
   new_reactor->start_read();
@@ -163,6 +207,6 @@ void agent_service::shutdown_all_accepted() {
 }
 
 void agent_service::update(const agent_config::pointer& conf) {
-  absl::MutexLock l(&_conf_m);
+  absl::MutexLock l(_conf_m);
   _conf = conf;
 }

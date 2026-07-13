@@ -275,7 +275,7 @@ bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
  */
 void feeder::_start_stat_timer() {
   std::unique_lock<std::timed_mutex> l(_protect);
-  _stat_timer.expires_from_now(std::chrono::seconds(5));
+  _stat_timer.expires_after(std::chrono::seconds(5));
   _stat_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
         me->_stat_timer_handler(err);
@@ -306,7 +306,7 @@ void feeder::_stat_timer_handler(const boost::system::error_code& err) {
  */
 void feeder::_start_read_from_stream_timer() {
   std::unique_lock<std::timed_mutex> l(_protect);
-  _read_from_stream_timer.expires_from_now(
+  _read_from_stream_timer.expires_after(
       std::chrono::microseconds(idle_microsec_wait_idle_thread_delay));
   _read_from_stream_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {

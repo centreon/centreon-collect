@@ -27,12 +27,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "test_engine.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/host.hh"
-#else
 #include "common/engine_conf/host_helper.hh"
-#endif
+#include "test_engine.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -47,18 +43,12 @@ class HostRecovery : public TestEngine {
     // other unload function... :-(
 
     configuration::applier::host hst_aply;
-#ifdef LEGACY_CONF
-    configuration::host hst;
-    hst.parse("host_name", "test_host");
-    hst.parse("address", "127.0.0.1");
-    hst.parse("_HOST_ID", "12");
-#else
     configuration::Host hst;
     configuration::host_helper hst_hlp(&hst);
     hst.set_host_name("test_host");
     hst.set_address("127.0.0.1");
     hst.set_host_id(12);
-#endif
+    hst_hlp.set_default_values();
     hst_aply.add_object(hst);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -71,8 +61,7 @@ class HostRecovery : public TestEngine {
     set_time(_current_time);
 
     _tperiod = new_timeperiod_with_timeranges("tperiod", "alias");
-    for (size_t i = 0; i < _tperiod->days.size(); ++i)
-      _tperiod->days[i].emplace_back(0, 86400);
+    apply_same_timeranges_to_every_day(_tperiod.get(), {{0, 86400}});
 
     /* 12345 is here to simulate a key. It won't allow any look up */
     std::unique_ptr<engine::hostescalation> host_escalation{

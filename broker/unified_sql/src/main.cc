@@ -64,6 +64,7 @@ bool broker_module_deinit() {
     // Remove events.
     io::events::instance().unregister_category(io::storage);
     io::protocols::instance().unreg("storage");
+    io::protocols::instance().unreg("unified_sql");
   }
   return true;  // ok to be unloaded
 }

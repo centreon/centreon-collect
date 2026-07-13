@@ -59,6 +59,7 @@ TEST_F(ApplierService, PbNewServiceWithHostNotDefinedFromConfig) {
   svc.set_host_name("test_host");
   svc.set_service_description("test_description");
   svc_hlp.hook("_TEST", "Value1");
+  svc_hlp.set_default_values();
   ASSERT_THROW(svc_aply.add_object(svc), std::exception);
 }
 
@@ -66,12 +67,11 @@ TEST_F(ApplierService, PbNewServiceWithHostNotDefinedFromConfig) {
 // Then the applier add_object throws an exception.
 TEST_F(ApplierService, PbNewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::Service svc;
-  configuration::service_helper svc_hlp(&svc);
   configuration::Host hst;
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
 }
 
@@ -86,6 +86,7 @@ TEST_F(ApplierService, PbNewServiceFromConfig) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -106,6 +107,7 @@ TEST_F(ApplierService, PbNewServiceFromConfig) {
   // configuration service is not stored in configuration::state. We just have
   // to set the host_id manually.
   svc.set_host_id(1);
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 1u);
@@ -128,6 +130,7 @@ TEST_F(ApplierService, PbRenameServiceFromConfig) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -143,7 +146,7 @@ TEST_F(ApplierService, PbRenameServiceFromConfig) {
   cmd.set_command_line("echo 1");
   svc.set_check_command("cmd");
   cmd_aply.add_object(cmd);
-
+  svc_hlp.set_default_values();
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
 
@@ -178,6 +181,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfig) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -197,6 +201,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfig) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
 
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
   ASSERT_EQ(engine::service::services_by_id.size(), 1u);
@@ -264,11 +269,13 @@ TEST_F(ApplierService, PbServicesCheckValidity) {
   hst.set_host_name("test_host");
   hst.set_address("10.11.12.13");
   hst.set_host_id(124);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   // We fake here the expand_object on configuration::service
   csvc.set_host_id(124);
 
+  csvc_hlp.set_default_values();
   svc_aply.add_object(csvc);
   csvc.set_service_description("foo");
 
@@ -294,6 +301,7 @@ TEST_F(ApplierService, PbServicesFlapOptionsNone) {
   csvc.set_host_name("test_host");
 
   csvc_hlp.hook("flap_detection_options", "n");
+  csvc_hlp.set_default_values();
   ASSERT_EQ(csvc.flap_detection_options(), action_svc_none);
 }
 
@@ -317,6 +325,7 @@ TEST_F(ApplierService, PbServicesFlapOptionsAll) {
 TEST_F(ApplierService, PbServicesStalkingOptions) {
   configuration::Service csvc;
   configuration::service_helper csvc_hlp(&csvc);
+  csvc_hlp.set_default_values();
   ASSERT_TRUE(csvc_hlp.hook("stalking_options", "c,w"));
   ASSERT_EQ(csvc.stalking_options(), action_svc_critical | action_svc_warning);
 
@@ -352,6 +361,7 @@ TEST_F(ApplierService, PbContactgroupResolution) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   svc.set_host_name("test_host");
   svc.set_service_description("test_description");
@@ -369,6 +379,7 @@ TEST_F(ApplierService, PbContactgroupResolution) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
 
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
   svc_aply.resolve_object(svc, err);
   service_id_map const& sm(engine::service::services_by_id);
@@ -376,18 +387,17 @@ TEST_F(ApplierService, PbContactgroupResolution) {
   ASSERT_EQ(sm.begin()->first.first, 1u);
   ASSERT_EQ(sm.begin()->first.second, 3u);
 
-  contactgroup_map_unsafe cgs{sm.begin()->second->get_contactgroups()};
+  contactgroup_map cgs{sm.begin()->second->get_contactgroups()};
   ASSERT_EQ(cgs.size(), 1u);
   ASSERT_EQ(cgs.begin()->first, "contactgroup_test");
-  contact_map_unsafe::iterator itt{
-      cgs.begin()->second->get_members().find("admin")};
+  contact_map::iterator itt{cgs.begin()->second->get_members().find("admin")};
 
   ASSERT_NE(itt, cgs.begin()->second->get_members().end());
 
   contact_map::const_iterator it{engine::contact::contacts.find("admin")};
   ASSERT_NE(it, engine::contact::contacts.end());
 
-  ASSERT_EQ(itt->second, it->second.get());
+  ASSERT_EQ(itt->second, it->second);
 }
 
 TEST_F(ApplierService, PbStalkingOptionsWhenServiceIsModified) {
@@ -399,6 +409,7 @@ TEST_F(ApplierService, PbStalkingOptionsWhenServiceIsModified) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -416,6 +427,7 @@ TEST_F(ApplierService, PbStalkingOptionsWhenServiceIsModified) {
   cmd_aply.add_object(cmd);
   svc_hlp.hook("stalking_options", "");
   svc_hlp.hook("notification_options", "a");
+  svc_hlp.set_default_values();
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
@@ -475,6 +487,7 @@ TEST_F(ApplierService, PbNewServiceFromConfigTags) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -515,6 +528,7 @@ TEST_F(ApplierService, PbNewServiceFromConfigTags) {
   // configuration service is not stored in configuration::state. We just have
   // to set the host_id manually.
   svc.set_host_id(1);
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 1u);
@@ -537,6 +551,7 @@ TEST_F(ApplierService, PbRenameServiceFromConfigTags) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -575,6 +590,7 @@ TEST_F(ApplierService, PbRenameServiceFromConfigTags) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
 
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
   svc.set_service_description("test_description2");
@@ -606,6 +622,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfigTags) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -644,6 +661,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfigTags) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
 
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
   ASSERT_EQ(engine::service::services_by_id.size(), 1u);
@@ -687,6 +705,7 @@ TEST_F(ApplierService, PbServicesEqualityTags) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   csvc.set_host_name("test_host");
   csvc.set_service_description("test_description1");
@@ -722,10 +741,12 @@ TEST_F(ApplierService, PbServicesEqualityTags) {
   tag_aply.add_object(tag);
   // We have to fake the expand_object on configuration::service
   csvc.set_host_id(1);
+  csvc_hlp.set_default_values();
 
   svc_aply.add_object(csvc);
   csvc.set_service_description("test_description2");
   csvc.set_service_id(12346);
+
   ASSERT_NO_THROW(svc_aply.add_object(csvc));
   service_map const& sm(engine::service::services);
   ASSERT_EQ(sm.size(), 2u);
@@ -785,6 +806,7 @@ TEST_F(ApplierService, PbServicesCheckValidityTags) {
   hst.set_host_name("test_host");
   hst.set_address("10.11.12.13");
   hst.set_host_id(124);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   configuration::Tag tag;
@@ -810,6 +832,7 @@ TEST_F(ApplierService, PbServicesCheckValidityTags) {
   // We fake here the expand_object on configuration::service
   csvc.set_host_id(124);
 
+  csvc_hlp.set_default_values();
   svc_aply.add_object(csvc);
   csvc.set_service_description("foo");
 

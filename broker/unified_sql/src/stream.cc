@@ -20,8 +20,8 @@
 #include <absl/strings/str_split.h>
 
 #include "bbdo/storage/index_mapping.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
@@ -43,9 +43,6 @@ const std::string stream::_index_data_insert_request(
 
 const std::array<std::string, 5> stream::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
-
-const std::array<int, 5> stream::hst_ordered_status{0, 4, 2, 0, 1};
-const std::array<int, 5> stream::svc_ordered_status{0, 3, 4, 2, 1};
 
 static constexpr int32_t queue_timer_duration = 10;
 
@@ -161,7 +158,7 @@ stream::stream(const database_config& dbcfg,
       _queues_timer{com::centreon::common::pool::io_context()},
       _stop_check_queues{false},
       _check_queues_stopped{false},
-      _center{stats::center::instance_ptr()},
+      _center{config::applier::state::instance().center()},
       _stats{_center->register_conflict_manager()},
       _group_clean_timer{com::centreon::common::pool::io_context()},
       _loop_timer{com::centreon::common::pool::io_context()},
@@ -208,7 +205,7 @@ stream::stream(const database_config& dbcfg,
         nb_dedicated_connection);
     database_config dedicated_cfg(dbcfg);
     dedicated_cfg.set_category(
-        database_config::DATA_BIN_LOGS);  // no shared with bam connection
+        database_config::DATA_BIN_LOGS);  // not shared with bam connection
     dedicated_cfg.set_queries_per_transaction(1);
     dedicated_cfg.set_connections_count(nb_dedicated_connection);
     _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
@@ -234,11 +231,13 @@ stream::stream(const database_config& dbcfg,
                         e.what());
     throw;
   }
-  absl::MutexLock l(&_timer_m);
+  absl::MutexLock l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait([this](const boost::system::error_code& err) {
-    absl::ReaderMutexLock lck(&_barrier_timer_m);
-    _check_queues(err);
+    if (!err) {
+      absl::ReaderMutexLock lck(_barrier_timer_m);
+      _check_queues(err);
+    }
   });
   _start_loop_timer();
   SPDLOG_LOGGER_INFO(_logger_sql, "Unified sql stream running loop_interval={}",
@@ -247,14 +246,34 @@ stream::stream(const database_config& dbcfg,
 
 stream::~stream() noexcept {
   {
-    absl::MutexLock l(&_timer_m);
+    absl::MutexLock l(_timer_m);
     _group_clean_timer.cancel();
     _queues_timer.cancel();
     _loop_timer.cancel();
   }
   /* Let's wait a little if one of the timers is working during the cancellation
    */
-  absl::MutexLock lck(&_barrier_timer_m);
+  absl::MutexLock lck(_barrier_timer_m);
+  /* If there are data to write, we write them, so we force their readyness. */
+  if (_hscr_bind)
+    _hscr_bind->force_ready();
+  if (_sscr_bind)
+    _sscr_bind->force_ready();
+  if (_hscr_resources_bind)
+    _hscr_resources_bind->force_ready();
+  if (_sscr_resources_bind)
+    _sscr_resources_bind->force_ready();
+  if (_perfdata_query)
+    _perfdata_query->force_ready();
+  _cv.force_ready();
+  _cvs.force_ready();
+  if (_downtimes)
+    _downtimes->force_ready();
+  if (_comments)
+    _comments->force_ready();
+  if (_logs)
+    _logs->force_ready();
+  _check_queues({});
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
 
@@ -267,7 +286,7 @@ void stream::_load_deleted_instances() {
   try {
     mysql_result res(future.get());
     while (_mysql.fetch_row(res)) {
-      int32_t instance_id = res.value_as_i32(0);
+      auto instance_id = res.value_as_u64(0);
       if (instance_id <= 0)
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
@@ -285,8 +304,6 @@ void stream::_load_deleted_instances() {
  * @brief Load the unified_sql cache.
  */
 void stream::_load_caches() {
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
   // Fill index cache.
 
   /* get deleted cache of instance ids => _cache_deleted_instance_id */
@@ -320,8 +337,7 @@ void stream::_load_caches() {
   /* index_data => _index_cache */
   _mysql.run_query_and_get_result(
       "SELECT "
-      "id,host_id,service_id,host_name,rrd_retention,check_interval,service_"
-      "description,"
+      "id,host_id,service_id,host_name,check_interval,service_description,"
       "special,locked FROM index_data",
       std::move(promise_index_data));
 
@@ -363,7 +379,7 @@ void stream::_load_caches() {
   try {
     mysql_result res(future_instance_id.get());
     while (_mysql.fetch_row(res)) {
-      uint32_t instance_id = res.value_as_i32(0);
+      auto instance_id = res.value_as_u64(0);
       _stored_timestamps.insert(
           {instance_id,
            stored_timestamp(instance_id, stored_timestamp::unresponsive)});
@@ -388,11 +404,10 @@ void stream::_load_caches() {
       index_info info{
           .index_id = res.value_as_u64(0),
           .host_name = res.value_as_str(3),
-          .service_description = res.value_as_str(6),
-          .rrd_retention = res.value_as_u32(4) ? res.value_as_u32(4) : _rrd_len,
-          .interval = res.value_as_u32(5),
-          .special = res.value_as_bool(7),
-          .locked = res.value_as_bool(8),
+          .service_description = res.value_as_str(5),
+          .interval = res.value_as_u32(4),
+          .special = res.value_as_bool(6),
+          .locked = res.value_as_bool(7),
       };
       int32_t host_id = res.value_as_i32(1);
       int32_t service_id = res.value_as_i32(2);
@@ -410,14 +425,9 @@ void stream::_load_caches() {
               "service_id "
               "<= 0, you should remove them.");
       } else {
-        _logger_sto->debug(
-            "unified_sql: loaded index {} of ({}, {}) with rrd_len={}",
-            info.index_id, host_id, service_id, info.rrd_retention);
+        _logger_sto->debug("unified_sql: loaded index {} of ({}, {})",
+                           info.index_id, host_id, service_id);
         _index_cache[{host_id, service_id}] = std::move(info);
-
-        if (cache_ptr) {
-          cache_ptr->set_index_mapping(info.index_id, host_id, service_id);
-        }
 
         // Create the metric mapping.
         if (bbdo.major_v < 3) {
@@ -444,8 +454,8 @@ void stream::_load_caches() {
   try {
     mysql_result res(future_hi.get());
     while (_mysql.fetch_row(res)) {
-      int32_t host_id = res.value_as_i32(0);
-      int32_t instance_id = res.value_as_i32(1);
+      uint64_t host_id = res.value_as_u64(0);
+      uint64_t instance_id = res.value_as_u64(1);
       if (host_id > 0 && instance_id > 0)
         _cache_host_instance[host_id] = instance_id;
       else {
@@ -544,10 +554,6 @@ void stream::_load_caches() {
           info.type = res.value_as_str(13)[0] - '0';
           info.metric_mapping_sent = false;
           _metric_cache[{index_id, metric_name}] = info;
-          if (cache_ptr) {
-            cache_ptr->set_metric_info(metric_id, index_id, metric_name,
-                                       info.unit_name, info.min, info.max);
-          }
         }
       }
     } catch (std::exception const& e) {
@@ -1188,15 +1194,15 @@ void stream::update() {
 }
 
 void stream::_start_loop_timer() {
-  _loop_timer.expires_from_now(std::chrono::seconds(_loop_timeout));
+  _loop_timer.expires_after(std::chrono::seconds(_loop_timeout));
   _loop_timer.async_wait([this](const boost::system::error_code& err) {
     if (err) {
       return;
     }
-    absl::ReaderMutexLock lck(&_barrier_timer_m);
+    absl::ReaderMutexLock lck(_barrier_timer_m);
     _update_hosts_and_services_of_unresponsive_instances();
     {
-      absl::MutexLock l(&_timer_m);
+      absl::MutexLock l(_timer_m);
       _start_loop_timer();
     }
   });

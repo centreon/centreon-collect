@@ -30,18 +30,28 @@ using namespace std::string_literals;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
+class check_event_log_test : public testing::Test {
+ public:
+  Service serv;
+
+  check_event_log_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+};
+
 /**
  * @brief Givent an eventlog with no event, we expect an empty output
  *
  */
-TEST(check_event_log, empty) {
+TEST_F(check_event_log_test, empty) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "file" : "System", "empty-state": "${status}, ${count}, Empty or no match for this filter"})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -70,14 +80,13 @@ TEST(check_event_log, empty) {
  * warning injected events
  *
  */
-TEST(check_event_log, warning) {
+TEST_F(check_event_log_test, warning) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "file" : "System", "warning-status": "level == 'warning' and written > -2s", "verbose": false})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -127,15 +136,14 @@ TEST(check_event_log, warning) {
  * critical injected events
  *
  */
-TEST(check_event_log, critical) {
+TEST_F(check_event_log_test, critical) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "file" : "System", "critical-status": "level == 'error' and written > -2s", "verbose": false,
       "event-detail-syntax": "'${file} ${source} ${log} ${provider} ${id} ${message} ${status} ${written} ${computer} ${channel} ${keywords} ${level} ${record_id} ${written_str}'"})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -197,7 +205,7 @@ TEST(check_event_log, critical) {
  * output with some critical injected events
  *
  */
-TEST(check_event_log, critical_verbose) {
+TEST_F(check_event_log_test, critical_verbose) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "file" : "System", 
@@ -208,8 +216,7 @@ TEST(check_event_log, critical_verbose) {
         "event-detail-syntax": "'${file} ${source} ${log} ${provider} ${id} ${message} ${status} ${written} ${written_str}'"})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -264,14 +271,13 @@ TEST(check_event_log, critical_verbose) {
  * injected events first and then warning events
  *
  */
-TEST(check_event_log, critical_to_warning) {
+TEST_F(check_event_log_test, critical_to_warning) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "file" : "System", "critical-status": "level == 'error' and written > -2s", "verbose": false})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

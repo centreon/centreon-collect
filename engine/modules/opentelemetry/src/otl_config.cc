@@ -24,14 +24,11 @@
 #include "otl_config.hh"
 #include "otl_fmt.hh"
 
-int fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                        ExportMetricsServiceRequest>::max_length_log = -1;
-
-bool fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                         ExportMetricsServiceRequest>::json_grpc_format = false;
-
 using namespace com::centreon::engine::modules::opentelemetry;
 using namespace com::centreon::common;
+
+int otl_formatter::max_length_log = -1;
+bool otl_formatter::json_grpc_format = false;
 
 static constexpr std::string_view _grpc_config_schema(R"(
 {
@@ -91,7 +88,8 @@ otl_config::otl_config(const std::string_view& file_path,
   if (file_content.has_member("otel_server")) {
     try {
       _grpc_conf =
-          std::make_shared<grpc_config>(file_content.get_member("otel_server"));
+          std::make_shared<grpc_config>(file_content.get_member("otel_server"),
+                                        default_cma_ca_crt, default_cma_ca_key);
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(config_logger,
                           "fail to parse otl_server object: ", e.what());

@@ -1,0 +1,15 @@
+ARG REGISTRY_URL=docker.centreon.com/centreon
+ARG FROM_IMAGE_VERSION=develop
+
+FROM ${REGISTRY_URL}/gorgone-testing-dependencies-alma10:${FROM_IMAGE_VERSION}
+
+COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
+
+RUN --mount=type=bind,src=packages-centreon-gorgone,dst=/tmp/packages-centreon-gorgone \
+    bash -e <<EOF
+
+dnf install -y /tmp/packages-centreon-gorgone/*.rpm
+
+dnf clean all
+
+EOF

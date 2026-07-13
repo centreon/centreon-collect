@@ -2,7 +2,7 @@
 
 ## Description
 
-This module aims to provide a way to register nodes manually, in opposition to the [pollers](../centreon/pollers.md) module.
+This module aims to provide a way to register nodes manually, in opposition to the [nodes](../centreon/nodes.md) module.
 
 Nodes are either servers running Gorgone daemon or simple equipment with SSH server.
 

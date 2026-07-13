@@ -30,7 +30,7 @@ namespace check_drive_size_detail {
  * filter-type
  *
  */
-enum e_drive_fs_type : uint64_t {
+enum e_drive_type : uint64_t {
   hr_unknown = 0,
   hr_storage_ram = 1 << 0,
   hr_storage_virtual_memory = 1 << 1,
@@ -40,66 +40,30 @@ enum e_drive_fs_type : uint64_t {
   hr_storage_compact_disc = 1 << 5,
   hr_storage_ram_disk = 1 << 6,
   hr_storage_flash_memory = 1 << 7,
-  hr_storage_network_disk = 1 << 8,
-  hr_fs_other = 1 << 9,
-  hr_fs_unknown = 1 << 10,
-  hr_fs_berkeley_ffs = 1 << 11,
-  hr_fs_sys5_fs = 1 << 12,
-  hr_fs_fat = 1 << 13,
-  hr_fs_hpfs = 1 << 14,
-  hr_fs_hfs = 1 << 15,
-  hr_fs_mfs = 1 << 16,
-  hr_fs_ntfs = 1 << 17,
-  hr_fs_vnode = 1 << 18,
-  hr_fs_journaled = 1 << 19,
-  hr_fs_iso9660 = 1 << 20,
-  hr_fs_rock_ridge = 1 << 21,
-  hr_fs_nfs = 1 << 22,
-  hr_fs_netware = 1 << 23,
-  hr_fs_afs = 1 << 24,
-  hr_fs_dfs = 1 << 25,
-  hr_fs_appleshare = 1 << 26,
-  hr_fs_rfs = 1 << 27,
-  hr_fs_dgcfs = 1 << 28,
-  hr_fs_bfs = 1 << 29,
-  hr_fs_fat32 = 1 << 30,
-  hr_fs_linux_ext2 = 1U << 31,
-  hr_fs_linux_ext4 = 1ULL << 32,
-  hr_fs_exfat = 1ULL << 33
+  hr_storage_network_disk = 1 << 8
 };
+
+std::string drive_type_to_string(unsigned drive_type);
 
 /**
  * @brief user can check only some fs by using filters
  * This is the goal of this class
- * In order to improve perf, results of previous tests are saved
- * in cache sets. That's why is_allowed is not const
  *
  */
 class filter {
-  using string_set = absl::flat_hash_set<std::string>;
+  unsigned _drive_type_filter;
 
-  string_set _cache_allowed_fs ABSL_GUARDED_BY(_protect);
-  string_set _cache_excluded_fs ABSL_GUARDED_BY(_protect);
-  string_set _cache_allowed_mountpoint ABSL_GUARDED_BY(_protect);
-  string_set _cache_excluded_mountpoint ABSL_GUARDED_BY(_protect);
-
-  mutable absl::Mutex _protect;
-
-  unsigned _fs_type_filter;
-
-  std::unique_ptr<re2::RE2> _filter_fs, _filter_exclude_fs;
+  std::unique_ptr<re2::RE2> _filter_fs, _filter_exclude_fs, _filter_fs_type;
   std::unique_ptr<re2::RE2> _filter_mountpoint, _filter_exclude_mountpoint;
 
  public:
   filter(const rapidjson::Value& args);
 
   bool is_allowed(const std::string_view& fs,
+                  const std::string_view& fs_type,
                   const std::string_view& mount_point,
-                  e_drive_fs_type fs_type);
-
-  bool is_fs_yet_allowed(const std::string_view& fs) const;
-
-  bool is_fs_yet_excluded(const std::string_view& fs) const;
+                  e_drive_type media_type,
+                  const std::shared_ptr<spdlog::logger>& logger) const;
 };
 
 /**
@@ -134,26 +98,26 @@ struct fs_stat {
   uint64_t used;
   uint64_t total;
 
-  bool is_used_more_than_threshold(uint64_t threshold) const {
-    return used >= threshold;
+  bool is_used_more_than_threshold(common::threshold threshold) const {
+    return threshold.is_triggered(used);
   }
 
-  bool is_free_less_than_threshold(uint64_t threshold) const {
-    return total - used < threshold;
+  bool is_free_less_than_threshold(common::threshold threshold) const {
+    return threshold.is_triggered(total - used);
   }
 
-  bool is_used_more_than_prct_threshold(uint64_t percent_hundredth) const {
+  bool is_used_more_than_prct_threshold(common::threshold threshold) const {
     if (!total) {
       return true;
     }
-    return (used * 10000) / total >= percent_hundredth;
+    return threshold.is_triggered((used * 10000.0) / total);
   }
 
-  bool is_free_less_than_prct_threshold(uint64_t percent_hundredth) const {
+  bool is_free_less_than_prct_threshold(common::threshold threshold) const {
     if (!total) {
       return true;
     }
-    return ((total - used) * 10000) / total < percent_hundredth;
+    return threshold.is_triggered((total - used) * 10000.0 / total);
   }
 
   double get_used_prct() const {
@@ -193,7 +157,9 @@ class drive_size_thread
 
   std::shared_ptr<spdlog::logger> _logger;
 
-  bool has_to_stop_wait() const { return !_active || !_queue.empty(); }
+  bool has_to_stop_wait() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m) {
+    return !_active || !_queue.empty();
+  }
 
  public:
   typedef std::list<fs_stat> (
@@ -225,8 +191,8 @@ class check_drive_size : public check {
   std::shared_ptr<check_drive_size_detail::filter> _filter;
   bool _prct_threshold;
   bool _free_threshold;
-  uint64_t _warning;  // value in bytes or percent * 100
-  uint64_t _critical;
+  common::threshold _warning;  // value in bytes or percent * 100
+  common::threshold _critical;
 
   typedef e_status (check_drive_size::*fs_stat_test)(
       const check_drive_size_detail::fs_stat&) const;
@@ -249,10 +215,7 @@ class check_drive_size : public check {
   check_drive_size(const std::shared_ptr<asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    time_point first_start_expected,
-                   duration check_interval,
-                   const std::string& serv,
-                   const std::string& cmd_name,
-                   const std::string& cmd_line,
+                   const Service& serv,
                    const rapidjson::Value& args,
                    const engine_to_agent_request_ptr& cnf,
                    check::completion_handler&& handler,

@@ -45,6 +45,7 @@ TEST_F(PbApplierHostEscalation, PbAddEscalation) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   ASSERT_EQ(host::hosts.size(), 1u);
 
@@ -67,6 +68,7 @@ TEST_F(PbApplierHostEscalation, PbRemoveEscalation) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   ASSERT_EQ(host::hosts.size(), 1u);
 
@@ -94,6 +96,7 @@ TEST_F(PbApplierHostEscalation, RemoveEscalationFromRemovedHost) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   ASSERT_EQ(host::hosts.size(), 1u);
 

@@ -242,11 +242,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
   }
 
   /* are notifications enabled? */
-#ifdef LEGACY_CONF
-  bool enable_notifications = config->enable_notifications();
-#else
   bool enable_notifications = pb_config.enable_notifications();
-#endif
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -358,11 +354,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
     return false;
   }
 
-#ifdef LEGACY_CONF
-  uint32_t interval_length = config->interval_length();
-#else
   uint32_t interval_length = pb_config.interval_length();
-#endif
   if (_first_notification_delay > 0 && !_notification[cat_normal] &&
       get_last_hard_state_change() +
               _first_notification_delay * interval_length >
@@ -437,11 +429,7 @@ bool notifier::_is_notification_viable_recovery(reason_type type
   bool retval{true};
   bool send_later{false};
 
-#ifdef LEGACY_CONF
-  bool enable_notifications = config->enable_notifications();
-#else
   bool enable_notifications = pb_config.enable_notifications();
-#endif
   /* are notifications enabled? */
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
@@ -467,15 +455,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     std::time_t now;
     std::time(&now);
 
-#ifdef LEGACY_CONF
-    uint32_t interval_length = config->interval_length();
-    bool use_send_recovery_notifications_anyways =
-        config->use_send_recovery_notifications_anyways();
-#else
     uint32_t interval_length = pb_config.interval_length();
     bool use_send_recovery_notifications_anyways =
         pb_config.send_recovery_notifications_anyways();
-#endif
 
     // if use_send_recovery_notifications_anyways flag is set, we don't take
     // timeperiod into account for recovery
@@ -612,11 +594,7 @@ bool notifier::_is_notification_viable_acknowledgement(
     return true;
   }
 
-#ifdef LEGACY_CONF
-  bool enable_notifications = config->enable_notifications();
-#else
   bool enable_notifications = pb_config.enable_notifications();
-#endif
   /* are notifications enabled? */
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
@@ -667,11 +645,7 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
   }
 
   /* are notifications enabled? */
-#ifdef LEGACY_CONF
-  bool enable_notifications = config->enable_notifications();
-#else
   bool enable_notifications = pb_config.enable_notifications();
-#endif
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -783,11 +757,7 @@ bool notifier::_is_notification_viable_downtime(reason_type type
   }
 
   /* are notifications enabled? */
-#ifdef LEGACY_CONF
-  bool enable_notifications = config->enable_notifications();
-#else
   bool enable_notifications = pb_config.enable_notifications();
-#endif
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -860,11 +830,7 @@ bool notifier::_is_notification_viable_custom(reason_type type
   }
 
   /* are notifications enabled? */
-#ifdef LEGACY_CONF
-  bool enable_notifications = config->enable_notifications();
-#else
   bool enable_notifications = pb_config.enable_notifications();
-#endif
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -909,12 +875,12 @@ bool notifier::_is_notification_viable_custom(reason_type type
  *
  * @return A set of contacts to notify.
  */
-std::unordered_set<contact*> notifier::get_contacts_to_notify(
+std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     notification_category cat,
     reason_type type,
     uint32_t& notification_interval,
     bool& escalated) {
-  std::unordered_set<contact*> retval;
+  std::unordered_set<std::shared_ptr<contact>> retval;
   escalated = false;
   uint32_t notif_interv{_notification_interval};
 
@@ -933,13 +899,13 @@ std::unordered_set<contact*> notifier::get_contacts_to_notify(
       }
 
       /* For each contact group, we also add its contacts. */
-      for (contactgroup_map_unsafe::const_iterator
-               cgit{e->get_contactgroups().begin()},
-           cgend{e->get_contactgroups().end()};
+      for (contactgroup_map::const_iterator
+               cgit = e->get_contactgroups().begin(),
+               cgend = e->get_contactgroups().end();
            cgit != cgend; ++cgit) {
-        for (contact_map_unsafe::const_iterator
-                 cit{cgit->second->get_members().begin()},
-             cend{cgit->second->get_members().end()};
+        for (contact_map::const_iterator
+                 cit = cgit->second->get_members().begin(),
+                 cend = cgit->second->get_members().end();
              cit != cend; ++cit) {
           assert(cit->second);
           if (cit->second->should_be_notified(cat, type, *this))
@@ -952,22 +918,19 @@ std::unordered_set<contact*> notifier::get_contacts_to_notify(
   if (!escalated) {
     /* Construction of the set containing contacts to notify. We don't know
      * for the moment if those contacts accept notification. */
-    for (contact_map_unsafe::const_iterator it{contacts().begin()},
-         end{contacts().end()};
-         it != end; ++it) {
+    for (auto it = contacts().begin(), end = contacts().end(); it != end;
+         ++it) {
       assert(it->second);
       if (it->second->should_be_notified(cat, type, *this))
         retval.insert(it->second);
     }
 
     /* For each contact group, we also add its contacts. */
-    for (contactgroup_map_unsafe::const_iterator
-             it{get_contactgroups().begin()},
-         end{get_contactgroups().end()};
+    for (contactgroup_map::const_iterator it = get_contactgroups().begin(),
+                                          end = get_contactgroups().end();
          it != end; ++it) {
-      for (contact_map_unsafe::const_iterator
-               cit{it->second->get_members().begin()},
-           cend{it->second->get_members().end()};
+      for (contact_map::const_iterator cit = it->second->get_members().begin(),
+                                       cend = it->second->get_members().end();
            cit != cend; ++cit) {
         assert(cit->second);
         if (cit->second->should_be_notified(cat, type, *this))
@@ -1020,8 +983,8 @@ int notifier::notify(notifier::reason_type type,
   /* What are the contacts to notify? */
   uint32_t notification_interval;
   bool escalated;
-  std::unordered_set<contact*> to_notify{
-      get_contacts_to_notify(cat, type, notification_interval, escalated)};
+  std::unordered_set<std::shared_ptr<contact>> to_notify =
+      get_contacts_to_notify(cat, type, notification_interval, escalated);
 
   _current_notification_id = _next_notification_id++;
   auto notif = std::make_unique<notification>(
@@ -1353,20 +1316,21 @@ notifier::notifier_type notifier::get_notifier_type() const noexcept {
   return _notifier_type;
 }
 
-absl::flat_hash_map<std::string, contact*>& notifier::mut_contacts() noexcept {
+absl::flat_hash_map<std::string, std::shared_ptr<contact>>&
+notifier::mut_contacts() noexcept {
   return _contacts;
 }
 
-const absl::flat_hash_map<std::string, contact*>& notifier::contacts()
-    const noexcept {
+const absl::flat_hash_map<std::string, std::shared_ptr<contact>>&
+notifier::contacts() const noexcept {
   return _contacts;
 }
 
-contactgroup_map_unsafe& notifier::get_contactgroups() noexcept {
+contactgroup_map& notifier::get_contactgroups() noexcept {
   return _contact_groups;
 }
 
-contactgroup_map_unsafe const& notifier::get_contactgroups() const noexcept {
+const contactgroup_map& notifier::get_contactgroups() const noexcept {
   return _contact_groups;
 }
 
@@ -1384,15 +1348,14 @@ bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
     return false;
 
   // Search all individual contacts of this host.
-  for (contact_map_unsafe::const_iterator it = notif->contacts().begin(),
-                                          end = notif->contacts().end();
+  for (contact_map::const_iterator it = notif->contacts().begin(),
+                                   end = notif->contacts().end();
        it != end; ++it)
-    if (it->second == cntct)
+    if (it->second.get() == cntct)
       return true;
 
-  for (contactgroup_map_unsafe::const_iterator
-           it{notif->get_contactgroups().begin()},
-       end{notif->get_contactgroups().end()};
+  for (contactgroup_map::const_iterator it = notif->get_contactgroups().begin(),
+                                        end = notif->get_contactgroups().end();
        it != end; ++it) {
     assert(it->second);
     if (it->second->get_members().find(cntct->get_name()) ==
@@ -1496,8 +1459,8 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
   }
 
   /* check all contacts */
-  for (contact_map_unsafe::iterator it = mut_contacts().begin(),
-                                    end = mut_contacts().end();
+  for (contact_map::iterator it = mut_contacts().begin(),
+                             end = mut_contacts().end();
        it != end; ++it) {
     contact_map::const_iterator found_it{contact::contacts.find(it->first)};
     if (found_it == contact::contacts.end() || !found_it->second.get()) {
@@ -1512,12 +1475,12 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
       errors++;
     } else
       /* save the pointer to the contact */
-      it->second = found_it->second.get();
+      it->second = found_it->second;
   }
 
   /* check all contact groups */
-  for (contactgroup_map_unsafe::iterator it{get_contactgroups().begin()},
-       end{get_contactgroups().end()};
+  for (contactgroup_map::iterator it = get_contactgroups().begin(),
+                                  end = get_contactgroups().end();
        it != end; ++it) {
     // Find the contact group.
     contactgroup_map::const_iterator found_it{
@@ -1534,7 +1497,7 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
           it->first, get_display_name());
       errors++;
     } else
-      it->second = found_it->second.get();
+      it->second = found_it->second;
   }
 
   // Check notification timeperiod.
@@ -1687,11 +1650,7 @@ time_t notifier::get_next_notification_time(time_t offset) {
                      interval_to_use);
 
   /* calculate next notification time */
-#ifdef LEGACY_CONF
-  uint32_t interval_length = config->interval_length();
-#else
   uint32_t interval_length = pb_config.interval_length();
-#endif
   time_t next_notification{
       offset + static_cast<time_t>(interval_to_use * interval_length)};
 

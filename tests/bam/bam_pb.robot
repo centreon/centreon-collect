@@ -18,6 +18,7 @@ BAWORST_ACK
     ...    Then the Business Activity is acknowledged
     ...    When the acknowledgement is removed from the service
     ...    Then the Business Activity is no longer acknowledged
+    ...    We also check that we have no bam filter error
 
     [Tags]    broker    downtime    engine    bam    MON-160249
     Ctn BAM Init
@@ -37,7 +38,7 @@ BAWORST_ACK
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - All KPIs are in an OK state
+    ...    BA: 1 - test - OK: All KPIs are in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -65,6 +66,10 @@ BAWORST_ACK
     Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    <    ${0.01}    retry_timeout=30s    retry_pause=1s
     Disconnect From Database
 
+    #we must not have filter error
+    ${error_found}     Grep File     ${centralLog}      The configured write filters for the endpoint 'centreon-bam-reporting' contain forbidden filters
+    Should Be Empty    ${error_found}    filter errors found in ${centralLog}
+
 BAWORST
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. We also check stats output
     [Tags]    broker    downtime    engine    bam
@@ -73,13 +78,9 @@ BAWORST
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
     ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
@@ -87,7 +88,7 @@ BAWORST
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - All KPIs are in an OK state
+    ...    BA: 1 - test - OK: All KPIs are in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -104,7 +105,7 @@ BAWORST
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is UNKNOWN - At least one KPI is in an UNKNOWN state: KPI Service host_16/service_303 is in UNKNOWN state
+    ...    BA: 1 - test - UNKNOWN: At least one KPI is in an UNKNOWN state: KPI Service host_16/service_303 is in UNKNOWN state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -121,7 +122,7 @@ BAWORST
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - At least one KPI is in a WARNING state: KPI Service host_16/service_303 is in WARNING state
+    ...    BA: 1 - test - WARNING: At least one KPI is in a WARNING state: KPI Service host_16/service_303 is in WARNING state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -141,16 +142,18 @@ BAWORST
     ...    SELECT acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)
 
+    Disconnect From Database
+
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
     # check broker stats
     ${res}    Ctn Get Broker Stats
     ...    central
-    ...    1: 127.0.0.1:[0-9]+
+    ...    1:\\s*(?:127.0.0.1:[0-9]+|ipv6:.*:[0-9]+)
     ...    10
     ...    endpoint central-broker-master-input
     ...    peers
@@ -164,6 +167,7 @@ BAWORST
 
     ${res}    Ctn Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
     Should Be True    ${res}    central-bam-reporting not connected
+    Disconnect From Database
 
     Ctn Reload Engine
     Ctn Reload Broker
@@ -171,7 +175,7 @@ BAWORST
     # check broker stats
     ${res}    Ctn Get Broker Stats
     ...    central
-    ...    1: 127.0.0.1:[0-9]+
+    ...    1:\\s*(?:127.0.0.1:[0-9]+|ipv6:.*:[0-9]+)
     ...    10
     ...    endpoint central-broker-master-input
     ...    peers
@@ -212,19 +216,16 @@ BAWORST2
     Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - All KPIs are in an OK state
+    ...    BA: 1 - test - OK: All KPIs are in an OK state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -242,7 +243,7 @@ BAWORST2
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Boolean rule bool test is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Boolean rule bool test is in CRITICAL state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -263,7 +264,7 @@ BAWORST2
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state, KPI Boolean rule bool test is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state, KPI Boolean rule bool test is in CRITICAL state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -281,7 +282,7 @@ BAWORST2
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -297,12 +298,9 @@ BABEST_SERVICE_CRITICAL
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
@@ -310,7 +308,7 @@ BABEST_SERVICE_CRITICAL
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - At least one KPI is in an OK state
+    ...    BA: 1 - test - OK: At least one KPI is in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -327,7 +325,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - At least one KPI is in an OK state
+    ...    BA: 1 - test - OK: At least one KPI is in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -343,7 +341,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is UNKNOWN - All KPIs are in an UNKNOWN state or worse (WARNING or CRITICAL)
+    ...    BA: 1 - test - UNKNOWN: All KPIs are in an UNKNOWN state or worse (WARNING or CRITICAL)
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -359,7 +357,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - All KPIs are in a WARNING state or worse (CRITICAL)
+    ...    BA: 1 - test - WARNING: All KPIs are in a WARNING state or worse (CRITICAL)
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -375,7 +373,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - All KPIs are in a CRITICAL state
+    ...    BA: 1 - test - CRITICAL: All KPIs are in a CRITICAL state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -400,12 +398,9 @@ BA_IMPACT_2KPI_SERVICES
     Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # service_302 critical service_303 warning => ba warning 30%
     Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
@@ -416,7 +411,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_302 (impact: 40)|BA_Level=60;35;20;0;100
+    ...    BA: 1 - test - OK: Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_302 (impact: 40)|BA_Level=60;35;20;0;100
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -428,7 +423,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - Level = 30 - 2 KPIs out of 2 impact the BA for 70 points - KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 40)|BA_Level=30;35;20;0;100
+    ...    BA: 1 - test - WARNING: Level = 30 - 2 KPIs out of 2 impact the BA for 70 points - KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 40)|BA_Level=30;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -450,7 +445,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - Level = 20 - 2 KPIs out of 2 impact the BA for 80 points - KPI Service host_16/service_303 (impact: 40), KPI Service host_16/service_302 (impact: 40)|BA_Level=20;35;20;0;100
+    ...    BA: 1 - test - CRITICAL: Level = 20 - 2 KPIs out of 2 impact the BA for 80 points - KPI Service host_16/service_303 (impact: 40), KPI Service host_16/service_302 (impact: 40)|BA_Level=20;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -463,7 +458,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_303 (impact: 40)|BA_Level=60;35;20;0;100
+    ...    BA: 1 - test - OK: Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_303 (impact: 40)|BA_Level=60;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -487,7 +482,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 40 (warn: 35 - crit: 20) - 2 KPIs out of 2 impact the BA: KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 30)|BA_Level=40;35;20;0;100
+    ...    BA: 1 - test - OK: Level = 40 (warn: 35 - crit: 20) - 2 KPIs out of 2 impact the BA: KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 30)|BA_Level=40;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -505,19 +500,16 @@ BA_RATIO_PERCENT_BA_SERVICE
     Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 0% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=0%;49;67;0;100
+    ...    BA: 1 - test - OK: 0% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=0%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -535,7 +527,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 33% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=33%;49;67;0;100
+    ...    BA: 1 - test - OK: 33% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=33%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -559,7 +551,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - 66% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=66%;49;67;0;100
+    ...    BA: 1 - test - WARNING: 66% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=66%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -589,7 +581,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - 100% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=100%;49;67;0;100
+    ...    BA: 1 - test - CRITICAL: 100% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=100%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -607,19 +599,16 @@ BA_RATIO_NUMBER_BA_SERVICE
     Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 0 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=0;2;3;0;3
+    ...    BA: 1 - test - OK: 0 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=0;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -638,7 +627,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 1 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=1;2;3;0;3
+    ...    BA: 1 - test - OK: 1 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=1;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -662,7 +651,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The test BA is not in WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - 2 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=2;2;3;0;3
+    ...    BA: 1 - test - WARNING: 2 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=2;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -696,7 +685,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - 3 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=3;2;3;0;3
+    ...    BA: 1 - test - CRITICAL: 3 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=3;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -713,12 +702,9 @@ BA_BOOL_KPI
     ...    100
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # 302 warning and 303 critical    => ba critical
     Ctn Process Service Result Hard
@@ -760,6 +746,7 @@ BEPB_DIMENSION_BV_EVENT
     Execute SQL String
     ...    INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
 
+    Disconnect From Database
     Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
@@ -792,6 +779,7 @@ BEPB_DIMENSION_BA_EVENT
     Execute SQL String
     ...    UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
 
+    Disconnect From Database
     Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
@@ -825,6 +813,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Delete All Rows From Table    mod_bam_bagroup_ba_relation
     Execute SQL String    INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
 
+    Disconnect From Database
     Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
@@ -842,8 +831,9 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     @{query_results}    Query    SELECT bv_id FROM mod_bam_reporting_relations_ba_bv WHERE bv_id=456 and ba_id=1
 
     Should Be True    len(@{query_results}) >= 1    We should have one line in mod_bam_reporting_relations_ba_bv table
+    Disconnect From Database
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    ${True}
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_TIMEPERIOD
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -861,6 +851,7 @@ BEPB_DIMENSION_TIMEPERIOD
     Execute SQL String
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
 
+    Disconnect From Database
     Ctn Start Broker    True
     Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
@@ -905,6 +896,7 @@ BEPB_DIMENSION_KPI_EVENT
     END
 
     Should Be Equal As Strings    ${output}    ${expected}    mod_bam_reporting_kpi not filled
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -918,9 +910,9 @@ BEPB_KPI_STATUS
     Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker    True
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-
-    ${start}    Get Current Date    result_format=epoch
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
@@ -941,6 +933,7 @@ BEPB_KPI_STATUS
     ${output}    Fetch From Left    ${output}    ,
 
     Should Be True    (${output} + 0.999) >= ${start}
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -954,15 +947,17 @@ BEPB_BA_DURATION_EVENT
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
+    Disconnect From Database
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
 
     Ctn Start Broker    True
+    ${start_event}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start_event}
 
     # KPI set to critical
-    ${start_event}    Ctn Get Round Current Date
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Ctn Check Service Resource Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -981,7 +976,7 @@ BEPB_BA_DURATION_EVENT
     END
 
     IF    "${output}" == "()"
-	Log To Console    "Bad return for this test, the content of the table is"
+        Log To Console    "Bad return for this test, the content of the table is"
         ${output}    Query
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations
         Log To Console    ${output}
@@ -993,6 +988,7 @@ BEPB_BA_DURATION_EVENT
     Should Be True    ${output[0][1]} > ${output[0][0]}
     Should Be True    ${output[0][0]} >= ${start_event}
     Should Be True    ${output[0][1]} <= ${end_event}
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -1009,6 +1005,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
     Execute SQL String    INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
+    Disconnect From Database
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -1024,6 +1021,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     Should Be True
     ...    len("""${output}""") > 5
     ...    "centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -1070,13 +1068,10 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
     Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
 
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${start}    Get Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # all serv ok => ba ok
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
@@ -1117,8 +1112,6 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Ctn Check Ba Status With Timeout    test    0    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_RATIO_PERCENT_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -1132,12 +1125,9 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Add Service Kpi    host_16    service_305    ${id_ba__sid[0]}    40    30    20
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # all serv ok => ba ok
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
@@ -1179,7 +1169,6 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_CHANGED
     [Documentation]    A BA of type worst is configured with one service kpi.
@@ -1193,12 +1182,9 @@ BA_CHANGED
     ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # Both services ${state} => The BA parent is ${state}
     Ctn Process Service Result Hard
@@ -1233,18 +1219,22 @@ BA_CHANGED
 
     Ctn Reload Broker
     Remove File    /tmp/ba.dot
+    #let time to broker to reload
+    Sleep     1s
     Ctn Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_IMPACT_IMPACT
-    [Documentation]    A BA of type impact is defined with two BAs of type impact
-    ...    as children. The first child has an impact of 90 and the
-    ...    second one of 10. When they are impacting both, the
-    ...    parent should be critical. When they are not impacting,
-    ...    the parent should be ok.
+    [Documentation]    Given a Business Activity (BA) of type "impact"
+    ...    And it has two child BAs of type "impact"
+    ...    And the first child has an impact of 90
+    ...    And the second child has an impact of 10
+    ...    When both child BAs are impacting
+    ...    Then the parent BA should be "critical"
+    ...    When both child BAs are not impacting
+    ...    Then the parent BA should be "ok"
     [Tags]    MON-34895
     Ctn Bam Init
 
@@ -1258,13 +1248,10 @@ BA_IMPACT_IMPACT
     Ctn Add Ba Kpi    ${child1_ba[0]}    ${parent_ba[0]}    90    2    3
     Ctn Add Ba Kpi    ${child2_ba[0]}    ${parent_ba[0]}    10    2    3
 
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${start}    Get Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     FOR    ${state}    ${value}    IN
     ...    OK    0
@@ -1278,11 +1265,14 @@ BA_IMPACT_IMPACT
         ...    ${value}
         ...    output ${state} for service 302
 
+	# Sometimes the parent BA emits two status with less than one second between them
+	# So we wait for 1s here to avoid the duplicate status in RRD.
+	Sleep    1s
         Ctn Process Service Result Hard
         ...    host_16
         ...    service_303
         ...    ${value}
-        ...    output ${state} for service 302
+        ...    output ${state} for service 303
 
         ${result}    Ctn Check Service Status With Timeout    host_16    service_302    ${value}    60    HARD
         Should Be True    ${result}    The service (host_16,service_302) is not ${state} as expected
@@ -1305,9 +1295,9 @@ BA_IMPACT_IMPACT
         Ctn Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent1.dot
         Wait Until Created    /tmp/parent1.dot
 
-        ${start}    Get Current Date
+        ${start}    Ctn Get Round Current Date
         Ctn Reload Broker
-        ${content}    Create List    Inherited downtimes and BA states restored
+        ${content}    Create List    BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
@@ -1317,8 +1307,6 @@ BA_IMPACT_IMPACT
         ${result}    Ctn Compare Dot Files    /tmp/parent1.dot    /tmp/parent2.dot
         Should Be True    ${result}    The BA changed during Broker reload.
     END
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_DISABLED
     [Documentation]    create a disabled BA with timeperiods and reporting filter don't create error message
@@ -1361,12 +1349,9 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # Both services ${state} => The BA parent is ${state}
     Ctn Process Service Result Hard
@@ -1379,10 +1364,18 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     Ctn Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}    Query
-    ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
-    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+    FOR    ${i}    IN RANGE    10
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        ${output}    Query
+        ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
+	Log To Console    ${output}
+        IF    ${output} == (('test', '_Module_BAM_1'),)
+	    BREAK
+	END
+        Disconnect From Database
+	Sleep    5s
+    END
+    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    Name or parent name of ba ${ba[1]} is not as expected
 
     Ctn Reload Broker
 
@@ -1392,10 +1385,108 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
 
+BAM_RELOAD_ON_CBD_RELOAD
+    [Documentation]    Given broker with bam configured
+    ...    we should find bam restart after broker reload
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Tags]    broker    downtime    engine    bam    MON-191611
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    create endpoint bam for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
+
+    Sleep     2s
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+    
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd reload.
+
+BAM_CIRCULAR
+    [Documentation]    Given a bad bam configuration with circular ba dependency.
+    ...     Circular Ba comment must be updated with an error message
+    [Tags]    broker    engine    bam    MON-24862
+    Ctn Bam Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+
+    ${child1_ba}    Ctn Create Ba    child1    impact    20    99
+    Ctn Add Ba Kpi    ${child1_ba[0]}    ${ba__svc[0]}    90    2    3
+    
+    #parent ba is a child of child1
+    Ctn Add Ba Kpi    ${ba__svc[0]}    ${child1_ba[0]}    90    2    3
 
 
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker     only_central=${True}
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${content}    Create List    error: Circular definition detected. BA test includes itself as a KPI.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+    Should Be True    ${result}    A message telling 'error: Circular definition detected. BA test includes itself as a KPI.' should be available after cbd start.
+
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    Check Query Result    SELECT COUNT(ba_id) FROM mod_bam WHERE name='test' AND comment='Circular definition detected. BA test includes itself as a KPI.'    ==    ${1}    retry_timeout=20s    retry_pause=3s
+    Disconnect From Database
+
+    #we shoudl not have a second message
+    Sleep     1s
+    ${start}    Ctn Get Round Current Date
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+    Should Not Be True    ${result}    We must have only one bam error message 
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
+BAM_CORRUPTED_REPORTING_BA_EVENTS
+    [Documentation]    Given broker with bam configured
+    ...    we inject a bad mod_bam_reporting_ba_events record.
+    ...    A ba status changed should set end_time of bad record
+
+    [Tags]    broker    downtime    engine    bam    MON-191611
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    create endpoint bam for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
+
+    Sleep     2s
+
+    #inject bad record
+    ${start}    Ctn Get Round Current Date
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String     INSERT INTO mod_bam_reporting_ba_events (ba_id, start_time, status) VALUES (1,${start}, 2)
+
+    #set service_314 to critical
+    Ctn Process Service Result Hard
+    ...    host_16
+    ...    service_314
+    ...    1
+    ...    warning for service 314
+
+    Check Row Count     SELECT ba_id FROM mod_bam_reporting_ba_events WHERE ba_id=1 AND end_time is NULL    ==    1    retry_timeout=30s    retry_pause=2s
+    
 
 *** Keywords ***
 Ctn BAM Setup
@@ -1408,6 +1499,7 @@ Ctn BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+    Disconnect From Database
 
 Ctn BAM Init
     Ctn Clear Commands Status
@@ -1422,10 +1514,10 @@ Ctn BAM Init
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    0    log_level_checks    trace
     # This is to avoid parasite status.
     Ctn Set Services Passive    ${0}    service_30.
 
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clone Engine Config To Db
     Ctn Add Bam Config To Engine
     Ctn Add Bam Config To Broker    central

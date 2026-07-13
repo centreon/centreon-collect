@@ -18,6 +18,8 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/connector.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
@@ -42,22 +44,28 @@ connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
       _account_id(account_id) {}
 
 std::shared_ptr<io::stream> connector::open() {
-  if (!_conf->is_crypted()) {
-    return stream::load(com::centreon::common::pool::io_context_ptr(), _conf,
-                        _account_id, [conf = _conf]() {
-                          return http::http_connection::load(
-                              com::centreon::common::pool::io_context_ptr(),
-                              log_v2::instance().get(log_v2::VICTORIA_METRICS),
-                              conf);
-                        });
-  } else {
-    return stream::load(com::centreon::common::pool::io_context_ptr(), _conf,
-                        _account_id, [conf = _conf]() {
-                          return http::https_connection::load(
-                              com::centreon::common::pool::io_context_ptr(),
-                              log_v2::instance().get(log_v2::VICTORIA_METRICS),
-                              conf,
-                              http::https_connection::load_client_certificate);
-                        });
+  try {
+    if (!_conf->is_crypted()) {
+      return stream::load(
+          com::centreon::common::pool::io_context_ptr(), _conf, _account_id,
+          [conf = _conf]() {
+            return http::http_connection::load(
+                com::centreon::common::pool::io_context_ptr(),
+                log_v2::instance().get(log_v2::VICTORIA_METRICS), conf);
+          });
+    } else {
+      return stream::load(
+          com::centreon::common::pool::io_context_ptr(), _conf, _account_id,
+          [conf = _conf]() {
+            return http::https_connection::load(
+                com::centreon::common::pool::io_context_ptr(),
+                log_v2::instance().get(log_v2::VICTORIA_METRICS), conf,
+                http::https_connection::load_client_certificate);
+          });
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::VICTORIA_METRICS),
+                        "Fail to init victoria metric connexion: {}", e.what());
+    throw;
   }
 }

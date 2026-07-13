@@ -25,45 +25,11 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/tag.hh"
 #include "gtest/gtest.h"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/tag.hh"
-#endif
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
-#ifdef LEGACY_CONF
-/**
- *  Add new tag.
- *
- *  @param[in] obj  The new tag to add into the monitoring engine.
- */
-void applier::tag::add_object(const configuration::tag& obj) {
-  // Logging.
-  config_logger->debug("Creating new tag ({},{}).", obj.key().first,
-                       obj.key().second);
-
-  // Add tag to the global configuration set.
-  config->mut_tags().insert(obj);
-
-  auto tg{std::make_shared<engine::tag>(
-      obj.key().first, static_cast<engine::tag::tagtype>(obj.key().second),
-      obj.tag_name())};
-  if (!tg)
-    throw engine_error() << "Could not register tag (" << obj.key().first << ","
-                         << obj.key().second << ")";
-
-  // Add new items to the configuration state.
-  auto res = engine::tag::tags.insert({obj.key(), tg});
-  if (!res.second)
-    config_logger->error(
-        "Could not insert tag ({},{}) into cache because it already exists",
-        obj.key().first, obj.key().second);
-
-  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
-}
-#else
 /**
  * @brief Add a new tag.
  *
@@ -97,61 +63,7 @@ void applier::tag::add_object(const configuration::Tag& obj) {
 
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::tag::expand_objects(configuration::state&) {}
-#endif
-
-#ifdef LEGACY_CONF
-/**
- *  Modify tag.
- *
- *  @param[in] obj  The tag to modify into the monitoring engine.
- */
-void applier::tag::modify_object(const configuration::tag& obj) {
-  // Logging.
-  config_logger->debug("Modifying tag ({},{}).", obj.key().first,
-                       obj.key().second);
-
-  // Find old configuration.
-  auto it_cfg = config->tags_find(obj.key());
-  if (it_cfg == config->tags().end())
-    throw engine_error() << "Cannot modify non-existing tag "
-                         << obj.key().first;
-
-  // Find tag object.
-  tag_map::iterator it_obj{engine::tag::tags.find(obj.key())};
-  if (it_obj == engine::tag::tags.end()) {
-    throw engine_error() << "Could not modify non-existing tag object ("
-                         << obj.key().first << "," << obj.key().second << ")";
-  }
-
-  engine::tag* t = it_obj->second.get();
-
-  // Update the global configuration set.
-  configuration::tag old_cfg(*it_cfg);
-  if (old_cfg != obj) {
-    config->mut_tags().erase(it_cfg);
-    config->mut_tags().insert(obj);
-
-    t->set_name(obj.tag_name());
-
-    // Notify event broker.
-    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
-  } else
-    config_logger->debug("Tag ({},{}) did not change", obj.key().first,
-                         obj.key().second);
-}
-#else
 /**
  * @brief Modify tag.
  *
@@ -185,36 +97,7 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
     config_logger->debug("Tag ({},{}) did not change", new_object.key().id(),
                          new_object.key().type());
 }
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  Remove old tag.
- *
- *  @param[in] obj  The tag to remove from the monitoring engine.
- */
-void applier::tag::remove_object(const configuration::tag& obj) {
-  // Logging.
-  config_logger->debug("Removing tag ({},{}).", obj.key().first,
-                       obj.key().second);
-
-  // Find tag.
-  tag_map::iterator it =
-      engine::tag::tags.find({obj.key().first, obj.key().second});
-  if (it != engine::tag::tags.end()) {
-    engine::tag* tg(it->second.get());
-
-    // Notify event broker.
-    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, tg);
-
-    // Erase tag object (this will effectively delete the object).
-    engine::tag::tags.erase(it);
-  }
-
-  // Remove tag from the global configuration set.
-  config->mut_tags().erase(obj);
-}
-#else
 /**
  * @brief Remove old tag.
  *
@@ -243,24 +126,7 @@ void applier::tag::remove_object(ssize_t idx) {
   // Remove tag from the global configuration set.
   pb_config.mutable_tags()->DeleteSubrange(idx, 1);
 }
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  Resolve a tag.
- *
- *  @param[in] obj  Object to resolve.
- */
-void applier::tag::resolve_object(const configuration::tag& obj,
-                                  error_cnt& err) {
-  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key())};
-  if (tg_it == engine::tag::tags.end() || !tg_it->second) {
-    err.config_errors++;
-    throw engine_error() << "Cannot resolve non-existing tag ("
-                         << obj.key().first << "," << obj.key().second << ")";
-  }
-}
-#else
 /**
  *  Resolve a tag.
  *
@@ -275,4 +141,3 @@ void applier::tag::resolve_object(const configuration::Tag& obj,
                          << obj.key().id() << "," << obj.key().type() << ")";
   }
 }
-#endif

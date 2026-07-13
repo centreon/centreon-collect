@@ -17,13 +17,8 @@
  */
 
 #include "com/centreon/broker/bam/ba.hh"
+#include "com/centreon/common/fmt_protobuf.hh"
 
-#include <fmt/format.h>
-
-#include <cassert>
-
-#include "bbdo/neb.pb.h"
-#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/neb/downtime.hh"
@@ -269,10 +264,11 @@ void ba::visit(io::stream* visitor) {
       SPDLOG_LOGGER_TRACE(
           _logger,
           "BAM: ba current event needs update? downtime?: {}, state?: {} ; "
-          "dt:{}, state:{} ",
+          "dt:{}, state:{} from {}",
           _in_downtime != _event->obj().in_downtime(),
           com::centreon::broker::State(hard_state) != _event->obj().status(),
-          _in_downtime, static_cast<uint32_t>(hard_state));
+          _in_downtime, static_cast<uint32_t>(hard_state),
+          _event->obj().start_time());
       state_changed = true;
       _event->mut_obj().set_end_time(_last_kpi_update);
       visitor->write(std::static_pointer_cast<io::data>(_event));
@@ -345,19 +341,20 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   assert(downtime.host_id() == _host_id &&
          downtime.service_id() == _service_id);
 
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(
-      _logger,
-      "BAM: BA {} '{}' is getting notified of a downtime (pb) on its service "
-      "({}, {})",
-      _id, _name, _host_id, _service_id);
-
   // Check if there was a change.
   bool in_downtime(downtime.started() &&
                    time_is_undefined(downtime.actual_end_time()));
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(
+      _logger,
+      "BAM: BA {} '{}' is getting notified of a pb downtime {} on its service "
+      "({}, {}) in downtime {}",
+      _id, _name, downtime.id(), _host_id, _service_id, in_downtime);
+
   if (_in_downtime != in_downtime) {
-    SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: {}",
-                        _in_downtime);
+    SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: from {} to {}",
+                        _in_downtime, in_downtime);
     _in_downtime = in_downtime;
 
     // Generate status event.
@@ -372,11 +369,8 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
  *
  *  @param[in] cache  The cache.
  */
-void ba::save_inherited_downtime(persistent_cache& cache) const {
-  if (_inherited_downtime)
-    cache.add(
-        std::make_shared<pb_inherited_downtime>(_inherited_downtime->obj()));
-}
+void ba::save_inherited_downtime(persistent_cache& cache
+                                 [[maybe_unused]]) const {}
 
 /**
  *  Set the inherited downtime of this ba.
@@ -410,8 +404,11 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
  */
 void ba::_open_new_event(io::stream* visitor,
                          com::centreon::broker::bam::state service_hard_state) {
-  SPDLOG_LOGGER_TRACE(_logger, "new pb_ba_event on ba {} with downtime = {}",
-                      _id, _in_downtime);
+  SPDLOG_LOGGER_TRACE(
+      _logger,
+      "new pb_ba_event on ba {}  with status {}, downtime = {} from {}", _id,
+      com::centreon::broker::bam::state_str[service_hard_state], _in_downtime,
+      _last_kpi_update.get_time_t());
   _event = std::make_shared<pb_ba_event>();
   BaEvent& data = _event->mut_obj();
   data.set_ba_id(_id);
@@ -558,6 +555,7 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     o.set_perfdata(get_perfdata());
     o.set_service_id(_service_id);
     o.set_state_type(ServiceStatus_StateType_HARD);
+    _logger->trace("BAM: new virtual service status for BA {}: {}", _id, o);
     return status;
   }
 }
@@ -678,4 +676,20 @@ void ba::dump(std::ofstream& output) const {
  */
 int32_t ba::get_ack_impact_hard() const {
   return _acknowledgement_count;
+}
+
+/**
+ * @brief used to build ba outputs
+ *
+ * @return std::string first chars of baoutput string
+ */
+std::string ba::output_begin() const {
+  std::string_view sz_state;
+  unsigned hard_state = get_state_hard();
+  if (hard_state < state_str.size()) {
+    sz_state = state_str[hard_state];
+  } else {
+    sz_state = "bad state";
+  }
+  return fmt::format("BA: {} - {} - {}: ", _id, _name, sz_state);
 }

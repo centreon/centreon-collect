@@ -51,6 +51,7 @@ TEST_F(ApplierPbHost, PbNewHostWithoutHostId) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
 }
 
@@ -65,6 +66,7 @@ TEST_F(ApplierPbHost, HostRenamed) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   host_map const& hm(engine::host::hosts);
   ASSERT_EQ(hm.size(), 1u);
@@ -86,6 +88,7 @@ TEST_F(ApplierPbHost, PbHostRemoved) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   host_map const& hm(engine::host::hosts);
   ASSERT_EQ(hm.size(), 1u);
@@ -128,6 +131,7 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
   hst_child_hlp.hook("_WARNING", "200,20%");
   hst_child_hlp.hook("_CRITICAL", "400,50%");
   hst_child.set_check_command("base_centreon_ping");
+  hst_child_hlp.set_default_values();
   hst_aply.add_object(hst_child);
 
   hst_parent.set_host_name("parent_host");
@@ -137,6 +141,7 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
   hst_parent_hlp.hook("_WARNING", "200,20%");
   hst_parent_hlp.hook("_CRITICAL", "400,50%");
   hst_parent.set_check_command("base_centreon_ping");
+  hst_parent_hlp.set_default_values();
   hst_aply.add_object(hst_parent);
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);

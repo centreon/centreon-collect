@@ -122,8 +122,6 @@ const std::array<std::string_view, 4> check::status_label = {
  * @param io_context
  * @param logger
  * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this but
- * also others)
  * @param serv
  * @param command_name
  * @param cmd_line
@@ -133,17 +131,19 @@ const std::array<std::string_view, 4> check::status_label = {
 check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
              time_point first_start_expected,
-             duration check_interval,
-             const std::string& serv,
-             const std::string& command_name,
-             const std::string& cmd_line,
+             const Service& serv,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler,
              const checks_statistics::pointer& stat)
-    : _start_expected(first_start_expected, check_interval),
+    : _start_expected_normal(first_start_expected,
+                             serv.check_interval()
+                                 ? std::chrono::seconds(serv.check_interval())
+                                 : std::chrono::seconds(300)),
+      _start_expected_retry(first_start_expected,
+                            serv.retry_interval()
+                                ? std::chrono::seconds(serv.retry_interval())
+                                : std::chrono::seconds(60)),
       _service(serv),
-      _command_name(command_name),
-      _command_line(cmd_line),
       _conf(cnf),
       _time_out_timer(*io_context),
       _completion_handler(handler),
@@ -169,7 +169,7 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
 bool check::_start_check(const duration& timeout) {
   if (_running_check) {
     SPDLOG_LOGGER_ERROR(_logger, "check for service {} is already running",
-                        _service);
+                        _service.service_description());
     asio::post(*_io_context,
                [me = shared_from_this(), to_call = _completion_handler]() {
                  to_call(me, e_status::unknown,
@@ -179,13 +179,14 @@ bool check::_start_check(const duration& timeout) {
     return false;
   }
   _running_check = true;
-  _start_timeout_timer(timeout);
-  SPDLOG_LOGGER_TRACE(_logger, "start check for service {}", _service);
+  _start_timeout_timer(_custom_timeout.value_or(timeout));
+  SPDLOG_LOGGER_TRACE(_logger, "start check for service {}",
+                      _service.service_description());
 
   time_point now = std::chrono::system_clock::now();
 
   if (_last_start.time_since_epoch().count() != 0) {
-    _stat->add_interval_stat(_command_name, now - _last_start);
+    _stat->add_interval_stat(get_command_name(), now - _last_start);
   }
 
   _last_start = now;
@@ -220,11 +221,11 @@ void check::_timeout_timer_handler(const boost::system::error_code& err,
   }
   if (start_check_index == _running_check_index) {
     SPDLOG_LOGGER_ERROR(_logger, "check timeout for service {} cmd: {}",
-                        _service, _command_name);
+                        _service.service_description(), get_command_name());
     this->_on_timeout();
     on_completion(start_check_index, 3 /*unknown*/,
                   std::list<com::centreon::common::perfdata>(),
-                  {"Timeout at execution of " + _command_line});
+                  {"Timeout at execution of " + get_command_line()});
   }
 }
 
@@ -244,15 +245,12 @@ void check::on_completion(
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
   if (start_check_index == _running_check_index) {
-    SPDLOG_LOGGER_TRACE(_logger,
-                        "end check for service {} cmd: {} status:{} output: {}",
-                        _service, _command_name, status,
-                        outputs.empty() ? "" : outputs.front());
     _time_out_timer.cancel();
     _running_check = false;
     ++_running_check_index;
-    _stat->add_duration_stat(_command_name,
+    _stat->add_duration_stat(get_command_name(),
                              std::chrono::system_clock::now() - _last_start);
+    calcul_status_confirmation(status);
     _completion_handler(shared_from_this(), status, perfdata, outputs);
   }
 }
@@ -295,6 +293,33 @@ std::optional<double> check::get_double(const std::string& cmd_name,
 }
 
 /**
+ * @brief get a string value from a json a string containing a number
+ *
+ * @param cmd_name used to trace exception
+ * @param field_name used to trace exception
+ * @param val rapidjson value
+ * @throw exception-object if value is not a number
+ * @return std::optional<string> set if value is not an empty string
+ */
+std::optional<std::string> check::get_string(const std::string& cmd_name,
+                                             const char* field_name,
+                                             const rapidjson::Value& val) {
+  std::string value;
+  if (val.IsString()) {
+    value = val.GetString();
+    if (value.empty()) {
+      return {};
+    }
+  } else if (val.IsNumber()) {
+    value = std::to_string(val.GetDouble());
+  } else {
+    throw exceptions::msg_fmt("command: {}, parameter {} is not a string",
+                              cmd_name, field_name);
+  }
+  return value;
+}
+
+/**
  * @brief get a boolean value from a json object
  * It can be a boolean value or a string containing a boolean
  *
@@ -324,4 +349,66 @@ std::optional<bool> check::get_bool(const std::string& cmd_name,
                               cmd_name, field_name);
   }
   return value;
+}
+
+/**
+ * @brief decide if status is confirmed and compute next delay
+ * according to current status, last status, max_attempts, retry_interval
+ * It updates check last_status and status_confirmed
+ * @param check
+ * @param status
+ */
+void check::calcul_status_confirmation(unsigned status) {
+  const int last_status = get_last_status();
+  const bool prev_confirmed = get_status_confirmed();
+  const bool is_ok = (status == e_status::ok);
+  const int max_attempts = std::max<int>(1, get_max_attempts());
+  const bool was_problem = (last_status > 0);
+
+  // ---- Case 1: OK (recovery handling) --------------------------------------
+  if (is_ok) {
+    // OK inherits HARD/SOFT from *previous* problem confirmation.
+    // - If previous problem was HARD, the recovery is HARD (status_confirmed =
+    // true).
+    // - If previous problem was SOFT, the recovery is SOFT (status_confirmed =
+    // false).
+    if (was_problem) {
+      set_status_confirmed(prev_confirmed);
+      // - If previous confirmed was true, reset attempts.
+      if (prev_confirmed)
+        set_current_attempt(1);
+      else {
+        // it s a soft recovery
+        increment_cur_attempt();
+      }
+
+    } else {
+      // - If previous ok was HARD, nothing to do (confirmed = true).
+      // - if last_status == -1 it s the first status we consider it as hard ok
+      // - If previous ok was SOFT, SOFT recovery.
+      if (!prev_confirmed) {
+        set_status_confirmed(true);
+        set_current_attempt(1);
+      }
+    }
+
+  } else {
+    // ---- Case 2: Non-OK (SOFT/HARD problem progression)
+    // - If was_problem, increment attempt.
+    // - If coming from OK or a different non-OK, reset attempt to 1.
+
+    if (was_problem && get_current_attempt() < max_attempts) {
+      increment_cur_attempt();
+      set_status_confirmed(false);
+    } else if (!was_problem) {
+      set_current_attempt(1);
+      set_status_confirmed(false);
+    }
+
+    if (get_current_attempt() >= max_attempts) {
+      set_status_confirmed(true);  // Problem is now HARD.
+    }
+  }
+
+  set_last_status(status);
 }

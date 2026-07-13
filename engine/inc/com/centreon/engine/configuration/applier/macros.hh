@@ -19,11 +19,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_MACROS_HH
 #define CCE_CONFIGURATION_APPLIER_MACROS_HH
 
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "common/engine_conf/state_helper.hh"
-#endif
 
 // Forward declaration.
 class nagios_macros;
@@ -40,11 +36,7 @@ namespace applier {
  */
 class macros {
  public:
-#ifdef LEGACY_CONF
-  void apply(configuration::state& config);
-#else
   void apply(configuration::State& config);
-#endif
   static macros& instance();
   void clear();
 

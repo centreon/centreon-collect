@@ -40,8 +40,16 @@ using namespace com::centreon::engine::logging;
  *  @return The new object module.
  */
 std::shared_ptr<engine::broker::handle> loader::add_module(
-    std::string const& filename,
-    std::string const& args) {
+    const std::string& filename,
+    const std::string& args) {
+  // Little hook to stop to load this old module.
+  if (filename.find("cbmod.so") != std::string::npos) {
+    config_logger->error(
+        "Broker module '{}' is deprecated and will be removed in future "
+        "versions. Please remove this module from your configuration.",
+        filename);
+    return nullptr;
+  }
   auto module = std::make_shared<handle>(filename, args);
   _modules.push_back(module);
   return module;
@@ -116,18 +124,15 @@ unsigned int loader::load_directory(std::string const& dir) {
     std::shared_ptr<handle> module;
     try {
       module = add_module(dir / f, config_file);
-      module->open();
-      engine_logger(log_info_message, basic)
-          << "Event broker module '" << f.filename()
-          << "' initialized successfully.";
-      events_logger->info("Event broker module '{}' initialized successfully.",
-                          f.filename().string());
-      ++loaded;
+      if (module) {
+        module->open();
+        events_logger->info(
+            "Event broker module '{}' initialized successfully.",
+            f.filename().string());
+        ++loaded;
+      }
     } catch (error const& e) {
       del_module(module);
-      engine_logger(log_runtime_error, basic)
-          << "Error: Could not load module '" << f.filename() << "' -> "
-          << e.what();
       runtime_logger->error("Error: Could not load module '{}' -> {}",
                             f.filename().string(), e.what());
     }

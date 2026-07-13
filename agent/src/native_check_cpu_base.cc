@@ -20,6 +20,7 @@
 #include "com/centreon/common/rapidjson_helper.hh"
 
 using namespace com::centreon::agent;
+using namespace com::centreon;
 using namespace com::centreon::agent::check_cpu_detail;
 
 /**
@@ -44,12 +45,14 @@ template <unsigned nb_metric>
 void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
                                         const std::string_view metric_label[],
                                         std::string* output) const {
-  if (cpu_index == average_cpu_index) {
-    *output += fmt::format("CPU(s) average Usage: {:.2f}%",
-                           (static_cast<double>(_total_used) / _total) * 100);
-  } else {
-    *output += fmt::format("CPU'{}' Usage: {:.2f}%", cpu_index,
-                           (static_cast<double>(_total_used) / _total) * 100);
+  if (_total) {
+    if (cpu_index == average_cpu_index) {
+      *output += fmt::format("CPU(s) average Usage: {:.2f}%",
+                             (static_cast<double>(_total_used) / _total) * 100);
+    } else {
+      *output += fmt::format("CPU'{}' Usage: {:.2f}%", cpu_index,
+                             (static_cast<double>(_total_used) / _total) * 100);
+    }
   }
 
   for (unsigned field_index = 0; field_index < nb_metric; ++field_index) {
@@ -177,7 +180,7 @@ void cpu_to_status<nb_metric>::compute_status(
         double val = _data_index >= nb_metric
                          ? values.second.get_proportional_used()
                          : values.second.get_proportional_value(_data_index);
-        if (val > _threshold) {
+        if (_threshold.is_triggered(val)) {
           auto& to_update = (*per_cpu_status)[values.first];
           // if ok (=0) and _status is warning (=1) or critical(=2), we update
           if (_status > to_update) {
@@ -208,11 +211,7 @@ void cpu_to_status<nb_metric>::compute_status(
  * @param io_context
  * @param logger
  * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this but
- * also others)
  * @param serv service
- * @param cmd_name
- * @param cmd_line
  * @param args native plugin arguments
  * @param cnf engine configuration received object
  * @param handler called at measure completion
@@ -222,10 +221,7 @@ native_check_cpu<nb_metric>::native_check_cpu(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
@@ -233,10 +229,7 @@ native_check_cpu<nb_metric>::native_check_cpu(
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat),
@@ -261,14 +254,24 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
   try {
     std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> begin =
         get_cpu_time_snapshot(true);
 
-    time_point end_measure = std::chrono::system_clock::now() + timeout;
-
-    end_measure -= std::chrono::seconds(1);
+    // end of measure = min(now+effective_timeout, next check)
+    time_point now = std::chrono::system_clock::now();
+    time_point end_measure = now + effective_timeout;
+    time_step next = this->get_raw_start_expected();
+    next.increment_to_after_min(now);
+    if (next.value() < end_measure) {
+      end_measure = next.value();
+    }
+    // we ensure to not reach the timeout
+    if (end_measure - now > std::chrono::seconds(1)) {
+      end_measure -= std::chrono::seconds(1);
+    }
 
     _measure_timer.expires_at(end_measure);
     _measure_timer.async_wait(
@@ -397,15 +400,15 @@ e_status native_check_cpu<nb_metric>::_compute(
     auto cpu_to_status_search = _cpu_to_status.find(
         std::make_tuple(index, is_average, e_status::warning));
     if (cpu_to_status_search != _cpu_to_status.end()) {
-      to_add.warning_low(0);
-      to_add.warning(100 * cpu_to_status_search->second.get_threshold());
+      cpu_to_status_search->second.get_threshold().set_pref_details_w(to_add,
+                                                                      100.0);
     }
     // critical
     cpu_to_status_search = _cpu_to_status.find(
         std::make_tuple(index, is_average, e_status::critical));
     if (cpu_to_status_search != _cpu_to_status.end()) {
-      to_add.critical_low(0);
-      to_add.critical(100 * cpu_to_status_search->second.get_threshold());
+      cpu_to_status_search->second.get_threshold().set_pref_details_c(to_add,
+                                                                      100.0);
     }
     perfs->emplace_back(std::move(to_add));
   };

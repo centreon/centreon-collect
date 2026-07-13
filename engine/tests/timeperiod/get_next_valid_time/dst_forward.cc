@@ -37,23 +37,23 @@ class GetNextValidTimeForwardDST : public ::testing::Test {
   // DATE RANGES
   //
 
-  daterange* dst_calendar_date() {
+  configuration::Daterange* dst_calendar_date() {
     return (_creator.new_calendar_date(2017, 2, 26, 2017, 2, 26));
   }
 
-  daterange* dst_specific_month_date() {
+  configuration::Daterange* dst_specific_month_date() {
     return (_creator.new_specific_month_date(2, 26, 2, 26));
   }
 
-  daterange* dst_generic_month_date() {
+  configuration::Daterange* dst_generic_month_date() {
     return (_creator.new_generic_month_date(26, 26));
   }
 
-  daterange* dst_offset_weekday_of_specific_month() {
+  configuration::Daterange* dst_offset_weekday_of_specific_month() {
     return (_creator.new_offset_weekday_of_specific_month(2, 0, 4, 2, 0, 4));
   }
 
-  daterange* dst_offset_weekday_of_generic_month() {
+  configuration::Daterange* dst_offset_weekday_of_generic_month() {
     return (_creator.new_offset_weekday_of_generic_month(0, 4, 0, 4));
   }
 
@@ -61,11 +61,11 @@ class GetNextValidTimeForwardDST : public ::testing::Test {
   // TIME RANGES
   //
 
-  void timerange_includes_dst(daterange* dr) {
+  void timerange_includes_dst(configuration::Daterange* dr) {
     _creator.new_timerange(1, 0, 4, 0, dr);
   }
 
-  void timerange_excludes_dst(daterange* dr) {
+  void timerange_excludes_dst(configuration::Daterange* dr) {
     _creator.new_timerange(1, 0, 2, 0, dr);
     _creator.new_timerange(3, 0, 4, 0, dr);
   }
@@ -111,7 +111,7 @@ class GetNextValidTimeForwardDST : public ::testing::Test {
 //
 
 TEST_F(GetNextValidTimeForwardDST, CalendarDateIncludeDSTNowAtDST) {
-  daterange* dr(dst_calendar_date());
+  configuration::Daterange* dr(dst_calendar_date());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -119,7 +119,7 @@ TEST_F(GetNextValidTimeForwardDST, CalendarDateIncludeDSTNowAtDST) {
 }
 
 TEST_F(GetNextValidTimeForwardDST, CalendarDateExcludeDSTNowAtDST) {
-  daterange* dr(dst_calendar_date());
+  configuration::Daterange* dr(dst_calendar_date());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -131,7 +131,7 @@ TEST_F(GetNextValidTimeForwardDST, CalendarDateExcludeDSTNowAtDST) {
 //
 
 TEST_F(GetNextValidTimeForwardDST, SpecificMonthDateIncludeDSTNowAtDST) {
-  daterange* dr(dst_specific_month_date());
+  configuration::Daterange* dr(dst_specific_month_date());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -139,7 +139,7 @@ TEST_F(GetNextValidTimeForwardDST, SpecificMonthDateIncludeDSTNowAtDST) {
 }
 
 TEST_F(GetNextValidTimeForwardDST, SpecificMonthDateExcludeDSTNowAtDST) {
-  daterange* dr(dst_specific_month_date());
+  configuration::Daterange* dr(dst_specific_month_date());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -151,7 +151,7 @@ TEST_F(GetNextValidTimeForwardDST, SpecificMonthDateExcludeDSTNowAtDST) {
 //
 
 TEST_F(GetNextValidTimeForwardDST, GenericMonthDateIncludeDSTNowAtDST) {
-  daterange* dr(dst_generic_month_date());
+  configuration::Daterange* dr(dst_generic_month_date());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -159,7 +159,7 @@ TEST_F(GetNextValidTimeForwardDST, GenericMonthDateIncludeDSTNowAtDST) {
 }
 
 TEST_F(GetNextValidTimeForwardDST, GenericMonthDateExcludeDSTNowAtDST) {
-  daterange* dr(dst_generic_month_date());
+  configuration::Daterange* dr(dst_generic_month_date());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -172,7 +172,7 @@ TEST_F(GetNextValidTimeForwardDST, GenericMonthDateExcludeDSTNowAtDST) {
 
 TEST_F(GetNextValidTimeForwardDST,
        OffsetWeekdayOfSpecificMonthIncludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_specific_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -181,7 +181,7 @@ TEST_F(GetNextValidTimeForwardDST,
 
 TEST_F(GetNextValidTimeForwardDST,
        OffsetWeekdayOfSpecificMonthExcludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_specific_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -194,7 +194,7 @@ TEST_F(GetNextValidTimeForwardDST,
 
 TEST_F(GetNextValidTimeForwardDST,
        OffsetWeekdayOfGenericMonthIncludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_generic_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -203,7 +203,7 @@ TEST_F(GetNextValidTimeForwardDST,
 
 TEST_F(GetNextValidTimeForwardDST,
        OffsetWeekdayOfGenericMonthExcludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_generic_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());

@@ -106,19 +106,18 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
         http_json_config.get_string("listen_address", "0.0.0.0");
     _crypted = http_json_config.get_bool("encryption", false);
     unsigned port = http_json_config.get_unsigned("port", _crypted ? 443 : 80);
-    asio::ip::tcp::resolver::query query(listen_address, std::to_string(port));
     asio::ip::tcp::resolver resolver(io_context);
     boost::system::error_code ec;
-    asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
+    auto endpoints = resolver.resolve(listen_address, std::to_string(port), ec);
     if (ec) {
       throw exceptions::msg_fmt("unable to resolve {}:{}", listen_address,
                                 port);
     }
-    if (it == end) {
+    if (endpoints.empty()) {
       throw exceptions::msg_fmt("no ip found for {}:{}", listen_address, port);
     }
 
-    _listen_endpoint = it->endpoint();
+    _listen_endpoint = endpoints.begin()->endpoint();
 
     _second_keep_alive_interval =
         http_json_config.get_unsigned("keepalive_interval", 30);
@@ -322,18 +321,24 @@ void conf_session<connection_class>::answer_to_request(
 
   whitelist_cache wcache;
 
-  bool at_least_one_found = get_otel_commands(
+  e_get_otel_commands_ret ret = get_otel_commands(
       host,
       [this, &resp, &host](
           const std::string& cmd_name, const std::string& cmd_line,
-          const std::string& service,
+          const std::string& service, [[maybe_unused]] uint64_t host_id,
+          [[maybe_unused]] uint64_t service_id,
+          [[maybe_unused]] uint32_t check_interval,
+          [[maybe_unused]] uint32_t retry_interval,
+          [[maybe_unused]] uint32_t max_attempts,
+          [[maybe_unused]] const std::string& check_period_name,
+          [[maybe_unused]] const std::string& timezone,
           [[maybe_unused]] const std::shared_ptr<spdlog::logger>& logger) {
         return _otel_connector_to_stream(cmd_name, cmd_line, host, service,
                                          resp->body());
       },
       wcache, this->_logger);
 
-  if (at_least_one_found) {
+  if (ret == e_get_otel_commands_ret::success) {
     resp->result(boost::beast::http::status::ok);
     resp->insert(boost::beast::http::field::content_type, "text/plain");
   } else {

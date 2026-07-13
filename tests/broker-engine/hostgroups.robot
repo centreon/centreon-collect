@@ -13,6 +13,11 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 EBNHG1
     [Documentation]    New host group with several pollers and connections to DB
     [Tags]    broker    engine    hostgroup
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -134,18 +139,24 @@ EBNHGU3
 EBNHG4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
+    log to console    Interesting date: ${start}
     Ctn Start Broker
     Ctn Start Engine
-    Sleep    3s
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Ctn Reload Broker
@@ -153,7 +164,7 @@ EBNHG4
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1
+    ...    enabling membership of host 2 to host group 1 on instance 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
@@ -188,8 +199,9 @@ EBNHGU4_${test_label}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
 
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    lua    trace
+    Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Source Log    central    1
     Ctn Broker Config Source Log    module0    1
     Ctn Config Broker Sql Output    central    unified_sql    5
@@ -224,8 +236,7 @@ EBNHGU4_${test_label}
 
     FOR    ${loop_index}    IN RANGE    60
         Log To Console
-        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id
-        ...    WHERE h.hostgroup_id = ${1}
+        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         ${output}    Query
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         Log To Console    ${output}
@@ -254,8 +265,7 @@ EBNHGU4_${test_label}
 
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id.
-        ...    WHERE h.hostgroup_id = ${1}
+        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
 
         ${output}    Query
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
@@ -283,8 +293,7 @@ EBNHGU4_${test_label}
 
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id
-        ...    WHERE h.hostgroup_id = ${1}
+        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         ${output}    Query
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         Log To Console    ${output}
@@ -308,3 +317,50 @@ EBNHGU4_${test_label}
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3
     ...    False    BBDO2
+
+
+EBNHG5
+    [Documentation]    Scenario: Host group creation and membership updates with unified SQL and BBDO3
+    ...    And a host group 1 is defined with 7 members across instances (hosts host_1 to host_7)
+    ...    When the broker and engine start and the engine becomes ready
+    ...    And the engine configuration file hostgroups.cfg is added and the engine is reloaded
+    ...    Then the system reports 7 relations between hostgroup 1 and its hosts
+    ...    When host host_1 is removed and hostgroup_1 members are updated to exclude host_1
+    ...    And the engine is reloaded
+    ...    Then the system reports 6 relations between hostgroup 1 and its hosts
+    [Tags]    broker    engine    hostgroup    unified_sql    MON-191814
+    Ctn Config Engine    ${1}    ${10}    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    sql    info
+
+    Ctn Clear Retention
+
+    Ctn Add Host Group    ${0}    ${1}    ["host_1","host_2","host_3","host_4","host_5","host_6","host_7"]
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Config Engine Add Cfg File    ${0}    hostgroups.cfg
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    7    30
+    Should Be True    ${result}    We should have 7 hosts members in the hostgroup 1.
+
+    # delete host_1 and update hostgroup members
+    Ctn Remove Host    ${0}    host_1
+    Ctn Remove Service    0    host_1    service_1
+
+    Ctn Engine Config Delete Key In Cfg    0    hostgroup_1    members    hostgroups.cfg
+    Ctn Engine Config Set Key Value In Cfg    0    hostgroup_1    members    host_2,host_3,host_4,host_5,host_6,host_7    hostgroups.cfg
+
+    Ctn Reload Engine
+
+    ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    6    30
+    Should Be True    ${result}    We should have 6 hosts members in the hostgroup 1.

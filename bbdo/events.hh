@@ -110,7 +110,7 @@ enum data_element {
   de_host_check = 8,
   de_host_dependency = 9,
   de_host_group,
-  de_host_group_member,
+  de_host_group_member = 11,
   de_host,
   de_host_parent,
   de_host_status,
@@ -124,8 +124,8 @@ enum data_element {
   de_service_group_member,
   de_service,
   de_service_status,
-  de_instance_configuration,
-  de_responsive_instance,
+  de_instance_configuration = 25,
+  de_responsive_instance = 26,
   de_pb_service = 27,
   de_pb_adaptive_service = 28,
   de_pb_service_status = 29,
@@ -146,8 +146,8 @@ enum data_element {
   de_pb_instance = 44,
   de_pb_acknowledgement = 45,
   de_pb_responsive_instance = 46,
-  de_pb_host_dependency = 47,
-  de_pb_service_dependency = 48,
+  // de_pb_host_dependency = 47, Not used
+  // de_pb_service_dependency = 48, Not used
   de_pb_host_group = 49,
   de_pb_host_group_member = 50,
   de_pb_service_group = 51,
@@ -156,7 +156,8 @@ enum data_element {
   de_pb_instance_configuration = 54,
   de_pb_adaptive_service_status = 55,
   de_pb_adaptive_host_status = 56,
-  de_pb_agent_stats = 57
+  de_pb_agent_stats = 57,
+  de_pb_unknown_host = 58
 };
 }  // namespace neb
 namespace storage {

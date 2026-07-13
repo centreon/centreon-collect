@@ -33,6 +33,7 @@ overrides:
       - perl(POSIX)
       - perl(Pod::Usage)
       - perl(Sys::Syslog)
+      - perl-Crypt-URandom
     provides:
       - perl-centreon-base
       - perl(centreon::common::db)
@@ -52,6 +53,13 @@ overrides:
       - libdigest-hmac-perl
       - libdigest-sha-perl
       - libgd-perl
+      - libcrypt-urandom-perl
+    replaces:
+      - centreon-perl-libs (<< 25.10.0)
+
+deb:
+  breaks:
+    - centreon-perl-libs (<< 25.10.0)
 
 rpm:
   summary: Centreon Perl libraries Common

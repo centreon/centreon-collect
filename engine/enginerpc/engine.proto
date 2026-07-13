@@ -353,6 +353,11 @@ message NameOrIdIdentifier {
   }
 }
 
+message HostDependency {
+  uint32 dependency_type = 1;
+  string hostname = 2;
+}
+
 message EngineHost {
   string name = 1;
   string alias = 2;
@@ -485,6 +490,7 @@ message EngineHost {
   uint64 severity_id = 115;
   repeated string tag = 116;
   repeated string custom_variables = 117;
+  repeated HostDependency dependencies = 118;
 }
 
 message NameIdentifier {
@@ -541,6 +547,12 @@ message ServiceIdentifier {
     PairNamesIdentifier names = 1;
     PairIdsIdentifier ids = 2;
   }
+}
+
+message ServiceDependency {
+  uint32 dependency_type = 1;
+  string hostname = 2;
+  string description = 3;
 }
 
 message EngineService {
@@ -682,6 +694,7 @@ message EngineService {
     ANOMALY_DETECTION = 5;
   }
   ServiceType service_type = 117;
+  repeated ServiceDependency dependencies = 118;
 }
 
 message EngineHostGroup {
@@ -751,6 +764,7 @@ message EngineCommand {
     OTEL = 4;
   }
   CmdType type = 3;
+  string connector = 4;
 }
 
 message EngineConnector {

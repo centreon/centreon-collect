@@ -18,25 +18,17 @@
 
 #include "com/centreon/broker/lua/broker_utils.hh"
 
-#include <fmt/format.h>
-#include <sys/stat.h>
-#include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
+#include <absl/strings/str_split.h>
 #include "com/centreon/broker/config/applier/state.hh"
+#include "common/crypto/base64.hh"
 
 #include <openssl/evp.h>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
 #include <nlohmann/json.hpp>
-#include <sstream>
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/common/perfdata.hh"
@@ -47,6 +39,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
+using namespace com::centreon::common::crypto;
 using namespace nlohmann;
 using com::centreon::common::log_v2::log_v2;
 
@@ -153,7 +146,7 @@ static void _message_to_json(std::ostringstream& oss,
         continue;
       }
     }
-    const std::string& entry_name = f->name();
+    std::string_view entry_name = f->name();
     if (f->is_repeated()) {
       size_t s = refl->FieldSize(*p, f);
       if (i > 0)
@@ -776,6 +769,42 @@ static int l_broker_url_encode(lua_State* L) {
 }
 
 /**
+ *  The Lua base64_encode function
+ *
+ * @param L The Lua interpreter
+ *
+ * @return 1
+ */
+static int l_broker_base64_encode(lua_State* L) {
+  size_t len;
+  char const* str = lua_tolstring(L, -1, &len);
+  std::string_view sv(str, len);
+
+  std::string retval = com::centreon::common::crypto::base64_encode(sv);
+
+  lua_pushlstring(L, retval.c_str(), retval.size());
+  return 1;
+}
+
+/**
+ *  The Lua base64_decode function
+ *
+ * @param L The Lua interpreter
+ *
+ * @return 1
+ */
+static int l_broker_base64_decode(lua_State* L) {
+  size_t len;
+  char const* str = lua_tolstring(L, -1, &len);
+  std::string_view sv(str, len);
+
+  std::string retval = base64_decode(sv);
+
+  lua_pushlstring(L, retval.c_str(), retval.size());
+  return 1;
+}
+
+/**
  * @brief The Lua stat function that is just a binding to the C stat().
  * The Lua function will return the asked object or nil followed by an
  * error message.
@@ -815,9 +844,12 @@ static void md5_message(const unsigned char* message,
                         unsigned char** digest,
                         unsigned int* digest_len) {
   EVP_MD_CTX* mdctx;
+  *digest = nullptr;
+  *digest_len = 0;
   auto logger = log_v2::instance().get(log_v2::LUA);
   if ((mdctx = EVP_MD_CTX_new()) == nullptr) {
     logger->error("lua: fail to call MD5 (EVP_MD_CTX_new call)");
+    return;
   }
   if (1 != EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr)) {
     logger->error("lua: fail to call MD5 (EVP_DigestInit_ex call)");
@@ -828,6 +860,8 @@ static void md5_message(const unsigned char* message,
   if ((*digest = (unsigned char*)OPENSSL_malloc(EVP_MD_size(EVP_md5()))) ==
       nullptr) {
     logger->error("lua: fail to call MD5 (OPENSSL_malloc call)");
+    EVP_MD_CTX_free(mdctx);
+    return;
   }
   if (1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len)) {
     logger->error("lua: fail to call MD5 (EVP_DigestFinal_ex call)");
@@ -848,6 +882,10 @@ static int l_broker_md5(lua_State* L) {
   unsigned char* md5;
   uint32_t md5_len;
   md5_message(str, len, &md5, &md5_len);
+  if (!md5) {
+    lua_pushnil(L);
+    return 1;
+  }
   char result[2 * md5_len + 1];
   char* tmp = result;
   for (uint32_t i = 0; i < md5_len; i++) {
@@ -889,6 +927,8 @@ void broker_utils::broker_utils_reg(lua_State* L) {
                               {"json_decode", l_broker_json_decode},
                               {"parse_perfdata", l_broker_parse_perfdata},
                               {"url_encode", l_broker_url_encode},
+                              {"base64_encode", l_broker_base64_encode},
+                              {"base64_decode", l_broker_base64_decode},
                               {"stat", l_broker_stat},
                               {"md5", l_broker_md5},
                               {"bbdo_version", l_broker_bbdo_version},

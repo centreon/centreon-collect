@@ -22,7 +22,11 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/http_tsdb/inc/com/centreon/broker/http_tsdb")
 set(HTTP_INC_DIR "${CMAKE_SOURCE_DIR}/common/http/inc")
 set(SRC_DIR "src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/http_tsdb/test")
-include_directories(inc ${INC_DIR} ${HTTP_INC_DIR})
+include_directories(inc 
+    ${INC_DIR} 
+    ${HTTP_INC_DIR} 
+    ${CMAKE_BINARY_DIR}/common/process_stat
+    ${PROJECT_SOURCE_DIR}/core/cache/inc)
 
 # Sources.
 set(SOURCES
@@ -43,15 +47,15 @@ set(HEADERS
 add_library(http_tsdb STATIC ${SOURCES} ${HEADERS})
 add_dependencies(http_tsdb
 	pb_neb_lib
-	pb_common_lib
 	pb_header_lib
+	process_stat
 	pb_storage_lib
 	)
 target_include_directories(http_tsdb PRIVATE ${INC_DIR})
 
 target_precompile_headers(http_tsdb PRIVATE precomp_inc/precomp.hh)
 
-set_target_properties(http_tsdb PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(http_tsdb PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.
 if(WITH_TESTING)
@@ -59,5 +63,6 @@ if(WITH_TESTING)
         ${TESTS_SOURCES}
         ${TEST_DIR}/factory_test.cc
         ${TEST_DIR}/stream_test.cc
+        ${TEST_DIR}/column_test.cc
         PARENT_SCOPE)
 endif(WITH_TESTING)

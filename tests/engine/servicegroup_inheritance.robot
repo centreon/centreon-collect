@@ -319,3 +319,78 @@ ESGI3
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+ESGI4
+    [Documentation]    Given a configured Centreon engine with defined service groups
+    ...    When the inheritance rules are applied
+    ...    Then the service group inheritance should be correctly reflected in the monitoring data
+    [Tags]    engine    servicegroup    MON-188984
+    Ctn Config Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    # Create files :
+    Ctn Create Template File    ${0}    servicegroup    alias    ["servicegroup_template_1_alias", "servicegroup_template_2_alias"]
+    
+    # Delete unnecessary fields in templates:
+    Ctn Engine Config Delete Key In Cfg    0    servicegroup_template_1    active_checks_enabled    servicegroupTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    servicegroup_template_1    passive_checks_enabled    servicegroupTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    servicegroup_template_2    active_checks_enabled    servicegroupTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    servicegroup_template_2    passive_checks_enabled    servicegroupTemplates.cfg
+
+    # Add necessarily files :
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroupTemplates.cfg
+
+    # Create service groups
+    Ctn Add Service Group    ${0}    ${1}    ["host_1,service_1"]
+    Ctn Add Service Group    ${0}    ${2}    ["host_2,service_6"]
+    Ctn Add Service Group    ${0}    ${3}    ["host_3,service_11"]
+    Ctn Add Service Group    ${0}    ${4}    ["host_4,service_16"]
+    
+    # Delete unnecessary fields in service groups:
+    Ctn Engine Config Delete Key In Cfg    0    servicegroup_1    alias    servicegroups.cfg
+    Ctn Engine Config Delete Key In Cfg    0    servicegroup_1    members    servicegroups.cfg
+    
+    # Set servicegroup_1 to use servicegroup_template_1
+    Ctn Engine Config Set Key Value In Cfg    0    servicegroup_1    use    servicegroup_template_1,servicegroup_template_2    servicegroups.cfg
+
+    # Operation in servicegroups
+    FOR    ${key}     ${value}     IN
+    ...    members    host_2,service_6
+    ...    servicegroup_members    servicegroup_3
+    ...    notes    template_notes
+    ...    notes_url    template_notes_url
+    ...    action_url    template_action_url
+        ${template_index}    Ctn Randint     ${0}     ${1}
+        IF    ${template_index} == 0 
+            #0 add attrib to servicegroup_template_1
+            Ctn Engine Config Set Key Value In Cfg    0    servicegroup_template_1    ${key}    ${value}    servicegroupTemplates.cfg
+        ELSE
+            #0 add attrib to servicegroup_template_2
+            Ctn Engine Config Set Key Value In Cfg    0    servicegroup_template_2    ${key}    ${value}    servicegroupTemplates.cfg
+        END
+    END
+
+    ${start}    Get Current Date
+    Ctn Clear Retention
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${output}    Ctn Get Servicegroup Info Grpc    servicegroup_1
+
+    Should Be Equal As Strings     ${output}[name]    servicegroup_1
+    Should Be Equal As Strings     ${output}[alias]    servicegroup_template_1_alias
+    Should Be Equal As Strings     ${output}[notes]    template_notes
+    Should Be Equal As Strings     ${output}[notesUrl]    template_notes_url
+    Should Be Equal As Strings     ${output}[actionUrl]    template_action_url
+    Should Not Contain    ${output}[members]    host_1,service_1
+    Should Contain    ${output}[members]    host_2,service_6
+    Should Contain    ${output}[members]    host_3,service_11
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

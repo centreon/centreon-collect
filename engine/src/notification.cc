@@ -58,27 +58,12 @@ notification::notification(notifier* parent,
  *
  * @return OK on success, ERROR otherwise.
  */
-int notification::execute(std::unordered_set<contact*> const& to_notify) {
+int notification::execute(
+    const std::unordered_set<std::shared_ptr<contact>>& to_notify) {
   uint32_t contacts_notified{0};
 
   struct timeval start_time;
   gettimeofday(&start_time, nullptr);
-
-  struct timeval end_time {
-    0L, 0L
-  };
-
-  /* send data to event broker */
-  int neb_result{broker_notification_data(
-      NEBTYPE_NOTIFICATION_START, NEBFLAG_NONE, NEBATTR_NONE,
-      _parent->get_notifier_type(), _type, start_time, end_time, (void*)_parent,
-      _author.c_str(), _message.c_str(), _escalated, 0, nullptr)};
-
-  if (neb_result == NEBERROR_CALLBACKCANCEL)
-    return ERROR;
-  else if (neb_result == NEBERROR_CALLBACKOVERRIDE) {
-    return OK;
-  }
 
   nagios_macros* mac(get_global_macros());
 
@@ -172,7 +157,10 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
     mac->x[MACRO_SERVICENOTIFICATIONID] = std::to_string(_id);
   }
 
-  for (contact* ctc : to_notify) {
+  for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
+    /* get the contact */
+    auto ctc = ctc_ptr.get();
+
     /* grab the macro variables for this contact */
     grab_contact_macros_r(mac, ctc);
 
@@ -193,16 +181,6 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
       }
     }
   }
-
-  /* get the time we finished */
-  gettimeofday(&end_time, nullptr);
-
-  /* send data to event broker */
-  broker_notification_data(NEBTYPE_NOTIFICATION_END, NEBFLAG_NONE, NEBATTR_NONE,
-                           _parent->get_notifier_type(), _type, start_time,
-                           end_time, (void*)_parent, _author.c_str(),
-                           _message.c_str(), _escalated, contacts_notified,
-                           nullptr);
 
   engine_logger(dbg_notifications, basic)
       << contacts_notified << " contacts were notified.";

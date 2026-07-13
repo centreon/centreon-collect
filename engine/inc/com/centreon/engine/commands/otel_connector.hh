@@ -52,7 +52,7 @@ class otel_connector : public command {
   static std::shared_ptr<otel_connector> create(
       const std::string& connector_name,
       const std::string& cmd_line,
-      commands::command_listener* listener);
+      const std::shared_ptr<commands::command_listener>& listener);
 
   static bool remove(const std::string& connector_name);
 
@@ -76,7 +76,7 @@ class otel_connector : public command {
 
   otel_connector(const std::string& connector_name,
                  const std::string& cmd_line,
-                 commands::command_listener* listener);
+                 const std::shared_ptr<commands::command_listener>& listener);
 
   void update(const std::string& cmd_line);
 
@@ -89,7 +89,7 @@ class otel_connector : public command {
                        nagios_macros& macros,
                        uint32_t timeout,
                        const check_result::pointer& to_push_to_checker,
-                       const void* caller = nullptr) override;
+                       const notifier* notifer = nullptr) override;
 
   virtual void run(const std::string& process_cmd,
                    nagios_macros& macros,

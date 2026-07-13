@@ -34,17 +34,19 @@ using namespace std::string_literals;
 class test_check : public check_memory {
  public:
   static MEMORYSTATUSEX mock;
-  static PERFORMANCE_INFORMATION perf_mock;
+  //   total = (CommitLimit - PhysicalTotal) * PageSize = 11534336 * 4096 = 44
+  //   GB used  = (CommitTotal + PhysicalAvailable - PhysicalTotal) * PageSize =
+  //   4 GB
+  static constexpr uint64_t pagefile_total = 47244902400ull;  // ~44 GB
+  static constexpr uint64_t pagefile_used = 4302897152ull;    // ~4 GB
+  static Service serv;
 
   test_check(const rapidjson::Value& args)
       : check_memory(
             g_io_context,
             spdlog::default_logger(),
             {},
-            {},
-            "serv"s,
-            "cmd_name"s,
-            "cmd_line"s,
+            serv,
             args,
             nullptr,
             [](const std::shared_ptr<check>& caller,
@@ -56,8 +58,8 @@ class test_check : public check_memory {
   std::shared_ptr<native_check_detail::snapshot<
       native_check_detail::e_memory_metric::nb_metric>>
   measure() override {
-    return std::make_shared<native_check_detail::w_memory_info>(mock, perf_mock,
-                                                                _output_flags);
+    return std::make_shared<native_check_detail::w_memory_info>(
+        mock, pagefile_total, pagefile_used, _output_flags);
   }
 };
 
@@ -71,32 +73,12 @@ MEMORYSTATUSEX test_check::mock = {
     100ull * 1024 * 1024 * 1024,  // ullTotalVirtual
     40ull * 1024 * 1024 * 1024};  // ullAvailVirtual
 
-PERFORMANCE_INFORMATION test_check::perf_mock = {
-    0,                 // cb
-    5 * 1024 * 1024,   // CommitTotal
-    15 * 1024 * 1024,  // CommitLimit
-    0,                 // CommitPeak
-    4194304,           // PhysicalTotal
-    1792,              // PhysicalAvailable
-    0,                 // SystemCache
-    0,                 // KernelTotal
-    0,                 // KernelPaged
-    0,                 // KernelNonpaged
-    4096,              // PageSize
-    0,                 // HandleCount
-    0,                 // ProcessCount
-    0,                 // ThreadCount
-};
+Service test_check::serv;
 
 const uint64_t _total_phys = test_check::mock.ullTotalPhys;
 const uint64_t _available_phys = test_check::mock.ullAvailPhys;
-const uint64_t _total_swap =
-    (test_check::perf_mock.CommitLimit - test_check::perf_mock.PhysicalTotal) *
-    test_check::perf_mock.PageSize;
-const uint64_t _used_swap = (test_check::perf_mock.CommitTotal +
-                             test_check::perf_mock.PhysicalAvailable -
-                             test_check::perf_mock.PhysicalTotal) *
-                            test_check::perf_mock.PageSize;
+const uint64_t _total_swap = test_check::pagefile_total;
+const uint64_t _used_swap = test_check::pagefile_used;
 
 const uint64_t _total_virtual = test_check::mock.ullTotalPageFile;
 const uint64_t _available_virtual = test_check::mock.ullAvailPageFile;
@@ -203,7 +185,7 @@ TEST(native_check_memory_windows, output_no_threshold3) {
 TEST(native_check_memory_windows, output_threshold) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-usage-free": "8388609", "critical-usage-prct": 99.99, "warning-virtual": "20000000000", "critical-virtual": 50000000000 })"_json;
+      R"({ "warning-usage-free": "8388609:", "critical-usage-prct": 99.99, "warning-virtual": "20000000000", "critical-virtual": 50000000000 })"_json;
   test_check to_check(check_args);
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -218,8 +200,8 @@ TEST(native_check_memory_windows, output_threshold) {
   test_perfs(perfs);
   for (const auto& perf : perfs) {
     if (perf.name() == "memory.free.bytes") {
-      ASSERT_EQ(perf.warning_low(), 0);
-      ASSERT_EQ(perf.warning(), 8388609);
+      ASSERT_TRUE(std::isnan(perf.warning()));
+      ASSERT_EQ(perf.warning_low(), 8388609);
     } else if (perf.name() == "memory.usage.percentage") {
       ASSERT_EQ(perf.critical_low(), 0);
       ASSERT_NEAR(perf.critical(), 99.99, 0.01);

@@ -1,0 +1,9 @@
+{
+  "name": "hashicorp_vault",
+  "url": "http://localhost",
+  "port": 80,
+  "root_path": "evan",
+  "role_id": "Io/F35iUm6XW3z03X0wKrYMPi+lIWnLz2Cfj39hqlP7OT0AivEqXs6ut2Mtu9LSZnLuEF9xE2W3b3JsuxUARIEAB8itwhGGvt2JnONqvdgNXxW0dFwc1ooqXRHQ3/TLhEdFd1NlNuimTcNZeyB8z9w==",
+  "secret_id": "j5zwPmA/XD6/6IZrbY5UVGBrKb0Od8dRMhviR6bFo6GKbvXv7XBqfSpgz92oDxMyfZuVtffW0ZV+/0oFB3vTFU/lJf8cBOKhbte9AoH06kIQxDwMVfDVB9lh4s0vshjvL/0wwIpXZvgNKSeJqjqTXQ==",
+  "salt": "90UN2zFMcXgn91T84Bu3rWmxa9npzlGkJ41+PZPj1S2Mt6Lp/Bi3X7H/9fJsWW6EEUG5lhddNbRBcIyRG4L1oSZ3kkflhONld9Tpx0NG4keQQZfL4qAE7Xak0fBBFUe8"
+}

@@ -194,7 +194,6 @@ An example of configuration:
                 "private_key": "server.key"
             },
             "engine_otel_endpoint": "172.17.0.1:4317",
-            "check_interval":60
         }
     }
   ```
@@ -341,7 +340,6 @@ Parsing of this format is done by ```agent_check_result_builder``` class
 Configuration of agent is divided in two parts:
 * A common part to all agents: 
   ```protobuf
-    uint32 check_interval = 2;
     //limit the number of active checks in order to limit charge
     uint32 max_concurrent_checks = 3;
     //period of metric exports (in seconds)
@@ -365,7 +363,6 @@ An example:
 {
     "max_length_grpc_log": 0,
     "centreon_agent": {
-        "check_interval": 10,
         "export_period": 15,
         "reverse_connections": [
             {
@@ -382,3 +379,10 @@ From this configuration an agent_reverse_client object maintains a list of endpo
 It contains a map of to_agent_connector indexed by config.
 The role to_agent_connector is to maintain an alive connection to agent (agent_connection class). It owns an agent_connection class and recreates it in case of network failure.
 Agent_connection holds a weak_ptr to agent_connection to warn it about connection failure.
+
+#### How engine sends orders to agents
+In order to find an agent, all agents (reverse or not) inherit from agent_impl_base. All instances of agent_impl_base are stored in two containers:
+* agent_impl_base::_configured_instance (instances where checks associated with service_id@host_id configured)
+* agent_impl_base::_no_configured_instance (instances without any check or not yet configured)
+First container is indexed by service_id@host_id so we can find agent that will receive force check
+In case of reload configuration, we call static method agent_impl_base::all_agent_calc_and_send_config_if_needed that call to all agent instances calc_and_send_config_if_needed. This method call _calc_and_send_config_if_needed from main engine thread in order to have a stable configuration.

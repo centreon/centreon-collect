@@ -45,13 +45,13 @@ class group_member : public io::data {
   uint32_t group_id;
   std::string group_name;
   uint32_t host_id;
-  uint32_t poller_id;
+  uint64_t poller_id;
 
  private:
   void _internal_copy(group_member const& other);
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_GROUP_MEMBER_HH

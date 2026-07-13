@@ -22,6 +22,66 @@ import time
 from dateutil import parser
 from datetime import datetime, timedelta
 import requests
+import subprocess
+import os
+
+def ctn_prepare_package_manager() -> bool:
+    """! Prepare the package manager to install or remove packages
+        @return: True if the package manager is correctly prepared, False otherwise
+    """
+    try:
+        cmd = ""
+        if os.path.isfile("/usr/bin/dpkg") and os.access("/usr/bin/dpkg", os.X_OK):
+            cmd = "apt-get update -y"
+            sub = subprocess.run(cmd, shell=True, capture_output=True, check=False)
+            if int(sub.returncode) != 0:
+                logger.info("The package manager can't be prepared: {}".format(sub.stdout))
+                return False
+
+    except IOError:
+        logger.info("The package manager can't be prepared")
+        return False
+    return True
+
+def ctn_check_plugin_is_installed_and_remove_it(plugin: str) -> bool:
+    """! Check if a plugin is installed
+        @param plugin: name of the plugin to check
+        @return: True if the plugin is correctly installed or if no param given, False otherwise
+    """
+    if plugin == '':
+        return True
+    try:
+        cmd = ""
+        if os.path.isfile("/usr/bin/dpkg") and os.access("/usr/bin/dpkg", os.X_OK):
+            cmd = "dpkg -l | grep -i " + plugin.lower() + " | wc -l "
+
+        elif os.path.isfile("/usr/bin/rpm") and os.access("/usr/bin/rpm", os.X_OK):
+            cmd = "rpm -qa | grep " + plugin + " | wc -l "
+        logger.info("checking plugin with cmd: '{}'".format(cmd))
+        output = subprocess.check_output(cmd, shell=True)
+        if int(output) != 1:
+            logger.info("The plugin '{}' is not installed".format(plugin))
+            return False
+
+
+    except IOError:
+        logger.info("The plugin '{}' does not exist".format(plugin))
+        return False
+
+    # let's remove the plugin.
+    cmd = ""
+    if os.path.isfile("/usr/bin/dpkg") and os.access("/usr/bin/dpkg", os.X_OK):
+        cmd = "apt remove -y " + plugin.lower()
+    elif os.path.isfile("/usr/bin/rpm") and os.access("/usr/bin/rpm", os.X_OK):
+        cmd = "dnf remove -y " + plugin
+    logger.info("removing with cmd: '{}'".format(cmd))
+    sub = subprocess.run(cmd, shell=True, capture_output=True, check=False)
+
+    if int(sub.returncode) != 0:
+        logger.info("The plugin '{}' can't be de removed: {}".format(plugin, sub.stdout))
+        return False
+
+    return True
 
 
 def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.1:8085', timeout=15):
@@ -34,17 +94,48 @@ def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.
                 and a json object containing the incriminated log for failure or success.
         """
     limit_date = time.time() + timeout
-    api_json = []
+    uri = host + "/api/" + node_path + "log/" + token
     while time.time() < limit_date:
-        time.sleep(1)
-        uri = host + "/api/" + node_path + "log/" + token
         response = requests.get(uri)
         (status, output) = parse_json_response(response)
-        if status == '':
+        logger.info(f"answer of parse_json_response: {output}")
+
+        if not status:
+            time.sleep(1)
             continue
         return status, output
 
-    return False, api_json["data"]
+    return False, f"timeout reached while querying {uri}"
+
+
+def ctn_get_api_log_count_with_timeout(token: str, count=0, node_path='', host='http://127.0.0.1:8085', timeout=15, ):
+    """! Query gorgone log API until the response contain at least one log, and send back the number of log found.
+        @param token: token to search in the API
+        @param node_path: part of the API URL defining if we use the local gorgone or another one, ex node/2/
+        @param timeout: timeout in seconds
+        @param host: gorgone API URL with the port
+        @return number of log present in the api response
+        """
+    limit_date = time.time() + timeout
+    api_json = []
+    while time.time() < limit_date:
+        uri = host + "/api/" + node_path + "log/" + token
+        response = requests.get(uri)
+        api_json = response.json()
+        # http code should either be 200 for success or 404 for no log found if we are too early.
+        # as the time of writing, status code is always 200 because webapp autodiscovery module always expect a 200.
+        if response.status_code != 200 and response.status_code != 404:
+            return False, api_json
+
+        if 'error' in api_json and api_json['error'] == "no_log":
+            time.sleep(2)
+            continue
+        elif len(api_json['data']) >= count:
+            return len(api_json['data'])
+        else:
+            time.sleep(1)
+            continue
+    return 0
 
 
 def parse_json_response(response):
@@ -53,14 +144,16 @@ def parse_json_response(response):
     # as the time of writing, status code is always 200 because webapp autodiscovery module always expect a 200.
     if response.status_code != 200 and response.status_code != 404:
         return False, api_json
+    logger.debug(f"rest api response: {api_json}")
 
     if 'error' in api_json and api_json['error'] == "no_log":
-        return '', ''
+        return False, 'gorgone api didnt sent back any logs'
     for log_detail in api_json["data"]:
-        if log_detail["code"] == 2:
+        if log_detail["code"] == 1:
             return False, log_detail
         if log_detail["code"] == 100:
             return True, log_detail
+    return False, 'No log and no error found in gorgone api response.'
 
 
 # these function search log in the gorgone log file
@@ -154,8 +247,6 @@ def ctn_find_line_from(lines, date):
         idx = (start + end) // 2
         idx_d = ctn_extract_date_from_log(lines[idx])
         while idx_d is None:
-            logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
-                start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
                 idx_d = ctn_extract_date_from_log(lines[idx])

@@ -19,6 +19,7 @@
 #include <absl/strings/ascii.h>
 #include <absl/strings/str_split.h>
 #include <nlohmann/json.hpp>
+#include "com/centreon/common/http/http_client.hh"
 #include "com/centreon/common/http/http_config.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
@@ -147,7 +148,7 @@ void vault_access::_set_env_informations(const std::string& env_file) {
 std::string vault_access::decrypt(const std::string& encrypted) {
   std::string_view head = encrypted;
   if (head.substr(0, 25) != "secret::hashicorp_vault::") {
-    _logger->debug("Password is not stored in the vault");
+    SPDLOG_LOGGER_DEBUG(_logger, "Password is not stored in the vault");
     return encrypted;
   } else
     head.remove_prefix(25);
@@ -203,10 +204,79 @@ std::string vault_access::decrypt(const std::string& encrypted) {
             promise_decrypted.set_value(result);
           } catch (const std::exception& e) {
             auto exc = std::make_exception_ptr(exceptions::msg_fmt(
-                "Response is not as expected: {}", err.message()));
+                "Response is not as expected: {}", e.what()));
             promise_decrypted.set_exception(exc);
           }
         }
       });
   return future_decrypted.get();
+}
+
+/**
+ * @brief Helper to create a vault_access instance
+ *
+ * @param global_params params that contains env_file, vault... key values
+ * @param logger
+ * @return std::unique_ptr<vault_access>
+ */
+std::unique_ptr<vault_access> vault_access::load(
+    const std::map<std::string, std::string>& global_params,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  std::string env_file;
+  {
+    auto found = global_params.find("env_file");
+    if (found != global_params.end()) {
+      env_file = found->second;
+      SPDLOG_LOGGER_DEBUG(logger, "Env file '{}' used.", env_file);
+    } else {
+      env_file = "/usr/share/centreon/.env";
+      SPDLOG_LOGGER_DEBUG(
+          logger,
+          "No env_file provided in Broker configuration, default one used.");
+    }
+  }
+  std::string vault_file;
+  {
+    auto found = global_params.find("vault_configuration");
+    if (found != global_params.end()) {
+      vault_file = found->second;
+      SPDLOG_LOGGER_DEBUG(logger, "Vault configuration file '{}' used.",
+                          vault_file);
+    } else {
+      SPDLOG_LOGGER_DEBUG(
+          logger,
+          "No vault configuration file provided in Broker configuration.");
+    }
+  }
+  bool verify_peer = true;
+  {
+    auto found = global_params.find("verify_vault_peer");
+    if (found != global_params.end()) {
+      if (absl::SimpleAtob(found->second, &verify_peer)) {
+        SPDLOG_LOGGER_DEBUG(logger, "Verify Vault peer {}.",
+                            verify_peer ? "enabled" : "disabled");
+      } else {
+        SPDLOG_LOGGER_DEBUG(logger,
+                            "Verification of Vault peer enabled by default.");
+        verify_peer = true;
+      }
+    } else {
+      SPDLOG_LOGGER_DEBUG(logger,
+                          "Verification of Vault peer enabled by default.");
+    }
+  }
+  return std::make_unique<vault_access>(env_file, vault_file, verify_peer,
+                                        logger);
+}
+
+/**
+ * @brief used to know if a credential begins with secret::hashicorp_vault::
+ *
+ * @param cred cred to test
+ * @return true begins
+ * @return false does not begin
+ */
+bool vault_access::is_vault_prefixed(const std::string_view& cred) {
+  constexpr std::string_view vault_prefix("secret::hashicorp_vault::");
+  return vault_prefix == cred.substr(0, vault_prefix.size());
 }

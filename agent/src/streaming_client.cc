@@ -94,11 +94,13 @@ streaming_client::streaming_client(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::shared_ptr<common::grpc::grpc_config>& conf,
-    const std::string& supervised_host)
+    const std::string& supervised_host,
+    const std::string& host_template)
     : com::centreon::common::grpc::grpc_client_base(conf, logger),
       _io_context(io_context),
       _logger(logger),
-      _supervised_host(supervised_host) {
+      _supervised_host(supervised_host),
+      _host_template(host_template) {
   _stub = std::move(AgentService::NewStub(_channel));
 }
 
@@ -143,7 +145,8 @@ void streaming_client::_create_reactor() {
   // identifies to engine
   std::shared_ptr<MessageFromAgent> who_i_am =
       std::make_shared<MessageFromAgent>();
-  fill_agent_info(_supervised_host, who_i_am->mutable_init());
+  fill_agent_info(_supervised_host, _host_template, who_i_am->mutable_init(),
+                  _logger);
 
   _reactor->write(who_i_am);
 }
@@ -160,9 +163,10 @@ std::shared_ptr<streaming_client> streaming_client::load(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::shared_ptr<common::grpc::grpc_config>& conf,
-    const std::string& supervised_host) {
+    const std::string& supervised_host,
+    const std::string& host_template) {
   std::shared_ptr<streaming_client> ret = std::make_shared<streaming_client>(
-      io_context, logger, conf, supervised_host);
+      io_context, logger, conf, supervised_host, host_template);
   ret->_start();
   return ret;
 }
@@ -188,8 +192,9 @@ void streaming_client::on_incomming_request(
     const std::shared_ptr<client_reactor>& caller [[maybe_unused]],
     const std::shared_ptr<MessageToAgent>& request) {
   // incoming request is used in main thread
-  asio::post(*_io_context,
-             [request, sched = _sched]() { sched->update(request); });
+  asio::post(*_io_context, [request, sched = _sched]() {
+    sched->on_engine_request(request);
+  });
 }
 
 /**

@@ -128,6 +128,7 @@ TEST_F(Macro, PbLongDateTime) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -148,6 +149,7 @@ TEST_F(Macro, PbShortDateTime) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -168,6 +170,7 @@ TEST_F(Macro, PbDate) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -188,6 +191,7 @@ TEST_F(Macro, PbTime) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -208,6 +212,7 @@ TEST_F(Macro, PbTimeT) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -237,6 +242,7 @@ TEST_F(Macro, PbContactName) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   fill_string_group(hst.mutable_contacts(), "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -266,6 +272,7 @@ TEST_F(Macro, PbContactAlias) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   fill_string_group(hst.mutable_contacts(), "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -295,6 +302,7 @@ TEST_F(Macro, PbContactEmail) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   fill_string_group(hst.mutable_contacts(), "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -324,6 +332,7 @@ TEST_F(Macro, PbContactPager) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   fill_string_group(hst.mutable_contacts(), "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -669,12 +678,14 @@ TEST_F(Macro, PbNotificationRecipients) {
   configuration::host_helper hst_hlp(&hst);
   fill_pb_configuration_host(&hst_hlp, "test_host", "admin");
   configuration::applier::host hst_aply;
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
   fill_pb_configuration_service(&svc_hlp, "test_host", "test_svc",
                                 "admin,admin1");
+  svc_hlp.set_default_values();
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
@@ -732,12 +743,14 @@ TEST_F(Macro, PbNotificationAuthor) {
   configuration::host_helper hst_hlp(&hst);
   fill_pb_configuration_host(&hst_hlp, "test_host", "admin");
   configuration::applier::host hst_aply;
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
   fill_pb_configuration_service(&svc_hlp, "test_host", "test_svc",
                                 "admin,admin1");
+  svc_hlp.set_default_values();
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
@@ -794,6 +807,7 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::Host hst;
   configuration::host_helper hst_hlp(&hst);
   fill_pb_configuration_host(&hst_hlp, "test_host", "admin");
+  hst_hlp.set_default_values();
   configuration::applier::host hst_aply;
   hst_aply.add_object(hst);
 
@@ -801,6 +815,7 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::service_helper svc_hlp(&svc);
   fill_pb_configuration_service(&svc_hlp, "test_host", "test_svc",
                                 "admin,admin1");
+  svc_hlp.set_default_values();
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 

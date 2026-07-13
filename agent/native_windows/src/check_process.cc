@@ -29,10 +29,7 @@ using namespace com::centreon::agent::process;
  * @param io_context
  * @param logger
  * @param first_start_expected
- * @param check_interval
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param args
  * @param cnf
  * @param handler
@@ -41,10 +38,7 @@ check_process::check_process(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
@@ -52,10 +46,7 @@ check_process::check_process(
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat) {
@@ -293,6 +284,10 @@ e_status check_process::compute(process::container& cont,
     output_format = &_ok_syntax;
   }
 
+  size_t process_count = cont.get_ok_processes().size() +
+                         cont.get_critical_processes().size() +
+                         cont.get_warning_processes().size();
+
   try {
     // need problem_list?
     if (output_format->find("{2}") != std::string::npos) {
@@ -308,11 +303,9 @@ e_status check_process::compute(process::container& cont,
       }
     }
 
-    size_t problem_count = cont.get_critical_processes().size() +
-                           cont.get_warning_processes().size();
     *output = std::vformat(
         *output_format,
-        std::make_format_args(status_label[ret], problem_count, problem_list));
+        std::make_format_args(status_label[ret], process_count, problem_list));
 
     if (_verbose) {
       for (const process::process_data& to_dump :
@@ -334,9 +327,7 @@ e_status check_process::compute(process::container& cont,
   }
 
   perfs->name("process.count");
-  perfs->value(cont.get_ok_processes().size() +
-               cont.get_warning_processes().size() +
-               cont.get_critical_processes().size());
+  perfs->value(process_count);
 
   return ret;
 }

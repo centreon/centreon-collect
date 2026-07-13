@@ -135,7 +135,7 @@ class mysql_bulk_bind : public mysql_bind_base {
    * @param invalid_on A bit field with values mapping::entry::invalid_on_zero,
    * mapping::entry::invalid_minus_one or mapping::entry::invalid_on_negative.
    */
-  void set_value_as_u64(size_t range, int64_t value, uint32_t invalid_on);
+  void set_value_as_u64(size_t range, uint64_t value, uint32_t invalid_on);
   /**
    * @brief Setter of the value at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONGLONG.
@@ -303,6 +303,9 @@ class mysql_bulk_bind : public mysql_bind_base {
    */
   void set_null_tiny(size_t range);
 
+  template <typename updater_type>
+  bool update(updater_type&& updater);
+
   int get_size() const;
   bool value_is_null(size_t range) const;
   bool empty() const;
@@ -312,6 +315,22 @@ class mysql_bulk_bind : public mysql_bind_base {
   void next_row();
   void reserve(size_t size);
 };
+
+/**
+ * @brief Applies an updater callable to the internal column collection.
+ *
+ * The updater receives a reference to the underlying column vector and returns
+ * a boolean indicating whether the update was successful.
+ *
+ * @tparam updater_type A callable type with signature
+ * bool(std::vector<database::mysql_column>*).
+ * @param updater The callable to apply to the column collection.
+ * @return The value returned by the updater.
+ */
+template <typename updater_type>
+bool mysql_bulk_bind::update(updater_type&& updater) {
+  return updater(&_column);
+}
 
 }  // namespace database
 

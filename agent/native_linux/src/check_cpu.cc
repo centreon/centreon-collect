@@ -95,28 +95,28 @@ proc_stat_file::proc_stat_file(const char* proc_file, size_t nb_to_reserve) {
 using linux_cpu_to_status = cpu_to_status<e_proc_stat_index::nb_field>;
 
 using cpu_to_status_constructor =
-    std::function<linux_cpu_to_status(double /*threshold*/)>;
+    std::function<linux_cpu_to_status(const common::threshold& /*threshold*/)>;
 
 #define BY_TYPE_CPU_TO_STATUS(TYPE_METRIC)                                     \
   {"warning-core-" #TYPE_METRIC,                                               \
-   [](double threshold) {                                                      \
+   [](const common::threshold& threshold) {                                    \
      return linux_cpu_to_status(                                               \
          e_status::warning, e_proc_stat_index::TYPE_METRIC, false, threshold); \
    }},                                                                         \
       {"critical-core-" #TYPE_METRIC,                                          \
-       [](double threshold) {                                                  \
+       [](const common::threshold& threshold) {                                \
          return linux_cpu_to_status(e_status::critical,                        \
                                     e_proc_stat_index::TYPE_METRIC, false,     \
                                     threshold);                                \
        }},                                                                     \
       {"warning-average-" #TYPE_METRIC,                                        \
-       [](double threshold) {                                                  \
+       [](const common::threshold& threshold) {                                \
          return linux_cpu_to_status(e_status::warning,                         \
                                     e_proc_stat_index::TYPE_METRIC, true,      \
                                     threshold);                                \
        }},                                                                     \
   {                                                                            \
-    "critical-average-" #TYPE_METRIC, [](double threshold) {                   \
+    "critical-average-" #TYPE_METRIC, [](const common::threshold& threshold) { \
       return linux_cpu_to_status(e_status::critical,                           \
                                  e_proc_stat_index::TYPE_METRIC, true,         \
                                  threshold);                                   \
@@ -131,24 +131,24 @@ using cpu_to_status_constructor =
 static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
     _label_to_cpu_to_status = {
         {"warning-core",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(e_status::warning,
                                       e_proc_stat_index::nb_field, false,
                                       threshold);
          }},
         {"critical-core",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(e_status::critical,
                                       e_proc_stat_index::nb_field, false,
                                       threshold);
          }},
         {"warning-average",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(
                e_status::warning, e_proc_stat_index::nb_field, true, threshold);
          }},
         {"critical-average",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(e_status::critical,
                                       e_proc_stat_index::nb_field, true,
                                       threshold);
@@ -165,11 +165,8 @@ static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
  * @param io_context
  * @param logger
  * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this but
  * also others)
  * @param serv service
- * @param cmd_name
- * @param cmd_line
  * @param args native plugin arguments
  * @param cnf engine configuration received object
  * @param handler called at measure completion
@@ -177,10 +174,7 @@ static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
 check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
                      time_point first_start_expected,
-                     duration check_interval,
-                     const std::string& serv,
-                     const std::string& cmd_name,
-                     const std::string& cmd_line,
+                     const Service& serv,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
                      check::completion_handler&& handler,
@@ -189,10 +183,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           io_context,
           logger,
           first_start_expected,
-          check_interval,
           serv,
-          cmd_name,
-          cmd_line,
           args,
           cnf,
           std::move(handler),
@@ -206,11 +197,23 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
       auto cpu_to_status_search = _label_to_cpu_to_status.find(
           absl::AsciiStrToLower(member_iter->name.GetString()));
       if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
-        std::optional<double> val = get_double(
-            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        std::optional<std::string> val =
+            get_string(get_command_name(), member_iter->name.GetString(),
+                       member_iter->value);
         if (val) {
+          common::threshold thres(val.value());
+          if (!thres.is_valid()) {
+            SPDLOG_LOGGER_ERROR(logger, "command: {}, invalid threshold: {}",
+                                get_command_name(), val.value());
+            throw exceptions::msg_fmt("command: {}, invalid threshold: {}",
+                                      get_command_name(), val.value());
+          }
+          thres.set_default_low(0);
+
+          thres.unit_multiplier(1.0 / 100.0);
+
           check_cpu_detail::cpu_to_status cpu_checker =
-              cpu_to_status_search->second(*val / 100);
+              cpu_to_status_search->second(thres);
           _cpu_to_status.emplace(
               std::make_tuple(cpu_checker.get_proc_stat_index(),
                               cpu_checker.is_average(),
@@ -219,7 +222,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
         }
       } else if (member_iter->name != "cpu-detailed") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
-                            cmd_name, member_iter->name);
+                            get_command_name(), member_iter->name);
       }
     }
   }

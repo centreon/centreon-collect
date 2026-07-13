@@ -20,8 +20,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <chrono>
+#include <cstdio>
+#include <thread>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/common/file_system.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -68,7 +72,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     df_log_path = tmp_dir;
     df_log_path.append("/df.log");
     to_remove.push_back(df_log_path);
-    std::string output{misc::exec("df -P")};
+    std::string output{misc::exec("/bin/df -P")};
 
     std::ofstream out(df_log_path);
     out << output;
@@ -82,7 +86,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     lsb_release_log_path = tmp_dir;
     lsb_release_log_path.append("/lsb_release.log");
     to_remove.push_back(lsb_release_log_path);
-    std::string output{misc::exec("lsb_release -a")};
+    std::string output{misc::exec("/bin/lsb_release -a")};
 
     std::ofstream out(lsb_release_log_path);
     out << output;
@@ -96,7 +100,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     uname_log_path = tmp_dir;
     uname_log_path.append("/uname.log");
     to_remove.push_back(uname_log_path);
-    std::string output{misc::exec("uname -a")};
+    std::string output{misc::exec("/bin/uname -a")};
 
     std::ofstream out(uname_log_path);
     out << output;
@@ -110,7 +114,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     proc_version_log_path = tmp_dir;
     proc_version_log_path.append("/proc_version.log");
     to_remove.push_back(proc_version_log_path);
-    std::string output{misc::exec("cat /proc/version")};
+    std::string output{misc::exec("/bin/cat /proc/version")};
 
     std::ofstream out(proc_version_log_path);
     out << output;
@@ -124,7 +128,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     netstat_log_path = tmp_dir;
     netstat_log_path.append("/netstat.log");
     to_remove.push_back(netstat_log_path);
-    std::string output{misc::exec("netstat -ap --numeric-hosts")};
+    std::string output{misc::exec("/bin/netstat -ap --numeric-hosts")};
 
     std::ofstream out(netstat_log_path);
     out << output;
@@ -138,7 +142,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     ps_log_path = tmp_dir;
     ps_log_path.append("/ps.log");
     to_remove.push_back(ps_log_path);
-    std::string output{misc::exec("ps aux")};
+    std::string output{misc::exec("/bin/ps aux")};
 
     std::ofstream out(ps_log_path);
     out << output;
@@ -152,7 +156,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     rpm_log_path = tmp_dir;
     rpm_log_path.append("/rpm.log");
     to_remove.push_back(rpm_log_path);
-    std::string output{misc::exec("rpm -qa centreon")};
+    std::string output{misc::exec("/bin/rpm -qa centreon")};
 
     std::ofstream out(rpm_log_path);
     out << output;
@@ -166,7 +170,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     selinux_log_path = tmp_dir;
     selinux_log_path.append("/selinux.log");
     to_remove.push_back(selinux_log_path);
-    std::string output{misc::exec("sestatus")};
+    std::string output{misc::exec("/bin/sestatus")};
 
     std::ofstream out(selinux_log_path);
     out << output;
@@ -199,7 +203,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     config::state conf;
     try {
       _logger->info("diagnostic: reading configuration file.");
-      conf = parsr.parse(*it);
+      conf = parsr.parse(*it, false);
     } catch (std::exception const& e) {
       _logger->error("diagnostic: configuration file '{}' parsing failed: {}",
                      *it, e.what());
@@ -219,19 +223,26 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
       ls_log_path.append(".log");
       to_remove.push_back(ls_log_path);
 
-      std::string cmd{fmt::format("ls -la {} {}", conf.module_directory(),
-                                  fmt::join(conf.module_list(), " "))};
-      std::string output{misc::exec(cmd)};
+      auto files = common::dir_content(conf.module_directory(), false);
 
       std::ofstream out(ls_log_path);
-      out << output;
+      for (const auto& file : files) {
+        out << file << std::endl;
+      }
       out.close();
     }
 
     // Log files.
 
     std::string log_path = conf.log_conf().log_path();
-    char const* args[]{"tail", "-c", "20000000", log_path.c_str(), nullptr};
+    if (!conf.log_conf().filename().empty()) {
+      log_path += conf.log_conf().filename().empty();
+    } else {
+      log_path += fmt::format("{}.log", conf.broker_name());
+    }
+    std::cout << "log_path" << log_path << std::endl;
+    char const* args[]{"/bin/tail", "-c", "20000000", log_path.c_str(),
+                       nullptr};
     misc::exec_process(args, true);
   }
 
@@ -245,10 +256,12 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   // Create tarball.
   _logger->info("diagnostic: creating tarball '{}'", my_out_file);
   {
-    std::string cmd{fmt::format("tar czf {} {}", my_out_file, tmp_dir)};
-    std::string output{misc::exec(cmd)};
+    const char* args[]{"/bin/tar", "czf", my_out_file.c_str(), tmp_dir.c_str(),
+                       nullptr};
+    misc::exec_process(args, true);
   }
 
+  std::this_thread::sleep_for(std::chrono::seconds(2));
   // Clean temporary directory.
   for (const auto& f : to_remove)
     ::remove(f.c_str());

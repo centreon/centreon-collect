@@ -22,6 +22,16 @@
     - [Ratio number BA](#ratio-number-ba)
     - [Ratio percent BA](#ratio-percent-ba)
     - [BAM cache](#bam-cache)
+  - [Global cache](#global-cache)
+    - [Dual-cache design](#dual-cache-design)
+    - [Crash recovery](#crash-recovery)
+    - [Wrapper classes for mapped memory — create\_class\_from\_proto.py](#wrapper-classes-for-mapped-memory--create_class_from_protopy)
+      - [What the script does](#what-the-script-does)
+      - [Update macros](#update-macros)
+      - [Adding a new proto class to the cache](#adding-a-new-proto-class-to-the-cache)
+    - [Locking](#locking)
+    - [File growth](#file-growth)
+    - [Broker module](#broker-module)
   - [Modules](#modules)
     - [grpc module](#grpc-module)
       - [caution](#caution)
@@ -210,6 +220,8 @@ When the tree is built, it is important to know that each node knows:
 * its parents
 * its children.
 
+At any time, kpi has a current event (_event) member. It's loaded at startup. On new event (a service becomes critical hard), the end_time of current event is set to new event start_time, and saved in db. Then the new event is created with a zero end_time and stored in db. Then it goes upper in tree.
+
 ### Impact BA
 
 This is the first implemented BA.
@@ -265,6 +277,175 @@ in percents relatively to the total of KPIs.
 When BAM is stopped (broker is stopped or reloaded), living data are saved into a cache. There are two kinds of information:
 * InheritedDowntime: it is then possible to restore the exact situation of the BA's concerning downtimes when cbd will be restarted.
 * ServicesBookState: the goal of this message is to save the BA's states. This message contains only services' states as they are the living parts of BA's. And these services states are minimalistic, we just save data used by BAM.
+
+## Global cache
+
+The `global_cache` singleton maintains an in-memory mirror of configuration
+and state objects (hosts, services, groups, tags, instances, BAM dimensions…)
+so that broker modules (graphite, http_tsdb, influxdb, lua…) can access them
+without querying the database.
+
+### Dual-cache design
+
+Since the MON-195013 refactoring, the cache is split into two separate
+memory-mapped files backed by `boost::interprocess`:
+
+| File | Type | Contents |
+|------|------|---------|
+| `<path>.cnf` | conf cache | Configuration events only (Host, Service, HostGroup, ServiceGroup, Instance, Tag, BAM dimensions…). Never receives status updates. |
+| `<path>.rt`  | real-time cache | All events, including status updates (HostStatus, ServiceStatus, AdaptiveHost…). |
+
+Both caches are instances of `global_cache_data`. The RT cache holds a
+reference to the conf cache (`_conf_cache`). The `write()` method of the RT
+cache automatically dispatches events to both files.
+
+`global_cache::instance_ptr()` always returns the **RT cache**. The conf cache
+is an internal implementation detail; external callers never access it directly.
+
+### Crash recovery
+
+Each file contains a persistent boolean `dirty`. It is set to `true` on every
+modification and cleared to `false` only on an explicit flush. On startup:
+
+- `dirty == false` → the file was closed cleanly; it is reopened as-is.
+- `dirty == true` → the file was not closed gracefully (crash); it is deleted
+  and recreated from scratch.
+
+Because the conf cache only receives stable configuration events, it survives
+crashes. If the RT cache is lost, configuration data is recovered from the conf
+cache on the first call to `get_host()` / `get_service()`.
+
+### Wrapper classes for mapped memory — `create_class_from_proto.py`
+
+Protobuf objects cannot be stored directly in a `boost::interprocess` segment
+because they use the global heap allocator. The script
+`broker/core/cache/create_class_from_proto.py` generates at build time the C++
+files `protobuf.hh` and `protobuf.cc`, which contain mirror classes (`host`,
+`service`, `instance`, etc.) that use interprocess-compatible allocators and
+can live inside the mapped segment.
+
+#### What the script does
+
+The script is invoked by CMake and takes the following arguments:
+
+```
+python3 create_class_from_proto.py <proto_list> <header_path> <cc_path> [class_filter]
+```
+
+- `<proto_list>`: comma-separated list of proto file basenames (e.g. `neb,header,bam`).
+- `<header_path>` / `<cc_path>`: output files to generate.
+- `[class_filter]`: optional comma-separated list of protobuf message names to
+  generate (e.g. `Host,Service,Tag`). When omitted, all messages are generated.
+  Dependencies are resolved automatically: if `Service` depends on `Tag`, `Tag`
+  is included even if not listed explicitly.
+
+It processes the proto files in three steps:
+
+1. **Parse** — comments are stripped, then `message` and `enum` blocks are
+   extracted using brace-counting. Enums nested inside a message are prefixed
+   with `<MessageName>_` (e.g. `Host_State`).
+2. **Map proto types to C++ types** — the following rules apply:
+
+   | Proto label | Proto type | C++ member type |
+   |-------------|-----------|-----------------|
+   | implicit / required | `int32`, `uint32`, `int64`, `uint64` | `int32_t`, … |
+   | implicit / required | `double`, `float`, `bool`, `string` | native / `string` (interprocess) |
+   | implicit / required | enum | `int32_t` |
+   | `optional` | scalar | `std::optional<T>` |
+   | `optional` | `string` | `std::optional<string>` |
+   | `repeated` | scalar | `int32_vect`, `uint64_vect`, `double_vect`, … |
+   | `repeated` | `string` | `string_vect` |
+   | `repeated` | message | `mess_vect` (vector of `offset_ptr<message>`) |
+   | any | nested message | `message::pointer` (`offset_ptr<message>`) |
+
+   All string types use the interprocess `basic_string` with a `char_allocator`
+   bound to the segment manager. All vectors use `boost::container::vector`
+   with the matching `private_node_allocator`.
+
+3. **Generate** — for each selected message, the script emits:
+   - A class declaration in the header inheriting from `message`, with private
+     data members, `mutable_<field>()` accessors, and `const <field>()` const
+     accessors.
+   - Constructors taking either a protobuf object or another wrapper instance,
+     both requiring an `allocators` struct that bundles all interprocess
+     allocators for the segment.
+   - A `to_protobuf()` method that reconstructs the original protobuf object.
+   - An `update(const PbType&, allocators)` method that updates only the fields
+     that changed and returns `true` if at least one field was modified. This
+     is used by the cache to avoid unnecessary dirty-flag updates.
+   - A base class `message` with an `e_type` enum listing all generated types,
+     and a virtual `update(const google::protobuf::Message&, allocators)`
+     dispatcher that casts to the right concrete type.
+
+#### Update macros
+
+The generated `.cc` file uses a set of `#define` macros to keep the update
+logic concise:
+
+| Macro | Use case |
+|-------|---------|
+| `UPDATE_FIELD(f)` | Scalar field: compare and assign |
+| `UPDATE_STRING_FIELD(f)` | Interprocess string: compare with `c_str()`, resize and assign |
+| `UPDATE_OPTIONAL_FIELD(f)` | `std::optional` scalar: handle set/unset transitions |
+| `UPDATE_OPTIONAL_STRING_FIELD(f)` | `std::optional<string>`: handle set/unset + content change |
+| `UPDATE_OPTIONAL_MESS_FIELD(T, f)` | Optional nested message: construct/destroy in segment |
+| `UPDATE_REPEATED_FIELD(f)` | Repeated scalar: element-wise compare, grow or shrink |
+| `UPDATE_REPEATED_STRING_FIELD(f)` | Repeated string: element-wise string compare |
+| `UPDATE_REPEATED_MESS_FIELD(T, f)` | Repeated message: element-wise `update()`, construct/destroy |
+| `REPEATED_MESS_DELETE_ALL(T, f)` | Destructor helper: destroy all nested message pointers |
+
+#### Adding a new proto class to the cache
+
+1. Add the class name to the `create_class_from_proto.py` invocation in
+   `broker/core/cache/CMakeLists.txt` (the `[class_filter]` argument).
+2. Rebuild — the header and source are regenerated automatically.
+3. Add a handler `_process_pb_<name>()` in `global_cache_data` and dispatch it
+   from `_write_conf()` and/or `_write_rt()` as appropriate.
+
+### Locking
+
+The `_protect` mutex is a `boost::upgrade_mutex` with three levels:
+
+| Class | Lock type | When to use |
+|-------|-----------|-------------|
+| `global_cache::lock` | shared lock | All getters except `get_host`, `get_service`, `get_instance` |
+| `global_cache::upgrade_lock` | upgrade lock | `get_host`, `get_service`, `get_instance` (may promote to write lock to copy data from the conf cache) |
+| `boost::unique_lock` | exclusive lock | All internal write methods |
+
+> **Rule**: never call `write()` while holding a lock. The `_process_*` methods
+> acquire their own `unique_lock` internally.
+
+Usage example from a module:
+
+```cpp
+{
+  global_cache::upgrade_lock l;
+  const cache::host* h =
+      global_cache::instance_ptr()->get_host(host_id, l);
+  if (h) {
+    // use h here, while l is still in scope
+    do_something(h->name());
+  }
+}  // lock released — do not use h after this point
+```
+
+### File growth
+
+When an allocation inside the segment fails (`interprocess::bad_alloc`), the
+file must be grown **outside any lock**. The pattern to follow is:
+
+```cpp
+try {
+  boost::unique_lock l(_protect);
+  _some_map->emplace(...);
+} catch (const interprocess::bad_alloc&) {
+  allocation_exception_handler();  // grows the file and remaps
+  retry_the_operation();           // retry
+}
+```
+
+`allocation_exception_handler()` grows the file by `_grow_step` (256 MB by
+default), remaps the segment, and refreshes all internal pointers.
 
 ## Modules
 

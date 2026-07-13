@@ -26,8 +26,6 @@
 namespace com::centreon::engine::configuration {
 
 class service_helper : public message_helper {
-  void _init();
-
  public:
   service_helper(Service* obj);
   ~service_helper() noexcept = default;
@@ -37,6 +35,9 @@ class service_helper : public message_helper {
 
   bool insert_customvariable(std::string_view key,
                              std::string_view value) override;
+
+  void set_default_values() override;
+
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,

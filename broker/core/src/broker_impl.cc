@@ -24,7 +24,6 @@
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
@@ -35,6 +34,8 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
 using com::centreon::common::crypto::aes256;
 using com::centreon::common::log_v2::log_v2;
+
+broker_impl::broker_impl(const std::string& name) : _broker_name(name) {}
 
 /**
  * @brief Return the Broker's version.
@@ -200,7 +201,7 @@ grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
                                              [[maybe_unused]],
                                              const SqlConnection* request,
                                              SqlManagerStats* response) {
-  auto center = stats::center::instance_ptr();
+  auto center = config::applier::state::instance().center();
   if (!request->has_id())
     center->get_sql_manager_stats(response);
   else {
@@ -231,8 +232,8 @@ grpc::Status broker_impl::GetConflictManagerStats(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
     ConflictManagerStats* response) {
-  auto center = stats::center::instance_ptr();
-  center->get_conflict_manager_stats(response);
+  config::applier::state::instance().center()->get_conflict_manager_stats(
+      response);
   return grpc::Status::OK;
 }
 
@@ -241,8 +242,8 @@ grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
                                         const GenericString* request,
                                         MuxerStats* response) {
   const std::string name = request->str_arg();
-  auto center = stats::center::instance_ptr();
-  bool status = center->muxer_stats(name, response);
+  bool status =
+      config::applier::state::instance().center()->muxer_stats(name, response);
   return status ? grpc::Status::OK
                 : grpc::Status(
                       grpc::StatusCode::NOT_FOUND,
@@ -299,8 +300,7 @@ grpc::Status broker_impl::GetProcessingStats(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
     ::ProcessingStats* response) {
-  auto center = stats::center::instance_ptr();
-  center->get_processing_stats(response);
+  config::applier::state::instance().center()->get_processing_stats(response);
   return grpc::Status::OK;
 }
 
@@ -360,6 +360,10 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
     SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
+    SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                       "set log level of {} to {}", logger_name,
+                       spdlog::level::to_string_view(
+                           spdlog::level::level_enum(request->level())));
     logger->set_level(spdlog::level::level_enum(request->level()));
     return grpc::Status::OK;
   }

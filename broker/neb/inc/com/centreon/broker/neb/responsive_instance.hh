@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 
@@ -44,7 +43,7 @@ class responsive_instance : public io::data {
     return io::events::data_type<io::neb, neb::de_responsive_instance>::value;
   }
 
-  uint32_t poller_id;
+  uint64_t poller_id;
   bool responsive;
 
   static mapping::entry const entries[];
@@ -55,6 +54,6 @@ class responsive_instance : public io::data {
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_RESPONSIVE_INSTANCE_HH

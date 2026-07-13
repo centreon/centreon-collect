@@ -27,7 +27,8 @@ using namespace com::centreon::engine::commands;
 /**
  *  Constructor.
  */
-result::result() : command_id(0), exit_code(0), exit_status(process::normal) {}
+result::result()
+    : command_id(0), exit_code(0), exit_status(common::e_exit_status::normal) {}
 
 /**
  *  Copy constructor.
@@ -42,7 +43,8 @@ result::result(const check_result& check_res)
     : command_id(0),
       end_time(check_res.get_finish_time()),
       exit_code(check_res.get_return_code()),
-      exit_status(check_res.get_exited_ok() ? process::normal : process::crash),
+      exit_status(check_res.get_exited_ok() ? common::e_exit_status::normal
+                                            : common::e_exit_status::crash),
       start_time(check_res.get_start_time()),
       output(check_res.get_output()) {}
 
@@ -108,13 +110,14 @@ void result::_internal_copy(result const& right) {
   output = right.output;
 }
 
-static const char* status_to_string(com::centreon::process::status status) {
+static const char* status_to_string(
+    com::centreon::common::e_exit_status status) {
   switch (status) {
-    case com::centreon::process::status::normal:
+    case com::centreon::common::e_exit_status::normal:
       return "normal";
-    case com::centreon::process::status::crash:
+    case com::centreon::common::e_exit_status::crash:
       return "crash";
-    case com::centreon::process::status::timeout:
+    case com::centreon::common::e_exit_status::timeout:
       return "timeout";
     default:
       return "unknown status";

@@ -16,27 +16,46 @@
 # For more information : contact@centreon.com
 #
 
+include_directories(
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/common/grpc/inc
+  ${CMAKE_BINARY_DIR}/common/tests
+      )
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(
     ut_common
     absl_flyweight_factory_test.cc
     crypto/base64.cc
+    crypto/aes256.cc
     engine_conf/expand_conf.cc
-    file_test.cc
+    file_system_test.cc
+    fork_test.cc
+    grpc/grpc_test.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc
+    jwt_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
     perfdata_test.cc
+    threshold_test.cc
     process_stat_test.cc
     process_test.cc
     rapidjson_helper_test.cc
     test_main.cc
+    timeperiod_utils_test.cc
     utf8_test.cc
     ${TESTS_SOURCES})
 else()
-  add_executable(ut_common
+  add_executable(
+    ut_common
     absl_flyweight_factory_test.cc
+    grpc/grpc_test.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc
     perfdata_test.cc
+    threshold_test.cc
     process_test.cc
     rapidjson_helper_test.cc
     test_main_win.cc
@@ -44,12 +63,11 @@ else()
     ${TESTS_SOURCES})
 endif()
 
-set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")                   
+set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
 
 target_compile_definitions(
   ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test"
-  -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\"
-  )
+                   -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\")
 
 set_target_properties(
   ut_common
@@ -68,8 +86,25 @@ endif()
 
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo.bat
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/bad_script.bat
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.sh
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_multilines.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_multilines.sh
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+
+add_library(pb_grpc_test_lib grpc/grpc_test.proto)
+protobuf_generate(TARGET pb_grpc_test_lib)
+protobuf_generate(TARGET pb_grpc_test_lib
+ LANGUAGE grpc
+ PLUGIN protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+ GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
+)
+
 
 add_test(NAME tests COMMAND ut_common)
 
@@ -77,14 +112,19 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
-            engine_conf
+            process_stat
             ctncrypto
             centreon_http
             centreon_process
-            -L${Boost_LIBRARY_DIR_RELEASE}
-            boost_program_options
-            re2::re2
+            centreon_hexdump
+            centreon_grpc
+            centreon_file_system
+            centreon_engine_conf
             log_v2
+            gRPC::grpc++
+            protobuf::libprotobuf
+            Boost::program_options
+            re2::re2
             OpenSSL::SSL
             OpenSSL::Crypto
             GTest::gtest
@@ -96,16 +136,23 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             absl::base
             absl::bits
             fmt::fmt
+            stdc++fs
             pthread)
 
-  add_dependencies(ut_common centreon_common centreon_http)
+  add_dependencies(ut_common centreon_common process_stat ctncrypto
+                   centreon_http)
 
 else()
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
             centreon_process
+            centreon_hexdump
+            ctncrypto
+            centreon_grpc
             Boost::program_options
+            Boost::process
+            gRPC::grpc++
             re2::re2
             GTest::gtest
             GTest::gtest_main
@@ -117,7 +164,7 @@ else()
             absl::bits
             fmt::fmt)
 
-  add_dependencies(ut_common centreon_common)
+  add_dependencies(ut_common centreon_common ctncrypto)
 
 endif()
 

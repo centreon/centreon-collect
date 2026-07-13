@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Download actionlint
         id: get_actionlint
@@ -33,9 +33,11 @@ jobs:
       - name: Check workflow files
         env:
           SHELLCHECK_OPTS: "--severity=error"
+          ACTIONLINT: ${{ steps.get_actionlint.outputs.executable }}
         run: |
-          ${{ steps.get_actionlint.outputs.executable }} \
+          "$ACTIONLINT" \
             -ignore 'label "centreon-(ubuntu-22.04|common|collect|collect-arm64)" is unknown' \
+            -ignore 'label "ubuntu-24.04-arm" is unknown' \
             -ignore '"github.head_ref" is potentially untrusted' \
             -pyflakes= \
             -color
@@ -43,14 +45,17 @@ jobs:
 
       - name: Ensure SHA pinned actions
         uses: centreon/github-actions-ensure-sha-pinned-actions@47d553c67ceb08ad660deaeb3b994e47a3dd8fc3 # v3.0.23.3
+        with:
+          allowlist: |
+            centreon/security-tools
 
   yaml-lint:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.12'
 

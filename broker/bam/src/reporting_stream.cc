@@ -1131,6 +1131,18 @@ void reporting_stream::_process_pb_ba_event(
   } else {
     // Event was not found, insert one.
     try {
+      // sometimes for unknown reason, we may still have a previous event with
+      // NULL end_time so we clean it
+      std::string clean_query = fmt::format(
+          "UPDATE mod_bam_reporting_ba_events SET end_time={0} WHERE "
+          "end_time IS NULL and ba_id={1} and start_time < {0}",
+          be.start_time(), be.ba_id());
+
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "reporting_stream: clean forgotten events: '{}'",
+                          clean_query);
+      _mysql.run_query(clean_query, database::mysql_error::close_ba_events);
+
       _ba_full_event_insert.bind_value_as_i32(0, be.ba_id());
       _ba_full_event_insert.bind_value_as_i32(1, be.first_level());
       _ba_full_event_insert.bind_value_as_u64(2, be.start_time());

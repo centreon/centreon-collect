@@ -54,11 +54,9 @@ for f in content:
             for p in root.findall('.//test'):
                 for s in p.findall('./status'):
                     starttime = datetime.datetime.strptime(
-                        s.attrib['starttime'], '%Y%m%d %H:%M:%S.%f')
-                    endtime = datetime.datetime.strptime(
-                        s.attrib['endtime'], '%Y%m%d %H:%M:%S.%f')
-                    duration = endtime - starttime
-                    total_duration += duration.total_seconds()
+                        s.attrib['start'], '%Y-%m-%dT%H:%M:%S.%f')
+                    duration = float(s.attrib['elapsed'])
+                    total_duration += duration
                     for t in p.findall('./tag'):
                         if t.text == 'benchmark':
                             if not p.attrib['name'] in benchmark:

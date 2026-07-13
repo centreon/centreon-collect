@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
+#include "com/centreon/broker/stats/center.hh"
 #include "common.pb.h"
 
 namespace com::centreon::broker::config::applier {
@@ -56,7 +57,7 @@ class state {
  private:
   const common::PeerType _peer_type;
   std::string _cache_dir;
-  uint32_t _poller_id;
+  uint64_t _poller_id;
   uint32_t _rpc_port;
   bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
@@ -86,6 +87,8 @@ class state {
 
   modules _modules;
 
+  std::shared_ptr<com::centreon::broker::stats::center> _center;
+
   static stats _stats_conf;
 
   /* This map is indexed by the tuple {poller_id, poller_name, broker_name}. */
@@ -109,7 +112,7 @@ class state {
   const std::string& cache_dir() const noexcept;
   uint32_t rpc_port() const noexcept;
   bbdo::bbdo_version get_bbdo_version() const noexcept;
-  uint32_t poller_id() const noexcept;
+  uint64_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
   const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;
@@ -151,6 +154,7 @@ class state {
   bool broker_needs_update() const;
   void set_engine_configuration(uint64_t poller_id, const std::string& conf);
   std::string engine_configuration(uint64_t poller_id) const;
+  std::shared_ptr<com::centreon::broker::stats::center> center() const;
 };
 }  // namespace com::centreon::broker::config::applier
 

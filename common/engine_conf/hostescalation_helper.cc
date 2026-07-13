@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
+
+#include <google/protobuf/util/message_differencer.h>
+
 #include "common/engine_conf/hostescalation_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -33,11 +36,14 @@ namespace com::centreon::engine::configuration {
  * @return A number of type size_t.
  */
 size_t hostescalation_key(const Hostescalation& he) {
-  return absl::HashOf(he.hosts().data(0),
-                      // he.contactgroups().data(),
-                      he.escalation_options(), he.escalation_period(),
-                      he.first_notification(), he.last_notification(),
+  return absl::HashOf(he.contactgroups(), he.escalation_options(),
+                      he.escalation_period(), he.first_notification(),
+                      he.hostgroups(), he.hosts(), he.last_notification(),
                       he.notification_interval());
+}
+
+bool operator==(const Hostescalation& left, const Hostescalation& right) {
+  return ::google::protobuf::util::MessageDifferencer::Equals(left, right);
 }
 
 /**
@@ -57,7 +63,7 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      Hostescalation::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -127,13 +133,12 @@ void hostescalation_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Hostescalation object, in other words set its
  * default values.
  */
-void hostescalation_helper::_init() {
+void hostescalation_helper::set_default_values() {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_escalation_options(action_he_none);
-  obj->set_first_notification(-2);
-  obj->set_last_notification(-2);
-  obj->set_notification_interval(0);
+  DEFAULT_PB_FIELD_SET(escalation_options, action_he_none);
+  DEFAULT_PB_FIELD_SET(first_notification, -2);
+  DEFAULT_PB_FIELD_SET(last_notification, -2);
+  DEFAULT_PB_FIELD_SET(notification_interval, 0);
 }
 
 /**

@@ -8,8 +8,9 @@
     "encryption":false,
     "public_cert":"",
     "private_key":"",
-    "ca_certificate":"",
-    "ca_name":"",
+    "ca":"",
+    "ca_common_name":"",
     "host":"my-centreon-host",
-    "reversed_grpc_streaming":false
+    "reversed_grpc_streaming":false,
+    "host_template": "OS-Linux-Centreon-Monitoring-Agent-custom"
 }

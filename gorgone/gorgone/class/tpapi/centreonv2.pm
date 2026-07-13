@@ -24,6 +24,7 @@ use strict;
 use warnings;
 use gorgone::class::http::http;
 use JSON::XS;
+use URI::Escape;
 
 sub new {
     my ($class, %options) = @_;
@@ -265,10 +266,37 @@ sub get_scheduling_jobs {
     }
 
     my $endpoint = '/auto-discovery/scheduling/jobs';
-    return $self->request(
+    my ($status, $response) = $self->request(
         method => 'GET',
         endpoint => $endpoint,
         get_param => $get_param
+    );
+    return $status if $status != 0;
+
+    if (ref $response ne 'HASH' or ! $response->{result}) {
+        # failed to parse the http output ?
+        return 1;
+    }
+    my @filtered_jobs = ();
+
+    foreach my $job (@{$response->{result}}) {
+        next if (ref $job ne "HASH" || !defined($job->{job_id}));
+        push(@filtered_jobs, $job);
+    }
+
+    $response = {result => \@filtered_jobs};
+
+    return (0,$response);
+}
+
+sub get_api_token {
+    my ($self, %options) = @_;
+
+    my $endpoint = '/administration/tokens/' . uri_escape($options{token_name});
+
+    return $self->request(
+        method => 'GET',
+        endpoint => $endpoint
     );
 }
 

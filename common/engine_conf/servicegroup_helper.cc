@@ -35,7 +35,7 @@ servicegroup_helper::servicegroup_helper(Servicegroup* obj)
                      obj,
                      {},
                      Servicegroup::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -71,11 +71,6 @@ void servicegroup_helper::check_validity(error_cnt& err) const {
     err.config_errors++;
     throw msg_fmt("Service group has no name (property 'servicegroup_name')");
   }
-}
-
-void servicegroup_helper::_init() {
-  Servicegroup* obj = static_cast<Servicegroup*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
 }
 
 /**

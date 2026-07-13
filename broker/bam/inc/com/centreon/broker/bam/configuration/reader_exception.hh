@@ -19,7 +19,7 @@
 #ifndef CCB_CONFIGURATION_READER_EXCEPTION_HH
 #define CCB_CONFIGURATION_READER_EXCEPTION_HH
 
-#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/exceptions/config.hh"
 
 namespace com::centreon::broker {
 
@@ -32,15 +32,26 @@ namespace configuration {
  *
  *  Reader_exception.
  */
-class reader_exception : public com::centreon::exceptions::msg_fmt {
+class reader_exception : public exceptions::config {
+  unsigned _ba_id;
+
  public:
   reader_exception() = delete;
 
   template <typename... Args>
   explicit reader_exception(std::string const& str, const Args&... args)
-      : msg_fmt(str, args...) {}
+      : exceptions::config(str, args...), _ba_id(0) {}
+
+  template <typename... Args>
+  explicit reader_exception(unsigned ba_id,
+                            std::string const& str,
+                            const Args&... args)
+      : exceptions::config(str, args...), _ba_id(ba_id) {}
+
   reader_exception(const reader_exception&);
   ~reader_exception() noexcept {};
+
+  unsigned ba_id() const { return _ba_id; }
 };
 }  // namespace configuration
 }  // namespace bam

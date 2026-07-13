@@ -60,7 +60,7 @@ uint64_t forward::run(std::string const& processed_cmd,
                       nagios_macros& macros,
                       uint32_t timeout,
                       const check_result::pointer& to_push_to_checker,
-                      const void* caller) {
+                      const notifier* caller) {
   return _command->run(processed_cmd, macros, timeout, to_push_to_checker,
                        caller);
 }

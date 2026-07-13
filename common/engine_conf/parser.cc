@@ -17,8 +17,9 @@
  *
  */
 #include "parser.hh"
+#include <absl/strings/match.h>
 #include "anomalydetection_helper.hh"
-#include "com/centreon/common/file.hh"
+#include "com/centreon/common/file_system.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "command_helper.hh"
 #include "common/engine_conf/state.pb.h"
@@ -26,6 +27,7 @@
 #include "connector_helper.hh"
 #include "contact_helper.hh"
 #include "contactgroup_helper.hh"
+#include "google/protobuf/util/message_differencer.h"
 #include "host_helper.hh"
 #include "hostdependency_helper.hh"
 #include "hostescalation_helper.hh"
@@ -63,7 +65,7 @@ parser::parser() : _logger{log_v2::instance().get(log_v2::CONFIG)} {}
  *  @param[in] pb_config The state configuration to fill.
  *  @param[out] err   The config warnings/errors counter.
  */
-void parser::parse(std::string const& path, State* pb_config, error_cnt& err) {
+void parser::parse(const std::string& path, State* pb_config, error_cnt& err) {
   /* Parse the global configuration file. */
   auto helper = std::make_unique<state_helper>(pb_config);
   _pb_helper[pb_config] = std::move(helper);
@@ -163,6 +165,39 @@ void parser::_parse_global_configuration(const std::string& path,
                        p.second);
     }
   }
+
+  /* A bad hook so that Engine stays compatible with previous
+   * versions. */
+  for (auto& m : pb_config->broker_module()) {
+    if (absl::StrContains(m, "cbmod.so")) {
+      auto arr = absl::StrSplit(m, absl::ByAnyChar(" \t\n"), absl::SkipEmpty());
+      auto it = arr.begin();
+      std::string_view module_name;
+      if (it != arr.end()) {
+        module_name = *it;
+        ++it;
+        if (it != arr.end()) {
+          std::string_view module_args = *it;
+          module_args = absl::StripAsciiWhitespace(module_args);
+          if (pb_config->broker_module_cfg_file().empty()) {
+            pb_config->set_broker_module_cfg_file(
+                std::string(module_args.data(), module_args.size()));
+            _logger->warn(
+                "Parsing the configuration file '{}' of the 'cbmod' module "
+                "to "
+                "still be able to use it.",
+                module_args);
+          } else {
+            _logger->warn(
+                "The new 'broker_module_cfg_file' field is already set, so "
+                "nothing done with the 'cbmod' module configuration file '{}'.",
+                module_args);
+          }
+        }
+      }
+      break;
+    }
+  }
 }
 
 /**
@@ -173,12 +208,12 @@ void parser::_parse_global_configuration(const std::string& path,
  * from the message format.
  *
  * Two mechanisms are used to complete the reflection.
- * * A hastable <string, string> named correspondence is used in case of several
- *   keys to access to the same value. This is, for example, the case for
- *   host_id which is historically also named _HOST_ID.
+ * * A hastable <string, string> named correspondence is used in case of
+ * several keys to access to the same value. This is, for example, the case
+ * for host_id which is historically also named _HOST_ID.
  * * A std::function<bool(string_view_string_view) can also be defined in
- *   several cases to make special stuffs. For example, we use it for timeperiod
- *   object to set its timeranges.
+ *   several cases to make special stuffs. For example, we use it for
+ * timeperiod object to set its timeranges.
  *
  * @param path The file to parse.
  * @param pb_config The configuration to complete.
@@ -250,6 +285,8 @@ void parser::_parse_object_definitions(const std::string& path,
             }
           }
           if (obj.register_()) {
+            // final object => we apply default values
+            _pb_helper[msg.get()]->set_default_values();
             switch (otype) {
               case message_helper::contact:
                 pb_config->mutable_contacts()->AddAllocated(
@@ -341,7 +378,8 @@ void parser::_parse_object_definitions(const std::string& path,
           if (!msg_helper->set(key, l)) {
             if (!msg_helper->insert_customvariable(key, l))
               throw msg_fmt(
-                  "Unable to parse '{}' key with value '{}' in message of type "
+                  "Unable to parse '{}' key with value '{}' in message of "
+                  "type "
                   "'{}'",
                   key, l, type);
           }
@@ -511,6 +549,10 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
     _resolve_template(_pb_helper[&sg],
                       _pb_templates[message_helper::servicegroup]);
 
+  for (Timeperiod& tp : *pb_config->mutable_timeperiods())
+    _resolve_template(_pb_helper[&tp],
+                      _pb_templates[message_helper::timeperiod]);
+
   for (const Command& c : pb_config->commands())
     _pb_helper.at(&c)->check_validity(err);
 
@@ -573,7 +615,8 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
 }
 
 /**
- * @brief Resolvers a message given by its helper and using the given templates.
+ * @brief Resolvers a message given by its helper and using the given
+ * templates.
  *
  * @param msg_helper The message helper.
  * @param tmpls The templates to use.
@@ -602,9 +645,37 @@ void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
 }
 
 /**
- * @brief For each unchanged field in the Protobuf object stored in msg_helper,
- * we copy the corresponding field from tmpl. This is the key for the
- * inheritence with cfg files.
+ * @brief Some helpers to merge timeperiod with ther templates
+ *
+ */
+#define COPY_TIME_RANGE(weekday)                                      \
+  if (days->weekday().empty() && !template_days->weekday().empty()) { \
+    days->mutable_##weekday()->Add(template_days->weekday().begin(),  \
+                                   template_days->weekday().end());   \
+  }
+
+template <class repeated_Daterange_type>
+static void _merge_exceptions(repeated_Daterange_type* except,
+                              const repeated_Daterange_type& template_except) {
+  for (const Daterange& to_insert : template_except) {
+    bool found = false;
+    for (const Daterange& to_check : *except) {
+      if (::google::protobuf::util::MessageDifferencer::Equals(to_insert,
+                                                               to_check)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      except->Add()->CopyFrom(to_insert);
+    }
+  }
+}
+
+/**
+ * @brief For each unchanged field in the Protobuf object stored in
+ * msg_helper, we copy the corresponding field from tmpl. This is the key for
+ * the inheritence with cfg files.
  *
  * @param msg_helper A message_help holding a protobuf message
  * @param tmpl A template of the same type as the on in the msg_helper
@@ -649,7 +720,11 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 if (!found)
                   refl->AddString(msg, f, s);
               }
-              msg_helper->set_changed(f->index());
+              // in conf files address are referenced by address1, address2....
+              // so we have to merge them
+              if (f->name() != "address") {
+                msg_helper->set_changed(f->index());
+              }
             } break;
             case FieldDescriptor::CPPTYPE_MESSAGE: {
               size_t count = refl->FieldSize(*tmpl, f);
@@ -680,7 +755,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                       const CustomVariable& cv1 =
                           static_cast<const CustomVariable&>(m1);
                       if (cv.name() == cv1.name()) {
-                        _logger->info("same name");
+                        _logger->debug("same name");
                         found = true;
                         break;
                       }
@@ -694,7 +769,10 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                   new_m->CopyFrom(m);
                 }
               }
-              msg_helper->set_changed(f->index());
+              // tags and custom variables are merged among templates
+              if (f->name() != "tags" && f->name() != "customvariables") {
+                msg_helper->set_changed(f->index());
+              }
             } break;
             default:
               _logger->error(
@@ -750,9 +828,10 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     if (!found)
                       set->add_data(v);
                   }
-                } else if (set->data().empty())
+                } else if (set->data().empty()) {
                   *set->mutable_data() = orig_set->data();
-
+                  set->set_additive(orig_set->additive());
+                }
               } else if (d && d->name() == "StringList") {
                 StringList* orig_lst =
                     static_cast<StringList*>(refl->MutableMessage(tmpl, f));
@@ -761,8 +840,10 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 if (lst->additive()) {
                   for (auto& v : orig_lst->data())
                     lst->add_data(v);
-                } else if (lst->data().empty())
+                } else if (lst->data().empty()) {
                   *lst->mutable_data() = orig_lst->data();
+                  lst->set_additive(orig_lst->additive());
+                }
               } else if (d && d->name() == "PairStringSet") {
                 PairStringSet* orig_pair =
                     static_cast<PairStringSet*>(refl->MutableMessage(tmpl, f));
@@ -780,13 +861,43 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     if (!found)
                       pair->add_data()->CopyFrom(v);
                   }
-                } else if (pair->data().empty())
+                } else if (pair->data().empty()) {
                   *pair->mutable_data() = orig_pair->data();
+                  pair->set_additive(orig_pair->additive());
+                }
+              } else if (d && d->name() == "ExceptionArray") {
+                const ExceptionArray* template_exceptions =
+                    static_cast<const ExceptionArray*>(
+                        refl->MutableMessage(tmpl, f));
+                ExceptionArray* exceptions =
+                    static_cast<ExceptionArray*>(refl->MutableMessage(msg, f));
+                _merge_exceptions(exceptions->mutable_calendar_date(),
+                                  template_exceptions->calendar_date());
+                _merge_exceptions(exceptions->mutable_month_date(),
+                                  template_exceptions->month_date());
+                _merge_exceptions(exceptions->mutable_month_day(),
+                                  template_exceptions->month_day());
+                _merge_exceptions(exceptions->mutable_month_week_day(),
+                                  template_exceptions->month_week_day());
+                _merge_exceptions(exceptions->mutable_week_day(),
+                                  template_exceptions->week_day());
+              } else if (d && d->name() == "DaysArray") {
+                const DaysArray* template_days = static_cast<const DaysArray*>(
+                    refl->MutableMessage(tmpl, f));
+                DaysArray* days =
+                    static_cast<DaysArray*>(refl->MutableMessage(msg, f));
+                COPY_TIME_RANGE(sunday);
+                COPY_TIME_RANGE(monday);
+                COPY_TIME_RANGE(tuesday);
+                COPY_TIME_RANGE(wednesday);
+                COPY_TIME_RANGE(thursday);
+                COPY_TIME_RANGE(friday);
+                COPY_TIME_RANGE(saturday);
               } else {
                 refl->MutableMessage(msg, f)->CopyFrom(
                     refl->GetMessage(*tmpl, f));
+                msg_helper->set_changed(f->index());
               }
-              msg_helper->set_changed(f->index());
             } break;
 
             default:

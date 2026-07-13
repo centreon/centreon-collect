@@ -20,17 +20,9 @@
 #define CCE_CONFIGURATION_APPLIER_HOST_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#ifndef LEGACY_CONF
 #include "common/engine_conf/host_helper.hh"
-#endif
 
 namespace com::centreon::engine::configuration {
-
-#ifdef LEGACY_CONF
-// Forward declarations.
-class host;
-class state;
-#endif
 
 namespace applier {
 class host {
@@ -39,20 +31,12 @@ class host {
   host(host const&) = delete;
   ~host() noexcept = default;
   host& operator=(host const&) = delete;
-#ifdef LEGACY_CONF
-  void add_object(const configuration::host& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::host const& obj);
-  void remove_object(configuration::host const& obj);
-  void resolve_object(configuration::host const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Host& obj);
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Host* old_obj,
                      const configuration::Host& new_obj);
   void remove_object(ssize_t idx);
   void resolve_object(const configuration::Host& obj, error_cnt& err);
-#endif
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

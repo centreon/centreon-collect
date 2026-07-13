@@ -26,7 +26,7 @@ Test Timeout        220s
 action module with ${communication_mode} communcation mode
     [Documentation]    test action on distant node, no whitelist configured
     @{process_list}    Create List    ${communication_mode}_gorgone_central    ${communication_mode}_gorgone_poller_2
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Run    rm /tmp/actionLogs
 
     @{central_config}    Create List    ${ROOT_CONFIG}actions.yaml
@@ -38,6 +38,9 @@ action module with ${communication_mode} communcation mode
     ...    poller_name=${communication_mode}_gorgone_poller_2
     ...    poller_config=${poller_config}
 
+    Setup Sudo
+    Ctn Prepare package manager
+
     # first we test the api without waiting for the output of the command.
     # check by default the api launch the query in local
     Test Async Action Module
@@ -45,10 +48,11 @@ action module with ${communication_mode} communcation mode
     Test Async Action Module    node_path=nodes/1/
     # check a distant poller can execute a command and send back the output
     ${start_date}    Get Current Date    increment=-10s
-    Test Async Action Module    node_path=nodes/2/
+    Test Async Action Module    node_path=nodes/2/    plugin_install=centreon-plugin-Operatingsystems-Linux-Snmp
     # we need to check it is the poller and not the central that have done the action.
     ${log_poller2_query}    Create List    Robot test write with param: for node nodes/2/
-    ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query}    date=${start_date}    timeout=10
+    # this can be long as the poller can install new packages before executing the command.
+    ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query}    date=${start_date}    timeout=70
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file : ${logs_poller}
 
     # Now we test the action api by waiting for the command output in one call.
@@ -69,6 +73,7 @@ action module with ${communication_mode} communcation mode
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
 
 *** Keywords ***
@@ -82,21 +87,34 @@ Test Sync Action Module
 
 Test Async Action Module
     [Documentation]    This make an api call to write to a dummy file and output a string. as gorgone central and poller and robot are executed on the same host we can access the file to check the result.
-    [Arguments]    ${node_path}=${EMPTY}
-    ${action_api_result}=    Post Action Endpoint    node_path=${node_path}
+    [Arguments]    ${node_path}=${EMPTY}    ${plugin_install}=
+    # plugin_install allow to add a plugin to the metadata of the command to be installed.
+
+    ${action_api_result}=    Post Action Endpoint    node_path=${node_path}    plugin_install=${plugin_install}
+
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=90
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
+    ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}
+    Should Be True    ${return}    Plugin don't seem to be correctly installed or purge didn't work.
 
 
 Post Action Endpoint
-    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}
+    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}    ${plugin_install}=${EMPTY}    ${plugin_version}=20260300
 
     # Ideally, Gorgone should not allow any bash interpretation on command it execute.
     # As there is a whitelist in gorgone, if there was no bash interpretation we could allow only our required binary and be safe.
     # As gorgone always had bash interpretation available, most of the internal use of this module use redirection, pipe or other sh feature.
     ${bodycmd}=    Create Dictionary    command=echo 'Robot test write with param:${get_params} for node ${node_path}' | tee -a /tmp/actionLogs
+
+    IF    '${plugin_install}' != ''
+        ${install_plugin}=    Create Dictionary    ${plugin_install}=${plugin_version}
+        ${pkg}=          Create Dictionary    pkg_install=${install_plugin}
+        ${metadata}=    Create Dictionary    metadata=${pkg}
+        Set To Dictionary    ${bodycmd}    metadata    ${pkg}
+    END
+
     ${body}=    Create List    ${bodycmd}
     ${result}    POST    http://127.0.0.1:8085/api/${node_path}core/action/command${get_params}    json=${body}
     RETURN    ${result}
@@ -105,9 +123,11 @@ Post Action Endpoint
 Check Action Api Do Something
     [Arguments]    ${status}    ${logs}    ${node_path}    ${get_params}
 
-    Should Be True    ${status}    No log found in the gorgone api or the command failed.
-    # the log api send back a json containing a list of log, with for each logs the token, id, creation time (ctime), status code(code), and data (among other thing)
+    Should Be True    ${status}    No log found in the gorgone api or the command failed : ${logs}
+    # the log api send back a json containing a list of log, with for each logs the token, id, creation time (ctime),
+    # status code(code), and data (among other thing)
     # data is a stringified json that need to be evaluated separately.
+    Should Not Be Empty    ${logs}[data]    no data found in the log
     ${internal_json}=    Evaluate     json.loads("""${logs}[data]""")    json
 
     Should Be Equal As Numbers    0    ${internal_json}[result][exit_code]

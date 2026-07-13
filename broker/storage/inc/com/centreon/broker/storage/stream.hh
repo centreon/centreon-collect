@@ -44,7 +44,6 @@ class stream : public io::stream {
     std::string host_name;
     uint32_t index_id;
     bool locked;
-    uint32_t rrd_retention;
     std::string service_description;
     bool special;
   };

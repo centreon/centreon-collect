@@ -43,7 +43,7 @@ namespace commands {
  *  Command execute a command line with their arguments and
  *  notify listener at the end of the command.
  */
-class command {
+class command : public std::enable_shared_from_this<command> {
  public:
   enum class e_type { exec, forward, raw, connector, otel };
   const e_type _type;
@@ -53,7 +53,7 @@ class command {
 
   std::mutex _lock;
   std::string _command_line;
-  command_listener* _listener;
+  std::shared_ptr<command_listener> _listener;
   std::string _name;
 
   /**
@@ -92,7 +92,7 @@ class command {
 
   command(const std::string& name,
           const std::string& command_line,
-          command_listener* listener = nullptr,
+          const std::shared_ptr<command_listener>& listener = nullptr,
           e_type cmd_type = e_type::exec);
   virtual ~command() noexcept;
   command(const command&) = delete;
@@ -107,7 +107,7 @@ class command {
                        nagios_macros& macors,
                        uint32_t timeout,
                        const check_result::pointer& to_push_to_checker,
-                       const void* caller = nullptr) = 0;
+                       const notifier* caller = nullptr) = 0;
   virtual void run(const std::string& process_cmd,
                    nagios_macros& macros,
                    uint32_t timeout,
@@ -143,7 +143,8 @@ class command {
   void remove_caller(void* caller);
 
   virtual void set_command_line(const std::string& command_line);
-  void set_listener(command_listener* listener) noexcept;
+  void set_listener(const std::shared_ptr<command_listener>& listener) noexcept;
+
   static command_map commands;
 };
 

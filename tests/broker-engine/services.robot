@@ -151,6 +151,74 @@ HRSAS
     Should Be Equal As Strings    ${output}    ((None, 1),)    real_state should be NULL and state should be DOWN
     Disconnect From Database
 
+DISCONNECT_POLLER
+    [Documentation]
+    ...    Given a stable state
+    ...    We kill broker engine connection
+    ...    We wait for _update_hosts_and_services_of_instance
+    ...    Then host_1 must be in unreachable state, service_1 must be in unknown state
+    ...    We restore broker engine connection
+    ...    We wait for _update_hosts_and_services_of_instance
+    ...    Then host_1 must not be in unreachable state, service_1 must not be in unknown state
+
+    [Tags]    broker    engine    service    MON-22544
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    sql    trace
+    #in order to execute unified sql loop faster
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    read_timeout    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    7
+
+    Ctn Clear Retention
+    Ctn Clear Db    services
+    Ctn Clear Db    instances
+    Ctn Clear Db    hosts
+
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Log To Console    Let's wait for the service to be created in the "services" table
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT count(*) FROM services WHERE description='service_1' AND enabled=1
+        IF    ${output} == ((1,),)    BREAK
+        Sleep    1s
+    END
+
+    Should Be Equal As Strings    ${output}    ((1,),)    We should have one service named service_1 in the "services" table
+    
+
+    Log To Console    disconnect centengine
+    ${start}    Get Current Date
+    Start Process    tcpkill -9 -i lo port 5669    shell=true    alias=tcpkill    stderr=/tmp/totoerr.log     stdout=/tmp/totoout.log
+
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    _update_hosts_and_services_of_instance not found in logs.
+
+    Log To Console    host_1 must be in unreachable state, service_1 must be in unknown state
+    Check Query Result    SELECT state FROM hosts WHERE name='host_1' AND enabled=1    ==    ${2}   retry_timeout=30s    retry_pause=1s    assertion_message=host is not unreachable
+    Check Query Result    SELECT state FROM services WHERE description='service_1' AND enabled=1    ==    ${3}   retry_timeout=30s    retry_pause=5s     assertion_message=service is not in unknown state
+    Check Query Result    SELECT status FROM resources WHERE parent_id=0 AND name='host_1'    ==    ${2}    retry_timeout=30s    retry_pause=5s    assertion_message=host resource is not unreachable
+    Check Query Result    SELECT status FROM resources WHERE parent_id!=0 AND name='service_1'    ==    ${3}    retry_timeout=30s    retry_pause=5s     assertion_message=service resource is not in unknown state
+
+    Log To Console    connect centengine
+    ${start}    Get Current Date
+    Terminate Process    tcpkill
+
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    _update_hosts_and_services_of_instance not found in logs.
+
+    Log To Console    host_1 must not be in unreachable state, service_1 must not be in unknown state
+    Check Query Result    SELECT count(*) FROM hosts AS h JOIN resources AS r ON r.parent_id=0 AND r.id = h.host_id AND r.status= h.state AND h.state != 2 WHERE r.name='host_1'   ==    ${1}    retry_timeout=30s    retry_pause=1s    assertion_message=resource or host not updated
+    Check Query Result    SELECT count(*) FROM services AS s JOIN resources AS r ON r.parent_id=s.host_id AND r.id = s.service_id AND r.status= s.state AND s.state != 3 WHERE r.name='service_1'    ==    ${1}    retry_timeout=30s    retry_pause=1s    assertion_message=resource or service not updated
+
+    Disconnect From Database
+
 ICON_UPDATE
     [Documentation]
     ...    Given the service "service_1" on "host_1" has its "icon_image" set to empty in the "services" and icon_id to zero in resources table

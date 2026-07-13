@@ -163,7 +163,7 @@ sub init {
         $self->{logger}->writeLogError("[core] can't find config file '$self->{config_file}'");
         exit(1);
     }
-    # before loading the config, we need to load initialize vault.
+    # before loading the config, we need to initialize vault.
     # Gorgone don't know how to reload for now, but once it will be done, we will need to retry the vault connexion if it failed when starting, and read again the configuration
     $self->{vault_file} = defined($self->{vault_file}) ? $self->{vault_file} : '/var/lib/centreon/vault/vault.json';
     $self->{vault} = centreon::common::centreonvault->new(logger => $self->{logger},  'config_file' =>  $self->{vault_file});
@@ -173,9 +173,9 @@ sub init {
         # the filter is used to remove anything from the configuration not related to gorgone or centreon
         filter => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)'
     );
+    $self->load_env_config();
 
     $self->init_server_keys();
-
     $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =
         defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive}) && $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =~ /^(0|1)$/ ? $1 : 1;
 
@@ -436,7 +436,7 @@ sub load_module {
         require $file;
     };
     if ($@) {
-        $self->{logger}->writeLogInfo("[core] Module '" . $options{config_module}->{name} . "' cannot be loaded: " . $@);
+        $self->{logger}->writeLogError("[core] Module '" . $options{config_module}->{name} . "' cannot be loaded: " . $@);
         return 0;
     }
     $self->{modules_register}->{$package} = {};
@@ -454,7 +454,8 @@ sub load_module {
         config_core => $self->{config}->{configuration}->{gorgone},
         config_db_centreon => $self->{config}->{configuration}->{centreon}->{database}->{db_configuration},
         config_db_centstorage => $self->{config}->{configuration}->{centreon}->{database}->{db_realtime},
-        logger => $self->{logger}
+        logger => $self->{logger},
+        vault_file => $self->{vault_file} # this is only used by autodiscovery for now
     );
     if ($loaded == 0) {
         delete $self->{modules_register}->{$package};
@@ -646,7 +647,9 @@ sub message_run {
     my ($action, $token, $target) = ($options->{frame}->getAction(), $options->{frame}->getToken(), $options->{frame}->getTarget());
 
     # Check if not myself ;)
-    if (defined($target) && ($target eq '' || (defined($self->{id}) && $target eq $self->{id}))) {
+    if (defined($target) && ($target eq '' ||
+        (defined($self->{id})  && $target eq $self->{id}) ||
+        (defined($self->{uid}) && $target eq $self->{uid}))) {
         $target = undef;
     }
 

@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 
@@ -53,7 +52,7 @@ class comment : public io::data {
   uint32_t host_id;
   uint32_t internal_id;
   bool persistent;
-  uint32_t poller_id;
+  uint64_t poller_id;
   uint32_t service_id;
   short source;
 

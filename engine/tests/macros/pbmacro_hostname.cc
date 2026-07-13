@@ -20,12 +20,8 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include "com/centreon/engine/globals.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
-#endif
 
 #include "../helper.hh"
 #include "../test_engine.hh"
@@ -93,6 +89,8 @@ TEST_F(MacroHostname, HostProblemId) {
   hst2.set_host_name("test_host2");
   hst2.set_host_id(13);
   hst2.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
+  hst2_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_NO_THROW(hst_aply2.add_object(hst2));
   ASSERT_EQ(2u, host::hosts.size());
@@ -163,6 +161,7 @@ TEST_F(MacroHostname, TotalHostOk) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -187,6 +186,7 @@ TEST_F(MacroHostname, TotalHostServicesCritical) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -207,6 +207,7 @@ TEST_F(MacroHostname, HostName) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -225,6 +226,7 @@ TEST_F(MacroHostname, HostAlias) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -243,6 +245,7 @@ TEST_F(MacroHostname, HostAddress) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -260,6 +263,7 @@ TEST_F(MacroHostname, LastHostCheck) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -280,6 +284,7 @@ TEST_F(MacroHostname, LastHostStateChange) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -300,6 +305,7 @@ TEST_F(MacroHostname, HostOutput) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -321,6 +327,7 @@ TEST_F(MacroHostname, HostPerfData) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -343,6 +350,7 @@ TEST_F(MacroHostname, HostState) {
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
   hst_hlp.hook("contacts", "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -363,6 +371,7 @@ TEST_F(MacroHostname, HostStateID) {
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
   hst_hlp.hook("contacts", "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -383,6 +392,7 @@ TEST_F(MacroHostname, HostAttempt) {
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
   hst_hlp.hook("contacts", "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -403,6 +413,7 @@ TEST_F(MacroHostname, HostExecutionTime) {
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
   hst_hlp.hook("contacts", "user");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -424,6 +435,7 @@ TEST_F(MacroHostname, HostLatency) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -445,6 +457,7 @@ TEST_F(MacroHostname, HostDuration) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -465,6 +478,7 @@ TEST_F(MacroHostname, HostDurationSec) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -485,6 +499,7 @@ TEST_F(MacroHostname, HostDownTime) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   int now{500000000};
@@ -504,6 +519,7 @@ TEST_F(MacroHostname, HostStateType) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   int now{500000000};
@@ -523,6 +539,7 @@ TEST_F(MacroHostname, HostPercentChange) {
   hst.set_host_name("test_host");
   hst.set_host_id(12);
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   int now{500000000};
@@ -553,6 +570,8 @@ TEST_F(MacroHostname, HostGroupName) {
   hst_c.set_host_id(2);
   hst_c.set_address("127.0.0.1");
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -596,6 +615,8 @@ TEST_F(MacroHostname, HostGroupAlias) {
   hst_c.set_address("127.0.0.1");
   hst_c.set_host_id(2);
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -631,6 +652,7 @@ TEST_F(MacroHostname, LastHostUP) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -654,6 +676,7 @@ TEST_F(MacroHostname, LastHostDown) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -677,6 +700,7 @@ TEST_F(MacroHostname, LastHostUnreachable) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -709,6 +733,7 @@ TEST_F(MacroHostname, HostCheckCommand) {
   hst.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -730,6 +755,7 @@ TEST_F(MacroHostname, HostDisplayName) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -752,6 +778,7 @@ TEST_F(MacroHostname, HostActionUrl) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_action_url("test_action_url");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -774,6 +801,7 @@ TEST_F(MacroHostname, HostNotesUrl) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes_url("test_notes_url");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -796,6 +824,7 @@ TEST_F(MacroHostname, HostNotes) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -818,6 +847,7 @@ TEST_F(MacroHostname, TotalHostsDown) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -842,6 +872,7 @@ TEST_F(MacroHostname, TotalHostsUnreachable) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -866,6 +897,7 @@ TEST_F(MacroHostname, TotalHostsDownUnhandled) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -888,6 +920,7 @@ TEST_F(MacroHostname, TotalHostsunreachableunhandled) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -910,6 +943,7 @@ TEST_F(MacroHostname, TotalHostProblems) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -932,6 +966,7 @@ TEST_F(MacroHostname, TotalHostProblemsUnhandled) {
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -955,6 +990,7 @@ TEST_F(MacroHostname, HostCheckType) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -980,6 +1016,7 @@ TEST_F(MacroHostname, LongHostOutput) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1005,6 +1042,7 @@ TEST_F(MacroHostname, HostNotificationNumber) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1030,6 +1068,7 @@ TEST_F(MacroHostname, HostNotificationID) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1055,6 +1094,7 @@ TEST_F(MacroHostname, HostEventID) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1080,6 +1120,7 @@ TEST_F(MacroHostname, LastHostEventID) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1113,6 +1154,8 @@ TEST_F(MacroHostname, HostGroupNames) {
   hst_c.set_address("127.0.0.1");
   hst_c.set_host_id(2);
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -1149,6 +1192,7 @@ TEST_F(MacroHostname, MaxHostAttempts) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1174,6 +1218,7 @@ TEST_F(MacroHostname, TotalHostServices) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1199,6 +1244,7 @@ TEST_F(MacroHostname, TotalHostServicesOK) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1224,6 +1270,7 @@ TEST_F(MacroHostname, TotalHostServicesWarning) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1249,6 +1296,7 @@ TEST_F(MacroHostname, TotalHostServicesUnknown) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1282,6 +1330,8 @@ TEST_F(MacroHostname, HostGroupNotes) {
   hst_c.set_address("127.0.0.1");
   hst_c.set_host_id(2);
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -1327,6 +1377,8 @@ TEST_F(MacroHostname, HostGroupNotesUrl) {
   hst_c.set_address("127.0.0.1");
   hst_c.set_host_id(2);
 
+  hst_a_helper.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -1372,6 +1424,8 @@ TEST_F(MacroHostname, HostGroupActionUrl) {
   hst_c.set_address("127.0.0.1");
   hst_c.set_host_id(2);
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -1417,6 +1471,8 @@ TEST_F(MacroHostname, HostGroupMembers) {
   hst_c.set_address("127.0.0.1");
   hst_c.set_host_id(2);
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -1454,6 +1510,7 @@ TEST_F(MacroHostname, LastHostProblemId) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1479,6 +1536,7 @@ TEST_F(MacroHostname, LastHostState) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1504,6 +1562,7 @@ TEST_F(MacroHostname, LastHostStateID) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1529,6 +1588,7 @@ TEST_F(MacroHostname, HostParents) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst_hlp.hook("parents", "test_parent");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1569,6 +1629,7 @@ TEST_F(MacroHostname, HostChildren) {
   hst_child_hlp.insert_customvariable("_WARNING", "200,20%");
   hst_child_hlp.insert_customvariable("_CRITICAL", "400,50%");
   hst_child.set_check_command("base_centreon_ping");
+  hst_child_hlp.set_default_values();
   hst_aply.add_object(hst_child);
 
   hst_parent.set_host_name("parent_host");
@@ -1578,6 +1639,7 @@ TEST_F(MacroHostname, HostChildren) {
   hst_parent_hlp.insert_customvariable("_WARNING", "200,20%");
   hst_parent_hlp.insert_customvariable("_CRITICAL", "400,50%");
   hst_parent.set_check_command("base_centreon_ping");
+  hst_parent_hlp.set_default_values();
   hst_aply.add_object(hst_parent);
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);
@@ -1607,6 +1669,7 @@ TEST_F(MacroHostname, HostID) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_notes("test_notes");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1632,6 +1695,7 @@ TEST_F(MacroHostname, HostTimeZone) {
   hst.set_host_id(12);
   hst_hlp.hook("contacts", "user");
   hst.set_timezone("test_timezone");
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 

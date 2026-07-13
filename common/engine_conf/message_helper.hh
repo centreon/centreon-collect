@@ -24,11 +24,27 @@
 #include <absl/strings/str_split.h>
 #include "common/engine_conf/state.pb.h"
 
-#ifdef LEGACY_CONF
-#error This library should not be compiled.
-#endif
+/**
+ * @brief a little macro used in helpers::set_default_values()
+ *
+ */
+#define DEFAULT_PB_FIELD_SET(field_name, value) \
+  if (!obj->has_##field_name())                 \
+    obj->set_##field_name(value);
 
 namespace com::centreon::engine::configuration {
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value, const StringSet& to_hash) {
+  return hash_type::combine_unordered(
+      std::move(previous_value), to_hash.data().begin(), to_hash.data().end());
+}
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value, const StringList& to_hash) {
+  return hash_type::combine_unordered(
+      std::move(previous_value), to_hash.data().begin(), to_hash.data().end());
+}
 
 /**
  * @brief Error counter, it contains two attributes, one for warnings and
@@ -259,6 +275,11 @@ class message_helper {
     return retval;
   }
   bool set(const std::string_view& key, const std::string_view& value);
+  // after parsing config files we apply default values to not setted fields if
+  // it's not a template
+  // register value is yet setted in xxx_helper constructor, no need to modify
+  // it here
+  virtual void set_default_values() {}
 };
 }  // namespace com::centreon::engine::configuration
 

@@ -21,6 +21,7 @@
 
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/event_info.hh"
+#include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::broker::io {
 /**
@@ -59,7 +60,8 @@ class events {
                           event_info::event_operations const* ops = nullptr,
                           mapping::entry const* entries = nullptr,
                           std::string const& table_v2 = std::string());
-  uint32_t register_event(uint32_t type_id, std::string const& name,
+  uint32_t register_event(uint32_t type_id,
+                          std::string const& name,
                           event_info::event_operations const* ops,
                           const std::string& table);
 
@@ -71,8 +73,10 @@ class events {
   events_container get_matching_events(std::string const& name) const;
 
  private:
+  std::shared_ptr<spdlog::logger> _logger;
+
   events();
-  events(events const& other);
+  events(const events&) = delete;
   ~events();
   events& operator=(events const& other);
 

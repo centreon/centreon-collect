@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# this file emulate sudo when you are root. it just execute the command sent to it and hope you are already root.
+
+$@

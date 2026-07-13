@@ -32,6 +32,10 @@ namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
  */
 class agent_service : public agent::AgentService::Service,
                       public std::enable_shared_from_this<agent_service> {
+  using validator =
+      std::function<::grpc::Status(::grpc::CallbackServerContext*,
+                                   std::chrono::system_clock::time_point&)>;
+
   std::shared_ptr<boost::asio::io_context> _io_context;
   agent_config::pointer _conf;
   absl::Mutex _conf_m;
@@ -41,12 +45,17 @@ class agent_service : public agent::AgentService::Service,
 
   agent_stat::pointer _stats;
 
+  bool _is_crypted;
+  validator _is_token_valid;
+
  public:
   agent_service(const std::shared_ptr<boost::asio::io_context>& io_context,
                 const agent_config::pointer& conf,
                 const metric_handler& handler,
                 const std::shared_ptr<spdlog::logger>& logger,
-                const agent_stat::pointer& stats);
+                const agent_stat::pointer& stats,
+                const bool& _is_crypted,
+                validator&& is_token_valid);
 
   void init();
 
@@ -55,7 +64,9 @@ class agent_service : public agent::AgentService::Service,
       const agent_config::pointer& conf,
       const metric_handler& handler,
       const std::shared_ptr<spdlog::logger>& logger,
-      const agent_stat::pointer& stats);
+      const agent_stat::pointer& stats,
+      const bool& _is_crypted,
+      validator&& is_token_valid);
 
   // disable synchronous version of this method
   ::grpc::Status Export(
@@ -73,6 +84,24 @@ class agent_service : public agent::AgentService::Service,
   void update(const agent_config::pointer& conf);
 
   static void shutdown_all_accepted();
+};
+
+/*
+ * // A trivial reactor that finishes immediately with a given Status.
+ */
+class ImmediateFinishReactor
+    : public ::grpc::ServerBidiReactor<com::centreon::agent::MessageFromAgent,
+                                       com::centreon::agent::MessageToAgent> {
+ public:
+  // Constructor calls Finish(...) right away.
+  explicit ImmediateFinishReactor(const ::grpc::Status& status) {
+    Finish(status);
+  }
+
+  void OnDone() override {
+    // This reactor is now done. Typically just delete this instance.
+    delete this;
+  }
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry::centreon_agent

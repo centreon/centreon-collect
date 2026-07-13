@@ -70,11 +70,17 @@ report.html
 agent/scripts/centagent.service
 agent/conf/centagent.json
 opentelemetry-proto
+agent/src/agent.rc
+agent/inc/com/centreon/agent/version.hh
 
 # bbdo
 bbdo/*_accessor.hh
 
 # broker
+broker/core/cache/inc/com/centreon/broker/cache/protobuf.hh
+broker/core/cache/src/protobuf.cc
+broker/core/cache/test/protobuf_test_classes.cc
+broker/core/cache/test/protobuf_test_classes.hh
 broker/core/sql/inc/com/centreon/broker/sql/table_max_size.hh
 broker/core/inc/com/centreon/broker/vars.hh
 broker/core/inc/com/centreon/broker/version.hh
@@ -94,6 +100,12 @@ broker/test/python/*.key
 broker/compile_commands.json
 broker/grpc/grpc_stream.proto
 broker/grpc/src/grpc_bridge.cc
+
+#generated 
+broker/core/cache/inc/com/centreon/broker/cache/protobuf.hh
+broker/core/cache/src/protobuf.cc
+broker/core/cache/test/protobuf_test_classes.cc
+broker/core/cache/test/protobuf_test_classes.hh
 
 
 # clib
@@ -134,6 +146,9 @@ engine/compile_commands.json
 
 # gorgone
 gorgone/log
+
+# node
+node_modules
 
 # tests
 tests/apps/

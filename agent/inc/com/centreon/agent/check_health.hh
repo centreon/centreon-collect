@@ -24,10 +24,10 @@
 namespace com::centreon::agent {
 
 class check_health : public check {
-  unsigned _warning_check_interval;
-  unsigned _critical_check_interval;
-  unsigned _warning_check_duration;
-  unsigned _critical_check_duration;
+  common::threshold _warning_check_interval;
+  common::threshold _critical_check_interval;
+  common::threshold _warning_check_duration;
+  common::threshold _critical_check_duration;
 
   std::string _info_output;
 
@@ -42,10 +42,7 @@ class check_health : public check {
   check_health(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                time_point first_start_expected,
-               duration check_interval,
-               const std::string& serv,
-               const std::string& cmd_name,
-               const std::string& cmd_line,
+               const Service& serv,
                const rapidjson::Value& args,
                const engine_to_agent_request_ptr& cnf,
                check::completion_handler&& handler,

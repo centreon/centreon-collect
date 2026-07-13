@@ -20,11 +20,14 @@
 #include "log.hh"
 
 #include "agent_info.hh"
+#include "check_counter.hh"
 #include "check_cpu.hh"
 #include "check_event_log.hh"
+#include "check_files.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
 #include "check_process.hh"
+#include "check_sched.hh"
 #include "check_service.hh"
 #include "check_uptime.hh"
 #include "drive_size.hh"
@@ -36,6 +39,7 @@
 
 #include "config.hh"
 #include "drive_size.hh"
+#include "grpc_ca_bootstrap.hh"
 #include "ntdll.hh"
 #include "streaming_client.hh"
 #include "streaming_server.hh"
@@ -49,7 +53,8 @@ std::list<fs_stat> os_fs_stats(filter& filter,
 
 using namespace com::centreon::agent;
 
-#define SERVICE_NAME "CentreonMonitoringAgent"
+// Default Windows service name (can now be overridden through --service-name)
+static std::string g_service_name = "CentreonMonitoringAgent";
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
@@ -94,35 +99,14 @@ static void signal_handler(const boost::system::error_code& error,
   }
 }
 
-/**
- * @brief load file in a std::string
- *
- * @param file_path file path
- * @return std::string file content
- */
-static std::string read_file(const std::string& file_path) {
-  if (file_path.empty()) {
-    return {};
-  }
-  try {
-    std::ifstream file(file_path);
-    if (file.is_open()) {
-      std::stringstream ss;
-      ss << file.rdbuf();
-      file.close();
-      return ss.str();
-    }
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(g_logger, "fail to read {}: {}", file_path, e.what());
-  }
-  return "";
-}
-
 void show_help() {
   std::cout << "usage: centagent.exe [options]" << std::endl;
   std::cout << "Options:" << std::endl;
   std::cout << "  --standalone: run the agent in standalone mode not from "
                "service manager (mandatory for start it from command line)"
+            << std::endl;
+  std::cout << "  --service-name <name>: override Windows Service name (also "
+               "registry path SOFTWARE\\Centreon\\<name>)"
             << std::endl;
   std::cout << "  --help: show this help" << std::endl;
   std::cout << std::endl << "native checks options:" << std::endl;
@@ -133,7 +117,10 @@ void show_help() {
   check_service::help(std::cout);
   check_health::help(std::cout);
   check_event_log::help(std::cout);
+  check_counter::help(std::cout);
   check_process::help(std::cout);
+  check_sched::help(std::cout);
+  check_files::help(std::cout);
 }
 
 /**
@@ -144,7 +131,7 @@ void show_help() {
  * @return int exit status returned to command line (0 success)
  */
 int _main(bool service_start) {
-  std::string registry_path = "SOFTWARE\\Centreon\\" SERVICE_NAME;
+  std::string registry_path = "SOFTWARE\\Centreon\\" + g_service_name;
 
   try {
     config::load(registry_path);
@@ -158,16 +145,11 @@ int _main(bool service_start) {
   check_drive_size_detail::drive_size_thread::os_fs_stats =
       check_drive_size_detail::os_fs_stats;
 
-  if (service_start)
-    SPDLOG_INFO("centreon-monitoring-agent service start");
-  else
-    SPDLOG_INFO("centreon-monitoring-agent start");
-
   const std::string logger_name = "centreon-monitoring-agent";
 
   auto create_event_logger = []() {
     auto sink =
-        std::make_shared<spdlog::sinks::win_eventlog_sink_mt>(SERVICE_NAME);
+        std::make_shared<spdlog::sinks::win_eventlog_sink_mt>(g_service_name);
     g_logger = std::make_shared<spdlog::logger>("", sink);
   };
 
@@ -206,38 +188,56 @@ int _main(bool service_start) {
 
   g_logger->flush_on(spdlog::level::warn);
 
-  spdlog::flush_every(std::chrono::seconds(1));
+  init_log_flush_timer(g_io_context);
 
   set_grpc_logger();
 
-  SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent start");
+  if (service_start)
+    SPDLOG_LOGGER_INFO(
+        g_logger,
+        "centreon-monitoring-agent service started with registry configuration "
+        "{} ",
+        g_service_name);
+  else
+    SPDLOG_LOGGER_INFO(
+        g_logger,
+        "centreon-monitoring-agent start with registry configuration {} ",
+        g_service_name);
+
   std::shared_ptr<com::centreon::common::grpc::grpc_config> grpc_conf;
 
   try {
     _signals.async_wait(signal_handler);
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(
-        conf.get_endpoint(), conf.use_encryption(),
-        read_file(conf.get_public_cert_file()),
-        read_file(conf.get_private_key_file()),
-        read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
-        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length());
+        conf.get_endpoint(), conf.get_security_mode(),
+        read_file_content(conf.get_public_cert_file(), g_logger),
+        read_file_content(conf.get_private_key_file(), g_logger),
+        read_file_content(conf.get_ca_certificate_file(), g_logger),
+        conf.get_ca_name(), true, 30, conf.get_second_max_reconnect_backoff(),
+        conf.get_max_message_length(), conf.get_token(),
+        conf.get_trusted_tokens(), conf.get_ca_fingerprint());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
     return -1;
   }
 
+  bootstrap_ca_from_fingerprint_if_needed(conf, registry_path, grpc_conf,
+                                          g_logger);
+
   try {
     load_nt_dll();
     read_os_version();
 
     if (conf.use_reverse_connection()) {
-      _streaming_server = streaming_server::load(g_io_context, g_logger,
-                                                 grpc_conf, conf.get_host());
+      _streaming_server =
+          streaming_server::load(g_io_context, g_logger, grpc_conf,
+                                 conf.get_host(), conf.get_host_template());
     } else {
-      _streaming_client = streaming_client::load(g_io_context, g_logger,
-                                                 grpc_conf, conf.get_host());
+      _streaming_client =
+          streaming_client::load(g_io_context, g_logger, grpc_conf,
+                                 conf.get_host(), conf.get_host_template());
     }
 
     if (!conf.use_encryption()) {
@@ -267,6 +267,8 @@ int _main(bool service_start) {
 
   // kill check_drive_size thread if used
   check_drive_size::thread_kill();
+  // kill check_files thread if used
+  check_files::thread_kill();
 
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 
@@ -292,21 +294,37 @@ void WINAPI SvcMain(DWORD, LPTSTR*);
  * @return int program status
  */
 int main(int argc, char* argv[]) {
-  if (argc > 1 && !lstrcmpi(argv[1], "--standalone")) {
+  bool standalone = false;
+  // Simple manual parsing (arguments count is low). We consider pairs for
+  // --service-name
+  for (int i = 1; i < argc; ++i) {
+    if (!lstrcmpi(argv[i], "--help")) {
+      show_help();
+      return 0;
+    } else if (!lstrcmpi(argv[i], "--standalone")) {
+      standalone = true;
+    } else if (!lstrcmpi(argv[i], "--service-name")) {
+      if (i + 1 < argc) {
+        g_service_name = argv[++i];
+      } else {
+        std::cerr << "--service-name requires a value" << std::endl;
+        return 1;
+      }
+    }
+  }
+
+  if (standalone) {
     return _main(false);
   }
 
-  if (argc > 1 && !lstrcmpi(argv[1], "--help")) {
-    show_help();
-    return 0;
-  }
-
   SPDLOG_INFO(
-      "centagent.exe will start in service mode, if you launch it from command "
-      "line, use --standalone flag");
+      "centagent.exe will start in service mode with service name '{}', if you "
+      "launch it from command line, use --standalone flag",
+      g_service_name);
 
-  const SERVICE_TABLE_ENTRY DispatchTable[] = {
-      {(LPSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};
+  SERVICE_TABLE_ENTRY DispatchTable[] = {
+      {(LPSTR)g_service_name.c_str(), (LPSERVICE_MAIN_FUNCTION)SvcMain},
+      {NULL, NULL}};
 
   // This call returns when the service has stopped.
   // The process should simply terminate when the call returns.
@@ -382,7 +400,8 @@ void WINAPI SvcCtrlHandler(DWORD dwCtrl) {
  *
  */
 void WINAPI SvcMain(DWORD, LPTSTR*) {
-  gSvcStatusHandle = RegisterServiceCtrlHandler(SERVICE_NAME, SvcCtrlHandler);
+  gSvcStatusHandle =
+      RegisterServiceCtrlHandler(g_service_name.c_str(), SvcCtrlHandler);
 
   if (!gSvcStatusHandle) {
     SPDLOG_LOGGER_CRITICAL(g_logger, "fail to RegisterServiceCtrlHandler");

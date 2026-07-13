@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 
@@ -46,7 +45,7 @@ class instance_configuration : public io::data {
   }
 
   bool loaded;
-  uint32_t poller_id;
+  uint64_t poller_id;
 
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;

@@ -17,10 +17,31 @@
 */
 
 #include <grpcpp/create_channel.h>
+#include "grpcpp/security/credentials.h"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 
 using namespace com::centreon::common::grpc;
+
+/**
+ * @brief Certificate verifier that unconditionally accepts any peer.
+ *
+ * Used for the TLS_SKIP_VERIFY_CA bootstrap channel where server identity
+ * is validated via CA-fingerprint instead of the TLS hostname check.
+ */
+class skip_all_certificate_verifier
+    : public ::grpc::experimental::ExternalCertificateVerifier {
+ public:
+  bool Verify(::grpc::experimental::TlsCustomVerificationCheckRequest*,
+              std::function<void(::grpc::Status)>,
+              ::grpc::Status* sync_status) override {
+    if (sync_status)
+      *sync_status = ::grpc::Status::OK;
+    return true;
+  }
+  void Cancel(
+      ::grpc::experimental::TlsCustomVerificationCheckRequest*) override {}
+};
 
 /**
  * @brief Construct a new grpc client base::grpc client base object
@@ -39,7 +60,8 @@ grpc_client_base::grpc_client_base(
   args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
               conf->get_second_keepalive_interval() * 300);
   args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
-  if (!conf->get_ca_name().empty())
+  if (!conf->get_ca_name().empty() &&
+      conf->get_security_mode() == grpc_config::TLS_INSECURE)
     args.SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, conf->get_ca_name());
   if (conf->is_compressed()) {
     grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
@@ -58,21 +80,31 @@ grpc_client_base::grpc_client_base(
   }
   std::shared_ptr<::grpc::ChannelCredentials> creds;
   if (conf->is_crypted()) {
-    ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
-                                              conf->get_cert()};
-    SPDLOG_LOGGER_INFO(
-        _logger,
-        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
-        conf->get_hostport(), conf->get_cert().substr(0, 10),
-        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
-    creds = ::grpc::SslCredentials(ssl_opts);
-#ifdef CAN_USE_JWT
-    if (!_conf->get_jwt().empty()) {
+    if (conf->get_security_mode() == grpc_config::TLS_SKIP_VERIFY_CA) {
+      ::grpc::experimental::TlsChannelCredentialsOptions options;
+      options.set_verify_server_certs(false);
+      options.set_check_call_host(false);
+      options.set_certificate_verifier(
+          ::grpc::experimental::ExternalCertificateVerifier::Create<
+              skip_all_certificate_verifier>());
+      creds = ::grpc::experimental::TlsCredentials(options);
+      SPDLOG_LOGGER_INFO(_logger, "skip ca verify encrypted connection to {}",
+                         conf->get_hostport());
+    } else {
+      ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
+                                                conf->get_cert()};
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+          conf->get_hostport(), conf->get_cert().substr(0, 10),
+          conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
+      creds = ::grpc::SslCredentials(ssl_opts);
+    }
+    if (!_conf->get_token().empty()) {
       std::shared_ptr<::grpc::CallCredentials> jwt =
-          ::grpc::ServiceAccountJWTAccessCredentials(_conf->get_jwt(), 86400);
+          ::grpc::AccessTokenCredentials(_conf->get_token());
       creds = ::grpc::CompositeChannelCredentials(creds, jwt);
     }
-#endif
   } else {
     SPDLOG_LOGGER_INFO(_logger, "unencrypted connection to {}",
                        conf->get_hostport());
@@ -93,5 +125,21 @@ grpc_client_base::grpc_client_base(
                 conf->get_max_message_length());
   }
 
-  _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
+  if (!conf->is_crypted() && !_conf->get_token().empty()) {
+    // No TLS + token → use interceptors to inject Authorization header
+    std::vector<std::unique_ptr<
+        ::grpc::experimental::ClientInterceptorFactoryInterface>>
+        interceptor_creators;
+    interceptor_creators.emplace_back(
+        std::make_unique<TokenInterceptorFactory>(_conf->get_token()));
+
+    SPDLOG_LOGGER_DEBUG(
+        _logger, "creating insecure gRPC channel with token interceptor");
+
+    _channel = ::grpc::experimental::CreateCustomChannelWithInterceptors(
+        conf->get_hostport(), creds, args, std::move(interceptor_creators));
+  } else {
+    // Either secure channel (TLS) or no token: normal channel
+    _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
+  }
 }

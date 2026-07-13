@@ -12,7 +12,7 @@ check statistic module add all centengine data in db ${communication_mode}
     ${central}=    Set Variable    ${communication_mode}_gorgone_central_statistics
     ${poller}=    Set Variable    ${communication_mode}_gorgone_poller2_statistics
     @{process_list}    Create List    ${central}    ${poller}
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
 
     ${date}    Get Current Date    increment=-1s
     @{central_config}    Create List    ${ROOT_CONFIG}statistics.yaml    ${ROOT_CONFIG}actions.yaml
@@ -46,6 +46,8 @@ check statistic module add all centengine data in db ${communication_mode}
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
+        ...    pull
 
 *** Keywords ***
 
@@ -72,13 +74,15 @@ Ctn Gorgone Check Poller Engine Stats Are Present
     &{Service Check Execution Time}=    Create Dictionary 	  Min=0.001    Max=0.332    Average=0.132
     &{Host Check Execution Time}=       Create Dictionary 	  Min=0.030    Max=0.152    Average=0.083
     
-    &{data_check}    Create Dictionary    Service Check Latency=&{Service Check Latency}    Host Check Execution Time=&{Host Check Execution Time}    Host Check Latency=&{Host Check Latency}    Service Check Execution Time=&{Service Check Execution Time}
+    &{data_check}    Create Dictionary    Service Check Latency=&{Service Check Latency}
+    ...   Host Check Execution Time=&{Host Check Execution Time}
+    ...   Host Check Latency=&{Host Check Latency}
+    ...   Service Check Execution Time=&{Service Check Execution Time}
 
     FOR    ${stat_label}    ${stat_data}    IN    &{data_check}
         
         FOR    ${stat_key}    ${stat_value}    IN    &{stat_data}
-            Check Row Count    SELECT instance_id FROM nagios_stats WHERE stat_key = '${stat_key}' AND stat_value = '${stat_value}' AND stat_label = '${stat_label}' AND instance_id='${poller_id}';    equal    1    alias=storage
-
+            Check Row Count    SELECT instance_id FROM nagios_stats WHERE stat_key = '${stat_key}' AND stat_value = '${stat_value}' AND stat_label = '${stat_label}' AND instance_id='${poller_id}';    equal    1    alias=storage    retry_timeout=5    retry_pause=1
         END
     END
 
@@ -92,8 +96,8 @@ Ctn Gorgone Force Engine Statistics Retrieve
 Suite Setup Statistics Module
     Set Centenginestat Binary
     Connect To Database    pymysql    ${DBNAME_STORAGE}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
-    ...    alias=storage
-    
+    ...    alias=storage    autocommit=True
+
 Set Centenginestat Binary
     [Documentation]    this keyword add a centenginestats file from the local directory to the /usr/sbin 
     ...    directory and make it executable. This allow to test the gorgone statistics module 

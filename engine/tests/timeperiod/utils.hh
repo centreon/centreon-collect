@@ -21,8 +21,8 @@
 #define TESTS_TIMEPERIOD_UTILS_HH
 
 #include <string>
-#include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/engine_conf/timeperiod_helper.hh"
 
 class timeperiod_creator {
  public:
@@ -34,7 +34,7 @@ class timeperiod_creator {
   void new_exclusion(
       std::shared_ptr<com::centreon::engine::timeperiod> excluded,
       com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_calendar_date(
+  com::centreon::engine::configuration::Daterange* new_calendar_date(
       int start_year,
       int start_month,
       int start_day,
@@ -42,17 +42,18 @@ class timeperiod_creator {
       int end_month,
       int end_day,
       com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_specific_month_date(
+  com::centreon::engine::configuration::Daterange* new_specific_month_date(
       int start_month,
       int start_day,
       int end_month,
       int end_day,
       com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_generic_month_date(
+  com::centreon::engine::configuration::Daterange* new_generic_month_date(
       int start_day,
       int end_day,
       com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_offset_weekday_of_specific_month(
+  com::centreon::engine::configuration::Daterange*
+  new_offset_weekday_of_specific_month(
       int start_month,
       int start_wday,
       int start_offset,
@@ -60,7 +61,8 @@ class timeperiod_creator {
       int end_wday,
       int end_offset,
       com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_offset_weekday_of_generic_month(
+  com::centreon::engine::configuration::Daterange*
+  new_offset_weekday_of_generic_month(
       int start_wday,
       int start_offset,
       int end_wday,
@@ -70,7 +72,7 @@ class timeperiod_creator {
                      int start_minute,
                      int end_hour,
                      int end_minute,
-                     com::centreon::engine::daterange* target);
+                     com::centreon::engine::configuration::Daterange* target);
   void new_timerange(int start_hour,
                      int start_minute,
                      int end_hour,
@@ -80,10 +82,15 @@ class timeperiod_creator {
 
  private:
   std::list<std::shared_ptr<com::centreon::engine::timeperiod>> _timeperiods;
+  int _tp_counter{0};
 };
 
 int hmtos(int h, int m);
 void set_time(time_t now);
 time_t strtotimet(std::string const& str);
+
+// Declare the external function to control time travel (control the time
+// spdlog)
+extern "C" void enable_time_travel(bool enable, int added);
 
 #endif  // !TESTS_TIMEPERIOD_UTILS_HH

@@ -51,16 +51,32 @@ class service_filter {
   std::unique_ptr<re2::RE2> _name_filter, _name_filter_exclude;
   std::unique_ptr<re2::RE2> _display_filter, _display_filter_exclude;
 
-  std::optional<bool> _start_auto;
+  enum e_start_auto : unsigned {
+    auto_start = 1,
+    boot = 2,
+    demand = 4,
+    disabled = 8,
+    system = 16
+  };
+
+  unsigned _start_auto;
+  std::optional<BOOL> _start_auto_delayed;
+
+  unsigned _service_type;
 
  public:
   service_filter(const rapidjson::Value& args);
 
-  bool is_allowed(bool start_auto,
+  bool is_allowed(DWORD service_type,
+                  DWORD start_type,
+                  BOOL start_auto_delayed,
                   const std::string_view& service_name,
                   const std::string_view& service_display);
 
-  bool use_start_auto_filter() const { return _start_auto.has_value(); }
+  bool use_start_auto_filter() const { return _start_auto; }
+  BOOL use_start_auto_delayed() const {
+    return _start_auto_delayed.has_value();
+  }
 };
 
 /**
@@ -73,7 +89,7 @@ class service_enumerator {
   using constructor = std::function<std::unique_ptr<service_enumerator>()>;
 
  private:
-  template <bool start_auto>
+  template <bool need_start_auto, bool need_start_auto_delayed>
   void _enumerate_services(service_filter& filter,
                            listener&& callback,
                            const std::shared_ptr<spdlog::logger>& logger);
@@ -89,10 +105,17 @@ class service_enumerator {
   virtual bool _enumerate_services(serv_array& services,
                                    DWORD* services_returned);
 
+  enum e_query_service_config_type : unsigned {
+    query_service_config = 1,
+    query_service_start_auto_delayed = 2
+  };
+
   virtual bool _query_service_config(
       LPCSTR service_name,
+      unsigned query_flags,
       std::unique_ptr<unsigned char[]>& buffer,
       size_t* buffer_size,
+      BOOL* start_delayed,
       const std::shared_ptr<spdlog::logger>& logger);
 
  public:
@@ -115,6 +138,7 @@ class w_service_info : public snapshot<e_service_metric::nb_service_metric> {
   unsigned _state_to_warning;
   unsigned _state_to_critical;
   e_status _status = e_status::ok;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   w_service_info(service_enumerator& service_enumerator,
@@ -139,6 +163,12 @@ class w_service_info : public snapshot<e_service_metric::nb_service_metric> {
 class check_service
     : public native_check_base<
           native_check_detail::e_service_metric::nb_service_metric> {
+  unsigned _state_to_warning = 0;
+  unsigned _state_to_critical = 0;
+  native_check_detail::service_filter _filter;
+  std::unique_ptr<native_check_detail::service_enumerator> _enumerator;
+
+ public:
   /**
    * @brief these enums are indexed by service states values
    * https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_status
@@ -153,15 +183,6 @@ class check_service
     paused = 64
   };
 
-  static const std::array<std::pair<std::string_view, state_mask>, 7>
-      _label_state;
-
-  unsigned _state_to_warning = 0;
-  unsigned _state_to_critical = 0;
-  native_check_detail::service_filter _filter;
-  std::unique_ptr<native_check_detail::service_enumerator> _enumerator;
-
- public:
   /**
    * in order to mock services API, this static constructor is used to replace
    * service_enumarator by a mock
@@ -172,10 +193,7 @@ class check_service
   check_service(const std::shared_ptr<asio::io_context>& io_context,
                 const std::shared_ptr<spdlog::logger>& logger,
                 time_point first_start_expected,
-                duration check_interval,
-                const std::string& serv,
-                const std::string& cmd_name,
-                const std::string& cmd_line,
+                const Service& serv,
                 const rapidjson::Value& args,
                 const engine_to_agent_request_ptr& cnf,
                 check::completion_handler&& handler,

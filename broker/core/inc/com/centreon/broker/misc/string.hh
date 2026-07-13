@@ -40,8 +40,6 @@ bool is_number(const std::string& s);
 
 std::string escape(const std::string& str, size_t s);
 
-std::string debug_buf(const char* data, int32_t size, int max_len = 10);
-
 }  // namespace com::centreon::broker::misc::string
 
 #endif  // !CCB_MISC_STRING_HH

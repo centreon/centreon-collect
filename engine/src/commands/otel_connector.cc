@@ -40,7 +40,7 @@ absl::flat_hash_map<std::string, std::shared_ptr<otel_connector>>
 std::shared_ptr<otel_connector> otel_connector::create(
     const std::string& connector_name,
     const std::string& cmd_line,
-    commands::command_listener* listener) {
+    const std::shared_ptr<commands::command_listener>& listener) {
   std::shared_ptr<otel_connector> cmd(
       std::make_shared<otel_connector>(connector_name, cmd_line, listener));
   auto iter_res = _commands.emplace(connector_name, cmd);
@@ -139,9 +139,10 @@ void otel_connector::init_all() {
  * @param cmd_line
  * @param listener
  */
-otel_connector::otel_connector(const std::string& connector_name,
-                               const std::string& cmd_line,
-                               commands::command_listener* listener)
+otel_connector::otel_connector(
+    const std::string& connector_name,
+    const std::string& cmd_line,
+    const std::shared_ptr<commands::command_listener>& listener)
     : command(connector_name, cmd_line, listener, e_type::otel),
       _host_serv_list(std::make_shared<otel::host_serv_list>()),
       _logger(log_v2::instance().get(log_v2::OTL)) {
@@ -177,9 +178,28 @@ uint64_t otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
                              uint32_t timeout [[maybe_unused]],
                              const check_result::pointer& to_push_to_checker
                              [[maybe_unused]],
-                             const void* caller [[maybe_unused]]) {
-  SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
-  throw exceptions::msg_fmt("open telemetry services must be passive");
+                             const notifier* caller) {
+  try {
+    std::shared_ptr<otel::open_telemetry_base> otel =
+        otel::open_telemetry_base::instance();
+    if (otel) {
+      if (caller) {
+        if (caller->get_notifier_type() == notifier::service_notification) {
+          const service* serv = static_cast<const service*>(caller);
+          otel->force_check(serv->host_id(), serv->service_id());
+        } else {
+          const host* hst = static_cast<const host*>(caller);
+          otel->force_check(hst->host_id(), 0);
+        }
+      }
+    } else {
+      throw std::invalid_argument("opentelemetry module not loaded");
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to force check : {}", e.what());
+    throw;
+  }
+  return get_uniq_id();
 }
 
 /**
@@ -196,8 +216,11 @@ void otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
                          nagios_macros& macros [[maybe_unused]],
                          uint32_t timeout [[maybe_unused]],
                          result& res [[maybe_unused]]) {
-  SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
-  throw exceptions::msg_fmt("open telemetry services must be passive");
+  SPDLOG_LOGGER_ERROR(
+      _logger,
+      "open telemetry force check can't be runned in sycnhronous manner");
+  throw exceptions::msg_fmt(
+      "open telemetry force check can't be runned in sycnhronous manner");
 }
 
 /**

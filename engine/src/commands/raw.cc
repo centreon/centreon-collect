@@ -37,7 +37,7 @@ using namespace com::centreon::engine::commands;
  */
 raw::raw(std::string const& name,
          std::string const& command_line,
-         command_listener* listener)
+         const std::shared_ptr<command_listener>& listener)
     : command(name, command_line, listener, e_type::raw), process_listener() {
   if (_command_line.empty())
     throw engine_error() << "Could not create '" << _name
@@ -82,7 +82,7 @@ uint64_t raw::run(std::string const& processed_cmd,
                   nagios_macros& macros,
                   uint32_t timeout,
                   const check_result::pointer& to_push_to_checker,
-                  const void* caller) {
+                  const notifier* caller) {
   engine_logger(dbg_commands, basic)
       << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: cmd='{}', timeout={}",
@@ -187,13 +187,13 @@ void raw::run(std::string const& processed_cmd,
   res.start_time = p.start_time();
   res.end_time = p.end_time();
   res.exit_code = p.exit_code();
-  res.exit_status = p.exit_status();
+  res.exit_status = static_cast<common::e_exit_status>(p.exit_status());
 
-  if (res.exit_status == process::timeout) {
+  if (res.exit_status == common::e_exit_status::timeout) {
     res.exit_code = service::state_unknown;
     res.output = "(Process Timeout)";
-  } else if (res.exit_status == process::crash || res.exit_code < -1 ||
-             res.exit_code > 3)
+  } else if (res.exit_status == common::e_exit_status::crash ||
+             res.exit_code < -1 || res.exit_code > 3)
     res.exit_code = service::state_unknown;
 
   engine_logger(dbg_commands, basic) << "raw::run: end process: "
@@ -300,13 +300,13 @@ void raw::finished(process& p) noexcept {
     res.start_time = p.start_time();
     res.end_time = p.end_time();
     res.exit_code = p.exit_code();
-    res.exit_status = p.exit_status();
+    res.exit_status = static_cast<common::e_exit_status>(p.exit_status());
 
-    if (res.exit_status == process::timeout) {
+    if (res.exit_status == common::e_exit_status::timeout) {
       res.exit_code = service::state_unknown;
       res.output = "(Process Timeout)";
-    } else if ((res.exit_status == process::crash) || (res.exit_code < -1) ||
-               (res.exit_code > 3))
+    } else if ((res.exit_status == common::e_exit_status::crash) ||
+               (res.exit_code < -1) || (res.exit_code > 3))
       res.exit_code = service::state_unknown;
 
     engine_logger(dbg_commands, basic)
@@ -480,11 +480,7 @@ void raw::_build_custom_service_macro_environment(nagios_macros& macros,
  *  @param[out]    env     The environment to fill.
  */
 void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
-#ifdef LEGACY_CONF
-  bool enable_environment_macros = config->enable_environment_macros();
-#else
   bool enable_environment_macros = pb_config.enable_environment_macros();
-#endif
   if (enable_environment_macros) {
     _build_macrosx_environment(macros, env);
     _build_argv_macro_environment(macros, env);
@@ -502,12 +498,8 @@ void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
  *  @param[out]    env     The environment to fill.
  */
 void raw::_build_macrosx_environment(nagios_macros& macros, environment& env) {
-#ifdef LEGACY_CONF
-  bool use_large_installation_tweaks = config->use_large_installation_tweaks();
-#else
   bool use_large_installation_tweaks =
       pb_config.use_large_installation_tweaks();
-#endif
   for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
     int release_memory(0);
 
@@ -547,11 +539,7 @@ process* raw::_get_free_process() {
   if (_processes_free.empty()) {
     /* Only the out stream is open */
     process* p = new process(this, false, true, false);
-#ifdef LEGACY_CONF
-    p->setpgid_on_exec(config->use_setpgid());
-#else
     p->setpgid_on_exec(pb_config.use_setpgid());
-#endif
     return p;
   }
   // Get a free process.

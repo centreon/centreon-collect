@@ -21,14 +21,14 @@
 #include <fmt/chrono.h>
 
 #include "broker.pb.h"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/math.hh"
-#include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/stats/center.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
+
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr double eps = 0.000001;
@@ -53,7 +53,7 @@ stream::stream(const std::string& path,
       _stats_perc{},
       _stats_idx{0u},
       _stats_size{0u},
-      _center{stats::center::instance_ptr()} {}
+      _center{config::applier::state::instance().center()} {}
 
 /**
  *  Get peer name.
@@ -226,12 +226,14 @@ void stream::_update_stats() {
                     d = fmt::format("{}s", sec);
                   s->set_file_expected_terminated_in(d);
 
+                  std::tm tm{};
+                  localtime_r(&terminated, &tm);
                   log_v2::instance()
                       .get(log_v2::CORE)
                       ->info(
                           "Retention file will be terminated at {:%Y-%m-%d "
                           "%H:%M:%S}",
-                          fmt::localtime(terminated));
+                          tm);
                 }
               } else
                 s->set_file_expected_terminated_at(

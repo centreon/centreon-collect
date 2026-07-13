@@ -21,6 +21,7 @@
 
 namespace com::centreon::agent {
 std::string get_last_error_as_string();
+std::string error_as_string(DWORD error_message_id);
 
 std::string lpwcstr_to_acp(LPCWSTR lpwstr);
 
@@ -39,6 +40,8 @@ inline std::chrono::file_clock::duration convert_filetime_to_duration(
                         .HighPart = file_time.dwHighDateTime};
   return std::chrono::file_clock::duration(uli.QuadPart);
 }
+
+void com_init();
 
 }  // namespace com::centreon::agent
 

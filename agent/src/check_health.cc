@@ -30,10 +30,7 @@ using namespace com::centreon::agent;
  * @param io_context
  * @param logger
  * @param first_start_expected
- * @param check_interval
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param args
  * @param cnf
  * @param handler
@@ -41,10 +38,7 @@ using namespace com::centreon::agent;
 check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
                            const std::shared_ptr<spdlog::logger>& logger,
                            time_point first_start_expected,
-                           duration check_interval,
-                           const std::string& serv,
-                           const std::string& cmd_name,
-                           const std::string& cmd_line,
+                           const Service& serv,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
                            check::completion_handler&& handler,
@@ -52,25 +46,40 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat),
-      _warning_check_interval(0),
-      _critical_check_interval(0),
-      _warning_check_duration(0),
-      _critical_check_duration(0),
       _measure_timer(*io_context) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
-      _warning_check_interval = arg.get_unsigned("warning-interval", 0);
-      _critical_check_interval = arg.get_unsigned("critical-interval", 0);
-      _warning_check_duration = arg.get_unsigned("warning-runtime", 0);
-      _critical_check_duration = arg.get_unsigned("critical-runtime", 0);
+      _warning_check_interval.extract_range(
+          arg.get_string_or_int_as_string("warning-interval", ""));
+      _critical_check_interval.extract_range(
+          arg.get_string_or_int_as_string("critical-interval", ""));
+      _warning_check_duration.extract_range(
+          arg.get_string_or_int_as_string("warning-runtime", ""));
+      _critical_check_duration.extract_range(
+          arg.get_string_or_int_as_string("critical-runtime", ""));
+
+      // the number of warning/critical will always be positive or zero
+      // if the low threshold is not set, we take the default value
+      _warning_check_interval.set_default_low(0);
+      _critical_check_interval.set_default_low(0);
+      _warning_check_duration.set_default_low(0);
+      _critical_check_duration.set_default_low(0);
+
+      if (!_warning_check_interval.is_valid() ||
+          !_critical_check_interval.is_valid() ||
+          !_warning_check_duration.is_valid() ||
+          !_critical_check_duration.is_valid()) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "check_health, invalid warning/critical interval/runtime range");
+        throw exceptions::msg_fmt(
+            "invalid warning/critical interval/runtime range");
+      }
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "check_health, fail to parse arguments: {}",
@@ -92,15 +101,19 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
 /**
  * @brief start a timer to do the job
  *
- * @param timeout unused
+ * @param timeout
  */
-void check_health::start_check([[maybe_unused]] const duration& timeout) {
+void check_health::start_check(const duration& timeout) {
   if (!_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
+  duration wait_beforecompute =
+      std::min(get_raw_start_expected().get_step() / 2,
+               effective_timeout - std::chrono::milliseconds(100));
   // we wait a little in order to have statistics check_interval/2
-  _measure_timer.expires_after(get_raw_start_expected().get_step() / 2);
+  _measure_timer.expires_after(wait_beforecompute);
   _measure_timer.async_wait(
       [me = shared_from_this(), start_check_index = _get_running_check_index()](
           const boost::system::error_code& err) mutable {
@@ -146,6 +159,8 @@ e_status check_health::compute(
   e_status ret = e_status::ok;
 
   const checks_statistics& stats = get_stats();
+  const auto& ordered_by_duration = stats.get_ordered_by_duration();
+  const auto& ordered_by_interval = stats.get_ordered_by_interval();
 
   if (stats.size() == 0) {
     *output = "UNKNOWN: No check yet performed";
@@ -155,7 +170,7 @@ e_status check_health::compute(
   absl::flat_hash_set<std::string_view> written_to_output;
 
   unsigned average_runtime = 0;
-  for (const auto& stat : stats.get_ordered_by_duration()) {
+  for (const auto& stat : ordered_by_duration) {
     average_runtime += std::chrono::duration_cast<std::chrono::seconds>(
                            stat.last_check_duration)
                            .count();
@@ -186,82 +201,64 @@ e_status check_health::compute(
     }
   };
 
-  std::string critical_output;
-  if (_critical_check_duration > 0) {
-    auto critical_duration = std::chrono::seconds(_critical_check_duration);
-    for (auto iter = stats.get_ordered_by_duration().rbegin();
-         iter != stats.get_ordered_by_duration().rend() &&
-         iter->last_check_duration > critical_duration;
-         ++iter) {
-      append_state_to_output(e_status::critical, &critical_output, iter);
-    }
-  }
+  auto apply_threshold = [&](const common::threshold& threshold,
+                             const auto& ordered, auto value_fn,
+                             e_status status, std::string* tmp_output) {
+    if (threshold.is_disabled())
+      return;
 
-  if (_critical_check_interval > 0) {
-    auto critical_interval = std::chrono::seconds(_critical_check_interval);
-    for (auto iter = stats.get_ordered_by_interval().rbegin();
-         iter != stats.get_ordered_by_interval().rend() &&
-         iter->last_check_interval > critical_interval;
-         ++iter) {
-      append_state_to_output(e_status::critical, &critical_output, iter);
+    for (auto iter = ordered.rbegin(); iter != ordered.rend(); ++iter) {
+      if (threshold.is_triggered(value_fn(*iter))) {
+        append_state_to_output(status, tmp_output, iter);
+      }
     }
-  }
+  };
+
+  auto duration_seconds = [](const auto& stat) {
+    return static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(
+                                   stat.last_check_duration)
+                                   .count());
+  };
+  auto interval_seconds = [](const auto& stat) {
+    return static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(
+                                   stat.last_check_interval)
+                                   .count());
+  };
+
+  std::string critical_output;
+  apply_threshold(_critical_check_duration, ordered_by_duration,
+                  duration_seconds, e_status::critical, &critical_output);
+  apply_threshold(_critical_check_interval, ordered_by_interval,
+                  interval_seconds, e_status::critical, &critical_output);
 
   std::string warning_output;
-  if (_warning_check_duration) {
-    auto warning_duration = std::chrono::seconds(_warning_check_duration);
-    for (auto iter = stats.get_ordered_by_duration().rbegin();
-         iter != stats.get_ordered_by_duration().rend() &&
-         iter->last_check_duration > warning_duration;
-         ++iter) {
-      append_state_to_output(e_status::warning, &warning_output, iter);
-    }
-  }
-
-  if (_warning_check_interval) {
-    auto warning_interval = std::chrono::seconds(_warning_check_interval);
-    for (auto iter = stats.get_ordered_by_interval().rbegin();
-         iter != stats.get_ordered_by_interval().rend() &&
-         iter->last_check_interval > warning_interval;
-         ++iter) {
-      append_state_to_output(e_status::warning, &warning_output, iter);
-    }
-  }
+  apply_threshold(_warning_check_duration, ordered_by_duration,
+                  duration_seconds, e_status::warning, &warning_output);
+  apply_threshold(_warning_check_interval, ordered_by_interval,
+                  interval_seconds, e_status::warning, &warning_output);
 
   unsigned max_check_interval =
       std::chrono::duration_cast<std::chrono::seconds>(
-          stats.get_ordered_by_interval().rbegin()->last_check_interval)
+          ordered_by_interval.rbegin()->last_check_interval)
           .count();
   unsigned max_check_duration =
       std::chrono::duration_cast<std::chrono::seconds>(
-          stats.get_ordered_by_duration().rbegin()->last_check_duration)
+          ordered_by_duration.rbegin()->last_check_duration)
           .count();
 
   auto& interval_perf = perf->emplace_back();
   interval_perf.name("interval");
   interval_perf.unit("s");
   interval_perf.value(max_check_interval);
-  if (_warning_check_interval > 0) {
-    interval_perf.warning_low(0);
-    interval_perf.warning(_warning_check_interval);
-  }
-  if (_critical_check_interval > 0) {
-    interval_perf.critical_low(0);
-    interval_perf.critical(_critical_check_interval);
-  }
+  _warning_check_interval.set_pref_details_w(interval_perf);
+  _critical_check_interval.set_pref_details_c(interval_perf);
 
   auto& duration_perf = perf->emplace_back();
   duration_perf.name("runtime");
   duration_perf.unit("s");
   duration_perf.value(max_check_duration);
-  if (_warning_check_duration > 0) {
-    duration_perf.warning_low(0);
-    duration_perf.warning(_warning_check_duration);
-  }
-  if (_critical_check_duration > 0) {
-    duration_perf.critical_low(0);
-    duration_perf.critical(_critical_check_duration);
-  }
+  _warning_check_duration.set_pref_details_w(duration_perf);
+  _critical_check_duration.set_pref_details_c(duration_perf);
 
   if (ret != e_status::ok) {
     if (!critical_output.empty()) {
@@ -286,17 +283,17 @@ e_status check_health::compute(
 void check_health::help(std::ostream& help_stream) {
   help_stream << R"(
 - health params:
-  - warning-interval (s): warning if a check interval is greater than this value
-  - critical-interval (s): critical if a check interval is greater than this value
-  - warning-runtime (s): warning if a check duration is greater than this value
-  - critical-runtime (s): critical if a check duration is greater than this value
+  - warning-interval (s): the warning threshold for check intervals
+  - critical-interval (s): the critical threshold for check intervals
+  - warning-runtime (s): the warning threshold for check duration
+  - critical-runtime (s): the critical threshold for check duration
   An example of configuration:
   {
     "check": "health",
     "args": {
-      "warning-runtime": 30,
-      "critical-runtime": 50,
-      "warning-interval": 60,
+      "warning-runtime": "30",
+      "critical-runtime": "50",
+      "warning-interval": "60",
       "critical-interval": "90"
     }
   }

@@ -34,10 +34,7 @@ static const absl::flat_hash_map<std::string_view, unsigned> _unit_multiplier =
  * @param io_context
  * @param logger
  * @param first_start_expected
- * @param check_interval
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param args
  * @param cnf
  * @param handler
@@ -45,10 +42,7 @@ static const absl::flat_hash_map<std::string_view, unsigned> _unit_multiplier =
 check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
                            const std::shared_ptr<spdlog::logger>& logger,
                            time_point first_start_expected,
-                           duration check_interval,
-                           const std::string& serv,
-                           const std::string& cmd_name,
-                           const std::string& cmd_line,
+                           const Service& serv,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
                            check::completion_handler&& handler,
@@ -56,26 +50,39 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
-            stat),
-      _second_warning_threshold(0),
-      _second_critical_threshold(0) {
+            stat) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
-      _second_warning_threshold = arg.get_unsigned("warning-uptime", 0);
-      _second_critical_threshold = arg.get_unsigned("critical-uptime", 0);
+      // the default value "", disable the threshold
+      _warning_threshold.extract_range(
+          arg.get_string_or_int_as_string("warning-uptime", ""));
+      _critical_threshold.extract_range(
+          arg.get_string_or_int_as_string("critical-uptime", ""));
+
+      if (!_warning_threshold.is_valid() || !_critical_threshold.is_valid()) {
+        throw std::runtime_error(
+            "check uptime, invalid warning-uptime or critical-uptime "
+            "range");
+      }
+
+      // the number of warning/critical will always be positive or zero
+      // if the low threshold is not set, we take the default value
+      _warning_threshold.set_default_low(0);
+      _critical_threshold.set_default_low(0);
+
       std::string unit = arg.get_string("unit", "s");
       boost::to_lower(unit);
       auto multiplier = _unit_multiplier.find(unit);
+
       if (multiplier != _unit_multiplier.end()) {
-        _second_warning_threshold *= multiplier->second;
-        _second_critical_threshold *= multiplier->second;
+        // apply unit multiplier to thresholds , if the threshold is disabled,
+        // no effect
+        _warning_threshold.unit_multiplier(multiplier->second);
+        _critical_threshold.unit_multiplier(multiplier->second);
       }
     }
   } catch (const std::exception& e) {
@@ -136,11 +143,10 @@ e_status check_uptime::compute(uint64_t ms_uptime,
 
   using namespace std::literals;
   e_status status = e_status::ok;
-  if (_second_critical_threshold && uptime_bis < _second_critical_threshold) {
+  if (_critical_threshold.is_triggered(uptime_bis)) {
     *output = "CRITICAL: System uptime is: " + sz_uptime;
     status = e_status::critical;
-  } else if (_second_warning_threshold &&
-             uptime_bis < _second_warning_threshold) {
+  } else if (_warning_threshold.is_triggered(uptime_bis)) {
     *output = "WARNING: System uptime is: " + sz_uptime;
     status = e_status::warning;
   } else {
@@ -151,14 +157,9 @@ e_status check_uptime::compute(uint64_t ms_uptime,
   perf->unit("s");
   perf->value(uptime_bis);
   perf->min(0);
-  if (_second_critical_threshold) {
-    perf->critical_low(0);
-    perf->critical(_second_critical_threshold);
-  }
-  if (_second_warning_threshold) {
-    perf->warning_low(0);
-    perf->warning(_second_warning_threshold);
-  }
+  _critical_threshold.set_pref_details_c(*perf);
+  _warning_threshold.set_pref_details_w(*perf);
+
   return status;
 }
 
@@ -167,15 +168,16 @@ void check_uptime::help(std::ostream& help_stream) {
       R"(
 - uptime  params:" 
     unit (defaults s): can be s, second, m, minute, h, hour, d, day, w, week
-    warning-uptime: warning threshold, if computer has been up for less than this time, service will be in warning state
+    warning-uptime: warning threshold
     critical-uptime: critical threshold
-  An example of configuration:
+
+ An example of configuration:
   {
     "check": "uptime",
     "args": {
       "unit": "day",
-      "warning-uptime": 1,
-      "critical-uptime": 2
+      "warning-uptime": "1:",
+      "critical-uptime": "2:"
     }
   }
   Examples of output:

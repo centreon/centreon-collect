@@ -13,9 +13,14 @@ distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 if [ $database_type == 'mysql' ]; then
     echo "########################### Start MySQL ######################################"
     #workaround of forbidden execution of mysqld
-    cp /usr/libexec/mysqld /usr/libexec/mysqldtoto
-    /usr/libexec/mysqldtoto --user=root --initialize-insecure
-    /usr/libexec/mysqldtoto --user=root &
+    if [ -f /usr/libexec/mysqld ]; then
+      cp /usr/libexec/mysqld /usr/sbin/mysqldtoto
+    else
+      cp /usr/sbin/mysqld /usr/sbin/mysqldtoto
+    fi
+
+    /usr/sbin/mysqldtoto --user=root --initialize-insecure
+    /usr/sbin/mysqldtoto --user=root &
 
     while [ ! -S /var/lib/mysql/mysql.sock ] && [ ! -S /var/run/mysqld/mysqld.sock ]; do
         sleep 10
@@ -33,7 +38,7 @@ else
     fi
 fi
 
-sleep 5
+sleep 10
 echo "########################### Init centreon database ############################"
 
 mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon'"

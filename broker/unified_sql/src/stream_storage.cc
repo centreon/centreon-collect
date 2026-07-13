@@ -26,9 +26,9 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
@@ -90,41 +90,33 @@ void stream::_unified_sql_process_pb_service_status(
     return;
   }
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
-  if (cache_ptr) {
-    cache_ptr->set_index_mapping(it_index_cache->second.index_id, host_id,
-                                 service_id);
-  }
-  uint32_t rrd_len;
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[host_id]);
   bool index_locked{false};
 
   /* Index does not exist */
   uint64_t index_id = it_index_cache->second.index_id;
-  rrd_len = it_index_cache->second.rrd_retention;
   index_locked = it_index_cache->second.locked;
   uint32_t interval = it_index_cache->second.interval * _interval_length;
   SPDLOG_LOGGER_DEBUG(
       _logger_sto,
       "unified sql: host_id:{}, service_id:{} - index already in cache "
-      "- index_id {}, rrd_len {}, serv_interval {}, interval {}",
-      host_id, service_id, index_id, rrd_len, it_index_cache->second.interval,
-      interval);
+      "- index_id {}, serv_interval {}, interval {}",
+      host_id, service_id, index_id, it_index_cache->second.interval, interval);
 
   if (index_id) {
     /* Generate status event */
     SPDLOG_LOGGER_DEBUG(
         _logger_sto,
         "unified sql: host_id:{}, service_id:{} - generating status event "
-        "with index_id {}, rrd_len: {}",
-        host_id, service_id, index_id, rrd_len);
+        "with index_id {}",
+        host_id, service_id, index_id);
     if (ss.checked()) {
       auto status{std::make_shared<storage::pb_status>()};
       auto& s = status->mut_obj();
       s.set_index_id(index_id);
       s.set_interval(interval);
-      s.set_rrd_len(rrd_len);
+      s.set_rrd_len(_rrd_len);
       s.set_time(ss.last_check());
       s.set_state(ss.last_hard_state());
       s.set_host_id(host_id);
@@ -292,10 +284,6 @@ void stream::_unified_sql_process_pb_service_status(
                                 it_index_cache->second.metric_id);
           }
         }
-        if (cache_ptr) {
-          cache_ptr->set_metric_info(metric_id, index_id, pd.name(), pd.unit(),
-                                     pd.min(), pd.max());
-        }
         if (need_metric_mapping) {
           auto mm{std::make_shared<storage::pb_metric_mapping>()};
           auto& mm_obj = mm->mut_obj();
@@ -350,17 +338,20 @@ void stream::_unified_sql_process_pb_service_status(
           m.set_time(ss.last_check());
           m.set_interval(interval);
           m.set_metric_id(metric_id);
-          m.set_rrd_len(rrd_len);
+          m.set_rrd_len(_rrd_len);
           m.set_value(pd.value());
           m.set_value_type(static_cast<Metric_ValueType>(pd.value_type()));
           m.set_name(pd.name());
           m.set_host_id(ss.host_id());
           m.set_service_id(ss.service_id());
+          m.set_min(pd.min());
+          m.set_max(pd.max());
+          m.set_unit(pd.unit());
           SPDLOG_LOGGER_DEBUG(
               _logger_sto,
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
-              m.metric_id(), pd.name(), m.time(), m.value(), rrd_len,
+              m.metric_id(), pd.name(), m.time(), m.value(), _rrd_len,
               m.value_type());
           to_publish.emplace_back(std::move(perf));
         } else {
@@ -396,16 +387,15 @@ void stream::_unified_sql_process_service_status(
       host_id, service_id);
   auto it_index_cache = _index_cache.find({host_id, service_id});
   uint64_t index_id;
-  uint32_t rrd_len;
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id]);
   bool index_locked{false};
   bool special{!strncmp(ss.host_name.c_str(), BAM_NAME, sizeof(BAM_NAME) - 1)};
 
-  auto add_metric_in_cache =
-      [this](uint64_t index_id, uint64_t host_id, uint64_t service_id,
-             neb::service_status const& ss, bool index_locked, bool special,
-             uint32_t& rrd_len) -> void {
+  auto add_metric_in_cache = [this](uint64_t index_id, uint64_t host_id,
+                                    uint64_t service_id,
+                                    neb::service_status const& ss,
+                                    bool index_locked, bool special) -> void {
     if (index_id == 0) {
       throw msg_fmt(
           "unified_sql: could not fetch index_id of newly inserted index ({}"
@@ -422,19 +412,17 @@ void stream::_unified_sql_process_service_status(
         .index_id = index_id,
         .host_name = ss.host_name,
         .service_description = ss.service_description,
-        .rrd_retention = _rrd_len,
         .interval = static_cast<uint32_t>(ss.check_interval),
         .special = special,
         .locked = index_locked,
     };
 
     _index_cache[{host_id, service_id}] = std::move(info);
-    rrd_len = _rrd_len;
     SPDLOG_LOGGER_DEBUG(
         _logger_sto,
         "add metric in cache: (host: {}, service: {}, index: {}, returned "
         "rrd_len {}",
-        ss.host_name, ss.service_description, index_id, rrd_len);
+        ss.host_name, ss.service_description, index_id, _rrd_len);
 
     /* Create the metric mapping. */
     auto im{std::make_shared<storage::index_mapping>(index_id, host_id,
@@ -477,35 +465,29 @@ void stream::_unified_sql_process_service_status(
         database::mysql_task::LAST_INSERT_ID, conn);
     index_id = future.get();
     add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
-                        special, rrd_len);
+                        special);
   } else {
     index_id = it_index_cache->second.index_id;
-    rrd_len = it_index_cache->second.rrd_retention;
     index_locked = it_index_cache->second.locked;
     SPDLOG_LOGGER_DEBUG(
         _logger_sto,
         "unified sql: host_id:{}, service_id:{} - index already in cache "
-        "- index_id {}, rrd_len {}",
-        host_id, service_id, index_id, rrd_len);
+        "- index_id {}",
+        host_id, service_id, index_id);
   }
 
   if (index_id) {
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->set_index_mapping(index_id, host_id, service_id);
-    }
-
     /* Generate status event */
     SPDLOG_LOGGER_DEBUG(
         _logger_sto,
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
-        host_id, service_id, index_id, rrd_len);
+        host_id, service_id, index_id, _rrd_len);
     if (ss.has_been_checked) {
       auto status(std::make_shared<storage::status>(
           ss.last_check, index_id,
           static_cast<uint32_t>(ss.check_interval * _interval_length), false,
-          rrd_len, ss.last_hard_state));
+          _rrd_len, ss.last_hard_state));
       multiplexing::publisher().write(status);
     }
 
@@ -670,11 +652,6 @@ void stream::_unified_sql_process_service_status(
           }
         }
 
-        auto cache_ptr = cache::global_cache::instance_ptr();
-        if (cache_ptr) {
-          cache_ptr->set_metric_info(metric_id, index_id, pd.name(), pd.unit(),
-                                     pd.min(), pd.max());
-        }
         if (need_metric_mapping)
           to_publish.emplace_back(
               std::make_shared<storage::metric_mapping>(index_id, metric_id));
@@ -719,13 +696,13 @@ void stream::_unified_sql_process_service_status(
           auto perf{std::make_shared<storage::metric>(
               ss.host_id, ss.service_id, pd.name(), ss.last_check,
               static_cast<uint32_t>(ss.check_interval * _interval_length),
-              false, metric_id, rrd_len, pd.value(),
+              false, metric_id, _rrd_len, pd.value(),
               static_cast<common::perfdata::data_type>(pd.value_type()))};
           SPDLOG_LOGGER_DEBUG(
               _logger_sto,
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
-              perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
+              perf->metric_id, perf->name, perf->time, perf->value, _rrd_len,
               perf->value_type);
           to_publish.emplace_back(perf);
         }
@@ -1009,11 +986,13 @@ void stream::_check_queues(boost::system::error_code ec) {
     }
 
     if (!_stop_check_queues) {
-      absl::MutexLock l(&_timer_m);
+      absl::MutexLock l(_timer_m);
       _queues_timer.expires_after(std::chrono::seconds(5));
       _queues_timer.async_wait([this](const boost::system::error_code& err) {
-        absl::ReaderMutexLock lck(&_barrier_timer_m);
-        _check_queues(err);
+        if (!err) {
+          absl::ReaderMutexLock lck(_barrier_timer_m);
+          _check_queues(err);
+        }
       });
     } else {
       SPDLOG_LOGGER_INFO(_logger_sql,

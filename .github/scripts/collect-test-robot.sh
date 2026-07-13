@@ -7,7 +7,14 @@ export RUN_ENV=docker
 test_file=$1
 database_type=$2
 #this env variable is a json that contains some test params
-export TESTS_PARAMS='$3'
+export TESTS_PARAMS=$3
+
+echo "########################### execute tests with params: $TESTS_PARAMS ###########################"
+
+if [ -f "/.venv/bin/activate" ]; then
+  echo "########################### activate python virtual env ###########################"
+  source /.venv/bin/activate
+fi
 
 . /etc/os-release
 distrib=${ID}
@@ -27,11 +34,16 @@ if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
 fi
 
 echo "###########################  start sshd ###########################"
+if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+  ssh-keygen -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
+  ssh-keygen -t dsa -N '' -f /etc/ssh/ssh_host_dsa_key
+fi
+
 /usr/sbin/sshd -D  &
 
 if [ $database_type == 'mysql' ]; then
     echo "########################### Start MySQL ######################################"
-    /usr/libexec/mysqldtoto --user=root &
+    /usr/sbin/mysqldtoto --user=root &
 else
     echo "########################### Start MariaDB ######################################"
     if [ "$distrib" = "ALMALINUX" ]; then
@@ -40,7 +52,6 @@ else
       mariadbd --socket=/run/mysqld/mysqld.sock --user=root > /dev/null 2>&1 &
     fi
     sleep 5
-
 fi
 
 
@@ -55,9 +66,7 @@ else
   apt-get install -y ./*.deb
 fi
 
-
 ulimit -c unlimited
-ulimit -S -n 524288
 
 #only privileged container can write core files
 if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then

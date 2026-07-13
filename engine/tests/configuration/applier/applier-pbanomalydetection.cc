@@ -69,6 +69,8 @@ TEST_F(ApplierPbAnomalydetection, PbNewHostWithoutHostId) {
   configuration::host_helper hhlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hlp.set_default_values();
+  hhlp.set_default_values();
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
 }
 
@@ -87,6 +89,7 @@ TEST_F(ApplierPbAnomalydetection, PbNewADFromConfig) {
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   configuration::applier::service svc_aply;
@@ -102,6 +105,7 @@ TEST_F(ApplierPbAnomalydetection, PbNewADFromConfig) {
   cmd.set_command_name("cmd");
   cmd.set_command_line("echo 'output| metric=12;50;75'");
   svc.set_check_command("cmd");
+  svc_hmlp.set_default_values();
 
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
@@ -115,6 +119,7 @@ TEST_F(ApplierPbAnomalydetection, PbNewADFromConfig) {
   ad.set_host_name("test_host");
   ad.set_metric_name("foo");
   ad.set_thresholds_file("/etc/centreon-broker/thresholds.json");
+  ad_hlp.set_default_values();
 
   // No need here to call ad_aply.expand_objects(*config) because the
   // configuration service is not stored in configuration::state. We just have
@@ -146,6 +151,7 @@ TEST_F(ApplierPbAnomalydetection, PbNewADNoServiceId) {
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
+  hst_hlp.set_default_values();
   // The host id is not given
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
   hst.set_host_id(1);
@@ -153,6 +159,7 @@ TEST_F(ApplierPbAnomalydetection, PbNewADNoServiceId) {
   ad.set_service_description("test description");
   ad.set_host_id(1);
   ad.set_host_name("test_host");
+  ad_hlp.set_default_values();
 
   // No need here to call ad_aply.expand_objects(*config) because the
   // configuration service is not stored in configuration::state. We just have
@@ -172,10 +179,12 @@ TEST_F(ApplierPbAnomalydetection, PbNewADNoHostId) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ad.set_service_description("test description");
   ad.set_service_id(4);
   ad.set_host_name("test_host");
+  ad_hlp.set_default_values();
 
   ASSERT_THROW(ad_aply.add_object(ad), std::exception);
 }
@@ -192,13 +201,14 @@ TEST_F(ApplierPbAnomalydetection, PbNewADBadHostId) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ad.set_service_description("test description");
   ad.set_host_id(2);
   ad.set_service_id(2);
   ad.set_dependent_service_id(3);
   ad.set_host_name("test_host");
-
+  ad_hlp.set_default_values();
   // No need here to call ad_aply.expand_objects(*config) because the
   // configuration service is not stored in configuration::state. We just have
   // to set the host_id manually.
@@ -217,12 +227,14 @@ TEST_F(ApplierPbAnomalydetection, PbNewADNoMetric) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ad.set_service_description("test description");
   ad.set_host_id(1);
   ad.set_service_id(4);
   ad.set_dependent_service_id(3);
   ad.set_host_name("test_host");
+  ad_hlp.set_default_values();
 
   // No need here to call ad_aply.expand_objects(*config) because the
   // configuration service is not stored in configuration::state. We just have
@@ -242,6 +254,7 @@ TEST_F(ApplierPbAnomalydetection, PbNewADNoThresholds) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ad.set_service_description("test description");
   ad.set_host_id(1);
@@ -249,6 +262,7 @@ TEST_F(ApplierPbAnomalydetection, PbNewADNoThresholds) {
   ad.set_dependent_service_id(3);
   ad.set_host_name("test_host");
   ad.set_metric_name("bar");
+  ad_hlp.set_default_values();
 
   // No need here to call ad_aply.expand_objects(*config) because the
   // configuration service is not stored in configuration::state. We just have

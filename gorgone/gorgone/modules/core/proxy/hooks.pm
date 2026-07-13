@@ -52,16 +52,19 @@ use constant NAME => 'proxy';
 use constant EVENTS => [
     { event => 'PROXYREADY' },
     { event => 'REMOTECOPY', uri => '/remotecopy', method => 'POST' },
-    { event => 'SETLOGS' }, # internal. Shouldn't be used by third party clients
-    { event => 'PONG' }, # internal. Shouldn't be used by third party clients
-    { event => 'REGISTERNODES' }, # internal. Shouldn't be used by third party clients
-    { event => 'UNREGISTERNODES' }, # internal. Shouldn't be used by third party clients
-    { event => 'PROXYADDNODE' }, # internal. Shouldn't be used by third party clients
-    { event => 'PROXYDELNODE' }, # internal. Shouldn't be used by third party clients
-    { event => 'PROXYADDSUBNODE' }, # internal. Shouldn't be used by third party clients
-    { event => 'PONGRESET' }, # internal. Shouldn't be used by third party clients
     { event => 'PROXYCLOSECONNECTION' },
-    { event => 'PROXYSTOPREADCHANNEL' }
+    { event => 'PROXYSTOPREADCHANNEL' },
+    # internal. Shouldn't be used by third party clients
+    { event => 'SETLOGS' },
+    { event => 'PONG' },
+    { event => 'REGISTERNODES' }, # msg from a poller when authenticating
+    { event => 'REGISTERNODESFROMDB' }, # msg from nodes module with a list of node taken from db.
+    { event => 'UNREGISTERNODES' },
+    { event => 'PROXYADDNODE' },
+    { event => 'PROXYDELNODE' },
+    { event => 'PROXYADDSUBNODE' },
+    { event => 'PONGRESET' },
+
 ];
 
 my $config_core;
@@ -186,7 +189,10 @@ sub routing {
         register_nodes(%options, data => $data);
         return undef;
     }
-
+    if ($options{action} eq 'REGISTERNODESFROMDB') {
+        register_nodes_from_db(%options, data => $data);
+        return undef;
+    }
     if ($options{action} eq 'PROXYREADY') {
         if (defined($data->{pool_id})) {
             $pools->{ $data->{pool_id} }->{ready} = 1;
@@ -250,6 +256,8 @@ sub routing {
 
         if (defined($register_nodes->{$target})) {
             if ($synctime_nodes->{$target}->{synctime_error} == -1 && get_sync_time(dbh => $options{dbh}, node_id => $target) == -1) {
+                $options{logger}->writeLogDebug("[proxy] ignoring Getlog for '" . $target .
+                    "' because last sync ($synctime_nodes->{$target}->{ctime}) is not finished (expecting $synctime_nodes->{$target}->{got_msg} / $synctime_nodes->{$target}->{total_msg})");
                 gorgone::standard::library::add_history({
                     dbh => $options{dbh},
                     code => GORGONE_ACTION_FINISH_KO, token => $options{token},
@@ -259,7 +267,9 @@ sub routing {
                 return undef;
             }
 
-            if ($synctime_nodes->{$target}->{in_progress} == 1) {
+            if (defined($synctime_nodes->{$target}->{total_msg})) {
+                $options{logger}->writeLogDebug("[proxy] getlog already in progress for '" . $target .
+                    "' last sync ($synctime_nodes->{$target}->{ctime}) is not finished (expecting $synctime_nodes->{$target}->{got_msg} / $synctime_nodes->{$target}->{total_msg})");
                 gorgone::standard::library::add_history({
                     dbh => $options{dbh},
                     code => GORGONE_ACTION_FINISH_KO, token => $options{token},
@@ -269,11 +279,16 @@ sub routing {
                 return undef;
             }
 
-            # We put the good time to get        
+            # We put the good time to get
             my $ctime = $synctime_nodes->{$target}->{ctime};
-            $options{frame}->setData({ ctime => $ctime });
+            my $last_id = $synctime_nodes->{$target}->{last_id};
+            $options{frame}->setData({ ctime => $ctime, last_id => $last_id });
             $options{frame}->setRawData();
-            $synctime_nodes->{$target}->{in_progress} = 1;
+            # if total_msg is -1 it mean the query was already sent but no response was received yet.
+            # if total_msg is > 0 it mean we received the first part of the response and waiting for the rest of it.
+            $synctime_nodes->{$target}->{total_msg} = -1;
+            $synctime_nodes->{$target}->{got_msg} = 0;
+            #$synctime_nodes->{$target}->{in_progress} = 1;
             $synctime_nodes->{$target}->{in_progress_time} = time();
         }
     }
@@ -451,15 +466,19 @@ sub check {
             }
         }
 
-        if ($synctime_nodes->{$_}->{in_progress} == 1 && 
+        if (defined($synctime_nodes->{$_}->{total_msg}) &&
             time() - $synctime_nodes->{$_}->{in_progress_time} > $synctimeout_option) {
+            $options{logger}->writeLogInfo("[proxy] Getlog max timeout reached for '" . $_ . "'");
             gorgone::standard::library::add_history({
                 dbh => $options{dbh},
                 code => GORGONE_ACTION_FINISH_KO,
                 data => { message => "proxy - getlog in timeout for '$_'" },
                 json_encode => 1
             });
-            $synctime_nodes->{$_}->{in_progress} = 0;
+            # this property created when querying for node logs, in routing() with GETLOG event.
+            # if the query is in timeout, delete everything to be ready for the next query.
+            delete($synctime_nodes->{$_}->{total_msg});
+            $synctime_nodes->{$_}->{got_msg} = 0
         }
     }
 
@@ -580,30 +599,36 @@ sub pathway {
     # if there are here, we use the first pathway (because all pathways had an issue)
     return (1, 0, $first_target . '~~' . $target, $first_target, $target);
 }
-
+# Store log from a distant poller to local database, and the last log creation time (ctime) to avoid asking the same logs again.
+# called by routing() to process the SETLOGS event.
+# it's a getlog response from a distant node. on single node getlogs are not transformed in setlog.
+# each getlog can generate multiples setlogs depending on the size/number of logs on remote host. (see pullwss::hook::transmit_back)
+# For now if a message is lost during transit it's not asked again.
 sub setlogs {
+    # data: the zmq message received
+    # logger : the logger object
+    # token: unique token for the setlogs operation
+    # dbh: the gorgone internal database handler (sqlite for now)
     my (%options) = @_;
 
     if (!defined($options{data}->{data}->{id}) || $options{data}->{data}->{id} eq '') {
+        $options{logger}->writeLogInfo("[proxy] [$options{token}] Need a id to setlogs");
         gorgone::standard::library::add_history({
-            dbh => $options{dbh},
-            code => GORGONE_ACTION_FINISH_KO, token => $options{token},
-            data => { message => 'proxy - need a id to setlogs' },
-            json_encode => 1
-        });
-        return undef;
-    }
-    if ($synctime_nodes->{ $options{data}->{data}->{id} }->{in_progress} == 0) {
-        gorgone::standard::library::add_history({
-            dbh => $options{dbh},
-            code => GORGONE_ACTION_FINISH_KO, token => $options{token},
-            data => { message => 'proxy - skip setlogs response. Maybe too much time to get response. Retry' },
+            dbh         => $options{dbh},
+            code        => GORGONE_ACTION_FINISH_KO, token => $options{token},
+            data        => { message => 'proxy - need a id to setlogs' },
             json_encode => 1
         });
         return undef;
     }
 
-    $options{logger}->writeLogInfo("[proxy] Received setlogs for '$options{data}->{data}->{id}'");
+    my $node_status = $synctime_nodes->{ $options{data}->{data}->{id} };
+    # log overview of multipart message only if it's a multipart message.
+    my $logline = "";
+    if (defined($options{data}->{data}->{nb_total_msg})) {
+        $logline = " part " . $node_status->{got_msg} . "/" . $options{data}->{data}->{nb_total_msg};
+    }
+    $options{logger}->writeLogInfo("[proxy] Received setlogs for '$options{data}->{data}->{id}'" . $logline);
 
     # we have received the setlogs (it's like a pong response. not a problem if we received the pong after)
     $constatus_ping->{ $options{data}->{data}->{id} }->{in_progress_ping} = 0;
@@ -611,14 +636,21 @@ sub setlogs {
     $constatus_ping->{ $options{data}->{data}->{id} }->{last_ping_recv} = time();
     $last_pong->{ $options{data}->{data}->{id} } = time() if (defined($last_pong->{ $options{data}->{data}->{id} }));
 
-    $synctime_nodes->{ $options{data}->{data}->{id} }->{in_progress} = 0;
+    if (!defined($node_status->{total_msg}) or $node_status->{total_msg} == -1) {
+        $node_status->{total_msg} = $options{data}->{data}->{nb_total_msg} // 1;
+        # if not defined it probably mean we are connected to an older node that does not support multipart messages, so there is only one part.
+    }
 
     my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
-    $status = $options{dbh}->transaction_mode(1);
-    return -1 if ($status == -1);
+        increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
 
+    $status = $options{dbh}->start_transaction();
+    if ($status == -1){
+        $options{logger}->writeLogError("[proxy] setlogs() could not start a transaction to add log in database. Logs are still available on remote host if needed.");
+        return -1;
+    }
     foreach (@{$options{data}->{data}->{result}}) {
         # wrong timestamp inserted. we skip it
         if ($_->{ctime} !~ /[0-9\.]/) {
@@ -633,18 +665,31 @@ sub setlogs {
             instant => $_->{instant},
             data => $_->{data}
         });
-        last if ($status == -1);
-        $ctime_recent = $_->{ctime} if ($ctime_recent < $_->{ctime});
+        if ($status == -1){
+            $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
+            last;
+        }
+        if ($node_status->{ctime}  < $_->{ctime}) {
+            $node_status->{ctime}  = $_->{ctime};
+            $node_status->{last_id} = $_->{id}
+        }
     }
-    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent) == 0) {
+    if ($status == 0 &&
+        update_sync_time(
+            dbh => $options{dbh},
+            id => $options{data}->{data}->{id},
+            ctime => $node_status->{ctime},
+            last_id => $node_status->{last_id} ) == 0) {
         $status = $options{dbh}->commit();
-        return -1 if ($status == -1);
-        $options{dbh}->transaction_mode(0);
+        if ($status == -1) {
+            $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
+            return -1;
+        }
 
-        $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0); 
+        $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0);
     } else {
         $options{dbh}->rollback();
-        $options{dbh}->transaction_mode(0);
+        $options{logger}->writeLogError("[proxy] setlogs() could not update data, doing a rollback. Logs are still available on remote host if needed.");
         return -1;
     }
 
@@ -662,14 +707,33 @@ sub setlogs {
 
     return 0;
 }
+# when retrieving logs from a node, logs can be sent in multiple parts.
+# each part contain the total number of part to expect.
+# this function increment the number of part we got, and delete the hash if we got all the parts.
+# the routing() function check if a node is waiting for logs before sending a new request by checking if total_msg is present.
+sub increment_log_messages_retrieved {
+    my $node = shift;
+    my $logger = shift;
+    my $id = shift;
+
+    return if !defined($node->{total_msg});
+
+    $node->{got_msg}++;
+
+    if ($node->{got_msg} >= $node->{total_msg}) {
+        $logger->writeLogInfo("[proxy] ". ($node->{total_msg} != -1 ? $node->{total_msg} : 1) . " logs parts received for node $id, last log is from $node->{ctime}");
+        delete($node->{total_msg});
+        $node->{got_msg} = 0;
+    }
+}
 
 sub ping_send {
     my (%options) = @_;
-
     my $nodes_id = [keys %$register_nodes];
     $nodes_id = [$options{node_id}] if (defined($options{node_id}));
     my $current_time = time();
     foreach my $id (@$nodes_id) {
+
         next if ($constatus_ping->{$id}->{in_progress_ping} == 1 || $current_time < $constatus_ping->{$id}->{next_ping});
 
         $constatus_ping->{$id}->{last_ping_sent} = $current_time;
@@ -714,8 +778,8 @@ sub update_sync_time {
     return 0 if ($options{ctime} == 0);
 
     my ($status) = $options{dbh}->query({
-            query => "REPLACE INTO gorgone_synchistory (`id`, `ctime`) VALUES (?, ?)",
-            bind_values => [$options{id}, $options{ctime}]
+            query => "REPLACE INTO gorgone_synchistory (`id`, `ctime`, `last_id`) VALUES (?, ?, ?)",
+            bind_values => [$options{id}, $options{ctime}, $options{last_id} // '']
         }
     );
     return $status;
@@ -729,11 +793,11 @@ sub get_sync_time {
         $synctime_nodes->{$options{node_id}}->{synctime_error} = -1; 
         return -1;
     }
-
     $synctime_nodes->{$options{node_id}}->{synctime_error} = 0;
     if (my $row = $sth->fetchrow_hashref()) {
         $synctime_nodes->{ $row->{id} }->{ctime} = $row->{ctime};
-        $synctime_nodes->{ $row->{id} }->{in_progress} = 0;
+        $synctime_nodes->{ $row->{id} }->{last_id} = $row->{last_id};
+        delete($synctime_nodes->{ $row->{id} }->{total_msg});
         $synctime_nodes->{ $row->{id} }->{in_progress_time} = -1;
     }
 
@@ -808,6 +872,7 @@ sub create_httpserver_child {
     my $child_pid = fork();
     if ($child_pid == 0) {
         $0 = 'gorgone-proxy-httpserver';
+
         my $module = gorgone::modules::core::proxy::httpserver->construct(
             logger => $options{logger},
             module_id => NAME,
@@ -867,8 +932,16 @@ sub pull_request {
 
 sub get_constatus_result {
     my (%options) = @_;
-
-    return $constatus_ping;
+    # Gorgone now allow pollers to connect with either the legacy id or a new field named "uid"
+    # to allow this most state variables have both the id and uid as key, and both point to the same hash
+    # This loop avoid showing a poller from 2 time from both id and uid point of view.
+    my $res = {};
+    while (my ($key, $elem) = each %$constatus_ping){
+        if ($key =~ /^\d+$/ && $key == $elem->{id}){
+            $res->{$key} = $elem;
+        }
+    }
+    return $res;
 }
 
 sub unregister_nodes {
@@ -891,7 +964,18 @@ sub unregister_nodes {
         my $prevail = 0;
         $prevail = 1  if (defined($prevails->{ $node->{id} }));
 
-        if (defined($register_nodes->{ $node->{id} }) && $register_nodes->{ $node->{id} }->{type} =~ /^(?:pull|wss|pullwss)$/ && $prevail == 1) {
+        if (defined($register_nodes->{ $node->{id} }) && $register_nodes->{ $node->{id} }->{type} =~ /^(?:pull|wss|pullwss)$/) {
+            if ($register_nodes->{ $node->{id} }->{type} =~ /^(?:wss|pullwss)$/) {
+                $options{gorgone}->send_internal_message(
+                    identity => "gorgone-proxy-httpserver",
+                    action => "PROXYDELNODE",
+                    json_encode => 1,
+                    data => $node,
+                    token => $options{token},
+                );
+            } elsif ($register_nodes->{ $node->{id} }->{type} =~ /^(?:pull)$/) {
+                # @TODO send to pull process here.
+            }
             $register_nodes->{ $node->{id} }->{identity} = undef;
         }
 
@@ -937,15 +1021,36 @@ sub register_subnodes {
         push @$subnodes, $entry->{nodes} if (defined($entry->{nodes}));
     }
 }
+# this message is sent by a poller on connection and by register module
+sub register_nodes {
+    my (%options) = @_;
+    return if (!defined($options{data}->{nodes}));
 
+    foreach my $node (@{$options{data}->{nodes}}) {
+        if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity})) {
+            $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
+            $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
+        }
+    }
+}
 # 'pull' type:
 #    - it does a REGISTERNODES without subnodes (if it already exist, no new entry created, otherwise create an entry). We save the uniq identity
 #    - PING done by proxy and with PONG we get subnodes
-sub register_nodes {
+sub register_nodes_from_db {
     my (%options) = @_;
 
-    return if (!defined($options{data}->{nodes}));
+    return if (!defined($options{data}->{nodes}) || !$options{data}->{nodes});
 
+    # send all data to proxy-httpserver, which manage pullwss nodes.
+    # need to send the complete list in one message to be able to delete node when they are removed from the db.
+    # on platform which don't have this module, the message is thrown away
+    $options{gorgone}->send_internal_message(
+        identity    => "gorgone-proxy-httpserver",
+        action      => "PROXYADDNODE",
+        json_encode => 1,
+        data        => $options{data}->{nodes},
+        token       => $options{token},
+    );
     foreach my $node (@{$options{data}->{nodes}}) {
         my ($new_node, $prevail) = (1, 0);
 
@@ -986,7 +1091,10 @@ sub register_nodes {
         }
 
         if ($prevail == 0) {
-            $register_nodes->{ $node->{id} } = $node;
+            if ( !$register_nodes->{ $node->{id} }){
+                $register_nodes->{ $node->{id} } = $node;
+            }
+
             if (defined($node->{nodes})) {
                 foreach my $subnode (@{$node->{nodes}}) {
                     $register_subnodes->{ $subnode->{id} } = { static => {}, dynamic => {} } if (!defined($register_subnodes->{ $subnode->{id} }));
@@ -1005,11 +1113,8 @@ sub register_nodes {
                 }
             }
         }
-
-        # we update identity in all cases (already created or not)
-        if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity})) {
-            $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
-            $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
+        if ($node->{uid} and !$register_nodes->{$node->{uid}}) {
+            $register_nodes->{$node->{uid}} = $register_nodes->{$node->{id}};
         }
 
         $last_pong->{ $node->{id} } = 0 if (!defined($last_pong->{ $node->{id} }));
@@ -1045,19 +1150,37 @@ sub register_nodes {
                 );
             }
         }
+
         if ($new_node == 1) {
             $constatus_ping->{ $node->{id} } = {
-                type => $node->{type},
+                type             => $node->{type},
                 in_progress_ping => 0,
-                ping_timeout => 0,
-                last_ping_sent => 0,
-                last_ping_recv => 0,
-                next_ping => time() + int(rand($ping_interval)),
-                ping_ok => 0,
-                ping_failed => 0,
-                nodes => {}
+                ping_timeout     => 0,
+                last_ping_sent   => 0,
+                last_ping_recv   => 0,
+                next_ping        => time() + int(rand($ping_interval)),
+                ping_ok          => 0,
+                ping_failed      => 0,
+                nodes            => {},
+                uid             => $node->{uid},
+                id               => $node->{id},
             };
             $options{logger}->writeLogInfo("[proxy] Node '" . $node->{id} . "' is registered");
+        }
+
+        # now we link the uid and the id of the node to point to the same hash (this is not a copy)
+        # This allows to access a node from both the uid and id transparently.
+        if (!$constatus_ping->{$node->{uid}}) {
+            $constatus_ping->{$node->{uid}} = $constatus_ping->{$node->{id}};
+        }
+        if (!$last_pong->{$node->{uid}}) {
+            $last_pong->{$node->{uid}} = $last_pong->{$node->{id}};
+        }
+        if (!$synctime_nodes->{$node->{uid}}) {
+            $synctime_nodes->{$node->{uid}} = $synctime_nodes->{$node->{id}};
+        }
+        if (!$register_subnodes->{$node->{uid}} and $register_subnodes->{$node->{uid}}) {
+            $register_subnodes->{$node->{uid}} = $register_subnodes->{$node->{id}};
         }
     }
 }
@@ -1125,12 +1248,18 @@ sub prepare_remote_copy {
         $owner = $options{data}->{content}->{owner} if (defined($options{data}->{content}->{owner}) && $options{data}->{content}->{owner} ne '');
         my $group;
         $group = $options{data}->{content}->{group} if (defined($options{data}->{content}->{group}) && $options{data}->{content}->{group} ne '');
+        my $mode;
+        $mode = $options{data}->{content}->{mode} if (defined($options{data}->{content}->{mode}) && $options{data}->{content}->{mode} ne '');
         foreach my $file (@inventory) {
             next if ($file eq '.');
             $tar->add_files($file);
             if (defined($owner) || defined($group)) {
                 $tar->chown($file, $owner, $group);
             }
+            if (defined($mode)) {
+                $tar->chmod($file, "$mode");
+            }
+
         }
 
         unless (chdir($options{data}->{content}->{cache_dir})) {
@@ -1201,7 +1330,11 @@ sub prepare_remote_copy {
             destination => $dst,
             cache_dir => $options{data}->{content}->{cache_dir},
             owner => $options{data}->{content}->{owner},
-            group => $options{data}->{content}->{group}
+            group => $options{data}->{content}->{group},
+            # We only handle mode for regular files because the permissions of the files
+            # contained in a TAR archive are already managed within the archive
+            $type eq 'regular' ? ( mode => $options{data}->{content}->{mode} // undef )
+                               : ()
         },
         parameters => { no_fork => 1 }
     });

@@ -19,6 +19,7 @@
 #include "com/centreon/broker/storage/rebuilder.hh"
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <cfloat>
 #include <cmath>
 
@@ -83,7 +84,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
     std::future<database::mysql_result> future = promise.get_future();
     std::string query{fmt::format(
         "SELECT m.metric_id, m.metric_name, m.data_source_type, "
-        "i.rrd_retention, s.check_interval, m.index_id FROM metrics m LEFT "
+        "s.check_interval, m.index_id FROM metrics m LEFT "
         "JOIN index_data "
         "i ON m.index_id=i.id LEFT JOIN services s ON i.host_id=s.host_id AND "
         "i.service_id=s.service_id WHERE i.id IN ({})",
@@ -98,7 +99,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
       database::mysql_result res{future.get()};
       while (ms.fetch_row(res)) {
         uint64_t mid = res.value_as_u64(0);
-        uint64_t index_id = res.value_as_u64(5);
+        uint64_t index_id = res.value_as_u64(4);
         mids.push_back(mid);
         _logger->trace("Metric rebuild: metric {} is sent to rebuild", mid);
         (*start_rebuild->mut_obj().mutable_metric_to_index_id())[mid] =
@@ -107,10 +108,8 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
         metric_info& v = ret.first->second;
         v.metric_name = res.value_as_str(1);
         v.data_source_type = res.value_as_i32(2);
-        v.rrd_retention = res.value_as_i32(3);
-        if (!v.rrd_retention)
-          v.rrd_retention = _rrd_len;
-        v.check_interval = res.value_as_f64(4) * _interval_length;
+
+        v.check_interval = res.value_as_f64(3) * _interval_length;
         if (!v.check_interval)
           v.check_interval = 5 * 60;
       }
@@ -180,7 +179,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
                   (*data_rebuild->mut_obj().mutable_timeserie())[it->first]};
               m.set_check_interval(i.check_interval);
               m.set_data_source_type(i.data_source_type);
-              m.set_rrd_retention(i.rrd_retention);
+              m.set_rrd_retention(_rrd_len);
             }
             multiplexing::publisher().write(data_rebuild);
             start = end;

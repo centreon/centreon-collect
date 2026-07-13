@@ -33,6 +33,7 @@
 #include <spdlog/spdlog.h>
 
 #include <absl/base/thread_annotations.h>
+#include <absl/container/btree_map.h>
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
@@ -55,11 +56,11 @@ namespace asio = boost::asio;
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <boost/process/v2.hpp>
 #include <boost/program_options.hpp>
 
 #include <rapidjson/document.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 namespace multi_index = boost::multi_index;

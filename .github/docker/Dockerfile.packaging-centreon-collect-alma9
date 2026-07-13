@@ -41,8 +41,8 @@ FROM centreon_collect_packaging AS centreon_collect_packaging_vcpkg
 
 RUN bash -e <<EOF
 
+
 dnf install --best -y \
-    cmake \
     gcc \
     gcc-c++ \
     libstdc++-static \
@@ -64,6 +64,11 @@ dnf install --best -y \
 
 dnf clean all
 
+wget https://github.com/Kitware/CMake/releases/download/v4.3.3/cmake-4.3.3-linux-\$(arch).sh
+mkdir -p /opt/cmake-4.3.3 
+bash cmake-4.3.3-linux-\$(arch).sh --skip-license --prefix=/opt/cmake-4.3.3
+rm -f cmake-4.3.3-linux-\$(arch).sh
+
 EOF
 
 COPY vcpkg.json /root/vcpkg.json
@@ -72,11 +77,15 @@ COPY custom-triplets /custom-triplets
 
 RUN bash -e <<EOF
 
-git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+git clone --depth 1 -b 2026.05.25 https://github.com/Microsoft/vcpkg.git
+#jobs have to share all cpus of the host but see all cpus
+#so, if we not limit concurrency, each job will start ntotal_cpu+1 gcc
+export VCPKG_MAX_CONCURRENCY=8
+export VCPKG_FORCE_SYSTEM_BINARIES=1
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 export VCPKG_ROOT=/vcpkg
-export PATH=\$VCPKG_ROOT:\$PATH
+export PATH=\$VCPKG_ROOT:/opt/cmake-4.3.3/bin:\$PATH
 
 mkdir /src
 cp /root/vcpkg.json /src/vcpkg.json

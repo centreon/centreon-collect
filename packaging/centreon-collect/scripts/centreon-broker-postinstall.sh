@@ -29,6 +29,9 @@ if [ "$1" = "configure" ] ; then
     /var/log/centreon-broker
   chmod -R g+w \
     /etc/centreon-broker \
-    /var/lib/centreon-broker \
+    /var/lib/centreon-broker
+
+  chmod -R 0755 \
     /var/log/centreon-broker
+  
 fi

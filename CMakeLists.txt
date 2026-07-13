@@ -65,8 +65,6 @@ project("Centreon Collect" C CXX)
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
-
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -121,14 +119,17 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
 endif()
 
 # Version.
-set(COLLECT_MAJOR 25)
-set(COLLECT_MINOR 05)
+set(COLLECT_MAJOR 26)
+set(COLLECT_MINOR 09)
 set(COLLECT_PATCH 0)
 set(AGENT_MAJOR ${COLLECT_MAJOR})
 set(AGENT_MINOR ${COLLECT_MINOR})
 set(AGENT_PATCH 0)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 
+
+#we use std::filesystem instead of boost::filesystem
+add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   include(CMakeListsLinux.txt)

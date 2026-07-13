@@ -76,25 +76,24 @@ sub getServicesWithHostAndCategory {
     	# getting categories directly linked to service
     	my $categories = $self->getServiceCategories($row->{"service_id"});
     	while(my ($sc_id, $sc_name) = each(%$categories)) {
-   			push @categoriesTable, $sc_id.";".$sc_name;
+			push @categoriesTable, [ $sc_id, $sc_name ];
 		}
 		# getting categories linked to template
 		if (defined($row->{"tpl"}) && defined($templateCategories->{$row->{"tpl"}})) {
 	    	my $tplCategories = $templateCategories->{$row->{"tpl"}};
 		    while(my ($sc_id, $sc_name) = each(%$tplCategories)) {
 		    	if(!defined($categories->{$sc_id})) { 
-	   				push @categoriesTable, $sc_id.";".$sc_name;
+					push @categoriesTable, [ $sc_id, $sc_name ];
 		    	}
 			}
     	}
    		if (!scalar(@categoriesTable)) {
-   			#ToDo push @categoriesTable, "0;NULL";
+   			push @categoriesTable, [0, "NoCategory"];
    		}	
     	if (defined($serviceHostTable)) {
-    		foreach(@$serviceHostTable) {
-    			my $hostInfos = $_;
+		foreach my $hostInfos (@$serviceHostTable) {
     			foreach(@categoriesTable) {
- 		   			push @results, $row->{"service_id"}.";".$row->{"service_description"}.";".$_.";".$hostInfos;
+					push @results, [ $row->{"service_id"}, $row->{"service_description"}, @$_, @$hostInfos ];
     			}
     		}
     	}
@@ -119,25 +118,24 @@ sub getServicesWithHostAndCategory {
     	# getting categories directly linked to service
     	my $categories = $self->getServiceCategories($row->{"service_id"});
     	while(my ($sc_id, $sc_name) = each(%$categories)) {
-   			push @categoriesTable, $sc_id.";".$sc_name;
+			push @categoriesTable, [ $sc_id, $sc_name ];
 		}
 		# getting categories linked to template
 		if (defined($row->{"tpl"}) && defined($templateCategories->{$row->{"tpl"}})) {
 	    	my $tplCategories = $templateCategories->{$row->{"tpl"}};
 		    while(my ($sc_id, $sc_name) = each(%$tplCategories)) {
 	   			if(!defined($categories->{$sc_id})) { 
-	   				push @categoriesTable, $sc_id.";".$sc_name;
+					push @categoriesTable, [ $sc_id, $sc_name ];
 		    	}
 			}
     	}
    		if (!scalar(@categoriesTable)) {
-   			push @categoriesTable, "0;NULL";
+   			push @categoriesTable, [0, "NoCategory"];
    		}	
     	if (defined($serviceHostTable)) {
-    		foreach(@$serviceHostTable) {
-    			my $hostInfos = $_;
+		foreach my $hostInfos (@$serviceHostTable) {
     			foreach(@categoriesTable) {
- 		   			push @results, $row->{"service_id"}.";".$row->{"service_description"}.";".$_.";".$hostInfos;
+					push @results, [ $row->{"service_id"}, $row->{"service_description"}, @$_, @$hostInfos ];
     			}
     		}
     	}

@@ -23,11 +23,13 @@
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
+#include "com/centreon/broker/bam/configuration/reader_exception.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -66,7 +68,8 @@ monitoring_stream::monitoring_stream(
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
       _cache(std::move(cache)),
-      _forced_svc_checks_timer{com::centreon::common::pool::io_context()} {
+      _forced_svc_checks_timer{com::centreon::common::pool::io_context()},
+      _forced_svc_checks_timer_stopped{false} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream constructor");
   if (!_conf_queries_per_transaction) {
     _conf_queries_per_transaction = 1;
@@ -119,12 +122,19 @@ int32_t monitoring_stream::stop() {
                 retval);
   /* I want to be sure the timer is really stopped. */
   std::promise<void> p;
+  _forced_svc_checks_timer_stopped = true;
   {
     _logger->info(
         "bam: monitoring_stream - waiting for forced service checks to be "
         "done");
     std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-    _forced_svc_checks_timer.expires_after(std::chrono::seconds(0));
+    time_t delay = time(nullptr) - _last_forced_svc_check;
+    if (delay <= 1)
+      delay = 1;
+    else
+      delay = 0;
+    /* This delay is just to avoid duplicates in rrd files. */
+    _forced_svc_checks_timer.expires_after(std::chrono::seconds(delay));
     _forced_svc_checks_timer.async_wait(
         [this, &p](const boost::system::error_code& ec) {
           _explicitly_send_forced_svc_checks(ec);
@@ -167,26 +177,6 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   d.reset();
   throw exceptions::shutdown("cannot read from BAM monitoring stream");
   return true;
-}
-
-/**
- *  Rebuild index and metrics cache.
- */
-void monitoring_stream::update() {
-  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream update");
-  try {
-    configuration::state s{_logger};
-    configuration::reader_v2 r(_mysql, _storage_db_cfg);
-    r.read(s);
-    _applier.apply(s);
-    _ba_mapping = s.get_ba_svc_mapping();
-    _rebuild();
-    initialize();
-    // Read cache.
-    _read_cache();
-  } catch (std::exception const& e) {
-    throw msg_fmt("BAM: could not process configuration update: {}", e.what());
-  }
 }
 
 // When bulk statements are available.
@@ -346,6 +336,44 @@ struct kpi_binder {
 };
 
 /**
+ *  Rebuild index and metrics cache.
+ */
+void monitoring_stream::update() {
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream update");
+  try {
+    configuration::state s{_logger};
+    configuration::reader_v2 r(_mysql, _storage_db_cfg);
+    r.read(s);
+    _applier.apply(s);
+    _ba_mapping = s.get_ba_svc_mapping();
+    _rebuild();
+    initialize();
+    // Read cache.
+    _read_cache();
+  } catch (const configuration::reader_exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, e.what());
+    if (e.ba_id()) {  // we create a fake pb_ba_status to fill comment field of
+                      // mod_bam table
+      auto fake_event = std::make_shared<pb_ba_status>();
+      BaStatus& fake_event_data = fake_event->mut_obj();
+      fake_event_data.set_ba_id(e.ba_id());
+      fake_event_data.set_state(com::centreon::broker::State::UNKNOWN);
+      fake_event_data.set_output(e.what());
+      if (_ba_query->is_bulk())
+        _ba_query->add_bulk_row(bulk_ba_binder{fake_event});
+      else
+        _ba_query->add_multi_row(ba_binder{fake_event});
+      flush();
+    }
+    throw;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "BAM: could not process configuration update: {}", e.what());
+    throw;
+  }
+}
+
+/**
  *  Write an event.
  *
  *  @param[in] data Event pointer.
@@ -498,10 +526,6 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
               "host name and service description were not found",
               status->ba_id);
         } else {
-          time_t now = time(nullptr);
-          std::string cmd(
-              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
-                          ba_svc_name.first, ba_svc_name.second, now));
           _write_forced_svc_check(ba_svc_name.first, ba_svc_name.second);
         }
       }
@@ -525,10 +549,6 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
               "host name and service description were not found",
               status.ba_id());
         } else {
-          time_t now = time(nullptr);
-          std::string cmd(
-              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
-                          ba_svc_name.first, ba_svc_name.second, now));
           _write_forced_svc_check(ba_svc_name.first, ba_svc_name.second);
         }
       }
@@ -571,9 +591,10 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       timestamp now = timestamp::now();
       pb_inherited_downtime const& dwn =
           *std::static_pointer_cast<pb_inherited_downtime const>(data);
-      SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}",
-          dwn.obj().ba_id(), now);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "BAM: processing pb inherited downtime (ba id {}, "
+                          "now {}, in downtime {})",
+                          dwn.obj().ba_id(), now, dwn.obj().in_downtime());
       if (dwn.obj().in_downtime())
         cmd = fmt::format(
             "[{}] "
@@ -740,12 +761,14 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
       misc::fifo_client fc(_ext_cmd_file);
       SPDLOG_LOGGER_DEBUG(_logger, "BAM: {} forced checks to schedule",
                           _timer_forced_svc_checks.size());
-      for (auto& p : _timer_forced_svc_checks) {
-        time_t now = time(nullptr);
+      for (auto it = _timer_forced_svc_checks.begin();
+           it != _timer_forced_svc_checks.end();) {
+        _last_forced_svc_check = time(nullptr);
         std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
-                                    now, p.first, p.second, now)};
+                                    _last_forced_svc_check, it->first,
+                                    it->second, _last_forced_svc_check)};
         _logger->debug("writing '{}' into {}", cmd, _ext_cmd_file);
-        if (fc.write(cmd) < 0) {
+        if (fc.write(cmd) < 0 && !_forced_svc_checks_timer_stopped) {
           _logger->error(
               "BAM: could not write forced service check to command file '{}'",
               _ext_cmd_file);
@@ -754,6 +777,9 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
               std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
                         this, std::placeholders::_1));
           break;
+        } else {
+          _logger->trace("BAM: forced service check sent");
+          it = _timer_forced_svc_checks.erase(it);
         }
       }
     }

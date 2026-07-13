@@ -27,7 +27,18 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 using namespace com::centreon::agent;
 using namespace std::string_literals;
 
-TEST(native_check_cpu_windows, construct) {
+class native_check_cpu_windows_test : public testing::Test {
+ public:
+  Service serv;
+
+  native_check_cpu_windows_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+};
+
+TEST_F(native_check_cpu_windows_test, construct) {
   M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info;
   info.IdleTime.QuadPart = 60;
   info.KernelTime.QuadPart = 70;
@@ -54,7 +65,7 @@ constexpr M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info[2] = {
     {0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0}};
 
-TEST(native_check_cpu_windows, output_no_threshold) {
+TEST_F(native_check_cpu_windows_test, output_no_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
   M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
@@ -78,8 +89,7 @@ TEST(native_check_cpu_windows, output_no_threshold) {
   rapidjson::Document check_args;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -115,7 +125,7 @@ TEST(native_check_cpu_windows, output_no_threshold) {
   }
 }
 
-TEST(native_check_cpu_windows, output_no_threshold_detailed) {
+TEST_F(native_check_cpu_windows_test, output_no_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
   M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
@@ -141,8 +151,7 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
       R"({"cpu-detailed":true, "warning-core" : "", "critical-core" : ""})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -211,7 +220,7 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
   }
 }
 
-TEST(native_check_cpu_windows, output_threshold) {
+TEST_F(native_check_cpu_windows_test, output_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
   M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
@@ -237,8 +246,7 @@ TEST(native_check_cpu_windows, output_threshold) {
       R"({"cpu-detailed":"", "warning-core" : "39", "critical-core" : "59", "warning-average" : "49", "critical-average" : "60"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -285,7 +293,7 @@ TEST(native_check_cpu_windows, output_threshold) {
   }
 }
 
-TEST(native_check_cpu_windows, output_threshold_detailed) {
+TEST_F(native_check_cpu_windows_test, output_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
   M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
@@ -311,8 +319,7 @@ TEST(native_check_cpu_windows, output_threshold_detailed) {
       R"({"cpu-detailed":"true", "warning-core" : 39, "critical-core" : 59, "warning-average" : "49", "critical-average" : "60", "warning-core-user": "30", "critical-core-user": "40", "warning-average-user": "31", "critical-average-user": "41" })"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -456,14 +463,13 @@ TEST(native_check_cpu_windows, output_threshold_detailed) {
   }
 }
 
-TEST(native_check_cpu_windows, compare_kernel_dph) {
+TEST_F(native_check_cpu_windows_test, compare_kernel_dph) {
   using namespace com::centreon::common::literals;
   rapidjson::Document nt_check_args =
       R"({"use-nt-query-system-information":true })"_json;
 
   check_cpu nt_checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, nt_check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, nt_check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -475,8 +481,7 @@ TEST(native_check_cpu_windows, compare_kernel_dph) {
       R"({"use-nt-query-system-information":"false" })"_json;
 
   check_cpu pdh_checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, pdh_check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, pdh_check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

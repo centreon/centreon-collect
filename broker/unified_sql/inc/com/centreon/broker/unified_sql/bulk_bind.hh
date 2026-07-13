@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2023 Centreon
+ * Copyright 2022-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,6 +76,7 @@ class bulk_bind {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
   void apply_to_stmt(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
   bool ready(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
+  void force_ready() ABSL_LOCKS_EXCLUDED(_queue_m);
   std::size_t size(int32_t conn = -1) const ABSL_LOCKS_EXCLUDED(_queue_m);
   std::time_t next_time() const ABSL_LOCKS_EXCLUDED(_queue_m);
   std::size_t connections_count() const ABSL_LOCKS_EXCLUDED(_queue_m);

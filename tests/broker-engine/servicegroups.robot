@@ -13,6 +13,11 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 EBNSG1
     [Documentation]    New service group with several pollers and connections to DB
     [Tags]    broker    engine    servicegroup
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -26,9 +31,9 @@ EBNSG1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
-    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Sleep    3s
 
     Ctn Reload Broker
@@ -48,7 +53,7 @@ EBNSGU1
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
-    Ctn Config Broker    module
+    Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
     Ctn Config Broker Sql Output    central    unified_sql
@@ -58,9 +63,10 @@ EBNSGU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
+
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
-    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Sleep    3s
 
     Ctn Reload Broker
@@ -165,6 +171,17 @@ EBNSGU3_${test_label}
 
     Should Be True    len("""${grep_result}""") > 10    servicegroup_1 not found in /tmp/lua-engine.log
 
+    # The alias is carried only by the protobuf ServiceGroup event (neb.proto
+    # field 6, PB_SERVICE_GROUP).
+    IF    ${Use_BBDO3}
+        FOR    ${loop_index}    IN RANGE    30
+            ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_alias:servicegroup_1
+            IF    len("""${grep_result}""") > 10    BREAK
+            Sleep    1s
+        END
+        Should Be True    len("""${grep_result}""") > 10    servicegroup_1 alias not found in /tmp/lua-engine.log
+    END
+
     Ctn Rename Service Group    ${0}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${2}    servicegroup_1    servicegroup_test
@@ -209,3 +226,53 @@ EBNSGU3_${test_label}
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3
     ...    False    BBDO2
+
+EBSG_1
+    [Documentation]    Scenario: Service group creation and membership updates with unified SQL and BBDO3
+    ...    And a service group 1 is defined with 7 members across hosts (including host_1 services 1-5 and host_2 services 6-7)
+    ...    When the broker and engine start and the engine becomes ready
+    ...    And the engine configuration file servicegroups.cfg is added and the engine is reloaded
+    ...    Then the system reports 7 relations between servicegroup 1 and its services
+    ...    When service host_1/service_1 is removed and servicegroup_1 members are updated to exclude service_1
+    ...    And the engine is reloaded
+    ...    Then the system reports 6 relations between servicegroup 1 and its services
+    [Tags]    broker    engine    servicegroup    MON-191814
+    Ctn Config Engine    ${1}    ${5}    ${5}
+    Ctn Config BBDO3    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    sql    info
+
+    Ctn Clear Retention
+    
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_2","host_1","service_3","host_1","service_4","host_1","service_5","host_2","service_6", "host_2","service_7","host_1","service_1"]
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+    
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    7    30
+    Should Be True    ${result}    We should get 4 relations between the servicegroup 1 and services.
+
+    # delete the service 1 
+    Ctn Remove Service    ${0}    host_1    service_1
+
+    Ctn Engine Config Delete Key In Cfg    0    servicegroup_1    members   servicegroups.cfg
+    Ctn Engine Config Set Key Value In Cfg    0    servicegroup_1    members    host_1,service_2,host_1,service_3,host_1,service_4,host_1,service_5,host_2,service_6,host_2,service_7    servicegroups.cfg
+
+    Ctn Reload Engine
+
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    6    30
+    Should Be True    ${result}    We should get 3 relations between the servicegroup 1 and services.
+
+
+

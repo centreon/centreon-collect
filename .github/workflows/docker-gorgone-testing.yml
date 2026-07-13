@@ -12,16 +12,20 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
     paths:
       - ".version"
-      - ".github/docker/Dockerfile.gorgone-testing-*"
+      - ".github/docker/gorgone/**"
       - ".github/workflows/docker-gorgone-testing.yml"
   pull_request:
     paths:
       - ".version"
-      - ".github/docker/Dockerfile.gorgone-testing-*"
+      - ".github/docker/gorgone/**"
       - ".github/workflows/docker-gorgone-testing.yml"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
 
@@ -29,42 +33,46 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      github.repository == 'centreon/centreon-collect'
     runs-on: ubuntu-24.04
 
     strategy:
+      fail-fast: false
       matrix:
-        distrib: [alma8, alma9, bookworm] # No ubuntu in 24.10, 24.11 or later for now
+        distrib: [alma9, alma10, trixie] # No ubuntu in 24.10, 24.11 or later for now
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Login to registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
           password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
 
       - name: Login to proxy registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
           password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
 
-      - uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
-      - uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+      - uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
-          file: .github/docker/Dockerfile.gorgone-testing-${{ matrix.distrib }}
+          file: .github/docker/gorgone/${{ matrix.distrib }}/Dockerfile.testing-dependencies
           context: .
           build-args: |
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
+            "NODE_VERSION=24"
+            "PNPM_VERSION=10.24.0"
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ needs.get-environment.outputs.major_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-dependencies-${{ matrix.distrib }}:${{ needs.get-environment.outputs.stability == 'unstable' && needs.get-environment.outputs.major_version || github.head_ref || github.ref_name }}
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"

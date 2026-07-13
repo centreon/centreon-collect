@@ -33,8 +33,17 @@
 #include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/string_view.h>
 
 #include <boost/asio.hpp>
+#include <boost/container/flat_map.hpp>
+#include <boost/container/flat_set.hpp>
+#include <boost/container/string.hpp>
+#include <boost/container/vector.hpp>
+#include <boost/interprocess/allocators/private_node_allocator.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 namespace asio = boost::asio;
 

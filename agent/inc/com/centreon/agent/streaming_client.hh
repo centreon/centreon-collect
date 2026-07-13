@@ -63,9 +63,10 @@ class client_reactor
  */
 class streaming_client : public common::grpc::grpc_client_base,
                          public std::enable_shared_from_this<streaming_client> {
-  std::shared_ptr<boost::asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
-  std::string _supervised_host;
+  const std::shared_ptr<boost::asio::io_context> _io_context;
+  const std::shared_ptr<spdlog::logger> _logger;
+  const std::string _supervised_host;
+  const std::string _host_template;
 
   std::unique_ptr<AgentService::Stub> _stub;
 
@@ -88,13 +89,15 @@ class streaming_client : public common::grpc::grpc_client_base,
   streaming_client(const std::shared_ptr<boost::asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const std::shared_ptr<common::grpc::grpc_config>& conf,
-                   const std::string& supervised_host);
+                   const std::string& supervised_host,
+                   const std::string& host_template);
 
   static std::shared_ptr<streaming_client> load(
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       const std::shared_ptr<common::grpc::grpc_config>& conf,
-      const std::string& supervised_host);
+      const std::string& supervised_host,
+      const std::string& host_template);
 
   void on_incomming_request(const std::shared_ptr<client_reactor>& caller,
                             const std::shared_ptr<MessageToAgent>& request);

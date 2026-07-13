@@ -35,10 +35,7 @@ struct test_check_process : public check_process {
   test_check_process(const std::shared_ptr<asio::io_context>& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
                      time_point first_start_expected,
-                     duration check_interval,
-                     const std::string& serv,
-                     const std::string& cmd_name,
-                     const std::string& cmd_line,
+                     const Service& serv,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
                      check::completion_handler&& handler,
@@ -46,10 +43,7 @@ struct test_check_process : public check_process {
       : check_process(io_context,
                       logger,
                       first_start_expected,
-                      check_interval,
                       serv,
-                      cmd_name,
-                      cmd_line,
                       args,
                       cnf,
                       std::move(handler),
@@ -58,11 +52,22 @@ struct test_check_process : public check_process {
   }
 };
 
+class check_process_test : public testing::Test {
+ public:
+  Service serv;
+
+  check_process_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+};
+
 /**
  * @brief check_process, given a process filter, we expect the correct status
  * and output
  */
-TEST(check_process, output_no_verbose) {
+TEST_F(check_process_test, output_no_verbose) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "empty-state": "{status}: no process", 
@@ -80,8 +85,7 @@ TEST(check_process, output_no_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -137,7 +141,7 @@ TEST(check_process, output_no_verbose) {
   EXPECT_EQ(status, e_status::ok);
   EXPECT_EQ(output,
             std::format("OK: All processes are ok must empty: 'taratata.exe "
-                        "C:\\temp\\taratata.exe started {:%FT%T} 1s 9 "
+                        "C:\\temp\\taratata.exe unreadable {:%FT%T} 1s 9 "
                         "6s 59 7s 69 1000 1 2 1 '",
                         rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
@@ -204,16 +208,17 @@ TEST(check_process, output_no_verbose) {
   checker.cont->refresh({1, 2, 3}, {2});
   status = checker.compute(*checker.cont, &output, &perf);
   EXPECT_EQ(status, e_status::critical);
-  EXPECT_EQ(output,
-            std::format(
-                "CRITICAL: "
-                "turlututu.exe C:\\temp\\turlututu.exe started {0:%FT%T} 3s 29 "
-                "6s 59 9s 89 1000000 5 6 3 "
-                "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
-                "6s 59 7s 69 1000 1 2 1 "
-                "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
-                "6s 59 8s 79 1000000 5 6 2 ",
-                rounded_now));
+  EXPECT_EQ(
+      output,
+      std::format(
+          "CRITICAL: "
+          "turlututu.exe C:\\temp\\turlututu.exe unreadable {0:%FT%T} 3s 29 "
+          "6s 59 9s 89 1000000 5 6 3 "
+          "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
+          "6s 59 7s 69 1000 1 2 1 "
+          "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
+          "6s 59 8s 79 1000000 5 6 2 ",
+          rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
   EXPECT_EQ(perf.value(), 3);
 }
@@ -222,7 +227,7 @@ TEST(check_process, output_no_verbose) {
  * @brief check_process, given a process filter, we expect the correct status
  * and output
  */
-TEST(check_process, output_verbose) {
+TEST_F(check_process_test, output_verbose) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "empty-state": "{status}: no process", 
@@ -240,8 +245,7 @@ TEST(check_process, output_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -295,10 +299,11 @@ TEST(check_process, output_verbose) {
   checker.cont->refresh({1}, {});
   status = checker.compute(*checker.cont, &output, &perf);
   EXPECT_EQ(status, e_status::ok);
-  EXPECT_EQ(output, std::format("OK: All processes are ok\ntaratata.exe "
-                                "C:\\temp\\taratata.exe started {:%FT%T} 1s 9 "
-                                "6s 59 7s 69 1000 1 2 1",
-                                rounded_now));
+  EXPECT_EQ(output,
+            std::format("OK: All processes are ok\ntaratata.exe "
+                        "C:\\temp\\taratata.exe unreadable {:%FT%T} 1s 9 "
+                        "6s 59 7s 69 1000 1 2 1",
+                        rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
   EXPECT_EQ(perf.value(), 1);
 
@@ -363,16 +368,17 @@ TEST(check_process, output_verbose) {
   checker.cont->refresh({1, 2, 3}, {2});
   status = checker.compute(*checker.cont, &output, &perf);
   EXPECT_EQ(status, e_status::critical);
-  EXPECT_EQ(output,
-            std::format(
-                "CRITICAL\n"
-                "turlututu.exe C:\\temp\\turlututu.exe started {0:%FT%T} 3s 29 "
-                "6s 59 9s 89 1000000 5 6 3\n"
-                "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
-                "6s 59 7s 69 1000 1 2 1\n"
-                "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
-                "6s 59 8s 79 1000000 5 6 2",
-                rounded_now));
+  EXPECT_EQ(
+      output,
+      std::format(
+          "CRITICAL\n"
+          "turlututu.exe C:\\temp\\turlututu.exe unreadable {0:%FT%T} 3s 29 "
+          "6s 59 9s 89 1000000 5 6 3\n"
+          "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
+          "6s 59 7s 69 1000 1 2 1\n"
+          "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
+          "6s 59 8s 79 1000000 5 6 2",
+          rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
   EXPECT_EQ(perf.value(), 3);
 }

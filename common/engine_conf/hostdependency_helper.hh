@@ -32,20 +32,31 @@ size_t hostdependency_key(const Hostdependency& hd);
  * several methods to help the developer to fill the message fields.
  */
 class hostdependency_helper : public message_helper {
-  void _init();
-
  public:
   hostdependency_helper(Hostdependency* obj);
   ~hostdependency_helper() noexcept = default;
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+
+  void set_default_values() override;
+
   static void expand(
       State& s,
       error_cnt& err,
       absl::flat_hash_map<std::string, configuration::Hostgroup*>&
           m_hostgroups);
 };
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value,
+                        const Hostdependency& to_hash) {
+  return hash_type::combine(std::move(previous_value),
+                            hostdependency_key(to_hash));
+}
+
+bool operator==(const Hostdependency& left, const Hostdependency& right);
+
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_HOSTDEPENDENCY */

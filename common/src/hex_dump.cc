@@ -59,7 +59,8 @@ std::string com::centreon::common::hex_dump(const unsigned char* buffer,
 
     for (const unsigned char *current = buffer, *end = buffer + buff_len;
          current < end; current_address += nb_char_per_line) {
-      ret += fmt::format(address_format, current_address);
+      ret +=
+          fmt::vformat(address_format, fmt::make_format_args(current_address));
       std::string char_part;
       char_part.reserve(nb_char_per_line + 1);
 
@@ -89,5 +90,83 @@ std::string com::centreon::common::hex_dump(const unsigned char* buffer,
     }
   }
 
+  return ret;
+}
+
+/**
+ * @brief This function is an internal function just used to debug. It displays
+ * the data array as hex 8 bits integers in the limit of 20 values. If the array
+ * is longer, only the 10 first bytes and the 10 last bytes are displayed.
+ *
+ * @param data A const char* array.
+ * @param size The size of the data array.
+ * @param max_len max dumping size
+ * xxxxxxxxxxxxxxxxxxxxx....xxxxxxxxxxxxxxxxxxxxx max_len bytes max_len bytes
+ * @return A string containing the result.
+ */
+std::string com::centreon::common::debug_buf(const char* data,
+                                             int32_t size,
+                                             int max_len) {
+  auto to_str = [](uint8_t d) -> uint8_t {
+    uint8_t ret;
+    if (d < 10)
+      ret = '0' + d;
+    else
+      ret = 'a' + d - 10;
+    return ret;
+  };
+
+  std::string retval;
+  int l1;
+  if (size <= max_len)
+    l1 = size;
+  else
+    l1 = max_len;
+
+  for (int i = 0; i < l1; i++) {
+    uint8_t c = data[i];
+    uint8_t d1 = c >> 4;
+    uint8_t d2 = c & 0xf;
+    retval.push_back(to_str(d1));
+    retval.push_back(to_str(d2));
+  }
+  if (size > max_len) {
+    if (size > 2 * max_len)
+      retval += "...";
+    for (int i = std::max(size - max_len, l1); i < size; i++) {
+      uint8_t c = data[i];
+      uint8_t d1 = c >> 4;
+      uint8_t d2 = c & 0xf;
+      retval.push_back(to_str(d1));
+      retval.push_back(to_str(d2));
+    }
+  }
+  return retval;
+}
+
+/**
+ * @brief Dump a byte buffer as a mixed ASCII/hex string.
+ *
+ * Printable bytes (0x20–0x7F) are emitted as-is; non-printable bytes are
+ * emitted as "0xNN". The result is suitable for log messages.
+ *
+ * @param buffer    Pointer to the data to dump.
+ * @param buff_len  Number of bytes to process.
+ * @return Human-readable representation of the buffer.
+ */
+std::string com::centreon::common::ascii_hex_dump(const unsigned char* buffer,
+                                                  size_t buff_len) {
+  const unsigned char* end_buff = buffer + buff_len;
+  std::string ret;
+  ret.reserve(buff_len * 3);
+  for (; buffer != end_buff; ++buffer) {
+    unsigned char c = *buffer;
+    if (c >= 32 && c < 127) {
+      ret += c;
+    } else {
+      ret += "0x";
+      char_to_hex(c, ret);
+    }
+  }
   return ret;
 }

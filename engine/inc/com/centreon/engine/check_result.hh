@@ -76,6 +76,10 @@ class check_result {
   void set_latency(double latency);
   inline unsigned get_check_options() const { return _check_options; };
   void set_check_options(unsigned check_options);
+  int get_current_attempt() const { return _current_attempt; };
+  void set_current_attempt(int current_attempt) {
+    _current_attempt = current_attempt;
+  };
 
  private:
   enum check_source _object_check_type;  // is this a service or a host check?
@@ -91,6 +95,7 @@ class check_result {
   bool _exited_ok;              // did the plugin check return okay?
   int _return_code;             // plugin return code
   std::string _output;          // plugin output
+  int _current_attempt;         // current attempt number
 };
 
 std::ostream& operator<<(std::ostream& stream, const check_result& res);

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2023 Centreon
+ * Copyright 2022-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ bulk_bind::bulk_bind(const size_t connections_count,
  * @return a boolean true if ready.
  */
 bool bulk_bind::ready(int32_t conn) {
-  absl::MutexLock lck(&_queue_m);
+  absl::MutexLock lck(_queue_m);
   auto* b = _bind[conn].get();
   if (!b)
     return false;
@@ -82,6 +82,17 @@ bool bulk_bind::ready(int32_t conn) {
 }
 
 /**
+ * @brief Force the bind to be ready in term of time. If there is nothing to
+ * write, the bind won't be ready.
+ */
+void bulk_bind::force_ready() {
+  absl::MutexLock lck(_queue_m);
+  for (auto& t : _next_time) {
+    t = 0;
+  }
+}
+
+/**
  * @brief Size of the queue
  *
  * @param conn The connection to determine the bind whose size we want. If conn
@@ -89,7 +100,7 @@ bool bulk_bind::ready(int32_t conn) {
  * @return a size.
  */
 size_t bulk_bind::size(int32_t conn) const {
-  absl::MutexLock lck(&_queue_m);
+  absl::MutexLock lck(_queue_m);
   if (conn == -1) {
     size_t retval = 0;
     for (auto& b : _bind) {
@@ -110,7 +121,7 @@ size_t bulk_bind::size(int32_t conn) const {
  * @return a timestamp.
  */
 std::time_t bulk_bind::next_time() const {
-  absl::MutexLock lck(&_queue_m);
+  absl::MutexLock lck(_queue_m);
   auto it = std::min_element(_next_time.begin(), _next_time.end());
   return *it;
 }
@@ -122,7 +133,7 @@ std::time_t bulk_bind::next_time() const {
  * @param conn The connection to choose the bind.
  */
 void bulk_bind::apply_to_stmt(int32_t conn) {
-  absl::MutexLock lck(&_queue_m);
+  absl::MutexLock lck(_queue_m);
   _stmt.set_bind(std::move(_bind[conn]));
   _next_time[conn] = std::time(nullptr) + _interval;
 }
@@ -143,7 +154,7 @@ void bulk_bind::init_from_stmt(int32_t conn) {
  * @return A size_t.
  */
 std::size_t bulk_bind::connections_count() const {
-  absl::MutexLock lck(&_queue_m);
+  absl::MutexLock lck(_queue_m);
   return _bind.size();
 }
 
@@ -160,9 +171,9 @@ std::unique_ptr<database::mysql_bulk_bind>& bulk_bind::bind(int32_t conn) {
 }
 
 void bulk_bind::lock() {
-  _queue_m.Lock();
+  _queue_m.lock();
 }
 
 void bulk_bind::unlock() {
-  _queue_m.Unlock();
+  _queue_m.unlock();
 }

@@ -37,7 +37,7 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
                      obj,
                      {},
                      Timeperiod::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -127,22 +127,22 @@ bool timeperiod_helper::_add_week_day(std::string_view key,
       d = obj->mutable_timeranges()->mutable_sunday();
       break;
     case 1:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_monday();
       break;
     case 2:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_tuesday();
       break;
     case 3:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_wednesday();
       break;
     case 4:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_thursday();
       break;
     case 5:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_friday();
       break;
     case 6:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_saturday();
       break;
   }
   if (!_build_timeranges(value, *d))
@@ -276,11 +276,6 @@ void timeperiod_helper::check_validity(error_cnt& err) const {
     err.config_errors++;
     throw msg_fmt("Time period has no name (property 'timeperiod_name')");
   }
-}
-
-void timeperiod_helper::_init() {
-  Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
 }
 
 /**

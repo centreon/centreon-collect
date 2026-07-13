@@ -24,7 +24,7 @@ NO_FILTER_NO_ERROR
 
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List
     ...    are too restrictive  contain forbidden filters
@@ -33,7 +33,7 @@ NO_FILTER_NO_ERROR
 
 
 STUPID_FILTER
-    [Documentation]    Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
+    [Documentation]    Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
     [Tags]    broker    engine    filter
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -43,16 +43,21 @@ STUPID_FILTER
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
-    Ctn Clear Broker Logs
+    Ctn Set Services Passive       ${0}    service_1
+    Ctn Clear Db    resources
 
-    ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
 
-    ${content}    Create List
-    ...    The configured write filters for the endpoint 'central-broker-unified-sql' contain forbidden filters. These ones are removed
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling bad filter should be available.
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Check Result     host_1      service_1      0     OK
+
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60     ${start}    0    HARD     OK
+    Should Be True    ${result}    resources table not updated
 
 STORAGE_ON_LUA
     [Documentation]    The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
@@ -70,7 +75,7 @@ STORAGE_ON_LUA
     Ctn Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30
@@ -107,7 +112,7 @@ FILTER_ON_LUA_EVENT
     Ctn Clear Broker Logs
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30
@@ -152,7 +157,7 @@ BAM_STREAM_FILTER
 
     Ctn Start Broker    True
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${1}
 
     # KPI set to critical
@@ -179,11 +184,11 @@ BAM_STREAM_FILTER
         # Reject KpiEvent
         ${grep_res5}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event bam:KpiEvent .* rejected by write filter    regexp=True
+        ...    muxer centreon-bam-monitoring event {"cat":"bam","elem":"KpiEvent".* rejected by write filter    regexp=True
         # Reject storage
         ${grep_res6}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event storage:.* rejected by write filter    regexp=True
+        ...    muxer centreon-bam-monitoring event {"cat":"storage".* rejected by write filter    regexp=True
 
         IF    len("""${grep_res1}""") > 0 and len("""${grep_res2}""") > 0 and len("""${grep_res3}""") > 0 and len("""${grep_res4}""") > 0 and len("""${grep_res5}""") > 0 and len("""${grep_res6}""") > 0
             BREAK
@@ -208,12 +213,12 @@ BAM_STREAM_FILTER
     # reject storage
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event storage:.* rejected by write filter    regexp=True
+    ...    centreon-bam-reporting event {"cat":"storage".* rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    We should reject events of Storage category. They are not rejected.
     # reject neb
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event neb:.* rejected by write filter    regexp=True
+    ...    centreon-bam-reporting event {"cat":"neb".* rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    We should reject events of Neb category. They are not rejected.
 
 UNIFIED_SQL_FILTER
@@ -230,7 +235,7 @@ UNIFIED_SQL_FILTER
 
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -267,7 +272,7 @@ CBD_RELOAD_AND_FILTERS
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${1}
 
@@ -297,10 +302,10 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List
-    ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
+    ...    create endpoint TCP|GRPC for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
@@ -365,7 +370,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${1}
 
@@ -395,10 +400,10 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List
-    ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
+    ...    create endpoint TCP|GRPC for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
@@ -477,7 +482,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     ...    {"category": [ "neb:ServiceStatus"]}
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30

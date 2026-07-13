@@ -35,7 +35,7 @@ connector_helper::connector_helper(Connector* obj)
                      obj,
                      {},
                      Connector::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -58,11 +58,4 @@ void connector_helper::check_validity(error_cnt& err) const {
   }
 }
 
-/**
- * @brief The initializer of the Connector message.
- */
-void connector_helper::_init() {
-  Connector* obj = static_cast<Connector*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-}
 }  // namespace com::centreon::engine::configuration

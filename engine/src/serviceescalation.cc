@@ -123,43 +123,6 @@ void serviceescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 }
 
-#ifdef LEGACY_CONF
-/**
- * @brief Checks that this serviceescalation corresponds to the Configuration
- * object obj. This function doesn't check contactgroups as it is usually used
- * to modify them.
- *
- * @param obj A service escalation configuration object.
- *
- * @return A boolean that is True if they match.
- */
-bool serviceescalation::matches(
-    const configuration::serviceescalation& obj) const {
-  uint32_t escalate_on =
-      ((obj.escalation_options() & configuration::serviceescalation::warning)
-           ? notifier::warning
-           : notifier::none) |
-      ((obj.escalation_options() & configuration::serviceescalation::unknown)
-           ? notifier::unknown
-           : notifier::none) |
-      ((obj.escalation_options() & configuration::serviceescalation::critical)
-           ? notifier::critical
-           : notifier::none) |
-      ((obj.escalation_options() & configuration::serviceescalation::recovery)
-           ? notifier::ok
-           : notifier::none);
-  if (_hostname != obj.hosts().front() ||
-      _description != obj.service_description().front() ||
-      get_first_notification() != obj.first_notification() ||
-      get_last_notification() != obj.last_notification() ||
-      get_notification_interval() != obj.notification_interval() ||
-      get_escalation_period() != obj.escalation_period() ||
-      get_escalate_on() != escalate_on)
-    return false;
-
-  return true;
-}
-#else
 /**
  * @brief Checks that this serviceescalation corresponds to the Configuration
  * object obj. This function doesn't check contactgroups as it is usually used
@@ -195,4 +158,3 @@ bool serviceescalation::matches(
 
   return true;
 }
-#endif

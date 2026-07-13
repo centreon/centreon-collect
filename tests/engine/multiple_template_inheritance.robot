@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -66,5 +66,58 @@ EMTI0
     ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    CV4    testD
     Should Be True    ${ret}    customVariables_CV4:Should Be testD
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
+EMTI1
+    [Documentation]    Given a host with multiple templates
+    ...                When the templates are configured with custom variables
+    ...                Then the custom variables should be correctly inherited and accessible
+    [Tags]    engine    hosts    MON-188984
+    Ctn Config Engine    ${1}    ${1}    ${5}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1
+
+    Ctn Clear Retention
+
+    Ctn Create Tags File    ${0}    ${40}
+    Ctn Create Template File    ${0}    host    _CV    ["testA"]
+    Ctn Create Template File    ${0}    host    _CV1    ["testB"]    2
+    Ctn Create Template File    ${0}    host    _CV2    ["testC"]    3
+    Ctn Engine Config Delete Value In Hosts    0    host_1    check_period
+
+    Ctn Engine Config Set Value In Hosts    0    host_template_2    use    host_template_3    hostTemplates.cfg
+
+    Ctn Engine Config Set Value In Hosts    0    host_template_3    check_period    24x7    hostTemplates.cfg
+
+
+    Ctn Config Engine Add Cfg File    ${0}    hostTemplates.cfg
+
+    # multiple inheritance
+    Ctn Add Template To Hosts    0    host_template_1, host_template_2    [1]
+
+    Ctn Engine Config Delete Value In Hosts    0    host_1    _SNMPCOMMUNITY
+    Ctn Engine Config Delete Value In Hosts    0    host_1    _SNMPVERSION
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Clear Retention
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${output}    Ctn Get Host Info Grpc    ${1}
+    Log To Console    ${output}[customVariables]
+    Log To Console    ${output}[checkPeriod]
+
+    ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    KEY1    VAL1
+    Should Be True    ${ret}    customVariables_KEY1:Should Be VAL1
+
+    ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    CV    testA
+    Should Be True    ${ret}    customVariables_CV:Should Be testA
+
+    ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    CV1    testB
+    Should Be True    ${ret}    customVariables_CV1:Should Be testB
+
+    ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    CV2    testC
+    Should Be True    ${ret}    customVariables_CV1:Should Be testB
+
+    Should Be Equal    ${output}[checkPeriod]    24x7    check_period not set

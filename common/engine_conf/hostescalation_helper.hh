@@ -32,20 +32,31 @@ size_t hostescalation_key(const Hostescalation& he);
  * several methods to help the developer to fill the message fields.
  */
 class hostescalation_helper : public message_helper {
-  void _init();
-
  public:
   hostescalation_helper(Hostescalation* obj);
   ~hostescalation_helper() noexcept = default;
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+
+  void set_default_values() override;
+
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
       absl::flat_hash_map<std::string, configuration::Hostgroup*>&
           m_hostgroups);
 };
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value,
+                        const Hostescalation& to_hash) {
+  return hash_type::combine(std::move(previous_value),
+                            hostescalation_key(to_hash));
+}
+
+bool operator==(const Hostescalation& left, const Hostescalation& right);
+
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_HOSTESCALATION */

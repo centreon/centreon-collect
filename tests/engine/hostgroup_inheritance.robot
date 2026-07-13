@@ -286,3 +286,76 @@ EHGI3
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+
+EHGI4
+    [Documentation]  Given a Centreon engine with a predefined configuration of host groups,
+    ...    When the engine processes the host group inheritance rules,
+    ...    Then the resulting configuration should reflect the expected inheritance structure.
+    [Tags]    engine    hostgroup    MON-188984
+    Ctn Config Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    # Create files :
+    Ctn Create Template File    ${0}    hostgroup    alias    ["hostgroup_template_1_alias", "hostgroup_template_2_alias"]
+    
+    # Delete unnecessary fields in templates:
+    Ctn Engine Config Delete Key In Cfg    0    hostgroup_template_1    active_checks_enabled    hostgroupTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostgroup_template_1    passive_checks_enabled    hostgroupTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostgroup_template_2    active_checks_enabled    hostgroupTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostgroup_template_2    passive_checks_enabled    hostgroupTemplates.cfg
+    
+    # Add necessarily files :
+    Ctn Config Engine Add Cfg File    ${0}    hostgroupTemplates.cfg
+
+    # Create host group
+    Ctn Add Host Group    ${0}    ${1}    ["host_1"]
+
+    # Delete unnecessary fields in hostgroup:
+    Ctn Engine Config Delete Key In Cfg    0    hostgroup_1    alias    hostgroups.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostgroup_1    members    hostgroups.cfg
+    
+    # Set hostgroup_1 to use hostgroup_template_1
+    Ctn Engine Config Set Key Value In Cfg    0    hostgroup_1    use    hostgroup_template_1,hostgroup_template_2    hostgroups.cfg
+
+    # Operation in hostgroupTemplates
+    FOR    ${key}     ${value}     IN
+    ...    members    host_2
+    ...    notes    note_tmpl
+    ...    notes_url    note_url_tmpl
+    ...    action_url    action_url_tmpl
+        ${template_index}    Ctn Randint     ${0}     ${1}
+        IF    ${template_index} == 0 
+            #0 add attrib to hostgroup_template_1
+            Ctn Engine Config Set Key Value In Cfg    0    hostgroup_template_1    ${key}    ${value}    hostgroupTemplates.cfg
+            Ctn Engine Config Set Key Value In Cfg    0    hostgroup_template_2    ${key}    ${value}1    hostgroupTemplates.cfg
+        ELSE 
+            # add attrib to hostgroup_template_2
+            Ctn Engine Config Set Key Value In Cfg    0    hostgroup_template_2    ${key}    ${value}    hostgroupTemplates.cfg
+        END
+    
+    END
+
+    ${start}    Get Current Date
+    Ctn Clear Retention
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${output}    Ctn Get Hostgroup Info Grpc    hostgroup_1
+
+    Should Be Equal As Strings     ${output}[name]    hostgroup_1
+    Should Be Equal As Strings     ${output}[alias]    hostgroup_template_1_alias
+    Should Not Contain    ${output}[members]    host_1
+    Should Contain    ${output}[members]    host_2
+    Should Be Equal As Strings    ${output}[notes]    note_tmpl
+    Should Be Equal As Strings    ${output}[notesUrl]    note_url_tmpl
+    Should Be Equal As Strings    ${output}[actionUrl]    action_url_tmpl
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+

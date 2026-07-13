@@ -17,136 +17,52 @@
  */
 
 #include "check_exec.hh"
+#include "agent.grpc.pb.h"
+#include "com/centreon/common/process/process.hh"
+#include "config.hh"
 
+using com::centreon::exceptions::msg_fmt;
 using namespace com::centreon::agent;
-
-/**
- * @brief Construct a new detail::process::process object
- *
- * @param io_context
- * @param logger
- * @param cmd_line
- * @param parent
- */
-detail::process::process(const std::shared_ptr<asio::io_context>& io_context,
-                         const std::shared_ptr<spdlog::logger>& logger,
-                         const std::string& cmd_line,
-                         const std::shared_ptr<check_exec>& parent)
-    : common::process<false>(io_context, logger, cmd_line), _parent(parent) {}
-
-/**
- * @brief start a new process, if a previous one is already running, it's killed
- *
- * @param running_index
- */
-void detail::process::start(unsigned running_index) {
-  _process_ended = false;
-  _stdout_eof = false;
-  _running_index = running_index;
-  _stdout.clear();
-  common::process<false>::start_process(false);
-}
-
-/**
- * @brief son process stdout read handler
- *
- * @param err
- * @param nb_read
- */
-void detail::process::on_stdout_read(const boost::system::error_code& err,
-                                     size_t nb_read) {
-  if (!err && nb_read > 0) {
-    _stdout.append(_stdout_read_buffer, nb_read);
-  } else if (err) {
-    _stdout_eof = true;
-    _on_completion();
-  }
-  common::process<false>::on_stdout_read(err, nb_read);
-}
-
-/**
- * @brief son process stderr read handler
- *
- * @param err
- * @param nb_read
- */
-void detail::process::on_stderr_read(const boost::system::error_code& err,
-                                     size_t nb_read) {
-  if (!err) {
-    SPDLOG_LOGGER_ERROR(_logger, "process error: {}",
-                        std::string_view(_stderr_read_buffer, nb_read));
-  }
-  common::process<false>::on_stderr_read(err, nb_read);
-}
-
-/**
- * @brief called when son process ends
- *
- * @param err
- * @param raw_exit_status
- */
-void detail::process::on_process_end(const boost::system::error_code& err,
-                                     int raw_exit_status) {
-  if (err) {
-    _stdout += fmt::format("fail to execute process {} : {}", get_exe_path(),
-                           err.message());
-  }
-  common::process<false>::on_process_end(err, raw_exit_status);
-  _process_ended = true;
-  _on_completion();
-}
-
-/**
- * @brief if both stdout read and process are terminated, we call
- * check_exec::on_completion
- *
- */
-void detail::process::_on_completion() {
-  if (_stdout_eof && _process_ended) {
-    std::shared_ptr<check_exec> parent = _parent.lock();
-    if (parent) {
-      parent->on_completion(_running_index);
-    }
-  }
-}
 
 /******************************************************************
  * check_exec
  ******************************************************************/
 
-check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
-                       const std::shared_ptr<spdlog::logger>& logger,
-                       time_point first_start_expected,
-                       duration check_interval,
-                       const std::string& serv,
-                       const std::string& cmd_name,
-                       const std::string& cmd_line,
-                       const engine_to_agent_request_ptr& cnf,
-                       check::completion_handler&& handler,
-                       const checks_statistics::pointer& stat)
+check_exec::check_exec(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    const Service& serv,
+    const std::string& command_line,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
-            stat) {}
+            stat),
+      _credentials_decrypt(credentials_decrypt) {
+  _process_args =
+      com::centreon::common::process<false>::parse_cmd_line(command_line);
+  if (_credentials_decrypt) {
+    _process_args->encrypt_args(*_credentials_decrypt);
+    _process_args->clear_unencrypted_args();
+  }
+}
 
 /**
- * @brief create and initialize a check_exec object (don't use constructor)
+ * @brief create and initialize a check_exec object (don't use
+ * constructor)
  *
  * @tparam handler_type
  * @param io_context
  * @param logger
  * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this but
- * also others)
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param cnf   agent configuration
  * @param handler  completion handler
  * @return std::shared_ptr<check_exec>
@@ -155,35 +71,16 @@ std::shared_ptr<check_exec> check_exec::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
+    const std::string& command_line,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat) {
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
   std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
-      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, cnf, std::move(handler), stat);
-  ret->_init();
+      io_context, logger, first_start_expected, serv, command_line, cnf,
+      std::move(handler), stat, credentials_decrypt);
   return ret;
-}
-
-/**
- * @brief to call after construction
- * constructor mustn't be called, use check_exec::load instead
- *
- */
-void check_exec::_init() {
-  try {
-    _process = std::make_shared<detail::process>(
-        _io_context, _logger, get_command_line(),
-        std::static_pointer_cast<check_exec>(shared_from_this()));
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to create process of cmd_line '{}' : {}",
-                        get_command_line(), e.what());
-    throw;
-  }
 }
 
 /**
@@ -196,19 +93,32 @@ void check_exec::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
-  if (!_process) {
-    asio::post(*_io_context,
-               [me = check::shared_from_this(),
-                start_check_index = _get_running_check_index()]() {
-                 me->on_completion(start_check_index, e_status::unknown,
-                                   std::list<com::centreon::common::perfdata>(),
-                                   {"empty command"});
-               });
-  }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
   try {
-    _process->start(_get_running_check_index());
+    auto proc = std::make_shared<com::centreon::common::process<false>>(
+        _io_context, _logger, _process_args, true, false, nullptr);
+
+    if (_credentials_decrypt) {
+      _process_args->decrypt_args(*_credentials_decrypt);
+    }
+    // we add 100ms to time out in order to let check class manage timeout
+    proc->start_process(
+        [me = std::static_pointer_cast<check_exec>(shared_from_this()),
+         running_index = _get_running_check_index()](
+            const com::centreon::common::process<false>&, int exit_code,
+            int exit_status, const std::string& std_out, const std::string&) {
+          me->on_completion(running_index, exit_code, exit_status, std_out);
+        },
+        effective_timeout + std::chrono::milliseconds(100));
+    _pid = proc->get_pid();
+    if (_credentials_decrypt) {
+      _process_args->clear_unencrypted_args();
+    }
   } catch (const boost::system::system_error& e) {
+    if (_credentials_decrypt) {
+      _process_args->clear_unencrypted_args();
+    }
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.code().message());
     asio::post(*_io_context,
@@ -221,38 +131,16 @@ void check_exec::start_check(const duration& timeout) {
                                   me->get_command_line(), e.code().message())});
                });
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
-                        get_service(), get_command_line(), e.what());
-    asio::post(
-        *_io_context, [me = check::shared_from_this(),
-                       start_check_index = _get_running_check_index(), e]() {
-          me->on_completion(start_check_index, e_status::unknown,
-                            std::list<com::centreon::common::perfdata>(),
-                            {fmt::format("Fail to execute {} : {}",
-                                         me->get_command_line(), e.what())});
-        });
+    std::string output =
+        fmt::format("Fail to execute {} : {}", get_command_line(), e.what());
+    SPDLOG_LOGGER_ERROR(_logger, " serv {} {}", get_service(), output);
+    asio::post(*_io_context, [me = check::shared_from_this(),
+                              start_check_index = _get_running_check_index(),
+                              output]() {
+      me->on_completion(start_check_index, e_status::unknown,
+                        std::list<com::centreon::common::perfdata>(), {output});
+    });
   }
-}
-
-/**
- * @brief get process id of the check (only used by tests)
- *
- * @return int
- */
-int check_exec::get_pid() const {
-  if (!_process) {
-    return 0;
-  }
-  return _process->get_pid();
-}
-/**
- * @brief process is killed in case of timeout and handler is called
- *
- * @param err
- * @param start_check_index
- */
-void check_exec::_on_timeout() {
-  _process->kill();
 }
 
 /**
@@ -260,7 +148,10 @@ void check_exec::_on_timeout() {
  *
  * @param running_index
  */
-void check_exec::on_completion(unsigned running_index) {
+void check_exec::on_completion(unsigned running_index,
+                               int exit_code,
+                               int exit_status [[maybe_unused]],
+                               const std::string& std_out) {
   if (running_index != _get_running_check_index()) {
     SPDLOG_LOGGER_ERROR(_logger, "running_index={}, running_index={}",
                         running_index, _get_running_check_index());
@@ -270,21 +161,24 @@ void check_exec::on_completion(unsigned running_index) {
   std::list<std::string> outputs;
   std::list<com::centreon::common::perfdata> perfs;
 
-  // split multi line output
-  outputs = absl::StrSplit(_process->get_stdout(), absl::ByAnyChar("\r\n"),
-                           absl::SkipEmpty());
-  if (!outputs.empty()) {
-    const std::string& first_line = *outputs.begin();
-    size_t pipe_pos = first_line.find('|');
-    if (pipe_pos != std::string::npos) {
-      std::string perfdatas = outputs.begin()->substr(pipe_pos + 1);
-      boost::trim(perfdatas);
-      perfs = com::centreon::common::perfdata::parse_perfdata(
-          0, 0, perfdatas.c_str(), _logger);
-    }
+  std::string short_output;
+  std::string long_output;
+  std::string perf_data;
+  // parse the output check
+  common::parse_check_output(std_out, short_output, long_output, perf_data,
+                             false, true);
+  // prepare the output without perfdata
+  outputs.push_front(short_output +
+                     (long_output.empty() ? "" : "\n" + long_output));
+
+  // parse perfdata
+  if (!perf_data.empty()) {
+    boost::trim(perf_data);
+    perfs = com::centreon::common::perfdata::parse_perfdata(
+        0, 0, perf_data.c_str(), _logger);
   }
-  check::on_completion(running_index, _process->get_exit_status(), perfs,
-                       outputs);
+
+  check::on_completion(running_index, exit_code, perfs, outputs);
 }
 
 /******************************************************************
@@ -294,10 +188,7 @@ void check_exec::on_completion(unsigned running_index) {
 check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          time_point first_start_expected,
-                         duration check_interval,
-                         const std::string& serv,
-                         const std::string& cmd_name,
-                         const std::string& cmd_line,
+                         const Service& serv,
                          const std::string& output,
                          const engine_to_agent_request_ptr& cnf,
                          check::completion_handler&& handler,
@@ -305,10 +196,7 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat),
@@ -321,11 +209,7 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
  * @param io_context
  * @param logger
  * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this but
- * also others)
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param cnf   agent configuration
  * @param handler  completion handler
  * @return std::shared_ptr<check_dummy>
@@ -334,17 +218,14 @@ std::shared_ptr<check_dummy> check_dummy::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
     const std::string& output,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat) {
   std::shared_ptr<check_dummy> ret = std::make_shared<check_dummy>(
-      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, output, cnf, std::move(handler), stat);
+      io_context, logger, first_start_expected, serv, output, cnf,
+      std::move(handler), stat);
   return ret;
 }
 
@@ -369,3 +250,86 @@ void check_dummy::start_check(const duration& timeout) {
                      me->get_command_line(), get_output())});
   });
 }
+
+/******************************************************************
+ * check_custom
+ ******************************************************************/
+static std::string _build_custom_command_line(const Service& serv,
+                                              const rapidjson::Value& args) {
+  // args expected schema: {"name": "name_cmd", "ARG1": "args_cmd","ARG2":
+  // "args_cmd"}
+  std::string name;
+  std::string cmd_args;
+  if (!args.IsObject()) {
+    throw msg_fmt("custom check arguments must be a JSON object for service {}",
+                  serv.service_description());
+  }
+  if (args.HasMember("name") && args["name"].IsString()) {
+    name = args["name"].GetString();
+  } else {
+    throw msg_fmt("custom check missing 'name' field for service {}",
+                  serv.service_description());
+  }
+
+  // extract argument from json
+  unsigned num_args = args.MemberCount() - 1;  // exclude "name"
+  std::vector<std::string> arguments;
+  arguments.reserve(num_args);
+
+  // Collect ARGn values (ensure vector is sized correctly)
+  arguments.reserve(num_args);
+  for (unsigned idx = 0; idx < num_args; ++idx) {
+    const std::string arg_key = fmt::format("ARG{}", idx + 1);
+    if (args.HasMember(arg_key.c_str()) && args[arg_key.c_str()].IsString()) {
+      arguments.push_back(args[arg_key.c_str()].GetString());
+    } else {
+      arguments.push_back("");
+    }
+  }
+
+  const auto& custom_map = config::instance().get_custom_checks();
+  if (custom_map.empty()) {
+    throw msg_fmt("no custom checks defined in agent configuration");
+  }
+
+  auto it = custom_map.find(name);
+  if (it == custom_map.end()) {
+    throw msg_fmt("unknown custom check '{}' called by service '{}'", name,
+                  serv.service_description());
+  }
+
+  // reconstruct the path with args
+  std::string cmd_line = it->second;
+
+  if (num_args > 0) {
+    // replace $ARGn$ with {n} in the commandline
+    for (unsigned idx = 0; idx < num_args; ++idx) {
+      const std::string arg_key = fmt::format("$ARG{}$", idx + 1);
+      size_t pos = cmd_line.find(arg_key);
+      if (pos != std::string::npos) {
+        cmd_line.replace(pos, arg_key.size(), arguments[idx]);
+      }
+    }
+  }
+  return cmd_line;
+}
+
+check_custom::check_custom(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    const Service& serv,
+    const rapidjson::Value& args,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    : check_exec(io_context,
+                 logger,
+                 first_start_expected,
+                 serv,
+                 _build_custom_command_line(serv, args),
+                 cnf,
+                 std::move(handler),
+                 stat,
+                 credentials_decrypt) {}

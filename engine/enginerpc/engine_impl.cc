@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,13 @@
 #include <future>
 
 #include <boost/asio.hpp>
+namespace asio = boost::asio;
 
 #include <absl/strings/str_join.h>
 
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/ranges.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "com/centreon/common/process_stat.hh"
@@ -36,6 +38,7 @@
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/connector.hh"
+#include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -418,6 +421,17 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
           cv.second.value(), cv.second.is_sent(),
           cv.second.has_been_modified()));
 
+    auto dependencies =
+        hostdependency::hostdependencies.equal_range(selectedhost->name());
+
+    for (; dependencies.first != dependencies.second; ++dependencies.first) {
+      ::com::centreon::engine::HostDependency* depend =
+          host->add_dependencies();
+      depend->set_dependency_type(
+          dependencies.first->second->get_dependency_type());
+      depend->set_hostname(dependencies.first->second->get_hostname());
+    }
+
     return 0;
   });
   std::future<int32_t> result = fn.get_future();
@@ -790,6 +804,20 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
           selectedanomaly->get_dependent_service()->service_id());
     }
 
+    auto dependencies =
+        servicedependency::servicedependencies.equal_range(std::make_pair(
+            selectedservice->get_hostname(), selectedservice->description()));
+
+    for (; dependencies.first != dependencies.second; ++dependencies.first) {
+      ::com::centreon::engine::ServiceDependency* depend =
+          service->add_dependencies();
+      depend->set_dependency_type(
+          dependencies.first->second->get_dependency_type());
+      depend->set_hostname(dependencies.first->second->get_hostname());
+      depend->set_description(
+          dependencies.first->second->get_service_description());
+    }
+
     return 0;
   });
 
@@ -1055,23 +1083,29 @@ grpc::Status engine_impl::GetCommand(grpc::ServerContext* context
                                      const NameIdentifier* request,
                                      EngineCommand* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>(
-      [&err, request, command = response]() -> int32_t {
-        std::shared_ptr<commands::command> selectedcommand;
-        auto itcommand = commands::command::commands.find(request->name());
-        if (itcommand != commands::command::commands.end())
-          selectedcommand = itcommand->second;
-        else {
-          err = fmt::format("could not find Command '{}'", request->name());
-          return 1;
-        }
-        command->set_command_name(selectedcommand->get_name());
-        command->set_command_line(selectedcommand->get_command_line());
-        command->set_type(
-            static_cast<EngineCommand::CmdType>(selectedcommand->get_type()));
-
-        return 0;
-      });
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           command = response]() -> int32_t {
+    std::shared_ptr<commands::command> selectedcommand;
+    auto itcommand = commands::command::commands.find(request->name());
+    if (itcommand != commands::command::commands.end())
+      selectedcommand = itcommand->second;
+    else {
+      err = fmt::format("could not find Command '{}'", request->name());
+      return 1;
+    }
+    command->set_command_name(selectedcommand->get_name());
+    command->set_command_line(selectedcommand->get_command_line());
+    command->set_type(
+        static_cast<EngineCommand::CmdType>(selectedcommand->get_type()));
+    if (selectedcommand->get_type() == commands::command::e_type::forward) {
+      auto sub = std::static_pointer_cast<commands::forward>(selectedcommand)
+                     ->get_sub_command();
+      if (sub->get_type() == commands::command::e_type::connector) {
+        command->set_connector(sub->get_name());
+      }
+    }
+    return 0;
+  });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
@@ -1773,11 +1807,9 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->set_last_acknowledgement(current_time);
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::HOST,
-        static_cast<void*>(temp_host.get()), request->ack_author().c_str(),
-        request->ack_data().c_str(), request->type(), request->notify(),
-        request->persistent());
+    broker_acknowledgement_data(temp_host.get(), request->ack_author().c_str(),
+                                request->ack_data().c_str(), request->type(),
+                                request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_host->notify(notifier::reason_acknowledgement, request->ack_author(),
@@ -1836,11 +1868,10 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->set_last_acknowledgement(current_time);
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::SERVICE,
-        static_cast<void*>(temp_service.get()), request->ack_author().c_str(),
-        request->ack_data().c_str(), request->type(), request->notify(),
-        request->persistent());
+    broker_acknowledgement_data(temp_service.get(),
+                                request->ack_author().c_str(),
+                                request->ack_data().c_str(), request->type(),
+                                request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_service->notify(notifier::reason_acknowledgement,
@@ -3272,7 +3303,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
                                       CHECK_OPTION_NONE);
         }
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
 
         /* We need check result to handle next check */
         temp_host->update_status();
@@ -3284,7 +3315,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         temp_host->set_modified_attributes(
             temp_host->get_modified_attributes() | attr);
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
 
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
@@ -3294,7 +3325,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
             temp_host->get_modified_attributes() | attr);
 
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_host->get_state_type() == notifier::hard &&
@@ -3311,7 +3342,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         temp_host->set_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
 
       default:
@@ -3385,8 +3416,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(
             temp_service->get_modified_attributes() | attr);
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
 
         /* We need check result to handle next check */
         temp_service->update_status();
@@ -3398,8 +3428,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
             temp_service->get_modified_attributes() | attr);
         /* send data to event broker */
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
         break;
 
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
@@ -3409,8 +3438,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
             temp_service->get_modified_attributes() | attr);
 
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_service->get_state_type() == notifier::hard &&
@@ -3427,8 +3455,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
         break;
       default:
         err = "no mode informed for method ChangeServiceObjectIntVar";
@@ -3484,16 +3511,6 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
         return 1;
     }
 
-    /* send data to event broker */
-    broker_adaptive_contact_data(
-        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-        temp_contact.get(), CMD_NONE, attr,
-        temp_contact->get_modified_attributes(), hattr,
-        temp_contact->get_modified_host_attributes(), sattr,
-        temp_contact->get_modified_service_attributes(), nullptr);
-
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
     return 0;
   });
   std::future<int32_t> result = fn.get_future();
@@ -3559,21 +3576,12 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
     /* update the variable */
     switch (request->mode()) {
       case ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER:
-#ifdef LEGACY_CONF
-        config->global_host_event_handler(request->charval());
-#else
         pb_config.set_global_host_event_handler(request->charval());
-#endif
         global_host_event_handler_ptr = cmd_found->second.get();
         attr = MODATTR_EVENT_HANDLER_COMMAND;
         /* set the modified host attribute */
         modified_host_process_attributes |= attr;
 
-        /* send data to event broker */
-        broker_adaptive_program_data(
-            NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-            CMD_NONE, attr, modified_host_process_attributes, MODATTR_NONE,
-            modified_service_process_attributes, nullptr);
         /* update program status */
         update_program_status(false);
         break;
@@ -3585,7 +3593,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         temp_host->add_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_CHECK_COMMAND:
         temp_host->set_check_command(request->charval());
@@ -3593,7 +3601,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_CHECK_COMMAND;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD:
         temp_host->set_check_period(request->charval());
@@ -3601,7 +3609,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_CHECK_TIMEPERIOD;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD:
         temp_host->set_notification_period(request->charval());
@@ -3609,7 +3617,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_NOTIFICATION_TIMEPERIOD;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       default:
         err = "no mode informed for method ChangeHostObjectCharVar";
@@ -3681,11 +3689,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
     /* update the variable */
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER) {
-#ifdef LEGACY_CONF
-      config->global_service_event_handler(request->charval());
-#else
       pb_config.set_global_service_event_handler(request->charval());
-#endif
       global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
     } else if (request->mode() == ChangeObjectChar_Mode_CHANGE_EVENT_HANDLER) {
@@ -3716,12 +3720,6 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
       /* set the modified service attribute */
       modified_service_process_attributes |= attr;
 
-      /* send data to event broker */
-      broker_adaptive_program_data(
-          NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, CMD_NONE,
-          MODATTR_NONE, modified_host_process_attributes, attr,
-          modified_service_process_attributes, nullptr);
-
       /* update program status */
       update_program_status(false);
     } else {
@@ -3730,7 +3728,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
       /* send data to event broker */
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   NEBATTR_NONE, temp_service.get(), attr);
+                                   temp_service.get(), attr);
     }
     return 0;
   });
@@ -3795,17 +3793,6 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
         temp_contact->get_modified_host_attributes() | hattr);
     temp_contact->set_modified_service_attributes(
         temp_contact->get_modified_service_attributes() | sattr);
-
-    /* send data to event broker */
-    broker_adaptive_contact_data(
-        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-        temp_contact.get(), CMD_NONE, MODATTR_NONE,
-        temp_contact->get_modified_attributes(), hattr,
-        temp_contact->get_modified_host_attributes(), sattr,
-        temp_contact->get_modified_service_attributes(), nullptr);
-
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
 
     return 0;
   });
@@ -3958,14 +3945,12 @@ grpc::Status engine_impl::ShutdownProgram(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  auto fn = std::packaged_task<int32_t(void)>([]() -> int32_t {
-    exit(0);
-    return 0;
-  });
+  EngineSignalProcess shutdown_request;
+  shutdown_request.set_process(
+      ::com::centreon::engine::EngineSignalProcess_Process_SHUTDOWN);
+  shutdown_request.set_scheduled_time(time(nullptr));
 
-  command_manager::instance().enqueue(std::move(fn));
-
-  return grpc::Status::OK;
+  return SignalProcess(context, &shutdown_request, nullptr);
 }
 
 #define HOST_METHOD_BEGIN                                                    \
@@ -4225,6 +4210,10 @@ grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
     SPDLOG_LOGGER_ERROR(external_command_logger, err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
+    SPDLOG_LOGGER_INFO(external_command_logger, "set log level of {} to {}",
+                       logger_name,
+                       spdlog::level::to_string_view(
+                           spdlog::level::level_enum(request->level())));
     logger->set_level(spdlog::level::level_enum(request->level()));
     return grpc::Status::OK;
   }

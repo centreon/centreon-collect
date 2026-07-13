@@ -34,8 +34,9 @@ TEST(InfluxDBFactory, HasEndpoint) {
   ASSERT_FALSE(fact.has_endpoint(cfg, nullptr));
   cfg.type = "influxdb";
   ASSERT_TRUE(fact.has_endpoint(cfg, nullptr));
-  ASSERT_EQ(cfg.cache_enabled, true);
-  ASSERT_EQ(cfg.params["cache"], "yes");
+  fact.set_default_values(cfg);
+  ASSERT_EQ(cfg.cache_enabled, false);
+  ASSERT_EQ(cfg.params["cache"], "no");
 }
 
 TEST(InfluxDBFactory, MissingParams) {

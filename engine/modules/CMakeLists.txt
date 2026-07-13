@@ -21,8 +21,5 @@ add_subdirectory("external_commands")
 
 include_directories(${CMAKE_SOURCE_DIR}/clib/inc)
 
-# Benchmark module.
-add_subdirectory("bench")
-
 # opentelemetry module
 add_subdirectory("opentelemetry")

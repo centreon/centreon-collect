@@ -19,12 +19,15 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include <gtest/gtest.h>
-#include <com/centreon/broker/graphite/connector.hh>
-#include "../../core/test/test_server.hh"
+#include "broker/test/test_server.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/graphite/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class graphiteStream : public testing::Test {
  public:
@@ -39,29 +42,35 @@ class graphiteStream : public testing::Test {
     _thread.join();
   }
 
+  static void SetUpTestSuite() {
+    cache::global_cache::load(g_io_context, "/tmp/test_graphite");
+  }
+
+  static void TearDownTestSuite() {
+    cache::global_cache::unload();
+    ::remove("/tmp/test_graphite.cnf");
+    ::remove("/tmp/test_graphite.rt");
+  }
+
   test_server _server;
   std::thread _thread;
 };
 
 TEST_F(graphiteStream, BadPort) {
-  std::shared_ptr<persistent_cache> cache;
-
   ASSERT_THROW(graphite::stream st("metric_name", "status_name", "a", "user",
-                                   "pass", "localhost", 4243, 3, cache),
+                                   "pass", "localhost", 4243, 3),
                msg_fmt);
 }
 
 TEST_F(graphiteStream, Read) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<io::data> data;
 
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 3, cache);
+                      "localhost", 4242, 3);
   ASSERT_THROW(st.read(data, -1), msg_fmt);
 }
 
 TEST_F(graphiteStream, Write) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<storage::pb_metric> d1 =
       std::make_shared<storage::pb_metric>();
   std::shared_ptr<storage::pb_metric> d2 =
@@ -69,7 +78,7 @@ TEST_F(graphiteStream, Write) {
   std::shared_ptr<storage::pb_metric> d3 =
       std::make_shared<storage::pb_metric>();
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 3, cache);
+                      "localhost", 4242, 3);
 
   Metric& m1 = d1->mut_obj();
   Metric& m2 = d2->mut_obj();
@@ -111,7 +120,6 @@ TEST_F(graphiteStream, Write) {
 }
 
 TEST_F(graphiteStream, Flush) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<storage::pb_metric> d1 =
       std::make_shared<storage::pb_metric>();
   std::shared_ptr<storage::pb_metric> d2 =
@@ -119,7 +127,7 @@ TEST_F(graphiteStream, Flush) {
   std::shared_ptr<storage::pb_metric> d3 =
       std::make_shared<storage::pb_metric>();
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 9, cache);
+                      "localhost", 4242, 9);
 
   Metric& m1 = d1->mut_obj();
   Metric& m2 = d2->mut_obj();
@@ -163,17 +171,15 @@ TEST_F(graphiteStream, Flush) {
 }
 
 TEST_F(graphiteStream, NullData) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<io::data> data;
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 9, cache);
+                      "localhost", 4242, 9);
 
   std::shared_ptr<io::data> d1{nullptr};
   ASSERT_FALSE(st.write(d1));
 }
 
 TEST_F(graphiteStream, FlushStatusOK) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<storage::pb_status> d1 =
       std::make_shared<storage::pb_status>();
   std::shared_ptr<storage::pb_status> d2 =
@@ -186,7 +192,7 @@ TEST_F(graphiteStream, FlushStatusOK) {
 
   std::shared_ptr<io::data> data;
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 9, cache);
+                      "localhost", 4242, 9);
 
   d1->source_id = 3;
   d1->destination_id = 4;
@@ -223,10 +229,9 @@ TEST_F(graphiteStream, FlushStatusOK) {
 }
 
 TEST_F(graphiteStream, StatsAndConnector) {
-  std::shared_ptr<persistent_cache> cache;
   graphite::connector con;
   con.connect_to("metric_name", "status_name", "a", "user", "pass", "localhost",
-                 4242, 3, cache);
+                 4242, 3);
 
   nlohmann::json obj;
   con.open()->statistics(obj);

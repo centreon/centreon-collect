@@ -170,50 +170,53 @@ std::string ba_impact::get_output() const {
   };
 
   state state = get_state_hard();
-  std::string retval;
   double level = _normalize(_level_hard);
   uint32_t s = _impacts.size();
   switch (state) {
     case state_unknown:
-      retval = "Status is unknown";
+      return output_begin() + "Status is unknown";
       break;
     case state_ok:
       if (level >= 100 - eps) {
-        retval = fmt::format(
-            "Status is OK - Level = 100 (warn: {} - crit: {}) - none of the {} "
-            "KPI{} is impacting the BA right now",
-            _level_warning, _level_critical, s, s > 1 ? "s" : "");
+        return output_begin() +
+               fmt::format(
+                   "Level = 100 (warn: {} - crit: {}) - none of the {} "
+                   "KPI{} is impacting the BA right now",
+                   _level_warning, _level_critical, s, s > 1 ? "s" : "");
       } else {
         auto lst = impacting_kpis();
         uint32_t nb_imp = lst.size();
-        retval = fmt::format(
-            "Status is OK - Level = {} (warn: {} - crit: {}) - {} KPI{} out of "
-            "{} impact{} the BA: {}",
-            level, _level_warning, _level_critical, nb_imp,
-            nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",
-            fmt::join(lst, ", "));
+        return output_begin() +
+               fmt::format(
+                   "Level = {} (warn: {} - crit: {}) - {} KPI{} out of "
+                   "{} impact{} the BA: {}",
+                   level, _level_warning, _level_critical, nb_imp,
+                   nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",
+                   fmt::join(lst, ", "));
       }
       break;
     case state_warning: {
       auto lst = impacting_kpis();
       uint32_t nb_imp = lst.size();
-      retval = fmt::format(
-          "Status is WARNING - Level = {} - {} KPI{} out of {} impact{} the BA "
-          "for {} points - {}",
-          level, nb_imp, nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",
-          100 - level, fmt::join(lst, ", "));
+      return output_begin() +
+             fmt::format(
+                 "Level = {} - {} KPI{} out of {} impact{} the BA "
+                 "for {} points - {}",
+                 level, nb_imp, nb_imp > 1 ? "s" : "", s,
+                 nb_imp == 1 ? "s" : "", 100 - level, fmt::join(lst, ", "));
     } break;
     case state_critical: {
       auto lst = impacting_kpis();
       uint32_t nb_imp = lst.size();
-      retval = fmt::format(
-          "Status is CRITICAL - Level = {} - {} KPI{} out of {} impact{} the "
-          "BA for {} points - {}",
-          level, nb_imp, nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",
-          100 - level, fmt::join(lst, ", "));
+      return output_begin() +
+             fmt::format(
+                 "Level = {} - {} KPI{} out of {} impact{} the "
+                 "BA for {} points - {}",
+                 level, nb_imp, nb_imp > 1 ? "s" : "", s,
+                 nb_imp == 1 ? "s" : "", 100 - level, fmt::join(lst, ", "));
     } break;
   }
-  return retval;
+  return {};
 }
 
 /**
@@ -259,8 +262,10 @@ std::shared_ptr<pb_ba_status> ba_impact::_generate_ba_status(
   status.set_level_acknowledgement(_acknowledgement_count);
   status.set_level_downtime(_normalize(_downtime_hard));
   status.set_level_nominal(_normalize(_level_hard));
-  status.set_state(com::centreon::broker::State(get_state_hard()));
-  status.set_state_changed(state_changed);
+  if (status.state() != com::centreon::broker::State(get_state_hard())) {
+    status.set_state(com::centreon::broker::State(get_state_hard()));
+    status.set_state_changed(state_changed);
+  }
   std::string perfdata = get_perfdata();
   if (perfdata.empty())
     status.set_output(get_output());

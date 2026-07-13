@@ -20,10 +20,8 @@
 #define CCB_STORAGE_STATUS_HH
 
 #include "bbdo/storage.pb.h"
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker::storage {
 /**
@@ -47,8 +45,12 @@ class status : public io::data {
   static io::event_info::event_operations const operations;
 
   status();
-  status(timestamp const& time, uint64_t index_id, uint32_t interval,
-         bool is_for_rebuild, timestamp const& rrd_len, int16_t state);
+  status(timestamp const& time,
+         uint64_t index_id,
+         uint32_t interval,
+         bool is_for_rebuild,
+         timestamp const& rrd_len,
+         int16_t state);
   status(status const& s);
   ~status();
 

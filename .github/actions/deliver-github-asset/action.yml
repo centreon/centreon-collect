@@ -1,0 +1,48 @@
+name: "deliver-github-asset"
+description: "Deliver CMA asset to GitHub release and register on download.centreon.com"
+inputs:
+  file_pattern:
+    description: "Glob pattern matching local asset files (required in local mode)"
+    required: false
+  github_release:
+    description: "Target GitHub release tag (e.g. centreon-monitoring-agent-27.08.3)"
+    required: true
+  token_download_centreon_com:
+    description: "Token for download.centreon.com registration"
+    required: false
+  mode:
+    description: "Delivery mode: local (default) or action (fetches from Artifactory)"
+    required: false
+    default: "local"
+  version:
+    description: "CMA version to fetch from Artifactory — e.g. 27.08.3 (required in action mode)"
+    required: false
+  distrib:
+    description: "Comma-separated distros to fetch in action mode (default: all)"
+    required: false
+  artifactory_token:
+    description: "JFrog Artifactory token (required in action mode)"
+    required: false
+  dry_run:
+    description: "Dry run — log actions without executing"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Deliver CMA assets
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        TOKEN_DOWNLOAD_CENTREON_COM: ${{ inputs.token_download_centreon_com }}
+        ARTIFACTORY_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
+        DELIVER_MODE: ${{ inputs.mode }}
+        DELIVER_FILE_PATTERN: ${{ inputs.file_pattern }}
+        DELIVER_GITHUB_RELEASE: ${{ inputs.github_release }}
+        DELIVER_VERSION: ${{ inputs.version }}
+        DELIVER_DISTRIB: ${{ inputs.distrib }}
+        DELIVER_REPO: ${{ github.repository }}
+        DELIVER_DRY_RUN: ${{ inputs.dry_run }}
+      run: |
+        bash "${GITHUB_ACTION_PATH}/../../scripts/deliver-cma-assets.sh"

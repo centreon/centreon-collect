@@ -18,51 +18,18 @@
  */
 
 #include "com/centreon/engine/configuration/applier/severity.hh"
+#include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/severity.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/severity.hh"
-#else
-#include <google/protobuf/util/message_differencer.h>
-#endif
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-#ifndef LEGACY_CONF
 using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  Add new severity.
- *
- *  @param[in] obj  The new severity to add into the monitoring engine.
- */
-void applier::severity::add_object(const configuration::severity& obj) {
-  // Logging.
-  config_logger->debug("Creating new severity ({}, {}).", obj.key().first,
-                       obj.key().second);
-
-  // Add severity to the global configuration set.
-  config->mut_severities().insert(obj);
-
-  auto sv{std::make_shared<engine::severity>(obj.key().first, obj.level(),
-                                             obj.icon_id(), obj.severity_name(),
-                                             obj.key().second)};
-  if (!sv)
-    throw engine_error() << "Could not register severity (" << obj.key().first
-                         << ", " << obj.key().second << ")";
-
-  // Add new items to the configuration state.
-  engine::severity::severities.insert({obj.key(), sv});
-
-  broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, sv.get());
-}
-#else
 /**
  * @brief Add new severity.
  *
@@ -89,62 +56,7 @@ void applier::severity::add_object(const configuration::Severity& obj) {
 
   broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, sv.get());
 }
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::severity::expand_objects(configuration::state&) {}
-#endif
-
-#ifdef LEGACY_CONF
-/**
- *  Modify severity.
- *
- *  @param[in] obj  The severity to modify into the monitoring engine.
- */
-void applier::severity::modify_object(const configuration::severity& obj) {
-  // Logging.
-  config_logger->debug("Modifying severity ({}, {}).", obj.key().first,
-                       obj.key().second);
-
-  // Find old configuration.
-  auto it_cfg = config->severities_find(obj.key());
-  if (it_cfg == config->severities().end())
-    throw engine_error() << "Cannot modify non-existing severity ("
-                         << obj.key().first << ", " << obj.key().second << ")";
-
-  // Find severity object.
-  severity_map::iterator it_obj{engine::severity::severities.find(obj.key())};
-  if (it_obj == engine::severity::severities.end())
-    throw engine_error() << "Could not modify non-existing severity object "
-                         << fmt::format("({}, {})", obj.key().first,
-                                        obj.key().second);
-  engine::severity* s = it_obj->second.get();
-
-  // Update the global configuration set.
-  configuration::severity old_cfg(*it_cfg);
-  if (old_cfg != obj) {
-    config->mut_severities().erase(it_cfg);
-    config->mut_severities().insert(obj);
-
-    s->set_name(obj.severity_name());
-    s->set_level(obj.level());
-    s->set_icon_id(obj.icon_id());
-
-    // Notify event broker.
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
-  } else
-    config_logger->debug("Severity ({}, {}) did not change", obj.key().first,
-                         obj.key().second);
-}
-#else
 /**
  * @brief Modify severity.
  *
@@ -188,35 +100,7 @@ void applier::severity::modify_object(
     config_logger->debug("Severity ({}, {}) did not change",
                          new_object.key().id(), new_object.key().type());
 }
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  Remove old severity.
- *
- *  @param[in] obj  The severity to remove from the monitoring engine.
- */
-void applier::severity::remove_object(const configuration::severity& obj) {
-  // Logging.
-  config_logger->debug("Removing severity ({}, {}).", obj.key().first,
-                       obj.key().second);
-
-  // Find severity.
-  severity_map::iterator it = engine::severity::severities.find(obj.key());
-  if (it != engine::severity::severities.end()) {
-    engine::severity* sv(it->second.get());
-
-    // Notify event broker.
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_DELETE, sv);
-
-    // Erase severity object (this will effectively delete the object).
-    engine::severity::severities.erase(it);
-  }
-
-  // Remove severity from the global configuration set.
-  config->mut_severities().erase(obj);
-}
-#else
 /**
  * @brief Remove old severity at index idx.
  *
@@ -228,7 +112,7 @@ void applier::severity::remove_object(ssize_t idx) {
   // Logging.
 
   config_logger->debug("Removing severity ({}, {}).", obj.key().id(),
-                obj.key().type());
+                       obj.key().type());
 
   // Find severity.
   severity_map::iterator it =
@@ -247,20 +131,3 @@ void applier::severity::remove_object(ssize_t idx) {
   // Remove severity from the global configuration set.
   pb_config.mutable_severities()->DeleteSubrange(idx, 1);
 }
-#endif
-
-#ifdef LEGACY_CONF
-/**
- *  Resolve a severity.
- *
- *  @param[in] obj  Object to resolve.
- */
-void applier::severity::resolve_object(const configuration::severity& obj) {
-  severity_map::const_iterator sv_it{
-      engine::severity::severities.find(obj.key())};
-  if (sv_it == engine::severity::severities.end() || !sv_it->second)
-    throw engine_error() << "Cannot resolve non-existing severity "
-                         << fmt::format("({}, {})", obj.key().first,
-                                        obj.key().second);
-}
-#endif

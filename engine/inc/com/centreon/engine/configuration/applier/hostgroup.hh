@@ -20,11 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/hostgroup.hh"
-#else
 #include "common/engine_conf/hostgroup_helper.hh"
-#endif
 
 namespace com::centreon::engine::configuration {
 
@@ -38,31 +34,12 @@ class hostgroup {
   hostgroup(hostgroup const&) = delete;
   ~hostgroup() noexcept = default;
   hostgroup& operator=(hostgroup const& right) = delete;
-#ifdef LEGACY_CONF
-  void add_object(configuration::hostgroup const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::hostgroup const& obj);
-  void remove_object(configuration::hostgroup const& obj);
-  void resolve_object(configuration::hostgroup const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Hostgroup& obj);
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Hostgroup* old_obj,
                      const configuration::Hostgroup& new_obj);
   void remove_object(ssize_t idx);
   void resolve_object(const configuration::Hostgroup& obj, error_cnt& err);
-#endif
-
- private:
-#ifdef LEGACY_CONF
-  typedef std::map<configuration::hostgroup::key_type, configuration::hostgroup>
-      resolved_set;
-
-  void _resolve_members(configuration::state& s,
-                        configuration::hostgroup const& obj);
-
-  resolved_set _resolved;
-#endif
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

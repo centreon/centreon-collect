@@ -26,14 +26,13 @@
 namespace com::centreon::engine::configuration {
 
 class tag_helper : public message_helper {
-  void _init();
-
  public:
   tag_helper(Tag* obj);
   ~tag_helper() noexcept = default;
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+  void set_default_values() override;
 };
 }  // namespace com::centreon::engine::configuration
 

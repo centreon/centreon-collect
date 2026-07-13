@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <chrono>
 #include <deque>
+#include <filesystem>
 #include <forward_list>
 #include <fstream>
 #include <functional>
@@ -35,8 +36,10 @@
 #include <string>
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
+#include <absl/container/flat_hash_set.h>
 #include <absl/hash/hash.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_replace.h>
@@ -44,7 +47,9 @@
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <openssl/ssl.h>
+#else
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #endif

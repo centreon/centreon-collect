@@ -16,12 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
-#include <chrono>
-#include <cstdint>
-#include <memory>
-#include <mutex>
 
 #include "com/centreon/common/rapidjson_helper.hh"
 
@@ -35,52 +30,62 @@ using namespace com::centreon::agent::check_drive_size_detail;
 struct sample {
   std::string_view fs;
   std::string_view mount_point;
-  uint64_t fs_type;
+  uint64_t drive_type;
+  std::string_view fs_format;
   uint64_t used;
   uint64_t total;
 };
 
-std::array<sample, 9> _samples = {
+std::array<sample, 13> _samples = {
     {{"udev", "/dev",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_other,
-      0, 6024132000},
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      "other_format", 0, 6024132000},
 
      {"tmpfs", "/run",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_other,
-      16760000, 1212868000},
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      "other_format", 16760000, 1212868000},
      {"/dev/sda12", "/",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_linux_ext4,
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk, "ext4",
       136830444000, 346066920000},
      {"tmpfs", "/dev/shm",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_other,
-      0, 6072708000},
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      "other_format", 0, 6072708000},
      {"tmpfs", "/run/lock",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_other,
-      4000, 5116000},
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      "other_format", 4000, 5116000},
      {"tmpfs", "/sys/fs/cgroup",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_other,
-      0, 6072708000},
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      "other_format", 0, 6072708000},
      {"/dev/sda11", "/boot/efi",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_fat,
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk, "fat",
       24000, 524248000},
      {"/dev/sda5", "/data",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_fat32,
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk, "fat32",
       3072708000, 6072708000},
      {"tmpfs", "/run/user/1001",
-      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk |
-          check_drive_size_detail::e_drive_fs_type::hr_fs_other,
-      100000, 1214440000}}};
+      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      "other_format", 100000, 1214440000},
+     {"A:\\", "", check_drive_size_detail::e_drive_type::hr_storage_floppy_disk,
+      "", 0, 0},
+     {"C:\\", "", check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      "ntfs", 3072708000, 6072708000},
+     {"D:\\", "",
+      check_drive_size_detail::e_drive_type::hr_storage_removable_disk, "", 0,
+      0},
+     {"Z:\\", "",
+      check_drive_size_detail::e_drive_type::hr_storage_network_disk,
+      "vboxsharedfolderfs", 32212254720, 107374182400}}};
 
 class drive_size_test : public ::testing::Test {
  public:
+  Service serv;
+
+  drive_size_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+
   static std::list<fs_stat> compute(
       filter& filt,
       const std::shared_ptr<spdlog::logger>& logger);
@@ -94,8 +99,9 @@ std::list<fs_stat> drive_size_test::compute(
     const std::shared_ptr<spdlog::logger>&) {
   std::list<fs_stat> result;
   for (const auto& s : _samples) {
-    if (filt.is_allowed(s.fs, s.mount_point,
-                        static_cast<e_drive_fs_type>(s.fs_type))) {
+    if (filt.is_allowed(s.fs, s.fs_format, s.mount_point,
+                        static_cast<e_drive_type>(s.drive_type),
+                        spdlog::default_logger())) {
       result.emplace_back(s.fs, s.mount_point, s.used, s.total);
     }
   }
@@ -108,7 +114,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning" : "1000000", "critical" : 20000000, "unit": "b",
-        "filter-type": "^hrfsother$"})"_json;
+        "filter-type": "^other_format$"})"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -120,14 +126,13 @@ TEST_F(drive_size_test, test_fs_filter1) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -135,7 +140,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 0G Free: 1G");
@@ -176,7 +181,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning" : "1", "critical" : 5, "unit": "%",
-        "filter-type": "^hrfsother$"})"_json;
+        "filter-type": "^other_format$"})"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -188,14 +193,13 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -203,7 +207,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
@@ -256,14 +260,13 @@ TEST_F(drive_size_test, test_fs_filter2) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -271,7 +274,7 @@ TEST_F(drive_size_test, test_fs_filter2) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "CRITICAL: /data Total: 5G Used: 2G Free: 2G");
@@ -300,7 +303,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning" : "1", "critical" : "5", "unit": "%",
-        "filter-type": "^hrfsother$", "filter-fs": "^tmp.*$"})"_json;
+        "filter-type": "^other_format$", "filter-fs": "^tmp.*$"})"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -312,14 +315,13 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -327,7 +329,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
@@ -365,7 +367,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning" : "1", "critical" : "5", "unit": "%",
-        "filter-type": "^hrfsother$", "filter-fs": "tmpfs", "filter-mountpoint":"^/run/.*$" })"_json;
+        "filter-type": "^other_format$", "filter-fs": "tmpfs", "filter-mountpoint":"^/run/.*$" })"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -377,14 +379,13 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -392,7 +393,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "OK: All storages are ok");
@@ -424,7 +425,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning" : "1", "critical" : "5", "unit": "%",
-        "filter-type": "^hrfsother$", "filter-fs": "tmpfs", "filter-mountpoint":"^/run.*$", "exclude-mountpoint": ".*lock.*" })"_json;
+        "filter-type": "^other_format$", "filter-fs": "tmpfs", "filter-mountpoint":"^/run.*$", "exclude-mountpoint": ".*lock.*" })"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -436,14 +437,13 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -451,7 +451,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
 
   checker->start_check(std::chrono::seconds(1));
   {
-    absl::MutexLock lck(&wait_m);
+    absl::MutexLock lck(wait_m);
     wait_m.Await(absl::Condition(&is_complete));
 
     ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
@@ -479,7 +479,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
   std::string output_save = output;
   std::list<com::centreon::common::perfdata> perfs_save = perfs;
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, output_save);
@@ -490,7 +490,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning" : "30", "critical" : "50", "unit": "%",
-         "exclude-fs": "tmpfs", "exclude-mountpoint":"/dev" })"_json;
+         "exclude-fs": "tmpfs|[A-Z]:\\\\", "exclude-mountpoint":"/dev" })"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -502,14 +502,13 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -517,7 +516,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output,
@@ -551,7 +550,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning" : "30", "critical" : "", "unit": "%",
-         "exclude-fs": "tmpfs", "exclude-mountpoint":"/dev" })"_json;
+         "exclude-fs": "tmpfs|[A-Z]:\\\\", "exclude-mountpoint":"/dev" })"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -563,14 +562,13 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -578,7 +576,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output,
@@ -611,8 +609,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
 TEST_F(drive_size_test, test_fs_filter_free_percent) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning" : "70", "critical" : "50", "unit": "%", "free": true,
-         "exclude-fs": "tmpfs", "exclude-mountpoint":"/dev" })"_json;
+      R"({ "warning" : "70:", "critical" : "50:", "unit": "%", "free": true,
+         "exclude-fs": "tmpfs|[A-Z]:\\\\", "exclude-mountpoint":"/dev" })"_json;
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -624,14 +622,13 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -639,7 +636,7 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output,
@@ -650,10 +647,10 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
   for (const auto& p : perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
-    ASSERT_EQ(p.warning_low(), 0);
-    ASSERT_EQ(p.critical_low(), 0);
-    ASSERT_EQ(p.warning(), 70);
-    ASSERT_EQ(p.critical(), 50);
+    ASSERT_EQ(p.warning_low(), 70);
+    ASSERT_EQ(p.critical_low(), 50);
+    ASSERT_TRUE(std::isnan(p.warning()));
+    ASSERT_TRUE(std::isnan(p.critical()));
     if (p.name() == "free_/") {
       ASSERT_NEAR(p.value(), 60.46, 0.01);
       ASSERT_EQ(p.max(), 100);
@@ -667,4 +664,43 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
       FAIL() << "Unexpected perfdata name: " << p.name();
     }
   }
+}
+
+TEST_F(drive_size_test, test_fs_format_filter) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "warning" : "1000000", "critical" : 32212254710, "unit": "b",
+        "filter-type": "VBoxSharedFolderFs|ntfs"})"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+
+  auto is_complete = [&]() { return !perfs.empty(); };
+
+  auto debug_logger = spdlog::default_logger();
+
+  auto checker = std::make_shared<check_drive_size>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, check_args, nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          [[maybe_unused]] int status,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          [[maybe_unused]] const std::list<std::string>& outputs) {
+        absl::MutexLock lck(wait_m);
+        perfs = perfdata;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(1));
+
+  absl::MutexLock lck(wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  ASSERT_EQ(output,
+            "WARNING:  Total: 5G Used: 2G Free: 2G CRITICAL:  Total: 100G "
+            "Used: 30G Free: 70G");
+  ASSERT_EQ(perfs.size(), 2);
 }

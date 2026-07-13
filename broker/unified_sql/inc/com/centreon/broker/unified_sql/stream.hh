@@ -18,13 +18,6 @@
 
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <deque>
-#include <list>
-#include <mutex>
-#include <unordered_map>
 
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
@@ -114,6 +107,14 @@ constexpr const char* BAM_NAME = "_Module_";
 constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
+ * Caution, if you modify these values, don't forget to update CASE in resources
+ * update requests (_update_hosts_and_services_of_instance)
+ *
+ */
+constexpr std::array<int, 5> hst_ordered_status{0, 4, 2, 0, 1};
+constexpr std::array<int, 5> svc_ordered_status{0, 3, 4, 2, 1};
+
+/**
  * @brief The conflict manager.
  *
  * Many queries are executed by Broker through the sql connector and also
@@ -152,8 +153,6 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
-  const static std::array<int, 5> hst_ordered_status;
-  const static std::array<int, 5> svc_ordered_status;
   enum special_conn {
     custom_variable,
     downtime,
@@ -193,7 +192,6 @@ class stream : public io::stream {
     uint64_t index_id;
     std::string host_name;
     std::string service_description;
-    uint32_t rrd_retention;
     uint32_t interval;
     bool special;
     bool locked;
@@ -263,8 +261,8 @@ class stream : public io::stream {
   std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
 
-  absl::flat_hash_set<uint32_t> _cache_deleted_instance_id;
-  std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
+  absl::flat_hash_set<uint64_t> _cache_deleted_instance_id;
+  std::unordered_map<uint64_t, uint64_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
@@ -321,7 +319,7 @@ class stream : public io::stream {
 
   timestamp _oldest_timestamp;
   std::mutex _stored_timestamps_m;
-  std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
+  std::unordered_map<uint64_t, stored_timestamp> _stored_timestamps;
 
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _pb_acknowledgement_insupdate;
@@ -386,12 +384,11 @@ class stream : public io::stream {
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert_update;
+  database::mysql_stmt _tag_insert_update_nothing;
   database::mysql_stmt _tag_delete;
   database::mysql_stmt _resources_tags_insert;
-  database::mysql_stmt _resources_host_insert;
-  database::mysql_stmt _resources_host_update;
-  database::mysql_stmt _resources_service_insert;
-  database::mysql_stmt _resources_service_update;
+  database::mysql_stmt _resources_host_insert_or_update;
+  database::mysql_stmt _resources_service_insert_or_update;
 
   database::mysql_stmt _resources_disable;
   database::mysql_stmt _resources_tags_remove;
@@ -411,9 +408,9 @@ class stream : public io::stream {
   database::mysql_stmt _agent_information_insert_update;
 
   void _update_hosts_and_services_of_unresponsive_instances();
-  void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
-  void _update_timestamp(uint32_t instance_id);
-  bool _is_valid_poller(uint32_t instance_id);
+  void _update_hosts_and_services_of_instance(uint64_t id, bool responsive);
+  void _update_timestamp(uint64_t instance_id);
+  bool _is_valid_poller(uint64_t instance_id);
   void _check_queues(boost::system::error_code ec)
       ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _check_deleted_index();
@@ -467,6 +464,10 @@ class stream : public io::stream {
   void _process_pb_adaptive_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
+  void _process_tag_from_resources(uint64_t resource_id,
+                                   uint64_t tag_id,
+                                   int32_t tag_type,
+                                   int32_t conn);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
   void _process_agent_stats(const std::shared_ptr<io::data>& d);
@@ -479,7 +480,7 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
-  void _clean_tables(uint32_t instance_id);
+  void _clean_tables(uint64_t instance_id);
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();

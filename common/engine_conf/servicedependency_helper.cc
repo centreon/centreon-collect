@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
+
+#include <google/protobuf/util/message_differencer.h>
+
 #include "common/engine_conf/servicedependency_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -25,12 +28,17 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 
 size_t servicedependency_key(const Servicedependency& sd) {
-  return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
-                      sd.hosts().data(0), sd.service_description().data(0),
-                      sd.dependent_hosts().data(0),
-                      sd.dependent_service_description().data(0),
-                      sd.execution_failure_options(), sd.inherits_parent(),
-                      sd.notification_failure_options());
+  return absl::HashOf(
+      sd.dependency_period(), sd.dependency_type(), sd.dependent_hostgroups(),
+      sd.dependent_hosts(), sd.dependent_servicegroups(),
+      sd.dependent_service_description(), sd.execution_failure_options(),
+      sd.hostgroups(), sd.hosts(), sd.inherits_parent(),
+      sd.notification_failure_options(), sd.servicegroups(),
+      sd.service_description());
+}
+
+bool operator==(const Servicedependency& left, const Servicedependency& right) {
+  return ::google::protobuf::util::MessageDifferencer::Equals(left, right);
 }
 
 /**
@@ -66,7 +74,7 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
               {"notification_failure_criteria", "notification_failure_options"},
           },
           Servicedependency::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -188,12 +196,11 @@ void servicedependency_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Servicedependency object, in other words set its
  * default values.
  */
-void servicedependency_helper::_init() {
+void servicedependency_helper::set_default_values() {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_execution_failure_options(action_sd_none);
-  obj->set_inherits_parent(false);
-  obj->set_notification_failure_options(action_sd_none);
+  DEFAULT_PB_FIELD_SET(execution_failure_options, action_sd_none);
+  DEFAULT_PB_FIELD_SET(inherits_parent, false);
+  DEFAULT_PB_FIELD_SET(notification_failure_options, action_sd_none);
 }
 
 /**

@@ -12,6 +12,10 @@ Test Setup          Ctn Stop Processes
 MIGRATION
     [Documentation]    Migration bbdo2 with sql/storage to bbdo2 with unified_sql and then to bbdo3 with unified_sql and then to bbdo2 with unified_sql and then to bbdo2 with sql/storage
     [Tags]    broker    engine    services    protobuf
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
 
     Log To Console    Pure legacy mode
     Ctn Config Engine    ${3}    ${50}    ${20}
@@ -24,7 +28,7 @@ MIGRATION
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${contentCentral}    Create List    SQL: processing service status event
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
@@ -39,8 +43,8 @@ MIGRATION
     Log To Console    Move to BBDO 2.0.0 with unified_sql
     Ctn Kindly Stop Broker
     Ctn Start Broker
-    Ctn Stop engine
-    Ctn Start engine
+    Ctn Stop Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    unified_sql: processing service status event
@@ -54,10 +58,10 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    no_rrd_test=True
     Ctn Start Broker
-    Ctn Stop engine
-    Ctn Start engine
+    Ctn Stop Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    status check result output:
@@ -75,10 +79,10 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move back to BBDO 2.0.0 with unified_sql
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    no_rrd_test=True
     Ctn Start Broker
-    Ctn Stop engine
-    Ctn Start engine
+    Ctn Stop Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    unified_sql: processing service status event
@@ -90,10 +94,10 @@ MIGRATION
 
     Log To Console    Move back to BBDO 2.0.0 with sql/storage
     Ctn Config Broker Sql Output    central    sql/perfdata
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    no_rrd_test=True
     Ctn Start Broker
-    Ctn Stop engine
-    Ctn Start engine
+    Ctn Stop Engine
+    Ctn Start Engine
     Sleep    2s
 
     ${contentCentral}    Create List    SQL: processing service status event

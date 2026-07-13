@@ -28,7 +28,6 @@ namespace com::centreon::engine::configuration {
 size_t servicedependency_key(const Servicedependency& sd);
 
 class servicedependency_helper : public message_helper {
-  void _init();
   static void _expand_services(
       const ::google::protobuf::RepeatedPtrField<std::string>& hst,
       const ::google::protobuf::RepeatedPtrField<std::string>& hg,
@@ -45,6 +44,9 @@ class servicedependency_helper : public message_helper {
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+
+  void set_default_values() override;
+
   static void expand(
       State& s,
       error_cnt& err,
@@ -52,6 +54,15 @@ class servicedependency_helper : public message_helper {
       absl::flat_hash_map<std::string, configuration::Servicegroup*>&
           servicegroups);
 };
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value,
+                        const Servicedependency& to_hash) {
+  return hash_type::combine(std::move(previous_value),
+                            servicedependency_key(to_hash));
+}
+
+bool operator==(const Servicedependency& left, const Servicedependency& right);
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_SERVICEDEPENDENCY */

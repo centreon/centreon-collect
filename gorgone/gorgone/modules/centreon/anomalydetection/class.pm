@@ -198,12 +198,15 @@ sub connection_informations {
             return 0;
         }
 
+        my $scheme = $self->{proxy_url} =~ /^(https?:\/\/)/i ? lc $1 : 'http://';
+        $self->{proxy_url} =~ s/$scheme//;
+
         $self->{proxy_url} = $self->{proxy_user} . ':' . $self->{proxy_password} . '@' . $self->{proxy_url}
             if (defined($self->{proxy_user}) && $self->{proxy_user} ne '' &&
                 defined($self->{proxy_password}) && $self->{proxy_password} ne '');
         $self->{proxy_url} = $self->{proxy_url} . ':' . $self->{proxy_port}
             if (defined($self->{proxy_port}) && $self->{proxy_port} =~ /(\d+)/);
-        $self->{proxy_url} = 'http://' . $self->{proxy_url};
+        $self->{proxy_url} = $scheme . $self->{proxy_url};
     }
 
     return 0;
@@ -411,9 +414,6 @@ sub saas_delete_metrics {
             $self->{logger}->writeLogDebug(
                 "[anomalydetection] -class- saas: metric '$self->{centreon_metrics}->{$_}->{service_id}/$self->{centreon_metrics}->{$_}->{metric_name}' deleted"
             );
-
-            next if (!defined($result->{message}) ||
-                $result->{message} !~ /machine learning request id is not found/i);
         }
 
         push @$delete_ids, $_;

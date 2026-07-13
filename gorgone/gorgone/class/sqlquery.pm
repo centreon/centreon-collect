@@ -42,7 +42,11 @@ sub builder {
         ' FROM ' . join(', ', @{$options{tables}}) . $where . $extra_suffix;
     return $request;
 }
-
+# hash parameters :
+# request: sql request
+# bind_values: arrayref of bind values
+# keys: to document, for hashref mode only
+# mode: 0 = statement handle, 1 = hashref, 2 = arrayref
 sub do {
     my ($self, %options) = @_;
     my $mode = defined($options{mode}) ? $options{mode} : 0;
@@ -87,7 +91,7 @@ sub transaction_query_multi {
 
     my ($status, $sth);
 
-    $status = $self->transaction_mode(1);
+    $status = $self->begin_transaction();
     return -1 if ($status == -1);
 
     ($status, $sth) = $self->{db_centreon}->query({ query => $options{request}, prepare_only => 1 });
@@ -119,7 +123,7 @@ sub transaction_query {
     my ($self, %options) = @_;
     my $status;
 
-    $status = $self->transaction_mode(1);
+    $status = $self->begin_transaction();
     return -1 if ($status == -1);
 
     ($status) = $self->do(request => $options{request});
@@ -134,10 +138,10 @@ sub transaction_query {
     return 0;
 }
 
-sub transaction_mode {
+sub begin_transaction {
     my ($self) = @_;
 
-    return $self->{db_centreon}->transaction_mode($_[1]);
+    return $self->{db_centreon}->start_transaction();
 };
 
 sub commit {

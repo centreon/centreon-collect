@@ -21,6 +21,7 @@
 
 #include "agent.pb.h"
 #include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/threshold.hh"
 
 namespace com::centreon::agent {
 
@@ -134,6 +135,11 @@ class time_step {
   uint64_t get_step_index() const { return _step_index; }
 
   duration get_step() const { return _step; }
+
+  void set_next_exact(time_point tp) {
+    _start_point = tp;
+    _step_index = 0;  // next call to value will return tp + step
+  }
 };
 
 /**
@@ -154,17 +160,19 @@ class check : public std::enable_shared_from_this<check> {
   //_start_expected is set on construction on config receive
   // it's updated on check_start and added of multiple of check_interval
   // (check_period / nb_check) on check completion
-  time_step _start_expected;
-  const std::string& _service;
-  const std::string& _command_name;
-  const std::string& _command_line;
+  time_step _start_expected_normal;
+  time_step _start_expected_retry;
+  const Service& _service;
+
   // by owning a reference to the original request, we can get only reference to
-  // host, service and command_line
+  // host, service
   // on completion, this pointer is compared to the current config pointer.
   // if not equal result is not processed
   engine_to_agent_request_ptr _conf;
 
   asio::system_timer _time_out_timer;
+
+  std::optional<duration> _custom_timeout;
 
   void _start_timeout_timer(const duration& timeout);
 
@@ -177,6 +185,12 @@ class check : public std::enable_shared_from_this<check> {
   // statistics used by check_health
   time_point _last_start;
   checks_statistics::pointer _stat;
+
+  int _current_attempt = 1;
+  bool _status_confirmed = true; /* we consider the status as confirmed */
+  unsigned int _last_status =
+      e_status::ok; /* for initial state we consider it as OK */
+  bool _last_confirmed = true;
 
  protected:
   std::shared_ptr<asio::io_context> _io_context;
@@ -202,40 +216,74 @@ class check : public std::enable_shared_from_this<check> {
   check(const std::shared_ptr<asio::io_context>& io_context,
         const std::shared_ptr<spdlog::logger>& logger,
         time_point first_start_expected,
-        duration check_interval,
-        const std::string& serv,
-        const std::string& command_name,
-        const std::string& cmd_line,
+        const Service& serv,
         const engine_to_agent_request_ptr& cnf,
         completion_handler&& handler,
         const checks_statistics::pointer& stat);
 
   virtual ~check() = default;
 
-  struct pointer_start_compare {
-    bool operator()(const check::pointer& left,
-                    const check::pointer& right) const {
-      return left->_start_expected.value() < right->_start_expected.value();
-    }
-  };
-
   void increment_start_expected_to_after_min_timepoint(time_point min_tp) {
-    _start_expected.increment_to_after_min(min_tp);
+    if (_last_confirmed != get_status_confirmed()) {
+      if (get_status_confirmed()) {
+        // soft -> hard: jump out of retry cadence; wait at least one full
+        // normal step
+        _start_expected_normal.set_next_exact(_start_expected_retry.value());
+      } else {
+        // hard -> soft: jump out of normal cadence; wait at least one full
+        // retry step
+        _start_expected_retry.set_next_exact(_start_expected_normal.value());
+      }
+    }
+    _last_confirmed = get_status_confirmed();
+
+    // no state change: keep current cadence, but never schedule before now
+    if (get_status_confirmed()) {
+      _start_expected_normal.increment_to_after_min(min_tp);
+    } else {
+      _start_expected_retry.increment_to_after_min(min_tp);
+    }
   }
 
-  void add_check_interval_to_start_expected() { ++_start_expected; }
+  time_point get_start_expected() const {
+    return get_status_confirmed() ? _start_expected_normal.value()
+                                  : _start_expected_retry.value();
+  }
 
-  time_point get_start_expected() const { return _start_expected.value(); }
+  duration get_check_interval() const {
+    return get_status_confirmed() ? _start_expected_normal.get_step()
+                                  : _start_expected_retry.get_step();
+  }
 
-  const time_step& get_raw_start_expected() const { return _start_expected; }
+  const time_step& get_raw_start_expected() const {
+    return get_status_confirmed() ? _start_expected_normal
+                                  : _start_expected_retry;
+  }
 
-  const std::string& get_service() const { return _service; }
+  const std::string& get_service() const {
+    return _service.service_description();
+  }
 
-  const std::string& get_command_name() const { return _command_name; }
+  const std::string& get_command_name() const {
+    return _service.command_name();
+  }
 
-  const std::string& get_command_line() const { return _command_line; }
+  const std::string& get_command_line() const {
+    return _service.command_line();
+  }
+
+  uint64_t get_host_id() const { return _service.host_id(); }
+
+  uint64_t get_service_id() const { return _service.service_id(); }
 
   const engine_to_agent_request_ptr& get_conf() const { return _conf; }
+
+  void set_custom_timeout(const duration& timeout) {
+    _custom_timeout = timeout;
+  }
+  const std::optional<duration>& get_custom_timeout() const {
+    return _custom_timeout;
+  }
 
   const time_point& get_last_start() const { return _last_start; }
 
@@ -250,12 +298,38 @@ class check : public std::enable_shared_from_this<check> {
                                           const char* field_name,
                                           const rapidjson::Value& val,
                                           bool must_be_positive);
+  static std::optional<std::string> get_string(const std::string& cmd_name,
+                                               const char* field_name,
+                                               const rapidjson::Value& val);
 
   static std::optional<bool> get_bool(const std::string& cmd_name,
                                       const char* field_name,
                                       const rapidjson::Value& val);
 
   const checks_statistics& get_stats() const { return *_stat; }
+  uint64_t get_max_attempts() const { return _service.max_attempts(); }
+  uint64_t get_retry_interval() const { return _service.retry_interval(); }
+  uint64_t get_check_interval_service() const {
+    return _service.check_interval();
+  }
+
+  const std::string& get_check_period_name() const {
+    return _service.check_period_name();
+  }
+
+  const std::string& get_timezone() const { return _service.timezone(); }
+
+  void increment_cur_attempt() { ++_current_attempt; }
+  int get_current_attempt() const { return _current_attempt; }
+  void set_current_attempt(int attempt) { _current_attempt = attempt; }
+
+  bool get_status_confirmed() const { return _status_confirmed; }
+  void set_status_confirmed(bool status) { _status_confirmed = status; }
+
+  int get_last_status() const { return _last_status; }
+  void set_last_status(int status) { _last_status = status; }
+
+  void calcul_status_confirmation(unsigned status);
 };
 
 }  // namespace com::centreon::agent

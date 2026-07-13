@@ -16,8 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/lua/broker_event.hh"
 #include <google/protobuf/message.h>
+
+#include "com/centreon/broker/lua/broker_event.hh"
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/protobuf.hh"
@@ -104,8 +105,8 @@ static void _write_item(lua_State* L,
                         const google::protobuf::FieldDescriptor* f) {
   const google::protobuf::Reflection* refl = p->GetReflection();
   if (f) {
-    const std::string& entry_name = f->name();
-    lua_pushlstring(L, entry_name.c_str(), entry_name.size());
+    std::string_view entry_name = f->name();
+    lua_pushlstring(L, entry_name.data(), entry_name.length());
     if (f->is_repeated()) {
       size_t s = refl->FieldSize(*p, f);
       lua_newtable(L);
@@ -574,11 +575,13 @@ static int l_broker_event_next(lua_State* L) {
         f = desc->field(0);
       else {
         f = desc->FindFieldByName(key);
-        int idx = f->index();
-        if (idx + 1 < desc->field_count())
-          f = desc->field(f->index() + 1);
-        else
-          f = nullptr;
+        if (f) {
+          int idx = f->index();
+          if (idx + 1 < desc->field_count())
+            f = desc->field(f->index() + 1);
+          else
+            f = nullptr;
+        }
       }
       if (f) {
         auto oof = f->containing_oneof();

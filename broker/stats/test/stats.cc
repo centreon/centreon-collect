@@ -38,9 +38,8 @@ using namespace com::centreon::broker;
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    stats::center::load();
-    mysql_manager::load();
     config::applier::state::load(com::centreon::common::BROKER);
+    mysql_manager::load();
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
@@ -57,7 +56,6 @@ class StatsTest : public ::testing::Test {
     io::protocols::unload();
     mysql_manager::unload();
     file::disk_accessor::unload();
-    stats::center::unload();
   }
 };
 
@@ -76,33 +74,6 @@ TEST_F(StatsTest, Builder) {
   ASSERT_TRUE(result["mysql manager"].is_object());
   ASSERT_TRUE(result["mysql manager"]["delay since last check"].is_string());
 }
-
-// TEST_F(StatsTest, BuilderWithModules) {
-//   stats::builder build;
-//   auto& modules = config::applier::state::instance().get_modules();
-//   modules.apply({"storage/20-storage.so", "neb/10-neb.so", "lua/70-lua.so"},
-//                 ".", nullptr);
-//
-//   build.build();
-//
-//   nlohmann::json result;
-//   ASSERT_NO_THROW(result = nlohmann::json::parse(build.data()));
-//
-//   ASSERT_TRUE(result.is_object());
-//   ASSERT_EQ(result["version"], CENTREON_BROKER_VERSION);
-//   ASSERT_EQ(result["pid"], getpid());
-//   ASSERT_TRUE(result["now"].is_string());
-//   ASSERT_TRUE(result["asio_version"].is_string());
-//   ASSERT_TRUE(result["mysql manager"].is_object());
-//   ASSERT_TRUE(result["mysql manager"]["delay since last check"].is_string());
-//
-//   ASSERT_EQ(result["module./neb/10-neb.so"]["state"].get<std::string>(),
-//             "loaded");
-//   ASSERT_EQ(result["module./storage/20-storage.so"]["state"].get<std::string>(),
-//             "loaded");
-//   ASSERT_EQ(result["module./lua/70-lua.so"]["state"].get<std::string>(),
-//             "loaded");
-// }
 
 class st : public io::stream {
  public:
@@ -142,8 +113,8 @@ class fact : public io::factory {
  public:
   fact() {}
 
-  bool has_endpoint(config::endpoint& cfg __attribute__((__unused__)),
-                    io::extension* ext) override {
+  bool has_endpoint(const config::endpoint& cfg __attribute__((__unused__)),
+                    io::extension* ext) const override {
     if (ext)
       *ext = io::extension("FACT", false, false);
     return true;
@@ -234,7 +205,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
   // Parse.
   config::parser p;
   config::state s;
-  ASSERT_NO_THROW(s = p.parse(config_file));
+  ASSERT_NO_THROW(s = p.parse(config_file, false));
 
   auto test = std::make_shared<fact>();
   io::protocols::instance().reg("CentreonInput", test, 1, 7);
