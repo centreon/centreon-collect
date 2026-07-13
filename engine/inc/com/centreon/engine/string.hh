@@ -49,13 +49,16 @@ inline std::string ctime(time_t const& time) {
 inline char* dup(char const* value) {
   if (!value)
     return NULL;
-  char* buf(new char[strlen(value) + 1]);
-  return strcpy(buf, value);
+  size_t size(strlen(value) + 1);
+  char* buf(new char[size]);
+  memcpy(buf, value, size);
+  return buf;
 }
 
 inline char* dup(std::string const& value) {
   char* buf(new char[value.size() + 1]);
-  return strcpy(buf, value.c_str());
+  memcpy(buf, value.c_str(), value.size() + 1);
+  return buf;
 }
 
 inline char* dup(const std::string_view& value) {
@@ -70,7 +73,7 @@ inline char* dup(T value) {
   oss << value;
   std::string const& str(oss.str());
   char* buf(new char[str.size() + 1]);
-  strcpy(buf, str.c_str());
+  memcpy(buf, str.c_str(), str.size() + 1);
   return buf;
 }
 
