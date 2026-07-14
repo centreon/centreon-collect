@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <future>
 #include "check.hh"
 #include "check_exec.hh"
 #include "common/crypto/aes256.hh"
@@ -1285,3 +1286,132 @@ TEST_F(scheduler_test, multiple_services_intervals_are_respected) {
     }
   }
 }
+#ifndef _WIN32
+// on Windows, config is loaded from the registry, so this file based test is
+// linux only
+
+#include <filesystem>
+#include <fstream>
+
+#include "config.hh"
+
+/**
+ * @brief counts check builds, checks built are tempo_check
+ */
+class build_counter_check_builder {
+  std::shared_ptr<std::atomic<unsigned>> _build_count;
+
+ public:
+  build_counter_check_builder(
+      const std::shared_ptr<std::atomic<unsigned>>& build_count)
+      : _build_count(build_count) {}
+
+  std::shared_ptr<check> operator()(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point start_expected,
+      const Service& service,
+      const engine_to_agent_request_ptr& engine_to_agent_request,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<com::centreon::common::crypto::aes256>&) const {
+    ++*_build_count;
+    return std::make_shared<tempo_check>(io_context, logger, start_expected,
+                                         service, engine_to_agent_request, 0,
+                                         std::chrono::milliseconds(50),
+                                         std::move(handler), stat);
+  }
+};
+
+/**
+ * @brief when the custom checks file is modified, the scheduler must refresh
+ * the custom check commands of the global configuration, without rebuilding
+ * checks nor touching the engine configuration
+ */
+TEST_F(scheduler_test, custom_checks_file_update_reloads_commands) {
+  namespace fs = std::filesystem;
+  const fs::path ini_path =
+      fs::temp_directory_path() / "scheduler_test_custom_check.ini";
+  const fs::path json_path =
+      fs::temp_directory_path() / "scheduler_test_custom_check.json";
+  {
+    std::ofstream ini_f(ini_path);
+    ini_f << "check_echo=/usr/bin/echo one\n";
+  }
+  {
+    std::ofstream json_f(json_path);
+    json_f << R"({"host":"127.0.0.1","endpoint":"host1.domain2:4317",)"
+           << R"("custom_check_file":")" << ini_path.string() << R"("})";
+  }
+  config::load(json_path.string());
+  // shorten the poll interval, before scheduler creation as the watcher is
+  // started with it
+  scheduler::custom_checks_file_poll_interval = std::chrono::milliseconds(20);
+
+  auto build_count = std::make_shared<std::atomic<unsigned>>(0);
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host",
+      create_conf(2, 10, 1, 50, 1),
+      [](const std::shared_ptr<MessageFromAgent>&) {},
+      build_counter_check_builder(build_count));
+
+  scheduler_closer closer(sched);
+
+  // initial build of the two services
+  ASSERT_EQ(*build_count, 2);
+
+  // the configuration is reloaded in the io_context thread, so we also read
+  // it from there to avoid data races
+  auto read_check_echo_command = []() {
+    std::promise<std::string> read_promise;
+    asio::post(*g_io_context, [&read_promise]() {
+      const auto& custom_checks = config::instance().get_custom_checks();
+      auto found = custom_checks.find("check_echo");
+      read_promise.set_value(found == custom_checks.end() ? ""
+                                                          : found->second);
+    });
+    return read_promise.get_future().get();
+  };
+
+  ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo one");
+
+  // wait for the watcher to store the initial file time
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+  {
+    std::ofstream ini_f(ini_path);
+    ini_f << "check_echo=/usr/bin/echo two\n";
+  }
+  // force a last write time change whatever the file system granularity
+  fs::last_write_time(ini_path,
+                      fs::last_write_time(ini_path) + std::chrono::seconds(2));
+
+  // the new command must be loaded in the global configuration
+  auto limit = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (read_check_echo_command() != "/usr/bin/echo two" &&
+         std::chrono::steady_clock::now() < limit) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo two");
+  // only the commands map is refreshed, checks are not rebuilt
+  ASSERT_EQ(*build_count, 2);
+
+  // a malformed file must not lose the commands
+  {
+    std::ofstream ini_f(ini_path);
+    ini_f << "this is not an assignment\n";
+  }
+  fs::last_write_time(ini_path,
+                      fs::last_write_time(ini_path) + std::chrono::seconds(4));
+  // let several poll periods elapse
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo two");
+  ASSERT_EQ(*build_count, 2);
+
+  // restore defaults for the other tests
+  scheduler::custom_checks_file_poll_interval = std::chrono::seconds(60);
+  config::load(false);
+  fs::remove(ini_path);
+  fs::remove(json_path);
+}
+#endif

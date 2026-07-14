@@ -135,6 +135,7 @@ set( SRC_COMMON
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
+  ${SRC_DIR}/file_watcher.cc
   ${SRC_DIR}/grpc_ca_bootstrap.cc
   ${SRC_DIR}/check_health.cc
   ${SRC_DIR}/log.cc
