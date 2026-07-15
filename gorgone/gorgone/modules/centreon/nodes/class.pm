@@ -231,7 +231,12 @@ sub action_centreonnodessync {
         }
         $self->{logger}->writeLogInfo("[nodes] updating node " . $file_node->{id} . " info from database with register configuration");
         if (!defined($db_node)) {
-            $db_node = {};
+            $self->{logger}->writeLogDebug("[nodes] node " . $file_node->{id} . " does not exist in database, using register file configuration.");
+
+            $db_node = { "id" => $file_node->{id},
+                "uid" => $file_node->{uid} // $file_node->{id},
+                "type" => $file_node->{type} // "pullwss"};
+
             push @$register_nodes, $db_node;
         }
         for my $key ("type", "address", "port", "server_pubkey", "client_pubkey", "client_privkey", "cipher", "vector", "nodes") {
