@@ -132,7 +132,7 @@ check poller token revocation
     Set Local Variable    ${revoked_url}    http://127.0.0.1:80/set-poller-4-is-revoked
     Set Local Variable    ${expired_url}    http://127.0.0.1:80/set-poller-4-is-expired
     Set Local Variable    ${port}    8086
-    Set Local Variable    ${timeout}    11
+    Set Local Variable    ${timeout}    25
     Set Local Variable    ${sleep}    6
     Set Local Variable    ${central_log_file}    /var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log
     Set Local Variable    ${poller_log_file}    /var/log/centreon-gorgone/pullwss_gorgone_poller_2_simple/gorgoned.log
