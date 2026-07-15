@@ -36,6 +36,8 @@ namespace com::centreon::engine::configuration {
 class State;
 class Host;
 class Service;
+class Hostdependency;
+class Servicedependency;
 }  // namespace com::centreon::engine::configuration
 
 namespace com::centreon::broker {
@@ -48,6 +50,7 @@ struct by_name {};
 struct by_service {};
 struct by_instance {};
 struct by_severity {};
+struct by_dependent {};
 
 namespace cache {
 struct host_id_extractor {
@@ -294,6 +297,72 @@ using IndexMappingContainer = boost::multi_index::multi_index_container<
         boost::multi_index::hashed_unique<boost::multi_index::tag<by_service>,
                                           indexmapping_service_id_extractor>>>;
 
+/* Notification-only dependency of one host on another, mirrored from the Engine
+ * configuration (post-expand: a single dependent host and a single master
+ * host, resolved to ids). `key` is the engine_conf hostdependency_key() hash of
+ * the source dependency; it is kept so an incremental DiffState can erase an
+ * entry by the key its `removed` list carries. Indexed by dependent host id
+ * (the evaluation lookup) and by poller id (bulk purge on reconfiguration or
+ * disconnection). */
+struct host_notif_dep {
+  uint64_t dependent_host_id;
+  uint64_t master_host_id;
+  uint64_t poller_id;
+  std::string dependency_period;
+  bool inherits_parent;
+  uint32_t notification_failure_options;
+  size_t key;
+};
+
+struct host_notif_dep_dependent_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const host_notif_dep& d) const {
+    return d.dependent_host_id;
+  }
+};
+
+using HostNotifDepContainer = boost::multi_index::multi_index_container<
+    host_notif_dep,
+    boost::multi_index::indexed_by<
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_dependent>,
+            host_notif_dep_dependent_extractor>,
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_instance>,
+            boost::multi_index::
+                member<host_notif_dep, uint64_t, &host_notif_dep::poller_id>>>>;
+
+struct service_notif_dep {
+  uint64_t dependent_host_id;
+  uint64_t dependent_service_id;
+  uint64_t master_host_id;
+  uint64_t master_service_id;
+  uint64_t poller_id;
+  std::string dependency_period;
+  bool inherits_parent;
+  uint32_t notification_failure_options;
+  size_t key;
+};
+
+struct service_notif_dep_dependent_extractor {
+  using result_type = std::pair<uint64_t, uint64_t>;
+  result_type operator()(const service_notif_dep& d) const {
+    return {d.dependent_host_id, d.dependent_service_id};
+  }
+};
+
+using ServiceNotifDepContainer = boost::multi_index::multi_index_container<
+    service_notif_dep,
+    boost::multi_index::indexed_by<
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_dependent>,
+            service_notif_dep_dependent_extractor>,
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_instance>,
+            boost::multi_index::member<service_notif_dep,
+                                       uint64_t,
+                                       &service_notif_dep::poller_id>>>>;
+
 class broker_cache {
  public:
   struct severity {
@@ -317,6 +386,9 @@ class broker_cache {
     bool notifications_enabled = true;
     bool send_recovery_notifications_anyway = false;
     std::chrono::seconds interval_length = default_interval_length;
+    /* Program-wide Engine flag: when false, a soft master state is read as its
+     * last hard state while evaluating notification dependencies. */
+    bool soft_state_dependencies = false;
   };
 
   enum cache_section : uint32_t {
@@ -329,6 +401,13 @@ class broker_cache {
     CACHE_SEVERITIES = 1 << 5,
     CACHE_BAM = 1 << 6,
     CACHE_TAGS = 1 << 7,
+    /* Notification-only data (notification timeperiods and notification
+     * dependencies): stored only when Broker computes notifications on its
+     * side. Enabling it implies CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES
+     * (see enable_section()), which the notification path needs to resolve the
+     * dependency names to ids, look up the poller of a resource and read the
+     * per-poller notification settings. */
+    CACHE_NOTIFICATIONS = 1 << 8,
     CACHE_ALL = 0xFFFFFFFF,
   };
 
@@ -367,6 +446,13 @@ class broker_cache {
   /* Association between services and servicegroups. The first two values are
    * host_id:service_id of the service and the last is the servicegroup ID. */
   ServiceServicegroupContainer _service_servicegroups ABSL_GUARDED_BY(_mutex);
+
+  /* Notification-only host/service dependencies, keyed by dependent id and by
+   * poller. Only fed when CACHE_NOTIFICATIONS is enabled (which also pulls in
+   * CACHE_HOSTS / CACHE_SERVICES, needed to resolve the referenced names to
+   * ids). */
+  HostNotifDepContainer _host_notif_deps ABSL_GUARDED_BY(_mutex);
+  ServiceNotifDepContainer _service_notif_deps ABSL_GUARDED_BY(_mutex);
 
   IndexMappingContainer _index_mappings ABSL_GUARDED_BY(_mutex);
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
@@ -465,6 +551,12 @@ class broker_cache {
       uint64_t service_id,
       AckType ack_type,
       uint16_t state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _insert_host_notif_dep(
+      const com::centreon::engine::configuration::Hostdependency& dep,
+      uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _insert_service_notif_dep(
+      const com::centreon::engine::configuration::Servicedependency& dep,
+      uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
@@ -478,6 +570,10 @@ class broker_cache {
   ~broker_cache() noexcept;
 
   void enable_section(uint32_t sections) noexcept {
+    /* Notification data is meaningless without the instances/hosts/services it
+     * refers to, so requesting it pulls those sections in as well. */
+    if (sections & CACHE_NOTIFICATIONS)
+      sections |= CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES;
     _enabled_sections.fetch_or(sections, std::memory_order_relaxed);
   }
   bool section_enabled(uint32_t section) const noexcept {
@@ -539,6 +635,13 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool send_recovery_notifications_anyway(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  bool soft_state_dependencies(uint64_t instance_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<host_notif_dep> host_notif_dependencies(
+      uint64_t dependent_host_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<service_notif_dep> service_notif_dependencies(
+      uint64_t dependent_host_id,
+      uint64_t dependent_service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::chrono::seconds interval_length(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool in_notification_period(const std::string& period_name,

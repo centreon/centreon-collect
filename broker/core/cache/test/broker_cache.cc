@@ -20,7 +20,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "broker/core/config/applier/broker_state.hh"
-#include "common/engine_conf/message_helper.hh"
+#include "common/engine_conf/hostdependency_helper.hh"
 #include "gmock/gmock.h"
 
 using namespace com::centreon::broker;
@@ -961,4 +961,146 @@ TEST_F(BrokerCacheTest, NotificationPeriodPollerRefCount) {
    * an unknown name means "notify at any time" again. */
   _cache->remove_instance(2);
   ASSERT_TRUE(_cache->in_notification_period("shared", "", now));
+}
+
+/**
+ * @brief Notification dependencies are cached per poller, resolved to ids.
+ *
+ * merge(State) rebuilds a poller's notification host/service dependencies,
+ * resolving the referenced names to ids via the hosts/services carried by the
+ * same state; only notification-typed dependencies are kept. A DiffState then
+ * adds/removes them incrementally (removal matched by the engine_conf key), and
+ * remove_instance() purges the poller's whole set.
+ */
+TEST_F(BrokerCacheTest, NotificationDependencies) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State state;
+  state.set_poller_id(1);
+  state.set_soft_state_dependencies(true);
+
+  for (uint64_t id : {1u, 2u}) {
+    auto* h = state.mutable_hosts()->Add();
+    h->set_host_id(id);
+    h->set_host_name(fmt::format("host_{}", id));
+  }
+  for (uint64_t svc_id : {10u, 20u}) {
+    auto* s = state.mutable_services()->Add();
+    s->set_host_id(1);
+    s->set_service_id(svc_id);
+    s->set_host_name("host_1");
+    s->set_service_description(fmt::format("service_{}", svc_id));
+  }
+
+  /* Notification host dependency: host_2 depends on host_1. */
+  auto* hd = state.mutable_hostdependencies()->Add();
+  hd->set_dependency_type(cfg::notification_dependency);
+  hd->mutable_dependent_hosts()->add_data("host_2");
+  hd->mutable_hosts()->add_data("host_1");
+  hd->set_inherits_parent(true);
+  hd->set_notification_failure_options(4);
+  hd->set_dependency_period("24x7");
+
+  /* Execution dependency: must be ignored. */
+  auto* hd_exec = state.mutable_hostdependencies()->Add();
+  hd_exec->set_dependency_type(cfg::execution_dependency);
+  hd_exec->mutable_dependent_hosts()->add_data("host_2");
+  hd_exec->mutable_hosts()->add_data("host_1");
+
+  /* Notification service dependency: (1,20) depends on (1,10). */
+  auto* sd = state.mutable_servicedependencies()->Add();
+  sd->set_dependency_type(cfg::notification_dependency);
+  sd->mutable_dependent_hosts()->add_data("host_1");
+  sd->mutable_dependent_service_description()->add_data("service_20");
+  sd->mutable_hosts()->add_data("host_1");
+  sd->mutable_service_description()->add_data("service_10");
+  sd->set_notification_failure_options(8);
+
+  _cache->merge(state);
+
+  ASSERT_TRUE(_cache->soft_state_dependencies(1));
+
+  auto hdeps = _cache->host_notif_dependencies(2);
+  ASSERT_EQ(hdeps.size(), 1u); /* the execution dependency was dropped */
+  ASSERT_EQ(hdeps[0].dependent_host_id, 2u);
+  ASSERT_EQ(hdeps[0].master_host_id, 1u);
+  ASSERT_EQ(hdeps[0].poller_id, 1u);
+  ASSERT_TRUE(hdeps[0].inherits_parent);
+  ASSERT_EQ(hdeps[0].notification_failure_options, 4u);
+  ASSERT_EQ(hdeps[0].dependency_period, "24x7");
+
+  auto sdeps = _cache->service_notif_dependencies(1, 20);
+  ASSERT_EQ(sdeps.size(), 1u);
+  ASSERT_EQ(sdeps[0].master_host_id, 1u);
+  ASSERT_EQ(sdeps[0].master_service_id, 10u);
+  ASSERT_EQ(sdeps[0].notification_failure_options, 8u);
+
+  /* A diff removes the host dependency by its key and adds a new one where
+   * host_1 depends on host_2. */
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  diff.mutable_hostdependencies()->add_removed(cfg::hostdependency_key(*hd));
+  auto* hd2 = diff.mutable_hostdependencies()->add_added();
+  hd2->set_dependency_type(cfg::notification_dependency);
+  hd2->mutable_dependent_hosts()->add_data("host_1");
+  hd2->mutable_hosts()->add_data("host_2");
+  _cache->apply(diff);
+
+  ASSERT_TRUE(_cache->host_notif_dependencies(2).empty());
+  auto hdeps2 = _cache->host_notif_dependencies(1);
+  ASSERT_EQ(hdeps2.size(), 1u);
+  ASSERT_EQ(hdeps2[0].master_host_id, 2u);
+
+  /* remove_instance purges the poller's whole dependency set. */
+  _cache->remove_instance(1);
+  ASSERT_TRUE(_cache->host_notif_dependencies(1).empty());
+  ASSERT_TRUE(_cache->service_notif_dependencies(1, 20).empty());
+}
+
+/**
+ * @brief Notification data is gated behind CACHE_NOTIFICATIONS.
+ *
+ * A cache with only CACHE_HOSTS | CACHE_SERVICES enabled (a typical unified_sql
+ * central broker that does not compute notifications) must not store the
+ * notification-only data — timeperiods and notification dependencies — even
+ * though the referenced hosts/services are cached. So an unknown timeperiod
+ * name means "notify at any time" and the dependency lookups stay empty.
+ */
+TEST_F(BrokerCacheTest, NotificationSectionGating) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  broker_cache local_cache(_logger);
+  local_cache.enable_section(broker_cache::CACHE_HOSTS |
+                             broker_cache::CACHE_SERVICES);
+
+  cfg::State state;
+  state.set_poller_id(1);
+
+  auto* h1 = state.mutable_hosts()->Add();
+  h1->set_host_id(1);
+  h1->set_host_name("host_1");
+  auto* h2 = state.mutable_hosts()->Add();
+  h2->set_host_id(2);
+  h2->set_host_name("host_2");
+
+  /* A never-valid timeperiod: if it were stored, in_notification_period() would
+   * answer false. */
+  auto* never = state.mutable_timeperiods()->Add();
+  never->set_timeperiod_name("never");
+  never->set_alias("never");
+
+  auto* hd = state.mutable_hostdependencies()->Add();
+  hd->set_dependency_type(cfg::notification_dependency);
+  hd->mutable_dependent_hosts()->add_data("host_2");
+  hd->mutable_hosts()->add_data("host_1");
+
+  local_cache.merge(state);
+
+  /* Hosts are cached (their section is on) ... */
+  ASSERT_TRUE(local_cache.host(1u) != nullptr);
+  /* ... but the notification-only data is not: an unknown timeperiod means
+   * "notify at any time", and the dependency set is empty. */
+  ASSERT_TRUE(
+      local_cache.in_notification_period("never", "", std::time(nullptr)));
+  ASSERT_TRUE(local_cache.host_notif_dependencies(2).empty());
 }

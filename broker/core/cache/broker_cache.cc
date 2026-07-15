@@ -26,6 +26,8 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/engine_conf/hostdependency_helper.hh"
+#include "common/engine_conf/servicedependency_helper.hh"
 #include "common/timeperiods/timezone.hh"
 
 namespace com::centreon::broker::cache {
@@ -169,10 +171,11 @@ void broker_cache::merge(
                       state.send_recovery_notifications_anyway(),
                       state.interval_length() > 0
                           ? std::chrono::seconds(state.interval_length())
-                          : instance_info::default_interval_length});
+                          : instance_info::default_interval_length,
+                      state.soft_state_dependencies()});
 
   /* Work on timeperiods */
-  if (!state.timeperiods().empty()) {
+  if (section_enabled(CACHE_NOTIFICATIONS) && !state.timeperiods().empty()) {
     for (const engine::configuration::Timeperiod& tp : state.timeperiods()) {
       _timeperiods.insert_or_assign(
           tp.timeperiod_name(),
@@ -381,6 +384,93 @@ void broker_cache::merge(
       }
     }
   }
+
+  /* Work on notification dependencies. Resolving the referenced hosts/services
+   * to ids relies on the cache being populated above, so this runs last. A full
+   * state means this poller's set is rebuilt in bloc: purge then re-insert.
+   * CACHE_NOTIFICATIONS implies CACHE_HOSTS/CACHE_SERVICES, so the hosts and
+   * services needed for the name->id resolution are guaranteed to be cached. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    _host_notif_deps.get<by_instance>().erase(state.poller_id());
+    for (const engine::configuration::Hostdependency& dep :
+         state.hostdependencies())
+      _insert_host_notif_dep(dep, state.poller_id());
+    _service_notif_deps.get<by_instance>().erase(state.poller_id());
+    for (const engine::configuration::Servicedependency& dep :
+         state.servicedependencies())
+      _insert_service_notif_dep(dep, state.poller_id());
+  }
+}
+
+/**
+ * @brief Resolve a notification host dependency to ids and store it.
+ *
+ * Only notification dependencies are kept. The dependency is post-expand, so it
+ * references exactly one dependent host and one master host by name; both are
+ * resolved to their ids through the existing by_name index. A name that cannot
+ * be resolved (non-nominal, the expand/resolve step validated them intra-poller
+ * beforehand) is logged and skipped.
+ *
+ * @param dep A post-expand Hostdependency.
+ * @param poller_id The poller owning this dependency.
+ */
+void broker_cache::_insert_host_notif_dep(
+    const engine::configuration::Hostdependency& dep,
+    uint64_t poller_id) {
+  if (dep.dependency_type() != engine::configuration::notification_dependency)
+    return;
+
+  const auto& by_name_idx = _hosts.get<by_name>();
+  auto dependent = by_name_idx.find(dep.dependent_hosts().data(0));
+  auto master = by_name_idx.find(dep.hosts().data(0));
+  if (dependent == by_name_idx.end() || master == by_name_idx.end()) {
+    _logger->warn(
+        "broker_cache: cannot store notification host dependency of '{}' on "
+        "'{}' for poller {}: host not found in cache",
+        dep.dependent_hosts().data(0), dep.hosts().data(0), poller_id);
+    return;
+  }
+  _host_notif_deps.insert(host_notif_dep{
+      (*dependent)->obj().host_id(), (*master)->obj().host_id(), poller_id,
+      dep.dependency_period(), dep.inherits_parent(),
+      dep.notification_failure_options(), hostdependency_key(dep)});
+}
+
+/**
+ * @brief Resolve a notification service dependency to ids and store it.
+ *
+ * Same contract as _insert_host_notif_dep, but the dependent and master are
+ * services identified by their {host_name, service_description} pair, resolved
+ * to {host_id, service_id} through the services by_name index.
+ *
+ * @param dep A post-expand Servicedependency.
+ * @param poller_id The poller owning this dependency.
+ */
+void broker_cache::_insert_service_notif_dep(
+    const engine::configuration::Servicedependency& dep,
+    uint64_t poller_id) {
+  if (dep.dependency_type() != engine::configuration::notification_dependency)
+    return;
+
+  const auto& by_name_idx = _services.get<by_name>();
+  auto dependent = by_name_idx.find(std::make_pair(
+      dep.dependent_hosts().data(0), dep.dependent_service_description().data(0)));
+  auto master = by_name_idx.find(
+      std::make_pair(dep.hosts().data(0), dep.service_description().data(0)));
+  if (dependent == by_name_idx.end() || master == by_name_idx.end()) {
+    _logger->warn(
+        "broker_cache: cannot store notification service dependency of "
+        "'{}/{}' on '{}/{}' for poller {}: service not found in cache",
+        dep.dependent_hosts().data(0),
+        dep.dependent_service_description().data(0), dep.hosts().data(0),
+        dep.service_description().data(0), poller_id);
+    return;
+  }
+  _service_notif_deps.insert(service_notif_dep{
+      (*dependent)->obj().host_id(), (*dependent)->obj().service_id(),
+      (*master)->obj().host_id(), (*master)->obj().service_id(), poller_id,
+      dep.dependency_period(), dep.inherits_parent(),
+      dep.notification_failure_options(), servicedependency_key(dep)});
 }
 
 /**
@@ -413,7 +503,7 @@ void broker_cache::apply(
   if (section_enabled(CACHE_INSTANCES) &&
       (diff.has_enable_notifications() ||
        diff.has_send_recovery_notifications_anyway() ||
-       diff.interval_length() > 0)) {
+       diff.has_soft_state_dependencies() || diff.interval_length() > 0)) {
     auto it = _instances.find(diff.poller_id());
     if (it != _instances.end()) {
       if (diff.has_enable_notifications())
@@ -421,6 +511,8 @@ void broker_cache::apply(
       if (diff.has_send_recovery_notifications_anyway())
         it->second.send_recovery_notifications_anyway =
             diff.send_recovery_notifications_anyway();
+      if (diff.has_soft_state_dependencies())
+        it->second.soft_state_dependencies = diff.soft_state_dependencies();
       /* interval_length is not optional in DiffState: 0 (not a valid value)
        * means "not part of the diff". */
       if (diff.interval_length() > 0)
@@ -430,7 +522,7 @@ void broker_cache::apply(
   }
 
   /* Work on timeperiods. */
-  {
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
     const engine::configuration::DiffTimeperiod& dtp = diff.timeperiods();
 
     /* This condition is useful to avoid calling _resolve_timeperiods() when
@@ -1018,6 +1110,61 @@ void broker_cache::apply(
       }
     }
   }
+
+  /* Work on notification dependencies (incremental). The diff carries added
+   * dependencies and a list of removed keys (the engine_conf *dependency_key()
+   * hash). Because that key hashes every field, a content change surfaces as
+   * added + removed; `modified` only appears on a hash collision, handled as a
+   * replace (erase by key, then re-insert). Removals/replacements are matched
+   * against the key stored on each cached entry, scoped to this poller. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    const engine::configuration::DiffHostdependency& dhd =
+        diff.hostdependencies();
+    if (dhd.added_size() || dhd.modified_size() || dhd.removed_size()) {
+      absl::flat_hash_set<size_t> to_erase;
+      for (uint64_t k : dhd.removed())
+        to_erase.insert(k);
+      for (const engine::configuration::Hostdependency& dep : dhd.modified())
+        to_erase.insert(hostdependency_key(dep));
+      if (!to_erase.empty()) {
+        auto& by_inst = _host_notif_deps.get<by_instance>();
+        auto range = by_inst.equal_range(diff.poller_id());
+        for (auto it = range.first; it != range.second;) {
+          if (to_erase.contains(it->key))
+            it = by_inst.erase(it);
+          else
+            ++it;
+        }
+      }
+      for (const engine::configuration::Hostdependency& dep : dhd.added())
+        _insert_host_notif_dep(dep, diff.poller_id());
+      for (const engine::configuration::Hostdependency& dep : dhd.modified())
+        _insert_host_notif_dep(dep, diff.poller_id());
+    }
+    const engine::configuration::DiffServicedependency& dsd =
+        diff.servicedependencies();
+    if (dsd.added_size() || dsd.modified_size() || dsd.removed_size()) {
+      absl::flat_hash_set<size_t> to_erase;
+      for (uint64_t k : dsd.removed())
+        to_erase.insert(k);
+      for (const engine::configuration::Servicedependency& dep : dsd.modified())
+        to_erase.insert(servicedependency_key(dep));
+      if (!to_erase.empty()) {
+        auto& by_inst = _service_notif_deps.get<by_instance>();
+        auto range = by_inst.equal_range(diff.poller_id());
+        for (auto it = range.first; it != range.second;) {
+          if (to_erase.contains(it->key))
+            it = by_inst.erase(it);
+          else
+            ++it;
+        }
+      }
+      for (const engine::configuration::Servicedependency& dep : dsd.added())
+        _insert_service_notif_dep(dep, diff.poller_id());
+      for (const engine::configuration::Servicedependency& dep : dsd.modified())
+        _insert_service_notif_dep(dep, diff.poller_id());
+    }
+  }
 }
 
 /**
@@ -1254,19 +1401,24 @@ void broker_cache::update_instance(
 void broker_cache::remove_instance(uint64_t instance_id) {
   absl::WriterMutexLock l{&_mutex};
 
-  /* Drop this poller's references to notification timeperiods, erasing those
-   * no longer referenced by any poller. Timeperiods are cached regardless of
-   * the enabled sections (see merge()), so this cleanup runs unconditionally,
-   * before the section guard below. */
-  std::vector<std::string> orphaned_timeperiods;
-  for (auto& [name, pollers] : _timeperiod_pollers) {
-    pollers.erase(instance_id);
-    if (pollers.empty())
-      orphaned_timeperiods.push_back(name);
-  }
-  for (const std::string& name : orphaned_timeperiods) {
-    _timeperiod_pollers.erase(name);
-    _timeperiods.erase(name);
+  /* Drop this poller's notification data (timeperiods and dependencies).
+   * Timeperiods are reference-counted per poller: erase those no longer
+   * referenced by any poller. Both are only populated when CACHE_NOTIFICATIONS
+   * is enabled (see merge()/apply()). */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    std::vector<std::string> orphaned_timeperiods;
+    for (auto& [name, pollers] : _timeperiod_pollers) {
+      pollers.erase(instance_id);
+      if (pollers.empty())
+        orphaned_timeperiods.push_back(name);
+    }
+    for (const std::string& name : orphaned_timeperiods) {
+      _timeperiod_pollers.erase(name);
+      _timeperiods.erase(name);
+    }
+
+    _host_notif_deps.get<by_instance>().erase(instance_id);
+    _service_notif_deps.get<by_instance>().erase(instance_id);
   }
 
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
@@ -2537,6 +2689,62 @@ bool broker_cache::send_recovery_notifications_anyway(
   if (found == _instances.end())
     return false;
   return found->second.send_recovery_notifications_anyway;
+}
+
+/**
+ * @brief Whether the poller reads a soft master state as its last hard state
+ * when evaluating notification dependencies.
+ *
+ * @param instance_id The poller ID.
+ *
+ * @return The poller's soft_state_dependencies flag (false when the poller is
+ * unknown, matching the Engine default).
+ */
+bool broker_cache::soft_state_dependencies(uint64_t instance_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto found = _instances.find(instance_id);
+  if (found == _instances.end())
+    return false;
+  return found->second.soft_state_dependencies;
+}
+
+/**
+ * @brief List the notification dependencies of a dependent host.
+ *
+ * @param dependent_host_id The id of the depending host.
+ *
+ * @return The cached notification dependencies whose dependent is this host.
+ */
+std::vector<host_notif_dep> broker_cache::host_notif_dependencies(
+    uint64_t dependent_host_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::vector<host_notif_dep> result;
+  const auto& idx = _host_notif_deps.get<by_dependent>();
+  auto range = idx.equal_range(dependent_host_id);
+  for (auto it = range.first; it != range.second; ++it)
+    result.push_back(*it);
+  return result;
+}
+
+/**
+ * @brief List the notification dependencies of a dependent service.
+ *
+ * @param dependent_host_id The host id of the depending service.
+ * @param dependent_service_id The service id of the depending service.
+ *
+ * @return The cached notification dependencies whose dependent is this service.
+ */
+std::vector<service_notif_dep> broker_cache::service_notif_dependencies(
+    uint64_t dependent_host_id,
+    uint64_t dependent_service_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::vector<service_notif_dep> result;
+  const auto& idx = _service_notif_deps.get<by_dependent>();
+  auto range =
+      idx.equal_range(std::make_pair(dependent_host_id, dependent_service_id));
+  for (auto it = range.first; it != range.second; ++it)
+    result.push_back(*it);
+  return result;
 }
 
 /**
