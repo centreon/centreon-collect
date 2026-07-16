@@ -352,7 +352,12 @@ void ::check_files_detail::filter::find_files() {
 
   fs::path search_path(_root_path);
 
+  // rebuild the map on each scan
+  absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>
+      new_files_metadata;
+
   if (!fs::exists(search_path) || !fs::is_directory(search_path)) {
+    _files_metadata = std::move(new_files_metadata);
     return;
   }
 
@@ -378,7 +383,13 @@ void ::check_files_detail::filter::find_files() {
             if (_file_filter && !_file_filter->check(*metadata)) {
               continue;  // skip to next if the data don't match the filter
             }
-            _files_metadata[std::move(path_str)] = std::move(metadata);
+            new_files_metadata[std::move(path_str)] = std::move(metadata);
+          } else {
+            // File unchanged since the previous scan: reuse.
+            auto previous = _files_metadata.find(path_str);
+            if (previous != _files_metadata.end()) {
+              new_files_metadata[path_str] = std::move(previous->second);
+            }
           }
         }
       }
@@ -386,6 +397,8 @@ void ::check_files_detail::filter::find_files() {
       continue;  // Skip files that cannot be accessed or processed
     }
   }
+
+  _files_metadata = std::move(new_files_metadata);
 }
 /*********************************************************************************************
  *                                          check_files_thread
