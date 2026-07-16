@@ -329,11 +329,12 @@ class stream : public io::stream {
   database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _pb_host_group_insupdate;
-  database::mysql_stmt _host_group_member_delete;
   database::mysql_stmt _host_group_member_insert;
   database::mysql_stmt _pb_host_group_member_insert;
   database::mysql_stmt _host_insupdate;
+  database::mysql_stmt _host_update;
   database::mysql_stmt _pb_host_insupdate;
+  database::mysql_stmt _pb_host_update;
   database::mysql_stmt _host_parent_delete;
   database::mysql_stmt _host_parent_insert;
   database::mysql_stmt _pb_host_parent_delete;
@@ -347,12 +348,11 @@ class stream : public io::stream {
   database::mysql_stmt _pb_service_check_update;
   database::mysql_stmt _service_group_insupdate;
   database::mysql_stmt _pb_service_group_insupdate;
-  database::mysql_stmt _service_group_member_delete;
   database::mysql_stmt _service_group_member_insert;
-  database::mysql_stmt _pb_service_group_member_delete;
   database::mysql_stmt _pb_service_group_member_insert;
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _pb_service_insupdate;
+  database::mysql_stmt _pb_service_update;
   database::mysql_stmt _service_status_update;
 
   std::unique_ptr<database::mysql_stmt_base> _hscr_update;
@@ -451,6 +451,7 @@ class stream : public io::stream {
   void _process_service_status(const std::shared_ptr<io::data>& d);
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
+  void _prepare_pb_requests();
   void _process_pb_host(const std::shared_ptr<io::data>& d);
   uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
   void _process_pb_instance_configuration(const std::shared_ptr<io::data>& d);

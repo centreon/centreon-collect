@@ -30,6 +30,9 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
+const std::string db_user = "root";
+const std::string db_password = "centreon";
+
 class BamMonitoringStream : public testing::Test {
   void SetUp() override {
     config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
@@ -38,9 +41,9 @@ class BamMonitoringStream : public testing::Test {
 };
 
 TEST_F(BamMonitoringStream, WriteKpi) {
-  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                       "centreon");
-  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config storage("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                           "centreon_storage");
 
   std::shared_ptr<persistent_cache> cache;
@@ -56,9 +59,9 @@ TEST_F(BamMonitoringStream, WriteKpi) {
 }
 
 TEST_F(BamMonitoringStream, WriteBA) {
-  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                       "centreon");
-  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config storage("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                           "centreon_storage");
   ;
   std::shared_ptr<persistent_cache> cache;
@@ -73,9 +76,9 @@ TEST_F(BamMonitoringStream, WriteBA) {
 }
 
 TEST_F(BamMonitoringStream, WorkWithNoPendigMysqlRequest) {
-  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                       "centreon", 0);
-  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config storage("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                           "centreon_storage", 0);
   ;
   std::shared_ptr<persistent_cache> cache;
@@ -95,9 +98,9 @@ TEST_F(BamMonitoringStream, WorkWithNoPendigMysqlRequest) {
 }
 
 TEST_F(BamMonitoringStream, WorkWithPendigMysqlRequest) {
-  database_config cfg("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config cfg("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                       "centreon", 5);
-  database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
+  database_config storage("MySQL", "127.0.0.1", "", 3306, db_user, db_password,
                           "centreon_storage", 5);
   ;
   std::shared_ptr<persistent_cache> cache;

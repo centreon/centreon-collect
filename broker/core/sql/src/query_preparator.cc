@@ -548,13 +548,6 @@ mysql_stmt query_preparator::prepare_update_table(
         query.append("=?,");
         query_bind_mapping.insert(std::make_pair(key, query_size++));
       }
-      // Part of ID field.
-      else {
-        where.append(e.name);
-        where.append("=? AND ");
-        key = fmt::format(":{}", entry_name);
-        where_bind_mapping.insert(std::make_pair(key, where_size++));
-      }
     } else
       throw msg_fmt(
           "could not prepare update query for event of type {}:"
@@ -562,6 +555,14 @@ mysql_stmt query_preparator::prepare_update_table(
           "object",
           _event_id, e.number, info->get_name());
   }
+
+  for (const auto& e : _pb_unique) {
+    where.append(e.name);
+    where.append("=? AND ");
+    key = fmt::format(":{}", e.name);
+    where_bind_mapping.insert(std::make_pair(key, where_size++));
+  }
+
   query.resize(query.size() - 1);
   query.append(where, 0, where.size() - 5);
 

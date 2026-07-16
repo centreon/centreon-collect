@@ -1425,16 +1425,14 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
-    if (!_host_group_member_delete.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("hostgroup_id");
-      unique.insert("host_id");
-      query_preparator qp(neb::host_group_member::static_type(), unique);
-      _host_group_member_delete = qp.prepare_delete(_mysql);
-    }
-    _host_group_member_delete << hgm;
-    _mysql.run_statement(_host_group_member_delete,
-                         database::mysql_error::delete_host_group_member, conn);
+    std::string query = fmt::format(
+        "DELETE hosts_hostgroups FROM hosts_hostgroups INNER JOIN hosts ON "
+        "hosts_hostgroups.host_id=hosts.host_id "
+        "WHERE hosts.host_id={} and hostgroup_id = {} and instance_id = {}",
+        hgm.host_id, hgm.group_id, hgm.poller_id);
+
+    _mysql.run_query(query, database::mysql_error::delete_host_group_member,
+                     conn);
     _add_action(conn, actions::hostgroups);
   }
 }
@@ -1531,8 +1529,10 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
     std::string query = fmt::format(
-        "DELETE FROM hosts_hostgroups WHERE host_id={} and hostgroup_id = {}",
-        hgm.host_id(), hgm.hostgroup_id());
+        "DELETE hosts_hostgroups FROM hosts_hostgroups INNER JOIN hosts ON "
+        "hosts_hostgroups.host_id=hosts.host_id "
+        "WHERE hosts.host_id={} and hostgroup_id = {} and instance_id = {}",
+        hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
     _mysql.run_query(query, database::mysql_error::delete_host_group_member,
                      conn);
@@ -1573,19 +1573,27 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
         unique.insert("host_id");
         query_preparator qp(neb::host::static_type(), unique);
         _host_insupdate = qp.prepare_insert_or_update(_mysql);
+
+        query_preparator::event_unique update_unique;
+        update_unique.insert("host_id");
+        update_unique.insert("instance_id");
+        query_preparator update_qp(neb::host::static_type(), update_unique);
+        _host_update = update_qp.prepare_update(_mysql);
       }
 
-      // Process object.
-      _host_insupdate << h;
-      _mysql.run_statement(_host_insupdate, database::mysql_error::store_host,
-                           conn);
-      _add_action(conn, actions::hosts);
-
-      // Fill the cache...
-      if (h.enabled)
+      // Process object and fill the cache...
+      if (h.enabled) {
         _cache_host_instance[h.host_id] = h.poller_id;
-      else
+        _host_insupdate << h;
+        _mysql.run_statement(_host_insupdate, database::mysql_error::store_host,
+                             conn);
+      } else {
         _cache_host_instance.erase(h.host_id);
+        _host_update << h;
+        _mysql.run_statement(_host_update, database::mysql_error::store_host,
+                             conn);
+      }
+      _add_action(conn, actions::hosts);
     } else
       SPDLOG_LOGGER_TRACE(
           _logger_sql,
@@ -2067,6 +2075,316 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
                        now, hs.current_state, hs.state_type);
 }
 
+void stream::_prepare_pb_requests() {
+  if (!_pb_host_insupdate.prepared()) {
+    query_preparator::event_pb_unique unique{
+        {1, "host_id", io::protobuf_base::invalid_on_zero, 0}};
+    query_preparator qp(neb::pb_host::static_type(), unique);
+
+    std::vector<query_preparator::pb_entry> host_entries = {
+        {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+        {2, "acknowledged", 0, 0},
+        {3, "acknowledgement_type", 0, 0},
+        {4, "active_checks", 0, 0},
+        {5, "enabled", 0, 0},
+        {6, "scheduled_downtime_depth", 0, 0},
+        {7, "check_command", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_check_command)},
+        {8, "check_interval", 0, 0},
+        {9, "check_period", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_check_period)},
+        {10, "check_type", 0, 0},
+        {11, "check_attempt", 0, 0},
+        {12, "state", 0, 0},
+        {13, "event_handler_enabled", 0, 0},
+        {14, "event_handler", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_event_handler)},
+        {15, "execution_time", 0, 0},
+        {16, "flap_detection", 0, 0},
+        {17, "checked", 0, 0},
+        {18, "flapping", 0, 0},
+        {19, "last_check", io::protobuf_base::invalid_on_zero, 0},
+        {20, "last_hard_state", 0, 0},
+        {21, "last_hard_state_change", io::protobuf_base::invalid_on_zero, 0},
+        {22, "last_notification", io::protobuf_base::invalid_on_zero, 0},
+        {23, "notification_number", 0, 0},
+        {24, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
+        {25, "last_time_down", io::protobuf_base::invalid_on_zero, 0},
+        {26, "last_time_unreachable", io::protobuf_base::invalid_on_zero, 0},
+        {27, "last_time_up", io::protobuf_base::invalid_on_zero, 0},
+        {28, "last_update", io::protobuf_base::invalid_on_zero, 0},
+        {29, "latency", 0, 0},
+        {30, "max_check_attempts", 0, 0},
+        {31, "next_check", io::protobuf_base::invalid_on_zero, 0},
+        {32, "next_host_notification", io::protobuf_base::invalid_on_zero, 0},
+        {33, "no_more_notifications", 0, 0},
+        {34, "notify", 0, 0},
+        {35, "output", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_output)},
+        {36, "passive_checks", 0, 0},
+        {37, "percent_state_change", 0, 0},
+        {38, "perfdata", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_perfdata)},
+        {39, "retry_interval", 0, 0},
+        {40, "should_be_scheduled", 0, 0},
+        {41, "obsess_over_host", 0, 0},
+        {42, "state_type", 0, 0},
+        {43, "action_url", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_action_url)},
+        {44, "address", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_address)},
+        {45, "alias", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_alias)},
+        {46, "check_freshness", 0, 0},
+        {47, "default_active_checks", 0, 0},
+        {48, "default_event_handler_enabled", 0, 0},
+        {49, "default_flap_detection", 0, 0},
+        {50, "default_notify", 0, 0},
+        {51, "default_passive_checks", 0, 0},
+        {52, "display_name", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_display_name)},
+        {53, "first_notification_delay", 0, 0},
+        {54, "flap_detection_on_down", 0, 0},
+        {55, "flap_detection_on_unreachable", 0, 0},
+        {56, "flap_detection_on_up", 0, 0},
+        {57, "freshness_threshold", 0, 0},
+        {58, "high_flap_threshold", 0, 0},
+        {59, "name", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_name)},
+        {60, "icon_image", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_icon_image)},
+        {61, "icon_image_alt", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_icon_image_alt)},
+        {62, "instance_id", mapping::entry::invalid_on_zero, 0},
+        {63, "low_flap_threshold", 0, 0},
+        {64, "notes", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_notes)},
+        {65, "notes_url", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_notes_url)},
+        {66, "notification_interval", 0, 0},
+        {67, "notification_period", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_notification_period)},
+        {68, "notify_on_down", 0, 0},
+        {69, "notify_on_downtime", 0, 0},
+        {70, "notify_on_flapping", 0, 0},
+        {71, "notify_on_recovery", 0, 0},
+        {72, "notify_on_unreachable", 0, 0},
+        {73, "stalk_on_down", 0, 0},
+        {74, "stalk_on_unreachable", 0, 0},
+        {75, "stalk_on_up", 0, 0},
+        {76, "statusmap_image", 0,
+         get_centreon_storage_hosts_col_size(
+             centreon_storage_hosts_statusmap_image)},
+        {77, "retain_nonstatus_information", 0, 0},
+        {78, "retain_status_information", 0, 0},
+        {79, "timezone", 0,
+         get_centreon_storage_hosts_col_size(centreon_storage_hosts_timezone)}};
+
+    _pb_host_insupdate =
+        qp.prepare_insert_or_update_table(_mysql, "hosts", host_entries);
+
+    query_preparator::event_pb_unique update_unique{{1, "host_id", 0, 0},
+                                                    {62, "instance_id", 0, 0}};
+    query_preparator update_qp(neb::pb_host::static_type(), update_unique);
+
+    _pb_host_update =
+        update_qp.prepare_update_table(_mysql, "hosts", host_entries);
+
+    if (_store_in_resources) {
+      _resources_host_insert_or_update = _mysql.prepare_query(
+          "INSERT INTO resources "
+          "(id,parent_id,type,status,status_ordered,last_"
+          "status_change,"
+          "in_downtime,acknowledged,"
+          "status_confirmed,check_attempts,max_check_attempts,"
+          "poller_id,"
+          "severity_id,name,address,alias,parent_name,notes_url,"
+          "notes,"
+          "action_url,"
+          "notifications_enabled,passive_checks_enabled,"
+          "active_checks_enabled,enabled,icon_id,"
+          "flapping,percent_state_change)"
+          "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
+          ") ON DUPLICATE KEY UPDATE "
+          "resource_id=LAST_INSERT_ID(resource_id),"
+          " type=1" BOOST_PP_SEQ_FOR_EACH(
+              for_each_to_duplicate_values,
+              , (status)(status_ordered)(last_status_change)(in_downtime)(acknowledged)(status_confirmed)(check_attempts)(max_check_attempts)(poller_id)(severity_id)(name)(address)(alias)(parent_name)(notes_url)(notes)(action_url)(notifications_enabled)(passive_checks_enabled)(active_checks_enabled)(enabled)(icon_id)(flapping)(percent_state_change)));
+    }
+  }
+  if (!_pb_service_insupdate.prepared()) {
+    query_preparator::event_pb_unique unique{
+        {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+        {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+    };
+    query_preparator qp(neb::pb_service::static_type(), unique);
+
+    std::vector<query_preparator::pb_entry> service_entries = {
+        {1, "services.host_id", io::protobuf_base::invalid_on_zero, 0},
+        {2, "services.service_id", io::protobuf_base::invalid_on_zero, 0},
+        {3, "services.acknowledged", 0, 0},
+        {4, "services.acknowledgement_type", 0, 0},
+        {5, "services.active_checks", 0, 0},
+        {6, "services.enabled", 0, 0},
+        {7, "services.scheduled_downtime_depth", 0, 0},
+        {8, "services.check_command", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_check_command)},
+        {9, "services.check_interval", 0, 0},
+        {10, "services.check_period", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_check_period)},
+        {11, "services.check_type", 0, 0},
+        {12, "services.check_attempt", 0, 0},
+        {13, "services.state", 0, 0},
+        {14, "services.event_handler_enabled", 0, 0},
+        {15, "services.event_handler", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_event_handler)},
+        {16, "services.execution_time", 0, 0},
+        {17, "services.flap_detection", 0, 0},
+        {18, "services.checked", 0, 0},
+        {19, "services.flapping", 0, 0},
+        {20, "services.last_check", io::protobuf_base::invalid_on_zero, 0},
+        {21, "services.last_hard_state", 0, 0},
+        {22, "services.last_hard_state_change",
+         io::protobuf_base::invalid_on_zero, 0},
+        {23, "services.last_notification", io::protobuf_base::invalid_on_zero,
+         0},
+        {24, "services.notification_number", 0, 0},
+        {25, "services.last_state_change", io::protobuf_base::invalid_on_zero,
+         0},
+        {26, "services.last_time_ok", io::protobuf_base::invalid_on_zero, 0},
+        {27, "services.last_time_warning", io::protobuf_base::invalid_on_zero,
+         0},
+        {28, "services.last_time_critical", io::protobuf_base::invalid_on_zero,
+         0},
+        {29, "services.last_time_unknown", io::protobuf_base::invalid_on_zero,
+         0},
+        {30, "services.last_update", io::protobuf_base::invalid_on_zero, 0},
+        {31, "services.latency", 0, 0},
+        {32, "services.max_check_attempts", 0, 0},
+        {33, "services.next_check", io::protobuf_base::invalid_on_zero, 0},
+        {34, "services.next_notification", io::protobuf_base::invalid_on_zero,
+         0},
+        {35, "services.no_more_notifications", 0, 0},
+        {36, "services.notify", 0, 0},
+        {37, "services.output", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_output)},
+
+        {39, "services.passive_checks", 0, 0},
+        {40, "services.percent_state_change", 0, 0},
+        {41, "services.perfdata", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_perfdata)},
+        {42, "services.retry_interval", 0, 0},
+
+        {44, "services.description", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_description)},
+        {45, "services.should_be_scheduled", 0, 0},
+        {46, "services.obsess_over_service", 0, 0},
+        {47, "services.state_type", 0, 0},
+        {48, "services.action_url", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_action_url)},
+        {49, "services.check_freshness", 0, 0},
+        {50, "services.default_active_checks", 0, 0},
+        {51, "services.default_event_handler_enabled", 0, 0},
+        {52, "services.default_flap_detection", 0, 0},
+        {53, "services.default_notify", 0, 0},
+        {54, "services.default_passive_checks", 0, 0},
+        {55, "services.display_name", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_display_name)},
+        {56, "services.first_notification_delay", 0, 0},
+        {57, "services.flap_detection_on_critical", 0, 0},
+        {58, "services.flap_detection_on_ok", 0, 0},
+        {59, "services.flap_detection_on_unknown", 0, 0},
+        {60, "services.flap_detection_on_warning", 0, 0},
+        {61, "services.freshness_threshold", 0, 0},
+        {62, "services.high_flap_threshold", 0, 0},
+        {63, "services.icon_image", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_icon_image)},
+        {64, "services.icon_image_alt", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_icon_image_alt)},
+        {65, "services.volatile", 0, 0},
+        {66, "services.low_flap_threshold", 0, 0},
+        {67, "services.notes", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_notes)},
+        {68, "services.notes_url", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_notes_url)},
+        {69, "services.notification_interval", 0, 0},
+        {70, "services.notification_period", 0,
+         get_centreon_storage_services_col_size(
+             centreon_storage_services_notification_period)},
+        {71, "services.notify_on_critical", 0, 0},
+        {72, "services.notify_on_downtime", 0, 0},
+        {73, "services.notify_on_flapping", 0, 0},
+        {74, "services.notify_on_recovery", 0, 0},
+        {75, "services.notify_on_unknown", 0, 0},
+        {76, "services.notify_on_warning", 0, 0},
+        {77, "services.stalk_on_critical", 0, 0},
+        {78, "services.stalk_on_ok", 0, 0},
+        {79, "services.stalk_on_unknown", 0, 0},
+        {80, "services.stalk_on_warning", 0, 0},
+        {81, "services.retain_nonstatus_information", 0, 0},
+        {82, "services.retain_status_information", 0, 0}};
+
+    _pb_service_insupdate =
+        qp.prepare_insert_or_update_table(_mysql, "services", service_entries);
+
+    query_preparator::event_pb_unique update_unique{
+        {1, "services.host_id", 0, 0},
+        {2, "service_id", 0, 0},
+        {88, "instance_id", 0, 0}};
+    query_preparator update_qp(neb::pb_service::static_type(), update_unique);
+    _pb_service_update = update_qp.prepare_update_table(
+        _mysql, "services INNER JOIN hosts ON services.host_id = hosts.host_id",
+        service_entries);
+
+    if (_store_in_resources) {
+      _resources_service_insert_or_update = _mysql.prepare_query(
+          "INSERT INTO resources "
+          "(id,parent_id,type,internal_id,status,status_"
+          "ordered,last_"
+          "status_change,in_downtime,acknowledged,"
+          "status_confirmed,check_attempts,max_check_attempts,poller_"
+          "id,"
+          "severity_id,name,parent_name,notes_url,notes,action_url,"
+          "notifications_enabled,passive_checks_enabled,active_"
+          "checks_"
+          "enabled,enabled,icon_id, flapping, percent_state_change) "
+          "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+          "ON DUPLICATE KEY UPDATE "
+          "resource_id=LAST_INSERT_ID(resource_id),"
+          " type=1, status = VALUES(status)" BOOST_PP_SEQ_FOR_EACH(for_each_to_duplicate_values,
+                                                                   , (type)(internal_id)(status)(status_ordered)(last_status_change)(in_downtime)(acknowledged)(status_confirmed)(check_attempts)(max_check_attempts)(poller_id)(severity_id)(name)(parent_name)(notes_url)(notes)(action_url)(notifications_enabled)(passive_checks_enabled)(active_checks_enabled)(enabled)(icon_id)(flapping)(percent_state_change)));
+    }
+  }
+  if (!_resources_tags_remove.prepared())
+    _resources_tags_remove =
+        _mysql.prepare_query("DELETE FROM resources_tags WHERE resource_id=?");
+  if (!_resources_disable.prepared()) {
+    _resources_disable = _mysql.prepare_query(
+        "UPDATE resources SET enabled=0 WHERE resource_id=? AND "
+        "poller_id=?");
+  }
+}
+
 /**
  *  Process a host status protobuf event.
  *
@@ -2084,10 +2402,10 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   auto& h = hst->obj();
 
   // Log message.
-  SPDLOG_LOGGER_INFO(
-      _logger_sql,
-      "unified_sql: processing pb host event (poller: {}, host: {}, name: {})",
-      h.instance_id(), h.host_id(), h.name());
+  SPDLOG_LOGGER_INFO(_logger_sql,
+                     "unified_sql: processing pb host event (poller: {}, host: "
+                     "{}, name: {}, enabled: {})",
+                     h.instance_id(), h.host_id(), h.name(), h.enabled());
 
   // Processing
   if (_is_valid_poller(h.instance_id())) {
@@ -2098,162 +2416,19 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(h.instance_id());
 
       // Prepare queries.
-      if (!_pb_host_insupdate.prepared()) {
-        query_preparator::event_pb_unique unique{
-            {1, "host_id", io::protobuf_base::invalid_on_zero, 0}};
-        query_preparator qp(neb::pb_host::static_type(), unique);
-        _pb_host_insupdate = qp.prepare_insert_or_update_table(
-            _mysql, "hosts",
-            {{1, "host_id", io::protobuf_base::invalid_on_zero, 0},
-             {2, "acknowledged", 0, 0},
-             {3, "acknowledgement_type", 0, 0},
-             {4, "active_checks", 0, 0},
-             {5, "enabled", 0, 0},
-             {6, "scheduled_downtime_depth", 0, 0},
-             {7, "check_command", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_check_command)},
-             {8, "check_interval", 0, 0},
-             {9, "check_period", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_check_period)},
-             {10, "check_type", 0, 0},
-             {11, "check_attempt", 0, 0},
-             {12, "state", 0, 0},
-             {13, "event_handler_enabled", 0, 0},
-             {14, "event_handler", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_event_handler)},
-             {15, "execution_time", 0, 0},
-             {16, "flap_detection", 0, 0},
-             {17, "checked", 0, 0},
-             {18, "flapping", 0, 0},
-             {19, "last_check", io::protobuf_base::invalid_on_zero, 0},
-             {20, "last_hard_state", 0, 0},
-             {21, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
-              0},
-             {22, "last_notification", io::protobuf_base::invalid_on_zero, 0},
-             {23, "notification_number", 0, 0},
-             {24, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
-             {25, "last_time_down", io::protobuf_base::invalid_on_zero, 0},
-             {26, "last_time_unreachable", io::protobuf_base::invalid_on_zero,
-              0},
-             {27, "last_time_up", io::protobuf_base::invalid_on_zero, 0},
-             {28, "last_update", io::protobuf_base::invalid_on_zero, 0},
-             {29, "latency", 0, 0},
-             {30, "max_check_attempts", 0, 0},
-             {31, "next_check", io::protobuf_base::invalid_on_zero, 0},
-             {32, "next_host_notification", io::protobuf_base::invalid_on_zero,
-              0},
-             {33, "no_more_notifications", 0, 0},
-             {34, "notify", 0, 0},
-             {35, "output", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_output)},
-             {36, "passive_checks", 0, 0},
-             {37, "percent_state_change", 0, 0},
-             {38, "perfdata", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_perfdata)},
-             {39, "retry_interval", 0, 0},
-             {40, "should_be_scheduled", 0, 0},
-             {41, "obsess_over_host", 0, 0},
-             {42, "state_type", 0, 0},
-             {43, "action_url", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_action_url)},
-             {44, "address", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_address)},
-             {45, "alias", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_alias)},
-             {46, "check_freshness", 0, 0},
-             {47, "default_active_checks", 0, 0},
-             {48, "default_event_handler_enabled", 0, 0},
-             {49, "default_flap_detection", 0, 0},
-             {50, "default_notify", 0, 0},
-             {51, "default_passive_checks", 0, 0},
-             {52, "display_name", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_display_name)},
-             {53, "first_notification_delay", 0, 0},
-             {54, "flap_detection_on_down", 0, 0},
-             {55, "flap_detection_on_unreachable", 0, 0},
-             {56, "flap_detection_on_up", 0, 0},
-             {57, "freshness_threshold", 0, 0},
-             {58, "high_flap_threshold", 0, 0},
-             {59, "name", 0,
-              get_centreon_storage_hosts_col_size(centreon_storage_hosts_name)},
-             {60, "icon_image", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_icon_image)},
-             {61, "icon_image_alt", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_icon_image_alt)},
-             {62, "instance_id", mapping::entry::invalid_on_zero, 0},
-             {63, "low_flap_threshold", 0, 0},
-             {64, "notes", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_notes)},
-             {65, "notes_url", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_notes_url)},
-             {66, "notification_interval", 0, 0},
-             {67, "notification_period", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_notification_period)},
-             {68, "notify_on_down", 0, 0},
-             {69, "notify_on_downtime", 0, 0},
-             {70, "notify_on_flapping", 0, 0},
-             {71, "notify_on_recovery", 0, 0},
-             {72, "notify_on_unreachable", 0, 0},
-             {73, "stalk_on_down", 0, 0},
-             {74, "stalk_on_unreachable", 0, 0},
-             {75, "stalk_on_up", 0, 0},
-             {76, "statusmap_image", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_statusmap_image)},
-             {77, "retain_nonstatus_information", 0, 0},
-             {78, "retain_status_information", 0, 0},
-             {79, "timezone", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_timezone)}});
-        if (_store_in_resources) {
-          _resources_host_insert_or_update = _mysql.prepare_query(
-              "INSERT INTO resources "
-              "(id,parent_id,type,status,status_ordered,last_"
-              "status_change,"
-              "in_downtime,acknowledged,"
-              "status_confirmed,check_attempts,max_check_attempts,"
-              "poller_id,"
-              "severity_id,name,address,alias,parent_name,notes_url,"
-              "notes,"
-              "action_url,"
-              "notifications_enabled,passive_checks_enabled,"
-              "active_checks_enabled,enabled,icon_id,"
-              "flapping,percent_state_change)"
-              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
-              ") ON DUPLICATE KEY UPDATE "
-              "resource_id=LAST_INSERT_ID(resource_id),"
-              " type=1" BOOST_PP_SEQ_FOR_EACH(
-                  for_each_to_duplicate_values, ,
-                  (
-                      status)(status_ordered)(last_status_change)(in_downtime)(acknowledged)(status_confirmed)(check_attempts)(max_check_attempts)(poller_id)(severity_id)(name)(address)(alias)(parent_name)(notes_url)(notes)(action_url)(notifications_enabled)(passive_checks_enabled)(active_checks_enabled)(enabled)(icon_id)(flapping)(percent_state_change)));
-          if (!_resources_tags_remove.prepared())
-            _resources_tags_remove = _mysql.prepare_query(
-                "DELETE FROM resources_tags WHERE resource_id=?");
-          if (!_resources_disable.prepared()) {
-            _resources_disable = _mysql.prepare_query(
-                "UPDATE resources SET enabled=0 WHERE resource_id=?");
-          }
-        }
-      }
-
+      _prepare_pb_requests();
       // Process object.
-      _pb_host_insupdate << *hst;
-      _mysql.run_statement(_pb_host_insupdate,
-                           database::mysql_error::store_host, conn);
+      if (h.enabled()) {
+        _pb_host_insupdate << *hst;
+        _mysql.run_statement(_pb_host_insupdate,
+                             database::mysql_error::store_host, conn);
+      } else {
+        // when we disable a host, we care about instance_id in order to not
+        // modify a host yet moved to another poller and inserted
+        _pb_host_update << *hst;
+        _mysql.run_statement(_pb_host_update, database::mysql_error::store_host,
+                             conn);
+      }
       _add_action(conn, actions::hosts);
 
       // Fill the cache...
@@ -2386,6 +2561,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
   } else {
     if (found != _resource_cache.end()) {
       _resources_disable.bind_value_as_u64(0, found->second);
+      _resources_disable.bind_value_as_u64(1, h.instance_id());
 
       _mysql.run_statement(_resources_disable,
                            database::mysql_error::clean_resources, conn);
@@ -3669,18 +3845,18 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
         "instance {}",
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
-    if (!_service_group_member_delete.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("servicegroup_id");
-      unique.insert("host_id");
-      unique.insert("service_id");
-      query_preparator qp(neb::service_group_member::static_type(), unique);
-      _service_group_member_delete = qp.prepare_delete(_mysql);
-    }
-    _service_group_member_delete << sgm;
-    _mysql.run_statement(_service_group_member_delete,
-                         database::mysql_error::delete_service_group_member,
-                         conn);
+    std::string query = fmt::format(
+        "DELETE services_servicegroups FROM services_servicegroups "
+        "INNER JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+        "WHERE "
+        "services_servicegroups.servicegroup_id={} AND "
+        "services_servicegroups.host_id={} AND "
+        "services_servicegroups.service_id={} AND "
+        "hosts.instance_id={}",
+        sgm.group_id, sgm.host_id, sgm.service_id, sgm.poller_id);
+
+    _mysql.run_query(query, database::mysql_error::delete_service_group_member,
+                     conn);
     _add_action(conn, actions::servicegroups);
   }
 }
@@ -3770,20 +3946,19 @@ void stream::_process_pb_service_group_member(
                        sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
                        sgm.poller_id());
 
-    if (!_pb_service_group_member_delete.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {3, "servicegroup_id", io::protobuf_base::invalid_on_zero, 0},
-          {5, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {7, "service_id", io::protobuf_base::invalid_on_zero, 0},
-      };
-      query_preparator qp(neb::pb_service_group_member::static_type(), unique);
-      _pb_service_group_member_delete =
-          qp.prepare_delete_table(_mysql, "services_servicegroups ");
-    }
-    _pb_service_group_member_delete << sgmp;
-    _mysql.run_statement(_pb_service_group_member_delete,
-                         database::mysql_error::delete_service_group_member,
-                         conn);
+    std::string query = fmt::format(
+        "DELETE services_servicegroups FROM services_servicegroups "
+        "INNER JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+        "WHERE "
+        "services_servicegroups.servicegroup_id={} AND "
+        "services_servicegroups.host_id={} AND "
+        "services_servicegroups.service_id={} AND "
+        "hosts.instance_id={}",
+        sgm.servicegroup_id(), sgm.host_id(), sgm.service_id(),
+        sgm.poller_id());
+
+    _mysql.run_query(query, database::mysql_error::delete_service_group_member,
+                     conn);
     _add_action(conn, actions::servicegroups);
   }
 }
@@ -3881,153 +4056,18 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
 
   if (s.host_id() && s.service_id()) {
     // Prepare queries.
-    if (!_pb_service_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
-      };
-      query_preparator qp(neb::pb_service::static_type(), unique);
-
-      _pb_service_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "services",
-          {{1, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
-           {3, "acknowledged", 0, 0},
-           {4, "acknowledgement_type", 0, 0},
-           {5, "active_checks", 0, 0},
-           {6, "enabled", 0, 0},
-           {7, "scheduled_downtime_depth", 0, 0},
-           {8, "check_command", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_check_command)},
-           {9, "check_interval", 0, 0},
-           {10, "check_period", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_check_period)},
-           {11, "check_type", 0, 0},
-           {12, "check_attempt", 0, 0},
-           {13, "state", 0, 0},
-           {14, "event_handler_enabled", 0, 0},
-           {15, "event_handler", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_event_handler)},
-           {16, "execution_time", 0, 0},
-           {17, "flap_detection", 0, 0},
-           {18, "checked", 0, 0},
-           {19, "flapping", 0, 0},
-           {20, "last_check", io::protobuf_base::invalid_on_zero, 0},
-           {21, "last_hard_state", 0, 0},
-           {22, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
-            0},
-           {23, "last_notification", io::protobuf_base::invalid_on_zero, 0},
-           {24, "notification_number", 0, 0},
-           {25, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
-           {26, "last_time_ok", io::protobuf_base::invalid_on_zero, 0},
-           {27, "last_time_warning", io::protobuf_base::invalid_on_zero, 0},
-           {28, "last_time_critical", io::protobuf_base::invalid_on_zero, 0},
-           {29, "last_time_unknown", io::protobuf_base::invalid_on_zero, 0},
-           {30, "last_update", io::protobuf_base::invalid_on_zero, 0},
-           {31, "latency", 0, 0},
-           {32, "max_check_attempts", 0, 0},
-           {33, "next_check", io::protobuf_base::invalid_on_zero, 0},
-           {34, "next_notification", io::protobuf_base::invalid_on_zero, 0},
-           {35, "no_more_notifications", 0, 0},
-           {36, "notify", 0, 0},
-           {37, "output", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_output)},
-
-           {39, "passive_checks", 0, 0},
-           {40, "percent_state_change", 0, 0},
-           {41, "perfdata", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_perfdata)},
-           {42, "retry_interval", 0, 0},
-
-           {44, "description", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_description)},
-           {45, "should_be_scheduled", 0, 0},
-           {46, "obsess_over_service", 0, 0},
-           {47, "state_type", 0, 0},
-           {48, "action_url", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_action_url)},
-           {49, "check_freshness", 0, 0},
-           {50, "default_active_checks", 0, 0},
-           {51, "default_event_handler_enabled", 0, 0},
-           {52, "default_flap_detection", 0, 0},
-           {53, "default_notify", 0, 0},
-           {54, "default_passive_checks", 0, 0},
-           {55, "display_name", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_display_name)},
-           {56, "first_notification_delay", 0, 0},
-           {57, "flap_detection_on_critical", 0, 0},
-           {58, "flap_detection_on_ok", 0, 0},
-           {59, "flap_detection_on_unknown", 0, 0},
-           {60, "flap_detection_on_warning", 0, 0},
-           {61, "freshness_threshold", 0, 0},
-           {62, "high_flap_threshold", 0, 0},
-           {63, "icon_image", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_icon_image)},
-           {64, "icon_image_alt", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_icon_image_alt)},
-           {65, "volatile", 0, 0},
-           {66, "low_flap_threshold", 0, 0},
-           {67, "notes", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_notes)},
-           {68, "notes_url", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_notes_url)},
-           {69, "notification_interval", 0, 0},
-           {70, "notification_period", 0,
-            get_centreon_storage_services_col_size(
-                centreon_storage_services_notification_period)},
-           {71, "notify_on_critical", 0, 0},
-           {72, "notify_on_downtime", 0, 0},
-           {73, "notify_on_flapping", 0, 0},
-           {74, "notify_on_recovery", 0, 0},
-           {75, "notify_on_unknown", 0, 0},
-           {76, "notify_on_warning", 0, 0},
-           {77, "stalk_on_critical", 0, 0},
-           {78, "stalk_on_ok", 0, 0},
-           {79, "stalk_on_unknown", 0, 0},
-           {80, "stalk_on_warning", 0, 0},
-           {81, "retain_nonstatus_information", 0, 0},
-           {82, "retain_status_information", 0, 0}});
-      if (_store_in_resources) {
-        _resources_service_insert_or_update = _mysql.prepare_query(
-            "INSERT INTO resources "
-            "(id,parent_id,type,internal_id,status,status_"
-            "ordered,last_"
-            "status_change,in_downtime,acknowledged,"
-            "status_confirmed,check_attempts,max_check_attempts,poller_"
-            "id,"
-            "severity_id,name,parent_name,notes_url,notes,action_url,"
-            "notifications_enabled,passive_checks_enabled,active_"
-            "checks_"
-            "enabled,enabled,icon_id, flapping, percent_state_change) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-            "ON DUPLICATE KEY UPDATE "
-            "resource_id=LAST_INSERT_ID(resource_id),"
-            " type=1, status = VALUES(status)" BOOST_PP_SEQ_FOR_EACH(for_each_to_duplicate_values,
-                                                                     ,
-                                                                     (type)(internal_id)(status)(status_ordered)(last_status_change)(in_downtime)(acknowledged)(status_confirmed)(check_attempts)(max_check_attempts)(poller_id)(severity_id)(name)(parent_name)(notes_url)(notes)(action_url)(notifications_enabled)(passive_checks_enabled)(active_checks_enabled)(enabled)(icon_id)(flapping)(percent_state_change)));
-        if (!_resources_disable.prepared()) {
-          _resources_disable = _mysql.prepare_query(
-              "UPDATE resources SET enabled=0 WHERE resource_id=?");
-        }
-      }
-    }
+    _prepare_pb_requests();
 
     // Process object.
-    _pb_service_insupdate << *svc;
-    _mysql.run_statement(_pb_service_insupdate,
-                         database::mysql_error::store_service, conn);
+    if (s.enabled()) {
+      _pb_service_insupdate << *svc;
+      _mysql.run_statement(_pb_service_insupdate,
+                           database::mysql_error::store_service, conn);
+    } else {
+      _pb_service_update << *svc;
+      _mysql.run_statement(_pb_service_update,
+                           database::mysql_error::store_service, conn);
+    }
     _add_action(conn, actions::services);
 
     _check_and_update_index_cache(s);
@@ -4159,6 +4199,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
   } else {
     if (found != _resource_cache.end()) {
       _resources_disable.bind_value_as_u64(0, found->second);
+      _resources_disable.bind_value_as_u64(1, s.instance_id());
 
       _mysql.run_statement(_resources_disable,
                            database::mysql_error::clean_resources, conn);
