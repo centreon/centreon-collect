@@ -147,9 +147,6 @@ void scheduler::_start() {
   _start_custom_checks_watcher();
 }
 
-std::chrono::milliseconds scheduler::custom_checks_file_poll_interval =
-    std::chrono::seconds(60);
-
 /**
  * @brief if a custom checks file is configured, watch it in order to refresh
  * commands without agent restart
@@ -160,16 +157,14 @@ void scheduler::_start_custom_checks_watcher() {
   if (!conf || conf->get_path_to_custom_checks().empty()) {
     return;
   }
-  _custom_checks_watcher =
-      file_watcher::load(_io_context, _logger,
-                         conf->get_path_to_custom_checks(),
-                         custom_checks_file_poll_interval,
-                         [me = std::weak_ptr<scheduler>(shared_from_this())]() {
-                           std::shared_ptr<scheduler> to_notify = me.lock();
-                           if (to_notify) {
-                             to_notify->_on_custom_checks_file_change();
-                           }
-                         });
+  _custom_checks_watcher = common::file_watcher::load(
+      _io_context, _logger, conf->get_path_to_custom_checks(),
+      [me = std::weak_ptr<scheduler>(shared_from_this())]() {
+        std::shared_ptr<scheduler> to_notify = me.lock();
+        if (to_notify) {
+          to_notify->_on_custom_checks_file_change();
+        }
+      });
 }
 
 /**

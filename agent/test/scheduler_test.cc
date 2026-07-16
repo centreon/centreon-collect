@@ -1344,9 +1344,6 @@ TEST_F(scheduler_test, custom_checks_file_update_reloads_commands) {
            << R"("custom_check_file":")" << ini_path.string() << R"("})";
   }
   config::load(json_path.string());
-  // shorten the poll interval, before scheduler creation as the watcher is
-  // started with it
-  scheduler::custom_checks_file_poll_interval = std::chrono::milliseconds(20);
 
   auto build_count = std::make_shared<std::atomic<unsigned>>(0);
   std::shared_ptr<scheduler> sched = scheduler::load(
@@ -1375,16 +1372,13 @@ TEST_F(scheduler_test, custom_checks_file_update_reloads_commands) {
 
   ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo one");
 
-  // wait for the watcher to store the initial file time
+  // let the watcher be established on the io_context thread
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   {
     std::ofstream ini_f(ini_path);
     ini_f << "check_echo=/usr/bin/echo two\n";
   }
-  // force a last write time change whatever the file system granularity
-  fs::last_write_time(ini_path,
-                      fs::last_write_time(ini_path) + std::chrono::seconds(2));
 
   // the new command must be loaded in the global configuration
   auto limit = std::chrono::steady_clock::now() + std::chrono::seconds(5);
@@ -1401,15 +1395,11 @@ TEST_F(scheduler_test, custom_checks_file_update_reloads_commands) {
     std::ofstream ini_f(ini_path);
     ini_f << "this is not an assignment\n";
   }
-  fs::last_write_time(ini_path,
-                      fs::last_write_time(ini_path) + std::chrono::seconds(4));
-  // let several poll periods elapse
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  // let the change be detected and (unsuccessfully) reloaded
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo two");
   ASSERT_EQ(*build_count, 2);
 
-  // restore defaults for the other tests
-  scheduler::custom_checks_file_poll_interval = std::chrono::seconds(60);
   config::load(false);
   fs::remove(ini_path);
   fs::remove(json_path);

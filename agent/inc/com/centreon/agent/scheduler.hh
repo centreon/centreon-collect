@@ -21,9 +21,9 @@
 
 #include <memory>
 #include "check.hh"
+#include "com/centreon/common/file_watcher.hh"
 #include "common/crypto/aes256.hh"
 #include "common/engine_conf/timeperiod.pb.h"
-#include "file_watcher.hh"
 
 namespace com::centreon::agent {
 
@@ -107,7 +107,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
                       const com::centreon::engine::configuration::Timeperiod*>
       _timeperiods;
 
-  std::shared_ptr<file_watcher> _custom_checks_watcher;
+  std::shared_ptr<com::centreon::common::file_watcher> _custom_checks_watcher;
 
   void _start();
   void _start_custom_checks_watcher();
@@ -162,10 +162,6 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   void _start_waiting_check();
 
  public:
-  // interval between two polls of the custom checks file, to modify only
-  // in UT and before scheduler creation
-  static std::chrono::milliseconds custom_checks_file_poll_interval;
-
   template <typename sender, typename chck_builder>
   scheduler(const std::shared_ptr<asio::io_context>& io_context,
             const std::shared_ptr<spdlog::logger>& logger,

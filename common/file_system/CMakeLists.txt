@@ -20,10 +20,18 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS})
 
+# file_system.cc relies on Linux only syscalls (getdents64); the file_watcher is
+# cross platform (inotify on Linux, ReadDirectoryChangesW on Windows).
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(FILE_SYSTEM_SOURCES file_system.cc file_watcher.cc)
+else()
+  set(FILE_SYSTEM_SOURCES file_watcher.cc)
+endif()
+
 add_library(
   centreon_file_system STATIC
   # Sources.
-  file_system.cc)
+  ${FILE_SYSTEM_SOURCES})
 
 set_target_properties(centreon_file_system
                       PROPERTIES POSITION_INDEPENDENT_CODE ON)
