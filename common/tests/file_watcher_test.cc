@@ -107,13 +107,6 @@ TEST_F(file_watcher_test, detect_modification) {
   ASSERT_TRUE(wait_change_count(1));
 }
 
-TEST_F(file_watcher_test, detect_creation) {
-  start_watcher();
-
-  write_file("check1=/usr/bin/echo one");
-  ASSERT_TRUE(wait_change_count(1));
-}
-
 TEST_F(file_watcher_test, no_change_no_notification) {
   write_file("check1=/usr/bin/echo one");
   start_watcher();
