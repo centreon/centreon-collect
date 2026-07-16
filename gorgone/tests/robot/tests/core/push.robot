@@ -2,7 +2,7 @@
 Documentation       Start and stop gorgone
 
 Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
-Test Timeout        220s
+Test Timeout        450s
 
 *** Variables ***
 @{process_list}    push_zmq_gorgone_central    push_zmq_gorgone_poller_2
@@ -47,8 +47,12 @@ Ctn Check Cpu Until Timeout
 Ctn Wait Until Poller Fail To Connect
     [Arguments]    ${nb_fail}=1    ${poller_id}=2
 
+    # ping_failed is only incremented pong_discard_timeout (default 300s) after a ping is
+    # actually sent, and the first ping itself is scheduled with up to ping_interval
+    # (default 60s) of jitter after registration - so the wait budget needs real headroom,
+    # not just a few retries. 60 * 5s = 300s covers the documented default plus margin.
     ${response}     Set Variable    ${EMPTY}
-    FOR    ${i}    IN RANGE    35
+    FOR    ${i}    IN RANGE    60
         Sleep    5
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
         Log    ${response.json()}
@@ -60,7 +64,7 @@ Ctn Wait Until Poller Fail To Connect
         END
     END
     Log To Console    json response : ${response.json()}
-    Should Be True    ${i} < 34    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus)
+    Should Be True    ${i} < 59    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus)
     Should Be True    ${nb_fail} == ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
     Should Be True    0 == ${response.json()}[data][${poller_id}][ping_ok]    there was successful ping between the central and the poller ${poller_id}
     Log To Console    ${nb_fail} failed ping between the central and the poller ${poller_id}
