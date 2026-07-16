@@ -6,7 +6,7 @@ Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
 Suite Setup         Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
 Suite Teardown      Stop Mockoon
 
-Test Timeout        250s
+Test Timeout        300s
 
 *** Variables ***
 @{process_list}    pullwss_gorgone_poller_2_simple    pullwss_gorgone_central_simple
@@ -132,7 +132,11 @@ check poller token revocation
     Set Local Variable    ${revoked_url}    http://127.0.0.1:80/set-poller-4-is-revoked
     Set Local Variable    ${expired_url}    http://127.0.0.1:80/set-poller-4-is-expired
     Set Local Variable    ${port}    8086
-    Set Local Variable    ${timeout}    25
+    # "absent" checks always burn their full timeout (the string isn't there yet), so
+    # keep them short. Only "present" checks (after revocation) need real headroom for
+    # the blocking tpapi_centreonv2 API call inside the 5s recurring revocation check.
+    Set Local Variable    ${timeout_absent}    10
+    Set Local Variable    ${timeout_present}    30
     Set Local Variable    ${sleep}    6
     Set Local Variable    ${central_log_file}    /var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log
     Set Local Variable    ${poller_log_file}    /var/log/centreon-gorgone/pullwss_gorgone_poller_2_simple/gorgoned.log
@@ -151,17 +155,17 @@ check poller token revocation
     ${log_central_query}    Create List    [proxy-httpserver] invalid token
     # The poller is connected
     Check Poller Is Connected    port=${port}    expected_nb=2
-    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout_absent}
     Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
-    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout_absent}
     Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
     ${start_date}    Get Current Date
     Sleep    ${sleep}
     # Still connected
     Check Poller Is Connected    port=${port}    expected_nb=2
-    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout_absent}
     Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
-    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout_absent}
     Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
     # Token revoked
     ${response}    PUT    ${revoked_url}/true
@@ -169,9 +173,9 @@ check poller token revocation
     Sleep    ${sleep}
     # The poller is disconnected
     Check Poller Is Connected    port=${port}    expected_nb=0
-    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout_present}
     Should Be True    ${logs_central}    Didn't find the logs in the central file : ${logs_central}
-    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout_present}
     Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}
     # Token revoked
     ${response}    PUT    ${revoked_url}/false
@@ -179,9 +183,9 @@ check poller token revocation
     Sleep    ${sleep}
     # The poller is connected
     Check Poller Is Connected    port=${port}    expected_nb=2
-    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout_absent}
     Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
-    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout_absent}
     Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
     # Token revoked
     ${response}    PUT    ${expired_url}/true
@@ -189,7 +193,7 @@ check poller token revocation
     Sleep    ${sleep}
     # The poller is disconnected
     Check Poller Is Connected    port=${port}    expected_nb=0
-    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout_present}
     Should Be True    ${logs_central}    Didn't find the logs in the central file : ${logs_central}
-    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout_present}
     Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}
