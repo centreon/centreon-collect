@@ -19,24 +19,6 @@ fixConfigurationFileRights() {
   chmod 0640 /etc/centreon-gorgone/config.d/50-centreon-audit.yaml
 }
 
-manageUserGroups() {
-  if getent passwd centreon  > /dev/null 2>&1; then
-    usermod -a -G centreon-gorgone centreon 2> /dev/null
-  fi
-
-  if getent passwd centreon-engine > /dev/null 2>&1; then
-    usermod -a -G centreon-gorgone centreon-engine 2> /dev/null
-  fi
-
-  if getent passwd centreon-broker > /dev/null 2>&1; then
-    usermod -a -G centreon-gorgone centreon-broker 2> /dev/null
-  fi
-
-  if getent passwd centreon-gorgone > /dev/null 2>&1; then
-    usermod -a -G centreon centreon-gorgone 2> /dev/null
-  fi
-}
-
 addGorgoneSshKeys() {
   if [ ! -d /var/lib/centreon-gorgone/.ssh ] && [ -d /var/spool/centreon/.ssh ]; then
     cp -r /var/spool/centreon/.ssh /var/lib/centreon-gorgone/.ssh
@@ -56,18 +38,15 @@ fi
 
 case "$action" in
   "1" | "install")
-    manageUserGroups
     fixConfigurationFileRights
     addGorgoneSshKeys
     ;;
   "2" | "upgrade")
-    manageUserGroups
     fixConfigurationFileRights
     addGorgoneSshKeys
     ;;
   *)
     # $1 == version being installed
-    manageUserGroups
     fixConfigurationFileRights
     addGorgoneSshKeys
     ;;
