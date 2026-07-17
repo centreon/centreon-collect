@@ -16,7 +16,7 @@ poller defined as push in database should be overridden by register module to ${
     ${poller_name}    Set Variable    ${communication_mode}_gorgone_register_poller_2
     @{process_list}    Set Variable    ${central_name}    ${poller_name}
 
-    ${central_config}    Create List    ${ROOT_CONFIG}register_module.yaml    ${ROOT_CONFIG}register_${communication_mode}_node.yaml
+    ${central_config}    Create List    ${ROOT_CONFIG}register_module_${communication_mode}.yaml    ${ROOT_CONFIG}register_${communication_mode}_node.yaml
     Setup Two Gorgone Instances
     ...    central_config=${central_config}
     ...    communication_mode=${communication_mode}
