@@ -23,7 +23,7 @@ poller defined as push in database should be overridden by register module to ${
     ...    central_name=${central_name}
     ...    poller_name=${poller_name}
     ...    check_connection=False
-    
+
     Check Poller Communicate     2
 
     Ctn Check No Error In Logs    ${poller_name}
