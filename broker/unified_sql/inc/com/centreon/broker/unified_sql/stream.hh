@@ -329,6 +329,7 @@ class stream : public io::stream {
   database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _pb_host_group_insupdate;
+  std::unique_ptr<database::mysql_stmt_base> _host_group_member_delete;
   database::mysql_stmt _host_group_member_insert;
   database::mysql_stmt _pb_host_group_member_insert;
   database::mysql_stmt _host_insupdate;
@@ -348,6 +349,7 @@ class stream : public io::stream {
   database::mysql_stmt _pb_service_check_update;
   database::mysql_stmt _service_group_insupdate;
   database::mysql_stmt _pb_service_group_insupdate;
+  std::unique_ptr<database::mysql_stmt_base> _service_group_member_delete;
   database::mysql_stmt _service_group_member_insert;
   database::mysql_stmt _pb_service_group_member_insert;
   database::mysql_stmt _service_insupdate;

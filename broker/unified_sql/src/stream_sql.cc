@@ -1425,15 +1425,19 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
-    std::string query = fmt::format(
-        "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
-        "hosts_hostgroups.host_id=hosts.host_id "
-        "WHERE hosts_hostgroups.host_id={} and hostgroup_id = {} and "
-        "(instance_id = {} OR instance_id is NULL)",
-        hgm.host_id, hgm.group_id, hgm.poller_id);
-
-    _mysql.run_query(query, database::mysql_error::delete_host_group_member,
-                     conn);
+    if (!_host_group_member_delete) {
+      _host_group_member_delete = std::make_unique<database::mysql_bulk_stmt>(
+          "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
+          "hosts_hostgroups.host_id=hosts.host_id "
+          "WHERE hosts_hostgroups.host_id=? and hostgroup_id = ? and "
+          "(instance_id = ? OR instance_id is NULL)");
+      _mysql.prepare_statement(*_host_group_member_delete);
+    }
+    _host_group_member_delete->bind_value_as_u64(0, hgm.host_id);
+    _host_group_member_delete->bind_value_as_u64(1, hgm.group_id);
+    _host_group_member_delete->bind_value_as_u64(2, hgm.poller_id);
+    _mysql.run_statement(*_host_group_member_delete,
+                         database::mysql_error::delete_host_group_member, conn);
     _add_action(conn, actions::hostgroups);
   }
 }
@@ -1529,15 +1533,20 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
-    std::string query = fmt::format(
-        "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
-        "hosts_hostgroups.host_id=hosts.host_id "
-        "WHERE hosts_hostgroups.host_id={} and hostgroup_id = {} and "
-        "(instance_id = {} OR instance_id is NULL)",
-        hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
+    if (!_host_group_member_delete) {
+      _host_group_member_delete = std::make_unique<database::mysql_bulk_stmt>(
+          "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
+          "hosts_hostgroups.host_id=hosts.host_id "
+          "WHERE hosts_hostgroups.host_id=? and hostgroup_id = ? and "
+          "(instance_id = ? OR instance_id is NULL)");
+      _mysql.prepare_statement(*_host_group_member_delete);
+    }
+    _host_group_member_delete->bind_value_as_u64(0, hgm.host_id());
+    _host_group_member_delete->bind_value_as_u64(1, hgm.hostgroup_id());
+    _host_group_member_delete->bind_value_as_u64(2, hgm.poller_id());
+    _mysql.run_statement(*_host_group_member_delete,
+                         database::mysql_error::delete_host_group_member, conn);
 
-    _mysql.run_query(query, database::mysql_error::delete_host_group_member,
-                     conn);
     _add_action(conn, actions::hostgroups);
   }
 }
@@ -3847,18 +3856,26 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
         "instance {}",
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
-    std::string query = fmt::format(
-        "DELETE services_servicegroups FROM services_servicegroups "
-        "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-        "WHERE "
-        "services_servicegroups.servicegroup_id={} AND "
-        "services_servicegroups.host_id={} AND "
-        "services_servicegroups.service_id={} AND "
-        "(hosts.instance_id={} OR hosts.instance_id is NULL)",
-        sgm.group_id, sgm.host_id, sgm.service_id, sgm.poller_id);
+    if (!_service_group_member_delete) {
+      _service_group_member_delete =
+          std::make_unique<database::mysql_bulk_stmt>(
+              "DELETE services_servicegroups FROM services_servicegroups "
+              "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+              "WHERE "
+              "services_servicegroups.servicegroup_id=? AND "
+              "services_servicegroups.host_id=? AND "
+              "services_servicegroups.service_id=? AND "
+              "(hosts.instance_id=? OR hosts.instance_id is NULL)");
+      _mysql.prepare_statement(*_service_group_member_delete);
+    }
 
-    _mysql.run_query(query, database::mysql_error::delete_service_group_member,
-                     conn);
+    _service_group_member_delete->bind_value_as_u64(0, sgm.group_id);
+    _service_group_member_delete->bind_value_as_u64(1, sgm.host_id);
+    _service_group_member_delete->bind_value_as_u64(2, sgm.service_id);
+    _service_group_member_delete->bind_value_as_u64(3, sgm.poller_id);
+    _mysql.run_statement(*_service_group_member_delete,
+                         database::mysql_error::delete_service_group_member,
+                         conn);
     _add_action(conn, actions::servicegroups);
   }
 }
@@ -3947,20 +3964,27 @@ void stream::_process_pb_service_group_member(
                        "instance {}",
                        sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
                        sgm.poller_id());
+    if (!_service_group_member_delete) {
+      _service_group_member_delete =
+          std::make_unique<database::mysql_bulk_stmt>(
+              "DELETE services_servicegroups FROM services_servicegroups "
+              "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+              "WHERE "
+              "services_servicegroups.servicegroup_id=? AND "
+              "services_servicegroups.host_id=? AND "
+              "services_servicegroups.service_id=? AND "
+              "(hosts.instance_id=? OR hosts.instance_id is NULL)");
+      _mysql.prepare_statement(*_service_group_member_delete);
+    }
 
-    std::string query = fmt::format(
-        "DELETE services_servicegroups FROM services_servicegroups "
-        "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-        "WHERE "
-        "services_servicegroups.servicegroup_id={} AND "
-        "services_servicegroups.host_id={} AND "
-        "services_servicegroups.service_id={} AND "
-        "(hosts.instance_id={} OR hosts.instance_id is NULL)",
-        sgm.servicegroup_id(), sgm.host_id(), sgm.service_id(),
-        sgm.poller_id());
+    _service_group_member_delete->bind_value_as_u64(0, sgm.servicegroup_id());
+    _service_group_member_delete->bind_value_as_u64(1, sgm.host_id());
+    _service_group_member_delete->bind_value_as_u64(2, sgm.service_id());
+    _service_group_member_delete->bind_value_as_u64(3, sgm.poller_id());
+    _mysql.run_statement(*_service_group_member_delete,
+                         database::mysql_error::delete_service_group_member,
+                         conn);
 
-    _mysql.run_query(query, database::mysql_error::delete_service_group_member,
-                     conn);
     _add_action(conn, actions::servicegroups);
   }
 }
