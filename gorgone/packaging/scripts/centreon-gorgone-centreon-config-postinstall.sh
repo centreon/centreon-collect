@@ -10,7 +10,12 @@ fixConfigurationFileRights() {
   chown centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/config.d/cron.d
   chmod 0770 /etc/centreon-gorgone/config.d/cron.d
   chmod 0640 /etc/centreon-gorgone/config.d/30-centreon.yaml
-  chmod 0640 /etc/centreon-gorgone/config.d/31-centreon-api.yaml
+  # 31-centreon-api.yaml must stay group-writable: the web install wizard
+  # (configFileSetup.php) writes the Gorgone API credentials into it via the
+  # centreon-gorgone group, gated on is_writable() - 0640 silently skips that
+  # write and leaves the @GORGONE_USER@/@GORGONE_PASSWORD@ placeholders in
+  # place. Matches the 0660 declared in centreon-gorgone-centreon-config.yaml.
+  chmod 0660 /etc/centreon-gorgone/config.d/31-centreon-api.yaml
   chmod 0640 /etc/centreon-gorgone/config.d/50-centreon-audit.yaml
 }
 
