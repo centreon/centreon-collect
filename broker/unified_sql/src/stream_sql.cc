@@ -1426,9 +1426,10 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
     std::string query = fmt::format(
-        "DELETE hosts_hostgroups FROM hosts_hostgroups INNER JOIN hosts ON "
+        "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
         "hosts_hostgroups.host_id=hosts.host_id "
-        "WHERE hosts.host_id={} and hostgroup_id = {} and instance_id = {}",
+        "WHERE hosts_hostgroups.host_id={} and hostgroup_id = {} and "
+        "(instance_id = {} OR instance_id is NULL)",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
     _mysql.run_query(query, database::mysql_error::delete_host_group_member,
@@ -1529,9 +1530,10 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
     std::string query = fmt::format(
-        "DELETE hosts_hostgroups FROM hosts_hostgroups INNER JOIN hosts ON "
+        "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
         "hosts_hostgroups.host_id=hosts.host_id "
-        "WHERE hosts.host_id={} and hostgroup_id = {} and instance_id = {}",
+        "WHERE hosts_hostgroups.host_id={} and hostgroup_id = {} and "
+        "(instance_id = {} OR instance_id is NULL)",
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
     _mysql.run_query(query, database::mysql_error::delete_host_group_member,
@@ -3847,12 +3849,12 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
 
     std::string query = fmt::format(
         "DELETE services_servicegroups FROM services_servicegroups "
-        "INNER JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+        "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
         "WHERE "
         "services_servicegroups.servicegroup_id={} AND "
         "services_servicegroups.host_id={} AND "
         "services_servicegroups.service_id={} AND "
-        "hosts.instance_id={}",
+        "(hosts.instance_id={} OR hosts.instance_id is NULL)",
         sgm.group_id, sgm.host_id, sgm.service_id, sgm.poller_id);
 
     _mysql.run_query(query, database::mysql_error::delete_service_group_member,
@@ -3948,12 +3950,12 @@ void stream::_process_pb_service_group_member(
 
     std::string query = fmt::format(
         "DELETE services_servicegroups FROM services_servicegroups "
-        "INNER JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+        "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
         "WHERE "
         "services_servicegroups.servicegroup_id={} AND "
         "services_servicegroups.host_id={} AND "
         "services_servicegroups.service_id={} AND "
-        "hosts.instance_id={}",
+        "(hosts.instance_id={} OR hosts.instance_id is NULL)",
         sgm.servicegroup_id(), sgm.host_id(), sgm.service_id(),
         sgm.poller_id());
 

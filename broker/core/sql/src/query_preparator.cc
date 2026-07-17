@@ -557,9 +557,23 @@ mysql_stmt query_preparator::prepare_update_table(
   }
 
   for (const auto& e : _pb_unique) {
+    const google::protobuf::FieldDescriptor* f =
+        desc->FindFieldByNumber(e.number);
+    if (!f)
+      throw msg_fmt(
+          "could not prepare update query for event of type {}:"
+          "protobuf field with number {} does not exist in '{}' protobuf "
+          "object",
+          _event_id, e.number, info->get_name());
+    std::string_view entry_name = f->name();
+    if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
+      pb_mapping.resize(f->index() + 1);
+    if (std::get<0>(pb_mapping[f->index()]).empty())
+      pb_mapping[f->index()] = std::make_tuple(entry_name, e.max_length, e.attribute);
+
     where.append(e.name);
     where.append("=? AND ");
-    key = fmt::format(":{}", e.name);
+    key = fmt::format(":{}", entry_name);
     where_bind_mapping.insert(std::make_pair(key, where_size++));
   }
 

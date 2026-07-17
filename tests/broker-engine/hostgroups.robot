@@ -413,3 +413,15 @@ EBNHG6
 
     ${output}    Query    SELECT count(*) FROM hostgroups WHERE hostgroup_id = 1
     Should Be Equal As Strings    ${output}    ((1,),)    The hostgroup 1 should still exist after the move.
+
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_1' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_1 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_2' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_2 should be enabled and owned by poller 1 (instance_id=2) after the move.

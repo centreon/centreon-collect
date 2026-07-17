@@ -328,4 +328,30 @@ EBNSG2
     ${output}    Query    SELECT count(*) FROM servicegroups WHERE servicegroup_id = 1
     Should Be Equal As Strings    ${output}    ((1,),)    The servicegroup 1 should still exist after the move.
 
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_1' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_1 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_2' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_2 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query
+    ...    SELECT h.instance_id FROM services s JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1' AND s.enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    service_1 on host_1 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query
+    ...    SELECT h.instance_id FROM services s JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_2' AND s.description='service_2' AND s.enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    service_2 on host_2 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
 
