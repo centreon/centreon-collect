@@ -363,7 +363,7 @@ void stream::_load_caches() {
 
   /* resources => _resources_cache */
   _mysql.run_query_and_get_result(
-      "SELECT resource_id, id, parent_id FROM resources",
+      "SELECT resource_id, id, parent_id, poller_id FROM resources",
       std::move(promise_resource));
 
   /* severities => _severity_cache */
@@ -564,8 +564,8 @@ void stream::_load_caches() {
     try {
       mysql_result res{future_resource.get()};
       while (_mysql.fetch_row(res)) {
-        _resource_cache[{res.value_as_u64(1), res.value_as_u64(2)}] =
-            res.value_as_u64(0);
+        _resource_cache[{res.value_as_u64(1), res.value_as_u64(2),
+                         res.value_as_u64(3)}] = res.value_as_u64(0);
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of resources: {}",
@@ -1173,11 +1173,11 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
           _cache_svc_cmd.erase(itt);
 
           // resources
-          auto res_it = _resource_cache.find({svc_id, host_id});
+          auto res_it = _resource_cache.find({svc_id, host_id, it->second});
           if (res_it != _resource_cache.end())
             _resource_cache.erase(res_it);
         }
-        auto res_it = _resource_cache.find({host_id, 0});
+        auto res_it = _resource_cache.find({host_id, 0, it->second});
         if (res_it != _resource_cache.end())
           _resource_cache.erase(res_it);
       }

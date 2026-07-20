@@ -261,8 +261,9 @@ class stream : public io::stream {
   std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
 
-  absl::flat_hash_set<uint32_t> _cache_deleted_instance_id;
-  std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
+  absl::flat_hash_set<uint64_t> _cache_deleted_instance_id;
+  std::unordered_map<uint64_t /*host_id*/, uint64_t /*instance_id*/>
+      _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
@@ -274,7 +275,11 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
+  absl::flat_hash_map<std::tuple<uint64_t /*id*/,
+                                 uint64_t /*parent_id*/,
+                                 uint64_t /*instance_id*/>,
+                      uint64_t>
+      _resource_cache;
 
   mutable absl::Mutex _timer_m;
   /* This is a barrier for timers. It must be locked in shared mode in the
@@ -329,11 +334,13 @@ class stream : public io::stream {
   database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _pb_host_group_insupdate;
-  database::mysql_stmt _host_group_member_delete;
+  std::unique_ptr<database::mysql_stmt_base> _host_group_member_delete;
   database::mysql_stmt _host_group_member_insert;
   database::mysql_stmt _pb_host_group_member_insert;
   database::mysql_stmt _host_insupdate;
+  database::mysql_stmt _host_update;
   database::mysql_stmt _pb_host_insupdate;
+  database::mysql_stmt _pb_host_update;
   database::mysql_stmt _host_parent_delete;
   database::mysql_stmt _host_parent_insert;
   database::mysql_stmt _pb_host_parent_delete;
@@ -347,12 +354,12 @@ class stream : public io::stream {
   database::mysql_stmt _pb_service_check_update;
   database::mysql_stmt _service_group_insupdate;
   database::mysql_stmt _pb_service_group_insupdate;
-  database::mysql_stmt _service_group_member_delete;
+  std::unique_ptr<database::mysql_stmt_base> _service_group_member_delete;
   database::mysql_stmt _service_group_member_insert;
-  database::mysql_stmt _pb_service_group_member_delete;
   database::mysql_stmt _pb_service_group_member_insert;
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _pb_service_insupdate;
+  database::mysql_stmt _pb_service_update;
   database::mysql_stmt _service_status_update;
 
   std::unique_ptr<database::mysql_stmt_base> _hscr_update;
@@ -451,6 +458,7 @@ class stream : public io::stream {
   void _process_service_status(const std::shared_ptr<io::data>& d);
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
+  void _prepare_pb_requests();
   void _process_pb_host(const std::shared_ptr<io::data>& d);
   uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
   void _process_pb_instance_configuration(const std::shared_ptr<io::data>& d);
