@@ -91,6 +91,7 @@ file_watcher::file_watcher(const std::shared_ptr<asio::io_context>& io_context,
       _impl(std::make_unique<impl>()) {}
 
 file_watcher::~file_watcher() {
+  std::lock_guard<std::mutex> lock(_mutex);
   _stop_native();
 }
 
@@ -112,6 +113,7 @@ std::shared_ptr<file_watcher> file_watcher::load(
   // the native descriptors and asio objects must only be touched from the
   // io_context thread, so start the watch there
   asio::post(*io_context, [watcher]() {
+    std::lock_guard<std::mutex> lock(watcher->_mutex);
     if (!watcher->_alive) {
       return;
     }
@@ -130,10 +132,16 @@ std::shared_ptr<file_watcher> file_watcher::load(
 
 /**
  * @brief Stop watching. After this call the object does nothing more and can be
- * deleted. Must be called from the io_context thread (asio timers and
- * descriptors are not thread safe).
+ * deleted. Thread safe: may be called from any thread. Serialized (via
+ * _mutex) with the native watch setup/teardown and event handling that
+ * otherwise all run on the io_context thread, since asio timers and
+ * descriptors are not themselves thread safe.
  */
 void file_watcher::stop() {
+  std::lock_guard<std::mutex> lock(_mutex);
+  if (!_alive) {
+    return;
+  }
   _alive = false;
   _debounce_timer.cancel();
   _stop_native();
@@ -162,8 +170,11 @@ void file_watcher::_schedule_change() {
  * rescheduled by a new event or cancelled by stop()
  */
 void file_watcher::_debounce_handler(const boost::system::error_code& err) {
-  if (err || !_alive) {
-    return;
+  {
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (err || !_alive) {
+      return;
+    }
   }
   SPDLOG_LOGGER_DEBUG(_logger, "file {} has changed", _watched_path.string());
   try {
@@ -234,10 +245,12 @@ void file_watcher::_arm_native() {
   }
   _impl->event_handle->async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
-        me->_on_native_event();
-        if (!err) {
-          me->_arm_native();
+        if (err) {
+          return;
         }
+        std::lock_guard<std::mutex> lock(me->_mutex);
+        me->_on_native_event();
+        me->_arm_native();
       });
 }
 
@@ -349,6 +362,7 @@ void file_watcher::_arm_native() {
         if (err) {
           return;
         }
+        std::lock_guard<std::mutex> lock(me->_mutex);
         me->_on_native_event();
         me->_arm_native();
       });

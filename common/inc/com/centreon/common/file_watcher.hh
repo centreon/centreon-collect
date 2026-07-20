@@ -20,6 +20,7 @@
 #define CCCM_FILE_WATCHER_HH
 
 #include <filesystem>
+#include <mutex>
 
 namespace com::centreon::common {
 
@@ -41,6 +42,12 @@ namespace com::centreon::common {
  * If the native watch cannot be established (parent directory missing, inotify
  * limit reached, directory open failure, ...) an error is logged and the
  * watcher stays inert: it never calls on_change.
+ *
+ * stop() may be called from any thread (this is the only method callers may
+ * invoke from outside the io_context thread): a mutex serializes it with the
+ * native watch setup/teardown and event handling that otherwise all run on the
+ * io_context thread, so a concurrent stop() can't race a handle being armed or
+ * used. The on_change handler itself is invoked without the lock held.
  */
 class file_watcher : public std::enable_shared_from_this<file_watcher> {
  public:
@@ -61,6 +68,7 @@ class file_watcher : public std::enable_shared_from_this<file_watcher> {
   on_change_handler _on_change;
   std::unique_ptr<impl> _impl;
   bool _alive = true;
+  std::mutex _mutex;
 
   bool _start_native() noexcept;
   void _arm_native();
