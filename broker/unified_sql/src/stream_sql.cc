@@ -4245,7 +4245,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       SPDLOG_LOGGER_INFO(
           _logger_sql,
           "SQL: no need to remove service ({}, {}), it is not in "
-          "database or is not owned py poller {}",
+          "database or is not owned by poller {}",
           s.host_id(), s.service_id(), s.instance_id());
     }
   }
