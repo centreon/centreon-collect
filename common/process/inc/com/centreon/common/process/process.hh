@@ -19,7 +19,6 @@
 #ifndef CENTREON_COMMON_PROCESS_HH
 #define CENTREON_COMMON_PROCESS_HH
 
-#include <memory>
 #include "boost/process/v2/environment.hpp"
 #include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/process_args.hh"
