@@ -898,6 +898,14 @@ sub create_httpserver_child {
     $httpserver = { pid => $child_pid, ready => 0, running => 1 };
 }
 
+sub get_id_from_uid {
+    my $target = shift;
+    if ($register_nodes->{$target}->{uid} eq $target) {
+        return $register_nodes->{$target}->{id};
+    }
+    return $target;
+}
+
 sub pull_request {
     my (%options) = @_;
 
@@ -905,7 +913,7 @@ sub pull_request {
         action => $options{action},
         raw_data_ref => $options{raw_data_ref},
         token => $options{token},
-        target => $options{target}
+        target => get_id_from_uid($options{target})
     );
 
     if (!defined($register_nodes->{ $options{target_parent} }->{identity})) {
