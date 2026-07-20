@@ -40,7 +40,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "engine/src/notifications/notification_manager.hh"
+#include "common/notifications/notification_manager.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
@@ -62,6 +62,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
+#include "com/centreon/common/deferred_dlclose.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
@@ -527,10 +528,6 @@ int main(int argc, char* argv[]) {
   g_io_context->stop();
   com::centreon::common::pool::unload();
   notifications::notification_manager::unload();
-  /* Destroy the timeperiods at a controlled point (they are a global now, no
-   * more timeperiod_manager) so it does not happen during static destruction.
-   */
-  ::timeperiods.clear();
   downtimes::downtime_manager::unload();
   stop_rpc_server();
 
