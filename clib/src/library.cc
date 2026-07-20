@@ -122,6 +122,19 @@ void (*library::resolve_proc(std::string const& symbol))() {
 }
 
 /**
+ *  Give up ownership of the underlying dlopen() handle: the library is not
+ *  unloaded and the destructor will not dlclose() it anymore. The caller
+ *  becomes responsible for the returned handle.
+ *
+ *  @return The dlopen() handle, nullptr if the library is not loaded.
+ */
+void* library::release() noexcept {
+  void* retval = _handle;
+  _handle = nullptr;
+  return retval;
+}
+
+/**
  *  Unload the library.
  */
 void library::unload() {

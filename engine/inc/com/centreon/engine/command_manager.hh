@@ -41,6 +41,7 @@ class command_manager {
  public:
   static command_manager& instance();
   void enqueue(std::packaged_task<int()>&& f);
+  void clear();
 
   int process_passive_service_check(time_t check_time,
                                     const std::string& host_name,

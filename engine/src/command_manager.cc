@@ -52,6 +52,17 @@ void command_manager::enqueue(std::packaged_task<int(void)>&& f) {
 }
 
 /**
+ * @brief Drop the tasks still waiting in the queue. Called at shutdown: tasks
+ * may have been enqueued by modules (e.g. libopentelemetry.so), so they must
+ * be destroyed before the deferred dlclose() unmaps the code they point to,
+ * not later in the static destructor of this singleton.
+ */
+void command_manager::clear() {
+  std::lock_guard<std::mutex> lock(_queue_m);
+  _queue.clear();
+}
+
+/**
  * @brief Executes external commands stored in _queue.
  *
  */

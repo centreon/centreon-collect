@@ -38,10 +38,12 @@ namespace po = boost::program_options;
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 
+#include "com/centreon/common/deferred_dlclose.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
@@ -505,6 +507,25 @@ int main(int argc, char* argv[]) {
   g_io_context->stop();
   com::centreon::common::pool::unload();
   stop_rpc_server();
+
+  /* Destroy the configuration objects (hosts, services, commands,
+   * timeperiods, ...) at a controlled point instead of during static
+   * destruction: destroying them can reach code living in the loaded
+   * modules (e.g. otel_connector's check result builders are implemented in
+   * libopentelemetry.so), so it must happen before the deferred dlclose(). */
+  configuration::applier::state::instance().clear();
+
+  /* Same constraint for the tasks still waiting in the command_manager
+   * queue: they may have been enqueued by libopentelemetry.so, and their
+   * destruction goes through vtables living in that library. */
+  command_manager::instance().clear();
+
+  /* The io_context is shared with the broker modules (externalcmd, cbmod
+   * outputs): services they registered in it are destroyed by ~io_context,
+   * so it must be destroyed while their libraries are still mapped. Only
+   * then can the deferred dlclose() run. */
+  g_io_context.reset();
+  com::centreon::common::run_deferred_dlclose();
 
   return retval;
 }
