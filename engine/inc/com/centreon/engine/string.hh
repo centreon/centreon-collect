@@ -68,16 +68,6 @@ inline char* dup(const std::string_view& value) {
 }
 
 template <typename T>
-inline char* dup(T value) {
-  std::ostringstream oss;
-  oss << value;
-  std::string const& str(oss.str());
-  char* buf(new char[str.size() + 1]);
-  memcpy(buf, str.c_str(), str.size() + 1);
-  return buf;
-}
-
-template <typename T>
 std::string from(T value) {
   std::ostringstream oss;
   oss << value;
