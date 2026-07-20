@@ -17,12 +17,19 @@
  */
 
 #include <gtest/gtest.h>
+#include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/process_args.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/aes256.hh"
 
 #include "com/centreon/common/process/process.hh"
+
+#ifndef _WIN32
+#include <dirent.h>
+#include <sys/resource.h>
+#endif
 
 using namespace com::centreon::common;
 
@@ -133,6 +140,73 @@ TEST_F(process_test, echo) {
   EXPECT_EQ(to_wait->get_stdout(), "hello" END_OF_LINE);
   EXPECT_EQ(to_wait->get_stderr(), "");
 }
+
+#ifndef _WIN32
+
+namespace {
+/**
+ * @brief Counts the number of file descriptors currently opened by this
+ * process, by listing /proc/self/fd.
+ */
+static unsigned count_open_fds() {
+  unsigned count = 0;
+  DIR* dir = opendir("/proc/self/fd");
+  if (dir) {
+    struct dirent* elem = readdir(dir);
+    while (elem) {
+      if (elem->d_type != DT_DIR) {
+        ++count;
+      }
+      elem = readdir(dir);
+    }
+    closedir(dir);
+    return count - 1;
+  }
+  return 0;
+}
+
+/**
+ * @brief RAII helper that restores the RLIMIT_NOFILE soft limit on
+ * destruction, even if the test fails before reaching the end of its body.
+ */
+class rlimit_nofile_guard {
+ public:
+  rlimit_nofile_guard() { getrlimit(RLIMIT_NOFILE, &_original); }
+  ~rlimit_nofile_guard() { setrlimit(RLIMIT_NOFILE, &_original); }
+
+  const struct rlimit& original() const { return _original; }
+
+ private:
+  struct rlimit _original;
+};
+}  // namespace
+
+/**
+ * @brief Lowers the number of file descriptors this process is allowed to
+ * open, just enough so the stdin/stdout/stderr pipes of the child process
+ * can still be created, but not enough for the additional pidfd_open() call
+ * used to watch the child process. We then check that an exception is thrown
+ * ⚠️ This test can't be launched alone, another process_test must be launched
+ * before in order to initialize asio fds
+ */
+TEST_F(process_test, pidfd_open_failure) {
+  using namespace std::literals;
+
+  rlimit_nofile_guard rlimit_guard;
+
+  struct rlimit low_limit = rlimit_guard.original();
+  // 3 pipes (stdin, stdout, stderr) need 2 file descriptors each to be
+  // created: that leaves no room left for the pidfd_open() call.
+  low_limit.rlim_cur = count_open_fds() + 6;
+  ASSERT_EQ(setrlimit(RLIMIT_NOFILE, &low_limit), 0);
+
+  std::shared_ptr<process_wait> to_wait(
+      new process_wait(g_io_context, _logger, ECHO_PATH, {"hello"s}));
+
+  EXPECT_THROW(to_wait->start_process(), com::centreon::exceptions::msg_fmt);
+}
+
+#endif  // !_WIN32
 
 TEST_F(process_test, throw_on_error) {
   using namespace std::literals;
