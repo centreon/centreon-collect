@@ -1426,7 +1426,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
     if (!_host_group_member_delete) {
-      _host_group_member_delete = std::make_unique<database::mysql_bulk_stmt>(
+      _host_group_member_delete = std::make_unique<database::mysql_stmt>(
           "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
           "hosts_hostgroups.host_id=hosts.host_id "
           "WHERE hosts_hostgroups.host_id=? and hostgroup_id = ? and "
@@ -1534,7 +1534,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
     if (!_host_group_member_delete) {
-      _host_group_member_delete = std::make_unique<database::mysql_bulk_stmt>(
+      _host_group_member_delete = std::make_unique<database::mysql_stmt>(
           "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
           "hosts_hostgroups.host_id=hosts.host_id "
           "WHERE hosts_hostgroups.host_id=? and hostgroup_id = ? and "
@@ -1599,7 +1599,11 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
         _mysql.run_statement(_host_insupdate, database::mysql_error::store_host,
                              conn);
       } else {
-        _cache_host_instance.erase(h.host_id);
+        auto cache_to_delete = _cache_host_instance.find(h.host_id);
+        if (cache_to_delete != _cache_host_instance.end() &&
+            cache_to_delete->second == h.poller_id) {
+          _cache_host_instance.erase(cache_to_delete);
+        }
         _host_update << h;
         _mysql.run_statement(_host_update, database::mysql_error::store_host,
                              conn);
@@ -2445,8 +2449,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       // Fill the cache...
       if (h.enabled())
         _cache_host_instance[h.host_id()] = h.instance_id();
-      else
-        _cache_host_instance.erase(h.host_id());
+      else {
+        auto cache_to_delete = _cache_host_instance.find(h.host_id());
+        if (cache_to_delete != _cache_host_instance.end() &&
+            cache_to_delete->second == h.instance_id()) {
+          _cache_host_instance.erase(cache_to_delete);
+        }
+      }
 
       if (_store_in_resources) {
         _process_pb_host_in_resources(h, conn);
@@ -2461,7 +2470,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
 }
 
 uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
-  auto found = _resource_cache.find({h.host_id(), 0});
+  auto found = _resource_cache.find({h.host_id(), 0, h.instance_id()});
 
   uint64_t res_id = 0;
   if (h.enabled()) {
@@ -2542,7 +2551,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
     _add_action(conn, actions::resources);
     try {
       res_id = future.get();
-      _resource_cache.insert({{h.host_id(), 0}, res_id});
+      _resource_cache.insert({{h.host_id(), 0, h.instance_id()}, res_id});
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_CRITICAL(_logger_sql,
                              "SQL: unable to insert new host resource {}: {}",
@@ -2579,9 +2588,10 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _resource_cache.erase(found);
       _add_action(conn, actions::resources);
     } else {
-      SPDLOG_LOGGER_INFO(
-          _logger_sql, "SQL: no need to remove host {}, it is not in database",
-          h.host_id());
+      SPDLOG_LOGGER_INFO(_logger_sql,
+                         "SQL: no need to remove host {}, it is not in "
+                         "database or is not owned by poller {}",
+                         h.host_id(), h.instance_id());
     }
   }
   return res_id;
@@ -3857,15 +3867,14 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
     if (!_service_group_member_delete) {
-      _service_group_member_delete =
-          std::make_unique<database::mysql_bulk_stmt>(
-              "DELETE services_servicegroups FROM services_servicegroups "
-              "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-              "WHERE "
-              "services_servicegroups.servicegroup_id=? AND "
-              "services_servicegroups.host_id=? AND "
-              "services_servicegroups.service_id=? AND "
-              "(hosts.instance_id=? OR hosts.instance_id is NULL)");
+      _service_group_member_delete = std::make_unique<database::mysql_stmt>(
+          "DELETE services_servicegroups FROM services_servicegroups "
+          "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+          "WHERE "
+          "services_servicegroups.servicegroup_id=? AND "
+          "services_servicegroups.host_id=? AND "
+          "services_servicegroups.service_id=? AND "
+          "(hosts.instance_id=? OR hosts.instance_id is NULL)");
       _mysql.prepare_statement(*_service_group_member_delete);
     }
 
@@ -3965,15 +3974,14 @@ void stream::_process_pb_service_group_member(
                        sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
                        sgm.poller_id());
     if (!_service_group_member_delete) {
-      _service_group_member_delete =
-          std::make_unique<database::mysql_bulk_stmt>(
-              "DELETE services_servicegroups FROM services_servicegroups "
-              "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-              "WHERE "
-              "services_servicegroups.servicegroup_id=? AND "
-              "services_servicegroups.host_id=? AND "
-              "services_servicegroups.service_id=? AND "
-              "(hosts.instance_id=? OR hosts.instance_id is NULL)");
+      _service_group_member_delete = std::make_unique<database::mysql_stmt>(
+          "DELETE services_servicegroups FROM services_servicegroups "
+          "LEFT JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+          "WHERE "
+          "services_servicegroups.servicegroup_id=? AND "
+          "services_servicegroups.host_id=? AND "
+          "services_servicegroups.service_id=? AND "
+          "(hosts.instance_id=? OR hosts.instance_id is NULL)");
       _mysql.prepare_statement(*_service_group_member_delete);
     }
 
@@ -4113,7 +4121,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
                                                   int32_t conn) {
   uint64_t res_id = 0;
 
-  auto found = _resource_cache.find({s.service_id(), s.host_id()});
+  auto found =
+      _resource_cache.find({s.service_id(), s.host_id(), s.instance_id()});
 
   if (s.enabled()) {
     uint64_t sid = 0;
@@ -4194,7 +4203,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
     _add_action(conn, actions::resources);
     try {
       res_id = future.get();
-      _resource_cache.insert({{s.service_id(), s.host_id()}, res_id});
+      _resource_cache.insert(
+          {{s.service_id(), s.host_id(), s.instance_id()}, res_id});
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_CRITICAL(
           _logger_sql,
@@ -4235,8 +4245,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       SPDLOG_LOGGER_INFO(
           _logger_sql,
           "SQL: no need to remove service ({}, {}), it is not in "
-          "database",
-          s.host_id(), s.service_id());
+          "database or is not owned py poller {}",
+          s.host_id(), s.service_id(), s.instance_id());
     }
   }
   return res_id;

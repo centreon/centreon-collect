@@ -185,7 +185,8 @@ On clean shutdown, `save_to_cache()` serializes all `service_state` snapshots in
    - `service_status` / `pb_service_status` / `pb_service` → feeds `kpi_service`
    - `acknowledgement` / `pb_acknowledgement` → updates acknowledged state
    - `downtime` / `pb_downtime` → propagates downtime to BAs and KPIs
-   - `rebuild` → triggers a full reload of the computable tree
+
+   It also **produces** a `rebuild` event: on `update()`, `_rebuild()` queries `mod_bam` for BAs flagged `must_be_rebuild='1'` and publishes a `rebuild` event listing their IDs. `reporting_stream` is the consumer — its `_process_rebuild()` uses it to trigger an availability rebuild.
 
 2. **Maintains** the computable tree in memory via `configuration::applier::state`, which is populated from the `centreon` database at startup and on `update()`.
 
@@ -203,10 +204,12 @@ On clean shutdown, `save_to_cache()` serializes all `service_state` snapshots in
 
 ```
 monitoring_stream()
-  └── _prepare()        -- prepare SQL statements
-  └── update()          -- load configuration from DB, build computable tree
-  └── _read_cache()     -- restore inherited downtimes from persistent cache
-  └── initialize()      -- publish initial states of all BAs/KPIs
+  └── _prepare()          -- prepare SQL statements
+  └── update()
+        ├── _applier.apply()  -- load configuration from DB, build computable tree
+        ├── _rebuild()        -- publish a rebuild event for BAs flagged must_be_rebuild
+        ├── initialize()      -- publish initial states of all BAs/KPIs
+        └── _read_cache()     -- restore inherited downtimes from persistent cache
 ```
 
 ### Initial event restoration (`set_initial_event`)
@@ -251,10 +254,13 @@ monitoring_stream::initialize()
 
 | Event type | Method | Target table |
 |------------|--------|--------------|
-| `ba_event` / `pb_ba_event` | `_process_ba_event` | `mod_bam_reporting_ba_events` |
-| `ba_duration_event` / `pb_ba_duration_event` | `_process_ba_duration_event` | `mod_bam_reporting_ba_events_durations` |
-| `kpi_event` / `pb_kpi_event` | `_process_kpi_event` | `mod_bam_reporting_kpi_events` |
-| Dimension events | `_process_pb_dimension` | `mod_bam_reporting_ba`, `_bv`, `_kpi`, `_timeperiods`, … |
+| `ba_event` | `_process_ba_event` | `mod_bam_reporting_ba_events` |
+| `pb_ba_event` | `_process_pb_ba_event` | `mod_bam_reporting_ba_events` |
+| `pb_ba_duration_event` | `_process_pb_ba_duration_event` | `mod_bam_reporting_ba_events_durations` |
+| `kpi_event` | `_process_kpi_event` | `mod_bam_reporting_kpi_events` |
+| `pb_kpi_event` | `_process_pb_kpi_event` | `mod_bam_reporting_kpi_events` |
+| Dimension events (legacy) | `_process_dimension` | `mod_bam_reporting_ba`, `_bv`, `_kpi`, `_timeperiods`, … |
+| Dimension events (`pb_dimension_*`) | `_process_pb_dimension` | `mod_bam_reporting_ba`, `_bv`, `_kpi`, `_timeperiods`, … |
 | `rebuild` | `_process_rebuild` | triggers availability rebuild |
 
 Dimension events carry the configuration snapshot (BA names, BV memberships, KPI definitions, time periods). They are received at startup or after a configuration change and used to populate the `mod_bam_reporting_*` dimension tables.
