@@ -34,9 +34,10 @@ set(UNIFIED_SQL
 add_library(
   "${UNIFIED_SQL}" SHARED
   # Sources.
-  ${SRC_DIR}/bulk_queries.cc
   ${SRC_DIR}/bulk_bind.cc
+  ${SRC_DIR}/bulk_queries.cc
   ${SRC_DIR}/connector.cc
+  ${SRC_DIR}/database_configurator.cc
   ${SRC_DIR}/factory.cc
   ${SRC_DIR}/main.cc
   ${SRC_DIR}/rebuilder.cc
@@ -48,6 +49,7 @@ add_library(
   ${INC_DIR}/bulk_queries.hh
   ${INC_DIR}/bulk_bind.hh
   ${INC_DIR}/connector.hh
+  ${INC_DIR}/database_configurator.hh
   ${INC_DIR}/events.hh
   ${INC_DIR}/factory.hh
   ${INC_DIR}/internal.hh
@@ -62,7 +64,7 @@ add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
 		 process_stat
                  pb_neb_lib
                  pb_open_telemetry_lib)
-target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hh)
 target_link_libraries(
   ${UNIFIED_SQL} PRIVATE
   bbdo_storage

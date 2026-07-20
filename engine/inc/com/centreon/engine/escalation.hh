@@ -19,7 +19,6 @@
 #define CCE_ESCALATION_HH
 
 #include "com/centreon/engine/notifier.hh"
-#include "com/centreon/engine/shared.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -31,7 +30,7 @@ class escalation {
   double _notification_interval;
   std::string _escalation_period;
   uint32_t _escalate_on;
-  contactgroup_map_unsafe _contact_groups;
+  contactgroup_map _contact_groups;
   const size_t _internal_key;
 
  public:
@@ -56,8 +55,8 @@ class escalation {
   virtual bool is_viable(int state, uint32_t notification_number) const;
   size_t internal_key() const;
 
-  contactgroup_map_unsafe const& get_contactgroups() const;
-  contactgroup_map_unsafe& get_contactgroups();
+  const contactgroup_map& get_contactgroups() const;
+  contactgroup_map& get_contactgroups();
   virtual void resolve(uint32_t& w, uint32_t& e);
 
   notifier* notifier_ptr;

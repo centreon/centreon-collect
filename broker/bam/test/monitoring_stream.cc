@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "bbdo/bam/ba_status.hh"
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "common/log_v2/log_v2.hh"
@@ -32,7 +32,8 @@ using namespace com::centreon::broker::bam;
 
 class BamMonitoringStream : public testing::Test {
   void SetUp() override {
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
+                          0);
   }
   void TearDown() override { config::applier::deinit(); }
 };

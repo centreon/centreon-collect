@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/broker/stats/parser.hh"
-#include <nlohmann/json.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

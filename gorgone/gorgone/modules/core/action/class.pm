@@ -35,6 +35,7 @@ use POSIX ":sys_wait_h";
 use MIME::Base64;
 use Digest::MD5::File qw(file_md5_hex);
 use Archive::Tar;
+use Text::ParseWords;
 use Fcntl;
 use Try::Tiny;
 use EV;
@@ -387,14 +388,21 @@ sub action_command {
         }
 
         if ($self->is_command_authorized(command => $command->{command})) {
-            $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $command->{command});
+            my $commandtolog = $command->{command};
+            unless ($self->{logger}->is_debug()) {
+                my @commands = shellwords($command->{command});
+                $commandtolog = $commands[0];
+                $commandtolog .= ' ...' if @commands > 1;
+            }
+
+            $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $commandtolog);
             $self->send_log(
                 socket => $options{socket_log},
                 code => GORGONE_ACTION_FINISH_KO,
                 token => $options{token},
                 logging => $options{data}->{logging},
                 data => {
-                    message => "command not allowed (whitelist) at array index '$index' : $command->{command}"
+                    message => "command not allowed (whitelist) at array index '$index' : $commandtolog"
                 }
             );
             return -1;
@@ -456,6 +464,7 @@ sub action_command {
         my ($error, $stdout, $return_code) = gorgone::standard::misc::backtick(
             command => $command->{command},
             timeout => (defined($command->{timeout})) ? $command->{timeout} : $self->{command_timeout},
+            no_shell_interpretation => (defined($command->{no_shell_interpretation})) ? $command->{no_shell_interpretation} : undef,
             wait_exit => 1,
             redirect_stderr => 1,
             logger => $self->{logger}
@@ -635,7 +644,6 @@ sub action_processcopy {
                     $self->{logger}->writeLogError("[action] Copy processing - Can't copy file to $dest_filename, $!");
                     return -1
                 }
-
                 my $uid = getpwnam($options{data}->{content}->{owner});
                 my $gid = getgrnam($options{data}->{content}->{group});
                 my $chown_status = chown($uid, $gid, $dest_filename);
@@ -643,6 +651,10 @@ sub action_processcopy {
                 # this should be logged but not quiting the sub, as most of the time it will fail, as we can't change ownership as centreon-gorgone user.
                 if ($chown_status == 0) {
                     $self->{logger}->writeLogError("[action] Copy processing - can't change permission of file $dest_filename: $!");
+                }
+                if ($options{data}->{content}->{mode}) {
+                    chmod(oct($options{data}->{content}->{mode}), $dest_filename) or
+                        $self->{logger}->writeLogError("[action] Copy processing - can't change mode of file $dest_filename: $!");
                 }
             }
         } else {
@@ -698,14 +710,21 @@ sub action_actionengine {
     }
 
     if ($self->is_command_authorized(command => $options{data}->{content}->{command})) {
-        $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $options{data}->{content}->{command});
+        my $commandtolog = $options{data}->{content}->{command};
+        unless ($self->{logger}->is_debug()) {
+            my @commands = shellwords($options{data}->{content}->{command});
+            $commandtolog = $commands[0];
+            $commandtolog .= ' ...' if @commands > 1;
+        }
+
+        $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $commandtolog);
         $self->send_log(
             socket => $options{socket_log},
             code => GORGONE_ACTION_FINISH_KO,
             token => $options{token},
             logging => $options{data}->{logging},
             data => {
-                message => 'command not allowed (whitelist)' . $options{data}->{content}->{command}
+                message => 'command not allowed (whitelist)' . $commandtolog
             }
         );
         return -1;
@@ -913,3 +932,82 @@ sub run {
 }
 
 1;
+
+=head1 METHODS
+
+=head2 action_command
+
+ my $status_code = $self->action_command(%options)
+
+Run a list of commands, after installing required packages if necessary.
+
+=over 4
+
+=item C<%options> - A hash of options. The following keys are supported:
+
+=over 4
+
+=item C<token> (required): Token of the request.
+
+=item C<socket_log> (required):
+ZMQ socket used for logging the result of the command execution.
+
+=item C<data> (hash reference):
+Contains the list of commands to run and their associated metadata.
+
+=over 4
+
+=item C<content> (array reference):
+List of commands to execute. Each entry is a hash reference with the following keys:
+
+=over 4
+
+=item C<command> (required): The command to execute.
+
+=item C<timeout> (default: 30): Timeout for the command execution, in seconds.
+
+can be overridden in the Gorgone configuration file.
+
+=item C<no_shell_interpretation> (default: false):
+
+If set to true (1), the command will be executed without shell interpretation.
+
+if set to false (0 or undef) commands are interpreted by the shell.
+
+=item C<continue_on_error> (optional):
+
+If set to 0, command execution will stop on the first error.
+
+Default is undef, meaning execution will continue even if an error occurs.
+
+=item C<metadata> (optional, hash reference):
+Additional metadata for the command.
+
+=over 2
+
+=item C<pkg_install> (optional, hash reference):
+List of plugins/packages to install before running the command.
+
+=back
+
+=back
+
+=back
+
+=back
+
+=back
+
+=head3 Returns
+
+=over 4
+
+=item Sends a ZMQ event on the C<socket_log> with the result of the command execution.
+
+=item Return 0 if all commands have been executed successfully.
+
+=item Return -1 if an error occurred during execution or if one of the commands is not allowed by the whitelist.
+
+=back
+
+=cut

@@ -22,6 +22,8 @@
 import Common
 import grpc
 import math
+import glob
+from pathlib import Path
 from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.json_format import MessageToDict
@@ -34,7 +36,7 @@ from array import array
 from dateutil import parser
 import datetime
 from os import makedirs, chmod
-from os.path import exists, dirname, basename
+from os.path import exists, dirname
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 import db_conf
@@ -46,6 +48,7 @@ import re
 import stat
 import string
 import json
+import os
 
 
 sys.path.append('.')
@@ -62,8 +65,7 @@ def import_robot_resources():
         CONF_DIR = ETC_ROOT + "/centreon-engine"
         ENGINE_HOME = f"{VAR_ROOT}/lib/centreon-engine"
     except RobotNotRunningError:
-        # Handle this case if Robot Framework is not running
-        print("Robot Framework is not running. Skipping resource import.")
+        pass  # Robot Framework is not running, skip resource import.
 
 
 VAR_ROOT = ""
@@ -74,26 +76,137 @@ TIMEOUT = 30
 import_robot_resources()
 
 
+def _truncate_line(line: str, max_len: int = 120) -> str:
+    """Return line truncated to max_len, preserving start and end with ... in the middle."""
+    if len(line) <= max_len:
+        return line
+    keep = (max_len - 3) // 2
+    return line[:keep] + '...' + line[len(line) - keep:]
+
+
 class EngineInstance:
-    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False, centralized: bool = False):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
+        self.service_by_host = srv_by_host
         self.last_host_id = 0
         self.last_host_group_id = 0
         self.commands_count = 50
         self.instances = count
         self.host_cmd = {}
         self.service_cmd = {}
+        self.centralized = centralized
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host)
+        if centralized:
+            self.config_dir = f"{VAR_ROOT}/lib/centreon/config"
+        else:
+            self.config_dir = CONF_DIR
+
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
-        makedirs(CONF_DIR, mode=0o777, exist_ok=True)
         makedirs(ENGINE_HOME, mode=0o777, exist_ok=True)
-        makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
+        if exists(CONF_DIR):
+            for item in glob.glob(f"{CONF_DIR}/*"):
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+        else:
+            makedirs(CONF_DIR, mode=0o777, exist_ok=True)
+
+        if exists(f"{VAR_ROOT}/lib/centreon/config"):
+            for item in glob.glob(f"{VAR_ROOT}/lib/centreon/config/*"):
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+        else:
+            makedirs(f"{VAR_ROOT}/lib/centreon/config",
+                     mode=0o777, exist_ok=True)
+        # Wipe the engine runtime dir but keep the rw/ subdirectory: it holds
+        # the live external command FIFO of an already-running engine when
+        # Ctn Config Engine is called again to reconfigure before a reload. The
+        # engine does not recreate the FIFO on reload (open_command_file returns
+        # early once command_file_created is set), so deleting it would leave the
+        # command pipe gone and external commands silently lost.
+        engine_var_dir = f"{VAR_ROOT}/lib/centreon-engine/config0"
+        if exists(engine_var_dir):
+            for item in glob.glob(f"{engine_var_dir}/*"):
+                if os.path.basename(item) == "rw":
+                    continue
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+
+        makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
+        self.build_configs(hosts, srv_by_host, centralized, 0, bash_checks)
+
+    def update_configs(self, inst: int, hosts: int, services_by_host: int, bash_checks: bool = False):
+        """
+            update_configs Update the configuration of an existing Instance.
+            This method only works with centralized configuration.
+
+            Args:
+                inst (int): Poller instance ID
+                hosts (int): Number of hosts
+                services_by_host (int): Number of services by host
+                bash_checks (bool, optional): Use bash checks. Defaults to False.
+        """
+        self.last_service_id = 0
+        self.hosts = []
+        self.services = []
+        self.service_by_host = services_by_host
+        self.last_host_id = 0
+        self.last_host_group_id = 0
+        self.commands_count = 50
+        self.instances = inst
+        self.host_cmd = {}
+        self.service_cmd = {}
+        self.centralized = True
+        self.anomaly_detection_internal_id = 1
+        self.config_dir = f"{VAR_ROOT}/lib/centreon/config"
+
+        if exists(f"{VAR_ROOT}/lib/centreon/config"):
+            # Save cfg files before wiping, for debugging purposes.
+            now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            history_base = f"{VAR_ROOT}/lib/centreon/config_history"
+            for item in glob.glob(f"{VAR_ROOT}/lib/centreon/config/*"):
+                if os.path.isdir(item):
+                    cfg_files = glob.glob(f"{item}/*.cfg")
+                    if cfg_files:
+                        sav_dir = f"{history_base}/{os.path.basename(item)}/{now}"
+                        makedirs(sav_dir, mode=0o777, exist_ok=True)
+                        for f in cfg_files:
+                            shutil.copy(f, sav_dir)
+                        logger.console(f"Saved {len(cfg_files)} cfg files to {sav_dir}")
+            for item in glob.glob(f"{VAR_ROOT}/lib/centreon/config/*"):
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+        else:
+            makedirs(f"{VAR_ROOT}/lib/centreon/config",
+                     mode=0o777, exist_ok=True)
+
+        self.build_configs(hosts, services_by_host, True, 0, bash_checks, create_lck=False)
+
+    def get_config_dir(self, inst: int):
+        """
+        get_config_dir Returns the configuration directory for the given instance.
+
+        Args:
+            inst (int): Poller instance ID
+
+        Get the configuration directory for the engine instance
+        """
+        if self.centralized:
+            return f"{self.config_dir}/{inst + 1}"
+        else:
+            return f"{self.config_dir}/config{inst}"
 
     def _create_centengine(self, id: int, debug_level=0):
         """
@@ -112,6 +225,7 @@ class EngineInstance:
                 "#cfg_file={2}/config{0}/contactgroups.cfg\n"
                 "#cfg_file={2}/config{0}/contacts.cfg\n"
                 "cfg_file={2}/config{0}/hostgroups.cfg\n"
+                "cfg_file={2}/config{0}/servicegroups.cfg\n"
                 "cfg_file={2}/config{0}/timeperiods.cfg\n"
                 "#cfg_file={2}/config{0}/escalations.cfg\n"
                 "#cfg_file={2}/config{0}/dependencies.cfg\n"
@@ -224,17 +338,20 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def _create_service(self, host_id: int, cmd_ids: int):
+    def _create_service(self, host_id: int, cmd_ids):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
         self.service_cmd[service_id] = "command_{}".format(command_id)
 
-        retval = """define service {{
-    host_name                       host_{0}
-    service_description             service_{1}
-    _SERVICE_ID                     {1}
-    check_command                   {2}
+        return self.define_service(host_id, service_id, f"service_{service_id}", self.service_cmd[service_id])
+
+    def define_service(self, host_id: int, service_id: int, service_description: str, command_name: str):
+        return f"""define service {{
+    host_name                       host_{host_id}
+    service_description             {service_description}
+    _SERVICE_ID                     {service_id}
+    check_command                   {command_name}
     check_period                    24x7
     max_check_attempts              3
     check_interval                  5
@@ -242,10 +359,40 @@ class EngineInstance:
     register                        1
     active_checks_enabled           1
     passive_checks_enabled          1
-    _KEY_SERV{0}_{1}                VAL_SERV{1}
+    _KEY_SERV{host_id}_{service_id}                VAL_SERV{service_id}
 }}
-""".format(
-            host_id, service_id, self.service_cmd[service_id])
+"""
+
+    def _create_service_with_sh_command(self, host_id: int, service_index_in_host: int):
+        """
+            Create a service that uses command_{host_id}_{service_index_in_host}
+            if service_id is a multiple of 10, we set _KO macro and check.sh will return 1
+        """
+        self.last_service_id += 1
+        service_id = self.last_service_id
+        cmd = f"command_{host_id}_{service_index_in_host}"
+        self.service_cmd[service_id] = cmd
+
+        retval = f"""define service {{
+    host_name                       host_{host_id}
+    service_description             service_{service_id}
+    _SERVICE_ID                     {service_id}
+    check_command                   {cmd}
+    check_period                    24x7
+    max_check_attempts              3
+    check_interval                  1
+    retry_interval                  1
+    register                        1
+    active_checks_enabled           1
+    passive_checks_enabled          1
+    _VAR1                           VAL_SERV_{host_id}_{service_id}
+    _VAR2                           VAL_HOST_{host_id}
+"""
+        # for all service_id multiple of 10, check.sh exit with 1
+        if service_id % 10 == 0:
+            retval += "    _KO                             KO\n"
+
+        retval += "}\n"
         return retval
 
     def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
@@ -256,18 +403,19 @@ class EngineInstance:
         """
         self.last_service_id += 1
         service_id = self.last_service_id
-        retval = """define anomalydetection {{
-    host_id {0}
-    host_name host_{0}
-    internal_id {4}
-    service_id {1}
-    service_description      anomaly_{1}
-    dependent_service_id {2}
-    metric_name {3}
-    sensitivity {5}
+        retval = f"""define anomalydetection {{
+    host_id {host_id}
+    host_name host_{host_id}
+    internal_id {self.anomaly_detection_internal_id}
+    service_id {service_id}
+    service_description      anomaly_{service_id}
+    dependent_service_id {dependent_service_id}
+    metric_name {metric_name}
+    sensitivity {sensitivity}
     status_change 1
     thresholds_file /tmp/anomaly_threshold.json
-}} """.format(host_id, service_id, dependent_service_id, metric_name, self.anomaly_detection_internal_id, sensitivity)
+}}
+"""
         self.anomaly_detection_internal_id += 1
         return retval
 
@@ -290,8 +438,8 @@ class EngineInstance:
   saturday                       00:00-24:00
 }
 """
-        config_dir = "{}/config0".format(CONF_DIR)
-        with open(f"{config_dir}/centreon-bam-timeperiod.cfg", "a+") as ff:
+        conf_dir = self.get_config_dir(0)
+        with open(f"{conf_dir}/centreon-bam-timeperiod.cfg", "a+") as ff:
             ff.write(retval)
 
     def create_bam_command(self):
@@ -311,13 +459,12 @@ define command {{
   command_line                   /usr/lib64/nagios/plugins//check_ping -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1
 }}
 """
-        config_dir = "{}/config0".format(CONF_DIR)
-        with open(f"{config_dir}/centreon-bam-command.cfg", "a+") as ff:
+        conf_dir = self.get_config_dir(0)
+        with open(f"{conf_dir}/centreon-bam-command.cfg", "a+") as ff:
             ff.write(retval)
 
     def create_bam_host(self):
         self.last_host_id += 1
-        print(self.last_host_id)
         host_id = self.last_host_id
         retval = """define host {{
   host_name                      _Module_BAM_1
@@ -335,8 +482,8 @@ define command {{
   register                       1
 }}
 """.format(host_id)
-        config_dir = "{}/config0".format(CONF_DIR)
-        with open(f"{config_dir}/centreon-bam-host.cfg", "a+") as ff:
+        conf_dir = self.get_config_dir(0)
+        with open(f"{conf_dir}/centreon-bam-host.cfg", "a+") as ff:
             ff.write(retval)
         return host_id
 
@@ -371,8 +518,8 @@ define command {{
     register                        1
 }}
 """.format(host_name, name, display_name, check_command, service_id)
-        config_dir = "{}/config0".format(CONF_DIR)
-        with open(f"{config_dir}/centreon-bam-services.cfg", "a+") as ff:
+        conf_dir = self.get_config_dir(0)
+        with open(f"{conf_dir}/centreon-bam-services.cfg", "a+") as ff:
             ff.write(retval)
         return service_id
 
@@ -395,27 +542,35 @@ define command {{
         return retval
 
     @staticmethod
-    def create_host_group(id, mbs):
-        retval = """define hostgroup {{
-    hostgroup_id                    {0}
-    hostgroup_name                  hostgroup_{0}
-    alias                           hostgroup_{0}
-    members                         {1}
+    def create_sh_command(host_id: int, service_id: int):
+        return f"""define command {{
+    command_name                    command_{host_id}_{service_id}
+    command_line                    {ENGINE_HOME}/check.sh {host_id} {service_id}
 }}
-""".format(id, ",".join(mbs))
-        logger.console(retval)
+"""
+
+    @staticmethod
+    def create_host_group(id, mbs):
+        retval = f"""define hostgroup {{
+    hostgroup_id                    {id}
+    hostgroup_name                  hostgroup_{id}
+    alias                           hostgroup_{id}
+    members                         {','.join(mbs)}
+}}
+"""
+        logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
         return retval
 
     @staticmethod
     def create_service_group(id, mbs):
-        retval = """define servicegroup {{
-    servicegroup_id                    {0}
-    servicegroup_name                  servicegroup_{0}
-    alias                           servicegroup_{0}
-    members                         {1}
+        retval = f"""define servicegroup {{
+    servicegroup_id                    {id}
+    servicegroup_name                  servicegroup_{id}
+    alias                           servicegroup_{id}
+    members                         {','.join(mbs)}
 }}
-""".format(id, ",".join(mbs))
-        logger.console(retval)
+"""
+        logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
         return retval
 
     @staticmethod
@@ -426,17 +581,28 @@ define command {{
     members                        {1}
 }}
 """.format(id, ",".join(mbs))
-        logger.console(retval)
+        logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
         return retval
 
-    @staticmethod
-    def create_severities(poller: int, nb: int, offset: int):
-        config_file = f"{CONF_DIR}/config{poller}/severities.cfg"
+    def create_severities(self, idx: int, nb: int, offset: int,
+                          level_offset: int = 0):
+        """
+        Create a severities.cfg file.
+
+        Args:
+            idx: The poller ID
+            nb: The number of severities.
+            offset: an integer used to name the severity "severityXXX" where XXX
+            is the severity ID + offset.
+            level_offset: shifts the cyclic level formula (i+level_offset)%5+1.
+        """
+        conf_dir = self.get_config_dir(idx)
+        config_file = f"{conf_dir}/severities.cfg"
         with open(config_file, "w+") as ff:
             content = ""
             typ = ["service", "host"]
             for i in range(nb):
-                level = i % 5 + 1
+                level = (i + level_offset) % 5 + 1
                 content += f"""define severity {{
     id                     {i + 1}
     severity_name          severity{i + offset}
@@ -447,9 +613,9 @@ define command {{
 """
             ff.write(content)
 
-    @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str, type: str):
-        config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
+    def create_escalations_file(self, poller: int, name: int, SG: str, contactgroup: str, type: str):
+        conf_dir = self.get_config_dir(poller)
+        config_file = f"{conf_dir}/escalations.cfg"
         with open(config_file, "a+") as ff:
             content = f"""define {type}escalation {{
     ;escalation_name                esc{name}
@@ -469,18 +635,18 @@ define command {{
     def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
-            content = """define servicedependency {{
+            content = f"""define servicedependency {{
     ;dependency_name               HD_test
     execution_failure_criteria     n 
     notification_failure_criteria  c 
     inherits_parent                1 
-    dependent_host_name            {0} 
-    host_name                      {1} 
-    dependent_service_description  {2} 
-    service_description            {3} 
+    dependent_host_name            {dependenthost} 
+    host_name                      {host} 
+    dependent_service_description  {dependentservice} 
+    service_description            {service} 
 
     }}
-    """.format(dependenthost, host, dependentservice, service)
+    """
             ff.write(content)
 
     @staticmethod
@@ -531,12 +697,12 @@ define command {{
     """.format(dependenthostgrp, hostgrp)
             ff.write(content)
 
-    @staticmethod
-    def create_template_file(poller: int, typ: str, what: str, ids):
+    def create_template_file(self, poller: int, typ: str, what: str, ids):
+        conf_dir = self.get_config_dir(poller)
         if typ == "hostescalation" or typ == "serviceescalation":
-            config_file = f"{CONF_DIR}/config{poller}/escalationTemplates.cfg"
+            config_file = f"{conf_dir}/escalationTemplates.cfg"
         else:
-            config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
+            config_file = f"{conf_dir}/{typ}Templates.cfg"
         with open(config_file, "w+") as ff:
             content = ""
             idx = 1
@@ -552,11 +718,20 @@ passive_checks_enabled 1
                 idx += 1
             ff.write(content)
 
-    @staticmethod
-    def create_tags(poller: int, nb: int, offset: int, tag_type: str):
+    def create_tags(self, idx: int, nb: int, offset: int, tag_type: str):
+        """
+        Create a tags.cfg file.
+
+        Args:
+            idx: The poller ID
+            nb: The number of tags.
+            offset: an integer used to name the severity "tagXXX" where XXX
+            is the tag ID + offset.
+        """
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
-        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"
+        conf_dir = self.get_config_dir(idx)
+        config_file = f"{conf_dir}/tags.cfg"
         with open(config_file, "w+") as ff:
             content = ""
             tid = 0
@@ -576,26 +751,21 @@ passive_checks_enabled 1
 """
             ff.write(content)
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
-        if exists(CONF_DIR):
-            shutil.rmtree(CONF_DIR)
-        r = 0
-        if hosts % self.instances > 0:
-            r = 1
-        v = int(hosts / self.instances) + r
+    def build_configs(self, hosts: int, services_by_host: int, centralized: bool, debug_level=0, bash_checks: bool = False, create_lck: bool = True):
+        base = hosts // self.instances
+        remainder = hosts % self.instances
         for inst in range(self.instances):
-            if v < hosts:
-                nb_hosts = v
-                hosts -= v
-            else:
-                nb_hosts = hosts
-                hosts = 0
+            nb_hosts = base + (1 if inst < remainder else 0)
 
-            config_dir = "{}/config{}".format(CONF_DIR, inst)
+            config_dir = self.get_config_dir(inst)
+
             makedirs(config_dir)
+
             with open(f"{config_dir}/centengine.cfg", "w") as f:
                 bb = self._create_centengine(inst, debug_level=debug_level)
                 f.write(bb)
+                f.flush()
+                os.fsync(f.fileno())
 
             with open(f"{config_dir}/hosts.cfg", "w") as f:
                 with open(f"{config_dir}/services.cfg", "w") as ff:
@@ -604,13 +774,23 @@ passive_checks_enabled 1
                         f.write(h["config"])
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
-                            ff.write(self._create_service(h["hid"],
-                                                          (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
+                            if (bash_checks):
+                                ff.write(
+                                    self._create_service_with_sh_command(h["hid"], j))
+                            else:
+                                ff.write(self._create_service(h["hid"],
+                                                              (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                             self.services.append("service_{}".format(h["hid"]))
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
-                for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
-                    f.write(self.create_command(i))
+                if bash_checks:
+                    for host_id in range(1, nb_hosts + 1):
+                        for service_id in range(1, services_by_host + 1):
+                            f.write(self.create_sh_command(
+                                host_id, service_id))
+                else:
+                    for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
+                        f.write(self.create_command(i))
                 for i in range(self.last_host_id):
                     f.write("""define command {{
     command_name                    checkh{1}
@@ -684,6 +864,8 @@ define timeperiod {
 }
 """)
             with open(f"{config_dir}/hostgroups.cfg", "w") as f:
+                pass
+            with open(f"{config_dir}/servicegroups.cfg", "w") as f:
                 pass
             with open(f"{config_dir}/contacts.cfg", "w") as f:
                 f.write("""define contact {
@@ -766,15 +948,25 @@ define contact {
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
-            for file in ["check.pl", "notif.pl", "check_centreon_bam"]:
-                shutil.copyfile(f"{SCRIPT_DIR}/{file}",
-                                f"{ENGINE_HOME}/{file}")
-                chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
-                      stat.S_IRGRP | stat.S_IXGRP)
+            for file in ["check.pl", "check.sh", "notif.pl", "check_centreon_bam"]:
+                # Copy to a temp file then atomically replace: a check process
+                # spawned by a previous test may still be executing the script,
+                # and truncating it in place raises ETXTBSY (Text file busy).
+                # os.replace swaps the directory entry without touching the
+                # inode the running process holds.
+                dst = f"{ENGINE_HOME}/{file}"
+                tmp = f"{dst}.tmp"
+                shutil.copyfile(f"{SCRIPT_DIR}/{file}", tmp)
+                chmod(tmp, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+                os.replace(tmp, dst)
             shutil.copyfile(
                 dirname(__file__) + "/db_variables.resource", "/tmp/db_variables.resource")
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
+
+            if centralized and create_lck:
+                lck_file = f"{VAR_ROOT}/lib/centreon/config/{inst + 1}.lck"
+                Path(lck_file).touch()
 
     def centengine_conf_add_bam(self):
         """
@@ -782,28 +974,82 @@ define contact {
 
         Add the bam configuration to the centengine.cfg file
         """
-        config_dir = "{}/config0".format(CONF_DIR)
-        with open(f"{config_dir}/centengine.cfg", "r") as f:
+        conf_dir = self.get_config_dir(0)
+        with open(f"{conf_dir}/centengine.cfg", "r") as f:
             lines = f.readlines()
-        lines_to_prep = ["cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-command.cfg\n", "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-timeperiod.cfg\n",
-                         "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-host.cfg\n", "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-services.cfg\n"]
-        with open(f"{config_dir}/centengine.cfg", "w") as f:
+        lines_to_prep = [f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-command.cfg\n", f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-timeperiod.cfg\n",
+                         f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-host.cfg\n", f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-services.cfg\n"]
+        with open(f"{conf_dir}/centengine.cfg", "w") as f:
             f.writelines(lines_to_prep)
             f.writelines(lines)
 
     def centengine_conf_add_anomaly(self):
-        config_dir = f"{CONF_DIR}/config0"
+        config_dir = self.get_config_dir(0)
         with open(f"{config_dir}/centengine.cfg", "r") as f:
             lines = f.readlines()
+        r = re.compile(r"^cfg_file=.*anomaly_detection.cfg")
+        if any(r.match(line) for line in lines):
+            return
         with open(f"{config_dir}/centengine.cfg", "w") as f:
-            f.writelines(f"cfg_file={config_dir}/anomaly_detection.cfg\n")
+            f.writelines(f"cfg_file={ETC_ROOT}/centreon-engine/config0/anomaly_detection.cfg\n")
             f.writelines(lines)
 
 
 engine = None
 
 
-def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
+def ctn_config_centralized_engine(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
+    """
+    Configure all the necessary files for num instances of centengine.
+    These configurations are sent to centengine instances by central cbd.
+
+    Args:
+        num (int): How many engine configurations to start
+        hosts (int, optional): Defaults to 50.
+        srv_by_host (int, optional): Defaults to 20.
+        bash_checks: if True, services will use check.sh instead of check.pl, services will have some extra macros
+    """
+    global engine
+    engine = EngineInstance(num, hosts, srv_by_host, bash_checks, True)
+
+
+def ctn_update_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
+    """
+    Update the configuration of an existing EngineInstance.
+
+    Args:
+        num (int): How many engine configurations to start
+        hosts (int, optional): Defaults to 50.
+        srv_by_host (int, optional): Defaults to 20.
+        bash_checks: if True, services will use check.sh instead of check.pl, services will have some extra macros
+    """
+    ctn_prepare_engine_config(num, hosts, srv_by_host, bash_checks)
+    for idx in range(num):
+        Common.ctn_notify_broker_of_engine_config_change(idx)
+
+
+def ctn_prepare_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
+    """
+    Rebuild engine configuration files without notifying broker.
+
+    Use this instead of Ctn Update Engine Config when you need to add extra
+    configuration (e.g. hostgroups) before broker picks up the change.
+    Call Ctn Notify Broker Of Engine Config Change for each instance afterwards.
+
+    Args:
+        num: Number of engine instances.
+        hosts: Total number of hosts across all instances.
+        srv_by_host: Services per host.
+        bash_checks: Use check.sh instead of check.pl.
+    """
+    global engine
+    if engine is None:
+        raise Exception(
+            "EngineInstance not initialized, please call ctn_config_centralized_engine first")
+    engine.update_configs(num, hosts, srv_by_host, bash_checks)
+
+
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
     """
     Configure all the necessary files for num instances of centengine.
 
@@ -811,9 +1057,10 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
         num (int): How many engine configurations to start
         hosts (int, optional): Defaults to 50.
         srv_by_host (int, optional): Defaults to 20.
+        bash_checks: if True, services will use check.sh instead of check.pl, services will have some extra macros
     """
     global engine
-    engine = EngineInstance(num, hosts, srv_by_host)
+    engine = EngineInstance(num, hosts, srv_by_host, bash_checks)
 
 
 def ctn_get_engines_count():
@@ -842,7 +1089,7 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
         disambiguous (bool, optional): Defaults to False. If the key appears several times in the file and we want to
         match only one, it is interesting to enable this option, it will try to also compare values.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    filename = f"{engine.get_config_dir(idx)}/centengine.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -893,7 +1140,8 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
         key (str): The key whose value needs to change.
         value (str): The new value to set.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -921,7 +1169,8 @@ def ctn_engine_config_delete_value_in_service(idx: int, desc: str, key: str, fil
         file (str): The file to modify, default value 'service.cfg'
     """
 
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -932,7 +1181,6 @@ def ctn_engine_config_delete_value_in_service(idx: int, desc: str, key: str, fil
 
     for i in range(len(lines)):
         if r.match(lines[i]):
-            print("here" + lines[i])
             for j in range(i + 1, len(lines)):
                 if '}' in lines[j]:
                     break
@@ -954,7 +1202,8 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
         key (str): Name of the parameter to change.
         value (str): New value to set.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
     r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
@@ -983,7 +1232,8 @@ def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: s
         value (str): the value to set.
         file (str): The file to modify, default value 'hosts.cfg'
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1017,7 +1267,8 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
         file (str): The file to modify, default value 'hosts.cfg'
     """
 
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1026,7 +1277,6 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
-            print("here" + lines[i])
             for j in range(i + 1, len(lines)):
                 if '}' in lines[j]:
                     break
@@ -1062,7 +1312,8 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
         value (str): the new value to set.
         file (str): The file to modify, default value 'hosts.cfg'.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1106,7 +1357,8 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
         command_index (str): Index of the command (may be a regex)
         new_command (str): The new command line.
     """
-    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "r") as f:
+    conf_dir = engine.get_config_dir(idx)
+    with open(f"{conf_dir}/commands.cfg", "r") as f:
         lines = f.readlines()
     new_lines = []
     r = re.compile(rf"^\s+command_name\s+command_{command_index}$")
@@ -1120,7 +1372,7 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
             new_lines.append(line)
         if r.match(line) is not None:
             found = 1
-    with open(f"{CONF_DIR}/config0/commands.cfg", "w") as f:
+    with open(f"{conf_dir}/commands.cfg", "w") as f:
         f.writelines(new_lines)
 
 
@@ -1134,7 +1386,8 @@ def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str,
         new_command (str): Command line
         connector (str, optional): Defaults to None.
     """
-    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "a") as f:
+    conf_dir = engine.get_config_dir(idx)
+    with open(f"{conf_dir}/commands.cfg", "a") as f:
         if connector is None:
             f.write(f"""define command {{
         command_name                   {command_name}
@@ -1161,18 +1414,28 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
         value (str): The new value to set.
         file (str): The file to modify, default value 'contacts.cfg'
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
     if file == "contactTemplates.cfg":
-        r = re.compile(rf"^\s*name\s+{desc}\s*$")
+        r_name = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
+        r_name = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
 
-    for i in range(len(lines)):
-        if r.match(lines[i]):
-            lines.insert(i + 1, f"    {key}              {value}\n")
-            break
+    r_key = re.compile(rf"^\s*{key}\s+[\w\.,]+\s*$")
+    in_block = False
+    for i, line in enumerate(lines):
+        if not in_block:
+            if r_name.match(line):
+                in_block = True
+        else:
+            if r_key.match(line):
+                lines[i] = f"    {key}                     {value}\n"
+                break
+            elif line.strip() == "}":
+                lines.insert(i, f"    {key}                     {value}\n")
+                break
 
     with open(filename, "w") as f:
         f.writelines(lines)
@@ -1189,7 +1452,8 @@ def ctn_engine_config_delete_value_in_contact(idx: int, desc: str, key: str, fil
         file (str): The file to modify, default value 'contact.cfg'
     """
 
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1200,7 +1464,6 @@ def ctn_engine_config_delete_value_in_contact(idx: int, desc: str, key: str, fil
 
     for i in range(len(lines)):
         if r.match(lines[i]):
-            print("here" + lines[i])
             for j in range(i + 1, len(lines)):
                 if '}' in lines[j]:
                     break
@@ -1226,7 +1489,8 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
     Example:
     ctn_engine_config_set_key_value_in_cfg(idx=0, desc='hostgroup_1', key='alias', value='alias_1', file='hostgroups.cfg')
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
     found = False
@@ -1262,6 +1526,28 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
         f.writelines(lines)
 
 
+def ctn_engine_config_delete_key(idx: int, key: str):
+    """
+    Delete a parameter in the centengine.cfg for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        key (str): The parameter that will be deleted.
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/centengine.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    for i in range(len(lines)):
+        if lines[i].startswith(key + "="):
+            del lines[i]
+            break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
     """
     Delete a parameter in the file given for the Engine configuration idx.
@@ -1272,7 +1558,8 @@ def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
         key (str): The parameter that will be deleted.
         file (str): The file to delete the key from.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1326,14 +1613,15 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
         key (str): the parameter whose value must change.
         value (str): the new value to set.
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
+    conf_dir = engine.get_config_dir(idx)
+    with open(f"{conf_dir}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
             lines.insert(i + 1, f"    {key}                     {value}\n")
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
+    with open(f"{conf_dir}/escalations.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -1347,18 +1635,20 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
         key (str): the parameter whose value must change.
         value (str): the new value to set.
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/dependencies.cfg"
+    with open(filename, "r") as ff:
         lines = ff.readlines()
     r = re.compile(rf"^\s*;;dependency_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
             lines.insert(i + 1, f"    {key}                     {value}\n")
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
+    with open(filename, "w") as ff:
         ff.writelines(lines)
 
 
-def ctn_engine_config_remove_service_host(idx: int, host: str):
+def ctn_engine_config_remove_all_services_from_host(idx: int, host: str):
     """
     Remove all the services of a host from the services.cfg file.
 
@@ -1366,7 +1656,8 @@ def ctn_engine_config_remove_service_host(idx: int, host: str):
         idx (int): index of the configuration (from 0)
         host (str): Host name
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
     host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
@@ -1402,7 +1693,7 @@ def ctn_engine_config_remove_host(idx: int, host: str):
         idx (int): Index of the configuration (from 0)
         host (str): name of the host wanted to be removed
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    filename = f"{engine.get_config_dir(idx)}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1440,11 +1731,12 @@ def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: s
         old_host_name (str): name of the host wanted to be renamed
         new_host_name (str): new name of the host
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + old_host_name + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{old_host_name}\s*$")
 
     for i in range(len(lines)):
         if host_name.match(lines[i]):
@@ -1465,12 +1757,13 @@ def ctn_engine_config_set_host_value(idx: int, host: str, key: str, value: str):
         key (str): the parameter whose value must change.
         value (str): the new value to set.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    key_name = re.compile(r"^\s*" + key)
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    key_name = re.compile(rf"^\s*{key}")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
     replaced = False
@@ -1503,9 +1796,152 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
         members (list): A list of host names.
     """
     mbs = [line for line in members if line in engine.hosts]
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "a+") as f:
-        logger.console(mbs)
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/hostgroups.cfg", "a+") as f:
         f.write(engine.create_host_group(id_host_group, mbs))
+
+
+def ctn_remove_host_group(index: int, id_host_group: int):
+    """
+    Remove a host group from the engine instance index.
+
+    Args:
+        index (int): index of the configuration (from 0)
+        id_host_group (int): ID of the host group to remove.
+    """
+    config_dir = engine.get_config_dir(index)
+    with open(f"{config_dir}/hostgroups.cfg", "r") as f:
+        lines = f.readlines()
+
+    hostgroup_id = re.compile(rf"^\s*hostgroup_id\s+{id_host_group}\s*$")
+    hostgroup_begin = re.compile(r"^define hostgroup {$")
+    hostgroup_end = re.compile(r"^}$")
+    hostgroup_begin_idx = 0
+    while True:
+        if (hostgroup_begin_idx >= len(lines)):
+            break
+        if (hostgroup_begin.match(lines[hostgroup_begin_idx])):
+            for hostgroup_line_idx in range(hostgroup_begin_idx, len(lines)):
+                if (hostgroup_id.match(lines[hostgroup_line_idx])):
+                    for end_serv_line in range(hostgroup_line_idx, len(lines)):
+                        if hostgroup_end.match(lines[end_serv_line]):
+                            del lines[hostgroup_begin_idx:end_serv_line + 1]
+                            break
+                    break
+                elif hostgroup_end.match(lines[hostgroup_line_idx]):
+                    hostgroup_begin_idx = hostgroup_line_idx
+                    break
+        else:
+            hostgroup_begin_idx = hostgroup_begin_idx + 1
+
+    with open(f"{config_dir}/hostgroups.cfg", "w") as f:
+        f.writelines(lines)
+
+
+def ctn_get_filtered_host_names(index: int, divisor: int) -> list:
+    """
+    Return the host names from the engine instance's hosts.cfg where host_id % divisor == 0.
+
+    Args:
+        index (int): index of the configuration (from 0)
+        divisor (int): Only include hosts whose numeric ID is divisible by divisor.
+                       Use 1 to get all hosts.
+
+    Returns:
+        list: Host names (e.g. ["host_3", "host_6", ...]) for the given instance.
+    """
+    config_dir = engine.get_config_dir(index)
+    result = []
+    host_name_re = re.compile(r"^\s*host_name\s+(host_(\d+))\s*$")
+    with open(f"{config_dir}/hosts.cfg") as f:
+        for line in f:
+            m = host_name_re.match(line)
+            if m:
+                host_name = m.group(1)
+                host_id = int(m.group(2))
+                if host_id % divisor == 0:
+                    result.append(host_name)
+    return result
+
+
+def ctn_get_filtered_service_names(index: int, divisor: int) -> list:
+    """
+    Return (host_name, service_description) pairs from the engine instance's
+    services.cfg where _SERVICE_ID % divisor == 0.
+
+    Args:
+        index (int): index of the configuration (from 0)
+        divisor (int): Only include services whose numeric ID is divisible by
+                       divisor. Use 1 to get all services.
+
+    Returns:
+        list: Flat list alternating host_name and service_description
+              (e.g. ["host_1", "service_2", "host_1", "service_4", ...]).
+    """
+    config_dir = engine.get_config_dir(index)
+    result = []
+    host_name_re = re.compile(r"^\s*host_name\s+(\S+)\s*$")
+    svc_desc_re = re.compile(r"^\s*service_description\s+(\S+)\s*$")
+    service_id_re = re.compile(r"^\s*_SERVICE_ID\s+(\d+)\s*$")
+    current_host = None
+    current_desc = None
+    with open(f"{config_dir}/services.cfg") as f:
+        for line in f:
+            m = host_name_re.match(line)
+            if m:
+                current_host = m.group(1)
+                continue
+            m = svc_desc_re.match(line)
+            if m:
+                current_desc = m.group(1)
+                continue
+            m = service_id_re.match(line)
+            if m:
+                service_id = int(m.group(1))
+                if service_id % divisor == 0 and current_host and current_desc:
+                    result.append(current_host)
+                    result.append(current_desc)
+                current_host = None
+                current_desc = None
+    return result
+
+
+def ctn_remove_service_group(index: int, id_service_group: int):
+    """
+    Remove a service group from the engine instance index.
+
+    Args:
+        index (int): index of the configuration (from 0)
+        id_service_group (int): ID of the service group to remove.
+    """
+    config_dir = engine.get_config_dir(index)
+    with open(f"{config_dir}/servicegroups.cfg", "r") as f:
+        lines = f.readlines()
+
+    servicegroup_id_re = re.compile(
+        rf"^\s*servicegroup_id\s+{id_service_group}\s*$")
+    group_begin = re.compile(r"^define servicegroup \{$")
+    group_end = re.compile(r"^\}$")
+    begin_idx = 0
+    while True:
+        if begin_idx >= len(lines):
+            break
+        if group_begin.match(lines[begin_idx]):
+            for line_idx in range(begin_idx, len(lines)):
+                if servicegroup_id_re.match(lines[line_idx]):
+                    for end_idx in range(line_idx, len(lines)):
+                        if group_end.match(lines[end_idx]):
+                            del lines[begin_idx:end_idx + 1]
+                            break
+                    break
+                elif group_end.match(lines[line_idx]):
+                    begin_idx = line_idx
+                    break
+        else:
+            begin_idx += 1
+
+    with open(f"{config_dir}/servicegroups.cfg", "w") as f:
+        f.writelines(lines)
 
 
 def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: list):
@@ -1523,15 +1959,17 @@ def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: li
     """
     mbs = [line for line in members if line in engine.hosts]
     mbs_str = ",".join(mbs)
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "w") as f:
-        logger.console(mbs)
-        f.write(f"""define hostgroup {{
+    config_dir = engine.get_config_dir(index)
+    defn = f"""define hostgroup {{
     hostgroup_id                    {id_host_group}
     hostgroup_name                  hostgroup_{name}
     alias                           hostgroup_{name}
     members                         {mbs_str}
 }}
-""")
+"""
+    logger.console('\n'.join(_truncate_line(line) for line in defn.splitlines()))
+    with open(f"{config_dir}/hostgroups.cfg", "w") as f:
+        f.write(defn)
 
 
 def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
@@ -1544,7 +1982,9 @@ def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
         svc (str): The description of the service.
         new_svc (str): The new description of the service.
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r") as f:
+    conf_dir = engine.get_config_dir(index)
+    filename = f"{conf_dir}/services.cfg"
+    with open(filename, "r") as f:
         ll = f.readlines()
     rs_start = re.compile(r"^\s*define service {")
     rs_end = re.compile(r"^\s*}")
@@ -1577,7 +2017,7 @@ def ctn_rename_service(index: int, hst: str, svc: str, new_svc: str):
             if rs_start.match(line):
                 inside = True
 
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "w") as f:
+    with open(filename, "w") as f:
         f.writelines(ll)
 
 
@@ -1590,9 +2030,8 @@ def ctn_add_service_group(index: int, id_service_group: int, members: list):
         id_service_group (int): ID of the new service group.
         members (list): A list of its members.
     """
-    with open(
-            ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+") as f:
-        logger.console(members)
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/servicegroups.cfg", "a+") as f:
         f.write(engine.create_service_group(id_service_group, members))
 
 
@@ -1605,7 +2044,8 @@ def ctn_rename_service_group(index: int, old_servicegroup_name: str, new_service
         old_servicegroup_name: Service group name to look for and to replace.
         new_service_group_name: New name.
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "r") as f:
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/servicegroups.cfg", "r") as f:
         ll = f.readlines()
     group_name_search = re.compile(
         fr"^\s+servicegroup_name\s+{old_servicegroup_name}$")
@@ -1614,7 +2054,7 @@ def ctn_rename_service_group(index: int, old_servicegroup_name: str, new_service
         if group_name_search.match(line):
             ll[i] = f"    servicegroup_name                  {new_service_group_name}\n"
             break
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "w") as f:
+    with open(f"{conf_dir}/servicegroups.cfg", "w") as f:
         f.writelines(ll)
 
 
@@ -1627,8 +2067,8 @@ def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
         id_contact_group (int): ID of new contactgroup.
         members (list): A list of the members (by name).
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
-        logger.console(members)
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/contactgroups.cfg", "a+") as f:
         f.write(engine.create_contact_group(id_contact_group, members))
 
 
@@ -1647,7 +2087,8 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     Example:
     | ${svc_id} | Create Service | 0 | 1 | 1 |
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/services.cfg", "a+") as f:
         svc = engine._create_service(host_id, [1, cmd_id])
         lst = svc.split('\n')
         good = [line for line in lst if "_SERVICE_ID" in line][0]
@@ -1655,9 +2096,7 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
         if m is not None:
             retval = int(m.group(1))
         else:
-            raise Exception(
-                "Impossible to get the service id from '{}'".format(good))
-            m = 0
+            raise Exception(f"Impossible to get the service id from '{good}'")
         f.write(svc)
     return retval
 
@@ -1676,8 +2115,8 @@ def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id:
     Returns:
         The ID of the new anomaly detection.
     """
-    with open(
-            f"{ETC_ROOT}/centreon-engine/config{index}/anomaly_detection.cfg", "a+") as f:
+    config_dir = engine.get_config_dir(index)
+    with open(f"{config_dir}/anomaly_detection.cfg", "a+") as f:
         to_append = engine.ctn_create_anomaly_detection(
             host_id, dependent_service_id, metric_name, sensitivity)
         lst = to_append.split('\n')
@@ -1688,10 +2127,95 @@ def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id:
         else:
             raise Exception(
                 "Impossible to get the service id from '{}'".format(good))
-            m = 0
         f.write(to_append)
     engine.centengine_conf_add_anomaly()
     return retval
+
+
+def ctn_delete_anomaly_detection_at_index(index: int, row_idx: int):
+    """
+    Delete an anomaly detection at the given row index in the anomaly_detection.cfg file of the engine instance index.
+
+    Args:
+        index (int): index of the Engine configuration (from 0)
+        row_idx (int): Row index of the anomaly detection to delete (from 0)
+    """
+    config_dir = engine.get_config_dir(index)
+    filename = f"{config_dir}/anomaly_detection.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    ad_begin = re.compile(r"^define anomalydetection {$")
+    ad_end = re.compile(r"^}$")
+    ad_begin_idx = 0
+    current_row = -1
+    while ad_begin_idx < len(lines):
+        if (ad_begin.match(lines[ad_begin_idx])):
+            current_row += 1
+            if current_row == row_idx:
+                for end_ad_line in range(ad_begin_idx, len(lines)):
+                    if ad_end.match(lines[end_ad_line]):
+                        del lines[ad_begin_idx:end_ad_line + 1]
+                        break
+                break
+            else:
+                for ad_line_idx in range(ad_begin_idx, len(lines)):
+                    if ad_end.match(lines[ad_line_idx]):
+                        ad_begin_idx = ad_line_idx
+                        break
+        else:
+            ad_begin_idx = ad_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_modify_anomaly_detection(index: int, service_id: int, field: str, value: str):
+    """
+    Modify a field of an anomaly detection in the anomaly_detection.cfg file of the engine instance index.
+
+    Args:
+        index (int): index of the Engine configuration (from 0)
+        service_id (int): ID of the service containing the anomaly detection to modify.
+        field (str): The field to modify.
+        value (str): The new value to set.
+    """
+    logger.console(f"Modifying anomaly detection {service_id} field {field} to {value}")
+    config_dir = engine.get_config_dir(index)
+    filename = f"{config_dir}/anomaly_detection.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    ad_begin = re.compile(r"^define anomalydetection {")
+    ad_end = re.compile(r"^}$")
+    ad_service_id = re.compile(rf"^\s*service_id\s+{service_id}\s*$")
+    ad_field = re.compile(rf"^\s*{field}\s+[\w\.,]+\s*$")
+
+    inside = False
+    my_service = None
+    l_field = None
+
+    for i, line in enumerate(lines):
+        if inside:
+            if ad_end.match(line):
+                inside = False
+                if my_service == service_id and l_field is not None:
+                    lines[l_field] = f"    {field}              {value}\n"
+                my_service, l_field = None, None
+                continue
+            m = ad_service_id.match(line)
+            if m:
+                my_service = service_id
+            else:
+                m = ad_field.match(line)
+                if m:
+                    l_field = i
+        else:
+            if ad_begin.match(line):
+                inside = True
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def ctn_clone_engine_config_to_db():
@@ -1845,6 +2369,42 @@ def ctn_get_service_command_id(service: int):
     """
     global engine
     return engine.service_cmd[service][8:]
+
+
+def ctn_wait_for_external_command_pipe(config: int = 0, timeout: int = TIMEOUT):
+    """
+    Wait until the engine external command named pipe of the given config is
+    a FIFO and is open for reading (i.e. the engine is actually consuming
+    external commands).
+
+    The 'check_for_external_commands()' log line only tells the checker started;
+    on a consecutive test the pipe may not yet be ready to be read, so a result
+    submitted right after can be written to a pipe with no reader (or, worse, to
+    a stale regular file created before the engine made the FIFO) and silently
+    lost. A non-blocking O_WRONLY open succeeds only when a reader has the FIFO
+    open (otherwise it raises ENXIO), which is the reliable readiness signal.
+
+    Args:
+        config (int): The engine config index (default 0).
+        timeout (int): A timeout in seconds.
+
+    Returns:
+        True if the pipe is a FIFO open for reading within the timeout, else
+        False.
+    """
+    pipe = f"{VAR_ROOT}/lib/centreon-engine/config{config}/rw/centengine.cmd"
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        try:
+            if stat.S_ISFIFO(os.stat(pipe).st_mode):
+                fd = os.open(pipe, os.O_WRONLY | os.O_NONBLOCK)
+                os.close(fd)
+                return True
+        except OSError:
+            # ENOENT: FIFO not created yet; ENXIO: FIFO exists but no reader yet.
+            pass
+        time.sleep(0.5)
+    return False
 
 
 def ctn_get_host_command(host: int):
@@ -2627,16 +3187,69 @@ def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centr
         f.write(cmd)
 
 
-def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
+def ctn_create_severities_file(poller: int, nb: int, offset: int = 1,
+                               level_offset: int = 0):
     """
-    Create a severities.cfg file for a given poller.
+    Create a severities.cfg file for a poller.
 
     Args:
         poller (int): Index of the poller.
         nb (int): number of severities.
-        offset (int, optional): Defaults to 1.
+        offset (int, optional): name offset — severity names become
+            severity{i+offset}. Defaults to 1.
+        level_offset (int, optional): shifts the cyclic level formula
+            (i+level_offset)%5+1. Defaults to 0.
     """
-    engine.create_severities(poller, nb, offset)
+    engine.create_severities(poller, nb, offset, level_offset)
+
+
+def ctn_add_severity_to_all_hosts(poller: int, severity_id: int):
+    """
+    Add severity_id to ALL host definitions in hosts.cfg for the given poller.
+
+    Inserts a ``severity_id`` line after every ``_HOST_ID`` entry so that
+    every host on the poller carries the specified severity.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        severity_id (int): The severity ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_HOST_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    severity_id                     {severity_id}\n")
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
+        ff.writelines(new_lines)
+
+
+def ctn_add_severity_to_all_services(poller: int, severity_id: int):
+    """
+    Add severity_id to ALL service definitions in services.cfg for the given
+    poller.
+
+    Inserts a ``severity_id`` line after every ``_SERVICE_ID`` entry so that
+    every service on the poller carries the specified severity.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        severity_id (int): The severity ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_SERVICE_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    severity_id                     {severity_id}\n")
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
+        ff.writelines(new_lines)
 
 
 def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str, type: str = "service"):
@@ -2768,21 +3381,25 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
 
 def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     """
-    Add a reference to a cfg file in the centengine.cfg file at index _poller_.
+    Add a reference to a cfg file in the centengine.cfg file at index 'poller'.
 
     Args:
         poller (int): Poller ID.
         cfg (str): Configuration file name to add.
     """
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/centengine.cfg", "r") as ff:
         lines = ff.readlines()
+    new_line = f"cfg_file={CONF_DIR}/config{poller}/{cfg}\n"
+    # Do not add the file if it is already referenced (avoid duplicate loading).
+    if new_line in lines:
+        return
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(
-                i, "cfg_file={}/config{}/{}\n".format(CONF_DIR, poller, cfg))
+            lines.insert(i, new_line)
             break
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w+") as ff:
+    with open(f"{conf_dir}/centengine.cfg", "w+") as ff:
         ff.writelines(lines)
 
 
@@ -2795,7 +3412,8 @@ def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
         severity_id (int): The severity ID.
         svc_lst (list): A list of service IDs.
     """
-    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
@@ -2804,7 +3422,7 @@ def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
             lines.insert(
                 i + 1, f"    severity_id                     {severity_id}\n")
 
-    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -2817,7 +3435,8 @@ def ctn_set_command_connector(poller: int, cmd: str, conn: str):
         cmd (str): Command name.
         conn (str): Connector name.
     """
-    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/commands.cfg", "r") as f:
         lines = f.readlines()
     r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
     for i, line in enumerate(lines):
@@ -2826,7 +3445,7 @@ def ctn_set_command_connector(poller: int, cmd: str, conn: str):
             lines.insert(i + 1, f"    connector          {conn}\n")
             break
 
-    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+    with open(f"{conf_dir}/commands.cfg", "w") as f:
         f.writelines(lines)
 
 
@@ -2839,7 +3458,8 @@ def ctn_set_check_command(poller: int, cmd: str, check_cmd: str):
         cmd (str): Command name.
         check_cmd (str): the check command.
     """
-    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/commands.cfg", "r") as f:
         lines = f.readlines()
     r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
     r_cmd = re.compile(r"^\s*command_line")
@@ -2862,7 +3482,7 @@ def ctn_set_check_command(poller: int, cmd: str, check_cmd: str):
                     i, f"    command_line                    {check_cmd}\n")
                 break
 
-    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+    with open(f"{conf_dir}/commands.cfg", "w") as f:
         f.writelines(lines)
 
 
@@ -2875,7 +3495,8 @@ def ctn_set_services_passive(poller: int, srv_regex):
         srv_regex (str): A regexp to match service descriptions.
     """
 
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(rf"^\s*service_description\s*({srv_regex})$")
     rce = re.compile(r"^\s*([a-z]*)_checks_enabled\s*([01])$")
@@ -2897,7 +3518,7 @@ def ctn_set_services_passive(poller: int, srv_regex):
                 if m:
                     desc = ""
 
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -2910,7 +3531,8 @@ def ctn_set_hosts_passive(poller: int, host_regex):
         srv_regex (str): A regexp to match host name.
     """
 
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(rf"^\s*host_name\s*({host_regex})$")
     for i in range(len(lines)):
@@ -2920,7 +3542,7 @@ def ctn_set_hosts_passive(poller: int, host_regex):
             lines.insert(i+2, "    passive_checks_enabled          1\n")
             i += 2
 
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -2933,7 +3555,8 @@ def ctn_add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
         severity_id (int): The severity ID.
         svc_lst: A list of host IDs.
     """
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
@@ -2942,7 +3565,7 @@ def ctn_add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
             lines.insert(
                 i + 1, "    severity_id                     {}\n".format(severity_id))
 
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -2957,15 +3580,69 @@ def ctn_add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
         svc_lst: A list of service IDs.
     """
 
-    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None and m.group(1) in svc_lst:
             lines.insert(i + 1, f"    {type}                     {tag_id}\n")
-    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(lines)
+
+
+def ctn_add_tags_to_all_hosts(poller: int, tag_type: str, tag_id: str):
+    """
+    Add a tag line to ALL host definitions in hosts.cfg for the given poller.
+
+    Inserts a ``tag_type tag_id`` line after every ``_HOST_ID`` entry so that
+    all hosts on the poller carry the specified tag.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        tag_type (str): One of ``group_tags`` (HOSTGROUP) or
+            ``category_tags`` (HOSTCATEGORY).
+        tag_id (str): The tag ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_HOST_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    {tag_type}                     {tag_id}\n")
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
+        ff.writelines(new_lines)
+
+
+def ctn_add_tags_to_all_services(poller: int, tag_type: str, tag_id: str):
+    """
+    Add a tag line to ALL service definitions in services.cfg for the given
+    poller.
+
+    Inserts a ``tag_type tag_id`` line after every ``_SERVICE_ID`` entry so
+    that all services on the poller carry the specified tag.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        tag_type (str): One of ``group_tags`` (SERVICEGROUP) or
+            ``category_tags`` (SERVICECATEGORY).
+        tag_id (str): The tag ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_SERVICE_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    {tag_type}                     {tag_id}\n")
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
+        ff.writelines(new_lines)
 
 
 def ctn_remove_severities_from_services(poller: int):
@@ -2975,11 +3652,12 @@ def ctn_remove_severities_from_services(poller: int):
     Args:
         poller (int): Index of the poller to work with.
     """
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [line for line in lines if not r.match(line)]
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(out)
 
 
@@ -2990,11 +3668,12 @@ def ctn_remove_severities_from_hosts(poller: int):
     Args:
         poller (int): Index of the poller to work with.
     """
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [line for line in lines if not r.match(line)]
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(out)
 
 
@@ -3011,7 +3690,8 @@ def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
     Returns: N/A
 
     """
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
@@ -3020,40 +3700,151 @@ def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
             lines.insert(
                 i + 1, "    {}                     {}\n".format(type, tag_id))
 
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
-def ctn_remove_tags_from_services(poller: int, type: str):
+def _remove_tag_types_from_cfg(conf_dir: str, tag_types: list):
     """
-    Remove tags from services.
+    Remove ``define tag { ... }`` blocks whose ``type`` field matches any of
+    the given type names from tags.cfg.
+
+    Args:
+        conf_dir (str): Path to the poller configuration directory.
+        tag_types (list): Tag type names to remove (e.g. ["hostgroup",
+                          "hostcategory"]).
+    """
+    tags_cfg = f"{conf_dir}/tags.cfg"
+    try:
+        with open(tags_cfg, "r") as ff:
+            lines = ff.readlines()
+    except FileNotFoundError:
+        return
+
+    type_re = re.compile(
+        r"^\s*type\s+(" + "|".join(re.escape(t) for t in tag_types) + r")\s*$"
+    )
+    block_begin = re.compile(r"^\s*define tag\s*\{")
+    block_end = re.compile(r"^\s*\}")
+
+    result = []
+    i = 0
+    while i < len(lines):
+        if block_begin.match(lines[i]):
+            block = [lines[i]]
+            j = i + 1
+            while j < len(lines) and not block_end.match(lines[j]):
+                block.append(lines[j])
+                j += 1
+            if j < len(lines):
+                block.append(lines[j])  # closing brace
+            if any(type_re.match(l) for l in block):
+                i = j + 1  # skip entire block
+                continue
+            result.extend(block)
+            i = j + 1
+        else:
+            result.append(lines[i])
+            i += 1
+
+    with open(tags_cfg, "w") as ff:
+        ff.writelines(result)
+
+
+def ctn_remove_tags_from_services(poller: int, type: str="all"):
+    """
+    Remove tags from services and the corresponding tag definitions from
+    tags.cfg.
 
     Args:
         poller (int): Index of the poller to work with.
-        type (str): The tag type among group_tags or category_tags.
+        type (str): The tag type among "all", "group_tags" or "category_tags".
     """
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
+    if type == "all":
+        r = re.compile(r"^\s*(group_tags|category_tags)\s+")
+    else:
+        r = re.compile(rf"^\s*{type}\s*[0-9,]+$")
     lines = [line for line in lines if not r.match(line)]
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(lines)
 
+    tag_types = []
+    if type in ("all", "group_tags"):
+        tag_types.append("servicegroup")
+    if type in ("all", "category_tags"):
+        tag_types.append("servicecategory")
+    if tag_types:
+        _remove_tag_types_from_cfg(conf_dir, tag_types)
 
-def ctn_remove_tags_from_hosts(poller: int, type: str):
+
+def ctn_remove_tags_from_hosts(poller: int, type: str="all"):
     """
-    Remove tags from hosts.
+    Remove tags from hosts and the corresponding tag definitions from
+    tags.cfg.
 
     Args:
         poller (int): Index of the poller to work with.
-        type (str): The tag type among group_tags or category_tags.
+        type (str): The tag type among all, group_tags or category_tags.
     """
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
+    if type == "all":
+        r = re.compile(r"^\s*(group_tags|category_tags)\s+")
+    else:
+        r = re.compile(rf"^\s*{type}\s*[0-9,]+$")
     lines = [line for line in lines if not r.match(line)]
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
+
+    tag_types = []
+    if type in ("all", "group_tags"):
+        tag_types.append("hostgroup")
+    if type in ("all", "category_tags"):
+        tag_types.append("hostcategory")
+    if tag_types:
+        _remove_tag_types_from_cfg(conf_dir, tag_types)
+
+
+def ctn_get_host_ids_for_poller(poller: int) -> list:
+    """
+    Read hosts.cfg for the given poller and return a sorted list of
+    ``_HOST_ID`` integer values.
+
+    Args:
+        poller (int): Index of the poller to work with.
+
+    Returns:
+        Sorted list of host ID integers defined in that poller's hosts.cfg.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    r = re.compile(r"^\s*_HOST_ID\s+(\d+)")
+    ids = []
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
+        for line in ff:
+            m = r.match(line)
+            if m:
+                ids.append(int(m.group(1)))
+    return sorted(ids)
+
+
+def ctn_get_host_ids_for_pollers(*pollers) -> list:
+    """
+    Return a sorted list of all ``_HOST_ID`` values across the given pollers.
+
+    Args:
+        *pollers: Poller indices (integers or Robot Framework string integers).
+
+    Returns:
+        Sorted list of host ID integers.
+    """
+    result = []
+    for p in pollers:
+        result.extend(ctn_get_host_ids_for_poller(int(p)))
+    return sorted(result)
 
 
 def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
@@ -3061,11 +3852,12 @@ def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
     Add a parent host to an host.
 
     Args:
-        poller: index of the Engine configuration (from 0)
+        poller: Index of the Engine configuration (from 0)
         host: child host name.
         parent_host: host name of the parent of the child host.
     """
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+    config_dir = engine.get_config_dir(poller)
+    with open(f"{config_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(rf"^\s*host_name\s+{host}$")
     for i in range(len(lines)):
@@ -3074,7 +3866,7 @@ def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
                 i + 1, f"    parents                        {parent_host}\n")
             break
 
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+    with open(f"{config_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -3087,7 +3879,8 @@ def ctn_add_template_to_services(poller: int, tmpl: str, svc_lst):
         tmpl (str): The name of the template to add.
         svc_lst (list): A list of service IDs. We don't take care of host IDs here.
     """
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
@@ -3096,7 +3889,7 @@ def ctn_add_template_to_services(poller: int, tmpl: str, svc_lst):
             lines.insert(
                 i + 1, f"    use                     {tmpl}\n")
 
-    with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -3109,7 +3902,8 @@ def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
         tmpl (str): The name of the template to add.
         hst_lst (list): A list of host IDs.
     """
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
@@ -3118,7 +3912,7 @@ def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
             lines.insert(
                 i + 1, "    use                     {}\n".format(tmpl))
 
-    with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -3131,7 +3925,8 @@ def ctn_add_template_to_contact(poller: int, tmpl: str, c_lst):
         tmpl (str): The name of the template to add.
         c_lst (list): A list of contact name.
     """
-    with open("{}/config{}/contacts.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/contacts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*contact_name\s*(\S+)$")
     for i in range(len(lines)):
@@ -3140,7 +3935,7 @@ def ctn_add_template_to_contact(poller: int, tmpl: str, c_lst):
             lines.insert(
                 i + 1, f"    use                     {tmpl}\n")
 
-    with open("{}/config{}/contacts.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/contacts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -3149,15 +3944,16 @@ def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     Remove a config file reference from the centengine.cfg.
 
     Args:
-        poller (int): The ID of the Engine configuration.
+        poller (int): The index of the Engine configuration (from 0).
         fic (str): What file to remove.
     """
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/centengine.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(
-        r"^\s*cfg_file=" + ETC_ROOT + f"/centreon-engine/config{poller}/{fic}")
+        rf"^\s*cfg_file={ETC_ROOT}/centreon-engine/config{poller}/{fic}")
     linesearch = [line for line in lines if not r.match(line)]
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/centengine.cfg", "w") as ff:
         ff.writelines(linesearch)
 
 
@@ -3565,7 +4361,8 @@ def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line:
         command_line:
     """
 
-    with open(f"{CONF_DIR}/config{poller}/connectors.cfg", "a") as f:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/connectors.cfg", "a") as f:
         f.write(f"""
 define connector {{
     connector_name                 {connector_name}
@@ -3692,7 +4489,7 @@ def ctn_get_engine_process_stat(port, timeout=10):
             try:
                 res = stub.GetProcessStats(empty_pb2.Empty())
                 return res
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     logger.console("unable to get process stats")
     return None
@@ -3718,11 +4515,12 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     Set the status of a check command.
 
     Args:
-        idx: ID of the Engine configuration.
+        idx: Index of the Engine configuration.
         cmd_name: Name of the command we work on.
         status: 0, 1, 2 or 3.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/commands.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -3746,7 +4544,8 @@ def ctn_add_host_dependency(idx: int, host_name: str, dependent_host_name: str):
         host_name: host name of the host.
         dependent_host_name: host name of the dependent host.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/dependencies.cfg"
     with open(filename, "a+") as f:
         f.write(f"""
 define hostdependency {{
@@ -3771,7 +4570,8 @@ def ctn_add_service_dependency(idx: int, host_name: str, dependent_host_name: st
         service: Description of the service.
         dependent_service: Description of the dependent service.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/dependencies.cfg"
     with open(filename, "a+") as f:
         f.write(f"""
 define servicedependency {{
@@ -3821,7 +4621,7 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
                 logs = stub.GetLogInfo(empty_pb2.Empty())
                 return logs.level[log]
 
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
 
@@ -3836,10 +4636,11 @@ def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, min
     """
     try:
         my_date = parser.parse(date)
-    except:
+    except Exception:
         my_date = datetime.fromtimestamp(date)
 
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/timeperiods.cfg"
 
     begin = my_date.time()
     end = my_date + datetime.timedelta(minutes=minute_duration)
@@ -3854,20 +4655,21 @@ define timeperiod {{
 """)
 
 
-def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str,with_default_token: bool = True):
+def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, with_default_token: bool = True):
     """!
     add a new broker_module line to centengine.cfg and create otl_server config file
     @param idx index ofthe poller usually 0
     @param otl_server_config_json_content json content of the otl configuration file
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
-    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/centengine.cfg"
+    otl_server_config_path = f"{conf_dir}/otl_server.json"
     # add defaut token :
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8"
 
     with open(filename, "a+") as f:
         f.write(
-            f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
+            f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}\n")
 
     json_load = json.loads(otl_server_config_json_content)
 
@@ -3898,7 +4700,8 @@ def ctn_add_token_otl_server_module(idx: int, token: str):
     Returns:
         bool: True if the token was successfully inserted, False otherwise.
     """
-    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+    conf_dir = engine.get_config_dir(idx)
+    otl_server_config_path = f"{conf_dir}/otl_server.json"
     token_inserted = False
 
     if not exists(otl_server_config_path):
@@ -3943,7 +4746,8 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
         None: The function does not return a value. If the configuration file does not
               exist, the function exits without making any changes.
     """
-    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+    conf_dir = engine.get_config_dir(idx)
+    otl_server_config_path = f"{conf_dir}/otl_server.json"
 
     if not exists(otl_server_config_path):
         return
@@ -3969,7 +4773,8 @@ def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str):
         bool: True if the token was successfully inserted, False otherwise.
     """
 
-    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx_config}/otl_server.json"
+    conf_dir = engine.get_config_dir(idx_config)
+    otl_server_config_path = f"{conf_dir}/otl_server.json"
     token_inserted = False
 
     if not exists(otl_server_config_path):
@@ -4174,7 +4979,7 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
                 to_fill.CopyFrom(res_metric)
 
             return stub.Export(request)
-        except:
+        except Exception:
             logger.console("gRPC server not ready")
 
 
@@ -4206,23 +5011,23 @@ def ctn_send_otl_to_engine_secure(target: str, resource_metrics: list, cert: str
             logger.console(f"gRPC server not ready: {e}")
 
 
-def ctn_get_host_info_grpc(id:  int):
+def ctn_get_host_info_grpc(host_id:  int):
     """
     Retrieve host information via a gRPC call.
 
     Args:
-        id: The identifier of the host to retrieve.
+        host_id: The identifier of the host to retrieve.
 
     Returns:
         A dictionary containing the host informations, if successfully retrieved.
     """
-    if id is not None:
+    if host_id is not None:
         limit = time.time() + 30
         while time.time() < limit:
             time.sleep(1)
             with grpc.insecure_channel("127.0.0.1:50001") as channel:
                 stub = engine_pb2_grpc.EngineStub(channel)
-                request = engine_pb2.NameOrIdIdentifier(id=id)
+                request = engine_pb2.NameOrIdIdentifier(id=host_id)
                 try:
                     host = stub.GetHost(request)
                     host_dict = MessageToDict(
@@ -4505,7 +5310,7 @@ def ctn_check_key_value_existence(data_list, key, value):
 
 def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
     """
-    Delete a element in the file given for the Engine configuration idx.
+    Delete an element in the file given for the Engine configuration idx.
 
     Args:
         idx (int): Index of the Engine configuration (from 0)
@@ -4513,7 +5318,8 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         key (str): The parameter that will be deleted.
         file (str): The file to delete the key from.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/{file}"
 
     with open(filename, "r") as f:
         content = f.read()
@@ -4544,7 +5350,9 @@ def ctn_engine_command_add_arg(idx: int, command_name: str, arg):
         command_name (str): Name of the command to modify or * for all the commands.
         arg (str): Argument to add to the command.
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "r") as f:
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/commands.cfg"
+    with open(filename, "r") as f:
         lines = f.readlines()
     # All the commands are updated
     if command_name == '*':
@@ -4563,7 +5371,7 @@ def ctn_engine_command_add_arg(idx: int, command_name: str, arg):
                 if lines[i].find("check.pl") != -1:
                     lines[i] = lines[i].rstrip() + f" {arg}\n"
 
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
+    with open(filename, "w") as f:
         f.writelines(lines)
 
 
@@ -4575,7 +5383,8 @@ def ctn_engine_command_remove_connector(idx: int, command_name: str):
         idx (int): Index of the Engine configuration (from 0).
         command_name (str): Name of the command to modify or * for all the commands.
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "r") as f:
+    conf_dir = engine.get_config_dir(idx)
+    with open(f"{conf_dir}/commands.cfg", "r") as f:
         lines = f.readlines()
     # All the commands are updated
     if command_name == '*':
@@ -4593,5 +5402,140 @@ def ctn_engine_command_remove_connector(idx: int, command_name: str):
                     del lines[i]
                     break
 
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
+    with open(f"{conf_dir}/commands.cfg", "w") as f:
         f.writelines(lines)
+
+
+def ctn_engine_config_add_service(idx: int, host_id: int, service_id: int, service_description: str, command_name: str):
+    """
+    Add a service to the Engine configuration file.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0).
+        host_id (int): ID of the host to which the service belongs.
+        service_description (str): Description of the service.
+        command_name (str): Name of the command associated with the service.
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/services.cfg"
+    with open(filename, "a+") as f:
+        f.write(engine.define_service(host_id, service_id,
+                service_description, command_name))
+        lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
+        Path(lck_file).touch()
+
+
+def ctn_engine_check_sh_command_output():
+    """
+    Scan the engine log and search service::handle_async_check_result lines
+    Check the output of check.sh witch return arguments and NAGIOS__SERVICEVAR1 and NAGIOS__SERVICEVAR2 
+    environment variables
+    services with an id multiple of 10 have de _KO macro set, so check.sh returns 1 instead of 0
+
+    Returns: number of different services checked
+    """
+
+    if not engine:
+        return 0
+    search_pattern = re.compile(
+        r"service::handle_async_check_result\(\) service service_(\d+) res:service_check start_time=(\d+) finish_time=(\d+) timeout=(\d+) ok=(\d+) ret_code=(\d+) output:args (\d+) (\d+) env VAL_SERV_(\d+)_(\d+) VAL_HOST_(\d+)")
+    service_checked = {}
+    with open(f"{VAR_ROOT}/log/centreon-engine/config0/centengine.log") as f:
+        lines = f.readlines()
+
+    for line in lines:
+        m = search_pattern.search(line)
+        if m is not None:
+            service_id = int(m.group(1))
+            start_time = m.group(2)
+            finish_time = m.group(3)
+            timeout = m.group(4)
+            ok = m.group(5)
+            ret_code = m.group(6)
+            host_id = int(m.group(7))
+            service_host_index = int(m.group(8))
+            env_host_id = int(m.group(9))
+            env_service_id = int(m.group(10))
+            env_host_id_2 = int(m.group(11))
+            if int(finish_time) - int(start_time) > 5:
+                logger.console(f"check duration too long: {line}")
+                return 0
+            if timeout != '0':
+                logger.console(f"check timeout: {line}")
+                return 0
+            if ok != '1':
+                logger.console(f"check nok: {line}")
+                return 0
+            # for all service_id multiple of 10, check.sh exit with 1
+            if service_id % 10 != 0:
+                if ret_code != '0':
+                    logger.console(f"check ret_code no OK: {line}")
+                    return 0
+            else:
+                if ret_code != '1':
+                    logger.console(f"check ret_code no CRITICAL: {line}")
+                    return 0
+            if (host_id - 1)*engine.service_by_host + service_host_index != service_id:
+                logger.console(f"bad service id:{line}")
+                return 0
+            if host_id != env_host_id:
+                logger.console(f"bad env host id:{line}")
+                return 0
+            if service_id != env_service_id:
+                logger.console(f"bad env service id:{line}")
+                return 0
+            if host_id != env_host_id_2:
+                logger.console(f"bad env val_host id:{line}")
+                return 0
+            service_checked[service_id] = 1
+    return len(service_checked)
+
+
+def ctn_clear_engine_configurations():
+    """
+    Clear all Centreon Engine configurations by removing configuration directories
+    and recreating them with default settings.
+    """
+    # Remove existing *.prot files in /{VAR_ROOT}/lib/centreon-engine/config*
+    prot_files = glob.glob(f"{VAR_ROOT}/lib/centreon-engine/config*.prot")
+    for prot_file in prot_files:
+        os.remove(prot_file)
+
+    # Remove existing *.prot files in /{VAR_ROOT}/lib/centreon-broker/pollers-configuration
+    prot_files = glob.glob(
+        f"{VAR_ROOT}/lib/centreon-broker/pollers-configuration/*.prot")
+    for prot_file in prot_files:
+        os.remove(prot_file)
+
+    # Remove the content of /{VAR_ROOT}/lib/centreon/config
+    config_files = glob.glob(f"{VAR_ROOT}/lib/centreon/config/*")
+    for config_file in config_files:
+        if os.path.isfile(config_file):
+            os.remove(config_file)
+        elif os.path.isdir(config_file):
+            shutil.rmtree(config_file)
+
+def ctn_clear_instances():
+    """
+    Destroy all the Engine configurations in memory.
+    """
+    global engine
+    engine = None
+
+def ctn_clear_engine_white_list():
+    """
+    Clear the Centreon Engine whitelist by removing the centreon-engine-whitelist
+    directory content.
+    """
+    whitelist_dir = ["/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"]
+    try:
+        for directory in whitelist_dir:
+            for item in os.listdir(directory):
+                item_path = os.path.join(directory, item)
+                if os.path.isfile(item_path) or os.path.islink(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+    except Exception as e:
+        logger.console(f"Error while cleaning the directory: {e}")
+

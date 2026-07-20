@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine anomaly detection
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs  True
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs    True
 
 
 *** Test Cases ***
@@ -27,10 +27,9 @@ NO_FILTER_NO_ERROR
     Ctn Start Engine
 
     ${content}    Create List
-    ...    are too restrictive  contain forbidden filters
+    ...    are too restrictive    contain forbidden filters
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
     Should Not Be True    ${result}    An message of filter error has been found
-
 
 STUPID_FILTER
     [Documentation]    Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
@@ -58,6 +57,7 @@ STORAGE_ON_LUA
     [Documentation]    The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
+    Ctn Clear Broker Logs
 
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -85,6 +85,7 @@ FILTER_ON_LUA_EVENT
     [Documentation]    stream connector with a bad configured filter generate a log error message
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
+    Ctn Clear Broker Logs
 
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -151,9 +152,9 @@ BAM_STREAM_FILTER
     Ctn Clear Broker Logs
 
     Ctn Start Broker    True
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
@@ -188,7 +189,7 @@ BAM_STREAM_FILTER
         IF    len("""${grep_res1}""") > 0 and len("""${grep_res2}""") > 0 and len("""${grep_res3}""") > 0 and len("""${grep_res4}""") > 0 and len("""${grep_res5}""") > 0 and len("""${grep_res6}""") > 0
             BREAK
         END
-	Sleep    1s
+        Sleep    1s
     END
 
     Should Not Be Empty    ${grep_res1}    We should receive pb_service events. Nothing received.
@@ -254,6 +255,7 @@ CBD_RELOAD_AND_FILTERS
     [Documentation]    We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
     [Tags]    broker    engine    filter
 
+    Ctn Clear Broker Logs
     Ctn Clear Retention
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
@@ -265,16 +267,16 @@ CBD_RELOAD_AND_FILTERS
     Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
 
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
-    Should Be True    ${result}    No status from central broker for 1mn.
+    Should Be True    ${result}    No status from central broker for 1mn (step 1).
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
@@ -284,13 +286,13 @@ CBD_RELOAD_AND_FILTERS
 
     # New configuration
     Ctn Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
-
+    Ctn Broker Config Flush
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
     Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Endpoint 'centreon-broker-master-rrd' not created.
     ${start2}    Get Current Date
@@ -306,7 +308,7 @@ CBD_RELOAD_AND_FILTERS
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
-    Should Be True    ${result}    No status from central broker for 1mn.
+    Should Be True    ${result}    No status from central broker for 1mn (step 2).
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List    rrd event .* rejected by write filter
@@ -317,10 +319,11 @@ CBD_RELOAD_AND_FILTERS
     # New configuration
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
+    Ctn Broker Config Flush
     Ctn Restart Engine
     Ctn Reload Broker
     # wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
@@ -335,7 +338,7 @@ CBD_RELOAD_AND_FILTERS
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
-    Should Be True    ${result}    No status from central broker for 1mn.
+    Should Be True    ${result}    No status from central broker for 1mn (step 3).
 
     # We check that output filters to rrd doesn't filter anything
     ${content}    Create List    rrd event .* rejected by write filter
@@ -363,11 +366,11 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
 
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
@@ -382,13 +385,14 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # New configuration
     Ctn Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
+    Ctn Broker Config Flush
 
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
     Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
@@ -414,11 +418,12 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Log To Console    Third configuration: all events are sent.
     # New configuration
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    Ctn Broker Config Flush
     ${start}    Get Current Date
     Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
@@ -446,6 +451,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
     Remove File    /tmp/all_lua_event-bis.log
+    Ctn Clear Broker Logs
 
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central

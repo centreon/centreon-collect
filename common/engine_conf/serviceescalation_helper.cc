@@ -17,7 +17,7 @@
  *
  */
 #include "common/engine_conf/serviceescalation_helper.hh"
-
+#include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -25,11 +25,18 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 
 size_t serviceescalation_key(const Serviceescalation& se) {
-  return absl::HashOf(se.hosts().data(0), se.service_description().data(0),
-                      // se.contactgroups(),
-                      se.escalation_options(), se.escalation_period(),
-                      se.first_notification(), se.last_notification(),
-                      se.notification_interval());
+  assert(se.hosts().data().size() == 1 && se.hostgroups().data().empty() &&
+         se.servicegroups().data().empty());
+  uint64_t result = 0;
+  boost::hash_combine(result, se.contactgroups().data());
+  boost::hash_combine(result, se.escalation_options());
+  boost::hash_combine(result, se.escalation_period());
+  boost::hash_combine(result, se.first_notification());
+  boost::hash_combine(result, se.hosts().data(0));
+  boost::hash_combine(result, se.last_notification());
+  boost::hash_combine(result, se.notification_interval());
+  boost::hash_combine(result, se.service_description().data(0));
+  return result;
 }
 
 /**
@@ -160,8 +167,9 @@ void serviceescalation_helper::_init() {
 void serviceescalation_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hostgroups,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         servicegroups) {
   std::list<std::unique_ptr<Serviceescalation>> resolved;
 

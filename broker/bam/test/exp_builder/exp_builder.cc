@@ -20,14 +20,15 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include "bbdo/neb.pb.h"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
 #include "com/centreon/broker/bam/kpi_boolexp.hh"
 #include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 #include "common/log_v2/log_v2.hh"
 #include "test-visitor.hh"
@@ -44,7 +45,9 @@ class BamExpBuilder : public ::testing::Test {
   void SetUp() override {
     _logger = log_v2::instance().get(log_v2::BAM);
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
       _logger->set_level(spdlog::level::debug);
       _logger->flush_on(spdlog::level::debug);
     } catch (std::exception const& e) {

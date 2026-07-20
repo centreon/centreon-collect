@@ -43,6 +43,7 @@ endif()
 include_directories(
   ${CMAKE_BINARY_DIR}/bbdo
   ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_BINARY_DIR}/common/engine_conf
   ${CMAKE_SOURCE_DIR}/broker/core/src ${CMAKE_SOURCE_DIR}/engine/enginerpc
   ${CMAKE_SOURCE_DIR}/common/src)
 

@@ -19,7 +19,8 @@
 
 #include "com/centreon/broker/processing/feeder.hh"
 #include <gtest/gtest.h>
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -35,8 +36,8 @@ class TestStream : public io::stream {
   TestStream() : io::stream("TestStream") {}
   bool read(std::shared_ptr<io::data>&, time_t) override { return true; }
 
-  int32_t write(std::shared_ptr<io::data> const&) override { return 1; }
-  int32_t stop() override { return 0; }
+  uint32_t write(std::shared_ptr<io::data> const&) override { return 1; }
+  uint32_t stop() override { return 0; }
 };
 
 class TestFeeder : public ::testing::Test {
@@ -45,7 +46,8 @@ class TestFeeder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    config::applier::state::load(com::centreon::common::BROKER);
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();

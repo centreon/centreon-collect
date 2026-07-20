@@ -21,11 +21,9 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/nebmodules.hh"
 
 using namespace com::centreon::engine::broker;
-using namespace com::centreon::engine::logging;
 
 /**
  *  Constructor.
@@ -77,11 +75,8 @@ void handle::close() {
       func_deinit deinit(
           (func_deinit)_handle->resolve_proc("nebmodule_deinit"));
       if (!deinit) {
-        engine_logger(log_info_message, basic)
-            << "Cannot resolve symbole 'nebmodule_deinit' in module '"
-            << _filename << "'.";
         process_logger->error(
-            "Cannot resolve symbole 'nebmodule_deinit' in module '{}'.",
+            "Cannot resolve symbol 'nebmodule_deinit' in module '{}'.",
             _filename);
       } else
         deinit(NEBMODULE_FORCE_UNLOAD | NEBMODULE_ENGINE,
@@ -133,7 +128,7 @@ const std::string& handle::get_description() const noexcept {
  *
  *  @return The filename.
  */
-const std::string& handle::get_filename() const noexcept {
+const std::filesystem::path& handle::get_filename() const noexcept {
   return _filename;
 }
 
@@ -207,7 +202,8 @@ void handle::open() {
                               "returned an error");
 
   } catch (std::exception const& e) {
-    process_logger->error("fail to load broker module {}", e.what());
+    process_logger->error("fail to load broker module '{}': {}", _filename,
+                          e.what());
     close();
     throw;
   }

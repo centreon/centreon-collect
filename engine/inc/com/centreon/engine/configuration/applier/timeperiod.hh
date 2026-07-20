@@ -19,8 +19,6 @@
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/timeperiod.hh"
-#include "common/engine_conf/timeperiod_helper.hh"
 
 // Forward declaration.
 namespace com::centreon::engine::configuration {
@@ -43,10 +41,10 @@ class timeperiod {
   timeperiod(const timeperiod&) = delete;
   timeperiod& operator=(const timeperiod&) = delete;
   void add_object(const configuration::Timeperiod& obj);
-  void expand_objects(configuration::State& s);
   void modify_object(configuration::Timeperiod* to_modify,
                      const configuration::Timeperiod& new_object);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const Key& p);
   void resolve_object(const configuration::Timeperiod& obj, error_cnt& err);
 };
 }  // namespace applier

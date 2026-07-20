@@ -19,6 +19,8 @@
 #ifndef CCB_LUA_BROKER_EVENT_HH
 #define CCB_LUA_BROKER_EVENT_HH
 
+#include <absl/container/flat_hash_map.h>
+
 #include "com/centreon/broker/io/events.hh"
 
 extern "C" {
@@ -54,7 +56,7 @@ class broker_event {
     time_t _last_full_gc;
   };
 
-  static std::map<const lua_State*, gc_info> _gc_info;
+  static absl::flat_hash_map<const lua_State*, gc_info> _gc_info;
   static std::mutex _gc_info_m;
 
   static int l_broker_event_destructor(lua_State* L);

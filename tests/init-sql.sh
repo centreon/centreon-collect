@@ -1,4 +1,7 @@
 #!/bin/bash
+
+rm -rf /tmp/mariadb_log
+
 DBUserRoot=$(awk '($1=="${DBUserRoot}") {print $2}' resources/db_variables.resource)
 DBPassRoot=$(awk '($1=="${DBPassRoot}") {print $2}' resources/db_variables.resource)
 DBStorage=$(awk '($1=="${DBName}") {print $2}' resources/db_variables.resource)
@@ -12,9 +15,23 @@ if [ -z $DBPassRoot ] ; then
     DBPassRoot="centreon"
 fi
 
-mysql -e "set password for '$DBUserRoot'@'localhost' = PASSWORD('$DBPassRoot')"
-mysql -e "GRANT ALL PRIVILEGES ON *.* TO '$DBUserRoot'@'localhost'"
-mysql -e "flush privileges"
+DBUser=$(awk '($1=="${DBUser}") {print $2}' resources/db_variables.resource)
+DBPass=$(awk '($1=="${DBPass}") {print $2}' resources/db_variables.resource)
+
+if [ -z $DBUser ] ; then
+    DBUser="centreon"
+fi
+
+if [ -z $DBPass ] ; then
+    DBPass="centreon"
+fi
+
+mysql -u root <<EOF
+CREATE USER IF NOT EXISTS '${DBUserRoot}'@'localhost' IDENTIFIED BY '${DBPassRoot}';
+GRANT ALL PRIVILEGES ON *.* TO '${DBUserRoot}'@'localhost' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS '${DBUser}'@'localhost' IDENTIFIED BY '${DBPass}';
+FLUSH PRIVILEGES;
+EOF
 
 mysql --user="$DBUserRoot" --password="$DBPassRoot" -e "drop database ${DBConf}"
 cat ../resources/centreon.sql | sed "s/DBNameConf/${DBConf}/g" > /tmp/centreon.sql
@@ -29,6 +46,11 @@ then
 else
     mysql --user="$DBUserRoot" --password="$DBPassRoot" < ../resources/centreon_storage.sql
 fi
+
+mysql --user="$DBUserRoot" --password="$DBPassRoot" -e "
+GRANT ALL PRIVILEGES ON \`${DBConf}\`.* TO '${DBUser}'@'localhost';
+GRANT ALL PRIVILEGES ON \`${DBStorage}\`.* TO '${DBUser}'@'localhost';
+FLUSH PRIVILEGES;"
 
 mkdir /tmp/mariadb_log
 chown mysql: /tmp/mariadb_log

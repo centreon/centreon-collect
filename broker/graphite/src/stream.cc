@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include "bbdo/storage/metric.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -27,7 +29,7 @@
 #include "common/crypto/base64.hh"
 #include "common/log_v2/log_v2.hh"
 
-using namespace asio;
+namespace asio = boost::asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
@@ -44,8 +46,7 @@ stream::stream(std::string const& metric_naming,
                std::string const& db_password,
                std::string const& db_host,
                unsigned short db_port,
-               uint32_t queries_per_transaction,
-               std::shared_ptr<persistent_cache> const& cache)
+               uint32_t queries_per_transaction)
     : io::stream("graphite"),
       _metric_naming{metric_naming},
       _status_naming{status_naming},
@@ -58,11 +59,14 @@ stream::stream(std::string const& metric_naming,
       _pending_queries{0},
       _actual_query{0},
       _commit_flag{false},
-      _metric_query{_metric_naming, escape_string, query::metric, _cache},
-      _status_query{_status_naming, escape_string, query::status, _cache},
+      _metric_query{_metric_naming, escape_string, query::metric},
+      _status_query{_status_naming, escape_string, query::status},
       _socket{_io_context},
-      _logger{log_v2::instance().get(log_v2::GRAPHITE)},
-      _cache{cache} {
+      _logger{log_v2::instance().get(log_v2::GRAPHITE)} {
+  config::applier::state::instance().cache().enable_section(
+      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
+      cache::broker_cache::CACHE_INSTANCES |
+      cache::broker_cache::CACHE_METRIC_MAPPINGS);
   _logger->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
@@ -73,7 +77,7 @@ stream::stream(std::string const& metric_naming,
   }
 
   boost::system::error_code err;
-  ip::tcp::resolver resolver{_io_context};
+  asio::ip::tcp::resolver resolver{_io_context};
 
   auto endpoint = resolver.resolve(_db_host, std::to_string(_db_port), err);
 
@@ -103,9 +107,9 @@ stream::~stream() {
  *
  *  @return Number of events acknowledged.
  */
-int32_t stream::flush() {
+uint32_t stream::flush() {
   _logger->debug("graphite: commiting {} queries", _actual_query);
-  int32_t ret(_pending_queries);
+  uint32_t ret(_pending_queries);
   if (_actual_query != 0)
     _commit();
   _actual_query = 0;
@@ -119,9 +123,9 @@ int32_t stream::flush() {
  *
  * @return the number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger->trace("graphite::stream stop {}", static_cast<void*>(this));
-  int32_t retval = flush();
+  uint32_t retval = flush();
   _logger->info("graphite stopped with {} events acknowledged", retval);
   return retval;
 }
@@ -159,14 +163,11 @@ void stream::statistics(nlohmann::json& tree) const {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_queries;
   if (!validate(data, get_name()))
     return 0;
-
-  // Give the event to the cache.
-  _cache.write(data);
 
   // Process metric events.
   switch (data->type()) {
@@ -251,7 +252,7 @@ void stream::_commit() {
   if (!_query.empty()) {
     boost::system::error_code err;
 
-    asio::write(_socket, buffer(_query), asio::transfer_all(), err);
+    asio::write(_socket, asio::buffer(_query), asio::transfer_all(), err);
     if (err)
       throw msg_fmt(
           "graphite: can't send data to graphite on host '{}', port '{}' : {}",

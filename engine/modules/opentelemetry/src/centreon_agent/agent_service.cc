@@ -39,6 +39,7 @@ class server_bireactor
                    const otel_request_handler& handler,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const std::string& peer,
+                   bool is_crypted,
                    agent_stat::pointer& stats)
       : agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
                                              agent::MessageToAgent>>(
@@ -48,6 +49,7 @@ class server_bireactor
             handler,
             logger,
             false,
+            is_crypted,
             stats),
         _peer(peer) {
     SPDLOG_LOGGER_DEBUG(_logger, "connected with agent {}", _peer);
@@ -59,6 +61,7 @@ class server_bireactor
                    const otel_request_handler& handler,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const std::string& peer,
+                   bool is_crypted,
                    agent_stat::pointer& stats,
                    const std::chrono::system_clock::time_point& exp_time)
       : agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
@@ -69,6 +72,7 @@ class server_bireactor
             handler,
             logger,
             false,
+            is_crypted,
             stats,
             exp_time),
         _peer(peer) {
@@ -229,8 +233,8 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
   {
     absl::MutexLock l(&_conf_m);
     new_reactor = std::make_shared<server_bireactor>(
-        _io_context, _conf, _metric_handler, _logger, context->peer(), _stats,
-        exp_time);
+        _io_context, _conf, _metric_handler, _logger, context->peer(),
+        _is_crypted, _stats, exp_time);
   }
   server_bireactor::register_stream(new_reactor);
   new_reactor->start_read();

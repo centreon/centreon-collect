@@ -21,7 +21,7 @@
 #include <cassert>
 
 #include "broker/core/bbdo/internal.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -29,6 +29,8 @@
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/common/time.hh"
 #include "common/log_v2/log_v2.hh"
+
+namespace asio = boost::asio;
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -55,6 +57,7 @@ static void add_bench_point(bbdo::pb_bench& event,
 }
 
 uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
+uint32_t muxer::_priority_age_threshold = 300;
 
 absl::Mutex muxer::_running_muxers_m;
 absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
@@ -86,7 +89,6 @@ muxer::muxer(std::string name,
       _read_filters_str{misc::dump_filters(r_filter)},
       _write_filters_str{misc::dump_filters(w_filter)},
       _persistent(persistent),
-      _events_size{0u},
       _center{config::applier::state::instance().center()},
       _last_stats{std::time(nullptr)},
       _logger{log_v2::instance().get(log_v2::CORE)} {
@@ -101,10 +103,8 @@ muxer::muxer(std::string name,
       for (;;) {
         e.reset();
         mf->read(e, 0);
-        if (e) {
-          _events.push_back(std::move(e));
-          ++_events_size;
-        }
+        if (e)
+          _push_to_queue_from_file(std::move(e));
       }
     } catch (const exceptions::shutdown& e) {
       // Memory file was properly read back in memory.
@@ -112,7 +112,6 @@ muxer::muxer(std::string name,
     }
   }
 
-  _pos = _events.begin();
   // Load queue file back in memory.
   try {
     QueueFileStats* stats = _center->muxer_stats(_name)->mutable_queue_file();
@@ -126,9 +125,8 @@ muxer::muxer(std::string name,
       _get_event_from_file(e);
       if (!e)
         break;
-      _events.push_back(std::move(e));
-      ++_events_size;
-    } while (_events_size < event_queue_max_size());
+      _push_to_queue_from_file(std::move(e));
+    } while (_total_queue_size() < event_queue_max_size());
   } catch (const exceptions::shutdown& e) {
     // Queue file was entirely read back.
     (void)e;
@@ -140,7 +138,7 @@ muxer::muxer(std::string name,
   SPDLOG_LOGGER_INFO(
       _logger,
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
-      _name, _events_size, _file ? "enable" : "disable");
+      _name, _total_queue_size(), _file ? "enable" : "disable");
 }
 
 /**
@@ -177,11 +175,12 @@ std::shared_ptr<muxer> muxer::create(std::string name,
           ->debug("muxer: muxer '{}' already exists, reusing it", name);
       retval->set_read_filter(r_filter);
       retval->set_write_filter(w_filter);
-      SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-                         "multiplexing: reuse '{}' starts with {} in queue and "
-                         "the queue file is {}",
-                         name, retval->_events_size,
-                         retval->_file ? "enable" : "disable");
+      {
+        absl::MutexLock lck(&retval->_events_m);
+        SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                           "multiplexing: reuse '{}', queue file is {}", name,
+                           retval->_file ? "enable" : "disable");
+      }
 
     } else {
       log_v2::instance()
@@ -205,7 +204,7 @@ muxer::~muxer() noexcept {
     absl::MutexLock lock(&_events_m);
     SPDLOG_LOGGER_INFO(
         _logger, "Destroying muxer {:p} {}: number of events in the queue: {}",
-        static_cast<void*>(this), _name, _events_size);
+        static_cast<void*>(this), _name, _total_queue_size());
     _clean();
   }
   /* We must unsubscribe once _clean() is over. This is because _clean() is
@@ -220,51 +219,73 @@ muxer::~muxer() noexcept {
 }
 
 /**
- *  Acknowledge events.
+ *  Acknowledge count events, draining queue P first, then C, then H.
  *
  *  @param[in] count  Number of events to acknowledge.
  */
-void muxer::ack_events(int count) {
-  // Remove acknowledged events.
-  SPDLOG_LOGGER_TRACE(
-      _logger,
-      "multiplexing: acknowledging {} events from {} event queue size: {}",
-      count, _name, _events_size);
-
-  if (count) {
-    SPDLOG_LOGGER_DEBUG(
-        _logger, "multiplexing: acknowledging {} events from {} event queue",
-        count, _name);
-    absl::MutexLock lck(&_events_m);
-    for (int i = 0; i < count && !_events.empty(); ++i) {
-      if (_events.begin() == _pos) {
-        _logger->error(
-            "multiplexing: attempt to acknowledge more events than available "
-            "in {} event queue: {} size: {}, requested, {} acknowledged",
-            _name, _events_size, count, i);
-        break;
-      }
-      _events.pop_front();
-      --_events_size;
-    }
-    SPDLOG_LOGGER_TRACE(_logger,
-                        "multiplexing: still {} events in {} event queue",
-                        _events_size, _name);
-
-    // Fill memory from file.
-    std::shared_ptr<io::data> e;
-    while (_events_size < event_queue_max_size()) {
-      _get_event_from_file(e);
-      if (!e)
-        break;
-      _push_to_queue(e);
-    }
-    _update_stats();
-  } else {
+void muxer::ack_events(uint32_t count) {
+  if (!count) {
     SPDLOG_LOGGER_TRACE(
         _logger, "multiplexing: acknowledging no events from {} event queue",
         _name);
+    return;
   }
+
+  absl::MutexLock lck(&_events_m);
+  SPDLOG_LOGGER_DEBUG(
+      _logger, "multiplexing: acknowledging {} events from {} queue size: {}",
+      count, _name, _total_queue_size());
+
+  // Ack from P
+  uint32_t p_to_remove =
+      std::min(count, static_cast<uint32_t>(_priority_read_pos));
+  _priority_events.erase(_priority_events.begin(),
+                         _priority_events.begin() + p_to_remove);
+  _priority_read_pos -= p_to_remove;
+  count -= p_to_remove;
+
+  // Ack from C (skip/consume tombstones), then overflow to H
+  while (count > 0 && _current_read_pos > 0) {
+    bool is_live = static_cast<bool>(_current_events.front().event);
+    _current_events.pop_front();
+    --_current_read_pos;
+    if (is_live) {
+      --_current_events_size;
+      --count;
+    }
+  }
+  // Clean up leading tombstones advanced past during demotion
+  while (_current_read_pos > 0 && !_current_events.front().event) {
+    _current_events.pop_front();
+    --_current_read_pos;
+  }
+
+  uint32_t h_to_remove =
+      std::min(count, static_cast<uint32_t>(_historical_read_pos));
+  _historical_events.erase(_historical_events.begin(),
+                           _historical_events.begin() + h_to_remove);
+  _historical_read_pos -= h_to_remove;
+  count -= h_to_remove;
+
+  if (count > 0)
+    _logger->error(
+        "multiplexing: attempt to ack more events than in-flight "
+        "in {} event queue: {} remaining",
+        _name, count);
+
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "multiplexing: still {} events in {} event queue",
+                      _total_queue_size(), _name);
+
+  // Reload from disk
+  std::shared_ptr<io::data> e;
+  while (_total_queue_size() < event_queue_max_size()) {
+    _get_event_from_file(e);
+    if (!e)
+      break;
+    _push_to_queue_from_file(std::move(e));
+  }
+  _update_stats();
 }
 
 /**
@@ -272,11 +293,11 @@ void muxer::ack_events(int count) {
  *
  * @return The number of acknowledged events.
  */
-int32_t muxer::stop() {
+uint32_t muxer::stop() {
+  absl::MutexLock lck(&_events_m);
   SPDLOG_LOGGER_INFO(_logger,
                      "Stopping muxer {}: number of events in the queue: {}",
-                     _name, _events_size);
-  absl::MutexLock lck(&_events_m);
+                     _name, _total_queue_size());
   _update_stats();
   return 0;
 }
@@ -302,6 +323,14 @@ uint32_t muxer::event_queue_max_size() noexcept {
   return _event_queue_max_size;
 }
 
+void muxer::priority_age_threshold(uint32_t seconds) noexcept {
+  _priority_age_threshold = seconds;
+}
+
+uint32_t muxer::priority_age_threshold() noexcept {
+  return _priority_age_threshold;
+}
+
 /**
  * @brief Execute the data_handler() method if it exists and if its execution is
  * needed, in other words, if there are no data available it is not necessary to
@@ -322,9 +351,14 @@ void muxer::_execute_reader_if_needed() {
           }
           if (to_call) {
             std::vector<std::shared_ptr<io::data>> to_fill;
-            to_fill.reserve(_events_size);
+            size_t events_size;
+            {
+              absl::MutexLock lck(&_events_m);
+              events_size = _total_queue_size();
+            }
+            to_fill.reserve(events_size);
             bool still_events_to_read [[maybe_unused]] =
-                read(to_fill, _events_size);
+                read(to_fill, events_size);
             uint32_t written = to_call->on_events(to_fill);
             if (written > 0)
               ack_events(written);
@@ -351,6 +385,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                  static_cast<void*>(this), _name, event_queue.size());
   auto evt = event_queue.begin();
   while (evt != event_queue.end()) {
+    if (_name == "central-broker-unified-sql") {
+      _logger->debug("publishing into unified_sql event of type {:x}",
+                     (*evt)->type());
+    }
     bool at_least_one_push_to_queue = false;
     {
       // we stop this first loop when mux queue is full in order to release
@@ -359,8 +397,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       _logger->trace(
           "muxer::publish ({}) starting the loop to stack events --- "
           "events_size = {} <> {}",
-          _name, _events_size, event_queue_max_size());
-      for (; evt != event_queue.end() && _events_size < event_queue_max_size();
+          _name, _total_queue_size(), event_queue_max_size());
+      for (;
+           evt != event_queue.end() &&
+           _total_queue_size() < event_queue_max_size();
            ++evt) {
         auto event = *evt;
         if (!_write_filter.allows(event->type())) {
@@ -378,7 +418,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
 
         SPDLOG_LOGGER_TRACE(
             _logger, "muxer {} event of type {:x} written --- queue size: {}",
-            _name, event->type(), _events_size);
+            _name, event->type(), _total_queue_size());
 
         at_least_one_push_to_queue = true;
 
@@ -386,7 +426,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       }
       _logger->trace("muxer::publish ({}) loop finished", _name);
       if (at_least_one_push_to_queue ||
-          _events_size >= event_queue_max_size())  // async handler waiting?
+          _total_queue_size() >= event_queue_max_size())  // async handler waiting?
         _execute_reader_if_needed();
     }
 
@@ -426,7 +466,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         SPDLOG_LOGGER_TRACE(
             _logger,
             "{} publish one event of type {:x} to file {} queue size:{}", _name,
-            event->type(), _queue_file_name, _events_size);
+            event->type(), _queue_file_name, _total_queue_size());
       } catch (const std::exception& ex) {
         // in case of exception, we lost event. It's mandatory to avoid
         // infinite loop in case of permanent disk problem
@@ -454,9 +494,31 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   bool timed_out{false};
   absl::MutexLock lck(&_events_m);
 
-  // No data is directly available.
-  if (_pos == _events.end()) {
-    // Wait a while if subscriber was not shutdown.
+  _demote_stale_current_events();
+
+  // Try to pick the next event from P→C→H.
+  auto try_pick = [&]() ABSL_NO_THREAD_SAFETY_ANALYSIS -> bool {
+    if (_priority_read_pos < _priority_events.size()) {
+      event = _priority_events[_priority_read_pos++].event;
+      return true;
+    }
+    // C: skip tombstones
+    while (_current_read_pos < _current_events.size()) {
+      auto& entry = _current_events[_current_read_pos++];
+      if (entry.event) {
+        event = entry.event;
+        return true;
+      }
+    }
+    if (_historical_read_pos < _historical_events.size()) {
+      event = _historical_events[_historical_read_pos++].event;
+      return true;
+    }
+    return false;
+  };
+
+  if (!try_pick()) {
+    // No data directly available — wait if requested.
     if ((time_t)-1 == deadline)
       _no_event_cv.Wait(&_events_m);
     else if (!deadline)
@@ -464,25 +526,16 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     else
       _no_event_cv.WaitWithDeadline(&_events_m, absl::FromTimeT(deadline));
 
-    if (_pos != _events.end()) {
-      event = *_pos;
-      ++_pos;
-      if (event)
-        timed_out = false;
-    } else
+    if (!try_pick())
       event.reset();
-  }
-  // Data is available, no need to wait.
-  else {
-    event = *_pos;
-    ++_pos;
   }
 
   _update_stats();
 
   if (event) {
+    timed_out = false;
     SPDLOG_LOGGER_TRACE(_logger, "{} read {} queue size {}", _name, *event,
-                        _events_size);
+                        _total_queue_size());
     if (event->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                       "read");
@@ -491,7 +544,7 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     }
   } else {
     SPDLOG_LOGGER_TRACE(_logger, "{} queue size {} no event available", _name,
-                        _events_size);
+                        _total_queue_size());
   }
   return !timed_out;
 }
@@ -521,19 +574,21 @@ const std::string& muxer::write_filters_as_str() const {
  */
 uint32_t muxer::get_event_queue_size() const {
   absl::MutexLock lck(&_events_m);
-  return _events_size;
+  return static_cast<uint32_t>(_total_queue_size());
 }
 
 /**
  *  Reprocess non-acknowledged events.
  */
 void muxer::nack_events() {
+  absl::MutexLock lck(&_events_m);
   SPDLOG_LOGGER_DEBUG(_logger,
                       "multiplexing: reprocessing unacknowledged events from "
                       "{} event queue with {} waiting events",
-                      _name, _events_size);
-  absl::MutexLock lck(&_events_m);
-  _pos = _events.begin();
+                      _name, _total_queue_size());
+  _priority_read_pos = 0;
+  _current_read_pos = 0;
+  _historical_read_pos = 0;
   _update_stats();
 }
 
@@ -556,10 +611,8 @@ void muxer::statistics(nlohmann::json& tree) const {
   }
 
   // Unacknowledged events count.
-  int32_t count = 0;
-  for (auto it = _events.begin(); it != _pos; ++it)
-    count++;
-  tree["unacknowledged_events"] = count;
+  tree["unacknowledged_events"] =
+      _priority_read_pos + _current_read_pos + _historical_read_pos;
 }
 
 /**
@@ -574,7 +627,7 @@ void muxer::wake() {
  *
  *  @param[in] d  Event to multiplex.
  */
-int muxer::write(std::shared_ptr<io::data> const& d) {
+uint32_t muxer::write(std::shared_ptr<io::data> const& d) {
   _logger->debug("write on muxer '{}'", _name);
   if (!d) {
     return 1;
@@ -630,24 +683,31 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
 void muxer::_clean() {
   _file.reset();
   _center->clear_muxer_queue_file(_name);
-  if (_persistent && !_events.empty()) {
+  if (_persistent && _total_queue_size() > 0) {
     try {
       SPDLOG_LOGGER_TRACE(_logger, "muxer: sending {} events to {}",
-                          _events_size, memory_file(_name));
+                          _total_queue_size(), memory_file(_name));
       auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
-      while (!_events.empty()) {
-        mf->write(_events.front());
-        _events.pop_front();
-        --_events_size;
-      }
+      // Preserve priority order: P first, then C (non-tombstone), then H.
+      for (auto& e : _priority_events)
+        mf->write(e.event);
+      for (auto& e : _current_events)
+        if (e.event)
+          mf->write(e.event);
+      for (auto& e : _historical_events)
+        mf->write(e.event);
     } catch (std::exception const& e) {
       _logger->error("multiplexing: could not backup memory queue of '{}': {}",
                      _name, e.what());
     }
   }
-  _events.clear();
-  _events_size = 0;
-  _pos = _events.begin();
+  _priority_events.clear();
+  _current_events.clear();
+  _historical_events.clear();
+  _priority_read_pos = 0;
+  _current_read_pos = 0;
+  _historical_read_pos = 0;
+  _current_events_size = 0;
   _update_stats();
 }
 
@@ -705,16 +765,61 @@ std::string muxer::queue_file(std::string const& name) {
  *
  *  @param[in] event  New event.
  */
+static bool _is_priority_type(uint32_t type) noexcept {
+  return type == make_type(io::neb, neb::de_pb_downtime) ||
+         type == make_type(io::neb, neb::de_pb_acknowledgement);
+}
+
+static bool _is_status_type(uint32_t type) noexcept {
+  return type == make_type(io::neb, neb::de_pb_service_status) ||
+         type == make_type(io::neb, neb::de_pb_host_status);
+}
+
 void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
-  bool pos_has_no_more_to_read(_pos == _events.end());
+  bool was_empty = !_has_events_to_read();
   SPDLOG_LOGGER_TRACE(_logger, "muxer {} event of type {:x} pushed", _name,
                       event->type());
-  _events.push_back(event);
-  ++_events_size;
-
-  if (pos_has_no_more_to_read) {
-    _pos = --_events.end();
+  uint32_t type = event->type();
+  int64_t now = static_cast<int64_t>(std::time(nullptr));
+  if (_is_priority_type(type)) {
+    _priority_events.push_back({INT64_MAX, event});
+  } else if (_is_status_type(type)) {
+    _current_events.push_back({now, event});
+    ++_current_events_size;
+  } else {
+    _historical_events.push_back({now, event});
+  }
+  if (was_empty)
     _no_event_cv.Signal();
+}
+
+void muxer::_push_to_queue_from_file(std::shared_ptr<io::data> event) {
+  // On reload from disk: P-types go back to P, everything else to H.
+  if (_is_priority_type(event->type()))
+    _priority_events.push_back({INT64_MAX, std::move(event)});
+  else
+    _historical_events.push_back({0, std::move(event)});
+}
+
+/**
+ * @brief Scan unread C entries and demote to H those whose insertion timestamp
+ * is older than _priority_age_threshold seconds. The C slot is tombstoned
+ * (event = nullptr, _current_events_size decremented) and the event is
+ * appended to H. Because _current_events is insertion-ordered, we can stop as
+ * soon as we reach an entry that is still fresh.
+ */
+void muxer::_demote_stale_current_events() noexcept {
+  const int64_t cutoff =
+      static_cast<int64_t>(std::time(nullptr)) - _priority_age_threshold;
+  for (size_t i = _current_read_pos; i < _current_events.size(); ++i) {
+    auto& entry = _current_events[i];
+    if (!entry.event)
+      continue;
+    if (entry.timestamp > cutoff)
+      break;
+    _historical_events.push_back({entry.timestamp, std::move(entry.event)});
+    --_current_events_size;
+    // entry.event is now nullptr (moved) — tombstoned
   }
 }
 
@@ -730,8 +835,10 @@ void muxer::_update_stats() noexcept {
     /* Since _events_m is locked, we can get interesting values and copy them
      * in the capture. Then the execute() function can put them in the stats
      * object asynchronously. */
-    _center->update_muxer(_name, _file ? _queue_file_name : "", _events_size,
-                          std::distance(_events.begin(), _pos));
+    _center->update_muxer(_name, _file ? _queue_file_name : "",
+                          _total_queue_size(),
+                          _priority_read_pos + _current_read_pos +
+                              _historical_read_pos);
   }
 }
 

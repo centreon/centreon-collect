@@ -22,6 +22,8 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
 using com::centreon::common::debug_buf;
@@ -89,8 +91,8 @@ asio::ip::tcp::socket& tcp_connection::socket() {
  *
  * @return 0.
  */
-int32_t tcp_connection::flush() {
-  int32_t retval = _acks;
+uint32_t tcp_connection::flush() {
+  uint32_t retval = _acks;
   if (_acks) {
     /* Do not set it to zero directly, maybe it has already been incremented by
      * another operation */

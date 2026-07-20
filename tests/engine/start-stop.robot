@@ -50,8 +50,9 @@ E_FD_LIMIT
 
     ${pid}    Get Process Id    e0
     ${limits}    Ctn Get Process Limit    ${pid}    Max open files
+    ${expected_fds}    Evaluate    min(1048576, ${limits[1]})
 
-    Should Be Equal As Numbers    ${limits[0]}    1048576    Engine should have 1048576 file descriptors
+    Should Be Equal As Numbers    ${limits[0]}    ${expected_fds}    Engine should have ${expected_fds} file descriptors
 
     Ctn Stop Engine
 
@@ -96,6 +97,29 @@ ESS_STATS
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Wait Until Created    /tmp/var/lib/centreon-engine/central-module-master-stats.json
     ${result}    Grep File    /tmp/var/lib/centreon-engine/central-module-master-stats.json    "name":"/usr/share/centreon/lib/centreon-broker/15-stats.so"
+    Ctn Stop Engine
+
+ESSOCWNV
+    [Documentation]    Scenario: Engine is started with a valid old configuration (concerning cbmod)
+    ...    Given the Engine is configured with a valid old configuration
+    ...    When the Engine is started
+    ...    Then the Engine starts correctly
+    ...    And the Engine stops correctly
+    [Tags]    engine    start-stop    MON-173354
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/plugins/centreon-broker/cbmod.so ${ETC_ROOT}/centreon-broker/central-module0.json    True    True
+    Ctn Engine Config Delete Key    ${0}    broker_module_cfg_file
+    Ctn Config Broker    module
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    ${content}    Create List    is deprecated and will be removed in future versions.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    ${60}
+    Should Be True    ${result}    The engine should log the deprecation message but also use its value
+
+    ${content}    Create List    Parsing the configuration file '/tmp/etc/centreon-broker/central-module0.json' of the 'cbmod' module to still be able to use it.
+    ${result}    Ctn Find In Log With Timeout    ${VAR_ROOT}/log/centreon-engine/config0/centengine-stdout.log    ${start}    ${content}    ${60}
+    Should Be True    ${result}    The engine should log the use of the old cbmod configuration.
+    Sleep    10s
     Ctn Stop Engine
 
 *** Keywords ***

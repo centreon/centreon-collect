@@ -28,7 +28,7 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/victoria_metrics/factory.hh"
@@ -54,8 +54,10 @@ class victoria_request_test : public ::testing::Test {
     io::protocols::load();
     io::events::load();
     io::events& e(io::events::instance());
-    ::remove("/tmp/cache_test.request_test");
-    cache::global_cache::load("/tmp/cache_test.request_test");
+    config::applier::state::load<config::applier::broker_state>("unittest");
+    config::applier::state::instance().initialize_cache();
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_ALL);
 
     // Register events.
 
@@ -64,6 +66,8 @@ class victoria_request_test : public ::testing::Test {
     e.register_event(make_type(io::storage, storage::de_pb_status), "pb_status",
                      &storage::pb_status::operations);
   }
+
+  static void TearDownTestSuite() { config::applier::state::unload(); }
   void SetUp() override {
     _logger = log_v2::instance().get(log_v2::VICTORIA_METRICS);
     _logger->set_level(spdlog::level::debug);
@@ -71,31 +75,28 @@ class victoria_request_test : public ::testing::Test {
 };
 
 TEST_F(victoria_request_test, request_body_test) {
-  cache::global_cache::instance_ptr()->set_metric_info(
-      123, 45, "metric àçxxx", "metric unit", 0.456, 0.987);
-  com::centreon::broker::TagInfo host_tags[1];
-  host_tags[0].set_id(89);
-  cache::global_cache::instance_ptr()->add_tag(89, "tag89",
-                                               TagType::HOSTCATEGORY, 5);
-  const com::centreon::broker::TagInfo* tag_iter = host_tags;
-  cache::global_cache::instance_ptr()->store_host(14, "my host", 1, 2);
-  cache::global_cache::instance_ptr()->set_host_tag(14, [&]() -> uint64_t {
-    return tag_iter > host_tags ? 0 : (tag_iter++)->id();
-  });
-  com::centreon::broker::TagInfo tags[2];
-  tags[0].set_id(12);
-  tags[1].set_id(23);
-  cache::global_cache::instance_ptr()->add_tag(12, "tag12",
-                                               TagType::SERVICECATEGORY, 5);
-  cache::global_cache::instance_ptr()->add_tag(23, "tag23",
-                                               TagType::SERVICECATEGORY, 5);
-  tag_iter = tags;
-  cache::global_cache::instance_ptr()->store_service(14, 78, "my service ", 2,
-                                                     3);
-  cache::global_cache::instance_ptr()->set_serv_tag(14, 78, [&]() -> uint64_t {
-    return tag_iter >= tags + 2 ? 0 : (tag_iter++)->id();
-  });
-  cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
+  auto& bc = config::applier::state::instance().cache();
+
+  auto h = std::make_shared<neb::pb_host>();
+  h->mut_obj().set_host_id(14);
+  h->mut_obj().set_name("my host");
+  h->mut_obj().set_enabled(true);
+  bc.update_host(h);
+
+  auto s = std::make_shared<neb::pb_service>();
+  s->mut_obj().set_host_id(14);
+  s->mut_obj().set_service_id(78);
+  s->mut_obj().set_description("my service ");
+  s->mut_obj().set_enabled(true);
+  s->mut_obj().set_severity_id(42);
+  bc.update_service(s);
+  bc.set_db_id_for_severity(42, 0, 3);
+
+  auto mm = std::make_shared<storage::pb_metric_mapping>();
+  mm->mut_obj().set_metric_id(123);
+  mm->mut_obj().set_index_id(45);
+  mm->mut_obj().set_uom("metric unit");
+  bc.update_metric_mapping(mm);
 
   http_tsdb::line_protocol_query dummy;
   victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
@@ -126,44 +127,86 @@ TEST_F(victoria_request_test, request_body_test) {
 }
 
 TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
-  cache::global_cache::instance_ptr()->set_metric_info(
-      123, 45, "metric name", "metric unit", 0.456, 0.987);
-  com::centreon::broker::TagInfo host_tags[2];
-  host_tags[0].set_id(89);
-  host_tags[1].set_id(189);
-  cache::global_cache::instance_ptr()->add_tag(89, "tag89",
-                                               TagType::HOSTCATEGORY, 5);
-  cache::global_cache::instance_ptr()->add_tag(189, "tag189",
-                                               TagType::HOSTGROUP, 5);
-  const com::centreon::broker::TagInfo* tag_iter = host_tags;
-  cache::global_cache::instance_ptr()->store_host(14, "my host", 1, 2);
-  cache::global_cache::instance_ptr()->set_host_tag(14, [&]() -> uint64_t {
-    return tag_iter > host_tags + 1 ? 0 : (tag_iter++)->id();
-  });
-  com::centreon::broker::TagInfo tags[4];
-  tags[0].set_id(12);
-  tags[1].set_id(23);
-  tags[2].set_id(112);
-  tags[3].set_id(123);
-  cache::global_cache::instance_ptr()->add_tag(12, "tag12",
-                                               TagType::SERVICECATEGORY, 5);
-  cache::global_cache::instance_ptr()->add_tag(23, "tag23",
-                                               TagType::SERVICECATEGORY, 5);
-  cache::global_cache::instance_ptr()->add_tag(112, "tag112",
-                                               TagType::SERVICEGROUP, 5);
-  cache::global_cache::instance_ptr()->add_tag(123, "tag123",
-                                               TagType::SERVICEGROUP, 5);
-  tag_iter = tags;
-  cache::global_cache::instance_ptr()->store_service(14, 78, "my service/tutu ",
-                                                     2, 3);
-  cache::global_cache::instance_ptr()->set_serv_tag(14, 78, [&]() -> uint64_t {
-    return tag_iter >= tags + 4 ? 0 : (tag_iter++)->id();
-  });
-  cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
-  cache::global_cache::instance_ptr()->add_host_to_group(89, 14, 1);
-  cache::global_cache::instance_ptr()->add_host_to_group(88, 14, 2);
-  cache::global_cache::instance_ptr()->add_service_to_group(1278, 14, 78, 4);
-  cache::global_cache::instance_ptr()->add_service_to_group(1279, 14, 78, 5);
+  {
+    auto& bc = config::applier::state::instance().cache();
+
+    auto h = std::make_shared<neb::pb_host>();
+    h->mut_obj().set_host_id(14);
+    h->mut_obj().set_name("my host");
+    h->mut_obj().set_enabled(true);
+    for (auto [id, type] : std::initializer_list<std::pair<uint64_t, TagType>>{
+             {89, TagType::HOSTCATEGORY}, {189, TagType::HOSTGROUP}}) {
+      auto* t = h->mut_obj().add_tags();
+      t->set_id(id);
+      t->set_type(type);
+    }
+    bc.update_host(h);
+
+    auto s = std::make_shared<neb::pb_service>();
+    s->mut_obj().set_host_id(14);
+    s->mut_obj().set_service_id(78);
+    s->mut_obj().set_description("my service/tutu ");
+    s->mut_obj().set_enabled(true);
+    s->mut_obj().set_severity_id(42);
+    for (auto [id, type] : std::initializer_list<std::pair<uint64_t, TagType>>{
+             {12, TagType::SERVICECATEGORY},
+             {23, TagType::SERVICECATEGORY},
+             {112, TagType::SERVICEGROUP},
+             {123, TagType::SERVICEGROUP}}) {
+      auto* t = s->mut_obj().add_tags();
+      t->set_id(id);
+      t->set_type(type);
+    }
+    bc.update_service(s);
+    bc.set_db_id_for_severity(42, 0, 3);
+
+    for (auto [id, name, type] :
+         std::initializer_list<std::tuple<uint64_t, const char*, TagType>>{
+             {89, "tag89", TagType::HOSTCATEGORY},
+             {189, "tag189", TagType::HOSTGROUP},
+             {12, "tag12", TagType::SERVICECATEGORY},
+             {23, "tag23", TagType::SERVICECATEGORY},
+             {112, "tag112", TagType::SERVICEGROUP},
+             {123, "tag123", TagType::SERVICEGROUP}}) {
+      auto tag = std::make_shared<neb::pb_tag>();
+      tag->mut_obj().set_id(id);
+      tag->mut_obj().set_name(name);
+      tag->mut_obj().set_type(type);
+      tag->mut_obj().set_action(Tag_Action_ADD);
+      bc.update_tag(tag);
+    }
+
+    for (auto [hg_id, poller_id] :
+         std::initializer_list<std::pair<uint64_t, uint64_t>>{{89, 1},
+                                                              {88, 2}}) {
+      auto hgm = std::make_shared<neb::pb_host_group_member>();
+      hgm->mut_obj().set_hostgroup_id(hg_id);
+      hgm->mut_obj().set_name(std::to_string(hg_id));
+      hgm->mut_obj().set_host_id(14);
+      hgm->mut_obj().set_poller_id(poller_id);
+      hgm->mut_obj().set_enabled(true);
+      bc.update_hostgroup_member(hgm);
+    }
+    for (auto [sg_id, poller_id] :
+         std::initializer_list<std::pair<uint64_t, uint64_t>>{{1278, 4},
+                                                              {1279, 5}}) {
+      auto sgm = std::make_shared<neb::pb_service_group_member>();
+      sgm->mut_obj().set_servicegroup_id(sg_id);
+      sgm->mut_obj().set_name(std::to_string(sg_id));
+      sgm->mut_obj().set_host_id(14);
+      sgm->mut_obj().set_service_id(78);
+      sgm->mut_obj().set_poller_id(poller_id);
+      sgm->mut_obj().set_enabled(true);
+      bc.update_servicegroup_member(sgm);
+    }
+    auto mm = std::make_shared<storage::pb_metric_mapping>();
+    mm->mut_obj().set_metric_id(123);
+    mm->mut_obj().set_index_id(45);
+    mm->mut_obj().set_min(0.456);
+    mm->mut_obj().set_max(0.987);
+    mm->mut_obj().set_uom("metric unit");
+    bc.update_metric_mapping(mm);
+  }
 
   http_tsdb::line_protocol_query metric_columns(
       victoria_metrics::stream::allowed_macros,
@@ -213,44 +256,84 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
 }
 
 TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
-  cache::global_cache::instance_ptr()->set_metric_info(
-      123, 45, "metric name", "metric unit", 0.456, 0.987);
-  com::centreon::broker::TagInfo host_tags[2];
-  host_tags[0].set_id(89);
-  host_tags[1].set_id(189);
-  cache::global_cache::instance_ptr()->add_tag(89, "tag89",
-                                               TagType::HOSTCATEGORY, 5);
-  cache::global_cache::instance_ptr()->add_tag(189, "tag189",
-                                               TagType::HOSTGROUP, 5);
-  const com::centreon::broker::TagInfo* tag_iter = host_tags;
-  cache::global_cache::instance_ptr()->store_host(14, "my host", 1, 2);
-  cache::global_cache::instance_ptr()->set_host_tag(14, [&]() -> uint64_t {
-    return tag_iter > host_tags + 1 ? 0 : (tag_iter++)->id();
-  });
-  com::centreon::broker::TagInfo tags[4];
-  tags[0].set_id(12);
-  tags[1].set_id(23);
-  tags[2].set_id(112);
-  tags[3].set_id(123);
-  cache::global_cache::instance_ptr()->add_tag(12, "tag12",
-                                               TagType::SERVICECATEGORY, 5);
-  cache::global_cache::instance_ptr()->add_tag(23, "tag23",
-                                               TagType::SERVICECATEGORY, 5);
-  cache::global_cache::instance_ptr()->add_tag(112, "tag112",
-                                               TagType::SERVICEGROUP, 5);
-  cache::global_cache::instance_ptr()->add_tag(123, "tag123",
-                                               TagType::SERVICEGROUP, 5);
-  tag_iter = tags;
-  cache::global_cache::instance_ptr()->store_service(14, 78, "my service/tutu ",
-                                                     2, 3);
-  cache::global_cache::instance_ptr()->set_serv_tag(14, 78, [&]() -> uint64_t {
-    return tag_iter >= tags + 4 ? 0 : (tag_iter++)->id();
-  });
-  cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
-  cache::global_cache::instance_ptr()->add_host_to_group(89, 14, 1);
-  cache::global_cache::instance_ptr()->add_host_to_group(88, 14, 2);
-  cache::global_cache::instance_ptr()->add_service_to_group(1278, 14, 78, 5);
-  cache::global_cache::instance_ptr()->add_service_to_group(1279, 14, 78, 6);
+  {
+    auto& bc = config::applier::state::instance().cache();
+
+    auto h = std::make_shared<neb::pb_host>();
+    h->mut_obj().set_host_id(14);
+    h->mut_obj().set_name("my host");
+    h->mut_obj().set_enabled(true);
+    for (auto [id, type] : std::initializer_list<std::pair<uint64_t, TagType>>{
+             {89, TagType::HOSTCATEGORY}, {189, TagType::HOSTGROUP}}) {
+      auto* t = h->mut_obj().add_tags();
+      t->set_id(id);
+      t->set_type(type);
+    }
+    bc.update_host(h);
+
+    auto s = std::make_shared<neb::pb_service>();
+    s->mut_obj().set_host_id(14);
+    s->mut_obj().set_service_id(78);
+    s->mut_obj().set_description("my service/tutu ");
+    s->mut_obj().set_enabled(true);
+    s->mut_obj().set_severity_id(42);
+    for (auto [id, type] : std::initializer_list<std::pair<uint64_t, TagType>>{
+             {12, TagType::SERVICECATEGORY},
+             {23, TagType::SERVICECATEGORY},
+             {112, TagType::SERVICEGROUP},
+             {123, TagType::SERVICEGROUP}}) {
+      auto* t = s->mut_obj().add_tags();
+      t->set_id(id);
+      t->set_type(type);
+    }
+    bc.update_service(s);
+    bc.set_db_id_for_severity(42, 0, 3);
+
+    for (auto [id, name, type] :
+         std::initializer_list<std::tuple<uint64_t, const char*, TagType>>{
+             {89, "tag89", TagType::HOSTCATEGORY},
+             {189, "tag189", TagType::HOSTGROUP},
+             {12, "tag12", TagType::SERVICECATEGORY},
+             {23, "tag23", TagType::SERVICECATEGORY},
+             {112, "tag112", TagType::SERVICEGROUP},
+             {123, "tag123", TagType::SERVICEGROUP}}) {
+      auto tag = std::make_shared<neb::pb_tag>();
+      tag->mut_obj().set_id(id);
+      tag->mut_obj().set_name(name);
+      tag->mut_obj().set_type(type);
+      tag->mut_obj().set_action(Tag_Action_ADD);
+      bc.update_tag(tag);
+    }
+
+    for (auto [hg_id, poller_id] :
+         std::initializer_list<std::pair<uint64_t, uint64_t>>{{89, 1},
+                                                              {88, 2}}) {
+      auto hgm = std::make_shared<neb::pb_host_group_member>();
+      hgm->mut_obj().set_hostgroup_id(hg_id);
+      hgm->mut_obj().set_name(std::to_string(hg_id));
+      hgm->mut_obj().set_host_id(14);
+      hgm->mut_obj().set_poller_id(poller_id);
+      hgm->mut_obj().set_enabled(true);
+      bc.update_hostgroup_member(hgm);
+    }
+    for (auto [sg_id, poller_id] :
+         std::initializer_list<std::pair<uint64_t, uint64_t>>{{1278, 5},
+                                                              {1279, 6}}) {
+      auto sgm = std::make_shared<neb::pb_service_group_member>();
+      sgm->mut_obj().set_servicegroup_id(sg_id);
+      sgm->mut_obj().set_name(std::to_string(sg_id));
+      sgm->mut_obj().set_host_id(14);
+      sgm->mut_obj().set_service_id(78);
+      sgm->mut_obj().set_poller_id(poller_id);
+      sgm->mut_obj().set_enabled(true);
+      bc.update_servicegroup_member(sgm);
+    }
+    auto mm = std::make_shared<storage::pb_metric_mapping>();
+    mm->mut_obj().set_metric_id(123);
+    mm->mut_obj().set_index_id(45);
+    mm->mut_obj().set_uom("metric unit");
+    bc.update_metric_mapping(mm);
+  }
 
   json column = R"([
     {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"},

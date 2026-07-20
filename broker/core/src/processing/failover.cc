@@ -99,7 +99,7 @@ void failover::exit() {
       SPDLOG_LOGGER_TRACE(_logger, "Waiting for {} to be stopped", _name);
 
       _state_m.Await(absl::Condition(
-          +[](failover* f) {
+          +[](failover* f) ABSL_NO_THREAD_SAFETY_ANALYSIS {
             return f->_state == stopped || f->_state == not_started;
           },
           this));
@@ -161,14 +161,14 @@ void failover::_run() {
 
   auto on_exception_handler = [&]() {
     if (_stream) {
-      int32_t ack_events;
+      uint32_t nb_acked = 0;
       try {
-        ack_events = _stream->stop();
+        nb_acked = _stream->stop();
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(_logger, "Failed to send stop event to stream: {}",
                             e.what());
       }
-      _muxer->ack_events(ack_events);
+      _muxer->ack_events(nb_acked);
       std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
       _stream.reset();
     }
@@ -353,7 +353,7 @@ void failover::_run() {
                                   "engine to endpoint '{}'",
                                   d->type(), _name);
             _update_status("writing event to stream");
-            int we(0);
+            uint32_t we = 0;
 
             try {
               std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
@@ -394,7 +394,7 @@ void failover::_run() {
         d.reset();
         if (timed_out_stream && timed_out_muxer) {
           time_t now(time(nullptr));
-          int we = 0;
+          uint32_t we = 0;
           if (should_commit) {
             should_commit = false;
             _next_timeout = now + 1;
@@ -434,14 +434,14 @@ void failover::_run() {
       std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
       if (_stream) {
         // If ack_events is not zero, then we will store data twice
-        int32_t ack_events;
+        uint32_t nb_acked = 0;
         try {
-          ack_events = _stream->stop();
+          nb_acked = _stream->stop();
         } catch (const std::exception& e) {
           SPDLOG_LOGGER_ERROR(
               _logger, "Failed to send stop event to stream: {}", e.what());
         }
-        _muxer->ack_events(ack_events);
+        _muxer->ack_events(nb_acked);
         _stream.reset();
       }
       set_state("connecting");
@@ -461,14 +461,14 @@ void failover::_run() {
   {
     std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
     if (_stream) {
-      int32_t ack_events;
+      uint32_t nb_acked = 0;
       try {
-        ack_events = _stream->stop();
+        nb_acked = _stream->stop();
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(_logger, "Failed to send stop event to stream: {}",
                             e.what());
       }
-      _muxer->ack_events(ack_events);
+      _muxer->ack_events(nb_acked);
     }
     _stream.reset();
     set_state("connecting");
@@ -607,7 +607,10 @@ void failover::start() {
     _thread = std::thread(&failover::_run, this);
     pthread_setname_np(_thread.native_handle(), "proc_failover");
     _state_m.Await(absl::Condition(
-        +[](failover* f) { return f->_state != not_started; }, this));
+        +[](failover* f) ABSL_NO_THREAD_SAFETY_ANALYSIS {
+          return f->_state != not_started;
+        },
+        this));
   }
   SPDLOG_LOGGER_TRACE(_logger, "failover '{}' started.", _name);
 }

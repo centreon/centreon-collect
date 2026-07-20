@@ -8,7 +8,10 @@
 
 Testing
 __
+coverage
+sccache
 tests/failed
+tests/robotframework
 broker_pb2.py
 broker_pb2.pyc
 broker_pb2_grpc.py
@@ -17,6 +20,8 @@ build
 build_my_host
 build_centos7
 build_alma9
+sccache
+coverage
 cbd
 cbwd
 cppcheck-build
@@ -70,6 +75,8 @@ report.html
 agent/scripts/centagent.service
 agent/conf/centagent.json
 opentelemetry-proto
+agent/src/agent.rc
+agent/inc/com/centreon/agent/version.hh
 
 # bbdo
 bbdo/*_accessor.hh

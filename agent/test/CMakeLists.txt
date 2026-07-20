@@ -37,6 +37,7 @@ else()
       check_windows_counter.cc
       check_windows_memory_test.cc
       check_windows_sched.cc
+      check_windows_files_test.cc
       check_uptime_test.cc
       check_windows_service_test.cc)
 
@@ -61,6 +62,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     PRIVATE centagent_lib
             centreon_common
             centreon_process
+            ctncrypto
             GTest::gtest
             GTest::gtest_main
             GTest::gmock
@@ -79,6 +81,7 @@ else()
     PRIVATE centagent_lib
             centreon_common
             centreon_process
+            ctncrypto
             GTest::gtest
             GTest::gtest_main
             GTest::gmock
@@ -87,7 +90,8 @@ else()
             gRPC::grpc++
             fmt::fmt
             pdh
-            taskschd)
+            taskschd
+            Version.lib)
   add_dependencies(ut_agent centreon_common centagent_lib)
 endif()
 

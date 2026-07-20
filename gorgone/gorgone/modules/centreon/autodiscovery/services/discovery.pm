@@ -73,7 +73,7 @@ sub new {
 sub database_init_transaction {
     my ($self, %options) = @_;
 
-    my $status = $self->{class_object_centreon}->{db_centreon}->begin_transaction();
+    my $status = $self->{class_object_centreon}->{db_centreon}->start_transaction();
     if ($status == -1) {
         $self->{logger}->writeLogError("$@");
         return -1;
@@ -816,7 +816,8 @@ sub service_execute_commands {
                         content => [
                             {
                                 command => $command,
-                                timeout => 90
+                                timeout => 90,
+                                no_shell_interpretation => $self->{config}->{no_shell_interpretation},
                             }
                         ]
                     }

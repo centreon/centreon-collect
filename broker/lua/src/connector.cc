@@ -38,11 +38,11 @@ connector::connector()
  *
  *  @param[in] other  Object to copy.
  */
-connector::connector(connector const& other)
-    : io::endpoint(other),
-      _lua_script(other._lua_script),
-      _conf_params(other._conf_params),
-      _cache(other._cache) {}
+// connector::connector(connector const& other)
+//     : io::endpoint(other),
+//       _lua_script(other._lua_script),
+//       _conf_params(other._conf_params),
+//       _cache(other._cache) {}
 
 /**
  *  Destructor.
@@ -59,11 +59,9 @@ connector::~connector() {}
  */
 void connector::connect_to(
     const std::string& lua_script,
-    const std::map<std::string, misc::variant>& cfg_params,
-    const std::shared_ptr<persistent_cache>& cache) {
+    const absl::btree_map<std::string, variant>& cfg_params) {
   _conf_params = cfg_params;
   _lua_script = lua_script;
-  _cache = cache;
 }
 
 /**
@@ -72,5 +70,5 @@ void connector::connect_to(
  *  @return a lua connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  return std::make_unique<stream>(_lua_script, _conf_params, _cache);
+  return std::make_unique<stream>(_lua_script, _conf_params);
 }

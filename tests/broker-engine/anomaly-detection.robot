@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine anomaly detection
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -32,7 +32,7 @@ ANO_NOFILE
     Ctn Stop Engine
 
 ANO_NOFILE_VERIF_CONFIG_NO_ERROR
-    [Documentation]    an anomaly detection without threshold file doesn't display error on config check
+    [Documentation]    An anomaly detection without threshold file doesn't display error on config check
     [Tags]    broker    engine    anomaly    MON-20385
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
@@ -131,6 +131,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     ...    55.0
     ...    ${predict_data}
     Ctn Clear Retention
+    Ctn Config Broker    module
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
@@ -141,6 +142,7 @@ ANO_CFG_SENSITIVITY_SAVED
     [Documentation]    cfg sensitivity saved in retention
     [Tags]    engine    anomaly    retention
     Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    module
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric    4.00
     ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
     Ctn Create Anomaly Threshold File V2
@@ -162,6 +164,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
     [Tags]    engine    anomaly    retention    extcmd
     FOR    ${use_grpc}    IN RANGE    1    2
         Ctn Config Engine    ${1}    ${50}    ${20}
+        Ctn Config Broker    module
         ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
         ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
         Ctn Create Anomaly Threshold File V2
@@ -244,7 +247,8 @@ ANO_DT1
     Ctn Kindly Stop Broker
 
 ANO_DT2
-    [Documentation]    delete downtime on dependent service delete one on ano serv
+    [Documentation]    Given a service and its AD,
+    ...    when we delete downtime on dependent service, AD must not be in downtime anymore
     [Tags]    broker    engine    anomaly
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -272,9 +276,9 @@ ANO_DT2
 
     Ctn Delete Service Downtime    host_1    service_1
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0    60
-    Should Be True    ${result}    dependent service must be in downtime
+    Should Be True    ${result}    dependent service must not be in downtime
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
-    Should Be True    ${result}    anomaly service must be in downtime
+    Should Be True    ${result}    anomaly service must not be in downtime
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

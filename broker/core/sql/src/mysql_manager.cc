@@ -17,6 +17,8 @@
  */
 #include "com/centreon/broker/sql/mysql_manager.hh"
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -185,7 +187,7 @@ void mysql_manager::update_connections() {
  * @return A map containing various informations. This map is changed into
  * a json file later.
  */
-std::map<std::string, std::string> mysql_manager::get_stats() {
+absl::btree_map<std::string, std::string> mysql_manager::get_stats() {
   int delay(0);
   std::unique_lock<std::mutex> locker(_cfg_mutex, std::defer_lock);
   int stats_connections_count(_stats_counts.size());
@@ -198,7 +200,7 @@ std::map<std::string, std::string> mysql_manager::get_stats() {
   } else
     delay = time(nullptr) - _stats_connections_timestamp;
 
-  std::map<std::string, std::string> retval;
+  absl::btree_map<std::string, std::string> retval;
   retval.insert(
       std::make_pair("delay since last check", std::to_string(delay)));
   std::string key("waiting tasks in connection ");

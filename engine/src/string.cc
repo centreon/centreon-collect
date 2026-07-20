@@ -28,30 +28,6 @@ using namespace com::centreon::engine;
 static char const* whitespaces(" \t\r\n");
 
 /**
- *  Get the next valid line.
- *
- *  @param[in, out] stream The current stream to read new line.
- *  @param[out]     line   The line to fill.
- *  @param[in, out] pos    The current position.
- *
- *  @return True if data is available, false if no data.
- */
-bool string::get_next_line(std::ifstream& stream,
-                           std::string& line,
-                           unsigned int& pos) {
-  while (std::getline(stream, line, '\n')) {
-    ++pos;
-    boost::algorithm::trim(line);
-    if (!line.empty()) {
-      char c(line[0]);
-      if (c != '#' && c != ';' && c != '\x0')
-        return true;
-    }
-  }
-  return false;
-}
-
-/**
  *  Get key and value from line.
  *
  *  @param[in,out] line  The line to process.
@@ -90,173 +66,6 @@ bool string::split(std::string& line,
   }
 
   return true;
-}
-
-/**
- *  Get key and value from line.
- *
- *  @param[in]  line  The line to extract data.
- *  @param[out] key   The key to fill.
- *  @param[out] value The value to fill.
- *  @param[in]  delim The delimiter.
- */
-bool string::split(std::string const& line,
-                   std::string& key,
-                   std::string& value,
-                   char delim) {
-  std::size_t delim_pos(line.find_first_of(delim));
-  if (delim_pos == std::string::npos)
-    return false;
-
-  std::size_t first_pos;
-  std::size_t last_pos;
-
-  last_pos = line.find_last_not_of(whitespaces, delim_pos - 1);
-  if (last_pos == std::string::npos)
-    key.clear();
-  else {
-    first_pos = line.find_first_not_of(whitespaces);
-    key.assign(line, first_pos, last_pos + 1 - first_pos);
-  }
-
-  first_pos = line.find_first_not_of(whitespaces, delim_pos + 1);
-  if (first_pos == std::string::npos)
-    value.clear();
-  else {
-    last_pos = line.find_last_not_of(whitespaces);
-    value.assign(line, first_pos, last_pos + 1 - first_pos);
-  }
-
-  return true;
-}
-
-/**
- *  Split data into element.
- *
- *  @param[in]  data  The data to split.
- *  @param[out] out   The list to fill.
- *  @param[in]  delim The delimiter.
- */
-void string::split(std::string const& data,
-                   std::list<std::string>& out,
-                   char delim) {
-  if (data.empty())
-    return;
-
-  std::size_t last(0);
-  std::size_t current(0);
-  while ((current = data.find(delim, current)) != std::string::npos) {
-    std::string tmp(data.substr(last, current - last));
-    out.push_back(trim(tmp));
-    last = ++current;
-  }
-  std::string tmp(last ? data.substr(last) : data);
-  out.push_back(trim(tmp));
-}
-
-/**
- *  Split data into sorted elements.
- *
- *  @param[in]  data   The data to split.
- *  @param[out] out    The set to fill.
- *  @param[in]  delim  The delimiter.
- */
-void string::split(std::string const& data,
-                   std::set<std::string>& out,
-                   char delim) {
-  std::list<std::string> elements;
-  split(data, elements, delim);
-  out.insert(elements.begin(), elements.end());
-}
-
-/**
- *  Split data into pair of sorted elements.
- *
- *  @param[in]  data   The data to split.
- *  @param[out] out    The set to fill.
- *  @param[in]  delim  The delimiter.
- */
-void string::split(std::string const& data,
-                   std::set<std::pair<std::string, std::string> >& out,
-                   char delim) {
-  std::list<std::string> elements;
-  split(data, elements, delim);
-  for (std::list<std::string>::const_iterator it(elements.begin()),
-       end(elements.end());
-       it != end; ++it) {
-    std::list<std::string>::const_iterator first(it++);
-    if (it == end)
-      throw(engine_error() << "Not enough elements in the line to make pairs");
-    out.insert(std::make_pair(*first, *it));
-  }
-}
-
-/**
- *  Trim a string.
- *
- *  @param[in] str The string.
- *
- *  @return The trimming stream.
- */
-std::string& string::trim(std::string& str) noexcept {
-  // First, search backward for the last non-space character.
-  size_t pos(str.find_last_not_of(whitespaces));
-  if (pos == std::string::npos)
-    // Line is full of whitespaces, drop it.
-    str.clear();
-  else {
-    // Search for comments.
-    size_t comment = str.find_first_of(';');
-    if (comment != 0)
-      while ((comment != std::string::npos) && (str[comment - 1] == '\\'))
-        comment = str.find_first_of(';', comment + 1);
-
-    if (comment != std::string::npos)
-      // Comment was found, we can safely drop it as last non-whitespace
-      // character will obviously comes after it.
-      pos = comment;
-    else
-      // Otherwise drop from the last non-whitespace character.
-      ++pos;
-    str.erase(pos);
-
-    // Drop initial whitespaces.
-    if ((pos = str.find_first_not_of(whitespaces)) != std::string::npos)
-      str.erase(0, pos);
-    else
-      str.clear();
-  }
-  return str;
-}
-
-/**
- *  Trim at the left of the string.
- *
- *  @param[in] str The string.
- *
- *  @return The trimming stream.
- */
-std::string& string::trim_left(std::string& str) noexcept {
-  size_t pos(str.find_first_not_of(whitespaces));
-  if (pos != std::string::npos)
-    str.erase(0, pos);
-  return str;
-}
-
-/**
- *  Trim at the right of the string.
- *
- *  @param[in] str The string.
- *
- *  @return The trimming stream.
- */
-std::string& string::trim_right(std::string& str) noexcept {
-  size_t pos(str.find_last_not_of(whitespaces));
-  if (pos == std::string::npos)
-    str.clear();
-  else
-    str.erase(pos + 1);
-  return str;
 }
 
 std::string string::extract_perfdata(std::string const& perfdata,
@@ -398,67 +207,29 @@ bool string::c_strtok::extract(char sep, int& extracted) {
   return false;
 }
 
-/**
- * @brief Unescape the string buffer. Works with \t, \n, \r and \\. The buffer
- * is directly changed. No copy is made.
- *
- * @param buffer
- */
-void string::unescape(char* buffer) {
-  if (buffer == nullptr)
-    return;
-  char* read_pos = strchrnul(buffer, '\\');
-  char* prev_read_pos = nullptr;
-  while (*read_pos) {
-    char c = read_pos[1];
-    if (c == 'n' || c == 'r' || c == 't' || c == '\\') {
-      if (prev_read_pos) {
-        size_t len = read_pos - prev_read_pos;
-        memmove(buffer, prev_read_pos, len);
-        buffer += len;
-      } else
-        buffer = read_pos;
-
-      prev_read_pos = read_pos + 2;
-
-      switch (c) {
-        case 'n':
-          *buffer = '\n';
-          break;
-        case 'r':
-          *buffer = '\r';
-          break;
-        case 't':
-          *buffer = '\t';
-          break;
-        case '\\':
-          *buffer = '\\';
-          break;
-      }
-      ++buffer;
-    } else if (read_pos[1] == 0)
-      break;
-    read_pos = strchrnul(read_pos + 2, '\\');
-  }
-  if (prev_read_pos) {
-    size_t len = read_pos - prev_read_pos + 1;
-    if (len) {
-      memmove(buffer, prev_read_pos, len);
-      buffer += len;
-    }
-    *buffer = 0;
-  }
-}
-
-/**
- * @brief  * @brief Unescape the string buffer. Works with \t, \n, \r and \\.
- * The buffer is directly changed. No copy is made.
- *
- * @param str in out modified string
- */
 void string::unescape(std::string& str) {
-  boost::replace_all(str, "\\n", "\n");
-  boost::replace_all(str, "\\r", "\r");
-  boost::replace_all(str, "\\t", "\t");
-  boost::replace_all(str, "\\\\", "\\");
+  size_t read = str.find('\\');
+  if (read == std::string::npos)
+    return;
+
+  size_t write = read;
+  const size_t len = str.size();
+  while (read < len) {
+    if (str[read] != '\\' || read + 1 == len) {
+      str[write++] = str[read++];
+      continue;
+    }
+    switch (str[read + 1]) {
+      case 'n':  str[write++] = '\n'; break;
+      case 'r':  str[write++] = '\r'; break;
+      case 't':  str[write++] = '\t'; break;
+      case '\\': str[write++] = '\\'; break;
+      default:
+        str[write++] = '\\';
+        str[write++] = str[read + 1];
+        break;
+    }
+    read += 2;
+  }
+  str.resize(write);
 }

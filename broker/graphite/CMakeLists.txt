@@ -35,16 +35,14 @@ add_library("${GRAPHITE}" SHARED
   "${SRC_DIR}/stream.cc"
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/query.cc"
-  "${SRC_DIR}/macro_cache.cc"
   # Headers.
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/stream.hh"
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/query.hh"
-  "${INC_DIR}/macro_cache.hh"
 )
 target_link_libraries("${GRAPHITE}" bbdo_storage pb_storage_lib spdlog::spdlog)
-target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hh)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${GRAPHITE}" nebbase)

@@ -17,18 +17,19 @@
  */
 
 #include "com/centreon/broker/multiplexing/engine.hh"
-
 #include <absl/synchronization/mutex.h>
 #include <unistd.h>
 
 #include <cassert>
 
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
+
+namespace asio = boost::asio;
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -73,7 +74,8 @@ void engine::unload() {
        * from the muxers array. Even if they execute asynchronous functions,
        * they have finished after that. */
       auto muxers_empty = [&m = instance->_muxers,
-                           logger = instance->_logger]() {
+                           logger = instance->_logger]()
+          ABSL_NO_THREAD_SAFETY_ANALYSIS {
         logger->debug("Still {} muxers configured in Broker engine", m.size());
         return m.empty();
       };
@@ -86,8 +88,14 @@ void engine::unload() {
 
     // Commit the cache file, if needed.
     if (instance->_cache_file) {
-      // In case of muxers removed from the Engine and still events in _kiew
-      instance->publish(instance->_kiew);
+      // Drain _kiew under lock, then publish the copy outside to satisfy
+      // ABSL_LOCKS_EXCLUDED(_kiew_m) on publish().
+      std::deque<std::shared_ptr<io::data>> kiew_copy;
+      {
+        absl::MutexLock kiew_lck(&instance->_kiew_m);
+        kiew_copy = std::move(instance->_kiew);
+      }
+      instance->publish(kiew_copy);
       instance->_cache_file->commit();
     }
     _instance.reset();
@@ -201,8 +209,11 @@ void engine::start() {
       have_to_send = true;
     }
   }
-  if (have_to_send)
-    _send_to_subscribers(nullptr);
+  if (have_to_send) {
+    std::promise<void> promise;
+    if (_send_to_subscribers([&promise]() { promise.set_value(); }))
+      promise.get_future().get();
+  }
 
   SPDLOG_LOGGER_INFO(_logger, "multiplexing: engine started");
 }
@@ -215,6 +226,11 @@ void engine::start() {
 void engine::stop() {
   absl::ReleasableMutexLock lck(&_kiew_m);
 
+  if (_state == not_started) {
+    _state = stopped;
+    return;
+  }
+
   if (_state != stopped) {
     // Set writing method.
     _state = stopped;
@@ -225,9 +241,11 @@ void engine::stop() {
 
     std::promise<void> promise;
     if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+      _logger->trace("stop: waiting for sending to subscribers to end in stop");
       promise.get_future().get();
     }  // nothing to send or no muxer
 
+    _logger->trace("stop: all events sent to subscribers");
     absl::MutexLock l(&_kiew_m);
 
     // Open the cache file and start the transaction.
@@ -272,9 +290,13 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
   std::promise<void> promise;
 
   if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+    _logger->trace(
+        "unsubscribe_muxer: waiting for sending to subscribers to end");
     promise.get_future().wait();
   }
 
+  _logger->trace("unsubscribe_muxer: removing muxer {:p} from engine",
+                 static_cast<const void*>(subscriber));
   absl::MutexLock lck(&_kiew_m);
 
   auto logger = log_v2::instance().get(log_v2::CONFIG);
@@ -378,8 +400,8 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
-  std::shared_ptr<muxer> first_muxer;
   std::shared_ptr<detail::callback_caller> cb;
+  bool retval = false;
   {
     absl::MutexLock lck(&_kiew_m);
     if (_muxers.empty() || _kiew.empty()) {
@@ -407,36 +429,31 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     // when the last muxer had done his job, cb is destroyed and
     // _sending_to_subscribers is refreshed
     for (auto& mux : _muxers) {
-      if (!first_muxer) {
-        first_muxer = mux.lock();
-      } else {
-        std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
-        if (mux_to_publish_in_asio) {
-          asio::post(com::centreon::common::pool::io_context(),
-                     [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
-                       try {
-                         mux_to_publish_in_asio->publish(*kiew);
-                       }  // pool threads protection
-                       catch (const std::exception& ex) {
-                         SPDLOG_LOGGER_ERROR(
-                             logger, "publish caught exception: {}", ex.what());
-                       } catch (...) {
-                         SPDLOG_LOGGER_ERROR(
-                             logger, "publish caught unknown exception");
-                       }
-                     });
-        }
+      std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
+      if (mux_to_publish_in_asio) {
+        retval = true;
+        asio::post(com::centreon::common::pool::io_context(),
+                   [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
+                     try {
+                       mux_to_publish_in_asio->publish(*kiew);
+                     }  // pool threads protection
+                     catch (const std::exception& ex) {
+                       SPDLOG_LOGGER_ERROR(
+                           logger, "publish caught exception: {}", ex.what());
+                     } catch (...) {
+                       SPDLOG_LOGGER_ERROR(logger,
+                                           "publish caught unknown exception");
+                     }
+                   });
       }
     }
   }
-  if (first_muxer) {
-    _center->update(&EngineStats::set_processed_events, _stats,
-                    static_cast<uint32_t>(kiew->size()));
-    /* The same work but by this thread for the last muxer. */
-    first_muxer->publish(*kiew);
-    return true;
-  } else  // no muxer
-    return false;
+  auto& cache = config::applier::state::instance().cache();
+  _center->update(&EngineStats::set_processed_events, _stats,
+                  static_cast<uint32_t>(kiew->size()));
+  cache.publish(*kiew);
+
+  return retval;
 }
 
 /**

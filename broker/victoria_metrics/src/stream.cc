@@ -24,6 +24,8 @@
 #include "common/crypto/base64.hh"
 #include "common/log_v2/log_v2.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 using namespace com::centreon::common::crypto;

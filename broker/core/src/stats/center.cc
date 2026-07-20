@@ -22,8 +22,8 @@
 #include <fmt/format.h>
 #include <google/protobuf/util/json_util.h>
 
-#include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/modules.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
 #include "common/log_v2/log_v2.hh"
@@ -171,7 +171,7 @@ std::string center::to_string() {
   absl::MutexLock lck(&_stats_m);
   _json_stats_file_creation = now;
   _stats.set_now(now);
-  MessageToJsonString(_stats, &retval, options);
+  auto status [[maybe_unused]] = MessageToJsonString(_stats, &retval, options);
   return retval;
 }
 

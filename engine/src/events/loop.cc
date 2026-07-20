@@ -2,7 +2,7 @@
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
  * Copyright 2011-2013 Merethis
- * Copyright 2013-2024 Centreon
+ * Copyright 2013-2026 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -27,13 +27,12 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;
-using namespace com::centreon::engine::logging;
 
 /**
  *  Get instance of the events loop singleton.
@@ -58,11 +57,8 @@ void loop::clear() {
  */
 void loop::run() {
   // Debug message.
-  engine_logger(dbg_functions, basic) << "events::loop::run()";
   functions_logger->trace("events::loop::run()");
 
-  engine_logger(log_info_message, basic)
-      << "Configuration loaded, main loop starting.";
   process_logger->info("Configuration loaded, main loop starting.");
   // Initialize some time members.
   time(&_last_time);
@@ -99,21 +95,63 @@ static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
   try {
-    configuration::State config;
-    configuration::state_helper config_hlp(&config);
+    auto cfg = std::make_unique<configuration::State>();
+    configuration::state_helper config_hlp(cfg.get());
     {
       configuration::parser p;
-      std::string path(::pb_config.cfg_main());
-      p.parse(path, &config, err);
+      std::string path(::pb_indexed_config.state().cfg_main());
+      p.parse(path, cfg.get(), err);
+      config_hlp.expand(err);
     }
-    configuration::extended_conf::update_state(&config);
-    configuration::applier::state::instance().apply(config, err);
+    configuration::extended_conf::update_state(cfg.get());
+    configuration::applier::state::instance().apply(*cfg, err);
     process_logger->info("Configuration reloaded, main loop continuing.");
   } catch (std::exception const& e) {
     config_logger->error("Error: {}", e.what());
   }
   *reloading = false;
   process_logger->info("Reload configuration finished.");
+}
+
+/**
+ * @brief Apply a diff configuration.
+ *
+ * @param diff_conf The new diff configuration.
+ * @param reloading A boolean to know if the configuration is currently
+ * reloading.
+ */
+static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
+                       std::atomic<bool>* reloading) {
+  configuration::error_cnt err;
+  process_logger->info("Starting to reload differential configuration.");
+  try {
+    /* For differential diffs (the normal case): inject extended_conf scalar
+     * overrides directly into the DiffState optional fields before the single
+     * apply_diff() call.  MergeFrom is safe because extended_conf has no
+     * repeated objects to conflict with the broker diff. */
+    if (!diff_conf->has_state() && !configuration::extended_conf::empty()) {
+      process_logger->info("Enriching diff state with extended conf.");
+      configuration::extended_conf::update_diff_state(*diff_conf);
+    }
+    configuration::applier::state::instance().apply_diff(*diff_conf, err);
+    /* For full-state diffs (initial connection): _processing_diff() routes
+     * directly into _processing(embedded_state) and ignores the outer
+     * DiffState optional fields.  Apply extended_conf as a second lightweight
+     * DiffState after the fact.  The second pass only carries scalar fields
+     * (no objects), so the overhead is negligible. */
+    if (diff_conf->has_state() && !configuration::extended_conf::empty()) {
+      process_logger->info("Applying extended conf on top of full state.");
+      configuration::DiffState ext_diff;
+      configuration::extended_conf::update_diff_state(ext_diff);
+      configuration::applier::state::instance().apply_diff(ext_diff, err);
+    }
+  } catch (const std::exception& e) {
+    config_logger->error("Error: {}", e.what());
+  }
+  *reloading = false;
+  process_logger->info(
+      "Reload differential configuration finished. new engine version '{}'",
+      pb_indexed_config.state().config_version());
 }
 
 /**
@@ -128,32 +166,59 @@ void loop::_dispatching() {
 
     // If we don't have any events to handle, exit.
     if (_event_list_high.empty() && _event_list_low.empty()) {
-      engine_logger(log_runtime_error, basic)
-          << "There aren't any events that need to be handled! "
-          << "Exiting...";
       runtime_logger->error(
           "There aren't any events that need to be handled! Exiting...");
       break;
     }
 
     if (sighup) {
-      com::centreon::logging::engine::instance().reopen();
       _need_reload = true;
       sighup = false;
     }
 
+    std::unique_ptr<configuration::DiffState> diff_conf = cbm->diff_state();
     // Start reload configuration.
-    if (_need_reload) {
-      engine_logger(log_info_message, most) << "Need reload.";
-      process_logger->info("Need reload.");
+    if (_need_reload || diff_conf) {
       if (!reloading) {
-        engine_logger(log_info_message, most) << "Reloading...";
-        process_logger->info("Reloading...");
         reloading = true;
-        auto future [[maybe_unused]] =
-            std::async(std::launch::async, apply_conf, &reloading);
+        if (_need_reload) {
+          process_logger->info("Need reload.");
+          process_logger->info("Reloading...");
+          auto future [[maybe_unused]] =
+              std::async(std::launch::async, apply_conf, &reloading);
+        } else {
+          if (diff_conf->unknown()) {
+            /* Broker sends an empty diff state to ask Engine to send its
+             * current configuration. */
+            auto current_state = std::make_unique<configuration::State>();
+            configuration::applier::state::instance().get_current_state(
+                *current_state);
+            if (current_state->poller_id() == 0) {
+              /* state.prot does not exist yet (engine has not applied any
+               * configuration). We cannot respond to broker's request. The
+               * normal configuration flow (via .lck files) will eventually
+               * provide the configuration to broker. */
+              process_logger->warn(
+                  "Broker requested current configuration but no state.prot "
+                  "is available yet. Waiting for the normal flow.");
+            } else {
+              process_logger->info(
+                  "Sending current configuration to Broker...");
+              cbm->send_engine_conf(std::move(current_state));
+            }
+            /* Reset reloading: unlike apply_diff (which is async and resets
+             * it at the end), sending the current conf is synchronous and we
+             * must allow future diffs to be processed. */
+            reloading = false;
+          } else {
+            process_logger->info("New differential configuration to load.");
+            process_logger->info("Reloading from Broker...");
+            auto future [[maybe_unused]] =
+                std::async(std::launch::async, apply_diff, std::move(diff_conf),
+                           &reloading);
+          }
+        }
       } else {
-        engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");
       }
       _need_reload = false;
@@ -165,14 +230,17 @@ void loop::_dispatching() {
 
     configuration::applier::state::instance().lock();
 
-    time_t time_change_threshold = pb_config.time_change_threshold();
+    time_t time_change_threshold =
+        pb_indexed_config.state().time_change_threshold();
     uint32_t max_parallel_service_checks =
-        pb_config.max_parallel_service_checks();
-    bool execute_service_checks = pb_config.execute_service_checks();
-    bool execute_host_checks = pb_config.execute_host_checks();
-    uint32_t interval_length = pb_config.interval_length();
-    double sleep_time = pb_config.sleep_time();
-    int32_t command_check_interval = pb_config.command_check_interval();
+        pb_indexed_config.state().max_parallel_service_checks();
+    bool execute_service_checks =
+        pb_indexed_config.state().execute_service_checks();
+    bool execute_host_checks = pb_indexed_config.state().execute_host_checks();
+    uint32_t interval_length = pb_indexed_config.state().interval_length();
+    double sleep_time = pb_indexed_config.state().sleep_time();
+    int32_t command_check_interval =
+        pb_indexed_config.state().command_check_interval();
 
     // Hey, wait a second...  we traveled back in time!
     if (current_time < _last_time)
@@ -191,33 +259,19 @@ void loop::_dispatching() {
     _last_time = current_time;
 
     // Log messages about event lists.
-    engine_logger(dbg_events, more) << "** Event Check Loop";
     events_logger->debug("** Event Check Loop");
     if (!_event_list_high.empty()) {
-      engine_logger(dbg_events, more)
-          << "Next High Priority Event Time: "
-          << my_ctime(&(*_event_list_high.begin())->run_time);
       events_logger->debug("Next High Priority Event Time: {}",
                            my_ctime(&(*_event_list_high.begin())->run_time));
     } else {
-      engine_logger(dbg_events, more)
-          << "No high priority events are scheduled...";
       events_logger->debug("No high priority events are scheduled...");
     }
     if (!_event_list_low.empty()) {
-      engine_logger(dbg_events, more)
-          << "Next Low Priority Event Time:  "
-          << my_ctime(&(*_event_list_low.begin())->run_time);
       events_logger->debug("Next Low Priority Event Time:  {}",
                            my_ctime(&(*_event_list_low.begin())->run_time));
     } else {
-      engine_logger(dbg_events, more)
-          << "No low priority events are scheduled...";
       events_logger->debug("No low priority events are scheduled...");
     }
-    engine_logger(dbg_events, more)
-        << "Current/Max Service Checks: " << currently_running_service_checks
-        << '/' << max_parallel_service_checks;
     events_logger->debug("Current/Max Service Checks: {}/{}",
                          currently_running_service_checks,
                          max_parallel_service_checks);
@@ -266,13 +320,6 @@ void loop::_dispatching() {
           // Move it at least 5 seconds (to overcome the current peak),
           // with a random 10 seconds (to spread the load).
           nudge_seconds = 5 + (rand() % 10);
-          engine_logger(dbg_events | dbg_checks, basic)
-              << "**WARNING** Max concurrent service checks ("
-              << currently_running_service_checks << "/"
-              << max_parallel_service_checks << ") has been reached!  Nudging "
-              << temp_service->get_hostname() << ":"
-              << temp_service->description() << " by " << nudge_seconds
-              << " seconds...";
           events_logger->trace(
               "**WARNING** Max concurrent service checks ({}/{}) has been "
               "reached!  Nudging {}:{} by {} seconds...",
@@ -280,13 +327,6 @@ void loop::_dispatching() {
               temp_service->get_hostname(), temp_service->description(),
               nudge_seconds);
 
-          engine_logger(log_runtime_warning, basic)
-              << "\tMax concurrent service checks ("
-              << currently_running_service_checks << "/"
-              << max_parallel_service_checks << ") has been reached.  Nudging "
-              << temp_service->get_hostname() << ":"
-              << temp_service->description() << " by " << nudge_seconds
-              << " seconds...";
           runtime_logger->warn(
               "\tMax concurrent service checks ({}/{}) has been reached.  "
               "Nudging {}:{} by {} seconds...",
@@ -298,9 +338,6 @@ void loop::_dispatching() {
 
         // Don't run a service check if active checks are disabled.
         if (!execute_service_checks) {
-          engine_logger(dbg_events | dbg_checks, more)
-              << "We're not executing service checks right now, "
-              << "so we'll skip this event.";
           events_logger->debug(
               "We're not executing service checks right now, so we'll skip "
               "this event.");
@@ -354,9 +391,6 @@ void loop::_dispatching() {
 
         // Don't run a host check if active checks are disabled.
         if (!execute_host_checks) {
-          engine_logger(dbg_events | dbg_checks, more)
-              << "We're not executing host checks right now, "
-              << "so we'll skip this event.";
           events_logger->debug(
               "We're not executing host checks right now, so we'll skip this "
               "event.");
@@ -401,7 +435,6 @@ void loop::_dispatching() {
         // We may have just removed the only item from the list.
 
         // Handle the event.
-        engine_logger(dbg_events, more) << "Running event...";
         events_logger->debug("Running event...");
         temp_event->handle_timed_event();
 
@@ -411,8 +444,6 @@ void loop::_dispatching() {
       }
       // Wait a while so we don't hog the CPU...
       else {
-        engine_logger(dbg_events, most)
-            << "Did not execute scheduled event. Idling for a bit...";
         events_logger->debug(
             "Did not execute scheduled event. Idling for a bit...");
         uint64_t d = static_cast<uint64_t>(sleep_time * 1000000000);
@@ -424,8 +455,6 @@ void loop::_dispatching() {
               current_time < (*_event_list_high.begin())->run_time) &&
              (_event_list_low.empty() ||
               current_time < (*_event_list_low.begin())->run_time)) {
-      engine_logger(dbg_events, most)
-          << "No events to execute at the moment. Idling for a bit...";
       events_logger->debug(
           "No events to execute at the moment. Idling for a bit...");
 
@@ -477,34 +506,22 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
   int seconds{0};
   long time_difference = current_time - last_time;
 
-  engine_logger(dbg_functions, basic) << "compensate_for_system_time_change()";
   functions_logger->trace("compensate_for_system_time_change()");
 
   // we moved back in time...
   if (time_difference < 0) {
     get_time_breakdown(-time_difference, &days, &hours, &minutes, &seconds);
-    engine_logger(dbg_events, basic)
-        << "Detected a backwards time change of " << days << "d " << hours
-        << "h " << minutes << "m " << seconds << "s.";
     events_logger->trace("Detected a backwards time change of {}d {}h {}m {}s.",
                          days, hours, minutes, seconds);
   }
   // we moved into the future...
   else {
     get_time_breakdown(time_difference, &days, &hours, &minutes, &seconds);
-    engine_logger(dbg_events, basic)
-        << "Detected a forwards time change of " << days << "d " << hours
-        << "h " << minutes << "m " << seconds << "s.";
     events_logger->trace("Detected a forwards time change of {}d {}h {}m {}s.",
                          days, hours, minutes, seconds);
   }
 
   // log the time change.
-  engine_logger(log_process_info | log_runtime_warning, basic)
-      << "Warning: A system time change of " << days << "d " << hours << "h "
-      << minutes << "m " << seconds << "s ("
-      << (time_difference < 0 ? "backwards" : "forwards")
-      << " in time) has been detected.  Compensating...";
   runtime_logger->warn(
       "Warning: A system time change of {}d {}h {}m {}s ({} in time) has been "
       "detected.  Compensating...",
@@ -642,7 +659,6 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
  */
 void loop::add_event(std::unique_ptr<timed_event>&& event,
                      loop::priority priority) {
-  engine_logger(dbg_functions, basic) << "add_event()";
   functions_logger->trace("add_event()");
 
   timed_event_list* list;
@@ -678,7 +694,6 @@ void loop::add_event(std::unique_ptr<timed_event>&& event,
 }
 
 void loop::remove_downtime(uint64_t downtime_id) {
-  engine_logger(dbg_functions, basic) << "loop::remove_downtime()";
   functions_logger->trace("loop::remove_downtime()");
 
   for (auto it = _event_list_high.begin(), end = _event_list_high.end();
@@ -700,7 +715,6 @@ void loop::remove_downtime(uint64_t downtime_id) {
  */
 void loop::remove_event(timed_event_list::iterator& it,
                         loop::priority priority) {
-  engine_logger(dbg_functions, basic) << "loop::remove_event()";
   functions_logger->trace("loop::remove_event()");
 
   if (priority == loop::low)
@@ -716,7 +730,6 @@ void loop::remove_event(timed_event_list::iterator& it,
  *  @param[in]     priority        This is to know which list to work with.
  */
 void loop::remove_event(timed_event* evt, loop::priority priority) {
-  engine_logger(dbg_functions, basic) << "loop::remove_event()";
   functions_logger->trace("loop::remove_event()");
   timed_event_list* list;
   if (priority == loop::low)
@@ -753,7 +766,6 @@ timed_event_list::iterator loop::find_event(loop::priority priority,
                                             void* data) {
   timed_event_list* list;
 
-  engine_logger(dbg_functions, basic) << "resort_event_list()";
   functions_logger->trace("resort_event_list()");
 
   // move current event list to temp list.
@@ -815,7 +827,6 @@ void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
 void loop::resort_event_list(loop::priority priority) {
   timed_event_list* list;
 
-  engine_logger(dbg_functions, basic) << "resort_event_list()";
   functions_logger->trace("resort_event_list()");
 
   // move current event list to temp list.

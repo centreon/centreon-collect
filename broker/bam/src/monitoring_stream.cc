@@ -23,14 +23,15 @@
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
@@ -52,21 +53,23 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] cache           The persistent cache.
  */
 monitoring_stream::monitoring_stream(
+    const std::string& name,
     const std::string& ext_cmd_file,
     const database_config& db_cfg,
     const database_config& storage_db_cfg,
-    std::shared_ptr<persistent_cache> cache,
     const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("BAM"),
+      _name{name},
       _ext_cmd_file(ext_cmd_file),
       _logger{logger},
       _applier(_logger),
+      _queue_external_commands_timer{com::centreon::common::pool::io_context()},
+      _queue_external_commands_stopped{false},
       _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
-      _cache(std::move(cache)),
       _forced_svc_checks_timer{com::centreon::common::pool::io_context()},
       _forced_svc_checks_timer_stopped{false} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream constructor");
@@ -76,9 +79,11 @@ monitoring_stream::monitoring_stream(
   // Prepare queries.
   _prepare();
 
-  // Let's update BAs then we will be able to load the cache with inherited
-  // downtimes.
-  update();
+  // The first update() (config apply + cache restore + publish) is driven by
+  // the failover once it has opened this stream (failover sets _update = true
+  // after a successful open). It therefore runs exactly once, at the right
+  // moment. Calling update() here as well would initialize — and publish — the
+  // BAs twice.
 }
 
 /**
@@ -100,10 +105,10 @@ monitoring_stream::~monitoring_stream() {
  *
  *  @return Number of acknowledged events.
  */
-int32_t monitoring_stream::flush() {
+uint32_t monitoring_stream::flush() {
   _execute();
   _pending_request = 0;
-  int retval = _pending_events;
+  uint32_t retval = _pending_events;
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream flush: {} events",
                       retval);
   _pending_events = 0;
@@ -115,8 +120,8 @@ int32_t monitoring_stream::flush() {
  *
  * @return Number of acknowledged events.
  */
-int32_t monitoring_stream::stop() {
-  int32_t retval = flush();
+uint32_t monitoring_stream::stop() {
+  uint32_t retval = flush();
   _logger->info("monitoring stream: stopped with {} events acknowledged",
                 retval);
   /* I want to be sure the timer is really stopped. */
@@ -145,6 +150,21 @@ int32_t monitoring_stream::stop() {
         });
   }
   p.get_future().wait();
+  {
+    std::promise<void> p;
+    _queue_external_commands_stopped = true;
+    _logger->info(
+        "bam: monitoring_stream - waiting for external commands to be sent");
+    _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
+    _queue_external_commands_timer.async_wait(
+        [this, &p](const boost::system::error_code& ec) {
+          if (!ec)
+            _async_write_external_commands();
+          p.set_value();
+        });
+    p.get_future().wait();
+  }
+
   /* Now, it is really cancelled. */
   _logger->info("bam: monitoring_stream - stop finished");
 
@@ -158,7 +178,7 @@ void monitoring_stream::initialize() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream initialize");
   multiplexing::publisher pblshr;
   event_cache_visitor ev_cache;
-  _applier.visit(&ev_cache);
+  _applier.visit(&ev_cache, _first_update);
   ev_cache.commit_to(pblshr);
 }
 
@@ -190,9 +210,15 @@ void monitoring_stream::update() {
     _applier.apply(s);
     _ba_mapping = s.get_ba_svc_mapping();
     _rebuild();
-    initialize();
-    // Read cache.
+    /* Restore the runtime state (service states + pending external commands)
+     * from the cache BEFORE publishing. This way initialize() publishes the
+     * fully-restored, coherent state once, instead of first publishing a
+     * partial DB-only state and then overwriting it from the cache. */
     _read_cache();
+    initialize();
+    /* Subsequent update() calls are reloads: the virtual service statuses must
+     * not be republished (see _first_update). */
+    _first_update = false;
   } catch (std::exception const& e) {
     throw msg_fmt("BAM: could not process configuration update: {}", e.what());
   }
@@ -361,7 +387,7 @@ struct kpi_binder {
  *
  *  @return Number of events acknowledged.
  */
-int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
+uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;
@@ -544,53 +570,48 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       commit_if_needed();
       break;
     case inherited_downtime::static_type(): {
-      std::string cmd;
-      timestamp now = timestamp::now();
       inherited_downtime const& dwn =
           *std::static_pointer_cast<inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing inherited downtime (ba id {}, now {}",
-          dwn.ba_id, now);
-      if (dwn.in_downtime)
-        cmd = fmt::format(
-            "[{}] "
-            "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(), dwn.ba_id, now,
-            4102444799);
-      else
-        cmd = fmt::format(
-            "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(), dwn.ba_id);
-      _write_external_command(cmd);
+          _logger,
+          "BAM: processing inherited downtime (ba id {}, in downtime {})",
+          dwn.ba_id, dwn.in_downtime);
+      _handle_inherited_downtime(dwn.ba_id, dwn.in_downtime);
     } break;
     case pb_inherited_downtime::static_type(): {
-      std::string cmd;
-      timestamp now = timestamp::now();
       pb_inherited_downtime const& dwn =
           *std::static_pointer_cast<pb_inherited_downtime const>(data);
-      SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}, in downtime {})",
-          dwn.obj().ba_id(), now, dwn.obj().in_downtime());
-      if (dwn.obj().in_downtime())
-        cmd = fmt::format(
-            "[{}] "
-            "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(),
-            dwn.obj().ba_id(), now, 4102444799);
-      else
-        cmd = fmt::format(
-            "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(),
-            dwn.obj().ba_id());
-      _write_external_command(cmd);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "BAM: processing pb inherited downtime (ba id {}, "
+                          "in downtime {})",
+                          dwn.obj().ba_id(), dwn.obj().in_downtime());
+      _handle_inherited_downtime(dwn.obj().ba_id(), dwn.obj().in_downtime());
+    } break;
+    case neb::pb_instance::static_type(): {
+      auto inst = std::static_pointer_cast<neb::pb_instance>(data);
+      uint64_t instance_id = inst->obj().instance_id();
+      if (inst->obj().running()) {
+        config::applier::state::instance().set_instance_running(instance_id,
+                                                                true);
+      } else {
+        if (config::applier::state::instance().has_connection_from_poller(
+                instance_id)) {
+          _logger->debug(
+              "BAM: poller instance {} stopped, resetting downtime state",
+              instance_id);
+          multiplexing::publisher pblshr;
+          event_cache_visitor ev_cache;
+          _applier.book_service().reset_downtime_state(instance_id, &ev_cache);
+          ev_cache.commit_to(pblshr);
+        } else {
+          _logger->debug(
+              "BAM: poller instance {} stopped (historical event), skipping "
+              "downtime state reset",
+              instance_id);
+        }
+        config::applier::state::instance().set_instance_running(instance_id,
+                                                                false);
+      }
     } break;
     case extcmd::pb_ba_info::static_type(): {
       _logger->info("BAM: dump BA");
@@ -624,7 +645,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
         _pending_events);
     return 0;
   }
-  int retval = _pending_events;
+  uint32_t retval = _pending_events;
   _pending_events = 0;
   _logger->trace("BAM: monitoring_stream write: {} events", retval);
   return retval;
@@ -757,11 +778,10 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
               std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
                         this, std::placeholders::_1));
           break;
+        } else {
+          _logger->trace("BAM: forced service check sent");
+          it = _timer_forced_svc_checks.erase(it);
         }
-	else {
-	  _logger->trace("BAM: forced service check sent");
-	  it = _timer_forced_svc_checks.erase(it);
-	}
       }
     }
   }
@@ -775,8 +795,10 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
 void monitoring_stream::_write_forced_svc_check(
     const std::string& host,
     const std::string& description) {
-  SPDLOG_LOGGER_TRACE(_logger,
-                      "BAM: monitoring stream _write_forced_svc_check");
+  SPDLOG_LOGGER_TRACE(
+      _logger,
+      "BAM: monitoring stream _write_forced_svc_check on service {}:{}", host,
+      description);
   std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
   _forced_svc_checks.emplace(host, description);
   _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
@@ -793,13 +815,85 @@ void monitoring_stream::_write_forced_svc_check(
 void monitoring_stream::_write_external_command(const std::string& cmd) {
   SPDLOG_LOGGER_TRACE(
       _logger, "BAM: monitoring stream _write_external_command <<{}>>", cmd);
-  std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
-  misc::fifo_client fc(_ext_cmd_file);
-  if (fc.write(cmd) < 0) {
-    _logger->error("BAM: could not write BA check result to command file '{}'",
-                   _ext_cmd_file);
-  } else
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: sent external command '{}'", cmd);
+  {
+    absl::MutexLock lck(&_queue_external_commands_m);
+    _queue_external_commands.push_back(cmd);
+  }
+  _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
+  _queue_external_commands_timer.async_wait(
+      [this](const boost::system::error_code& ec) {
+        if (!ec)
+          _async_write_external_commands();
+      });
+}
+
+/**
+ * @brief Apply (or remove) the inherited downtime of a BA on its virtual
+ * service.
+ *
+ * The downtime is applied by sending an external command to Engine
+ * (SCHEDULE_SVC_DOWNTIME / DEL_SVC_DOWNTIME_FULL), exactly as historically
+ * done.
+ *
+ * @param ba_id        The BA identifier.
+ * @param in_downtime  true to set the inherited downtime, false to remove it.
+ */
+void monitoring_stream::_handle_inherited_downtime(uint32_t ba_id,
+                                                   bool in_downtime) {
+  static const std::string author{"Centreon Broker BAM Module"};
+  static const std::string comment{
+      "Automatic downtime triggered by BA downtime inheritance"};
+
+  timestamp now = timestamp::now();
+  std::string cmd;
+  if (in_downtime)
+    cmd = fmt::format(
+        "[{}] SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;{};{}\n",
+        now, config::applier::state::instance().poller_id(), ba_id, now,
+        4102444799, author, comment);
+  else
+    cmd = fmt::format(
+        "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;{};{}\n", now,
+        config::applier::state::instance().poller_id(), ba_id, author, comment);
+  _write_external_command(cmd);
+}
+
+void monitoring_stream::_async_write_external_commands() {
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "BAM: monitoring stream _async_write_external_commands");
+  std::deque<std::string> local_queue;
+  bool need_to_restart = false;
+  {
+    absl::MutexLock lck(&_queue_external_commands_m);
+    std::swap(local_queue, _queue_external_commands);
+  }
+  _logger->debug("BAM: sending {} external commands", local_queue.size());
+  for (auto& cmd : local_queue) {
+    misc::fifo_client fc(_ext_cmd_file);
+    int32_t ret = fc.write(cmd);
+    if (ret >= 0)
+      _logger->info("BAM: external command '{}' sent to command file '{}'", cmd,
+                    _ext_cmd_file);
+    else {
+      _logger->error(
+          "BAM: could not write external command '{}' to command file '{}'",
+          cmd, _ext_cmd_file);
+      {
+        absl::MutexLock lck(&_queue_external_commands_m);
+        _queue_external_commands.push_back(std::move(cmd));
+        need_to_restart = true;
+      }
+    }
+  }
+
+  if (need_to_restart && !_queue_external_commands_stopped) {
+    _queue_external_commands_timer.expires_after(std::chrono::seconds(5));
+    _queue_external_commands_timer.async_wait(
+        [this](const boost::system::error_code& ec) {
+          if (!ec)
+            this->_async_write_external_commands();
+        });
+  }
 }
 
 /**
@@ -807,11 +901,19 @@ void monitoring_stream::_write_external_command(const std::string& cmd) {
  */
 void monitoring_stream::_read_cache() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _read_cache");
-  if (_cache == nullptr)
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: no cache configured");
-  else {
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: loading cache");
-    _applier.load_from_cache(*_cache);
+  absl::MutexLock lck(&_queue_external_commands_m);
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM: loading cache");
+  _applier.load_from_cache(_name, _queue_external_commands);
+
+  _logger->debug("BAM: scheduling {} external commands from cache",
+                 _queue_external_commands.size());
+  if (!_queue_external_commands.empty()) {
+    _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
+    _queue_external_commands_timer.async_wait(
+        [this](const boost::system::error_code& ec) {
+          if (!ec)
+            _async_write_external_commands();
+        });
   }
 }
 
@@ -819,13 +921,9 @@ void monitoring_stream::_read_cache() {
  *  Save inherited downtime to the cache.
  */
 void monitoring_stream::_write_cache() {
-  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _write_cache");
-  if (_cache == nullptr)
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: no cache configured");
-  else {
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
-    _applier.save_to_cache(*_cache);
-  }
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
+  absl::MutexLock lck(&_queue_external_commands_m);
+  _applier.save_to_cache(_name, _queue_external_commands);
 }
 
 /**

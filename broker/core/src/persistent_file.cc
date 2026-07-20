@@ -19,8 +19,8 @@
 #include "com/centreon/broker/persistent_file.hh"
 
 #include "broker/core/bbdo/stream.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/compression/stream.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -44,9 +44,8 @@ persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
   cs->set_substream(_splitter);
 
   // BBDO layer.
-  auto bs{std::make_shared<bbdo::stream>(true)};
+  auto bs = std::make_shared<bbdo::basic_stream>(true);
   bs->set_coarse(true);
-  bs->set_negotiate(false);
   bs->set_substream(cs);
 
   // Set stream.
@@ -85,7 +84,7 @@ void persistent_file::statistics(nlohmann::json& tree) const {
  *
  *  @param[in] d  Input data.
  */
-int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
+uint32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
   return _substream->write(d);
 }
 
@@ -94,8 +93,8 @@ int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
  *
  * @return the number of acknowledged events.
  */
-int32_t persistent_file::stop() {
-  int32_t retval = _substream->stop();
+uint32_t persistent_file::stop() {
+  uint32_t retval = _substream->stop();
   log_v2::instance()
       .get(log_v2::CORE)
       ->info("persistent file stopped with {} acknowledged events", retval);

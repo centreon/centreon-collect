@@ -189,8 +189,8 @@ pid_t embedded_perl::run(std::string const& cmd,
       log::core()->debug("son started pid={}", getpid());
     }
     // default signal handler
-    sigset(SIGCHLD, SIG_DFL);
-    sigset(SIGTERM, SIG_DFL);
+    signal(SIGCHLD, SIG_DFL);
+    signal(SIGTERM, SIG_DFL);
     // close all father fds
     checks::check::close_all_father_fd();
     io_context->stop();

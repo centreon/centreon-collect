@@ -19,6 +19,8 @@
 #ifndef CCB_BAM_CONFIGURATION_APPLIER_BA_HH
 #define CCB_BAM_CONFIGURATION_APPLIER_BA_HH
 
+#include <map>
+
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
@@ -72,7 +74,7 @@ class ba {
   ba& operator=(ba const& other);
   void apply(configuration::state::bas const& my_bas, service_book& book);
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
-  void visit(io::stream* visitor);
+  void visit(io::stream* visitor, bool seed_service_status);
   void save_to_cache(persistent_cache& cache);
   void apply_inherited_downtime(const pb_inherited_downtime& dwn);
 };

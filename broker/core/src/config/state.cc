@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/config/state.hh"
+#include <absl/container/btree_map.h>
 #include "broker/core/bbdo/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -36,6 +37,7 @@ state::state()
       _bbdo_version(BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH),
       _command_protocol{"json"},
       _event_queue_max_size{10000},
+      _priority_age_threshold{300},
       _poller_id{0},
       _pool_size{0},
       _log_conf{"/var/log/centreon-broker/",
@@ -61,18 +63,16 @@ state::state(const state& other)
       _command_protocol(other._command_protocol),
       _endpoints(other._endpoints),
       _event_queue_max_size(other._event_queue_max_size),
+      _priority_age_threshold(other._priority_age_threshold),
       _module_dir(other._module_dir),
       _module_list(other._module_list),
       _params(other._params),
       _poller_id(other._poller_id),
       _poller_name(other._poller_name),
       _pool_size(other._pool_size),
+      _cache_config_dir(other._cache_config_dir),
+      _pollers_config_dir(other._pollers_config_dir),
       _log_conf(other._log_conf) {}
-
-/**
- *  Destructor.
- */
-state::~state() {}
 
 /**
  *  Assignment operator.
@@ -92,12 +92,15 @@ state& state::operator=(state const& other) {
     _command_protocol = other._command_protocol;
     _endpoints = other._endpoints;
     _event_queue_max_size = other._event_queue_max_size;
+    _priority_age_threshold = other._priority_age_threshold;
     _module_dir = other._module_dir;
     _module_list = other._module_list;
     _params = other._params;
     _poller_id = other._poller_id;
     _poller_name = other._poller_name;
     _pool_size = other._pool_size;
+    _cache_config_dir = other._cache_config_dir;
+    _pollers_config_dir = other._pollers_config_dir;
   }
   return *this;
 }
@@ -115,6 +118,7 @@ void state::clear() {
   _command_protocol = "json";
   _endpoints.clear();
   _event_queue_max_size = 10000;
+  _priority_age_threshold = 300;
   _module_dir.clear();
   _module_list.clear();
   _params.clear();
@@ -293,6 +297,14 @@ int state::event_queue_max_size() const noexcept {
   return _event_queue_max_size;
 }
 
+void state::priority_age_threshold(uint32_t val) noexcept {
+  _priority_age_threshold = val;
+}
+
+uint32_t state::priority_age_threshold() const noexcept {
+  return _priority_age_threshold;
+}
+
 /**
  *  Get the module directory.
  *
@@ -359,7 +371,7 @@ std::list<std::string> const& state::module_list() const noexcept {
  *
  *  @return Additional parameters list.
  */
-std::map<std::string, std::string>& state::params() noexcept {
+absl::btree_map<std::string, std::string>& state::params() noexcept {
   return _params;
 }
 
@@ -368,7 +380,8 @@ std::map<std::string, std::string>& state::params() noexcept {
  *
  *  @return Additional parameters list.
  */
-const std::map<std::string, std::string>& state::params() const noexcept {
+const absl::btree_map<std::string, std::string>& state::params()
+    const noexcept {
   return _params;
 }
 
@@ -493,10 +506,10 @@ const std::string& state::engine_config_dir() const noexcept {
 /**
  * @brief Set the directory containing the cache configuration of the pollers.
  *
- * @param config_cache_dir The directory name
+ * @param cache_config_dir The directory name
  */
-void state::set_config_cache_dir(const std::string& config_cache_dir) {
-  _config_cache_dir = config_cache_dir;
+void state::set_cache_config_dir(const std::string& cache_config_dir) {
+  _cache_config_dir = cache_config_dir;
 }
 
 /**
@@ -504,8 +517,8 @@ void state::set_config_cache_dir(const std::string& config_cache_dir) {
  *
  * @return The directory name
  */
-const std::string& state::config_cache_dir() const noexcept {
-  return _config_cache_dir;
+const std::string& state::cache_config_dir() const noexcept {
+  return _cache_config_dir;
 }
 
 /**

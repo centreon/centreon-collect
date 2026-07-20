@@ -22,20 +22,16 @@
 #include "com/centreon/engine/commands/command_listener.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
-namespace com::centreon::engine {
-namespace commands {
+namespace com::centreon::engine::commands {
 class command;
-}
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::commands
 
-typedef std::unordered_map<
-    std::string,
-    std::shared_ptr<com::centreon::engine::commands::command> >
-    command_map;
+using command_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::commands::command>>;
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::commands {
 
-namespace commands {
 /**
  *  @class command command.hh
  *  @brief Execute command and send the result.
@@ -43,7 +39,7 @@ namespace commands {
  *  Command execute a command line with their arguments and
  *  notify listener at the end of the command.
  */
-class command {
+class command : public std::enable_shared_from_this<command> {
  public:
   enum class e_type { exec, forward, raw, connector, otel };
   const e_type _type;
@@ -144,6 +140,7 @@ class command {
 
   virtual void set_command_line(const std::string& command_line);
   void set_listener(command_listener* listener) noexcept;
+
   static command_map commands;
 };
 
@@ -165,9 +162,7 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
   return s;
 }
 
-}  // namespace commands
-
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::commands
 
 namespace fmt {
 template <>

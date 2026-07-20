@@ -48,7 +48,7 @@ static void BM_random_search(benchmark::State& state) {
   }
   for (auto _ : state) {
     for (uint64_t key = 0; key < 100000; ++key) {
-      static auto search __attribute__((used)) = cont.find(rand() % 100);
+      benchmark::DoNotOptimize(cont.find(rand() % 100));
     }
   }
 }
@@ -84,5 +84,3 @@ BENCHMARK(BM_random_search<boost::container::flat_map<
               last_call::pointer,
               std::less<uint64_t>,
               std::vector<std::pair<uint64_t, last_call::pointer>>>>);
-
-BENCHMARK_MAIN();

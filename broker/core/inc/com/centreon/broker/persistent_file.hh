@@ -43,8 +43,8 @@ class persistent_file : public io::stream {
             time_t deadline = (time_t)-1) override;
   void remove_all_files();
   void statistics(nlohmann::json& tree) const override;
-  int32_t write(const std::shared_ptr<io::data>& d) override;
-  int32_t stop() override;
+  uint32_t write(const std::shared_ptr<io::data>& d) override;
+  uint32_t stop() override;
 };
 
 }  // namespace com::centreon::broker

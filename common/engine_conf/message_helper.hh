@@ -21,7 +21,7 @@
 #define CCE_CONFIGURATION_MESSAGE_HELPER_HH
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include <absl/strings/str_split.h>
+#include <google/protobuf/util/message_differencer.h>
 #include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {

@@ -20,12 +20,10 @@
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
 
 /**
@@ -60,8 +58,6 @@ raw::~raw() noexcept {
       delete p;
 
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Raw command destructor failed: " << e.what();
     SPDLOG_LOGGER_ERROR(runtime_logger,
                         "Error: Raw command destructor failed: {}", e.what());
   }
@@ -83,8 +79,6 @@ uint64_t raw::run(std::string const& processed_cmd,
                   uint32_t timeout,
                   const check_result::pointer& to_push_to_checker,
                   const void* caller) {
-  engine_logger(dbg_commands, basic)
-      << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
@@ -101,8 +95,6 @@ uint64_t raw::run(std::string const& processed_cmd,
     _processes_busy[p] = command_id;
   }
 
-  engine_logger(dbg_commands, basic)
-      << "raw::run: id=" << command_id << ", process=" << p;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: id={} , process={}",
                       command_id, (void*)p);
 
@@ -113,13 +105,9 @@ uint64_t raw::run(std::string const& processed_cmd,
   try {
     // Start process.
     p->exec(processed_cmd.c_str(), env.data(), timeout);
-    engine_logger(dbg_commands, basic)
-        << "raw::run: start process success: id=" << command_id;
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process success: id={}", command_id);
   } catch (...) {
-    engine_logger(dbg_commands, basic)
-        << "raw::run: start process failed: id=" << command_id;
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process failed: id={}", command_id);
 
@@ -143,8 +131,6 @@ void raw::run(std::string const& processed_cmd,
               nagios_macros& macros,
               uint32_t timeout,
               result& res) {
-  engine_logger(dbg_commands, basic)
-      << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
@@ -152,8 +138,6 @@ void raw::run(std::string const& processed_cmd,
   process p;
   uint64_t command_id(get_uniq_id());
 
-  engine_logger(dbg_commands, basic)
-      << "raw::run: id=" << command_id << ", process=" << &p;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: id={}, process={}",
                       command_id, (void*)&p);
 
@@ -164,13 +148,9 @@ void raw::run(std::string const& processed_cmd,
   // Start process.
   try {
     p.exec(processed_cmd.c_str(), env.data(), timeout);
-    engine_logger(dbg_commands, basic)
-        << "raw::run: start process success: id=" << command_id;
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process success: id={}", command_id);
   } catch (...) {
-    engine_logger(dbg_commands, basic)
-        << "raw::run: start process failed: id=" << command_id;
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process failed: id={}", command_id);
     throw;
@@ -196,24 +176,6 @@ void raw::run(std::string const& processed_cmd,
              res.exit_code > 3)
     res.exit_code = service::state_unknown;
 
-  engine_logger(dbg_commands, basic) << "raw::run: end process: "
-                                        "id="
-                                     << command_id
-                                     << ", "
-                                        "start_time="
-                                     << res.start_time.to_mseconds()
-                                     << ", "
-                                        "end_time="
-                                     << res.end_time.to_mseconds()
-                                     << ", "
-                                        "exit_code="
-                                     << res.exit_code
-                                     << ", "
-                                        "exit_status="
-                                     << res.exit_status
-                                     << ", "
-                                        "output='"
-                                     << res.output << "'";
   SPDLOG_LOGGER_TRACE(commands_logger,
                       "raw::run: end process: "
                       "id={}, {}",
@@ -252,7 +214,6 @@ void raw::data_is_available_err(process& p) noexcept {
  */
 void raw::finished(process& p) noexcept {
   try {
-    engine_logger(dbg_commands, basic) << "raw::finished: process=" << &p;
     SPDLOG_LOGGER_TRACE(commands_logger, "raw::finished: process={}",
                         (void*)&p);
 
@@ -267,9 +228,6 @@ void raw::finished(process& p) noexcept {
         _processes_free.push_back(&p);
         lock.unlock();
 
-        engine_logger(log_runtime_warning, basic)
-            << "Warning: Invalid process pointer: "
-               "process not found into process busy list";
         SPDLOG_LOGGER_WARN(runtime_logger,
                            "Warning: Invalid process pointer: "
                            "process not found into process busy list");
@@ -280,7 +238,6 @@ void raw::finished(process& p) noexcept {
       _processes_busy.erase(it);
     }
 
-    engine_logger(dbg_commands, basic) << "raw::finished: id=" << command_id;
     SPDLOG_LOGGER_TRACE(commands_logger, "raw::finished: id={}", command_id);
 
     // Build check result.
@@ -309,13 +266,6 @@ void raw::finished(process& p) noexcept {
                (res.exit_code > 3))
       res.exit_code = service::state_unknown;
 
-    engine_logger(dbg_commands, basic)
-        << "raw::finished: id=" << command_id
-        << ", start_time=" << res.start_time.to_mseconds()
-        << ", end_time=" << res.end_time.to_mseconds()
-        << ", exit_code=" << res.exit_code
-        << ", exit_status=" << res.exit_status << ", output='" << res.output
-        << "'";
     SPDLOG_LOGGER_TRACE(commands_logger, "raw::finished: id={}, {}", command_id,
                         res);
 
@@ -325,8 +275,6 @@ void raw::finished(process& p) noexcept {
     if (_listener)
       _listener->finished(res);
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Raw process termination routine failed: " << e.what();
     SPDLOG_LOGGER_WARN(runtime_logger,
                        "Warning: Raw process termination routine failed: {}",
                        e.what());
@@ -480,7 +428,8 @@ void raw::_build_custom_service_macro_environment(nagios_macros& macros,
  *  @param[out]    env     The environment to fill.
  */
 void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
-  bool enable_environment_macros = pb_config.enable_environment_macros();
+  bool enable_environment_macros =
+      pb_indexed_config.state().enable_environment_macros();
   if (enable_environment_macros) {
     _build_macrosx_environment(macros, env);
     _build_argv_macro_environment(macros, env);
@@ -499,7 +448,7 @@ void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
  */
 void raw::_build_macrosx_environment(nagios_macros& macros, environment& env) {
   bool use_large_installation_tweaks =
-      pb_config.use_large_installation_tweaks();
+      pb_indexed_config.state().use_large_installation_tweaks();
   for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
     int release_memory(0);
 
@@ -539,7 +488,7 @@ process* raw::_get_free_process() {
   if (_processes_free.empty()) {
     /* Only the out stream is open */
     process* p = new process(this, false, true, false);
-    p->setpgid_on_exec(pb_config.use_setpgid());
+    p->setpgid_on_exec(pb_indexed_config.state().use_setpgid());
     return p;
   }
   // Get a free process.

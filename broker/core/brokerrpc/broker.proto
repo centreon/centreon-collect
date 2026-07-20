@@ -1,0 +1,505 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "process_stat.proto";
+import "common.proto";
+import "neb.proto";
+
+package com.centreon.broker;
+
+service Broker {
+  rpc GetVersion(google.protobuf.Empty) returns (Version) {}
+
+  // stats
+  rpc GetProcessStats(google.protobuf.Empty)
+      returns (com.centreon.common.pb_process_stat) {}
+  rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
+  rpc SetSqlManagerStats(SqlManagerStatsOptions)
+      returns (google.protobuf.Empty) {}
+  rpc GetSqlManagerStats(SqlConnection) returns (SqlManagerStats) {}
+  rpc GetConflictManagerStats(google.protobuf.Empty)
+      returns (ConflictManagerStats) {}
+  rpc GetMuxerStats(GenericString) returns (MuxerStats) {}
+
+  rpc GetNumModules(google.protobuf.Empty) returns (GenericSize) {}
+  rpc GetModulesStats(GenericNameOrIndex) returns (GenericString) {}
+
+  rpc GetNumEndpoint(google.protobuf.Empty) returns (GenericSize) {}
+  rpc GetEndpointStats(GenericNameOrIndex) returns (GenericString) {}
+
+  rpc GetProcessingStats(google.protobuf.Empty) returns (ProcessingStats) {}
+
+  /**
+   * @brief Rebuild RRD metric from data in the SQL database.
+   *
+   * @param IndexIds Message containing a vector of metric ids.
+   *
+   * @return An Empty object.
+   */
+  rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Build a file with the BA content and relations.
+   *
+   * @param BaInfo Message containing the BA ID and the output file to fill
+   * (currently this file is a *.dot file)
+   *
+   * @return An Empty object.
+   */
+  rpc GetBa(BaInfo) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Remove RRD files from index IDs.
+   *
+   * @param ToRemove Message containing a vector of metric ids and index ids.
+   *
+   * @return An Empty object.
+   */
+  rpc RemoveGraphs(ToRemove) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Remove a poller configuration from Broker and real time database.
+   *
+   * @param GenericNameOrIndex Message containing the poller name or its id.
+   *
+   * @return An Empty object.
+   */
+  rpc RemovePoller(GenericNameOrIndex) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Retrieve some informations about loggers. If a name is specified,
+   * Informations are concentrated on the logger of that name.
+   *
+   * @param A logger name.
+   *
+   * @return A LogInfo message.
+   */
+  rpc GetLogInfo(GenericString) returns (LogInfo) {}
+
+  /**
+   * @brief Set level of a logger.
+   *
+   * @param A message with a logger and a level as strings.
+   *
+   * @return nothing.
+   */
+  rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Set log flush period of all loggers.
+   *
+   * @param period in second, 0 means flush all the times
+   *
+   * @return nothing.
+   */
+  rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
+  rpc Aes256Encrypt(AesMessage) returns (GenericString) {}
+  rpc Aes256Decrypt(AesMessage) returns (GenericString) {}
+
+  rpc GetPeers(google.protobuf.Empty) returns (PeerList) {}
+  rpc GetPollers(google.protobuf.Empty) returns (PeerList) {}
+  rpc GetHostIds(google.protobuf.Empty) returns (IdsList) {}
+  rpc GetHost(GenericNameOrIndex) returns (Host) {}
+  rpc GetServiceIds(google.protobuf.Empty) returns (IdsPairsList) {}
+  rpc GetService(ServiceIdentifier) returns (Service) {}
+
+  /**
+   * @brief Return the IDs of all hostgroups currently in the broker cache.
+   *
+   * @return An IdsList with the hostgroup IDs.
+   */
+  rpc GetHostGroupIds(google.protobuf.Empty) returns (IdsList) {}
+
+  /**
+   * @brief Return the HostGroup object with its member host IDs for the given
+   * name or ID from the broker cache. The member_host_ids field of the
+   * returned HostGroup is populated with the IDs of all member hosts.
+   *
+   * @param GenericNameOrIndex Use str for name-based lookup, idx for ID-based.
+   *
+   * @return The HostGroup message with member_host_ids populated.
+   */
+  rpc GetHostGroup(GenericNameOrIndex) returns (HostGroup) {}
+
+  /**
+   * @brief Return the IDs of all servicegroups currently in the broker cache.
+   *
+   * @return An IdsList with the servicegroup IDs.
+   */
+  rpc GetServiceGroupIds(google.protobuf.Empty) returns (IdsList) {}
+
+  /**
+   * @brief Return the ServiceGroup object with its member (host_id, service_id)
+   * pairs for the given ID from the broker cache. The member_service_ids field
+   * of the returned ServiceGroup is populated with the member service pairs.
+   *
+   * @param GenericNameOrIndex Use idx for ID-based lookup.
+   *
+   * @return The ServiceGroup message with member_service_ids populated.
+   */
+  rpc GetServiceGroup(GenericNameOrIndex) returns (ServiceGroup) {}
+
+  /**
+   * @brief Return all severities currently held in the broker cache.
+   *
+   * @return A SeverityList message containing one SeverityEntry per cached
+   * severity, with its config ID, type, level and database ID.
+   */
+  rpc GetSeverities(google.protobuf.Empty) returns (SeverityList) {}
+
+  /**
+   * @brief Return the topology of the broker, including all pollers, brokers
+   * and their connections. The returned TopologyResponse message contains a
+   * list of all peers (pollers and brokers).
+   *
+   * There is a missing point in the TopologyResponse, if the connection to a
+   * poller is established through several brokers, the response is partial
+   * because only the direct connection is described. To have a complete view of
+   * the topology, clients may need to call GetTopology on each broker to gather
+   * all connections and build the full topology graph.
+   *
+   * For example, if P is a poller and B1, B2 and B3 are brokers, with the
+   * following connections: P -> B1 -> B2 -> B3, GetTopology called on B3 will
+   * see P as a peer with a connection to B2, but it will not see the
+   * connections from P to B1 and from B1 to B2. Broker doesn't store all the
+   * connections to pollers, it only knows about its direct connections.
+   *
+   * @param google.protobuf.Empty The request message is empty, as no parameters
+   * are needed to retrieve the topology information.
+   *
+   * @return TopologyResponse A message containing the list of peers (pollers
+   * and brokers) and their details, representing the topology of the broker
+   * system. Each peer includes information such as ID, name, type, connection
+   * time and configuration details.
+   */
+  rpc GetTopology(google.protobuf.Empty) returns (TopologyResponse) {}
+
+  /**
+   * @brief Return all hosts that carry a given tag (identified by name and
+   * type) in the broker cache.
+   *
+   * @param TagIdentifier Message containing the tag name and type.
+   *
+   * @return A HostList message with one Host entry per matching host.
+   */
+  rpc GetHostsByTag(TagIdentifier) returns (HostList) {}
+
+  /**
+   * @brief Return all services that carry a given tag (identified by name and
+   * type) in the broker cache.
+   *
+   * @param TagIdentifier Message containing the tag name and type.
+   *
+   * @return A ServiceList message with one Service entry per matching service.
+   */
+  rpc GetServicesByTag(TagIdentifier) returns (ServiceList) {}
+
+  /**
+   * @brief Return all tags currently held in the broker cache, with the IDs of
+   * the pollers that reference each tag.
+   *
+   * @return A TagList message containing one TagEntry per cached tag.
+   */
+  rpc GetTags(google.protobuf.Empty) returns (TagList) {}
+}
+
+message PollerEntry {
+  uint64 poller_id = 1;
+  string poller_name = 2;
+}
+
+message BrokerEntry {
+  uint64 poller_id = 1;
+  string broker_name = 2;
+  repeated PollerEntry pollers = 3;
+}
+
+message TopologyResponse {
+  repeated BrokerEntry direct_brokers = 1;
+  repeated PollerEntry direct_pollers = 2;
+}
+
+message PeerList {
+  repeated Peer peers = 1;
+}
+
+message IdsList {
+  repeated uint64 ids = 1;
+}
+
+message IdsPairsList {
+  message IdsPair {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+  }
+  repeated IdsPair pairs = 1;
+}
+
+message Peer {
+  uint32 id = 1;
+  string poller_name = 2;
+  string broker_name = 3;
+  google.protobuf.Timestamp connected_since = 4;
+  common.PeerType type = 5;
+  string engine_conf = 6;
+  string available_conf = 7;
+}
+
+message AesMessage {
+  string app_secret = 1;
+  string salt = 2;
+  string content = 3;
+}
+
+message Version {
+  int32 major = 1;
+  int32 minor = 2;
+  int32 patch = 3;
+}
+
+message LogInfo {
+  string log_name = 1;
+  string log_file = 2;
+  uint32 log_flush_period = 3;
+  map<string, string> level = 4;
+}
+
+message LogLevel {
+  string logger = 1;
+  enum LogLevelEnum {
+    TRACE = 0;
+    DEBUG = 1;
+    INFO = 2;
+    WARNING = 3;
+    ERROR = 4;
+    CRITICAL = 5;
+    OFF = 6;
+  }
+  LogLevelEnum level = 2;
+}
+
+message LogFlushPeriod {
+  uint32 period = 1;
+}
+
+message GenericString {
+  string str_arg = 1;
+}
+
+message GenericInt {
+  uint32 value = 1;
+}
+
+message GenericSize {
+  uint32 size = 1;
+}
+
+// 1 => access by name
+// 2 => access by index
+// not set => all elems
+message GenericNameOrIndex {
+  oneof nameOrIndex {
+    string str = 1;
+    uint64 idx = 2;
+  }
+}
+
+message ServiceIdentifier {
+  oneof host {
+    string host_name = 1;
+    uint64 host_id = 2;
+  }
+  oneof service {
+    string description = 3;
+    uint64 service_id = 4;
+  }
+}
+
+message GenericResponse {
+  bool ok = 1;
+  string err_msg = 2;
+}
+
+/**
+ * @brief This is the message given to the GetSqlManagerStats. It is possible
+ * to specify an index representing which connection to display. If no value
+ * is given all the connections are returned.
+ */
+message SqlConnection {
+  optional uint32 id = 1;
+}
+
+message SqlConnectionStats {
+  int32 waiting_tasks = 1;
+  oneof last_switch {
+    int64 up_since = 2;
+    int64 down_since = 3;
+  };
+  float average_loop_duration = 4;
+  uint32 average_tasks_count = 5;
+  float activity_percent = 6;
+  float average_query_duration = 7;
+  float average_statement_duration = 8;
+
+  message QueryStats {
+    uint32 length = 1;
+    float duration = 2;
+    int64 start_time = 3;
+    string query = 4;
+  };
+  message StatementStats {
+    float rows_count = 1;
+    float duration = 2;
+    int64 start_time = 3;
+    uint32 statement_id = 4;
+    string statement_query = 5;
+  };
+
+  repeated QueryStats slowest_queries = 9;
+  repeated StatementStats slowest_statements = 10;
+}
+
+message SqlManagerStatsOptions {
+  optional uint32 slowest_statements_count = 1;
+  optional uint32 slowest_queries_count = 2;
+}
+
+message SqlManagerStats {
+  repeated SqlConnectionStats connections = 1;
+}
+
+message ConflictManagerStats {
+  int32 events_handled = 1;
+  int32 waiting_events = 2;
+  int32 max_pending_events = 3;
+  int32 sql = 4;
+  int32 storage = 5;
+  uint32 max_perfdata_events = 6;
+  uint32 loop_timeout = 7;
+  double speed = 8;
+}
+
+message ModuleStats {
+  string name = 1;
+  string size = 2;
+  string state = 3;
+}
+
+message ThreadPool {
+  float latency = 1;
+  uint32 size = 2;
+}
+
+message EngineStats {
+  enum Mode {
+    NOT_STARTED = 0;
+    RUNNING = 1;
+    STOPPED = 2;
+  }
+  Mode mode = 1;
+  uint32 processed_events = 2;
+  uint64 queue_size = 3;
+  uint64 available = 4;
+}
+
+message QueueFileStats {
+  string name = 1;
+  uint32 max_file_size = 2;
+  uint32 file_write_path = 3;
+  uint32 file_write_offset = 4;
+  uint32 file_read_path = 5;
+  uint32 file_read_offset = 6;
+  double file_percent_processed = 7;
+  int64 file_expected_terminated_at = 8;
+  string file_expected_terminated_in = 9;
+}
+
+message MuxerStats {
+  uint32 total_events = 1;
+  uint32 unacknowledged_events = 2;
+  QueueFileStats queue_file = 3;
+}
+
+message ProcessingStats {
+  EngineStats engine = 1;
+  map<string, MuxerStats> muxers = 2;
+}
+
+message BrokerStats {
+  string asio_version = 1;
+  string version = 2;
+  uint32 pid = 3;
+  int64 now = 4;
+  ThreadPool pool_stats = 5;
+  repeated ModuleStats modules = 6;
+  SqlManagerStats sql_manager = 7;
+  ConflictManagerStats conflict_manager = 8;
+  ProcessingStats processing = 9;
+}
+
+message IndexIds {
+  repeated uint64 index_ids = 1;
+}
+
+message BaInfo {
+  uint64 id = 1;
+  string output_file = 2;
+}
+
+message ToRemove {
+  repeated uint64 index_ids = 1;
+  repeated uint64 metric_ids = 2;
+}
+
+/**
+ * @brief One entry in the broker cache for a severity.
+ *
+ * config_id and type together form the unique key in the cache.
+ * level is the numeric severity level from the Engine configuration.
+ * db_id is the MariaDB auto-increment primary key (0 if not yet persisted).
+ */
+message SeverityEntry {
+  uint64 config_id = 1;
+  Severity.Type type = 2;
+  uint32 level = 3;
+  uint64 db_id = 4;  // MariaDB row ID, 0 if not yet in database
+}
+
+message SeverityList {
+  repeated SeverityEntry entries = 1;
+}
+
+/**
+ * @brief Identifies a tag by its name and type.
+ */
+message TagIdentifier {
+  string name = 1;
+  TagType type = 2;
+}
+
+message HostList {
+  repeated Host hosts = 1;
+}
+
+message ServiceList {
+  repeated Service services = 1;
+}
+
+/**
+ * @brief One entry in the broker cache for a tag.
+ *
+ * id and type together form the unique key. name is the human-readable label.
+ * poller_ids lists the pollers that currently reference this tag; the tag is
+ * kept in the cache as long as at least one poller references it.
+ */
+message TagEntry {
+  uint64 id = 1;
+  TagType type = 2;
+  string name = 3;
+  repeated uint64 poller_ids = 4;
+}
+
+message TagList {
+  repeated TagEntry entries = 1;
+}

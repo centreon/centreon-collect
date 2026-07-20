@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/broker/neb/cbmod.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/cbmod_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -39,13 +39,25 @@ class cbmodimpl {
 
   const multiplexing::publisher& publisher() const { return _publisher; }
   multiplexing::publisher& mut_publisher() { return _publisher; }
+  config::applier::cbmod_state& state() const {
+    return static_cast<config::applier::cbmod_state&>(
+        config::applier::state::instance());
+  }
 };
 
 static bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
 
-cbmod::cbmod(const std::string& config_file)
+/**
+ * @brief Constructor of the cbmod class.
+ *
+ * @param config_file The json configuration file.
+ * @param proto_conf The protobuf configuration directory.
+ */
+cbmod::cbmod(const std::string& config_file,
+             const std::filesystem::path& proto_conf,
+             const std::string& engine_conf_version)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
@@ -55,37 +67,46 @@ cbmod::cbmod(const std::string& config_file)
   /* This is a little hack to avoid to replace the log file set by
    * centengine */
   s.mut_log_conf().allow_only_atomic_changes(true);
-  com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
-                                               s);
+  com::centreon::broker::config::applier::init<
+      com::centreon::broker::config::applier::cbmod_state>(engine_conf_version,
+                                                           s);
+
+  auto& cbmod_state = _impl->state();
+
   try {
     log_v2::instance().apply(s.log_conf());
   } catch (const std::exception& e) {
     log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
   }
 
-  com::centreon::broker::config::applier::state::instance().apply(s);
+  cbmod_state.apply(s);
+  cbmod_state.set_proto_conf(proto_conf);
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
-  _use_protobuf =
-      config::applier::state::instance().get_bbdo_version().major_v > 2;
+  _use_protobuf = cbmod_state.get_bbdo_version().major_v > 2;
+
+  _centralized_conf = !proto_conf.empty() && _use_protobuf;
 }
 
 /**
  * @brief Constructor of the cbmod class. Useful in unit tests.
+ *
+ * @param proto_conf The protobuf configuration directory.
  */
-cbmod::cbmod()
-    : _neb_logger{log_v2::instance().get(log_v2::NEB)},
-      _impl{new cbmodimpl},
-      _proto_conf{""} {
+cbmod::cbmod(const std::filesystem::path& proto_conf)
+    : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   com::centreon::broker::config::state s;
   s.poller_id(1);
   s.poller_name("test");
-  com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
-                                               s);
-  _use_protobuf =
-      config::applier::state::instance().get_bbdo_version().major_v > 2;
+  com::centreon::broker::config::applier::init<
+      com::centreon::broker::config::applier::cbmod_state>("", s);
 
-  com::centreon::broker::config::applier::state::instance().apply(s);
+  auto& cbmod_state = _impl->state();
+
+  _use_protobuf = cbmod_state.get_bbdo_version().major_v > 2;
+
+  cbmod_state.apply(s, false);
+  cbmod_state.set_proto_conf(proto_conf);
 }
 
 cbmod::~cbmod() noexcept {
@@ -99,11 +120,11 @@ cbmod::~cbmod() noexcept {
 }
 
 uint64_t cbmod::poller_id() const {
-  return config::applier::state::instance().poller_id();
+  return _impl->state().poller_id();
 }
 
 const std::string& cbmod::poller_name() const {
-  return config::applier::state::instance().poller_name();
+  return _impl->state().poller_name();
 }
 
 void cbmod::write(const std::shared_ptr<io::data>& msg) {
@@ -112,7 +133,7 @@ void cbmod::write(const std::shared_ptr<io::data>& msg) {
 }
 
 const bbdo::bbdo_version cbmod::bbdo_version() const {
-  return config::applier::state::instance().get_bbdo_version();
+  return _impl->state().get_bbdo_version();
 }
 
 /**
@@ -283,14 +304,15 @@ void cbmod::add_downtime(uint64_t downtime_id,
   obj.set_fixed(fixed);
   obj.set_started(false);
   if (_downtimes.find(downtime_id) != _downtimes.end()) {
-    _neb_logger->error(
+    SPDLOG_LOGGER_DEBUG(
+        _neb_logger,
         "cbmod: add_downtime: Downtime with ID {} already exists: {} - "
         "replaced by {}",
         downtime_id, _downtimes[downtime_id]->obj().DebugString(),
-        obj.DebugString());
+        obj.ShortDebugString());
   } else {
-    _neb_logger->error("cbmod: add_downtime: Downtime added: {}",
-                       obj.DebugString());
+    SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: add_downtime: Downtime added: {}",
+                        obj.ShortDebugString());
   }
   _downtimes[downtime_id] = pb_dt;
   if (_use_protobuf)
@@ -305,8 +327,15 @@ void cbmod::add_downtime(uint64_t downtime_id,
  * @param downtime_id The downtime ID.
  */
 void cbmod::start_downtime(uint64_t downtime_id) {
-  auto pb_dt = _downtimes[downtime_id];
-  assert(pb_dt);
+  auto stored = _downtimes[downtime_id];
+  assert(stored);
+  /* Work on a fresh copy: the shared_ptr previously handed to write() may
+   * still be pending serialization in the output queue. Mutating it in place
+   * would race with the muxer thread and produce a corrupted (unparsable)
+   * event on the wire. */
+  auto pb_dt = std::make_shared<pb_downtime>();
+  pb_dt->mut_obj() = stored->obj();
+  _downtimes[downtime_id] = pb_dt;
   auto& obj = pb_dt->mut_obj();
   obj.set_started(true);
   obj.set_actual_start_time(time(nullptr));
@@ -314,7 +343,8 @@ void cbmod::start_downtime(uint64_t downtime_id) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
-  _neb_logger->error("cbmod: downtime started: {}", obj.DebugString());
+  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime started: {}",
+                      obj.ShortDebugString());
 }
 
 /**
@@ -324,9 +354,15 @@ void cbmod::start_downtime(uint64_t downtime_id) {
  * @param cancelled True if the downtime was cancelled.
  */
 void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
-  _neb_logger->error("cbmod: stopping downtime ID {}", downtime_id);
-  auto pb_dt = _downtimes[downtime_id];
-  assert(pb_dt);
+  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: stopping downtime ID {}",
+                      downtime_id);
+  auto stored = _downtimes[downtime_id];
+  assert(stored);
+  /* Copy before mutating: the previously published event may still be pending
+   * serialization (see start_downtime). */
+  auto pb_dt = std::make_shared<pb_downtime>();
+  pb_dt->mut_obj() = stored->obj();
+  _downtimes[downtime_id] = pb_dt;
   auto& obj = pb_dt->mut_obj();
   obj.set_cancelled(cancelled);
   obj.set_actual_end_time(time(nullptr));
@@ -334,8 +370,8 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
-  _neb_logger->error("cbmod: downtime ID {} stopped: {}", downtime_id,
-                     obj.DebugString());
+  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} stopped: {}",
+                      downtime_id, obj.ShortDebugString());
 }
 
 /**
@@ -346,7 +382,10 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
 void cbmod::remove_downtime(uint64_t downtime_id) {
   auto found = _downtimes.find(downtime_id);
   if (found != _downtimes.end()) {
-    auto pb_dt = found->second;
+    /* Copy before mutating: the previously published event may still be pending
+     * serialization (see start_downtime). */
+    auto pb_dt = std::make_shared<pb_downtime>();
+    pb_dt->mut_obj() = found->second->obj();
     auto& obj = pb_dt->mut_obj();
     if (!obj.started())
       obj.set_cancelled(true);
@@ -358,12 +397,13 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
       write(pb_dt);
     else
       write(translate_to_legacy_downtime(pb_dt));
-    _neb_logger->error("cbmod: downtime ID {} removed: {}", downtime_id,
-                       obj.DebugString());
+    SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} removed: {}",
+                        downtime_id, obj.ShortDebugString());
     _downtimes.erase(found);
   } else {
-    _neb_logger->error("cbmod: remove_downtime: Downtime with ID {} not found",
-                       downtime_id);
+    SPDLOG_LOGGER_ERROR(_neb_logger,
+                        "cbmod: remove_downtime: Downtime with ID {} not found",
+                        downtime_id);
   }
 }
 
@@ -371,19 +411,54 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
  * @brief When centengine is reloaded, update the cbmod.
  */
 void cbmod::reload() {
-  if (com::centreon::broker::config::applier::state::instance()
-          .get_bbdo_version()
-          .major_v > 2) {
+  if (_impl->state().get_bbdo_version().major_v > 2) {
     auto ic = std::make_shared<neb::pb_instance_configuration>();
     auto& obj = ic->mut_obj();
     obj.set_loaded(true);
-    obj.set_poller_id(config::applier::state::instance().poller_id());
+    obj.set_poller_id(_impl->state().poller_id());
     write(ic);
   } else {
     auto ic = std::make_shared<neb::instance_configuration>();
     ic->loaded = true;
-    ic->poller_id = config::applier::state::instance().poller_id();
+    ic->poller_id = _impl->state().poller_id();
     write(ic);
   }
+}
+
+/**
+ * @brief Get the diff state. We consider Engine has it.
+ *
+ * @return The diff state.
+ */
+std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
+  auto retval = _impl->state().diff_state();
+  return retval;
+}
+
+/**
+ * @brief Send the current Engine configuration to the connected Broker.
+ * Stores the configuration in the cbmod state so it is sent on the next
+ * write cycle, in response to a DiffState{unknown=true} from Broker.
+ *
+ * @param conf The current Engine configuration state to send.
+ */
+void cbmod::send_engine_conf(
+    std::unique_ptr<com::centreon::engine::configuration::State>&& conf) {
+  _impl->state().set_current_engine_conf(conf);
+}
+
+void cbmod::set_diff_state_applied(const std::string& config_version) {
+  _impl->state().set_engine_conf(config_version);
+  _impl->state().set_diff_state_applied(true);
+}
+
+/**
+ * @brief Tells us if the configuration is managed in a centralized way (i.e.
+ * using protobuf configuration directory).
+ *
+ * @return True if the configuration is centralized, false otherwise.
+ */
+bool cbmod::centralized_conf() const {
+  return _centralized_conf;
 }
 }  // namespace com::centreon::broker::neb

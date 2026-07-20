@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -200,11 +200,11 @@ ICON_UPDATE
         log to console    ${output}
         Sleep    1s
     END
-    Should Be Equal As Strings    ${output}    ((1, 'test.png', 5),)    We should have service_1 with icon in the services table    
+    Should Be Equal As Strings    ${output}    ((1, 'test.png', 5),)    We should have service_1 with icon in the services table
 
     Ctn Engine Config Replace Value In Services    0    service_1    icon_image    test2.png
     Ctn Engine Config Replace Value In Services    0    service_1    icon_id    55
-    
+
     #reload engine
     Ctn Reload Engine
     FOR    ${t}    IN RANGE    ${60}
@@ -214,5 +214,5 @@ ICON_UPDATE
         Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((1, 'test2.png', 55),)    We should have service_1 with icon in the services table
-    
+
     Disconnect From Database

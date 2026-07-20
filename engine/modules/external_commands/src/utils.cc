@@ -21,12 +21,10 @@
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 #include "nagios.h"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 static int command_file_fd = -1;
 static int command_file_created = false;
@@ -41,9 +39,9 @@ int open_command_file(void) {
   struct stat st;
 
   /* if we're not checking external commands, don't do anything */
-  if (!pb_config.check_external_commands())
+  if (!pb_indexed_config.state().check_external_commands())
     return OK;
-  const std::string& command_file{pb_config.command_file()};
+  const std::string& command_file{pb_indexed_config.state().command_file()};
 
   /* the command file was already created */
   if (command_file_created)
@@ -57,13 +55,6 @@ int open_command_file(void) {
     /* create the external command file as a named pipe (FIFO) */
     if (mkfifo(command_file.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) !=
         0) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: Could not create external command file '" << command_file
-          << "' as named pipe: (" << errno << ") -> " << strerror(errno)
-          << ".  If this file already exists and "
-             "you are sure that another copy of Centreon Engine is not "
-             "running, "
-             "you should delete this file.";
       runtime_logger->error(
           "Error: Could not create external command file '{}' as named pipe: "
           "({}) -> {}.  If this file already exists and "
@@ -79,10 +70,6 @@ int open_command_file(void) {
    * used due to errors on some systems */
   /* NOTE: file must be opened read-write for poll() to work */
   if ((command_file_fd = open(command_file.c_str(), O_RDWR | O_NONBLOCK)) < 0) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Could not open external command file for reading "
-           "via open(): ("
-        << errno << ") -> " << strerror(errno);
     runtime_logger->error(
         "Error: Could not open external command file for reading "
         "via open(): ({}) -> {}",
@@ -95,10 +82,6 @@ int open_command_file(void) {
     int flags;
     flags = fcntl(command_file_fd, F_GETFL);
     if (flags < 0) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: Could not get file descriptor flags on external "
-             "command via fcntl(): ("
-          << errno << ") -> " << strerror(errno);
       runtime_logger->error(
           "Error: Could not get file descriptor flags on external "
           "command via fcntl(): ({}) -> {}",
@@ -107,10 +90,6 @@ int open_command_file(void) {
     }
     flags |= FD_CLOEXEC;
     if (fcntl(command_file_fd, F_SETFL, flags) == -1) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: Could not set close-on-exec flag on external "
-             "command via fcntl(): ("
-          << errno << ") -> " << strerror(errno);
       runtime_logger->error(
           "Error: Could not set close-on-exec flag on external "
           "command via fcntl(): ({}) -> {}",
@@ -121,10 +100,6 @@ int open_command_file(void) {
 
   /* re-open the FIFO for use with fgets() */
   if ((command_file_fp = (FILE*)fdopen(command_file_fd, "r")) == NULL) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Could not open external command file for "
-           "reading via fdopen(): ("
-        << errno << ") -> " << strerror(errno);
     runtime_logger->error(
         "Error: Could not open external command file for "
         "reading via fdopen(): ({}) -> {}",
@@ -134,8 +109,6 @@ int open_command_file(void) {
 
   /* initialize worker thread */
   if (init_command_file_worker_thread() == ERROR) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Could not initialize command file worker thread.";
     runtime_logger->error(
         "Error: Could not initialize command file worker thread.");
     /* close the command file */
@@ -156,11 +129,11 @@ int open_command_file(void) {
 /* closes the external command file FIFO and deletes it */
 int close_command_file(void) {
   /* if we're not checking external commands, don't do anything */
-  if (!pb_config.check_external_commands())
+  if (!pb_indexed_config.state().check_external_commands())
     return OK;
 
   /* the command file wasn't created or was already cleaned up */
-  if (command_file_created == false)
+  if (!command_file_created)
     return OK;
 
   /* reset our flag */
@@ -168,6 +141,10 @@ int close_command_file(void) {
 
   /* close the command file */
   fclose(command_file_fp);
+
+  /* Delete the named pipe */
+  const std::string& command_file{pb_indexed_config.state().command_file()};
+  unlink(command_file.c_str());
 
   return OK;
 }
@@ -202,22 +179,16 @@ static void command_file_worker_thread() {
     if (pollval == -1) {
       switch (errno) {
         case EBADF:
-          engine_logger(logging_options, basic)
-              << "command_file_worker_thread(): poll(): EBADF";
           external_command_logger->info(
               "command_file_worker_thread(): poll(): EBADF");
           break;
 
         case ENOMEM:
-          engine_logger(logging_options, basic)
-              << "command_file_worker_thread(): poll(): ENOMEM";
           external_command_logger->info(
               "command_file_worker_thread(): poll(): ENOMEM");
           break;
 
         case EFAULT:
-          engine_logger(logging_options, basic)
-              << "command_file_worker_thread(): poll(): EFAULT";
           external_command_logger->info(
               "command_file_worker_thread(): poll(): EFAULT");
           break;
@@ -231,8 +202,6 @@ static void command_file_worker_thread() {
           break;
 
         default:
-          engine_logger(logging_options, basic)
-              << "command_file_worker_thread(): poll(): Unknown errno value.";
           external_command_logger->info(
               "command_file_worker_thread(): poll(): Unknown errno value.");
           break;
@@ -253,7 +222,7 @@ static void command_file_worker_thread() {
     }
 
     external_command_buffer.set_capacity(
-        pb_config.external_command_buffer_slots());
+        pb_indexed_config.state().external_command_buffer_slots());
 
     /* process all commands in the file (named pipe) if there's some space in
      * the buffer */

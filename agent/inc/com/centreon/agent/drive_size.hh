@@ -193,7 +193,9 @@ class drive_size_thread
 
   std::shared_ptr<spdlog::logger> _logger;
 
-  bool has_to_stop_wait() const { return !_active || !_queue.empty(); }
+  bool has_to_stop_wait() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m) {
+    return !_active || !_queue.empty();
+  }
 
  public:
   typedef std::list<fs_stat> (

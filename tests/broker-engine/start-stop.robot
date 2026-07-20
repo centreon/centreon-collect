@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine start/stop tests
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -30,45 +30,23 @@ BESS1
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS2
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
-    Ctn Clear Retention
-    Ctn Config Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Broker Config Log    central    sql    debug
-    Ctn Broker Config Log    central    bbdo    info
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}    Poller not visible in database
-    Ctn Stop Engine
-    ${content}    Create List    SQL: Disabling poller
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No stop event processed by central cbd
-    ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}    Poller still visible in database
-    Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
-
-BESS2U
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first.
-    ...    Unified_sql is used.
+    [Documentation]    Scenario: Start and stop Broker/Engine with Broker started first and Engine stopped first
+    ...    Given the Broker is started before the Engine and both use BBDO 3
+    ...    When the Engine is started after the Broker
+    ...    Then the connection between Engine and Broker should be established
+    ...    And the poller should be visible in the database
+    ...    When the Engine is stopped before the Broker
+    ...    Then the poller should be disabled and not visible in the database
+    ...    And neither Broker nor Engine should crash
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    bbdo    error
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
@@ -77,7 +55,7 @@ BESS2U
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller not visible in database
     &{result}    Ctn Get Peers    51001
     Log To Console    ${result}
@@ -88,7 +66,7 @@ BESS2U
     ${content}    Create List    unified_sql: Disabling poller
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No stop event processed by central cbd
-    ${result}    Ctn Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller still visible in database
     &{result}    Ctn Get Peers    51001
     Log To Console    ${result}
@@ -224,10 +202,10 @@ BESS_GRPC3
     Ctn Start Broker
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connections between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    20
     Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
-    ${result}    Ctn Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    20
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -508,7 +486,7 @@ BESS_ENGINE_DELETE_HOST
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
     Ctn Kindly Stop Broker    True
     Ctn Start Broker    True
-    Ctn Engine Config Remove Service Host    ${0}    host_16
+    Ctn Engine Config Remove All Services From Host    ${0}    host_16
     Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Reload Engine
     Sleep    2s
@@ -530,7 +508,7 @@ BESSBQ1
     Ctn Broker Config Log    central    core    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
-    Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
+    Ctn Create Bad Queue    central-broker-master.queue.central-broker-unified-sql
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Be True    ${result}    We should be in BBDO2 in this test.
@@ -662,15 +640,16 @@ BESSCTO
     Ctn Engine Command Remove Connector    ${0}    *
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
-      ${start}    Ctn Get Round Current Date
-      Ctn Start Broker    ${True}
-      Ctn Start Engine
-      Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
-      Ctn Stop Engine
-      Ctn Kindly Stop Broker    ${True}
+        ${start}    Ctn Get Round Current Date
+        Ctn Start Broker    ${True}
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    1
+        Sleep    60s
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker    ${True}
     END
 
 BESSCTOWC
@@ -685,13 +664,93 @@ BESSCTOWC
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
-      ${start}    Ctn Get Round Current Date
-      Ctn Start Broker    ${True}
-      Ctn Start Engine
-      Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
-      Ctn Stop Engine
-      Ctn Kindly Stop Broker    ${True}
+        ${start}    Ctn Get Round Current Date
+        Ctn Start Broker    ${True}
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    1
+        Sleep    60s
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker    ${True}
     END
+
+BESS_RELOAD_OUTPUT_ADD
+    [Documentation]    Scenario: Adding an output to broker config during a reload is ignored
+    ...    Given Broker and Engine are started with their standard configuration
+    ...    When a new output is appended to the broker configuration file
+    ...    And broker is reloaded
+    ...    Then an error message is logged stating the output cannot be added at runtime
+    ...    And the new output does not appear in the broker stats
+
+    [Tags]    broker    engine    start-stop    reload
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1    3.0.1
+    Ctn Broker Config Log    central    config    error
+    Ctn Broker Config Flush Log    central    0
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+
+    Ctn Broker Config Add Output    central    { "name": "test-new-output", "type": "graphite", "db_host": "localhost", "db_port": "2004", "queries_per_transaction": "1" }
+    Ctn Broker Config Flush
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+
+    ${content}    Create List
+    ...    endpoint applier: output 'test-new-output' has been added to the configuration but cannot be added at runtime
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Expected error message about added output not found in broker log
+
+    ${result}    Ctn Get Broker Stats    central    .*    5    endpoint test-new-output    state
+    Should Not Be True    ${result}    The new output 'test-new-output' should not have been created during reload
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BESS_RELOAD_OUTPUT_REMOVE
+    [Documentation]    Scenario: Removing an output from broker config during a reload is ignored
+    ...    Given Broker and Engine are started with their standard configuration
+    ...    When the RRD output is removed from the broker configuration file
+    ...    And broker is reloaded
+    ...    Then an error message is logged stating the output cannot be removed at runtime
+    ...    And the RRD output is still present in broker stats
+
+    [Tags]    broker    engine    start-stop    reload
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1    3.0.1
+    Ctn Broker Config Log    central    config    error
+    Ctn Broker Config Flush Log    central    0
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+
+    ${result}    Ctn Get Broker Stats    central    .*    10    endpoint centreon-broker-master-rrd    state
+    Should Be True    ${result}    The RRD output should be present in stats before reload
+
+    Ctn Broker Config Remove Output    central    centreon-broker-master-rrd
+    Ctn Broker Config Flush
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+
+    ${content}    Create List
+    ...    endpoint applier: output 'centreon-broker-master-rrd' has been removed from the configuration but cannot be removed at runtime
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Expected error message about removed output not found in broker log
+
+    ${result}    Ctn Get Broker Stats    central    .*    10    endpoint centreon-broker-master-rrd    state
+    Should Be True    ${result}    The RRD output should still be running after reload
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

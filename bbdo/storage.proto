@@ -56,10 +56,19 @@ message IndexMapping {
   uint64 index_id = 1;
   uint64 host_id = 2;
   uint64 service_id = 3;
+  string host_name = 4;
+  string service_description = 5;
+  uint32 rrd_retention = 6;
+  uint32 interval = 7;
+  bool special = 8;
+  bool locked = 9;
 }
 
 /* io::storage, storage::de_pb_metric_mapping, 47 */
 message MetricMapping {
   uint64 index_id = 1;
   uint64 metric_id = 2;
+  double min = 3;
+  double max = 4;
+  string uom = 5;
 }

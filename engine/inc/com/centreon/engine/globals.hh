@@ -1,7 +1,7 @@
 /**
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
- * Copyright 2011-2024 Centreon
+ * Copyright 2011-2025 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -28,10 +28,14 @@
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
+#include "common/crypto/aes256.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/log_v2/log_v2.hh"
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 extern std::shared_ptr<spdlog::logger> checks_logger;
 extern std::shared_ptr<spdlog::logger> commands_logger;
@@ -48,8 +52,11 @@ extern std::shared_ptr<spdlog::logger> process_logger;
 extern std::shared_ptr<spdlog::logger> runtime_logger;
 extern std::shared_ptr<spdlog::logger> otel_logger;
 
-extern com::centreon::engine::configuration::State pb_config;
+extern com::centreon::engine::configuration::indexed_state pb_indexed_config;
 extern std::string config_file;
+/* Directory of the serialized protobuf Engine configuration, we consider we
+ * are in new generation configuration if it is not empty */
+extern std::filesystem::path proto_conf;
 extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 
 extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
@@ -58,8 +65,6 @@ extern com::centreon::engine::commands::command*
 
 extern com::centreon::engine::commands::command* ocsp_command_ptr;
 extern com::centreon::engine::commands::command* ochp_command_ptr;
-
-extern unsigned long logging_options;
 
 extern time_t last_command_check;
 extern time_t last_command_status_update;
@@ -136,6 +141,11 @@ extern char* illegal_object_chars;
 extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
+
+extern std::unique_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
+
+extern std::unique_ptr<com::centreon::engine::enginerpc> rpc;
 
 void init_loggers();
 

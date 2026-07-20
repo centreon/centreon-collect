@@ -20,6 +20,7 @@
 
 #include "com/centreon/broker/bam/internal.hh"
 
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/exp_builder.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 
@@ -117,8 +118,8 @@ bam::service_book& applier::state::book_service() {
  *
  *  @param[out] visitor  Visitor.
  */
-void applier::state::visit(io::stream* visitor) {
-  _ba_applier.visit(visitor);
+void applier::state::visit(io::stream* visitor, bool seed_service_status) {
+  _ba_applier.visit(visitor, seed_service_status);
   _kpi_applier.visit(visitor);
 }
 
@@ -236,12 +237,33 @@ void applier::state::_circular_check(applier::state::circular_check_node& n) {
  *
  *  @param[in] cache  The cache.
  */
-void applier::state::save_to_cache(persistent_cache& cache) {
+void applier::state::save_to_cache(
+    const std::string& name,
+    const std::deque<std::string>& pending_ext_cmds) {
+  ServicesBookState cache;
   _logger->trace("BAM: Saving states to cache");
-  cache.transaction();
-  _book_service.save_to_cache(cache);
-  _ba_applier.save_to_cache(cache);
-  cache.commit();
+  _book_service.save_to_cache(&cache);
+  for (auto& cmd : pending_ext_cmds)
+    cache.add_pending_external_commands(cmd);
+
+  auto& state = config::applier::state::instance();
+  std::filesystem::path cache_file =
+      fmt::format("{}.cache.{}", state.cache_dir(), name);
+
+  std::ofstream ofs(cache_file, std::ios::binary | std::ios::trunc);
+  if (ofs) {
+    if (!cache.SerializeToOstream(&ofs)) {
+      _logger->error("BAM: could not serialize BAM states to cache file {}",
+                     cache_file.string());
+    } else {
+      _logger->debug("BAM: BAM states saved to cache file {}",
+                     cache_file.string());
+    }
+    ofs.close();
+  } else {
+    _logger->error("BAM: could not open BAM cache file '{}' for writing",
+                   cache_file.string());
+  }
   _logger->trace("BAM: States correctly saved");
 }
 
@@ -250,38 +272,35 @@ void applier::state::save_to_cache(persistent_cache& cache) {
  *
  *  @param[in] cache  the cache.
  */
-void applier::state::load_from_cache(persistent_cache& cache) {
+void applier::state::load_from_cache(
+    const std::string& name,
+    std::deque<std::string>& pending_ext_cmds) {
   _logger->debug("BAM: Loading restoring inherited downtimes and BA states");
 
-  std::shared_ptr<io::data> d;
-  cache.get(d);
-  uint32_t count_idt = 0;
-  uint32_t count_ba = 0;
-  while (d) {
-    switch (d->type()) {
-      case inherited_downtime::static_type():
-        _ba_applier.apply_inherited_downtime(
-            *std::static_pointer_cast<const pb_inherited_downtime>(
-                neb::bbdo2_to_bbdo3(d)));
-        count_idt++;
-        break;
-      case pb_inherited_downtime::static_type(): {
-        const pb_inherited_downtime& dwn =
-            *std::static_pointer_cast<const pb_inherited_downtime>(d);
-        _ba_applier.apply_inherited_downtime(dwn);
-        count_idt++;
-      } break;
-      case pb_services_book_state::static_type(): {
-        const ServicesBookState& state =
-            std::static_pointer_cast<const pb_services_book_state>(d)->obj();
-        _book_service.apply_services_state(state);
-        count_ba++;
-      } break;
-    }
-    cache.get(d);
+  std::ifstream ifs;
+  auto& state = config::applier::state::instance();
+  std::filesystem::path cache_file =
+      fmt::format("{}.cache.{}", state.cache_dir(), name);
+  ifs.open(cache_file, std::ios::binary);
+  if (!ifs) {
+    _logger->debug("BAM: could not open BAM cache file '{}' for reading",
+                   cache_file.string());
+    return;
   }
-  _logger->debug("BAM: {} Inherited downtimes and {} BA states restored",
-                 count_idt, count_ba);
+  ServicesBookState cache;
+  if (!cache.ParseFromIstream(&ifs)) {
+    _logger->error("BAM: could not parse BAM states from cache file {}",
+                   cache_file.string());
+    return;
+  }
+  ifs.close();
+  _book_service.apply(cache);
+  //_ba_applier.apply(cache);
+  for (auto& cmd : cache.pending_external_commands()) {
+    pending_ext_cmds.push_back(cmd);
+  }
+  _logger->debug("BAM: BA states restored from cache file {}",
+                 cache_file.string());
 }
 
 /**

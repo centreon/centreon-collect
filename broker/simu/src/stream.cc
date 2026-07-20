@@ -17,12 +17,13 @@
  */
 #include "com/centreon/broker/simu/stream.hh"
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/simu/luabinding.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::simu;
 
 /**
@@ -32,7 +33,7 @@ using namespace com::centreon::broker::simu;
  *  @param[in] port                    port
  */
 stream::stream(std::string const& lua_script,
-               std::map<std::string, misc::variant> const& conf_params,
+               absl::btree_map<std::string, variant> const& conf_params,
                const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("simu"), _logger(logger) {
   _luabinding = new luabinding(lua_script, conf_params, _logger);
@@ -52,7 +53,7 @@ stream::~stream() {
  *
  *  @return The number of events to acknowledge.
  */
-int stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   (void)d;
   throw exceptions::shutdown("cannot write from simu connector");
   return 0;

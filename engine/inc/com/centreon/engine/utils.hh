@@ -1,26 +1,28 @@
-/*
-** Copyright 1999-2009 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2025 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_UTILS_HH
 #define CCE_UTILS_HH
 
+#include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
 #ifdef __cplusplus
@@ -56,8 +58,6 @@ void sighandler(int sig);
 // tests whether or not an object name (host, service, etc.) contains illegal
 // characters
 bool contains_illegal_object_chars(char const* name);
-// compares two strings for equality
-int compare_strings(char* val1a, char* val2a);
 bool set_cloexec(int fd);
 
 // Cleanup Functions
@@ -88,5 +88,10 @@ inline int get_raw_command_line_r(
   return get_raw_command_line_r(mac, cmd_ptr.get(), cmd, full_command,
                                 macro_options);
 }
+
+std::string get_stack_trace(int max_depth = 64);
+
+void update_rpc_server(const std::string& listen_address, uint16_t port);
+void stop_rpc_server();
 
 #endif  // !CCE_UTILS_HH

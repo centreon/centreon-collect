@@ -20,11 +20,12 @@
 
 #include <cassert>
 
-#include "com/centreon/broker/lua/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/lua/broker_event.hh"
 #include "com/centreon/broker/lua/broker_log.hh"
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include "com/centreon/broker/lua/broker_utils.hh"
+#include "com/centreon/broker/lua/lua_cache.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -56,15 +57,16 @@ static int l_pairs(lua_State* L) {
  *  @param[in] cache the persistent cache.
  */
 luabinding::luabinding(std::string const& lua_script,
-                       std::map<std::string, misc::variant> const& conf_params,
-                       macro_cache& cache)
+                       absl::btree_map<std::string, variant> const& conf_params)
     : _L{nullptr},
       _filter{false},
       _flush{false},
-      _cache(cache),
       _total{0},
       _broker_api_version{1},
       _logger{log_v2::instance().get(log_v2::LUA)} {
+  com::centreon::broker::config::applier::state::instance()
+      .cache()
+      .enable_section(com::centreon::broker::cache::broker_cache::CACHE_ALL);
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();
@@ -88,8 +90,8 @@ luabinding::~luabinding() noexcept {
   stop();
 }
 
-int32_t luabinding::stop() {
-  int32_t retval = 0;
+uint32_t luabinding::stop() {
+  uint32_t retval = 0;
   if (_L) {
     retval = flush();
     lua_close(_L);
@@ -265,7 +267,9 @@ void luabinding::_load_script(const std::string& lua_script) {
   broker_utils::broker_utils_reg(_L);
 
   // Registers the broker cache
-  broker_cache::broker_cache_reg(_L, _cache, _broker_api_version);
+  cache::broker_cache* const cache =
+      &com::centreon::broker::config::applier::state::instance().cache();
+  lua::lua_cache::broker_cache_reg(_L, cache, _broker_api_version);
   assert(lua_gettop(_L) == 0);
 }
 
@@ -278,40 +282,37 @@ void luabinding::_load_script(const std::string& lua_script) {
  *
  */
 void luabinding::_init_script(
-    std::map<std::string, misc::variant> const& conf_params) {
+    absl::btree_map<std::string, variant> const& conf_params) {
   lua_getglobal(_L, "init");
   lua_newtable(_L);
-  for (std::map<std::string, misc::variant>::const_iterator
-           it(conf_params.begin()),
-       end(conf_params.end());
-       it != end; ++it) {
-    switch (it->second.user_type()) {
-      case misc::variant::type_int:
-      case misc::variant::type_uint:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushinteger(_L, it->second.as_int());
-        lua_rawset(_L, -3);
-        break;
-      case misc::variant::type_long:
-      case misc::variant::type_ulong:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushinteger(_L, it->second.as_long());
-        lua_rawset(_L, -3);
-        break;
-      case misc::variant::type_double:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushnumber(_L, it->second.as_double());
-        lua_rawset(_L, -3);
-        break;
-      case misc::variant::type_string:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushstring(_L, it->second.as_string().c_str());
-        lua_rawset(_L, -3);
-        break;
-      default:
-        /* Should not arrive */
-        assert(1 == 0);
-    }
+  for (const auto& kv : conf_params) {
+    const auto& name = kv.first;
+    const auto& val = kv.second;
+    std::visit(
+        [this, &name](auto&& v) {
+          using T = std::decay_t<decltype(v)>;
+          if constexpr (std::is_same_v<T, int32_t> ||
+                        std::is_same_v<T, uint32_t>) {
+            lua_pushlstring(_L, name.c_str(), name.size());
+            lua_pushinteger(_L, static_cast<lua_Integer>(v));
+            lua_rawset(_L, -3);
+          } else if constexpr (std::is_same_v<T, int64_t> ||
+                               std::is_same_v<T, uint64_t>) {
+            lua_pushlstring(_L, name.c_str(), name.size());
+            lua_pushinteger(_L, static_cast<lua_Integer>(v));
+            lua_rawset(_L, -3);
+          } else if constexpr (std::is_same_v<T, double>) {
+            lua_pushlstring(_L, name.c_str(), name.size());
+            lua_pushnumber(_L, v);
+            lua_rawset(_L, -3);
+          } else if constexpr (std::is_same_v<T, std::string>) {
+            lua_pushlstring(_L, name.c_str(), name.size());
+            lua_pushstring(_L, v.c_str());
+            lua_rawset(_L, -3);
+          }
+          // bool and std::monostate are not pushed to Lua
+        },
+        val);
   }
   if (lua_pcall(_L, 1, 0, 0) != 0) {
     const char* ret = lua_tostring(_L, -1);
@@ -329,17 +330,14 @@ void luabinding::_init_script(
  *
  *  @return The number of events written.
  */
-int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
-  int retval = 0;
+uint32_t luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
+  uint32_t retval = 0;
 
   if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(_logger, "lua: luabinding::write call {}", *data);
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "lua: luabinding::write call");
   }
-
-  // Give data to cache.
-  _cache.write(data);
 
   // Process event.
   uint32_t mess_type(data->type());
@@ -438,7 +436,7 @@ lua_State* luabinding::_load_interpreter() {
   return L;
 }
 
-int32_t luabinding::flush() noexcept {
+uint32_t luabinding::flush() noexcept {
   if (!_flush)
     return 0;
   // Let's get the function to call
@@ -459,7 +457,7 @@ int32_t luabinding::flush() noexcept {
   }
   bool acknowledge = lua_toboolean(_L, -1);
 
-  int32_t retval = 0;
+  uint32_t retval = 0;
   if (acknowledge) {
     retval = _total;
     _total = 0;

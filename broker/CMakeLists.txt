@@ -66,22 +66,29 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
   add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 endif()
 
 include_directories(
+  ${CMAKE_BINARY_DIR}
   ${CMAKE_BINARY_DIR}/bbdo
   ${CMAKE_BINARY_DIR}/common/process_stat
   "${PROJECT_SOURCE_DIR}/core/inc"
   "${PROJECT_SOURCE_DIR}/neb/inc"
+  "${PROJECT_SOURCE_DIR}/bam/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
@@ -95,29 +102,6 @@ add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
 # link_directories(${mariadb-connector-c_LIB_DIRS})
-add_custom_command(
-  DEPENDS ${SRC_DIR}/broker.proto
-  COMMENT "Generating interface files of the proto file (grpc)"
-  OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
-  COMMAND
-    protobuf::protoc ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat --grpc_out="${SRC_DIR}"
-    ${SRC_DIR}/broker.proto
-  DEPENDS ${SRC_DIR}/broker.proto
-  COMMENT "Generating interface files of the proto file (protobuf)"
-  OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
-  COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
-    ${SRC_DIR}/broker.proto
-    WORKING_DIRECTORY ${SRC_DIR})
-
-add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
-                                                  "${SRC_DIR}/broker.pb.h")
-
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc
                     ${CMAKE_SOURCE_DIR}/bbdo)
@@ -299,42 +283,21 @@ endif()
 # Broker vars
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
+add_subdirectory(core/brokerrpc)
 add_subdirectory(core/multiplexing)
-
-add_library(pb_broker_lib STATIC
-    ${SRC_DIR}/broker.grpc.pb.cc
-    ${SRC_DIR}/broker.grpc.pb.h
-    ${SRC_DIR}/broker.pb.cc
-    ${SRC_DIR}/broker.pb.h
-  )
-
-add_dependencies(pb_broker_lib process_stat pb_common_lib)
-
-target_link_libraries(pb_broker_lib
-  PRIVATE
-  pb_common_lib
-  process_stat
-)
-
-set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_subdirectory(core/cache)
+add_subdirectory(core/config/applier)
 
 add_subdirectory(core/bbdo)
 
 # Core library.
 set(LIBROKER_SOURCES
     # Sources.
-    ${SRC_DIR}/broker_impl.cc
-    ${SRC_DIR}/brokerrpc.cc
-    ${SRC_DIR}/cache/global_cache.cc
-    ${SRC_DIR}/cache/global_cache_data.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
     ${SRC_DIR}/compression/stream.cc
     ${SRC_DIR}/compression/zlib.cc
-    ${SRC_DIR}/config/applier/endpoint.cc
-    ${SRC_DIR}/config/applier/modules.cc
-    ${SRC_DIR}/config/applier/state.cc
     ${SRC_DIR}/config/endpoint.cc
     ${SRC_DIR}/config/parser.cc
     ${SRC_DIR}/config/state.cc
@@ -363,7 +326,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/string.cc
     ${SRC_DIR}/misc/time.cc
     ${SRC_DIR}/misc/uuid.cc
-    ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
@@ -384,28 +346,27 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
-target_include_directories(rokerbase
-                           PRIVATE ${PROJECT_SOURCE_DIR}/core)
+add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib
+                 process_stat)
+target_include_directories(rokerbase PRIVATE ${PROJECT_SOURCE_DIR}/core
+  ${CMAKE_SOURCE_DIR}
+)
 target_link_libraries(
-  rokerbase PRIVATE
-  sql
-  bbdo_bbdo
-  pb_broker_lib
-  bbdo
-  ctncrypto
-  pb_bbdo_lib
-  pb_common_lib
-  pb_extcmd_lib
-  pb_open_telemetry_lib
-  process_stat
-  z
-  spdlog::spdlog
-  pthread
-  dl)
-
-add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
+  rokerbase
+  PRIVATE sql
+          bbdo_bbdo
+          broker_cache
+          pb_broker_lib
+          ctncrypto
+          pb_bbdo_lib
+          pb_common_lib
+          pb_extcmd_lib
+          pb_open_telemetry_lib
+          process_stat
+          z
+          spdlog::spdlog
+          pthread
+          dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -416,22 +377,27 @@ set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
-  cbd PRIVATE
-  -Wl,--whole-archive
-  log_v2
-  sql
-  rokerbase
-  roker
-  multiplexing
-  centreon_common
-  -Wl,--no-whole-archive
-  nlohmann_json::nlohmann_json
-  fmt::fmt
-  -Wl,--whole-archive
-  gRPC::grpc++
-  protobuf::libprotobuf
-  -Wl,--no-whole-archive
-  stdc++fs)
+  cbd
+  PRIVATE -Wl,--whole-archive
+          log_v2
+          sql
+          brokerrpc
+          rokerbase
+          broker_applier_state
+          broker_bbdo
+          nebbase
+          pb_storage_lib
+          pb_bam_lib
+          multiplexing
+          centreon_common
+          -Wl,--no-whole-archive
+          nlohmann_json::nlohmann_json
+          fmt::fmt
+          -Wl,--whole-archive
+          gRPC::grpc++
+          protobuf::libprotobuf
+          -Wl,--no-whole-archive
+          stdc++fs)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -446,7 +412,7 @@ unset(MODULE_LIST)
 # sql library
 add_subdirectory(core/sql)
 
-if (ONLY_ROBOT_CMA)
+if(ONLY_ROBOT_CMA)
   add_broker_module(STATS ON)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
@@ -459,14 +425,11 @@ else()
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)
-  add_broker_module(SQL ON)
-  add_broker_module(STORAGE ON)
   add_broker_module(INFLUXDB ON)
   add_broker_module(GRAPHITE ON)
   add_broker_module(BAM ON)
   add_broker_module(TCP ON)
   add_broker_module(TLS ON)
-  add_broker_module(TLS2 OFF)
   add_broker_module(DUMP OFF)
   add_broker_module(GRPC ON)
   add_broker_module(VICTORIA_METRICS ON)
@@ -558,40 +521,45 @@ option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
 
 if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   set(TESTS_SOURCES
-    ${TESTS_SOURCES}
-    ${TEST_DIR}/bbdo/category.cc
-    ${TEST_DIR}/bbdo/output.cc
-    ${TEST_DIR}/bbdo/read.cc
-    ${TEST_DIR}/cache/global_cache_test.cc
-    ${TEST_DIR}/compression/stream/memory_stream.hh
-    ${TEST_DIR}/compression/stream/read.cc
-    ${TEST_DIR}/compression/stream/write.cc
-    ${TEST_DIR}/compression/zlib/zlib.cc
-    ${TEST_DIR}/config/init.cc
-    ${TEST_DIR}/config/parser.cc
-    ${TEST_DIR}/file/disk_accessor.cc
-    ${TEST_DIR}/file/splitter/concurrent.cc
-    ${TEST_DIR}/file/splitter/default.cc
-    ${TEST_DIR}/file/splitter/more_than_max_size.cc
-    ${TEST_DIR}/file/splitter/permission_denied.cc
-    ${TEST_DIR}/file/splitter/resume.cc
-    ${TEST_DIR}/file/splitter/split.cc
-    ${TEST_DIR}/file/splitter/split_limited.cc
-    ${TEST_DIR}/misc/buffer.cc
-    ${TEST_DIR}/misc/exec.cc
-    ${TEST_DIR}/misc/filesystem.cc
-    ${TEST_DIR}/misc/math.cc
-    ${TEST_DIR}/misc/misc.cc
-    ${TEST_DIR}/misc/string.cc
-    ${TEST_DIR}/modules/module.cc
-    ${TEST_DIR}/processing/acceptor.cc
-    ${TEST_DIR}/processing/feeder.cc
-    ${TEST_DIR}/time/timerange.cc
-    ${TEST_DIR}/rpc/brokerrpc.cc
-    ${TEST_DIR}/exceptions.cc
-    ${TEST_DIR}/io.cc
-  )
+      ${TESTS_SOURCES}
+      ${TEST_DIR}/bbdo/category.cc
+      ${TEST_DIR}/bbdo/output.cc
+      ${TEST_DIR}/bbdo/read.cc
+      ${TEST_DIR}/compression/stream/memory_stream.hh
+      ${TEST_DIR}/compression/stream/read.cc
+      ${TEST_DIR}/compression/stream/write.cc
+      ${TEST_DIR}/compression/zlib/zlib.cc
+      ${TEST_DIR}/config/init.cc
+      ${TEST_DIR}/config/parser.cc
+      ${TEST_DIR}/file/disk_accessor.cc
+      ${TEST_DIR}/file/directory_watcher.cc
+      ${TEST_DIR}/file/splitter/concurrent.cc
+      ${TEST_DIR}/file/splitter/default.cc
+      ${TEST_DIR}/file/splitter/more_than_max_size.cc
+      ${TEST_DIR}/file/splitter/permission_denied.cc
+      ${TEST_DIR}/file/splitter/resume.cc
+      ${TEST_DIR}/file/splitter/split.cc
+      ${TEST_DIR}/file/splitter/split_limited.cc
+      ${TEST_DIR}/misc/buffer.cc
+      ${TEST_DIR}/misc/exec.cc
+      ${TEST_DIR}/misc/filesystem.cc
+      ${TEST_DIR}/misc/math.cc
+      ${TEST_DIR}/misc/misc.cc
+      ${TEST_DIR}/misc/string.cc
+      ${TEST_DIR}/modules/module.cc
+      ${TEST_DIR}/processing/acceptor.cc
+      ${TEST_DIR}/processing/feeder.cc
+      ${TEST_DIR}/time/timerange.cc
+      ${TEST_DIR}/rpc/brokerrpc.cc
+      ${TEST_DIR}/exceptions.cc
+      ${TEST_DIR}/io.cc)
   add_subdirectory(test)
+endif()
+
+option(WITH_BENCHMARKS "Build Google Benchmark executables" OFF)
+if(WITH_BENCHMARKS)
+  find_package(benchmark REQUIRED)
+  add_subdirectory(test/google-benchmark)
 endif()
 
 #

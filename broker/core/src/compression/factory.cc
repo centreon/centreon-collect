@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/compression/factory.hh"
 
-#include <absl/strings/match.h>
-
 #include "com/centreon/broker/compression/opener.hh"
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/parser.hh"
@@ -118,9 +116,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
-    bool& is_acceptor [[maybe_unused]],
-    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
+    bool& is_acceptor [[maybe_unused]]) const {
   // Get compression level.
   int level{-1};
   auto it = cfg.params.find("compression_level");

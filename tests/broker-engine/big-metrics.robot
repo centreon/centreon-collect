@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       There tests are about big metric values
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Test Clean
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Test Clean
 
 
 *** Test Cases ***
@@ -30,13 +30,13 @@ EBBM1
     ${start_broker}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     FOR    ${i}    IN RANGE    ${10}
         Ctn Process Service Check Result With Big Metrics
         ...    host_1    service_1    1
         ...    Big Metrics    ${10}
-	Sleep    1s
+        Sleep    1s
     END
     ${content}    Create List
     ...    Out of range value for column 'current_value'
@@ -46,6 +46,7 @@ EBBM1
 
 *** Keywords ***
 Ctn Test Clean
+    [Documentation]    Stop engine and broker, then save logs if the test failed.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     Ctn Save Logs If Failed

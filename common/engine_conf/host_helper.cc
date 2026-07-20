@@ -17,7 +17,6 @@
  *
  */
 #include "common/engine_conf/host_helper.hh"
-#include <absl/strings/numbers.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -329,9 +328,11 @@ bool host_helper::insert_customvariable(std::string_view key,
 void host_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs) {
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hgs) {
   // Browse all hosts.
   for (auto& host_cfg : *s.mutable_hosts()) {
+    host_cfg.set_poller_id(s.poller_id());
     for (auto& grp : host_cfg.hostgroups().data()) {
       auto it = hgs.find(grp);
       if (it != hgs.end()) {

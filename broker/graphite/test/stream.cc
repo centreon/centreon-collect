@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,15 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include <gtest/gtest.h>
-#include <com/centreon/broker/graphite/connector.hh>
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/test/test_server.hh"
+#include "com/centreon/broker/graphite/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 class graphiteStream : public testing::Test {
  public:
@@ -33,6 +36,10 @@ class graphiteStream : public testing::Test {
     _thread = std::thread(&test_server::run, &_server);
 
     _server.wait_for_init();
+    config::applier::state::load<config::applier::broker_state>("unittest");
+    config::applier::state::instance().initialize_cache();
+    config::applier::state::instance().cache().enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
   }
   void TearDown() override {
     _server.stop();
@@ -44,10 +51,8 @@ class graphiteStream : public testing::Test {
 };
 
 TEST_F(graphiteStream, BadPort) {
-  std::shared_ptr<persistent_cache> cache;
-
   ASSERT_THROW(graphite::stream st("metric_name", "status_name", "a", "user",
-                                   "pass", "localhost", 4243, 3, cache),
+                                   "pass", "localhost", 4243, 3),
                msg_fmt);
 }
 
@@ -56,7 +61,7 @@ TEST_F(graphiteStream, Read) {
   std::shared_ptr<io::data> data;
 
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 3, cache);
+                      "localhost", 4242, 3);
   ASSERT_THROW(st.read(data, -1), msg_fmt);
 }
 
@@ -69,7 +74,7 @@ TEST_F(graphiteStream, Write) {
   std::shared_ptr<storage::pb_metric> d3 =
       std::make_shared<storage::pb_metric>();
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 3, cache);
+                      "localhost", 4242, 3);
 
   Metric& m1 = d1->mut_obj();
   Metric& m2 = d2->mut_obj();
@@ -119,7 +124,7 @@ TEST_F(graphiteStream, Flush) {
   std::shared_ptr<storage::pb_metric> d3 =
       std::make_shared<storage::pb_metric>();
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 9, cache);
+                      "localhost", 4242, 9);
 
   Metric& m1 = d1->mut_obj();
   Metric& m2 = d2->mut_obj();
@@ -166,7 +171,7 @@ TEST_F(graphiteStream, NullData) {
   std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<io::data> data;
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 9, cache);
+                      "localhost", 4242, 9);
 
   std::shared_ptr<io::data> d1{nullptr};
   ASSERT_FALSE(st.write(d1));
@@ -186,7 +191,7 @@ TEST_F(graphiteStream, FlushStatusOK) {
 
   std::shared_ptr<io::data> data;
   graphite::stream st("metric_name", "status_name", "a", "user", "pass",
-                      "localhost", 4242, 9, cache);
+                      "localhost", 4242, 9);
 
   d1->source_id = 3;
   d1->destination_id = 4;
@@ -226,7 +231,7 @@ TEST_F(graphiteStream, StatsAndConnector) {
   std::shared_ptr<persistent_cache> cache;
   graphite::connector con;
   con.connect_to("metric_name", "status_name", "a", "user", "pass", "localhost",
-                 4242, 3, cache);
+                 4242, 3);
 
   nlohmann::json obj;
   con.open()->statistics(obj);

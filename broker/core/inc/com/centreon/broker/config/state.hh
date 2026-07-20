@@ -19,6 +19,8 @@
 #ifndef CCB_CONFIG_STATE_HH
 #define CCB_CONFIG_STATE_HH
 
+#include <absl/container/btree_map.h>
+
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "common/log_v2/config.hh"
@@ -45,9 +47,10 @@ class state {
   std::string _command_protocol;
   std::list<endpoint> _endpoints;
   int _event_queue_max_size;
+  uint32_t _priority_age_threshold;
   std::string _module_dir;
   std::list<std::string> _module_list;
-  std::map<std::string, std::string> _params;
+  absl::btree_map<std::string, std::string> _params;
   int _poller_id;
   std::string _poller_name;
   size_t _pool_size;
@@ -57,7 +60,7 @@ class state {
   std::string _engine_config_dir;
 
   /* The directory where php writes the pollers configurations. */
-  std::string _config_cache_dir;
+  std::string _cache_config_dir;
 
   /* The directory where broker stores all the pollers configurations. */
   std::string _pollers_config_dir;
@@ -100,7 +103,7 @@ class state {
  public:
   state();
   state(state const& other);
-  ~state();
+  ~state() noexcept = default;
   state& operator=(state const& other);
   void broker_id(int id) noexcept;
   int broker_id() const noexcept;
@@ -125,13 +128,15 @@ class state {
   std::list<endpoint> const& endpoints() const noexcept;
   void event_queue_max_size(int val) noexcept;
   int event_queue_max_size() const noexcept;
+  void priority_age_threshold(uint32_t val) noexcept;
+  uint32_t priority_age_threshold() const noexcept;
   const std::string& module_directory() const noexcept;
   void module_directory(const std::string& dir);
   std::list<std::string>& module_list() noexcept;
   void add_module(std::string module);
   std::list<std::string> const& module_list() const noexcept;
-  std::map<std::string, std::string>& params() noexcept;
-  const std::map<std::string, std::string>& params() const noexcept;
+  absl::btree_map<std::string, std::string>& params() noexcept;
+  const absl::btree_map<std::string, std::string>& params() const noexcept;
   void poller_id(int id) noexcept;
   int poller_id() const noexcept;
   void pool_size(int size) noexcept;
@@ -140,8 +145,8 @@ class state {
   const std::string& poller_name() const noexcept;
   void set_engine_config_dir(const std::string& dir);
   const std::string& engine_config_dir() const noexcept;
-  void set_config_cache_dir(const std::string& config_cache_dir);
-  const std::string& config_cache_dir() const noexcept;
+  void set_cache_config_dir(const std::string& cache_config_dir);
+  const std::string& cache_config_dir() const noexcept;
   void set_pollers_config_dir(const std::string& pollers_config_dir);
   const std::string& pollers_config_dir() const noexcept;
   common::log_v2::config& mut_log_conf();

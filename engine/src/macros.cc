@@ -21,14 +21,11 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/utils.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 
 /******************************************************************/
 /********************** MACRO GRAB FUNCTIONS **********************/
@@ -59,9 +56,9 @@ int grab_contact_macros_r(nagios_macros* mac, contact* cntct) {
 
 /* calculates the value of a custom macro */
 int grab_custom_macro_value_r(nagios_macros* mac,
-                              std::string const& macro_name,
-                              std::string const& arg1,
-                              std::string const& arg2,
+                              const std::string_view& macro_name,
+                              const std::string_view& arg1,
+                              const std::string_view& arg2,
                               std::string& output) {
   std::string temp_buffer;
   int result = OK;
@@ -138,7 +135,7 @@ int grab_custom_macro_value_r(nagios_macros* mac,
         return ERROR;
 
       service_map::const_iterator found = service::services.find(
-          {mac->host_ptr ? mac->host_ptr->name() : "", arg2});
+          std::make_pair(mac->host_ptr ? mac->host_ptr->name() : "", arg2));
 
       if (found != service::services.end() && found->second) {
         /* get the service macro value */
@@ -213,9 +210,9 @@ int grab_custom_macro_value_r(nagios_macros* mac,
         return (ERROR);
 
       /* concatenate macro values for all contactgroup members */
-      for (contact_map_unsafe::const_iterator
-               it{cg_it->second->get_members().begin()},
-           end{cg_it->second->get_members().end()};
+      for (contact_map::const_iterator
+               it = cg_it->second->get_members().begin(),
+               end = cg_it->second->get_members().end();
            it != end; ++it) {
         if (!it->second)
           continue;
@@ -245,8 +242,8 @@ int grab_custom_macro_value_r(nagios_macros* mac,
 /* calculates a date/time macro */
 int grab_datetime_macro_r(nagios_macros* mac,
                           int macro_type,
-                          std::string const& arg1,
-                          std::string const& arg2,
+                          const std::string_view& arg1,
+                          const std::string_view& arg2,
                           std::string& output) {
   time_t current_time = 0L;
   timeperiod* temp_timeperiod = nullptr;
@@ -275,9 +272,10 @@ int grab_datetime_macro_r(nagios_macros* mac,
         return ERROR;
 
       /* what timestamp should we use? */
-      if (!arg2.empty())
-        test_time = (time_t)strtoul(arg2.c_str(), nullptr, 0);
-      else
+      if (!arg2.empty()) {
+        if (!absl::SimpleAtoi(arg2, &test_time))
+          test_time = current_time;
+      } else
         test_time = current_time;
       break;
 
@@ -387,8 +385,6 @@ int grab_standard_hostgroup_macro_r(nagios_macros* mac,
       break;
 
     default:
-      engine_logger(dbg_macros, basic)
-          << "UNHANDLED HOSTGROUP MACRO #" << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED HOSTGROUP MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;
@@ -468,8 +464,6 @@ int grab_standard_servicegroup_macro_r(nagios_macros* mac,
       break;
 
     default:
-      engine_logger(dbg_macros, basic) << "UNHANDLED SERVICEGROUP MACRO #"
-                                       << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED SERVICEGROUP MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;
@@ -558,8 +552,6 @@ int grab_standard_contact_macro_r(nagios_macros* mac,
     } break;
 
     default:
-      engine_logger(dbg_macros, basic)
-          << "UNHANDLED CONTACT MACRO #" << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED CONTACT MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;
@@ -604,9 +596,9 @@ int grab_standard_contactgroup_macro(
 
     case MACRO_CONTACTGROUPMEMBERS:
       /* get the member list */
-      for (contact_map_unsafe::const_iterator
-               it{temp_contactgroup->get_members().begin()},
-           end{temp_contactgroup->get_members().end()};
+      for (contact_map::const_iterator
+               it = temp_contactgroup->get_members().begin(),
+               end = temp_contactgroup->get_members().end();
            it != end; ++it) {
         if (it->second->get_name().empty())
           continue;
@@ -620,8 +612,6 @@ int grab_standard_contactgroup_macro(
       break;
 
     default:
-      engine_logger(dbg_macros, basic) << "UNHANDLED CONTACTGROUP MACRO #"
-                                       << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED CONTACTGROUP MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;
@@ -631,7 +621,7 @@ int grab_standard_contactgroup_macro(
 
 /* computes a custom object macro */
 int grab_custom_object_macro_r(nagios_macros* mac,
-                               std::string const& macro_name,
+                               const std::string_view& macro_name,
                                map_customvar const& vars,
                                std::string& output) {
   int result = ERROR;
@@ -674,7 +664,8 @@ std::string clean_macro_chars(std::string const& macro, int options) {
         continue;
 
       /* illegal user-specified characters */
-      if (pb_config.illegal_output_chars().find(ch) == std::string::npos)
+      if (pb_indexed_config.state().illegal_output_chars().find(ch) ==
+          std::string::npos)
         retval[y++] = retval[x];
     }
 

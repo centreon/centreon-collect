@@ -329,10 +329,8 @@ extern "C" int gettimeofday(struct timeval* tv, struct timezone*) __THROW {
 extern "C" int gettimeofday(struct timeval* tv, void*) __THROW {
 #endif
   // extern "C" int gettimeofday(struct timeval* tv, struct timezone*) __THROW {
-  if (tv) {
-    tv->tv_sec = gl_now;
-    tv->tv_usec = 0;
-  }
+  tv->tv_sec = gl_now;
+  tv->tv_usec = 0;
   return 0;
 }
 /**

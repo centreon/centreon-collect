@@ -1,18 +1,18 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine communication with or without TLS
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Variables ***
-&{ext}                  yes=TLS    no=    auto=TLS
-@{choices}              yes    no    auto
-@{LIST_HANDSHAKE}       performing handshake    successful handshake
+&{ext}    yes=TLS    no=    auto=TLS
+@{choices}    yes    no    auto
+@{LIST_HANDSHAKE}    performing handshake    successful handshake
 
 
 *** Test Cases ***
@@ -65,7 +65,7 @@ BECT2
     Ctn Config Broker    central
     Ctn Config Broker    module
 
-    ${hostname}    Ctn Get Hostname
+    ${hostname}    Ctn Get FQDN Hostname
     Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
@@ -135,7 +135,7 @@ BECT3
     Ctn Config Broker    central
     Ctn Config Broker    module
 
-    ${hostname}    Ctn Get Hostname
+    ${hostname}    Ctn Get FQDN Hostname
     Ctn Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Ctn Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 
@@ -384,7 +384,7 @@ BECT_GRPC3
     Ctn Config Broker    central
     Ctn Config Broker    module
 
-    ${hostname}    Ctn Get Hostname
+    ${hostname}    Ctn Get FQDN Hostname
     Ctn Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Ctn Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 

@@ -41,7 +41,6 @@ class influxdb {
            std::vector<column> const& status_cols,
            std::string const& metric_ts,
            std::vector<column> const& metric_cols,
-           macro_cache const& cache,
            const std::shared_ptr<spdlog::logger>& logger);
 
   /**
@@ -65,13 +64,11 @@ class influxdb {
   line_protocol_query _status_query;
   line_protocol_query _metric_query;
 
-  asio::io_context _io_context;
-  asio::ip::tcp::socket _socket;
+  boost::asio::io_context _io_context;
+  boost::asio::ip::tcp::socket _socket;
 
   std::string _host;
   uint16_t _port;
-
-  macro_cache const& _cache;
 
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;

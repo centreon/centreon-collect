@@ -19,8 +19,10 @@
 #ifndef CCB_SIMU_STREAM_HH
 #define CCB_SIMU_STREAM_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/variant.hh"
+#include "com/centreon/broker/simu/luabinding.hh"
 
 namespace com::centreon::broker::simu {
 
@@ -41,14 +43,14 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, misc::variant> const& conf_params,
+         absl::btree_map<std::string, variant> const& conf_params,
          const std::shared_ptr<spdlog::logger>& logger);
   ~stream();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   stream& operator=(stream const&) = delete;
   stream(stream const&) = delete;
-  int32_t write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override { return 0; }
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override { return 0; }
 };
 
 }  // namespace com::centreon::broker::simu

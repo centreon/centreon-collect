@@ -19,8 +19,10 @@
 #ifndef CCB_BBDO_CONNECTOR_HH
 #define CCB_BBDO_CONNECTOR_HH
 
+#include "bbdo/bbdo.pb.h"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
+#include "bbdo/bbdo.pb.h"
 
 namespace com::centreon::broker::bbdo {
 
@@ -39,11 +41,15 @@ class connector : public io::endpoint {
   std::list<std::shared_ptr<io::extension>> _extensions;
   const bool _grpc_serialized;
 
-  std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
+  std::shared_ptr<io::stream> _open(common::PeerType peer_type,
+                                    std::shared_ptr<io::stream> stream);
 
  public:
-  connector(bool negotiate, time_t timeout, bool connector_is_input,
-            bool coarse = false, uint32_t ack_limit = 1000,
+  connector(bool negotiate,
+            time_t timeout,
+            bool connector_is_input,
+            bool coarse = false,
+            uint32_t ack_limit = 1000,
             std::list<std::shared_ptr<io::extension>>&& extensions = {},
             bool grpc_serialized = false);
   ~connector() noexcept = default;

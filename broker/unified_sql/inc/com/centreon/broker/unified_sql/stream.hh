@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2024 Centreon
+ * Copyright 2019-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,16 +19,21 @@
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 
-#include "bbdo/neb.pb.h"
+#include <boost/bimap.hpp>
+
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
+#include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 #include "com/centreon/common/perfdata.hh"
+
+namespace asio = boost::asio;
 
 namespace com::centreon::broker {
 namespace unified_sql {
@@ -103,7 +108,7 @@ class service_status;
 
 namespace unified_sql {
 
-constexpr const char* BAM_NAME = "_Module_";
+constexpr const std::string_view BAM_NAME("_Module_");
 constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
@@ -159,39 +164,6 @@ class stream : public io::stream {
     comment
   };
 
-  enum actions {
-    none = 0,
-    acknowledgements = 1 << 0,
-    comments = 1 << 1,
-    custom_variables = 1 << 2,
-    downtimes = 1 << 3,
-    host_hostgroups = 1 << 4,
-    host_parents = 1 << 5,
-    hostgroups = 1 << 6,
-    hosts = 1 << 7,
-    instances = 1 << 8,
-    modules = 1 << 9,
-    service_servicegroups = 1 << 10,
-    servicegroups = 1 << 11,
-    services = 1 << 12,
-    index_data = 1 << 13,
-    metrics = 1 << 14,
-    severities = 1 << 15,
-    tags = 1 << 16,
-    resources = 1 << 17,
-    resources_tags = 1 << 18,
-  };
-
-  struct index_info {
-    uint64_t index_id;
-    std::string host_name;
-    std::string service_description;
-    uint32_t rrd_retention;
-    uint32_t interval;
-    bool special;
-    bool locked;
-  };
-
   static const std::array<std::string, 5> metric_type_name;
 
   struct metric_info {
@@ -213,16 +185,12 @@ class stream : public io::stream {
 
   instance_state _state;
 
-  mutable std::mutex _fifo_m;
-  std::atomic_int _processed;
-  std::atomic_int _ack;
+  std::atomic_uint _processed;
+  std::atomic_uint _ack;
 
   std::atomic_int _pending_events;
   uint32_t _count;
   bool _bulk_prepared_statement = false;
-
-  /* Current actions by connection */
-  std::vector<uint32_t> _action;
 
   // bool _exit;
   uint32_t _loop_timeout;
@@ -251,25 +219,23 @@ class stream : public io::stream {
   std::atomic_bool _stop_check_queues;
   /* When the check_queues is really stopped */
   bool _check_queues_stopped;
+  mutable absl::Mutex _check_queues_m;
 
   /* Stats */
   std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
 
   absl::flat_hash_set<uint32_t> _cache_deleted_instance_id;
-  std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
 
   absl::flat_hash_map<std::pair<uint64_t, std::string>, metric_info>
       _metric_cache;
   misc::shared_mutex _metric_cache_m;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resources_cache;
 
   mutable absl::Mutex _timer_m;
   /* This is a barrier for timers. It must be locked in shared mode in the
@@ -284,31 +250,34 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger_sql;
   std::shared_ptr<spdlog::logger> _logger_sto;
 
-  absl::flat_hash_set<uint32_t> _hostgroup_cache;
-  absl::flat_hash_set<uint32_t> _servicegroup_cache;
-
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_perfdata_queries. The filled table here is 'data_bin'. */
-  mutable std::mutex _queues_m;
-  mutable std::condition_variable _queues_cond_var;
+  mutable absl::Mutex _metrics_m;
   /* This map is also sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_metrics_queries. Values here are the real time values, so if the
-   * same metric is recevied two times, the new value can overwrite the old
-   * one, that's why we store those values in a map. The filled table here is
+   * same metric is recevied twice, the new value can overwrite the old
+   * one, that's why we store these values in a map. The filled table here is
    * 'metrics'. */
-  std::unordered_map<int32_t, metric_info> _metrics;
+  std::unordered_map<int32_t, metric_info> _metrics ABSL_GUARDED_BY(_metrics_m);
 
   /* These queues are sent in bulk to the database. The insert/update is done
    * if the loop timeout is reached or if the queue size is greater than
    * _max_cv_queries/_max_log_queries. */
-  bulk_queries _cv;
-  bulk_queries _cvs;
+  mutable absl::Mutex _cv_m;
+  bulk_queries _cv ABSL_GUARDED_BY(_cv_m);
+  bulk_queries _cvs ABSL_GUARDED_BY(_cv_m);
 
   std::unique_ptr<database::bulk_or_multi> _perfdata_query;
 
   std::unique_ptr<database::bulk_or_multi> _logs;
+
+  mutable absl::Mutex _downtimes_m;
+  /* Downtimes are indexed by a tuple (entry_time, instance_id, internal_id) */
+  absl::flat_hash_map<std::tuple<time_t, uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_downtime>>
+      _pending_downtimes ABSL_GUARDED_BY(_downtimes_m);
   std::unique_ptr<database::bulk_or_multi> _downtimes;
   std::unique_ptr<database::bulk_or_multi> _comments;
 
@@ -394,6 +363,13 @@ class stream : public io::stream {
   std::unique_ptr<database::mysql_stmt_base> _sscr_resources_update;
   std::unique_ptr<bulk_bind> _sscr_resources_bind;
 
+  /* Serializes the apply_to_stmt()/run_statement() of the host/service status
+   * bulk binds above. They are flushed both by the periodic _check_queues()
+   * (io_context pool thread) and, before an adaptive status direct query, by
+   * _flush_status_binds() (muxer write thread); both mutate the shared *_update
+   * statements, so the two callers must never run at the same time. */
+  mutable absl::Mutex _status_bind_flush_m;
+
   static const std::string _index_data_insert_request;
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
@@ -402,12 +378,21 @@ class stream : public io::stream {
 
   database::mysql_stmt _agent_information_insert_update;
 
+  /* FIXME DBO: We already need the global cache. It isn't already there, so
+   * we introduce a minimal set of it there. */
+  absl::flat_hash_map<std::string, uint64_t> _host_name_id_cache;
+  absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>
+      _service_description_id_cache;
+  absl::flat_hash_map<std::string, uint32_t> _instance_name_id_cache;
+
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
   bool _is_valid_poller(uint32_t instance_id);
   void _check_queues(boost::system::error_code ec)
       ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
+  void _flush_status_binds(bool force)
+      ABSL_LOCKS_EXCLUDED(_status_bind_flush_m);
   void _check_deleted_index();
   void _check_rebuild_index();
 
@@ -420,6 +405,8 @@ class stream : public io::stream {
   void _process_pb_custom_variable(const std::shared_ptr<io::data>& d);
   void _process_pb_custom_variable_status(const std::shared_ptr<io::data>& d);
   void _process_downtime(const std::shared_ptr<io::data>& d);
+
+  void _internal_process_downtime(const std::shared_ptr<neb::pb_downtime>& dt);
   void _process_pb_downtime(const std::shared_ptr<io::data>& d);
   void _process_host_check(const std::shared_ptr<io::data>& d);
   void _process_pb_host_check(const std::shared_ptr<io::data>& d);
@@ -435,6 +422,7 @@ class stream : public io::stream {
   void _process_pb_instance(const std::shared_ptr<io::data>& d);
   void _process_instance_status(const std::shared_ptr<io::data>& d);
   void _process_pb_instance_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_global_diff_state(const std::shared_ptr<io::data>& d);
   void _process_log(const std::shared_ptr<io::data>& d);
   void _process_service_check(const std::shared_ptr<io::data>& d);
   void _process_pb_service_check(const std::shared_ptr<io::data>& d);
@@ -447,26 +435,28 @@ class stream : public io::stream {
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
-  uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
+  uint64_t _process_pb_host_in_resources(const Host& h);
   void _process_pb_instance_configuration(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
-  uint64_t _process_pb_service_in_resources(const Service& s, int32_t conn);
+  uint64_t _process_pb_service_in_resources(const Service& s);
   void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
-  void _process_pb_service_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_service_status(const std::shared_ptr<io::data>& d)
+      ABSL_LOCKS_EXCLUDED(_metrics_m);
   void _process_pb_adaptive_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
   void _process_tag_from_resources(uint64_t resource_id,
                                    uint64_t tag_id,
-                                   int32_t tag_type,
-                                   int32_t conn);
+                                   int32_t tag_type);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
   void _process_agent_stats(const std::shared_ptr<io::data>& d);
-  void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
+  void _process_engine_state(const std::shared_ptr<io::data>& d);
+  void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d)
+      ABSL_LOCKS_EXCLUDED(_metrics_m);
   void _check_and_update_index_cache(const Service& ss);
 
   void _unified_sql_process_pb_service_status(
@@ -475,17 +465,13 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
-  void _clean_tables(uint32_t instance_id);
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
   void _prepare_pb_sg_insupdate_statement();
-  void _finish_action(int32_t conn, uint32_t action);
   void _finish_actions();
-  void _add_action(int32_t conn, actions action);
-  void _update_metrics();
-  // void __exit();
+  void _update_metrics() ABSL_LOCKS_EXCLUDED(_metrics_m);
   void _clear_instances_cache(const std::list<uint64_t>& ids);
   bool _host_instance_known(uint64_t host_id) const;
 
@@ -507,6 +493,7 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   ~stream() noexcept ABSL_LOCKS_EXCLUDED(_barrier_timer_m);
+  void clean_tables(uint32_t instance_id);
 
   static const multiplexing::muxer_filter& get_muxer_filter();
   static const multiplexing::muxer_filter& get_forbidden_filter();
@@ -515,15 +502,32 @@ class stream : public io::stream {
                                 uint32_t metric_id,
                                 std::string const& metric_name,
                                 short metric_type);
-  int32_t write(const std::shared_ptr<io::data>& d) override;
-  int32_t flush() override;
+  uint32_t write(const std::shared_ptr<io::data>& d) override;
+  uint32_t flush() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline = -1) override;
-  int32_t stop() override;
+  uint32_t stop() override;
   void statistics(nlohmann::json& tree) const override;
   void remove_graphs(const std::shared_ptr<io::data>& d);
   void remove_poller(const std::shared_ptr<io::data>& d);
   void process_stop(const std::shared_ptr<io::data>& d);
   void update() override;
+  mysql& get_mysql();
+  bool supports_bulk_prepared_statements() const;
+
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& tags_cache() {
+    return _tags_cache;
+  }
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>&
+  resources_cache() {
+    return _resources_cache;
+  }
+
+  // std::unordered_map<uint32_t, uint32_t>& hosts_instances_cache() {
+  //   return _cache_host_instance;
+  // }
+  absl::flat_hash_map<std::string, uint64_t>& host_name_id_cache();
+  absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
+  service_description_id_cache();
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

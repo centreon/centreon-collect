@@ -11,7 +11,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 ECI0
-    [Documentation]    Verify contact inheritance : contact(empty) inherit from template (full) , on Start Engine
+    [Documentation]    Verify contact inheritance : contact(empty) inherit from template (full), on Start Engine
     [Tags]    engine    contact    MON-151074
     Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    rrd

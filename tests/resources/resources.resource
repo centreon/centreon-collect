@@ -33,26 +33,39 @@ Ctn Config BBDO3
         Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
     END
     IF    not ${only_engine}
-	Ctn Config Broker Sql Output    central    unified_sql
+        Ctn Config Broker Sql Output    central    unified_sql
         Ctn Broker Config Add Item    central    bbdo_version    ${version}
     END
-    IF    not ${only_central}
-        FOR    ${i}    IN RANGE    ${nbEngine}
-            ${mod}    Catenate    SEPARATOR=    module    ${i}
-            Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
-        END
+    FOR    ${i}    IN RANGE    ${nbEngine}
+        ${mod}    Catenate    SEPARATOR=    module    ${i}
+        Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
     END
     # We replace the global Bbdo2 Variable to False
     Ctn Set Bbdo2    ${False}
 
 Ctn Clean Before Suite
     Ctn Clear Db    resources
+    Ctn Clear Db    instances
     Ctn Clear Db    hosts
     Ctn Clear Db    services
     Ctn Clear Db    tags
+    Ctn Clear Db    customvariables
     Ctn Stop Processes
     Ctn Clear Engine Logs
     Ctn Clear Broker Logs
+    Ctn Clear Commands Status
+    Ctn Clear Engine White List
+
+Ctn Clean Before Test
+    [Documentation]    Per-test isolation for suites that run several tests in a
+    ...    row: wipe the database, the persisted broker cache, the persisted
+    ...    centralized configuration (.prot / state.prot) and the logs, so residue
+    ...    from a previous test (leftover rows, a stale cached host, a previous
+    ...    run's larger Engine state replayed on restart) does not leak into the
+    ...    next one. These suites otherwise only clean at suite start.
+    Ctn Clean Before Suite
+    Ctn Clear Broker Cache
+    Ctn Clear Prot Files
 
 Ctn Clean Before Suite With rrdcached
     Ctn Clean Before Suite
@@ -76,13 +89,18 @@ Ctn Clean After Suite With rrdcached
 Ctn Clear Engine Logs
     Remove Directory    ${ENGINE_LOG}    Recursive=True
     Create Directory    ${ENGINE_LOG}
+    Directory Should Exist    ${ENGINE_LOG}
 
 Ctn Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
+    Directory Should Exist    ${BROKER_LOG}
 
 Ctn Start Vault
-    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+    ${result}    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+    Sleep    2s    # Waiting 2s to be sure vault is started
+    ${running}    Is Process Running    ${result}
+    Should Be True    ${running}    Vault not correctly started
 
 Ctn Stop Vault
     ${result}    Terminate Process    vault    kill=False
@@ -91,11 +109,44 @@ Ctn Stop Vault
     ...    Vault not correctly stopped
 
 Ctn Start Broker
-    [Arguments]    ${only_central}=False
+    [Arguments]    ${only_central}=False    ${newGeneration}=False
+
+    IF    ${newGeneration}
+	${count}    Ctn Get Engines Count
+	Ctn Config BBDO3    ${count}    3.1.0    ${only_central}
+        Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    END
+    Log To Console    Flushing broker configuration
+    Ctn Broker Config Flush
+
     # Currently we are in BBDO2 by default.
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
+    END
+
+Ctn Start Relay
+    [Arguments]    ${broker_id}
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/relay-broker-${broker_id}.json    alias=r${broker_id}    stderr=${BROKER_LOG}/relay-broker-${broker_id}-stderr.log    stdout=${BROKER_LOG}/relay-broker-${broker_id}-stdout.log
+
+Ctn Stop Relay
+    [Arguments]    ${broker_id}
+    Send Signal To Process    SIGTERM    r${broker_id}
+    ${result}    Wait For Process    r${broker_id}    timeout=60s
+    # In case of process not stopping
+    IF    "${result}" == "${None}"
+	Log To Console    fail to stop relay${broker_id} broker
+	Ctn Save Logs
+	Ctn Dump Process    r${broker_id}    /usr/sbin/cbd    broker-relay-${broker_id}
+	Send Signal To Process    SIGKILL    r${broker_id}
+	Fail    Relay Broker not correctly stopped (coredump generated)
+    ELSE
+	IF    ${result.rc} != 0
+	    Ctn Save Logs
+	    # Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
+	    Ctn Coredump Info    r${broker_id}    /usr/sbin/cbd    broker-relay-${broker_id}
+	    Should Be Equal As Integers    ${result.rc}    0    Relay Broker not correctly stopped
+	END
     END
 
 Ctn Restart Broker
@@ -117,8 +168,11 @@ Ctn Kindly Stop Broker
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
 
     #in some case tear down calls this function whereas broker has not been started
-    ${b1_obj}    Get Process Object   b1
-    IF    "${b1_obj}" == "${None}"
+    #Get Process Object raises "Non-existing index or alias" when b1 was never
+    #started, so we have to ignore that error instead of comparing to None.
+    ${status}    ${b1_obj}    Run Keyword And Ignore Error    Get Process Object    b1
+    IF    "${status}" == "FAIL"    RETURN
+    IF    ${{$b1_obj is None}}
         Log To Console    "central broker not started"
         RETURN
     END
@@ -158,6 +212,14 @@ Ctn Kindly Stop Broker
             ELSE
                 Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
             END
+
+	    # We check negative metric_id
+	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+	    IF    len("""${result}""") > 0
+                Log To Console    The central logs contain errors about metrics with negative IDs.
+                Ctn Save Logs
+                Remove File    ${centralLog}
+	    END
         END
     END
 
@@ -193,11 +255,15 @@ Ctn Stop Processes
     Terminate All Processes    kill=True
     Ctn Kill Broker
     Ctn Kill Engine
+    Ctn Broker Config Reset
 
 Ctn Start Engine
-    [Arguments]    ${newGeneration}=False
-    # Currently we are in BBDO2 by default.
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False    ${with_extended_conf}=False
     ${count}    Ctn Get Engines Count
+    IF    ${newGeneration}
+        Ctn Config BBDO3    ${count}    3.1.0    ${central_only}
+    END
+    Ctn Broker Config Flush    ${False}
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
@@ -210,14 +276,43 @@ Ctn Start Engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
+        ${grpc_port}    Evaluate    ${idx} + 50001
+        # Fail fast instead of starting a doomed engine: if the gRPC port is still
+        # taken, a previous centengine was not stopped. Starting anyway leaves a
+        # second engine that cannot bind its gRPC server, and later gRPC queries
+        # silently hit the stale engine, cascading confusing failures to the rest
+        # of the suite.
+        ${free}    Ctn Wait For Port Free    ${grpc_port}
+        Should Be True
+        ...    ${free}
+        ...    gRPC port ${grpc_port} still in use: a previous centengine was not stopped.
+        IF    ${with_centreon_engine_user}
+            Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
+        END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    IF    ${with_extended_conf}
+                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    --extended-config\=/tmp/centengine_extend.json    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    ELSE
+                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    END
         ELSE
-            Start Process    /usr/sbin/centengine    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    IF    ${with_extended_conf}
+		IF    ${with_centreon_engine_user}
+		    Start Process    su    -    centreon-engine    -c    /usr/sbin/centengine --extended-config\=/tmp/centengine_extend.json ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		ELSE
+                    Start Process    /usr/sbin/centengine    --extended-config\=/tmp/centengine_extend.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		END
+	    ELSE
+		IF    ${with_centreon_engine_user}
+                    Start Process    su    -    centreon-engine    -c    /usr/sbin/centengine ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		ELSE
+                    Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    	END
+	    END
         END
     END
 
-Ctn Start Engine With Extend Conf
+Ctn Start Engine With Extended Conf
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -231,6 +326,7 @@ Ctn Start Engine With Extend Conf
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
+	Ctn Broker Config Flush    ${False}
         Start Process
         ...    /usr/sbin/centengine
         ...    --extended-config\=/tmp/centengine_extend.json
@@ -245,6 +341,7 @@ Ctn Restart Engine
 
 Ctn Start Custom Engine
     [Arguments]    ${broker_conf}    ${conf_path}    ${process_alias}
+    Ctn Broker Config Flush    ${False}
     Start Process    /usr/sbin/centengine
     ...    -b    ${broker_conf}
     ...    ${conf_path}
@@ -264,22 +361,33 @@ Ctn Stop Engine
         Log To Console    No engine to stop
         RETURN
     END
+    # Some tests configure engine instances without starting them (broker only
+    # tests). Only act on the instances whose process alias was really started,
+    # otherwise the Process library raises 'Non-existing index or alias'.
+    @{started}    Create List
     FOR    ${idx}    IN RANGE    0    ${count}
+        ${status}    ${pid}    Run Keyword And Ignore Error    Get Process Id    e${idx}
+        IF    "${status}" == "PASS"    Append To List    ${started}    ${idx}
+    END
+    IF    len($started) == 0
+        Log To Console    No running engine to stop
+        RETURN
+    END
+    FOR    ${idx}    IN    @{started}
         Send Signal To Process    SIGTERM    e${idx}
     END
-    FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
-        ${result}    Wait For Process    ${alias}    timeout=60s
+    FOR    ${idx}    IN    @{started}
+        ${result}    Wait For Process    e${idx}    timeout=60s
         IF    "${result}" == "${None}"
             Log To Console    Failed to stop centengine
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
-            Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
-            Send Signal To Process    SIGKILL    ${alias}
+            Ctn Dump Process    e${idx}    /usr/sbin/centengine    ${name}
+            Send Signal To Process    SIGKILL    e${idx}
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0 and ${result.rc} != -15
                 # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
-                Ctn Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
+                Ctn Coredump Info    e${idx}    /usr/sbin/centengine    e${idx}
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
@@ -289,21 +397,9 @@ Ctn Stop Engine
 
 Ctn Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
-    TRY
-        Ctn Stop Engine
-    EXCEPT
-        Log    can't kindly stop engine
-    END
-    TRY
-        Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
-    EXCEPT
-        Log    Can't kindly stop Broker
-    END
-    TRY
-        Ctn Kindly Stop Agent
-    EXCEPT
-        Log    Can't kindly stop Agent
-    END
+    Run Keyword And Continue On Failure    Ctn Stop Engine
+    Run Keyword And Continue On Failure    Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
+    Run Keyword And Continue On Failure    Ctn Kindly Stop Agent
     Ctn Save Logs If Failed
 
 Ctn Get Engine Pid
@@ -341,13 +437,19 @@ Ctn Check Connections
 
 Ctn Disable Eth Connection On Port
     [Arguments]    ${port}
-    RUN    iptables -A INPUT -p tcp --dport ${port} -j DROP
+    ${result}    RUN    iptables -A INPUT -p tcp --dport ${port} -j DROP
+    Should Not Contain    ${result}    not found
+    ...    iptables is not installed or you don't have the rights to use it.
+    ...    Please fix this issue.
     RUN    iptables -A OUTPUT -p tcp --dport ${port} -j DROP
     RUN    iptables -A FORWARD -p tcp --dport ${port} -j DROP
 
 Ctn Reset Eth Connection
-    Run    iptables -F
-    Run    iptables -X
+    ${result}    RUN    iptables -F
+    Should Not Contain    ${result}    not found
+    ...    iptables is not installed or you don't have the rights to use it.
+    ...    Please fix this issue.
+    RUN    iptables -X
 
 Ctn Save Logs If Failed
     Run Keyword If Test Failed    Ctn Save Logs
@@ -424,7 +526,7 @@ Ctn Copy Coredump In Failed Dir
 
 Ctn Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${binary_path}    ${timeout}
-    ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
+    ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continue
     ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
     IF    ${test_none} == "not killed"
         ${pid}    Get Process Id    ${process_name}
@@ -481,8 +583,35 @@ Ctn Wait For Engine To Be Ready
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+        # The log line only means the external command checker started; make sure
+        # the command named pipe is actually a FIFO open for reading before
+        # returning, otherwise a result submitted right after can be written to a
+        # pipe with no reader (or a stale regular file) and silently lost.
+        ${pipe_ready}    Ctn Wait For External Command Pipe    ${i}    30
+        Should Be True
+        ...    ${pipe_ready}
+        ...    The engine external command pipe config${i}/rw/centengine.cmd should be a FIFO open for reading.
     END
 
+Ctn Wait For Engine Configuration To Be Applied
+    [Arguments]    ${start}    ${idx_start}    ${idx_end}=0    ${timeout}=60
+    ${content}    Create List
+    IF    ${idx_end} == 0
+        ${idx_end}    Evaluate    ${idx_start} + 1
+    END
+    FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
+	${poller_id}    Evaluate	${idx} + 1
+	Ctn Notify Broker Of Engine Config Change    ${idx}
+	Append To List    ${content}
+	...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already has the latest configuration
+    END
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True    ${result[0]}    The broker must receive a diff state ack from pollers in range [${idx_start}, ${idx_end}].
+
+    #Lck files should disappear
+    FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
+        Wait Until Keyword Succeeds    30 sec    2 sec    File Should Not Exist    ${VarRoot}/lib/centreon/config/${poller_id}.lck
+    END
 
 Ctn Start Agent
     ${run_env}    Ctn Run Env
@@ -497,9 +626,9 @@ Ctn Workspace Win
         ${workspace}    Ctn Get Workspace Win
         RETURN    ${workspace}
     END
-    
+
     RETURN    None
-    
+
 Ctn Kindly Stop Agent
     ${run_env}    Ctn Run Env
 
@@ -508,8 +637,9 @@ Ctn Kindly Stop Agent
     END
 
     #in most case centreon_agent is not started
-    ${centreon_agent_process}    Get Process Object  centreon_agent
+    ${status}    ${centreon_agent_process}    Run Keyword And Ignore Error    Get Process Object    centreon_agent
 
+    IF  "${status}" == "FAIL"  RETURN
     IF  ${{$centreon_agent_process is None}}  RETURN
 
     Send Signal To Process    SIGTERM    centreon_agent
@@ -619,4 +749,5 @@ Ctn Clear Downtimes
     Execute SQL String    UPDATE services SET scheduled_downtime_depth=0
     Execute SQL String    UPDATE hosts SET scheduled_downtime_depth=0
     Execute SQL String    UPDATE resources SET in_downtime=0
+    Execute SQL String    DELETE FROM downtimes
     Disconnect From Database

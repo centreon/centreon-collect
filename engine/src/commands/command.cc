@@ -21,7 +21,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/grab.hh"
 
 using namespace com::centreon;
@@ -178,7 +177,7 @@ bool commands::command::gest_call_interval(
     caller_to_last_call_map::iterator group_search = _result_cache.find(caller);
     if (group_search != _result_cache.end()) {
       time_t now = time(nullptr);
-      uint32_t interval_length = pb_config.interval_length();
+      uint32_t interval_length = pb_indexed_config.state().interval_length();
       if (group_search->second->launch_time + interval_length >= now &&
           group_search->second->res) {  // old check is too recent
         result_to_reuse = std::make_shared<result>(*group_search->second->res);

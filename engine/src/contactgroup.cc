@@ -22,12 +22,9 @@
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 contactgroup_map contactgroup::contactgroups;
 
@@ -73,11 +70,11 @@ void contactgroup::clear_members() {
   _members.clear();
 }
 
-contact_map_unsafe& contactgroup::get_members() {
+contact_map& contactgroup::get_members() {
   return _members;
 }
 
-contact_map_unsafe const& contactgroup::get_members() const {
+const contact_map& contactgroup::get_members() const {
   return _members;
 }
 
@@ -89,8 +86,8 @@ void contactgroup::set_alias(std::string const& alias) {
   _alias = alias;
 }
 
-std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
-  for (contactgroup_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
+std::ostream& operator<<(std::ostream& os, const contactgroup_map& obj) {
+  for (contactgroup_map::const_iterator it = obj.begin(), end = obj.end();
        it != end; ++it) {
     os << it->first;
     if (std::next(it) != end)
@@ -104,13 +101,10 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
 void contactgroup::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
   uint32_t errors = 0;
 
-  for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
+  for (contact_map::iterator it = _members.begin(), end = _members.end();
        it != end; ++it) {
     /* Check members */
     if (!it->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Contact '" << it->first << "' specified in contact group '"
-          << _name << "' is not defined anywhere!";
       config_logger->error(
           "Error: Contact '{}' specified in contact group '{}' is not defined "
           "anywhere!",
@@ -122,9 +116,6 @@ void contactgroup::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
 
   /* Check for illegal characters in contact group name. */
   if (contains_illegal_object_chars(const_cast<char*>(_name.c_str()))) {
-    engine_logger(log_verification_error, basic)
-        << "Error: The name of contact group '" << _name
-        << "' contains one or more illegal characters.";
     config_logger->error(
         "Error: The name of contact group '{}' contains one or more illegal "
         "characters.",

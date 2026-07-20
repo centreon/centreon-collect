@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -29,28 +29,6 @@ BEPBBEE1
     Should Be True    ${result}    Message about not matching bbdo versions not available
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
-
-BEPBBEE2
-    [Documentation]    bbdo_version 3 not compatible with sql/storage
-    [Tags]    broker    engine    protobuf    bbdo
-    Ctn Config Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
-    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
-    Ctn Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Ctn Broker Config Log    central    sql    debug
-    Ctn Broker Config Flush Log    central    0
-    Ctn Clear Retention
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    ${content}    Create List
-    ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    Message about a missing config of unified_sql not available.
-    Ctn Stop Engine
 
 BEPBBEE3
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service status messages.
@@ -118,6 +96,7 @@ BEPBRI1
     Remove File    /tmp/pbresponsiveinstance.log
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    trace
@@ -152,6 +131,7 @@ BEPBCVS
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
@@ -172,6 +152,7 @@ BEPBCVS
         IF    "${output}" == "(('VAL1',), ('VAL_SERV1',))"    BREAK
         Sleep    1s
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True
@@ -183,6 +164,8 @@ BEPBHostParent
     Ctn Add Parent To Host    0    host_1    host_2
     Ctn Add Parent To Host    0    host_3    host_2
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
@@ -213,6 +196,7 @@ BEPBHostParent
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()    host parent not deleted
+    Disconnect From Database
 
     ${content}    Create List    [sql] [error]
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    1
@@ -257,9 +241,10 @@ GRPC_CLOUD_FAILURE
 
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    grpc
     Ctn Config Broker Bbdo Output    module0    bbdo_client    5669    grpc    localhost
-    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    grpc    trace
     Ctn Broker Config Log    module0    processing    trace
     Ctn Broker Config Source Log    module0    1
@@ -274,7 +259,7 @@ GRPC_CLOUD_FAILURE
     Ctn Broker Config Input Set    central    central-broker-master-input    ca_certificate    /tmp/ca_1234.crt
     Ctn Broker Config Input Set    central    central-broker-master-input    certificate    /tmp/server_1234.crt
 
-    Ctn Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}    only_central=True
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -282,11 +267,11 @@ GRPC_CLOUD_FAILURE
 
     ${grpc_bbdo_server}    Ctn Create Bbdo Grpc Server    5669
 
+    # We wait for 3 connections on port 5669, with a timeout of 20s.
     ${many_connections}    Ctn Wait For Connections    5669    3    20
-    Should Not Be True    ${many_connections}    We should have only one connection to fake grpc server
+    Should Not Be True    ${many_connections}    We should have exactly three connections to the fake grpc server
 
-    Call method    ${grpc_bbdo_server}    stop    1
-    Sleep    10
+    Call Method    ${grpc_bbdo_server}    stop    1
 
     Ctn Start Broker    ${True}
 

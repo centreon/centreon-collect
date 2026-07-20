@@ -122,7 +122,6 @@ class process_manager {
   std::deque<std::pair<pid_t, process*>> _processes;
 
   process_manager();
-  ~process_manager() noexcept;
   void _close_stream(int fd) noexcept;
   void _erase_timeout(process* p);
   void _kill_processes_timeout() noexcept;
@@ -135,6 +134,8 @@ class process_manager {
   void _stop_processes() noexcept;
 
  public:
+  ~process_manager() noexcept;
+
   void add(process* p);
   static process_manager& instance();
   process_manager& operator=(process_manager const& p) = delete;
@@ -142,6 +143,6 @@ class process_manager {
   void wait_for_update() const noexcept;
 };
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_PROCESS_MANAGER_POSIX_HH

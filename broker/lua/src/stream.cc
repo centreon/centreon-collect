@@ -24,7 +24,6 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::lua;
 
@@ -37,12 +36,10 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] port                    port
  */
 stream::stream(const std::string& lua_script,
-               const std::map<std::string, misc::variant>& conf_params,
-               const std::shared_ptr<persistent_cache>& cache)
+               const absl::btree_map<std::string, variant>& conf_params)
     : io::stream("lua"),
-      _luabinding(lua_script, conf_params, _cache),
-      _logger{cache->logger()},
-      _cache{cache} {}
+      _luabinding(lua_script, conf_params),
+      _logger{log_v2::instance().get(log_v2::LUA)} {}
 
 stream::~stream() noexcept {
   _logger->trace("lua::stream destructor {}", static_cast<void*>(this));
@@ -68,11 +65,8 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(const std::shared_ptr<io::data>& data) {
   assert(data);
-
-  // Give data to cache.
-  _cache.write(data);
 
   return _luabinding.write(data);
 }
@@ -84,8 +78,8 @@ int stream::write(std::shared_ptr<io::data> const& data) {
  *
  * @return The number of events to ack.
  */
-int32_t stream::flush() {
-  int32_t retval = 0;
+uint32_t stream::flush() {
+  uint32_t retval = 0;
   if (_luabinding.has_flush()) {
     retval = _luabinding.flush();
     _logger->debug("stream: flush {} events acknowledged", retval);
@@ -98,7 +92,7 @@ int32_t stream::flush() {
  *
  * @return The number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger->trace("lua::stream stop {}", static_cast<void*>(this));
   return _luabinding.stop();
 }

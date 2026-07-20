@@ -19,8 +19,6 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-#include <absl/strings/numbers.h>
-
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;

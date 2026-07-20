@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "../../core/test/test_server.hh"
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/modules/loader.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"

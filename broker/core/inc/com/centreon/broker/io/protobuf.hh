@@ -177,7 +177,7 @@ class protobuf : public protobuf_base {
     auto retval = std::make_unique<protobuf<T, Typ>>();
     if (!retval->mut_msg()->ParseFromArray(buffer, size))
       throw com::centreon::exceptions::msg_fmt(
-          "Unable to unserialize protobuf object");
+          "Unable to unserialize {:x} protobuf object (size {})", Typ, size);
     return retval.release();
   }
 

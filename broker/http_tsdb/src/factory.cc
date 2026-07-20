@@ -22,6 +22,9 @@
 #include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+namespace asio = boost::asio;
+using duration = std::chrono::system_clock::duration;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::http_tsdb;
 using namespace nlohmann;

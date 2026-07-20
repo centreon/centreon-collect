@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/rrd/factory.hh"
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/rrd/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -76,10 +78,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params
+    const absl::btree_map<std::string, std::string>& global_params
     [[maybe_unused]],
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
+    bool& is_acceptor) const {
   auto logger = log_v2::instance().get(log_v2::RRD);
 
   // Local socket path.
@@ -103,7 +104,7 @@ io::endpoint* factory::new_endpoint(
   // Should metrics be written ?
   bool write_metrics;
   {
-    std::map<std::string, std::string>::const_iterator it(
+    absl::btree_map<std::string, std::string>::const_iterator it(
         cfg.params.find("write_metrics"));
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &write_metrics)) {
@@ -160,6 +161,46 @@ io::endpoint* factory::new_endpoint(
       ignore_update_errors = true;
   }
 
+  // Retention buffer point-count threshold per batch (default 144 = 12h at
+  // 1 pt/5min).
+  uint32_t retention_max_pending_points = 144;
+  {
+    auto it = cfg.params.find("retention_buffer_max_pending_points");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_max_pending_points)) {
+      logger->error(
+          "factory: cannot parse 'retention_buffer_max_pending_points' for "
+          "endpoint '{}', using default (144)",
+          cfg.name);
+    }
+  }
+
+  // Retention buffer max number of rotated files (default 5).
+  uint32_t retention_max_files = 5;
+  {
+    auto it = cfg.params.find("retention_buffer_max_files");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_max_files)) {
+      logger->error(
+          "factory: cannot parse 'retention_buffer_max_files' for "
+          "endpoint '{}', using default (5)",
+          cfg.name);
+    }
+  }
+
+  // Retention buffer orphan cleanup interval (seconds, default 3600).
+  uint32_t retention_orphan_interval = 3600;
+  {
+    auto it = cfg.params.find("retention_buffer_orphan_interval");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_orphan_interval)) {
+      logger->error(
+          "factory: cannot parse 'retention_buffer_orphan_interval' for "
+          "endpoint '{}', using default (3600)",
+          cfg.name);
+    }
+  }
+
   // Create endpoint.
   std::unique_ptr<rrd::connector> endp{std::make_unique<rrd::connector>()};
   if (write_metrics)
@@ -174,6 +215,9 @@ io::endpoint* factory::new_endpoint(
   endp->set_write_metrics(write_metrics);
   endp->set_write_status(write_status);
   endp->set_ignore_update_errors(ignore_update_errors);
+  endp->set_retention_max_pending_points(retention_max_pending_points);
+  endp->set_retention_max_files(retention_max_files);
+  endp->set_retention_orphan_interval(retention_orphan_interval);
   is_acceptor = false;
   return endp.release();
 }

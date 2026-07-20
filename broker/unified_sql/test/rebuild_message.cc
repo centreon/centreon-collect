@@ -20,12 +20,11 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
-#include "broker/core/bbdo/stream.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
+#include "broker/core/bbdo/broker_stream.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -51,12 +50,12 @@ class into_memory : public io::stream {
     return true;
   }
 
-  int write(std::shared_ptr<io::data> const& d) override {
+  uint32_t write(std::shared_ptr<io::data> const& d) override {
     _memory = std::static_pointer_cast<io::raw>(d)->get_buffer();
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 
   std::vector<char> const& get_memory() const { return _memory; }
   std::vector<char>& get_mutable_memory() { return _memory; }
@@ -74,7 +73,9 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::SQL);
     io::data::broker_id = 0;
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "broker_test", 0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -105,7 +106,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   (*r->mut_obj().mutable_metric_to_index_id())[5] = 1;
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::broker_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
   stm.set_negotiate(false);
@@ -154,7 +155,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   }
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::broker_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
   stm.set_negotiate(false);

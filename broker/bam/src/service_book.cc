@@ -134,8 +134,29 @@ void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
     return;
+  found->second.state.instance_id = t->obj().instance_id();
   for (auto l : found->second.listeners)
     l->service_update(t, visitor);
+}
+
+/**
+ * @brief Reset downtime tracking for all services belonging to the given
+ * poller instance. Called when a poller disconnects so that on reconnect,
+ * downtimes are re-evaluated and inherited downtimes on BAs are rescheduled.
+ *
+ * @param instance_id The poller instance ID that stopped.
+ * @param visitor     The stream to write events into.
+ */
+void service_book::reset_downtime_state(uint64_t instance_id,
+                                        io::stream* visitor) {
+  _logger->debug(
+      "BAM: service_book::reset_downtime_state for instance {}", instance_id);
+  for (auto& [key, ssl] : _book) {
+    if (ssl.state.instance_id != instance_id)
+      continue;
+    for (auto l : ssl.listeners)
+      l->reset_downtime_state(visitor);
+  }
 }
 
 /**
@@ -233,14 +254,12 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
  * @brief Save the services states from the service_book to the cache. The cache
  * must be open with write mode, otherwise, this function throws an exception.
  *
- * @param cache The persistent cache to receive data.
+ * @param cache The cache to receive data.
  */
-void service_book::save_to_cache(persistent_cache& cache) const {
-  auto to_save_ptr = std::make_shared<pb_services_book_state>();
-  ServicesBookState& to_save = to_save_ptr->mut_obj();
+void service_book::save_to_cache(ServicesBookState* cache) const {
   for (auto it = _book.begin(); it != _book.end(); ++it) {
     auto& state = it->second.state;
-    auto* svc = to_save.add_service();
+    auto* svc = cache->add_service();
     svc->set_host_id(state.host_id);
     svc->set_service_id(state.service_id);
     svc->set_current_state(state.current_state);
@@ -249,7 +268,6 @@ void service_book::save_to_cache(persistent_cache& cache) const {
     svc->set_state_type(state.state_type);
     svc->set_acknowledged(state.acknowledged);
   }
-  cache.add(to_save_ptr);
 }
 
 /**
@@ -258,7 +276,7 @@ void service_book::save_to_cache(persistent_cache& cache) const {
  *
  * @param state A ServicesBookState get from the cache.
  */
-void service_book::apply_services_state(const ServicesBookState& state) {
+void service_book::apply(const ServicesBookState& state) {
   _logger->trace("BAM: applying services state from cache");
   for (auto& svc : state.service()) {
     auto found = _book.find(std::make_pair(svc.host_id(), svc.service_id()));

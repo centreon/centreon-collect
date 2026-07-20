@@ -1,4 +1,5 @@
 name: perl-libs-analysis
+run-name: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true')) && format('{0} nightly {1}', github.workflow, github.ref_name) || '' }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -6,6 +7,12 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      nightly_manual_trigger:
+        description: 'Set to true for nightly run'
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -21,21 +28,50 @@ on:
       - perl-libs/**
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
-  checkmarx-analysis:
+  dispatch-to-maintained-branches:
+    needs: [get-environment]
+    if: |
+      github.run_attempt == 1 &&
+      github.event_name == 'schedule' &&
+      github.ref_name == 'develop' &&
+      needs.get-environment.outputs.skip_workflow == 'false'
+
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - run: |
+          NIGHTLY_TARGETS=("dev-25.10.x")
+          for target in "${NIGHTLY_TARGETS[@]}"; do
+            echo "[INFO] - Dispatching nightly run to $target branch."
+            gh workflow run perl-libs-analysis.yml -r "$target" -f nightly_manual_trigger=true
+          done
+        shell: bash
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  code_scan:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       github.event.pull_request.draft != 'true'
-    uses: ./.github/workflows/checkmarx-analysis.yml
+    uses: centreon/security-tools/.github/workflows/checkmarx-analysis.yml@main
     with:
       module_directory: perl-libs
-      module_name: centreon-collect-perl-libs
+      module_name: centreon-perl-libs-${{ needs.get-environment.outputs.linked_dev_branch }}
+      exclude_list:
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
       cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}
@@ -43,6 +79,6 @@ jobs:
       cx_client_secret: ${{ secrets.AST_RND_SCANS_CLIENT_SECRET }}
 
   set-skip-label:
-    needs: [get-environment, checkmarx-analysis]
+    needs: [get-environment, code_scan]
     if: needs.get-environment.outputs.skip_workflow == 'false'
     uses: ./.github/workflows/set-pull-request-skip-label.yml

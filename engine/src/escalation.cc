@@ -18,11 +18,9 @@
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 escalation::escalation(uint32_t first_notification,
                        uint32_t last_notification,
@@ -80,11 +78,11 @@ bool escalation::get_escalate_on(notifier::notification_flag type) const {
   return _escalate_on & type;
 }
 
-contactgroup_map_unsafe const& escalation::get_contactgroups() const {
+const contactgroup_map& escalation::get_contactgroups() const {
   return _contact_groups;
 }
 
-contactgroup_map_unsafe& escalation::get_contactgroups() {
+contactgroup_map& escalation::get_contactgroups() {
   return _contact_groups;
 }
 
@@ -121,9 +119,6 @@ void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
         timeperiod::timeperiods.find(get_escalation_period())};
 
     if (it == timeperiod::timeperiods.end() || !it->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Escalation period '" << get_escalation_period()
-          << "' specified in escalation is not defined anywhere!";
       config_logger->error(
           "Error: Escalation period '{}' specified in escalation is not "
           "defined anywhere!",
@@ -135,18 +130,14 @@ void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 
   // Check all contact groups.
-  for (contactgroup_map_unsafe::iterator it{_contact_groups.begin()},
-       end{_contact_groups.end()};
+  for (contactgroup_map::iterator it = _contact_groups.begin(),
+                                  end = _contact_groups.end();
        it != end; ++it) {
     // Find the contact group.
     contactgroup_map::iterator it_cg{
         contactgroup::contactgroups.find(it->first)};
 
     if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Contact group '" << it->first
-          << "' specified in escalation for this notifier is not defined "
-             "anywhere!";
       config_logger->error(
           "Error: Contact group '{}' specified in escalation for this notifier "
           "is not defined "
@@ -155,7 +146,7 @@ void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
       errors++;
     } else {
       // Save the contactgroup pointer for later.
-      it->second = it_cg->second.get();
+      it->second = it_cg->second;
     }
   }
 

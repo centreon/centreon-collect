@@ -23,7 +23,6 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/tag.hh"
 #include "gtest/gtest.h"
 
 using namespace com::centreon;
@@ -41,25 +40,24 @@ void applier::tag::add_object(const configuration::Tag& obj) {
                        obj.key().type());
 
   // Add tag to the global configuration set.
-  configuration::Tag* new_tg = pb_config.add_tags();
-  new_tg->CopyFrom(obj);
+  auto key = std::make_tuple(obj.key().id(), (uint32_t)obj.key().type(),
+                             (uint32_t)obj.poller_id());
+  pb_indexed_config.mut_tags().emplace(key, std::make_unique<Tag>(obj));
 
   auto tg = std::make_shared<engine::tag>(
-      new_tg->key().id(),
-      static_cast<engine::tag::tagtype>(new_tg->key().type()),
-      new_tg->tag_name());
+      std::get<0>(key), static_cast<engine::tag::tagtype>(std::get<1>(key)),
+      obj.tag_name());
   if (!tg)
     throw engine_error() << fmt::format("Could not register tag ({},{})",
-                                        new_tg->key().id(),
-                                        new_tg->key().type());
+                                        std::get<0>(key), std::get<1>(key));
 
   // Add new items to the configuration state.
-  auto res = engine::tag::tags.insert(
-      {{new_tg->key().id(), new_tg->key().type()}, tg});
+  auto res =
+      engine::tag::tags.try_emplace({std::get<0>(key), std::get<1>(key)}, tg);
   if (!res.second)
     config_logger->error(
         "Could not insert tag ({},{}) into cache because it already exists",
-        new_tg->key().id(), new_tg->key().type());
+        std::get<0>(key), std::get<1>(key));
 
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
@@ -103,16 +101,16 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
  *
  * @param idx The idx in the tags configuration objects to remove.
  */
-void applier::tag::remove_object(ssize_t idx) {
-  const configuration::Tag& obj = pb_config.tags().at(idx);
-
+void applier::tag::remove_object(
+    const std::tuple<uint64_t, uint32_t, uint32_t>& key) {
+  auto id = std::get<0>(key);
+  auto type = std::get<1>(key);
   // Logging.
-  config_logger->debug("Removing tag ({},{}).", obj.key().id(),
-                       obj.key().type());
+  config_logger->debug("Removing tag ({},{}).", id, type);
 
-  // Find tag.
-  tag_map::iterator it =
-      engine::tag::tags.find({obj.key().id(), obj.key().type()});
+  // Find tag in the engine runtime map (keyed by pair, not tuple).
+  auto pair_key = std::make_pair(id, type);
+  tag_map::iterator it = engine::tag::tags.find(pair_key);
   if (it != engine::tag::tags.end()) {
     engine::tag* tg = it->second.get();
 
@@ -124,7 +122,7 @@ void applier::tag::remove_object(ssize_t idx) {
   }
 
   // Remove tag from the global configuration set.
-  pb_config.mutable_tags()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_tags().erase(key);
 }
 
 /**

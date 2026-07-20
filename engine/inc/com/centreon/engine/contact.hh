@@ -205,6 +205,6 @@ std::shared_ptr<com::centreon::engine::contact> add_contact(
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::contact const& obj);
-std::ostream& operator<<(std::ostream& os, contact_map_unsafe const& obj);
+std::ostream& operator<<(std::ostream& os, const contact_map& obj);
 
 #endif  // !CCE_CONTACT_HH

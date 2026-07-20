@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/bam/factory.hh"
 
-#include <absl/strings/match.h>
 #include "com/centreon/broker/bam/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -58,9 +57,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
+    bool& is_acceptor) const {
   // Find DB parameters.
   database_config db_cfg(cfg, global_params);
 
@@ -84,13 +83,21 @@ io::endpoint* factory::new_endpoint(
       storage_db_name = it->second;
   }
 
+  // Stream name.
+  std::string name;
+  {
+    auto it = cfg.params.find("name");
+    if (it != cfg.params.end() && !it->second.empty())
+      name = it->second;
+  }
+
   // Connector.
   std::unique_ptr<bam::connector> c;
   if (is_bam_bi)
-    c = connector::create_reporting_connector(db_cfg);
+    c = connector::create_reporting_connector(name, db_cfg);
   else
-    c = connector::create_monitoring_connector(ext_cmd_file, db_cfg,
-                                               storage_db_name, cache);
+    c = connector::create_monitoring_connector(name, ext_cmd_file, db_cfg,
+                                               storage_db_name);
   is_acceptor = false;
   return c.release();
 }

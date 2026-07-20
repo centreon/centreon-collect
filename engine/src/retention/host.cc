@@ -21,11 +21,8 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 using com::centreon::engine::map_customvar;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::retention;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic
@@ -1097,9 +1094,6 @@ bool host::_set_last_state_change(time_t value) {
 bool host::_set_last_time_down(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host last time down cannot be in the future (bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Host last time down cannot be in the future (bad value: {})",
         value);
@@ -1117,10 +1111,6 @@ bool host::_set_last_time_down(time_t value) {
 bool host::_set_last_time_unreachable(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host last time unreachable cannot be in the future (bad "
-           "value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Host last time unreachable cannot be in the future (bad "
         "value: {})",
@@ -1139,9 +1129,6 @@ bool host::_set_last_time_unreachable(time_t value) {
 bool host::_set_last_time_up(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host last time up cannot be in the future (bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Host last time up cannot be in the future (bad value: {})",
         value);
@@ -1342,18 +1329,16 @@ bool host::_set_retry_check_interval(unsigned int value) noexcept {
  */
 bool host::_set_state_history(std::string const& value) noexcept {
   unsigned int x(0);
-  std::list<std::string> lst_history;
-  string::split(value, lst_history, ',');
   std::vector<int>& state_history(*_state_history);
-  for (std::list<std::string>::const_iterator it(lst_history.begin()),
-       end(lst_history.end());
-       it != end && x < MAX_STATE_HISTORY_ENTRIES; ++it) {
+  for (std::string_view sv : absl::StrSplit(value, ',', absl::SkipEmpty())) {
     int state(0);
-    if (!string::to(it->c_str(), state)) {
+    if (!absl::SimpleAtoi(sv, &state)) {
       _state_history.reset();
       return false;
     }
     state_history.push_back(state);
+    if (++x >= MAX_STATE_HISTORY_ENTRIES)
+      break;
   }
   _state_history.set(state_history);
   return true;

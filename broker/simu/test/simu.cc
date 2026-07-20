@@ -16,10 +16,12 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/container/btree_map.h>
 #include <gtest/gtest.h>
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/simu/luabinding.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -27,7 +29,6 @@
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::simu;
 using com::centreon::common::log_v2::log_v2;
 
@@ -39,7 +40,9 @@ class SimuGenericTest : public ::testing::Test {
   void SetUp() override {
     _logger = log_v2::instance().get(log_v2::LUA);
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -70,7 +73,7 @@ class SimuGenericTest : public ::testing::Test {
 // When a lua script that does not exist is loaded
 // Then an exception is thrown
 TEST_F(SimuGenericTest, MissingScript) {
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   ASSERT_THROW(
       new luabinding("/tmp/this_script_does_not_exist.lua", conf, _logger),
       msg_fmt);
@@ -79,7 +82,7 @@ TEST_F(SimuGenericTest, MissingScript) {
 // When a lua script with error such as number divided by nil is loaded
 // Then an exception is thrown
 TEST_F(SimuGenericTest, FaultyScript) {
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   std::string filename("/tmp/faulty.lua");
   CreateScript(filename,
                "local a = { 1, 2, 3 }\n"
@@ -91,7 +94,7 @@ TEST_F(SimuGenericTest, FaultyScript) {
 // When a lua script that does not contain an init() function is loaded
 // Then an exception is thrown
 TEST_F(SimuGenericTest, WithoutInit) {
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   std::string filename("/tmp/without_init.lua");
   CreateScript(filename, "local a = { 1, 2, 3 }\n");
   ASSERT_THROW(new luabinding(filename, conf, _logger), msg_fmt);
@@ -106,7 +109,7 @@ TEST_F(SimuGenericTest, IncompleteScript) {
                "function init()\n"
                "end\n"
                "local a = { 1, 2, 3 }\n");
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   ASSERT_THROW(new luabinding(filename, conf, _logger), msg_fmt);
   RemoveFile(filename);
 }
@@ -121,7 +124,7 @@ TEST_F(SimuGenericTest, ReadReturnValue1) {
                "function read()\n"
                "return 2\n"
                "end\n");
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   std::unique_ptr<luabinding> lb(new luabinding(filename, conf, _logger));
   std::shared_ptr<io::data> d;
   ASSERT_THROW(lb->read(d), msg_fmt);
@@ -138,7 +141,7 @@ TEST_F(SimuGenericTest, ReadReturnValue2) {
                "function read()\n"
                "return nil\n"
                "end\n");
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   std::unique_ptr<luabinding> lb(new luabinding(filename, conf, _logger));
   std::shared_ptr<io::data> d;
   ASSERT_FALSE(lb->read(d));
@@ -157,7 +160,7 @@ TEST_F(SimuGenericTest, ReadReturnValue3) {
                "function read()\n"
                "return { a='toto' }\n"
                "end\n");
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   std::unique_ptr<luabinding> lb(new luabinding(filename, conf, _logger));
   std::shared_ptr<io::data> d;
   ASSERT_FALSE(lb->read(d));
@@ -183,7 +186,7 @@ TEST_F(SimuGenericTest, ReadReturnValue4) {
                "description=\"Super description\"\n"
                "}\n"
                "end\n");
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   config::applier::modules modules(_logger);
   modules.load_file("./broker/lib/10-neb.so");
   std::unique_ptr<luabinding> lb =
@@ -220,7 +223,7 @@ TEST_F(SimuGenericTest, ReadReturnCustomVariable) {
                "    value=\"centengine\",\n"
                "    default_value=\"centengine\"}\n"
                "end\n");
-  std::map<std::string, misc::variant> conf;
+  absl::btree_map<std::string, simu::variant> conf;
   config::applier::modules modules(_logger);
   modules.load_file("./broker/lib/10-neb.so");
   std::unique_ptr<luabinding> lb(new luabinding(filename, conf, _logger));

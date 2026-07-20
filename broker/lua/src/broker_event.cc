@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/broker/lua/broker_event.hh"
+
+#include <absl/container/flat_hash_map.h>
 #include <google/protobuf/message.h>
 
 #include "com/centreon/broker/io/data.hh"
@@ -33,7 +35,8 @@ static void _write_item(lua_State* L,
                         const google::protobuf::Message* p,
                         const google::protobuf::FieldDescriptor* f);
 
-std::map<const lua_State*, broker_event::gc_info> broker_event::_gc_info;
+absl::flat_hash_map<const lua_State*, broker_event::gc_info>
+    broker_event::_gc_info;
 std::mutex broker_event::_gc_info_m;
 
 /**

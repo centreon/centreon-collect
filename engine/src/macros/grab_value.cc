@@ -18,17 +18,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "com/centreon/engine/macros/grab_value.hh"
-
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 
 /**************************************
  *                                     *
@@ -51,8 +47,8 @@ using namespace com::centreon::engine::logging;
  */
 static int handle_host_macro(nagios_macros* mac,
                              int macro_type,
-                             std::string const& arg1,
-                             std::string const& arg2,
+                             const std::string_view& arg1,
+                             const std::string_view& arg2,
                              std::string& output,
                              int* free_macro) {
   int retval;
@@ -127,8 +123,8 @@ static int handle_host_macro(nagios_macros* mac,
  */
 static int handle_hostgroup_macro(nagios_macros* mac,
                                   int macro_type,
-                                  std::string const& arg1,
-                                  std::string const& arg2,
+                                  const std::string_view& arg1,
+                                  const std::string_view& arg2,
                                   std::string& output,
                                   int* free_macro) {
   (void)arg2;
@@ -170,8 +166,8 @@ static int handle_hostgroup_macro(nagios_macros* mac,
  */
 static int handle_service_macro(nagios_macros* mac,
                                 int macro_type,
-                                std::string const& arg1,
-                                std::string const& arg2,
+                                const std::string_view& arg1,
+                                const std::string_view& arg2,
                                 std::string& output,
                                 int* free_macro) {
   // Return value.
@@ -192,8 +188,8 @@ static int handle_service_macro(nagios_macros* mac,
       if (!mac->host_ptr)
         retval = ERROR;
       else if (!arg2.empty()) {
-        service_map::const_iterator found(
-            service::services.find({mac->host_ptr->name(), arg2}));
+        service_map::const_iterator found =
+            service::services.find(std::make_pair(mac->host_ptr->name(), arg2));
 
         if (found == service::services.end() || !found->second)
           retval = ERROR;
@@ -205,7 +201,8 @@ static int handle_service_macro(nagios_macros* mac,
         retval = ERROR;
     } else if (!arg1.empty() && !arg2.empty()) {
       // On-demand macro with both host and service name.
-      service_map::const_iterator found(service::services.find({arg1, arg2}));
+      service_map::const_iterator found(
+          service::services.find(std::make_pair(arg1, arg2)));
 
       if (found != service::services.end() && found->second)
         // Get the service macro value.
@@ -262,12 +259,11 @@ static int handle_service_macro(nagios_macros* mac,
  */
 static int handle_servicegroup_macro(nagios_macros* mac,
                                      int macro_type,
-                                     std::string const& arg1,
-                                     std::string const& arg2,
+                                     const std::string_view& arg1,
+                                     const std::string_view& arg2
+                                     [[maybe_unused]],
                                      std::string& output,
                                      int* free_macro) {
-  (void)arg2;
-
   // Return value.
   int retval;
 
@@ -303,8 +299,8 @@ static int handle_servicegroup_macro(nagios_macros* mac,
  */
 static int handle_contact_macro(nagios_macros* mac,
                                 int macro_type,
-                                std::string const& arg1,
-                                std::string const& arg2,
+                                const std::string_view& arg1,
+                                const std::string_view& arg2,
                                 std::string& output,
                                 int* free_macro) {
   // Return value.
@@ -338,14 +334,14 @@ static int handle_contact_macro(nagios_macros* mac,
       retval = ERROR;
     else {
       // Concatenate macro values for all contactgroup members.
-      for (contact_map_unsafe::const_iterator
-               it{cg->second->get_members().begin()},
-           end{cg->second->get_members().end()};
+      for (contact_map::const_iterator it = cg->second->get_members().begin(),
+                                       end = cg->second->get_members().end();
            it != end; ++it) {
         if (it->second) {
           // Get the macro value for this contact.
           std::string buffer;
-          grab_standard_contact_macro_r(mac, macro_type, it->second, buffer);
+          grab_standard_contact_macro_r(mac, macro_type, it->second.get(),
+                                        buffer);
           // Add macro value to already running macro.
           if (output.empty())
             output = buffer;
@@ -378,8 +374,8 @@ static int handle_contact_macro(nagios_macros* mac,
  */
 static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
                                      int macro_type,
-                                     const std::string& arg1,
-                                     const std::string& arg2,
+                                     const std::string_view& arg1,
+                                     const std::string_view& arg2,
                                      std::string& output,
                                      int* free_macro) {
   (void)arg2;
@@ -420,8 +416,8 @@ static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
  */
 static int handle_notification_macro(nagios_macros* mac,
                                      int macro_type,
-                                     std::string const& arg1,
-                                     std::string const& arg2,
+                                     const std::string_view& arg1,
+                                     const std::string_view& arg2,
                                      std::string& output,
                                      int* free_macro) {
   (void)arg1;
@@ -449,8 +445,8 @@ static int handle_notification_macro(nagios_macros* mac,
  */
 static int handle_datetime_macro(nagios_macros* mac,
                                  int macro_type,
-                                 std::string const& arg1,
-                                 std::string const& arg2,
+                                 const std::string_view& arg1,
+                                 const std::string_view& arg2,
                                  std::string& output,
                                  int* free_macro) {
   // Calculate macros.
@@ -474,8 +470,8 @@ static int handle_datetime_macro(nagios_macros* mac,
  */
 static int handle_static_macro(nagios_macros* mac,
                                int macro_type,
-                               std::string const& arg1,
-                               std::string const& arg2,
+                               const std::string_view& arg1,
+                               const std::string_view& arg2,
                                std::string& output,
                                int* free_macro) {
   (void)mac;
@@ -503,8 +499,8 @@ static int handle_static_macro(nagios_macros* mac,
  */
 static int handle_summary_macro(nagios_macros* mac,
                                 int macro_type,
-                                std::string const& arg1,
-                                std::string const& arg2,
+                                const std::string_view& arg1,
+                                const std::string_view& arg2,
                                 std::string& output,
                                 int* free_macro) {
   (void)arg1;
@@ -697,8 +693,8 @@ struct grab_value_redirection {
   typedef std::unordered_map<unsigned int,
                              int (*)(nagios_macros*,
                                      int,
-                                     std::string const&,
-                                     std::string const&,
+                                     const std::string_view&,
+                                     const std::string_view&,
                                      std::string&,
                                      int*)>
       entry;
@@ -903,13 +899,13 @@ struct grab_value_redirection {
 
 /* this is the big one */
 int grab_macro_value_r(nagios_macros* mac,
-                       std::string const& macro_name,
+                       const std::string_view& macro_name,
                        std::string& output,
                        int* clean_options,
                        int* free_macro) {
-  char* buf = nullptr;
-  char* ptr = nullptr;
-  char* arg[2] = {nullptr, nullptr};
+  std::string_view buf;
+  std::string_view arg[2];
+
   contact* temp_contact = nullptr;
   std::string temp_buffer;
   unsigned int x;
@@ -919,29 +915,48 @@ int grab_macro_value_r(nagios_macros* mac,
     return ERROR;
 
   /* work with a copy of the original buffer */
-  buf = string::dup(macro_name.c_str());
+  auto arr = absl::StrSplit(macro_name, ':');
+  auto it = arr.begin();
+
+  // The base name
+  if (it != arr.end()) {
+    buf = *it;
+    ++it;
+  }
+
+  // First argument
+  if (it != arr.end()) {
+    arg[0] = *it;
+    ++it;
+  }
+  // Second argument
+  if (it != arr.end()) {
+    arg[1] = *it;
+  }
+
+  // buf = string::dup(macro_name.c_str());
 
   /* BY DEFAULT, TELL CALLER TO FREE MACRO BUFFER WHEN DONE */
   *free_macro = true;
 
   /* see if there's an argument - if so, this is most likely an on-demand macro
    */
-  if ((ptr = strchr(buf, ':'))) {
-    ptr[0] = '\x0';
-    ptr++;
+  // if ((ptr = strchr(buf, ':'))) {
+  //   ptr[0] = '\x0';
+  //   ptr++;
 
-    /* save the first argument - host name, hostgroup name, etc. */
-    arg[0] = ptr;
+  //  /* save the first argument - host name, hostgroup name, etc. */
+  //  arg[0] = ptr;
 
-    /* try and find a second argument */
-    if ((ptr = strchr(ptr, ':'))) {
-      ptr[0] = '\x0';
-      ptr++;
+  //  /* try and find a second argument */
+  //  if ((ptr = strchr(ptr, ':'))) {
+  //    ptr[0] = '\x0';
+  //    ptr++;
 
-      /* save second argument - service description or delimiter */
-      arg[1] = ptr;
-    }
-  }
+  //    /* save second argument - service description or delimiter */
+  //    arg[1] = ptr;
+  //  }
+  //}
 
   /***** X MACROS *****/
   /* see if this is an x macro */
@@ -949,14 +964,11 @@ int grab_macro_value_r(nagios_macros* mac,
     if (macro_x_names[x].empty())
       continue;
 
-    if (strcmp(macro_x_names[x].c_str(), buf) == 0) {
-      engine_logger(dbg_macros, most)
-          << "  macros[" << x << "] (" << macro_x_names[x] << ") match.";
+    if (buf == macro_x_names[x]) {
       macros_logger->trace("  macros[{}] ({}) match.", x, macro_x_names[x]);
 
       /* get the macro value */
-      result = grab_macrox_value_r(mac, x, arg[0] ? arg[0] : "",
-                                   arg[1] ? arg[1] : "", output, free_macro);
+      result = grab_macrox_value_r(mac, x, arg[0], arg[1], output, free_macro);
 
       /* post-processing */
       /* host/service output/perfdata and author/comment macros should get
@@ -964,8 +976,6 @@ int grab_macro_value_r(nagios_macros* mac,
       if ((x >= 16 && x <= 19) || (x >= 49 && x <= 52) ||
           (x >= 99 && x <= 100) || (x >= 124 && x <= 127)) {
         *clean_options |= (STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
-        engine_logger(dbg_macros, most)
-            << "  New clean options: " << *clean_options;
         macros_logger->trace("  New clean options: {}", *clean_options);
       }
       break;
@@ -976,18 +986,16 @@ int grab_macro_value_r(nagios_macros* mac,
   if (x < MACRO_X_COUNT)
     ;
   /***** ARGV MACROS *****/
-  else if (macro_name.size() > 3 &&
-           strncmp(macro_name.c_str(), "ARG", 3) == 0) {
+  else if (macro_name.size() > 3 && macro_name.compare(0, 3, "ARG") == 0) {
     /* which arg do we want? */
-    if (!absl::SimpleAtoi(macro_name.c_str() + 3, &x)) {
+    if (!absl::SimpleAtoi(macro_name.substr(3), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.c_str() + 3);
+          macro_name.substr(3));
       return ERROR;
     }
 
     if (!x || x > MAX_COMMAND_ARGUMENTS) {
-      delete[] buf;
       return ERROR;
     }
 
@@ -996,18 +1004,16 @@ int grab_macro_value_r(nagios_macros* mac,
     *free_macro = false;
   }
   /***** USER MACROS *****/
-  else if (macro_name.size() > 4 &&
-           strncmp(macro_name.c_str(), "USER", 4) == 0) {
+  else if (macro_name.size() > 4 && macro_name.compare(0, 4, "USER") == 0) {
     /* which macro do we want? */
-    if (!absl::SimpleAtoi(macro_name.c_str() + 4, &x)) {
+    if (!absl::SimpleAtoi(macro_name.substr(4), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.c_str() + 4);
+          macro_name.substr(4));
       return ERROR;
     }
 
     if (!x || x > MAX_USER_MACROS) {
-      delete[] buf;
       return ERROR;
     }
 
@@ -1019,21 +1025,20 @@ int grab_macro_value_r(nagios_macros* mac,
   /***** CONTACT ADDRESS MACROS *****/
   /* NOTE: the code below should be broken out into a separate function */
   else if (macro_name.size() > 14 &&
-           strncmp(macro_name.c_str(), "CONTACTADDRESS", 14) == 0) {
+           macro_name.compare(0, 14, "CONTACTADDRESS") == 0) {
     /* which address do we want? */
-    if (!absl::SimpleAtoi(macro_name.c_str() + 14, &x)) {
+    if (!absl::SimpleAtoi(macro_name.substr(14), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.c_str() + 14);
+          macro_name.substr(14));
       return ERROR;
     }
     x -= 1;
 
     /* regular macro */
-    if (arg[0] == nullptr) {
+    if (arg[0] == "") {
       /* use the saved pointer */
       if ((temp_contact = mac->contact_ptr) == nullptr) {
-        delete[] buf;
         return ERROR;
       }
 
@@ -1043,22 +1048,22 @@ int grab_macro_value_r(nagios_macros* mac,
     /* on-demand macro */
     else {
       /* on-demand contact macro with a contactgroup and a delimiter */
-      if (arg[1] != nullptr) {
+      if (arg[1] != "") {
         contactgroup_map::iterator cg_it{
             contactgroup::contactgroups.find(arg[0])};
         if (cg_it == contactgroup::contactgroups.end() || !cg_it->second)
           return ERROR;
 
         /* concatenate macro values for all contactgroup members */
-        for (contact_map_unsafe::const_iterator
-                 it{cg_it->second->get_members().begin()},
-             end{cg_it->second->get_members().end()};
+        for (contact_map::const_iterator
+                 it = cg_it->second->get_members().begin(),
+                 end = cg_it->second->get_members().end();
              it != end; ++it) {
           if (!it->second)
             continue;
 
           /* get the macro value for this contact */
-          grab_contact_address_macro(x, it->second, temp_buffer);
+          grab_contact_address_macro(x, it->second.get(), temp_buffer);
 
           if (temp_buffer.empty())
             continue;
@@ -1078,7 +1083,6 @@ int grab_macro_value_r(nagios_macros* mac,
         /* find the contact */
         contact_map::const_iterator it{contact::contacts.find(arg[0])};
         if (it == contact::contacts.end()) {
-          delete[] buf;
           return ERROR;
         }
 
@@ -1091,8 +1095,7 @@ int grab_macro_value_r(nagios_macros* mac,
   else if (macro_name[0] == '_') {
     /* get the macro value */
 
-    result = grab_custom_macro_value_r(mac, macro_name, arg[0] ? arg[0] : "",
-                                       arg[1] ? arg[1] : "", output);
+    result = grab_custom_macro_value_r(mac, macro_name, arg[0], arg[1], output);
   } else if (configuration::applier::state::instance().user_macros().find(
                  macro_name) !=
              configuration::applier::state::instance().user_macros().end()) {
@@ -1104,15 +1107,33 @@ int grab_macro_value_r(nagios_macros* mac,
   }
   /* no macro matched... */
   else {
-    engine_logger(dbg_macros, basic)
-        << " WARNING: Could not find a macro matching '" << macro_name << "'!";
     macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
                          macro_name);
     result = ERROR;
   }
 
-  /* free memory */
-  delete[] buf;
+  // some macros are encrypted?
+  if (pb_indexed_config.state().credentials_encryption()) {
+    if (!output.compare(0, 5, "raw::")) {
+      output.erase(0, 5);
+    } else if (!output.compare(0, 9, "encrypt::")) {
+      if (!credentials_decrypt) {
+        SPDLOG_LOGGER_ERROR(macros_logger,
+                            "no encryption configured => can't decryp macro {}",
+                            macro_name);
+        return ERROR;
+      }
+      try {
+        output =
+            credentials_decrypt->decrypt(std::string_view(output).substr(9));
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(macros_logger,
+                            "fail to decrypt content of macro {}: {}",
+                            macro_name, e.what());
+      }
+    }
+  }
+
   return result;
 }
 
@@ -1131,8 +1152,8 @@ int grab_macro_value_r(nagios_macros* mac,
  */
 int grab_macrox_value_r(nagios_macros* mac,
                         int macro_type,
-                        std::string const& arg1,
-                        std::string const& arg2,
+                        const std::string_view& arg1,
+                        const std::string_view& arg2,
                         std::string& output,
                         int* free_macro) {
   int retval;
@@ -1143,8 +1164,6 @@ int grab_macrox_value_r(nagios_macros* mac,
         redirector.routines.find(macro_type));
     if (redirector.routines.end() == it) {
       retval = ERROR;
-      engine_logger(dbg_macros, basic)
-          << "UNHANDLED MACRO #" << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED MACRO #{}! THIS IS A BUG!", macro_type);
     } else {
       retval = (*it->second)(mac, macro_type, arg1, arg2, output, free_macro);

@@ -35,14 +35,15 @@ NetworkDbFail5
     Ctn Network Failure    interval=1m
 
 NetworkDBFail6
-    [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
+    [Documentation]    GIVEN a Broker configured with 5 database connections
+    ...    WHEN the network connection to the database (port 3306) is disrupted for 60 seconds
+    ...    THEN Broker should lose database connectivity during the outage
+    ...    AND should resume normal operations after network restoration
     [Tags]    broker    database    network    unstable
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -63,17 +64,22 @@ NetworkDBFail6
     Ctn Kindly Stop Broker
 
 NetworkDBFailU6
-    [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
-    [Tags]    broker    database    network    unified_sql    unstable
+    [Documentation]    GIVEN Broker is running with unified_sql and 5 database connections
+    ...    AND Engine is connected to Broker using BBDO3 protocol
+    ...    AND database queries are being executed successfully
+    ...    WHEN the network connection on port 3306 is blocked for 60 seconds
+    ...    THEN database operations should fail during the network outage
+    ...    AND Broker should recover and acknowledge events after network restoration
+    [Tags]    broker    database    network
     Ctn Reset Eth Connection
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -93,15 +99,18 @@ NetworkDBFailU6
     Ctn Kindly Stop Broker
 
 NetworkDBFail7
-    [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
+    [Documentation]    GIVEN Broker is running with 5 database connections
+    ...    AND Engine is connected to Broker
+    ...    AND database queries are being executed successfully
+    ...    WHEN the network connection on port 3306 is repeatedly disrupted (6 cycles of 10s down / 10s up)
+    ...    THEN Broker should handle the intermittent network failures
+    ...    AND should acknowledge all events once the network is stable
     [Tags]    broker    database    network
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Reset Eth Connection
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -126,8 +135,13 @@ NetworkDBFail7
     Ctn Kindly Stop Broker
 
 NetworkDBFailU7
-    [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
-    [Tags]    broker    database    network    unified_sql
+    [Documentation]    GIVEN Broker is running with unified_sql and 5 database connections
+    ...    AND Engine is connected to Broker using BBDO3 protocol
+    ...    AND database queries are being executed successfully
+    ...    WHEN the network connection on port 3306 is repeatedly disrupted (6 cycles of 10s down / 10s up)
+    ...    THEN Broker should handle the intermittent network failures
+    ...    AND should acknowledge all events once the network is stable
+    [Tags]    broker    database    network
     Ctn Reset Eth Connection
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
@@ -137,6 +151,7 @@ NetworkDBFailU7
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -157,18 +172,21 @@ NetworkDBFailU7
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-NetworkDBFailU8
-    [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shutdown the connection until _check_queues failure
-    [Tags]    MON-71277 broker    database    network    unified_sql    unstable
+NetworkDBFail8
+    [Documentation]    GIVEN Broker with unified_sql and 3 database connections
+    ...    WHEN database network is blocked until failure detection
+    ...    THEN Broker should log database errors
+    ...    AND should recover and execute pending statements after network restoration
+    [Tags]    MON-71277 broker    database    network
     Ctn Reset Eth Connection
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    3
     Ctn Broker Config Log    central    sql    trace
-    Ctn Config Broker    rrd
-    Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -181,15 +199,60 @@ NetworkDBFailU8
     Log To Console    Connection failure.
     ${start}    Get Current Date
     Ctn Disable Eth Connection On Port    port=3306
-    ${content}    Create List    fail to store queued data in database
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${content}    Create List    fail to store queued data in database    The mysql/mariadb database seems not started.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40    one_of=${True}
     Should Be True    ${result}    No failure found in log
 
     ${start}    Get Current Date
     Log To Console    Reestablishing the connection and test last steps.
     Ctn Reset Eth Connection
-    ${content}    Create List    unified_sql:_check_queues
+    ${content}    Create List    success execute statement
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    Connections to the database should be reestablished and events sent.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+NetworkDBFailU8
+    [Documentation]    GIVEN Broker is running with unified_sql, BBDO3 protocol and 3 database connections
+    ...    AND Engine is connected to Broker
+    ...    AND database queries are being executed successfully
+    ...    WHEN the network connection on port 3306 is blocked indefinitely
+    ...    THEN Broker should detect the database failure and log appropriate errors
+    ...    AND WHEN the network is restored
+    ...    THEN Broker should reconnect and successfully execute pending statements
+    [Tags]    MON-71277 broker    database    network
+    Ctn Reset Eth Connection
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    3
+    Ctn Broker Config Log    central    sql    trace
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Broker and Engine are not connected
+    ${content}    Create List    run query: SELECT
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No SELECT done by broker in the DB
+
+    Log To Console    Connection failure.
+    ${start}    Get Current Date
+    Ctn Disable Eth Connection On Port    port=3306
+    ${content}    Create List    fail to store queued data in database    The mysql/mariadb database seems not started.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40    one_of=${True}
+    Should Be True    ${result}    No failure found in log
+
+    ${start}    Get Current Date
+    Log To Console    Reestablishing the connection and test last steps.
+    Ctn Reset Eth Connection
+    ${content}    Create List    success execute statement
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    Connections to the database should be reestablished and events sent.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -209,10 +272,8 @@ Ctn Network Failure
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Broker    central
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    10
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    10
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    3
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Source Log    central    true
     ${start}    Get Current Date

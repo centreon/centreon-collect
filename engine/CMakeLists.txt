@@ -57,6 +57,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}/common/process_stat
   ${CMAKE_BINARY_DIR}/common/engine_conf
   ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/common/process/inc
   ${CMAKE_SOURCE_DIR}/broker/neb/inc
   ${CMAKE_SOURCE_DIR}/broker/core/inc
   ${CMAKE_SOURCE_DIR}/bbdo)
@@ -485,7 +486,6 @@ add_subdirectory(src/downtimes)
 add_subdirectory(src/configuration)
 add_subdirectory(src/commands)
 add_subdirectory(src/compatibility)
-add_subdirectory(src/deleter)
 add_subdirectory(src/events)
 add_subdirectory(src/logging)
 add_subdirectory(src/macros)
@@ -497,7 +497,7 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
 
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib)
+add_dependencies(centenginestats centreon_clib pb_neb_lib)
 target_link_libraries(centenginestats PRIVATE centreon_clib fmt::fmt absl::log absl::base absl::log_internal_check_op)
 
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
@@ -532,14 +532,15 @@ target_link_libraries(
   centengine
   PRIVATE centreon_clib
   log_v2
-  enginerpc
   -Wl,--whole-archive
+  enginerpc
   centreon_grpc
   -Wl,--no-whole-archive
   centreon_http
   centreon_common
   Boost::url
   cce_core
+  centreon_process
   Boost::program_options
   absl::any
   absl::log
@@ -561,6 +562,11 @@ install(
 # Unit tests.
 if(NOT ONLY_ROBOT_CMA)
   add_subdirectory(tests)
+endif()
+
+# Benchmarks.
+if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
+  add_subdirectory(benchmark)
 endif()
 
 #

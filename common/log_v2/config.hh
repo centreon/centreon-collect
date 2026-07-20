@@ -60,6 +60,7 @@ class config {
          bool log_pid,
          bool log_source)
       : _log_type{log_type},
+        _max_size{0U},
         _flush_interval{flush_interval},
         _log_pid{log_pid},
         _log_source{log_source} {

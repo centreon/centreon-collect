@@ -21,20 +21,12 @@
 #ifndef CCE_CONFIGURATION_APPLIER_LOGGING_HH
 #define CCE_CONFIGURATION_APPLIER_LOGGING_HH
 
-#include "com/centreon/logging/file.hh"
-#include "com/centreon/logging/syslogger.hh"
 #include "common/engine_conf/state_helper.hh"
 
 namespace com::centreon::engine {
 
 namespace configuration {
 namespace applier {
-/**
- *  @class logging logging.hh
- *  @brief Simple configuration applier for logging class.
- *
- *  Simple configuration applier for logging class.
- */
 class logging {
  public:
   void apply(configuration::State& config);
@@ -45,27 +37,8 @@ class logging {
   logging();
   logging(configuration::State& config);
   logging(logging const&);
-  ~logging() throw();
+  ~logging() noexcept;
   logging& operator=(logging const&);
-  void _add_stdout();
-  void _add_stderr();
-  void _add_syslog();
-  void _add_log_file(configuration::State const& config);
-  void _add_debug(configuration::State const& config);
-  void _del_syslog();
-  void _del_log_file();
-  void _del_debug();
-  void _del_stdout();
-  void _del_stderr();
-
-  com::centreon::logging::file* _debug;
-  int64_t _debug_level;
-  unsigned long _debug_max_size;
-  unsigned int _debug_verbosity;
-  com::centreon::logging::file* _log;
-  com::centreon::logging::file* _stderr;
-  com::centreon::logging::file* _stdout;
-  com::centreon::logging::syslogger* _syslog;
 };
 }  // namespace applier
 }  // namespace configuration

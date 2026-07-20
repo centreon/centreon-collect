@@ -22,8 +22,10 @@
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/rrd/internal.hh"
-#include "com/centreon/broker/rrd/output.hh"
+#include "com/centreon/broker/rrd/stream.hh"
 #include "common/log_v2/log_v2.hh"
+
+namespace asio = boost::asio;
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
@@ -50,7 +52,10 @@ connector::connector()
       _cached_port(0),
       _ignore_update_errors(true),
       _write_metrics(true),
-      _write_status(true) {}
+      _write_status(true),
+      _retention_max_pending_points(144),
+      _retention_max_files(5),
+      _retention_orphan_interval(3600) {}
 
 /**
  *  Connect.
@@ -58,19 +63,26 @@ connector::connector()
  *  @return Stream object.
  */
 std::shared_ptr<io::stream> connector::open() {
+  retention_config ret_cfg;
+  ret_cfg.metrics_dir = _metrics_path;
+  ret_cfg.status_dir = _status_path;
+  ret_cfg.max_pending_points = _retention_max_pending_points;
+  ret_cfg.max_files = _retention_max_files;
+  ret_cfg.orphan_interval = _retention_orphan_interval;
+
   std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
-    retval.reset(new output<cached<asio::local::stream_protocol::socket>>(
+    retval.reset(new stream<cached<asio::local::stream_protocol::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
-        _cached_local, _write_metrics, _write_status));
+        _cached_local, ret_cfg, _write_metrics, _write_status));
   else if (_cached_port)
-    retval.reset(new output<cached<asio::ip::tcp::socket>>(
+    retval.reset(new stream<cached<asio::ip::tcp::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
-        _cached_port, _write_metrics, _write_status));
+        _cached_port, ret_cfg, _write_metrics, _write_status));
   else
-    retval.reset(new output<lib>(_metrics_path, _status_path, _cache_size,
-                                 _ignore_update_errors, _write_metrics,
-                                 _write_status));
+    retval.reset(new stream<lib>(_metrics_path, _status_path, _cache_size,
+                                 _ignore_update_errors, ret_cfg,
+                                 _write_metrics, _write_status));
   return retval;
 }
 
@@ -147,6 +159,36 @@ void connector::set_write_status(bool write_status) noexcept {
   _write_status = write_status;
 }
 
+/**
+ *  Set the maximum combined point count (metrics + statuses) before a batch
+ *  rotation is triggered.
+ *
+ *  @param[in] n  Point-count threshold (default 144 = 12 h at 1 pt / 5 min).
+ */
+void connector::set_retention_max_pending_points(uint32_t n) noexcept {
+  _retention_max_pending_points = n;
+}
+
+/**
+ *  Set the maximum number of rotated retention files per metric before a
+ *  forced partial merge is triggered.
+ *
+ *  @param[in] n  Maximum number of rotated files (default 5).
+ */
+void connector::set_retention_max_files(uint32_t n) noexcept {
+  _retention_max_files = n;
+}
+
+/**
+ *  Set the inactivity interval after which a metric's retention buffer is
+ *  considered an orphan and cleaned up.
+ *
+ *  @param[in] seconds  Interval in seconds (default 3600).
+ */
+void connector::set_retention_orphan_interval(uint32_t seconds) noexcept {
+  _retention_orphan_interval = seconds;
+}
+
 /**************************************
  *                                     *
  *           Private Methods           *
@@ -154,41 +196,26 @@ void connector::set_write_status(bool write_status) noexcept {
  **************************************/
 
 /**
- *  Get the real path (absolute, expanded) of a path.
+ *  Get the real path (absolute, symlinks resolved) of a directory path.
  *
- *  @param[in] path Path to resolve.
+ *  Uses std::filesystem::weakly_canonical so that non-existent paths are
+ *  accepted (the unresolvable tail is appended as-is).  No trailing slash
+ *  is added; callers use the filesystem path operator/ to build file paths.
  *
- *  @return Real path.
+ *  @param[in] path Directory path to resolve.
+ *
+ *  @return Resolved path.
  */
-std::string connector::_real_path_of(std::string const& path) {
-  // Variables.
-  std::string retval;
-  char* real_path{realpath(path.c_str(), nullptr)};
+std::filesystem::path connector::_real_path_of(std::string const& path) {
   auto logger = log_v2::instance().get(log_v2::RRD);
-
-  // Resolution success.
-  if (real_path) {
-    logger->info("RRD: path '{}' resolved as '{}'", path, real_path);
-    try {
-      retval = real_path;
-    } catch (...) {
-      free(real_path);
-      throw;
-    }
-    free(real_path);
-  }
-  // Resolution failure.
-  else {
-    char const* msg{strerror(errno)};
+  std::error_code ec;
+  auto resolved = std::filesystem::weakly_canonical(path, ec);
+  if (ec) {
     logger->error("RRD: could not resolve path '{}', using it as such: {}",
-                  path, msg);
-    retval = path;
+                  path, ec.message());
+    return std::filesystem::path{path};
   }
-
-  // Last slash.
-  int last_index{static_cast<int>(retval.size()) - 1};
-  if (!retval.empty() && retval[last_index] != '/')
-    retval.append("/");
-
-  return retval;
+  if (resolved.string() != path)
+    logger->info("RRD: path '{}' resolved as '{}'", path, resolved.string());
+  return resolved;
 }

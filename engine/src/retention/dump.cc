@@ -29,12 +29,10 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::downtimes;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::retention;
 
 /**
@@ -47,7 +45,6 @@ using namespace com::centreon::engine::retention;
  */
 std::ostream& dump::comment(std::ostream& os,
                             com::centreon::engine::comment const& obj) {
-  engine_logger(dbg_functions, basic) << "dump::comment()";
   functions_logger->trace("dump::comment()");
   char const* host_name;
   char const* service_description;
@@ -108,7 +105,6 @@ std::ostream& dump::comment(std::ostream& os,
  *  @return The output stream.
  */
 std::ostream& dump::comments(std::ostream& os) {
-  engine_logger(dbg_functions, basic) << "dump::comments()";
   functions_logger->trace("dump::comments()");
   for (comment_map::iterator it(comment::comments.begin()),
        end(comment::comments.end());
@@ -128,9 +124,9 @@ std::ostream& dump::comments(std::ostream& os) {
 std::ostream& dump::contact(std::ostream& os,
                             com::centreon::engine::contact const& obj) {
   uint32_t retained_contact_host_attribute_mask =
-      pb_config.retained_contact_host_attribute_mask();
+      pb_indexed_config.state().retained_contact_host_attribute_mask();
   uint32_t retained_contact_service_attribute_mask =
-      pb_config.retained_contact_service_attribute_mask();
+      pb_indexed_config.state().retained_contact_service_attribute_mask();
 
   os << "contact {\n"
         "contact_name="
@@ -219,7 +215,6 @@ std::ostream& dump::notifications(
  *  @return The output stream.
  */
 std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
-  engine_logger(dbg_functions, basic) << "dump::scheduled_downtime()";
   functions_logger->trace("dump::scheduled_downtime()");
   obj.retention(os);
   return os;
@@ -233,7 +228,6 @@ std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
  *  @return The output stream.
  */
 std::ostream& dump::downtimes(std::ostream& os) {
-  engine_logger(dbg_functions, basic) << "dump::downtimes()";
   functions_logger->trace("dump::downtimes()");
   for (auto obj = downtimes::downtime_manager::instance()
                       .get_scheduled_downtimes()
@@ -273,7 +267,7 @@ std::ostream& dump::header(std::ostream& os) {
 std::ostream& dump::host(std::ostream& os,
                          com::centreon::engine::host const& obj) {
   uint32_t retained_host_attribute_mask =
-      pb_config.retained_host_attribute_mask();
+      pb_indexed_config.state().retained_host_attribute_mask();
   os << "host {\n"
         "host_name="
      << obj.name()
@@ -482,39 +476,39 @@ std::ostream& dump::info(std::ostream& os) {
 std::ostream& dump::program(std::ostream& os) {
   os << "program {\n"
         "active_host_checks_enabled="
-     << pb_config.execute_host_checks()
+     << pb_indexed_config.state().execute_host_checks()
      << "\n"
         "active_service_checks_enabled="
-     << pb_config.execute_service_checks()
+     << pb_indexed_config.state().execute_service_checks()
      << "\n"
         "check_host_freshness="
-     << pb_config.check_host_freshness()
+     << pb_indexed_config.state().check_host_freshness()
      << "\n"
         "check_service_freshness="
-     << pb_config.check_service_freshness()
+     << pb_indexed_config.state().check_service_freshness()
      << "\n"
         "enable_event_handlers="
-     << pb_config.enable_event_handlers()
+     << pb_indexed_config.state().enable_event_handlers()
      << "\n"
         "enable_flap_detection="
-     << pb_config.enable_flap_detection()
+     << pb_indexed_config.state().enable_flap_detection()
      << "\n"
         "enable_notifications="
-     << pb_config.enable_notifications()
+     << pb_indexed_config.state().enable_notifications()
      << "\n"
         "global_host_event_handler="
-     << pb_config.global_host_event_handler().c_str()
+     << pb_indexed_config.state().global_host_event_handler().c_str()
      << "\n"
         "global_service_event_handler="
-     << pb_config.global_service_event_handler().c_str()
+     << pb_indexed_config.state().global_service_event_handler().c_str()
      << "\n"
         "modified_host_attributes="
      << (modified_host_process_attributes &
-         ~pb_config.retained_process_host_attribute_mask())
+         ~pb_indexed_config.state().retained_process_host_attribute_mask())
      << "\n"
         "modified_service_attributes="
      << (modified_service_process_attributes &
-         ~pb_config.retained_process_host_attribute_mask())
+         ~pb_indexed_config.state().retained_process_host_attribute_mask())
      << "\n"
         "next_comment_id="
      << comment::get_next_comment_id()
@@ -529,19 +523,19 @@ std::ostream& dump::program(std::ostream& os) {
      << next_problem_id
      << "\n"
         "obsess_over_hosts="
-     << pb_config.obsess_over_hosts()
+     << pb_indexed_config.state().obsess_over_hosts()
      << "\n"
         "obsess_over_services="
-     << pb_config.obsess_over_services()
+     << pb_indexed_config.state().obsess_over_services()
      << "\n"
         "passive_host_checks_enabled="
-     << pb_config.accept_passive_host_checks()
+     << pb_indexed_config.state().accept_passive_host_checks()
      << "\n"
         "passive_service_checks_enabled="
-     << pb_config.accept_passive_service_checks()
+     << pb_indexed_config.state().accept_passive_service_checks()
      << "\n"
         "process_performance_data="
-     << pb_config.process_performance_data()
+     << pb_indexed_config.state().process_performance_data()
      << "\n"
         "}\n";
   return os;
@@ -555,7 +549,7 @@ std::ostream& dump::program(std::ostream& os) {
  *  @return True on success, otherwise false.
  */
 bool dump::save(std::string const& path) {
-  if (!pb_config.retain_state_information())
+  if (!pb_indexed_config.state().retain_state_information())
     return true;
 
   bool ret = false;
@@ -563,7 +557,8 @@ bool dump::save(std::string const& path) {
     std::ofstream stream(path.c_str(), std::ios::binary | std::ios::trunc);
     if (!stream.is_open())
       throw engine_error() << "Cannot open retention file '"
-                           << pb_config.state_retention_file() << "'";
+                           << pb_indexed_config.state().state_retention_file()
+                           << "'";
     dump::header(stream);
     dump::info(stream);
     dump::program(stream);
@@ -575,7 +570,6 @@ bool dump::save(std::string const& path) {
 
     ret = true;
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic) << e.what();
     runtime_logger->error(e.what());
   }
 
@@ -719,7 +713,7 @@ std::ostream& dump::service(std::ostream& os,
      << "\n"
         "modified_attributes="
      << (obj.get_modified_attributes() &
-         ~pb_config.retained_host_attribute_mask())
+         ~pb_indexed_config.state().retained_host_attribute_mask())
      << "\n"
         "next_check="
      << static_cast<unsigned long>(obj.get_next_check())

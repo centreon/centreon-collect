@@ -90,7 +90,7 @@ endforeach()
 #centagent server and client
 add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
-  COMMENT "Generating interface files from the conf centagent proto file (grpc)"
+  COMMENT "Generating interface files from the conf centagent proto file (grpc/protobuf)"
   OUTPUT ${SRC_DIR}/agent.grpc.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
@@ -98,7 +98,6 @@ add_custom_command(
     --proto_path=${PROJECT_SOURCE_DIR}/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     --grpc_out=${SRC_DIR} ${PROJECT_SOURCE_DIR}/proto/agent.proto
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
-  COMMENT "Generating interface files from the conf centagent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/agent.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
@@ -155,6 +154,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/process/process_container.cc
   ${NATIVE_SRC}/process/process_data.cc
   ${NATIVE_SRC}/process/process_filter.cc
+  ${NATIVE_SRC}/check_files.cc
 )
 
 set( SRC_LINUX
@@ -207,6 +207,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
+    ctncrypto
     Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
@@ -220,12 +221,15 @@ else()
     centreon_common
     centreon_grpc
     centreon_process
+    ctncrypto
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits
     Boost::program_options
+    Boost::process
     fmt::fmt
     pdh
-    taskschd)
+    taskschd
+    Version.lib)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # The linker needs to know to retain debug symbols.

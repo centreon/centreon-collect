@@ -19,6 +19,7 @@
 #ifndef CCB_RRD_CREATOR_HH
 #define CCB_RRD_CREATOR_HH
 
+#include <absl/container/btree_map.h>
 #include <sys/types.h>
 
 namespace com::centreon::broker {
@@ -77,11 +78,11 @@ class creator {
 #endif  // Linux
 
   uint32_t _cache_size;
-  std::map<tmpl_info, fd_info> _fds;
-  std::string _tmpl_path;
+  absl::btree_map<tmpl_info, fd_info> _fds;
+  std::filesystem::path _tmpl_path;
 
  public:
-  creator(std::string const& tmpl_path, uint32_t cache_size);
+  creator(std::filesystem::path tmpl_path, uint32_t cache_size);
   creator(creator const&) = delete;
   ~creator();
   creator& operator=(creator const&) = delete;

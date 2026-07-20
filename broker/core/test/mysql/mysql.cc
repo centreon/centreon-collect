@@ -23,8 +23,8 @@
 #include <cmath>
 #include <future>
 
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -54,7 +54,8 @@ class DatabaseStorageTest : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+      config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
+                            0);
     } catch (std::exception const& e) {
       (void)e;
     }

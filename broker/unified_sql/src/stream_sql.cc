@@ -1,5 +1,5 @@
 /**
- * Copyright 2021-2023 Centreon
+ * Copyright 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,19 +21,15 @@
 #include <rapidjson/writer.h>
 #include <boost/preprocessor/seq/for_each.hpp>
 #include "bbdo/storage/index_mapping.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
-#include "com/centreon/broker/unified_sql/internal.hh"
-#include "com/centreon/broker/unified_sql/stream.hh"
-#include "com/centreon/common/file.hh"
+#include "com/centreon/broker/unified_sql/database_configurator.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
-#include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -71,7 +67,7 @@ static const std::string _insert_or_update_nothing_tags =
  *
  *  @param[in] instance_id Instance ID to remove.
  */
-void stream::_clean_tables(uint32_t instance_id) {
+void stream::clean_tables(uint32_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
     absl::MutexLock l(&_timer_m);
@@ -80,28 +76,23 @@ void stream::_clean_tables(uint32_t instance_id) {
 
   /* Database version. */
 
-  int32_t conn;
-
-  _finish_action(-1, -1);
+  _mysql.commit();
   if (_store_in_resources) {
     SPDLOG_LOGGER_DEBUG(
         _logger_sql, "unified sql: remove tags memberships (instance_id: {})",
         instance_id);
-    conn = special_conn::tag % _mysql.connections_count();
     _mysql.run_query(
         fmt::format("DELETE rt FROM resources_tags rt LEFT JOIN resources r ON "
                     "rt.resource_id=r.resource_id WHERE r.poller_id={}",
                     instance_id),
-        database::mysql_error::clean_resources_tags, conn);
-    _mysql.commit(conn);
+        database::mysql_error::clean_resources_tags, 0);
+    _mysql.commit(0);
   }
 
-  conn = _mysql.choose_connection_by_instance(instance_id);
   _mysql.run_query(
       fmt::format("UPDATE resources SET enabled=0 WHERE poller_id={}",
                   instance_id),
-      database::mysql_error::clean_resources, conn);
-  _add_action(conn, actions::resources);
+      database::mysql_error::clean_resources, 0);
   SPDLOG_LOGGER_DEBUG(
       _logger_sql, "unified sql: disable hosts and services (instance_id: {})",
       instance_id);
@@ -110,8 +101,7 @@ void stream::_clean_tables(uint32_t instance_id) {
       "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id = s.host_id "
       "SET h.enabled=0, s.enabled=0 WHERE h.instance_id={}",
       instance_id));
-  _mysql.run_query(query, database::mysql_error::clean_hosts_services, conn);
-  _add_action(conn, actions::hosts);
+  _mysql.run_query(query, database::mysql_error::clean_hosts_services, 0);
 
   /* Remove host group memberships. */
   SPDLOG_LOGGER_DEBUG(
@@ -122,8 +112,7 @@ void stream::_clean_tables(uint32_t instance_id) {
       "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
       "hosts_hostgroups.host_id=hosts.host_id WHERE hosts.instance_id={}",
       instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_hostgroup_members, conn);
-  _add_action(conn, actions::hostgroups);
+  _mysql.run_query(query, database::mysql_error::clean_hostgroup_members, 0);
 
   /* Remove service group memberships */
   SPDLOG_LOGGER_DEBUG(
@@ -135,9 +124,7 @@ void stream::_clean_tables(uint32_t instance_id) {
       "hosts ON services_servicegroups.host_id=hosts.host_id WHERE "
       "hosts.instance_id={}",
       instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_servicegroup_members,
-                   conn);
-  _add_action(conn, actions::servicegroups);
+  _mysql.run_query(query, database::mysql_error::clean_servicegroup_members, 0);
 
   /* Remove host parents. */
   SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -148,28 +135,25 @@ void stream::_clean_tables(uint32_t instance_id) {
       "hhp.child_id=h.host_id OR hhp.parent_id=h.host_id WHERE "
       "h.instance_id={}",
       instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_host_parents, conn);
-  _add_action(conn, actions::host_parents);
+  _mysql.run_query(query, database::mysql_error::clean_host_parents, 0);
 
   /* Remove list of modules. */
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: remove list of modules (instance_id: {})",
                       instance_id);
   query = fmt::format("DELETE FROM modules WHERE instance_id={}", instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_modules, conn);
-  _add_action(conn, actions::modules);
+  _mysql.run_query(query, database::mysql_error::clean_modules, 0);
 
   // Cancellation of downtimes.
   SPDLOG_LOGGER_DEBUG(
       _logger_sql, "unified_sql: Cancellation of downtimes (instance_id: {})",
       instance_id);
   query = fmt::format(
-      "UPDATE downtimes SET cancelled=1 WHERE actual_end_time IS NULL AND "
-      "cancelled=0 AND instance_id={}",
-      instance_id);
+      "UPDATE downtimes SET cancelled=1, actual_end_time={0}, "
+      "deletion_time={0} WHERE cancelled=0 AND instance_id={1}",
+      time(nullptr), instance_id);
 
-  _mysql.run_query(query, database::mysql_error::clean_downtimes, conn);
-  _add_action(conn, actions::downtimes);
+  _mysql.run_query(query, database::mysql_error::clean_downtimes, 0);
 
   // Remove comments.
   SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -181,8 +165,7 @@ void stream::_clean_tables(uint32_t instance_id) {
       "persistent=0 AND (deletion_time IS NULL OR deletion_time=0)",
       time(nullptr), instance_id);
 
-  _mysql.run_query(query, database::mysql_error::clean_comments, conn);
-  _add_action(conn, actions::comments);
+  _mysql.run_query(query, database::mysql_error::clean_comments, 0);
 
   // Remove custom variables. No need to choose the good instance, there are
   // no constraint between custom variables and instances.
@@ -193,9 +176,7 @@ void stream::_clean_tables(uint32_t instance_id) {
       "cv.host_id = h.host_id WHERE h.instance_id={}",
       instance_id);
 
-  _finish_action(conn, actions::custom_variables | actions::hosts);
-  _mysql.run_query(query, database::mysql_error::clean_customvariables, conn);
-  _add_action(conn, actions::custom_variables);
+  _mysql.run_query(query, database::mysql_error::clean_customvariables, 0);
 
   absl::MutexLock l(&_timer_m);
   _group_clean_timer.expires_after(std::chrono::minutes(1));
@@ -208,15 +189,13 @@ void stream::_clean_tables(uint32_t instance_id) {
 }
 
 void stream::_clean_group_table() {
-  int32_t conn = _mysql.choose_best_connection(-1);
   try {
     /* Remove host groups. */
     SPDLOG_LOGGER_DEBUG(_logger_sql, "unified_sql: remove empty host groups ");
     _mysql.run_query(
         "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
         "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
-        database::mysql_error::clean_empty_hostgroups, conn);
-    _add_action(conn, actions::hostgroups);
+        database::mysql_error::clean_empty_hostgroups, 0);
 
     /* Remove service groups. */
     SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -228,8 +207,7 @@ void stream::_clean_group_table() {
         "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE "
         "ssg.servicegroup_id "
         "IS NULL",
-        database::mysql_error::clean_empty_servicegroups, conn);
-    _add_action(conn, actions::servicegroups);
+        database::mysql_error::clean_empty_servicegroups, 0);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger_sql, "fail to clean group tables: {}",
                         e.what());
@@ -286,11 +264,6 @@ void stream::_update_hosts_and_services_of_unresponsive_instances() {
  */
 void stream::_update_hosts_and_services_of_instance(uint32_t id,
                                                     bool responsive) {
-  int32_t conn = _mysql.choose_connection_by_instance(id);
-  _finish_action(conn, actions::hosts);
-  _finish_action(-1, actions::acknowledgements | actions::modules |
-                         actions::downtimes | actions::comments);
-
   SPDLOG_LOGGER_TRACE(_logger_sql,
                       "_update_hosts_and_services_of_instance "
                       "_stored_timestamps.size()={} id={}, responsive={}",
@@ -300,30 +273,25 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
   if (responsive) {
     query = fmt::format(
         "UPDATE instances SET outdated=FALSE WHERE instance_id={}", id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::instances);
+    _mysql.run_query(query, database::mysql_error::restore_instances, 0);
     query = fmt::format(
         "UPDATE hosts SET state=real_state,real_state=NULL WHERE "
         "instance_id={} AND real_state IS NOT NULL",
         id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::hosts);
+    _mysql.run_query(query, database::mysql_error::restore_instances, 0);
     query = fmt::format(
         "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
         "SET s.state=s.real_state, s.real_state=NULL WHERE h.instance_id={} "
         "and s.real_state IS NOT NULL",
         id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::services);
+    _mysql.run_query(query, database::mysql_error::restore_instances, 0);
     query = fmt::format(
         "UPDATE agent_information SET enabled = 1 WHERE poller_id={}", id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::services);
+    _mysql.run_query(query, database::mysql_error::restore_instances, 0);
   } else {
     query = fmt::format(
         "UPDATE instances SET outdated=TRUE WHERE instance_id={}", id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::instances);
+    _mysql.run_query(query, database::mysql_error::restore_instances, 0);
     query = fmt::format(
         "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
         "SET h.real_state=h.state,s.real_state=s.state,h.state={},s.state={} "
@@ -331,12 +299,10 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         static_cast<uint32_t>(com::centreon::engine::host::state_unreachable),
         static_cast<uint32_t>(com::centreon::engine::service::state_unknown),
         id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::hosts);
+    _mysql.run_query(query, database::mysql_error::restore_instances, 0);
     query = fmt::format(
         "UPDATE agent_information SET enabled = 0 WHERE poller_id={}", id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::services);
+    _mysql.run_query(query, database::mysql_error::restore_instances, 0);
   }
   auto bbdo = config::applier::state::instance().get_bbdo_version();
   SPDLOG_LOGGER_TRACE(
@@ -480,11 +446,10 @@ void stream::_process_acknowledgement(const std::shared_ptr<io::data>& d) {
       _acknowledgement_insupdate = qp.prepare_insert_or_update(_mysql);
     }
 
-    int32_t conn = _mysql.choose_connection_by_instance(ack.poller_id);
     // Process object.
     _acknowledgement_insupdate << ack;
     _mysql.run_statement(_acknowledgement_insupdate,
-                         database::mysql_error::store_acknowledgement, conn);
+                         database::mysql_error::store_acknowledgement, 0);
   }
 }
 
@@ -546,11 +511,10 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
           });
     }
 
-    int32_t conn = _mysql.choose_connection_by_instance(ack_obj.instance_id());
     // Process object.
     _pb_acknowledgement_insupdate << ack;
     _mysql.run_statement(_pb_acknowledgement_insupdate,
-                         database::mysql_error::store_acknowledgement, conn);
+                         database::mysql_error::store_acknowledgement, 0);
   }
 }
 
@@ -562,9 +526,6 @@ void stream::_process_pb_acknowledgement(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_comment(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::hosts | actions::instances |
-                         actions::host_parents | actions::comments);
-
   // Cast object.
   neb::comment const& cmmnt{*static_cast<neb::comment const*>(d.get())};
 
@@ -649,7 +610,7 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
                        "unified_sql: enable custom variable '{}' of ({}, {})",
                        cv.name(), cv.host_id(), cv.service_id());
 
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock l(&_cv_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(cv.name(),
@@ -665,9 +626,6 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
                              get_centreon_storage_customvariables_col_size(
                                  centreon_storage_customvariables_value))));
   } else {
-    int conn = special_conn::custom_variable % _mysql.connections_count();
-    _finish_action(-1, actions::custom_variables);
-
     SPDLOG_LOGGER_INFO(
         _logger_sql, "unified_sql: disabling custom variable '{}' of ({}, {})",
         cv.name(), cv.host_id(), cv.service_id());
@@ -676,8 +634,7 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
     _custom_variable_delete.bind_value_as_str_k(":name", cv.name());
 
     _mysql.run_statement(_custom_variable_delete,
-                         database::mysql_error::remove_customvariable, conn);
-    _add_action(conn, actions::custom_variables);
+                         database::mysql_error::remove_customvariable, 0);
   }
 }
 
@@ -772,7 +729,7 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (cv.enabled) {
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock l(&_cv_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(cv.name,
@@ -791,9 +748,6 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
      * because it will be updated later when the bulk query will be
      * done: stream::_update_customvariables() */
   } else {
-    int conn = special_conn::custom_variable % _mysql.connections_count();
-    _finish_action(-1, actions::custom_variables);
-
     SPDLOG_LOGGER_INFO(
         _logger_sql, "unified_sql: disabling custom variable '{}' of ({}, {})",
         cv.name, cv.host_id, cv.service_id);
@@ -802,8 +756,7 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
     _custom_variable_delete.bind_value_as_str_k(":name", cv.name);
 
     _mysql.run_statement(_custom_variable_delete,
-                         database::mysql_error::remove_customvariable, conn);
-    _add_action(conn, actions::custom_variables);
+                         database::mysql_error::remove_customvariable, 0);
   }
 }
 
@@ -820,6 +773,7 @@ void stream::_process_custom_variable_status(
   const neb::custom_variable_status& cv{
       *static_cast<neb::custom_variable_status const*>(d.get())};
 
+  absl::MutexLock l(&_cv_m);
   _cvs.push_query(fmt::format(
       "('{}',{},{},{},{},'{}')",
       misc::string::escape(cv.name,
@@ -849,6 +803,7 @@ void stream::_process_pb_custom_variable_status(
       *static_cast<neb::pb_custom_variable_status const*>(d.get())};
 
   const com::centreon::broker::CustomVariable& data = cv.obj();
+  absl::MutexLock l(&_cv_m);
   _cvs.push_query(fmt::format(
       "('{}',{},{},{},{},'{}')",
       misc::string::escape(data.name(),
@@ -868,9 +823,8 @@ void stream::_process_pb_custom_variable_status(
 /**
  *  Process a downtime event.
  *
- *  @param[in] e Uncasted downtime.
+ *  @param[in] d Uncasted downtime.
  *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
   // Cast object.
@@ -878,105 +832,70 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
 
   // Log message.
   SPDLOG_LOGGER_INFO(_logger_sql,
-                     "unified_sql: processing downtime event (poller: {}"
-                     ", host: {}, service: {}, start time: {}, end_time: {}"
-                     ", actual start time: {}, actual end time: {}, duration: "
-                     "{}, entry time: {}, deletion time: {})",
-                     dd.poller_id, dd.host_id, dd.service_id, dd.start_time,
-                     dd.end_time, dd.actual_start_time, dd.actual_end_time,
-                     dd.duration, dd.entry_time, dd.deletion_time);
+                     "unified_sql: processing downtime event (entry time: {}, "
+                     "poller: {}, internal ID: {}, host: {}, service: {}, "
+                     "start time: {}, end_time: {}, actual start time: {}, "
+                     "actual end time: {}, duration: {}, deletion time: {})",
+                     dd.entry_time, dd.poller_id, dd.internal_id, dd.host_id,
+                     dd.service_id, dd.start_time, dd.end_time,
+                     dd.actual_start_time, dd.actual_end_time, dd.duration,
+                     dd.deletion_time);
 
-  // Check if poller is valid.
-  if (_is_valid_poller(dd.poller_id)) {
-    if (_downtimes->is_bulk()) {
-      auto binder = [&](database::mysql_bulk_bind& b) {
-        if (dd.actual_end_time.is_null())
-          b.set_null_i64(0);
-        else
-          b.set_value_as_i64(0, dd.actual_end_time);
-        if (dd.actual_start_time.is_null())
-          b.set_null_i64(1);
-        else
-          b.set_value_as_i64(1, dd.actual_start_time);
-        b.set_value_as_str(
-            2, misc::string::escape(dd.author,
-                                    get_centreon_storage_downtimes_col_size(
-                                        centreon_storage_downtimes_author)));
-        b.set_value_as_i32(3, dd.downtime_type);
-        if (dd.deletion_time.is_null())
-          b.set_null_i64(4);
-        else
-          b.set_value_as_i64(4, dd.deletion_time);
-        b.set_value_as_i64(5, dd.duration);
-        if (dd.end_time.is_null())
-          b.set_null_i64(6);
-        else
-          b.set_value_as_i64(6, dd.end_time);
-        if (dd.entry_time.is_null())
-          b.set_null_i64(7);
-        else
-          b.set_value_as_i64(7, dd.entry_time);
-        b.set_value_as_tiny(8, int(dd.fixed));
-        b.set_value_as_i64(9, dd.host_id);
-        b.set_value_as_i64(10, dd.poller_id);
-        b.set_value_as_i64(11, dd.internal_id);
-        b.set_value_as_i64(12, dd.service_id);
-        if (dd.start_time.is_null())
-          b.set_null_i64(13);
-        else
-          b.set_value_as_i64(13, dd.start_time);
-        if (dd.triggered_by == 0)
-          b.set_null_i32(14);
-        else
-          b.set_value_as_i32(14, dd.triggered_by);
-        b.set_value_as_tiny(15, int(dd.was_cancelled));
-        b.set_value_as_tiny(16, int(dd.was_started));
-        b.set_value_as_str(
-            17, misc::string::escape(
-                    dd.comment, get_centreon_storage_downtimes_col_size(
-                                    centreon_storage_downtimes_comment_data)));
-        b.next_row();
-      };
-      _downtimes->add_bulk_row(binder);
-    } else {
-      _logger_sql->error("original actual end time {} is null {}",
-                         dd.actual_end_time.get_time_t(),
-                         dd.actual_end_time.is_null());
-      _logger_sql->error("actual end time {}", dd.actual_end_time);
-      _downtimes->add_multi_row(fmt::format(
-          "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-          dd.actual_end_time.to_string(), dd.actual_start_time.to_string(),
-          misc::string::escape(dd.author,
-                               get_centreon_storage_downtimes_col_size(
-                                   centreon_storage_downtimes_author)),
-          dd.downtime_type, dd.deletion_time.to_string(), dd.duration,
-          dd.end_time.to_string(), dd.entry_time.to_string(), dd.fixed,
-          dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
-          dd.start_time, int64_not_minus_one{dd.triggered_by}, dd.was_cancelled,
-          dd.was_started,
-          misc::string::escape(dd.comment,
-                               get_centreon_storage_downtimes_col_size(
-                                   centreon_storage_downtimes_comment_data))));
-    }
-  }
+  // Cast object.
+  std::shared_ptr<neb::pb_downtime> pb_dd =
+      std::static_pointer_cast<neb::pb_downtime>(neb::bbdo2_to_bbdo3(d));
+
+  absl::MutexLock l(&_downtimes_m);
+  auto& obj = pb_dd->obj();
+  _logger_sql->debug("Storing downtime at {}:{}:{}", obj.entry_time(),
+                     obj.instance_id(), obj.id());
+  _pending_downtimes.insert_or_assign(
+      std::make_tuple(obj.entry_time(), obj.instance_id(), obj.id()), pb_dd);
 }
 
 /**
  *  Process a downtime (protobuf) event.
  *
- *  @param[in] e Uncasted downtime.
+ *  @param[in] d Uncasted downtime.
  *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  const neb::pb_downtime& dd = *static_cast<neb::pb_downtime const*>(d.get());
-  auto& dt_obj = dd.obj();
-
+  auto& dt_obj = static_cast<const neb::pb_downtime*>(d.get())->obj();
   // Log message.
   SPDLOG_LOGGER_INFO(
       _logger_sql,
-      "unified_sql: processing pb downtime event (poller: {}"
+      "unified_sql: processing pb downtime event (entry time: {}, "
+      "poller: {}, internal ID: {}, host: {}, service: {}, "
+      "start time: {}, end_time: {}, actual start time: {}, "
+      "actual end time: {}, duration: {}, deletion time: {}, "
+      "started: {}, cancelled: {})",
+      dt_obj.entry_time(), dt_obj.instance_id(), dt_obj.id(), dt_obj.host_id(),
+      dt_obj.service_id(), dt_obj.start_time(), dt_obj.end_time(),
+      dt_obj.actual_start_time(), dt_obj.actual_end_time(), dt_obj.duration(),
+      dt_obj.deletion_time(), dt_obj.started(), dt_obj.cancelled());
+
+  // Cast object.
+  const auto dd = std::static_pointer_cast<neb::pb_downtime>(d);
+
+  absl::MutexLock l(&_downtimes_m);
+  auto& obj = dd->obj();
+  _pending_downtimes.insert_or_assign(
+      std::make_tuple(obj.entry_time(), obj.instance_id(), obj.id()), dd);
+}
+
+/**
+ *  Process a downtime (protobuf) event, specific function to write into DB.
+ *
+ *  @param[in] d Shared pointer to downtime event.
+ *
+ */
+void stream::_internal_process_downtime(
+    const std::shared_ptr<neb::pb_downtime>& d) {
+  // Cast object.
+  auto& dt_obj = d->obj();
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: writing into database downtime event (poller: {}"
       ", host: {}, service: {}, start time: {}, end_time: {}, "
       "actual start time: {}, actual end time: {}, duration: "
       "{}, entry time: {}, deletion time: {}, started: {}, cancelled: {})",
@@ -1052,11 +971,25 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 }
 
 bool stream::_host_instance_known(uint64_t host_id) const {
-  bool retval = _cache_host_instance.find(static_cast<uint32_t>(host_id)) !=
-                _cache_host_instance.end();
-  if (retval)
-    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
-  return retval;
+  auto& cache = config::applier::state::instance().cache();
+  const auto host = cache.host(host_id);
+  _logger_sql->debug("Checking if host {} is known by any poller: {}", host_id,
+                     host != nullptr);
+  if (host)
+    _logger_sql->debug("Host {} instance_id: {}", host_id,
+                       host->obj().instance_id());
+
+  return host && host->obj().instance_id() != 0;
+
+  //  bool retval = _cache_host_instance.find(static_cast<uint32_t>(host_id)) !=
+  //                _cache_host_instance.end();
+  //  //  FIXME DBO: with the centralized configuration, checks are executed
+  //  earlier
+  //  //  than before and it is possible that the cache is not ready when first
+  //  //  checks arrive. So we temporarily disable this assert.
+  //  //  if (retval)
+  //  //    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
+  //  return retval;
 }
 
 /**
@@ -1067,9 +1000,6 @@ bool stream::_host_instance_known(uint64_t host_id) const {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::host_parents);
-
   // Cast object.
   neb::host_check const& hc = *static_cast<neb::host_check const*>(d.get());
   if (!_host_instance_known(hc.host_id)) {
@@ -1111,13 +1041,9 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
       store = false;
 
     if (store) {
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[hc.host_id]);
-
       _host_check_update << hc;
       _mysql.run_statement(_host_check_update,
-                           database::mysql_error::store_host_check, conn);
-      _add_action(conn, actions::hosts);
+                           database::mysql_error::store_host_check, 0);
     }
   } else
     // Do nothing.
@@ -1137,9 +1063,6 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::host_parents);
-
   // Cast object.
   const neb::pb_host_check& hc_obj =
       *static_cast<neb::pb_host_check const*>(d.get());
@@ -1191,13 +1114,9 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
       store = false;
 
     if (store) {
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[hc.host_id()]);
-
       _pb_host_check_update << hc_obj;
       _mysql.run_statement(_pb_host_check_update,
-                           database::mysql_error::store_host_check, conn);
-      _add_action(conn, actions::hosts);
+                           database::mysql_error::store_host_check, 0);
     }
   } else
     // Do nothing.
@@ -1217,8 +1136,6 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_group % _mysql.connections_count();
-
   // Cast object.
   const neb::host_group& hg{*static_cast<const neb::host_group*>(d.get())};
 
@@ -1231,8 +1148,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
 
     _host_group_insupdate << hg;
     _mysql.run_statement(_host_group_insupdate,
-                         database::mysql_error::store_host_group, conn);
-    _hostgroup_cache.insert(hg.id);
+                         database::mysql_error::store_host_group, 0);
   }
   // Delete group.
   else {
@@ -1241,14 +1157,8 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
         "unified_sql: disabling host group {} ('{}' on instance {})", hg.id,
         hg.name, hg.poller_id);
 
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->remove_host_group_members(hg.id, hg.poller_id);
-    }
-
     // Delete group members.
     {
-      _finish_action(-1, actions::hosts);
       std::string query(
           fmt::format("DELETE hosts_hostgroups FROM hosts_hostgroups "
                       "LEFT JOIN hosts"
@@ -1256,11 +1166,9 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
                       " WHERE hosts_hostgroups.hostgroup_id={} AND "
                       "hosts.instance_id={}",
                       hg.id, hg.poller_id));
-      _mysql.run_query(query, database::mysql_error::empty, conn);
-      _hostgroup_cache.erase(hg.id);
+      _mysql.run_query(query, database::mysql_error::empty, 0);
     }
   }
-  _add_action(conn, actions::hostgroups);
 }
 
 /**
@@ -1271,8 +1179,6 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_group % _mysql.connections_count();
-
   // Cast object.
   std::shared_ptr<neb::pb_host_group> hgd =
       std::static_pointer_cast<neb::pb_host_group>(d);
@@ -1288,8 +1194,7 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
 
     _pb_host_group_insupdate << *hgd;
     _mysql.run_statement(_pb_host_group_insupdate,
-                         database::mysql_error::store_host_group, conn);
-    _hostgroup_cache.insert(hg.hostgroup_id());
+                         database::mysql_error::store_host_group, 0);
   }
   // Delete group.
   else {
@@ -1297,26 +1202,15 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
                        "SQL: disabling host group {} ('{}' on instance {})",
                        hg.hostgroup_id(), hg.name(), hg.poller_id());
 
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->remove_host_group_members(hg.hostgroup_id(), hg.poller_id());
-    }
-
     // Delete group members.
     {
-      _finish_action(-1, actions::hosts);
-      std::string query(
-          fmt::format("DELETE hosts_hostgroups FROM hosts_hostgroups "
-                      "LEFT JOIN hosts"
-                      " ON hosts_hostgroups.host_id=hosts.host_id"
-                      " WHERE hosts_hostgroups.hostgroup_id={} AND "
-                      "hosts.instance_id={}",
-                      hg.hostgroup_id(), hg.poller_id()));
-      _mysql.run_query(query, database::mysql_error::empty, conn);
-      _hostgroup_cache.erase(hg.hostgroup_id());
+      std::string query(fmt::format(
+          "DELETE FROM hosts_hostgroups WHERE hostgroup_id={} AND host_id IN "
+          "(SELECT host_id FROM hosts WHERE instance_id={})",
+          hg.hostgroup_id(), hg.poller_id()));
+      _mysql.run_query(query, database::mysql_error::empty, 0);
     }
   }
-  _add_action(conn, actions::hostgroups);
 }
 
 /**
@@ -1327,9 +1221,6 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_group % _mysql.connections_count();
-  _finish_action(-1, actions::hosts);
-
   // Cast object.
   const neb::host_group_member& hgm{
       *static_cast<const neb::host_group_member*>(d.get())};
@@ -1343,8 +1234,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     return;
   }
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
   if (hgm.enabled) {
     // Log message.
     SPDLOG_LOGGER_INFO(
@@ -1352,9 +1241,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: enabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->add_host_to_group(hgm.group_id, hgm.host_id, hgm.poller_id);
-    }
     // We only need to try to insert in this table as the
     // host_id/hostgroup_id should be UNIQUE.
     if (!_host_group_member_insert.prepared()) {
@@ -1366,8 +1252,10 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_cache_host_instance[hgm.host_id]) {
-      if (_hostgroup_cache.find(hgm.group_id) == _hostgroup_cache.end()) {
+    if (_host_instance_known(hgm.host_id)) {
+      auto& cache = config::applier::state::instance().cache();
+      const auto hostgroup = cache.hostgroup(hgm.group_id);
+      if (!hostgroup) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of "
@@ -1375,23 +1263,23 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
                             hgm.group_id, hgm.group_name);
         _prepare_hg_insupdate_statement();
 
-        neb::host_group hg;
-        hg.id = hgm.group_id;
-        hg.name = hgm.group_name;
-        hg.enabled = true;
-        hg.poller_id = _cache_host_instance[hgm.host_id];
+        auto hg = std::make_shared<neb::pb_host_group>();
+        auto& obj = hg->mut_obj();
+        obj.set_hostgroup_id(hgm.group_id);
+        obj.set_name(hgm.group_name);
+        obj.set_enabled(true);
+        const auto& host = cache.host(hgm.host_id);
+        obj.set_poller_id(host->obj().instance_id());
 
-        _host_group_insupdate << hg;
-        _mysql.run_statement(_host_group_insupdate,
-                             database::mysql_error::store_host_group, conn);
-        _hostgroup_cache.insert(hgm.group_id);
+        _pb_host_group_insupdate << *hg;
+        _mysql.run_statement(_pb_host_group_insupdate,
+                             database::mysql_error::store_host_group, 0);
+        cache.update_hostgroup(hg);
       }
 
       _host_group_member_insert << hgm;
       _mysql.run_statement(_host_group_member_insert,
-                           database::mysql_error::store_host_group_member,
-                           conn);
-      _add_action(conn, actions::hostgroups);
+                           database::mysql_error::store_host_group_member, 0);
     } else
       SPDLOG_LOGGER_ERROR(
           _logger_sql,
@@ -1407,10 +1295,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->remove_host_from_group(hgm.group_id, hgm.host_id);
-    }
-
     if (!_host_group_member_delete.prepared()) {
       query_preparator::event_unique unique;
       unique.insert("hostgroup_id");
@@ -1420,8 +1304,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     }
     _host_group_member_delete << hgm;
     _mysql.run_statement(_host_group_member_delete,
-                         database::mysql_error::delete_host_group_member, conn);
-    _add_action(conn, actions::hostgroups);
+                         database::mysql_error::delete_host_group_member, 0);
   }
 }
 
@@ -1433,9 +1316,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_group % _mysql.connections_count();
-  _finish_action(-1, actions::hosts);
-
   // Cast object.
   const neb::pb_host_group_member& hgmp{
       *static_cast<const neb::pb_host_group_member*>(d.get())};
@@ -1453,8 +1333,6 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
     return;
   }
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
   if (hgm.enabled()) {
     // Log message.
     SPDLOG_LOGGER_INFO(
@@ -1462,10 +1340,6 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: enabling membership of host {} to host group {} on instance {}",
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
-    if (cache_ptr) {
-      cache_ptr->add_host_to_group(hgm.hostgroup_id(), hgm.host_id(),
-                                   hgm.poller_id());
-    }
     // We only need to try to insert in this table as the
     // host_id/hostgroup_id should be UNIQUE.
     if (!_pb_host_group_member_insert.prepared()) {
@@ -1481,32 +1355,34 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_cache_host_instance[hgm.host_id()]) {
-      if (_hostgroup_cache.find(hgm.hostgroup_id()) == _hostgroup_cache.end()) {
+    if (_host_instance_known(hgm.host_id())) {
+      auto& cache = config::applier::state::instance().cache();
+      const auto hostgroup = cache.hostgroup(hgm.hostgroup_id());
+      if (!hostgroup) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of members",
                             hgm.hostgroup_id(), hgm.name());
         _prepare_pb_hg_insupdate_statement();
 
-        neb::pb_host_group hg;
-        auto& obj = hg.mut_obj();
+        auto hg = std::make_shared<neb::pb_host_group>();
+        auto& obj = hg->mut_obj();
         obj.set_hostgroup_id(hgm.hostgroup_id());
         obj.set_name(hgm.name());
         obj.set_enabled(true);
-        obj.set_poller_id(_cache_host_instance[hgm.host_id()]);
+        auto& cache = config::applier::state::instance().cache();
+        const auto& host = cache.host(hgm.host_id());
+        obj.set_poller_id(host->obj().instance_id());
 
-        _pb_host_group_insupdate << hg;
+        _pb_host_group_insupdate << *hg;
         _mysql.run_statement(_pb_host_group_insupdate,
-                             database::mysql_error::store_host_group, conn);
-        _hostgroup_cache.insert(hgm.hostgroup_id());
+                             database::mysql_error::store_host_group, 0);
+        cache.update_hostgroup(hg);
       }
 
       _pb_host_group_member_insert << hgmp;
       _mysql.run_statement(_pb_host_group_member_insert,
-                           database::mysql_error::store_host_group_member,
-                           conn);
-      _add_action(conn, actions::hostgroups);
+                           database::mysql_error::store_host_group_member, 0);
     } else
       SPDLOG_LOGGER_ERROR(
           _logger_sql,
@@ -1522,17 +1398,11 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
-    if (cache_ptr) {
-      cache_ptr->remove_host_from_group(hgm.hostgroup_id(), hgm.host_id());
-    }
-
     std::string query = fmt::format(
         "DELETE FROM hosts_hostgroups WHERE host_id={} and hostgroup_id = {}",
         hgm.host_id(), hgm.hostgroup_id());
 
-    _mysql.run_query(query, database::mysql_error::delete_host_group_member,
-                     conn);
-    _add_action(conn, actions::hostgroups);
+    _mysql.run_query(query, database::mysql_error::delete_host_group_member, 0);
   }
 }
 
@@ -1544,9 +1414,6 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_host(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::instances | actions::hostgroups |
-                         actions::host_parents | actions::custom_variables |
-                         actions::downtimes | actions::comments);
   neb::host& h = *static_cast<neb::host*>(d.get());
 
   // Log message.
@@ -1555,19 +1422,12 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
       "SQL: processing host event (poller: {}, host: {}, name: {})",
       h.poller_id, h.host_id, h.host_name);
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
-  if (cache_ptr) {
-    cache_ptr->store_host(h.host_id, h.host_name, 0, 0);
-  }
-
   // Processing
   if (_is_valid_poller(h.poller_id)) {
     // FixMe BAM Generate fake host, this host
     // does not contains a display_name
     // We should not store them in db
     if (h.host_id && !h.alias.empty()) {
-      int32_t conn = _mysql.choose_connection_by_instance(h.poller_id);
-
       // Prepare queries.
       if (!_host_insupdate.prepared()) {
         query_preparator::event_unique unique;
@@ -1579,14 +1439,17 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
       // Process object.
       _host_insupdate << h;
       _mysql.run_statement(_host_insupdate, database::mysql_error::store_host,
-                           conn);
-      _add_action(conn, actions::hosts);
+                           0);
 
       // Fill the cache...
-      if (h.enabled)
-        _cache_host_instance[h.host_id] = h.poller_id;
-      else
-        _cache_host_instance.erase(h.host_id);
+      auto& cache = config::applier::state::instance().cache();
+      cache.update_host(
+          std::static_pointer_cast<neb::pb_host>(neb::bbdo2_to_bbdo3(d)));
+      // FIXME DBO
+      // if (h.enabled)
+      //   _cache_host_instance[h.host_id] = h.poller_id;
+      // else
+      //   _cache_host_instance.erase(h.host_id);
     } else
       SPDLOG_LOGGER_TRACE(
           _logger_sql,
@@ -1604,9 +1467,6 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_parent % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::comments | actions::downtimes);
-
   neb::host_parent const& hp(*static_cast<neb::host_parent const*>(d.get()));
 
   // Enable parenting.
@@ -1624,8 +1484,7 @@ void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
     // Insert.
     _host_parent_insert << hp;
     _mysql.run_statement(_host_parent_insert,
-                         database::mysql_error::store_host_parentship, conn);
-    _add_action(conn, actions::host_parents);
+                         database::mysql_error::store_host_parentship, 0);
   }
   // Disable parenting.
   else {
@@ -1644,9 +1503,7 @@ void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
 
     // Delete.
     _host_parent_delete << hp;
-    _mysql.run_statement(_host_parent_delete, database::mysql_error::empty,
-                         conn);
-    _add_action(conn, actions::host_parents);
+    _mysql.run_statement(_host_parent_delete, database::mysql_error::empty, 0);
   }
 }
 
@@ -1658,9 +1515,6 @@ void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::host_parent % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::comments | actions::downtimes);
-
   std::shared_ptr<neb::pb_host_parent> hpp =
       std::static_pointer_cast<neb::pb_host_parent>(d);
   const HostParent& hp = hpp->obj();
@@ -1687,8 +1541,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
     // Insert.
     _pb_host_parent_insert << *hpp;
     _mysql.run_statement(_pb_host_parent_insert,
-                         database::mysql_error::store_host_parentship, conn);
-    _add_action(conn, actions::host_parents);
+                         database::mysql_error::store_host_parentship, 0);
   }
   // Disable parenting.
   else {
@@ -1709,8 +1562,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
     // Delete.
     _pb_host_parent_delete << *hpp;
     _mysql.run_statement(_pb_host_parent_delete, database::mysql_error::empty,
-                         conn);
-    _add_action(conn, actions::host_parents);
+                         0);
   }
 }
 
@@ -1722,289 +1574,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
  * @param d Uncasted Protobuf instance configuration.
  */
 void stream::_process_pb_instance_configuration(
-    const std::shared_ptr<io::data>& d) {
-  /* The configuration has just been updated, so we can get the configuration
-   * from the php cache directory and copy it into the broker cache engine
-   * configuration directory. */
-  std::shared_ptr<neb::pb_instance_configuration> ic =
-      std::static_pointer_cast<neb::pb_instance_configuration>(d);
-  auto obj = ic->obj();
-  SPDLOG_LOGGER_INFO(
-      _logger_sql,
-      "unified_sql: processing Pb instance configuration (poller {})",
-      obj.poller_id());
-  std::string current_version =
-      config::applier::state::instance().engine_configuration(obj.poller_id());
-  /* The instance configuration message is only interesting with extended
-   * negociation. */
-  if (!current_version.empty() &&
-      !config::applier::state::instance().config_cache_dir().empty()) {
-    std::filesystem::path poller_dir =
-        config::applier::state::instance().pollers_config_dir() /
-        fmt::to_string(obj.poller_id());
-    std::filesystem::path cache_dir =
-        config::applier::state::instance().config_cache_dir() /
-        fmt::to_string(obj.poller_id());
-    if (!std::filesystem::exists(cache_dir)) {
-      _logger_sql->error(
-          "unified_sql: The cache directory that should contain the engine "
-          "configuration does not exist: '{}'",
-          cache_dir.string());
-      return;
-    }
-    std::error_code ec;
-    std::string new_version = common::hash_directory(cache_dir, ec);
-    if (ec) {
-      _logger_sql->error(
-          "unified_sql: Error while hashing the cache directory '{}': {}",
-          cache_dir.string(), ec.message());
-    }
-    if (new_version != current_version) {
-      _logger_sql->debug(
-          "unified_sql: New engine configuration, broker directories updated");
-      std::filesystem::path pollers_dir =
-          config::applier::state::instance().pollers_config_dir();
-      if (!std::filesystem::exists(pollers_dir)) {
-        _logger_sql->trace(
-            "unified_sql: Broker poller directory '{}' does not exist, "
-            "creating "
-            "it",
-            cache_dir.string());
-        std::filesystem::create_directories(cache_dir);
-      }
-      if (!std::filesystem::is_empty(poller_dir)) {
-        _logger_sql->trace(
-            "unified_sql: Broker poller directory '{}' is not empty, cleaning "
-            "it",
-            poller_dir.string());
-        std::filesystem::remove_all(poller_dir);
-      }
-      std::filesystem::copy(cache_dir, poller_dir,
-                            std::filesystem::copy_options::recursive);
-      config::applier::state::instance().set_engine_configuration(
-          obj.poller_id(), new_version);
-      _logger_sql->info("SQL: Poller {} configuration updated in '{}'",
-                        obj.poller_id(), poller_dir.string());
-    } else {
-      _logger_sql->debug(
-          "unified_sql: Engine configuration already known by Broker");
-    }
-
-    if (_is_valid_poller(obj.poller_id())) {
-      engine::configuration::State state;
-      engine::configuration::state_helper state_hlp(&state);
-      engine::configuration::error_cnt err;
-      engine::configuration::parser p;
-      try {
-        p.parse(poller_dir / "centengine.cfg", &state, err);
-        state_hlp.expand(err);
-
-        if (_store_in_hosts_services) {
-          if (!_eh_update) {
-            if (_bulk_prepared_statement) {
-              auto eh = std::make_unique<database::mysql_bulk_stmt>(
-                  "UPDATE hosts SET enabled = 1 WHERE host_id = ?");
-              _mysql.prepare_statement(*eh);
-              _eh_bind = std::make_unique<bulk_bind>(
-                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
-                  _max_pending_queries, *eh, _logger_sql);
-              _eh_update = std::move(eh);
-            } else {
-              _eh_update = std::make_unique<database::mysql_stmt>(
-                  "UPDATE hosts SET enabled = 1 WHERE host_id = ?");
-              _mysql.prepare_statement(*_eh_update);
-            }
-          }
-
-          if (!_es_update) {
-            if (_bulk_prepared_statement) {
-              auto es = std::make_unique<database::mysql_bulk_stmt>(
-                  "UPDATE services SET enabled=1 WHERE host_id=? AND "
-                  "service_id=?");
-              _mysql.prepare_statement(*es);
-              _es_bind = std::make_unique<bulk_bind>(
-                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
-                  _max_pending_queries, *es, _logger_sql);
-              _es_update = std::move(es);
-            } else {
-              _es_update = std::make_unique<database::mysql_stmt>(
-                  "UPDATE services SET enabled=1 WHERE host_id=? AND "
-                  "service_id=?");
-              _mysql.prepare_statement(*_es_update);
-            }
-          }
-
-          if (_bulk_prepared_statement) {
-            for (const auto& h : state.hosts()) {
-              if (!_eh_bind->bind(0))
-                _eh_bind->init_from_stmt(0);
-              auto* b = _eh_bind->bind(0).get();
-              b->set_value_as_u64(0, h.host_id());
-              b->next_row();
-            }
-            SPDLOG_LOGGER_TRACE(
-                _logger_sql,
-                "Check if some statements are ready, eh_bind connections "
-                "count = {}",
-                _eh_bind->connections_count());
-            if (_eh_bind->size(0) > 0) {
-              SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                  "Enabling {} hosts in hosts table",
-                                  _eh_bind->size(0));
-              // Setting the good bind to the stmt
-              _eh_bind->apply_to_stmt(0);
-              // Executing the stmt
-              _mysql.run_statement(
-                  *_eh_update, database::mysql_error::update_hosts_enabled, 0);
-            }
-            for (const auto& s : state.services()) {
-              if (!_es_bind->bind(0))
-                _es_bind->init_from_stmt(0);
-              auto* b = _es_bind->bind(0).get();
-              b->set_value_as_u64(0, s.host_id());
-              b->set_value_as_u64(1, s.service_id());
-              b->next_row();
-            }
-            SPDLOG_LOGGER_TRACE(
-                _logger_sql,
-                "Check if some statements are ready, es_bind connections "
-                "count = {}",
-                _es_bind->connections_count());
-            if (_es_bind->size(0) > 0) {
-              SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                  "Enabling {} services in services table",
-                                  _es_bind->size(0));
-              // Setting the good bind to the stmt
-              _es_bind->apply_to_stmt(0);
-              // Executing the stmt
-              _mysql.run_statement(
-                  *_es_update, database::mysql_error::update_services_enabled,
-                  0);
-            }
-          } else {
-            for (const auto& h : state.hosts()) {
-              _eh_update->bind_value_as_u64(0, h.host_id());
-              _mysql.run_statement(
-                  *_eh_update, database::mysql_error::update_hosts_enabled, 0);
-            }
-            for (const auto& s : state.services()) {
-              _es_update->bind_value_as_u64(0, s.host_id());
-              _es_update->bind_value_as_u64(1, s.service_id());
-              _mysql.run_statement(
-                  *_es_update, database::mysql_error::update_services_enabled,
-                  0);
-            }
-          }
-        }
-        if (_store_in_resources) {
-          if (!_ehr_update) {
-            std::string query =
-                "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0";
-            if (_bulk_prepared_statement) {
-              auto ehr = std::make_unique<database::mysql_bulk_stmt>(query);
-              _mysql.prepare_statement(*ehr);
-              _ehr_bind = std::make_unique<bulk_bind>(
-                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
-                  _max_pending_queries, *ehr, _logger_sql);
-              _ehr_update = std::move(ehr);
-            } else {
-              _ehr_update = std::make_unique<database::mysql_stmt>(query);
-              _mysql.prepare_statement(*_ehr_update);
-            }
-          }
-          if (!_esr_update) {
-            std::string query =
-                "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?";
-            if (_bulk_prepared_statement) {
-              auto esr = std::make_unique<database::mysql_bulk_stmt>(query);
-              _mysql.prepare_statement(*esr);
-              _esr_bind = std::make_unique<bulk_bind>(
-                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
-                  _max_pending_queries, *esr, _logger_sql);
-              _esr_update = std::move(esr);
-            } else {
-              _esr_update = std::make_unique<database::mysql_stmt>(query);
-              _mysql.prepare_statement(*_esr_update);
-            }
-          }
-
-          if (_bulk_prepared_statement) {
-            for (const auto& h : state.hosts()) {
-              if (!_ehr_bind->bind(0))
-                _ehr_bind->init_from_stmt(0);
-              auto* b = _ehr_bind->bind(0).get();
-              _logger_sql->debug("Enabling host_id: {}", h.host_id());
-              b->set_value_as_u64(0, h.host_id());
-              b->next_row();
-            }
-            SPDLOG_LOGGER_TRACE(
-                _logger_sql,
-                "Check if some statements are ready, ehr_bind connections "
-                "count = {}",
-                _ehr_bind->connections_count());
-
-            if (_ehr_bind->size(0) > 0) {
-              SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                  "Enabling {} hosts in resources table",
-                                  _ehr_bind->size(0));
-              // Setting the good bind to the stmt
-              _ehr_bind->apply_to_stmt(0);
-              // Executing the stmt
-              _mysql.run_statement(
-                  *_ehr_update,
-                  database::mysql_error::update_hosts_resources_enabled, 0);
-            }
-            for (const auto& s : state.services()) {
-              if (!_esr_bind->bind(0))
-                _esr_bind->init_from_stmt(0);
-              _logger_sql->debug("Enabling service ({}:{})", s.host_id(),
-                                 s.service_id());
-              auto* b = _esr_bind->bind(0).get();
-              b->set_value_as_u64(0, s.host_id());
-              b->set_value_as_u64(1, s.service_id());
-              b->next_row();
-            }
-            SPDLOG_LOGGER_TRACE(
-                _logger_sql,
-                "Check if some statements are ready, esr_bind connections "
-                "count = {}",
-                _esr_bind->connections_count());
-            if (_esr_bind->size(0) > 0) {
-              SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                  "Enabling {} services in resources table",
-                                  _esr_bind->size(0));
-              // Setting the good bind to the stmt
-              _esr_bind->apply_to_stmt(0);
-              // Executing the stmt
-              _mysql.run_statement(
-                  *_esr_update,
-                  database::mysql_error::update_services_resources_enabled, 0);
-            }
-          } else {
-            for (const auto& h : state.hosts()) {
-              _ehr_update->bind_value_as_u64(0, h.host_id());
-              _mysql.run_statement(
-                  *_ehr_update,
-                  database::mysql_error::update_hosts_resources_enabled, 0);
-            }
-            for (const auto& s : state.services()) {
-              _esr_update->bind_value_as_u64(0, s.host_id());
-              _esr_update->bind_value_as_u64(1, s.service_id());
-              _mysql.run_statement(
-                  *_esr_update,
-                  database::mysql_error::update_services_resources_enabled, 0);
-            }
-          }
-        }
-      } catch (const std::exception& e) {
-        _logger_sql->error(
-            "unified_sql: error while parsing poller {} Engine configuration: "
-            "{}",
-            obj.poller_id(), e.what());
-      }
-    }
-  }
-}
+    const std::shared_ptr<io::data>& d [[maybe_unused]]) {}
 
 /**
  *  Process a host status event.
@@ -2014,10 +1584,6 @@ void stream::_process_pb_instance_configuration(
 void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
   if (!_store_in_hosts_services)
     return;
-
-  _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::custom_variables |
-                         actions::hostgroups | actions::host_parents);
 
   // Processed object.
   neb::host_status const& hs(*static_cast<neb::host_status const*>(d.get()));
@@ -2053,11 +1619,8 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
 
     // Processing.
     _host_status_update << hs;
-    int32_t conn =
-        _mysql.choose_connection_by_instance(_cache_host_instance[hs.host_id]);
     _mysql.run_statement(_host_status_update,
-                         database::mysql_error::store_host_status, conn);
-    _add_action(conn, actions::hosts);
+                         database::mysql_error::store_host_status, 0);
   } else
     // Do nothing.
     SPDLOG_LOGGER_INFO(_logger_sql,
@@ -2076,21 +1639,14 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::instances | actions::hostgroups |
-                         actions::host_parents | actions::custom_variables |
-                         actions::downtimes | actions::comments |
-                         actions::severities | actions::resources_tags |
-                         actions::tags);
-  auto hst{static_cast<const neb::pb_host*>(d.get())};
-  auto& h = hst->obj();
+  const auto& hst = std::static_pointer_cast<neb::pb_host>(d);
+  const auto& h = hst->obj();
 
   // Log message.
-  SPDLOG_LOGGER_INFO(
-      _logger_sql,
-      "unified_sql: processing pb host event (poller: {}, host: {}, name: {})",
-      h.instance_id(), h.host_id(), h.name());
-
-  auto cache_ptr = cache::global_cache::instance_ptr();
+  SPDLOG_LOGGER_INFO(_logger_sql,
+                     "unified_sql: processing pb host event (poller: {}, host: "
+                     "{}, name: {}, state: {})",
+                     h.instance_id(), h.host_id(), h.name(), h.state());
 
   // Processing
   if (_is_valid_poller(h.instance_id())) {
@@ -2098,8 +1654,6 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
     // does not contain a display_name
     // We should not store them in db
     if (h.host_id() && !h.alias().empty()) {
-      int32_t conn = _mysql.choose_connection_by_instance(h.instance_id());
-
       // Prepare queries.
       if (!_pb_host_insupdate.prepared()) {
         query_preparator::event_pb_unique unique{
@@ -2230,8 +1784,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
         if (_store_in_resources) {
           _resources_host_insert_or_update = _mysql.prepare_query(
               "INSERT INTO resources "
-              "(id,parent_id,type,status,status_ordered,last_"
-              "status_change,"
+              "(id,parent_id,type,status,status_ordered,last_status_change,"
               "in_downtime,acknowledged,"
               "status_confirmed,check_attempts,max_check_attempts,"
               "poller_id,"
@@ -2261,27 +1814,10 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       // Process object.
       _pb_host_insupdate << *hst;
       _mysql.run_statement(_pb_host_insupdate,
-                           database::mysql_error::store_host, conn);
-      _add_action(conn, actions::hosts);
+                           database::mysql_error::store_host, 0);
 
-      // Fill the cache...
-      if (h.enabled())
-        _cache_host_instance[h.host_id()] = h.instance_id();
-      else
-        _cache_host_instance.erase(h.host_id());
-
-      uint64_t res_id = 0;
       if (_store_in_resources) {
-        res_id = _process_pb_host_in_resources(h, conn);
-      }
-      if (cache_ptr) {
-        auto tag_iter = h.tags().begin();
-        if (res_id) {
-          cache_ptr->store_host(h.host_id(), h.name(), res_id, h.severity_id());
-        }
-        cache_ptr->set_host_tag(h.host_id(), [&tag_iter, &h]() -> uint64_t {
-          return tag_iter == h.tags().end() ? 0 : (tag_iter++)->id();
-        });
+        _process_pb_host_in_resources(h);
       }
     } else
       SPDLOG_LOGGER_TRACE(_logger_sql,
@@ -2292,31 +1828,31 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   }
 }
 
-uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
-  auto found = _resource_cache.find({h.host_id(), 0});
+uint64_t stream::_process_pb_host_in_resources(const Host& h) {
+  auto found = _resources_cache.find({h.host_id(), 0});
 
   uint64_t res_id = 0;
   if (h.enabled()) {
     uint64_t sid = 0;
-    fmt::string_view name{
+    std::string_view name{
         common::truncate_utf8(h.name(), get_centreon_storage_resources_col_size(
                                             centreon_storage_resources_name))};
-    fmt::string_view address{common::truncate_utf8(
+    std::string_view address{common::truncate_utf8(
         h.address(), get_centreon_storage_resources_col_size(
                          centreon_storage_resources_address))};
-    fmt::string_view alias{common::truncate_utf8(
+    std::string_view alias{common::truncate_utf8(
         h.alias(), get_centreon_storage_resources_col_size(
                        centreon_storage_resources_alias))};
-    fmt::string_view parent_name{common::truncate_utf8(
+    std::string_view parent_name{common::truncate_utf8(
         h.name(), get_centreon_storage_resources_col_size(
                       centreon_storage_resources_parent_name))};
-    fmt::string_view notes_url{common::truncate_utf8(
+    std::string_view notes_url{common::truncate_utf8(
         h.notes_url(), get_centreon_storage_resources_col_size(
                            centreon_storage_resources_notes_url))};
-    fmt::string_view notes{common::truncate_utf8(
+    std::string_view notes{common::truncate_utf8(
         h.notes(), get_centreon_storage_resources_col_size(
                        centreon_storage_resources_notes))};
-    fmt::string_view action_url{common::truncate_utf8(
+    std::string_view action_url{common::truncate_utf8(
         h.action_url(), get_centreon_storage_resources_col_size(
                             centreon_storage_resources_action_url))};
 
@@ -2335,10 +1871,10 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
     _resources_host_insert_or_update.bind_value_as_u32(7, h.check_attempt());
     _resources_host_insert_or_update.bind_value_as_u32(8,
                                                        h.max_check_attempts());
-    _resources_host_insert_or_update.bind_value_as_u64(
-        9, _cache_host_instance[h.host_id()]);
+    _resources_host_insert_or_update.bind_value_as_u64(9, h.instance_id());
     if (h.severity_id()) {
-      sid = _severity_cache[{h.severity_id(), 1}];
+      sid = config::applier::state::instance().cache().get_db_id_for_severity(
+          h.severity_id(), 1);
       SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "host {} with severity_id {} => uid = {}",
                           h.host_id(), h.severity_id(), sid);
@@ -2370,11 +1906,10 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
     std::future<uint64_t> future = p.get_future();
     _mysql.run_statement_and_get_int<uint64_t>(
         _resources_host_insert_or_update, std::move(p),
-        database::mysql_task::LAST_INSERT_ID, conn);
-    _add_action(conn, actions::resources);
+        database::mysql_task::LAST_INSERT_ID, 0);
     try {
       res_id = future.get();
-      _resource_cache.insert({{h.host_id(), 0}, res_id});
+      _resources_cache.insert({{h.host_id(), 0}, res_id});
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_CRITICAL(_logger_sql,
                              "SQL: unable to insert new host resource {}: {}",
@@ -2390,25 +1925,23 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
     if (!_resources_tags_remove.prepared())
       _resources_tags_remove = _mysql.prepare_query(
           "DELETE FROM resources_tags WHERE resource_id=?");
-    _finish_action(-1, actions::tags);
     _resources_tags_remove.bind_value_as_u64(0, res_id);
     _mysql.run_statement(_resources_tags_remove,
-                         database::mysql_error::delete_resources_tags, conn);
+                         database::mysql_error::delete_resources_tags, 0);
     for (auto& tag : h.tags()) {
       SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "add tag ({}, {}) for resource {} for host{}",
                           tag.id(), tag.type(), res_id, h.host_id());
 
-      _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
+      _process_tag_from_resources(res_id, tag.id(), tag.type());
     }
   } else {
-    if (found != _resource_cache.end()) {
+    if (found != _resources_cache.end()) {
       _resources_disable.bind_value_as_u64(0, found->second);
 
       _mysql.run_statement(_resources_disable,
-                           database::mysql_error::clean_resources, conn);
-      _resource_cache.erase(found);
-      _add_action(conn, actions::resources);
+                           database::mysql_error::clean_resources, 0);
+      _resources_cache.erase(found);
     } else {
       SPDLOG_LOGGER_INFO(
           _logger_sql, "SQL: no need to remove host {}, it is not in database",
@@ -2426,8 +1959,6 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
  */
 void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing pb adaptive host");
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto h{static_cast<const neb::pb_adaptive_host*>(d.get())};
   auto& ah = h->obj();
@@ -2501,7 +2032,6 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
       query += fmt::format(" WHERE host_id={}", ah.host_id());
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
       _mysql.run_query(query, database::mysql_error::store_host, 0);
-      _add_action(0, actions::hosts);
     }
   }
 
@@ -2526,7 +2056,6 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
       res_query += fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
       _mysql.run_query(res_query, database::mysql_error::update_resources, 0);
-      _add_action(0, actions::resources);
     }
   }
 }
@@ -2538,16 +2067,15 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto h{static_cast<const neb::pb_host_status*>(d.get())};
   auto& hscr = h->obj();
 
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: pb host {} status check result output: "
-                      "<<{}>> - last_check: {}",
-                      hscr.host_id(), hscr.output(), hscr.last_check());
+                      "<<{}>> - last_check: {} - state: {}",
+                      hscr.host_id(), hscr.output(), hscr.last_check(),
+                      hscr.state());
   SPDLOG_LOGGER_DEBUG(
       _logger_sql, "unified_sql: pb host status check result perfdata: <<{}>>",
       hscr.perfdata());
@@ -2574,13 +2102,11 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
     // Processing.
     if (_store_in_hosts_services) {
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
       if (_bulk_prepared_statement) {
-        std::lock_guard<bulk_bind> lck(*_hscr_bind);
-        if (!_hscr_bind->bind(conn))
-          _hscr_bind->init_from_stmt(conn);
-        auto* b = _hscr_bind->bind(conn).get();
+        bulk_bind::scoped_lock lck(*_hscr_bind);
+        if (!_hscr_bind->bind(0))
+          _hscr_bind->init_from_stmt(0);
+        auto* b = _hscr_bind->bind(0).get();
         b->set_value_as_bool(0, hscr.checked());
         b->set_value_as_i32(1, hscr.check_type());
         b->set_value_as_i32(2, hscr.state());
@@ -2601,11 +2127,11 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         size_t size = common::adjust_size_utf8(
             full_output,
             get_centreon_storage_hosts_col_size(centreon_storage_hosts_output));
-        b->set_value_as_str(10, fmt::string_view(full_output.data(), size));
+        b->set_value_as_str(10, std::string_view(full_output.data(), size));
         size = common::adjust_size_utf8(hscr.perfdata(),
                                         get_centreon_storage_hosts_col_size(
                                             centreon_storage_hosts_perfdata));
-        b->set_value_as_str(11, fmt::string_view(hscr.perfdata().data(), size));
+        b->set_value_as_str(11, std::string_view(hscr.perfdata().data(), size));
         b->set_value_as_bool(12, hscr.flapping());
         b->set_value_as_f64(13, hscr.percent_state_change());
         b->set_value_as_f64(14, hscr.latency());
@@ -2653,12 +2179,12 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
             full_output,
             get_centreon_storage_hosts_col_size(centreon_storage_hosts_output));
         _hscr_update->bind_value_as_str(
-            10, fmt::string_view(full_output.data(), size));
+            10, std::string_view(full_output.data(), size));
         size = common::adjust_size_utf8(hscr.perfdata(),
                                         get_centreon_storage_hosts_col_size(
                                             centreon_storage_hosts_perfdata));
         _hscr_update->bind_value_as_str(
-            11, fmt::string_view(hscr.perfdata().data(), size));
+            11, std::string_view(hscr.perfdata().data(), size));
         _hscr_update->bind_value_as_bool(12, hscr.flapping());
         _hscr_update->bind_value_as_f64(13, hscr.percent_state_change());
         _hscr_update->bind_value_as_f64(14, hscr.latency());
@@ -2681,20 +2207,16 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_update->bind_value_as_i32(27, hscr.host_id());
 
         _mysql.run_statement(*_hscr_update,
-                             database::mysql_error::store_host_status, conn);
-
-        _add_action(conn, actions::hosts);
+                             database::mysql_error::store_host_status, 0);
       }
     }
 
     if (_store_in_resources) {
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
       if (_bulk_prepared_statement) {
-        std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
-        if (!_hscr_resources_bind->bind(conn))
-          _hscr_resources_bind->init_from_stmt(conn);
-        auto* b = _hscr_resources_bind->bind(conn).get();
+        bulk_bind::scoped_lock lck(*_hscr_resources_bind);
+        if (!_hscr_resources_bind->bind(0))
+          _hscr_resources_bind->init_from_stmt(0);
+        auto* b = _hscr_resources_bind->bind(0).get();
         b->set_value_as_i32(0, hscr.state());
         b->set_value_as_i32(1, hst_ordered_status[hscr.state()]);
         b->set_value_as_u64(2, hscr.last_state_change(),
@@ -2738,9 +2260,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_resources_update->bind_value_as_u64(13, hscr.host_id());
 
         _mysql.run_statement(*_hscr_resources_update,
-                             database::mysql_error::store_host_status, conn);
-
-        _add_action(conn, actions::resources);
+                             database::mysql_error::store_host_status, 0);
       }
     }
   } else
@@ -2757,8 +2277,6 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
 void stream::_process_pb_adaptive_host_status(
     const std::shared_ptr<io::data>& d) {
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto h{static_cast<const neb::pb_adaptive_host_status*>(d.get())};
   auto& hscr = h->obj();
@@ -2780,8 +2298,11 @@ void stream::_process_pb_adaptive_host_status(
     return;
   }
 
-  int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+  /* This adaptive status is applied right away through a direct query while a
+   * regular host status for the same row may still sit in the bulk bind with an
+   * older value. Flush the pending binds first so this update is not later
+   * clobbered by the buffered (stale) one. */
+  _flush_status_binds(true);
 
   if (_store_in_hosts_services) {
     constexpr std::string_view buf("UPDATE hosts SET ");
@@ -2800,8 +2321,7 @@ void stream::_process_pb_adaptive_host_status(
       query.resize(query.size() - 1);
       query += fmt::format(" WHERE host_id={}", hscr.host_id());
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
-      _mysql.run_query(query, database::mysql_error::store_host_status, conn);
-      _add_action(conn, actions::hosts);
+      _mysql.run_query(query, database::mysql_error::store_host_status, 0);
     }
   }
 
@@ -2822,9 +2342,7 @@ void stream::_process_pb_adaptive_host_status(
       res_query.resize(res_query.size() - 1);
       res_query += fmt::format(" WHERE parent_id=0 AND id={}", hscr.host_id());
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
-      _mysql.run_query(res_query, database::mysql_error::update_resources,
-                       conn);
-      _add_action(conn, actions::resources);
+      _mysql.run_query(res_query, database::mysql_error::update_resources, 0);
     }
   }
 }
@@ -2840,11 +2358,6 @@ void stream::_process_pb_adaptive_host_status(
  */
 void stream::_process_instance(const std::shared_ptr<io::data>& d) {
   neb::instance& i(*static_cast<neb::instance*>(d.get()));
-  int32_t conn = _mysql.choose_connection_by_instance(i.poller_id);
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments | actions::servicegroups |
-                         actions::hostgroups);
 
   // Log message.
   SPDLOG_LOGGER_INFO(
@@ -2853,14 +2366,14 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
       i.poller_id, i.name, i.is_running ? "yes" : "no");
 
   // Clean tables.
-  _clean_tables(i.poller_id);
+  // FIXME DBO
+  if (!i.is_running)
+    clean_tables(i.poller_id);
 
   // Processing.
   if (_is_valid_poller(i.poller_id)) {
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->store_instance(i.poller_id, i.name);
-    }
+    _logger_sql->debug("storing instance {} with name '{}'", i.poller_id,
+                       i.name);
 
     // Prepare queries.
     if (!_instance_insupdate.prepared()) {
@@ -2873,8 +2386,7 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
     // Process object.
     _instance_insupdate << i;
     _mysql.run_statement(_instance_insupdate,
-                         database::mysql_error::store_poller, conn);
-    _add_action(conn, actions::instances);
+                         database::mysql_error::store_poller, 0);
   }
 }
 
@@ -2885,17 +2397,11 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
  *
  *  @param[in] e Uncasted instance.
  *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
   const neb::pb_instance& inst_obj(
       *std::static_pointer_cast<neb::pb_instance>(d).get());
   const Instance& inst(inst_obj.obj());
-  int32_t conn = _mysql.choose_connection_by_instance(inst.instance_id());
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments | actions::servicegroups |
-                         actions::hostgroups);
 
   /* Now, the local::pb_stop is handled by unified_sql. So the pb_instance
    * with running = false, seems no more useful. */
@@ -2906,14 +2412,14 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
       inst.instance_id(), inst.name(), inst.running() ? "yes" : "no");
 
   // Clean tables.
-  _clean_tables(inst.instance_id());
+  // FIXME DBO
+  if (!inst.running())
+    clean_tables(inst.instance_id());
 
   // Processing.
   if (_is_valid_poller(inst.instance_id())) {
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->store_instance(inst.instance_id(), inst.name());
-    }
+    _logger_sql->debug("unified_sql: storing instance {} with name '{}'",
+                       inst.instance_id(), inst.name());
     // Prepare queries.
     if (!_pb_instance_insupdate.prepared()) {
       query_preparator::event_pb_unique unique{
@@ -2934,15 +2440,36 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
            {8, "start_time", 0, 0},
            {9, "version", 0,
             get_centreon_storage_instances_col_size(
-                centreon_storage_instances_version)}});
+                centreon_storage_instances_version)},
+           {11, "is_encryption_ready", 0, 0}});
     }
 
     // Process object.
     _pb_instance_insupdate << inst_obj;
     _mysql.run_statement(_pb_instance_insupdate,
-                         database::mysql_error::store_poller, conn);
-    _add_action(conn, actions::instances);
+                         database::mysql_error::store_poller, 0);
   }
+}
+
+/**
+ *  Process an instance event. The thread executing the command is
+ * controlled so that queries depending on this one will be made by the same
+ * thread.
+ *
+ *  @param[in] e Uncasted instance.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
+  const neb::pb_global_diff_state& global_diff_state(
+      *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
+  const auto& obj = global_diff_state.obj();
+  _logger_sql->info("unified_sql: processing global diff state event");
+  _logger_sql->info("  hosts: {} added, {} deleted, {} modified",
+                    obj.hosts().added_size(), obj.hosts().removed_size(),
+                    obj.hosts().modified_size());
+  database_configurator cfg(this, _logger_sql);
+  cfg.process_diff(static_cast<const engine::configuration::DiffState&>(obj));
 }
 
 /**
@@ -2956,11 +2483,6 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_instance_status(const std::shared_ptr<io::data>& d) {
   neb::instance_status& is = *static_cast<neb::instance_status*>(d.get());
-  int32_t conn = _mysql.choose_connection_by_instance(is.poller_id);
-
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments);
 
   // Log message.
   SPDLOG_LOGGER_INFO(
@@ -2981,8 +2503,7 @@ void stream::_process_instance_status(const std::shared_ptr<io::data>& d) {
     // Process object.
     _instance_status_insupdate << is;
     _mysql.run_statement(_instance_status_insupdate,
-                         database::mysql_error::update_poller, conn);
-    _add_action(conn, actions::instances);
+                         database::mysql_error::update_poller, 0);
   }
 }
 
@@ -2999,12 +2520,6 @@ void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
   const neb::pb_instance_status& is_obj =
       *static_cast<neb::pb_instance_status*>(d.get());
   const InstanceStatus& is = is_obj.obj();
-
-  int32_t conn = _mysql.choose_connection_by_instance(is.instance_id());
-
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments);
 
   // Log message.
   SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -3046,8 +2561,7 @@ void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
     // Process object.
     _pb_instance_status_insupdate << is_obj;
     _mysql.run_statement(_pb_instance_status_insupdate,
-                         database::mysql_error::update_poller, conn);
-    _add_action(conn, actions::instances);
+                         database::mysql_error::update_poller, 0);
   }
 }
 
@@ -3225,9 +2739,6 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
-  _finish_action(
-      -1, actions::downtimes | actions::comments | actions::host_parents);
-
   // Cast object.
   neb::service_check const& sc(
       *static_cast<neb::service_check const*>(d.get()));
@@ -3274,11 +2785,9 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
 
     if (store) {
       _service_check_update << sc;
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[sc.host_id]);
       _mysql.run_statement(_service_check_update,
                            database::mysql_error::store_service_check_command,
-                           conn);
+                           0);
     }
   } else
     // Do nothing.
@@ -3298,9 +2807,6 @@ void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
-  _finish_action(
-      -1, actions::downtimes | actions::comments | actions::host_parents);
-
   // Cast object.
   const neb::pb_service_check& pb_sc(
       *static_cast<neb::pb_service_check const*>(d.get()));
@@ -3356,11 +2862,9 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
 
     if (store) {
       _pb_service_check_update << pb_sc;
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[sc.host_id()]);
       _mysql.run_statement(_pb_service_check_update,
                            database::mysql_error::store_service_check_command,
-                           conn);
+                           0);
     }
   } else
     // Do nothing.
@@ -3380,8 +2884,6 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::service_group % _mysql.connections_count();
-
   // Cast object.
   const neb::service_group& sg{
       *static_cast<const neb::service_group*>(d.get())};
@@ -3396,8 +2898,7 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
 
     _service_group_insupdate << sg;
     _mysql.run_statement(_service_group_insupdate,
-                         database::mysql_error::store_service_group, conn);
-    _servicegroup_cache.insert(sg.id);
+                         database::mysql_error::store_service_group, 0);
   }
   // Delete group.
   else {
@@ -3405,27 +2906,18 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
         _logger_sql,
         "unified_sql: disabling service group {} ('{}' on instance {})", sg.id,
         sg.name, sg.poller_id);
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->remove_service_group_members(sg.id, sg.poller_id);
-    }
 
     // Delete group members.
     {
-      _finish_action(-1, actions::services);
       std::string query(fmt::format(
-          "DELETE services_servicegroups FROM services_servicegroups "
-          "LEFT "
+          "DELETE services_servicegroups FROM services_servicegroups LEFT "
           "JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-          "WHERE "
-          "services_servicegroups.servicegroup_id={} AND "
+          "WHERE services_servicegroups.servicegroup_id={} AND "
           "hosts.instance_id={}",
           sg.id, sg.poller_id));
-      _mysql.run_query(query, database::mysql_error::empty, conn);
-      _servicegroup_cache.erase(sg.id);
+      _mysql.run_query(query, database::mysql_error::empty, 0);
     }
   }
-  _add_action(conn, actions::servicegroups);
 }
 
 /**
@@ -3436,8 +2928,6 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::service_group % _mysql.connections_count();
-
   // Cast object.
   const neb::pb_service_group& sgp{
       *static_cast<const neb::pb_service_group*>(d.get())};
@@ -3452,23 +2942,16 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
 
     _pb_service_group_insupdate << sgp;
     _mysql.run_statement(_pb_service_group_insupdate,
-                         database::mysql_error::store_service_group, conn);
-    _servicegroup_cache.insert(sg.servicegroup_id());
+                         database::mysql_error::store_service_group, 0);
   }
   // Delete group.
   else {
     SPDLOG_LOGGER_INFO(_logger_sql,
                        "SQL: disabling service group {} ('{}' on instance {})",
                        sg.servicegroup_id(), sg.name(), sg.poller_id());
-    auto cache_ptr = cache::global_cache::instance_ptr();
-    if (cache_ptr) {
-      cache_ptr->remove_service_group_members(sg.servicegroup_id(),
-                                              sg.poller_id());
-    }
 
     // Delete group members.
     {
-      _finish_action(-1, actions::services);
       std::string query(fmt::format(
           "DELETE services_servicegroups FROM services_servicegroups "
           "LEFT "
@@ -3477,11 +2960,9 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
           "services_servicegroups.servicegroup_id={} AND "
           "hosts.instance_id={}",
           sg.servicegroup_id(), sg.poller_id()));
-      _mysql.run_query(query, database::mysql_error::empty, conn);
-      _servicegroup_cache.erase(sg.servicegroup_id());
+      _mysql.run_query(query, database::mysql_error::empty, 0);
     }
   }
-  _add_action(conn, actions::servicegroups);
 }
 
 /**
@@ -3492,14 +2973,10 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::service_group % _mysql.connections_count();
-  _finish_action(-1, actions::services);
-
   // Cast object.
   const neb::service_group_member& sgm{
       *static_cast<const neb::service_group_member*>(d.get())};
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
   if (sgm.enabled) {
     // Log message.
     SPDLOG_LOGGER_INFO(_logger_sql,
@@ -3509,10 +2986,6 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
                        sgm.host_id, sgm.service_id, sgm.group_id,
                        sgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->add_service_to_group(sgm.group_id, sgm.host_id, sgm.service_id,
-                                      sgm.poller_id);
-    }
     // We only need to try to insert in this table as the
     // host_id/service_id/servicegroup_id combo should be UNIQUE.
     if (!_service_group_member_insert.prepared()) {
@@ -3525,31 +2998,31 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroup_cache.find(sgm.group_id) == _servicegroup_cache.end()) {
+    auto& cache = config::applier::state::instance().cache();
+    const auto servicegroup = cache.servicegroup(sgm.group_id);
+    if (!servicegroup) {
       SPDLOG_LOGGER_ERROR(_logger_sql,
-                          "unified_sql: service group {} does not exist - "
-                          "insertion before insertion "
-                          "of members",
-                          sgm.group_id);
+                          "unified_sql: service group {} {} does not exist - "
+                          "insertion before insertion of members",
+                          sgm.group_id, sgm.group_name);
       _prepare_sg_insupdate_statement();
 
-      neb::service_group sg;
-      sg.id = sgm.group_id;
-      sg.name = sgm.group_name;
-      sg.enabled = true;
-      sg.poller_id = sgm.poller_id;
+      auto sg = std::make_shared<neb::pb_service_group>();
+      auto& obj = sg->mut_obj();
+      obj.set_servicegroup_id(sgm.group_id);
+      obj.set_name(sgm.group_name);
+      obj.set_enabled(true);
+      obj.set_poller_id(sgm.poller_id);
 
-      _service_group_insupdate << sg;
+      _service_group_insupdate << *sg;
       _mysql.run_statement(_service_group_insupdate,
-                           database::mysql_error::store_service_group, conn);
-      _servicegroup_cache.insert(sgm.group_id);
+                           database::mysql_error::store_service_group, 0);
+      cache.update_servicegroup(sg);
     }
 
     _service_group_member_insert << sgm;
     _mysql.run_statement(_service_group_member_insert,
-                         database::mysql_error::store_service_group_member,
-                         conn);
-    _add_action(conn, actions::servicegroups);
+                         database::mysql_error::store_service_group_member, 0);
   }
   // Delete.
   else {
@@ -3561,11 +3034,6 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
         "instance {}",
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
-    if (cache_ptr) {
-      cache_ptr->remove_service_from_group(sgm.group_id, sgm.host_id,
-                                           sgm.service_id);
-    }
-
     if (!_service_group_member_delete.prepared()) {
       query_preparator::event_unique unique;
       unique.insert("servicegroup_id");
@@ -3576,9 +3044,7 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     }
     _service_group_member_delete << sgm;
     _mysql.run_statement(_service_group_member_delete,
-                         database::mysql_error::delete_service_group_member,
-                         conn);
-    _add_action(conn, actions::servicegroups);
+                         database::mysql_error::delete_service_group_member, 0);
   }
 }
 
@@ -3591,16 +3057,12 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_service_group_member(
     const std::shared_ptr<io::data>& d) {
-  int32_t conn = special_conn::service_group % _mysql.connections_count();
-  _finish_action(-1, actions::services);
-
   // Cast object.
   const neb::pb_service_group_member& sgmp{
       *static_cast<const neb::pb_service_group_member*>(d.get())};
 
   const ServiceGroupMember& sgm = sgmp.obj();
 
-  auto cache_ptr = cache::global_cache::instance_ptr();
   if (sgm.enabled()) {
     // Log message.
     SPDLOG_LOGGER_INFO(
@@ -3610,10 +3072,6 @@ void stream::_process_pb_service_group_member(
         sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
         sgm.poller_id());
 
-    if (cache_ptr) {
-      cache_ptr->add_service_to_group(sgm.servicegroup_id(), sgm.host_id(),
-                                      sgm.service_id(), sgm.poller_id());
-    }
     // We only need to try to insert in this table as the
     // host_id/service_id/servicegroup_id combo should be UNIQUE.
     if (!_pb_service_group_member_insert.prepared()) {
@@ -3634,8 +3092,9 @@ void stream::_process_pb_service_group_member(
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroup_cache.find(sgm.servicegroup_id()) ==
-        _servicegroup_cache.end()) {
+    auto& cache = config::applier::state::instance().cache();
+    const auto servicegroup = cache.servicegroup(sgm.servicegroup_id());
+    if (!servicegroup) {
       SPDLOG_LOGGER_ERROR(
           _logger_sql,
           "SQL: service group {} does not exist - insertion before insertion "
@@ -3643,24 +3102,22 @@ void stream::_process_pb_service_group_member(
           sgm.servicegroup_id());
       _prepare_sg_insupdate_statement();
 
-      neb::pb_service_group sg;
-      auto& obj = sg.mut_obj();
+      auto sg = std::make_shared<neb::pb_service_group>();
+      auto& obj = sg->mut_obj();
       obj.set_servicegroup_id(sgm.servicegroup_id());
       obj.set_name(sgm.name());
       obj.set_enabled(true);
       obj.set_poller_id(sgm.poller_id());
 
-      _pb_service_group_insupdate << sg;
+      _pb_service_group_insupdate << *sg;
       _mysql.run_statement(_pb_service_group_insupdate,
-                           database::mysql_error::store_service_group, conn);
-      _servicegroup_cache.insert(sgm.servicegroup_id());
+                           database::mysql_error::store_service_group, 0);
+      cache.update_servicegroup(sg);
     }
 
     _pb_service_group_member_insert << sgmp;
     _mysql.run_statement(_pb_service_group_member_insert,
-                         database::mysql_error::store_service_group_member,
-                         conn);
-    _add_action(conn, actions::servicegroups);
+                         database::mysql_error::store_service_group_member, 0);
   }
   // Delete.
   else {
@@ -3671,11 +3128,6 @@ void stream::_process_pb_service_group_member(
                        "instance {}",
                        sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
                        sgm.poller_id());
-
-    if (cache_ptr) {
-      cache_ptr->remove_service_from_group(sgm.servicegroup_id(), sgm.host_id(),
-                                           sgm.service_id());
-    }
 
     if (!_pb_service_group_member_delete.prepared()) {
       query_preparator::event_pb_unique unique{
@@ -3689,9 +3141,7 @@ void stream::_process_pb_service_group_member(
     }
     _service_group_member_delete << sgmp;
     _mysql.run_statement(_pb_service_group_member_delete,
-                         database::mysql_error::delete_service_group_member,
-                         conn);
-    _add_action(conn, actions::servicegroups);
+                         database::mysql_error::delete_service_group_member, 0);
   }
 }
 
@@ -3703,9 +3153,6 @@ void stream::_process_pb_service_group_member(
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_service(const std::shared_ptr<io::data>& d) {
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
-
   // Processed object.
   const neb::service& s(*static_cast<neb::service const*>(d.get()));
   if (!_host_instance_known(s.host_id)) {
@@ -3715,10 +3162,6 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
                        s.host_id, s.service_id);
     return;
   }
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
-  int32_t conn =
-      _mysql.choose_connection_by_instance(_cache_host_instance[s.host_id]);
 
   // Log message.
   SPDLOG_LOGGER_INFO(
@@ -3728,10 +3171,6 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
       s.host_id, s.service_id, s.service_description);
 
   if (s.host_id && s.service_id) {
-    if (cache_ptr) {
-      cache_ptr->store_service(s.host_id, s.service_id, s.service_description,
-                               0, 0);
-    }
     // Prepare queries.
     if (!_service_insupdate.prepared()) {
       query_preparator::event_unique unique;
@@ -3743,8 +3182,7 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
 
     _service_insupdate << s;
     _mysql.run_statement(_service_insupdate,
-                         database::mysql_error::store_service, conn);
-    _add_action(conn, actions::services);
+                         database::mysql_error::store_service, 0);
   } else
     SPDLOG_LOGGER_TRACE(_logger_sql,
                         "unified_sql: service '{}' has no host ID, service ID "
@@ -3760,9 +3198,6 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::severities |
-                         actions::resources_tags | actions::tags);
   // Processed object.
   auto svc{static_cast<neb::pb_service const*>(d.get())};
   auto& s = svc->obj();
@@ -3781,11 +3216,6 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         s.host_id(), s.service_id());
     return;
   }
-
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
-  int32_t conn =
-      _mysql.choose_connection_by_instance(_cache_host_instance[s.host_id()]);
 
   // Log message.
   SPDLOG_LOGGER_INFO(
@@ -3919,18 +3349,15 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       if (_store_in_resources) {
         _resources_service_insert_or_update = _mysql.prepare_query(
             "INSERT INTO resources "
-            "(id,parent_id,type,internal_id,status,status_"
-            "ordered,last_"
-            "status_change,in_downtime,acknowledged,"
-            "status_confirmed,check_attempts,max_check_attempts,poller_"
-            "id,"
+            "(id,parent_id,type,internal_id,status,status_ordered,"
+            "last_status_change,in_downtime,acknowledged,"
+            "status_confirmed,check_attempts,max_check_attempts,poller_id,"
             "severity_id,name,parent_name,notes_url,notes,action_url,"
-            "notifications_enabled,passive_checks_enabled,active_"
-            "checks_"
-            "enabled,enabled,icon_id, flapping, percent_state_change) "
+            "notifications_enabled,passive_checks_enabled,"
+            "active_checks_enabled,enabled,icon_id, flapping,"
+            " percent_state_change) "
             "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-            "ON DUPLICATE KEY UPDATE "
-            "resource_id=LAST_INSERT_ID(resource_id),"
+            "ON DUPLICATE KEY UPDATE resource_id=LAST_INSERT_ID(resource_id),"
             " type=1, status = VALUES(status)" BOOST_PP_SEQ_FOR_EACH(for_each_to_duplicate_values,
                                                                      ,
                                                                      (type)(internal_id)(status)(status_ordered)(last_status_change)(in_downtime)(acknowledged)(status_confirmed)(check_attempts)(max_check_attempts)(poller_id)(severity_id)(name)(parent_name)(notes_url)(notes)(action_url)(notifications_enabled)(passive_checks_enabled)(active_checks_enabled)(enabled)(icon_id)(flapping)(percent_state_change)));
@@ -3944,25 +3371,12 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
     // Process object.
     _pb_service_insupdate << *svc;
     _mysql.run_statement(_pb_service_insupdate,
-                         database::mysql_error::store_service, conn);
-    _add_action(conn, actions::services);
+                         database::mysql_error::store_service, 0);
 
     _check_and_update_index_cache(s);
 
-    uint64_t res_id = 0;
     if (_store_in_resources) {
-      res_id = _process_pb_service_in_resources(s, conn);
-    }
-    if (cache_ptr) {
-      auto tag_iter = s.tags().begin();
-      if (res_id) {
-        cache_ptr->store_service(s.host_id(), s.service_id(), s.description(),
-                                 res_id, s.severity_id());
-      }
-      cache_ptr->set_serv_tag(
-          s.host_id(), s.service_id(), [&tag_iter, &s]() -> uint64_t {
-            return tag_iter == s.tags().end() ? 0 : (tag_iter++)->id();
-          });
+      _process_pb_service_in_resources(s);
     }
   } else
     SPDLOG_LOGGER_TRACE(_logger_sql,
@@ -3972,27 +3386,26 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                         s.description());
 }
 
-uint64_t stream::_process_pb_service_in_resources(const Service& s,
-                                                  int32_t conn) {
+uint64_t stream::_process_pb_service_in_resources(const Service& s) {
   uint64_t res_id = 0;
 
-  auto found = _resource_cache.find({s.service_id(), s.host_id()});
+  auto found = _resources_cache.find({s.service_id(), s.host_id()});
 
   if (s.enabled()) {
     uint64_t sid = 0;
-    fmt::string_view name{common::truncate_utf8(
+    std::string_view name{common::truncate_utf8(
         s.display_name(), get_centreon_storage_resources_col_size(
                               centreon_storage_resources_name))};
-    fmt::string_view parent_name{common::truncate_utf8(
+    std::string_view parent_name{common::truncate_utf8(
         s.host_name(), get_centreon_storage_resources_col_size(
                            centreon_storage_resources_parent_name))};
-    fmt::string_view notes_url{common::truncate_utf8(
+    std::string_view notes_url{common::truncate_utf8(
         s.notes_url(), get_centreon_storage_resources_col_size(
                            centreon_storage_resources_notes_url))};
-    fmt::string_view notes{common::truncate_utf8(
+    std::string_view notes{common::truncate_utf8(
         s.notes(), get_centreon_storage_resources_col_size(
                        centreon_storage_resources_notes))};
-    fmt::string_view action_url{common::truncate_utf8(
+    std::string_view action_url{common::truncate_utf8(
         s.action_url(), get_centreon_storage_resources_col_size(
                             centreon_storage_resources_action_url))};
 
@@ -4021,10 +3434,14 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
                                                           s.check_attempt());
     _resources_service_insert_or_update.bind_value_as_u32(
         11, s.max_check_attempts());
+
+    auto& cache = config::applier::state::instance().cache();
+    auto hh = cache.host(s.host_id());
     _resources_service_insert_or_update.bind_value_as_u64(
-        12, _cache_host_instance[s.host_id()]);
+        12, hh->obj().instance_id());
     if (s.severity_id() > 0) {
-      sid = _severity_cache[{s.severity_id(), 0}];
+      sid = config::applier::state::instance().cache().get_db_id_for_severity(
+          s.severity_id(), 0);
       SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "service ({}, {}) with severity_id {} => uid = {}",
                           s.host_id(), s.service_id(), s.severity_id(), sid);
@@ -4053,11 +3470,10 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
     std::future<uint64_t> future = p.get_future();
     _mysql.run_statement_and_get_int<uint64_t>(
         _resources_service_insert_or_update, std::move(p),
-        database::mysql_task::LAST_INSERT_ID, conn);
-    _add_action(conn, actions::resources);
+        database::mysql_task::LAST_INSERT_ID, 0);
     try {
       res_id = future.get();
-      _resource_cache.insert({{s.service_id(), s.host_id()}, res_id});
+      _resources_cache.insert({{s.service_id(), s.host_id()}, res_id});
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_CRITICAL(
           _logger_sql,
@@ -4074,25 +3490,23 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
     if (!_resources_tags_remove.prepared())
       _resources_tags_remove = _mysql.prepare_query(
           "DELETE FROM resources_tags WHERE resource_id=?");
-    _finish_action(-1, actions::tags);
     _resources_tags_remove.bind_value_as_u64(0, res_id);
     _mysql.run_statement(_resources_tags_remove,
-                         database::mysql_error::delete_resources_tags, conn);
+                         database::mysql_error::delete_resources_tags, 0);
     for (auto& tag : s.tags()) {
       SPDLOG_LOGGER_DEBUG(
           _logger_sql, "add tag ({}, {}) for resource {} for service ({}, {})",
           tag.id(), tag.type(), res_id, s.host_id(), s.service_id());
 
-      _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
+      _process_tag_from_resources(res_id, tag.id(), tag.type());
     }
   } else {
-    if (found != _resource_cache.end()) {
+    if (found != _resources_cache.end()) {
       _resources_disable.bind_value_as_u64(0, found->second);
 
       _mysql.run_statement(_resources_disable,
-                           database::mysql_error::clean_resources, conn);
-      _resource_cache.erase(found);
-      _add_action(conn, actions::resources);
+                           database::mysql_error::clean_resources, 0);
+      _resources_cache.erase(found);
     } else {
       SPDLOG_LOGGER_INFO(
           _logger_sql,
@@ -4112,8 +3526,6 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
 void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: processing pb adaptive service");
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto s{static_cast<const neb::pb_adaptive_service*>(d.get())};
   auto& as = s->obj();
@@ -4125,9 +3537,6 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
                        as.host_id(), as.service_id());
     return;
   }
-  int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
-
   if (_store_in_hosts_services) {
     constexpr std::string_view buf("UPDATE services SET");
     std::string query{buf.data(), buf.size()};
@@ -4191,8 +3600,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
       query += fmt::format(" WHERE host_id={} AND service_id={}", as.host_id(),
                            as.service_id());
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
-      _mysql.run_query(query, database::mysql_error::store_service, conn);
-      _add_action(conn, actions::services);
+      _mysql.run_query(query, database::mysql_error::store_service, 0);
     }
   }
 
@@ -4217,9 +3625,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
       res_query += fmt::format(" WHERE parent_id={} AND id={}", as.host_id(),
                                as.service_id());
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
-      _mysql.run_query(res_query, database::mysql_error::update_resources,
-                       conn);
-      _add_action(conn, actions::resources);
+      _mysql.run_query(res_query, database::mysql_error::update_resources, 0);
     }
   }
 }
@@ -4232,23 +3638,19 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
  * @param ss A neb::pb_service.
  */
 void stream::_check_and_update_index_cache(const Service& ss) {
-  auto cache_ptr = cache::global_cache::instance_ptr();
+  auto& cache = config::applier::state::instance().cache();
+  auto index_info = cache.get_index_mapping(ss.host_id(), ss.service_id());
 
-  auto it_index_cache = _index_cache.find({ss.host_id(), ss.service_id()});
-
-  fmt::string_view hv(common::truncate_utf8(
+  std::string_view hv(common::truncate_utf8(
       ss.host_name(), get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-  fmt::string_view sv(common::truncate_utf8(
+  std::string_view sv(common::truncate_utf8(
       ss.description(), get_centreon_storage_index_data_col_size(
                             centreon_storage_index_data_service_description)));
   bool special = ss.type() == BA;
 
-  int32_t conn =
-      _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id()]);
-
   // Not found
-  if (it_index_cache == _index_cache.end()) {
+  if (!index_info) {
     SPDLOG_LOGGER_DEBUG(_logger_sql,
                         "sql: index not found in cache for service ({}, {})",
                         ss.host_id(), ss.service_id());
@@ -4270,53 +3672,39 @@ void stream::_check_and_update_index_cache(const Service& ss) {
     std::future<uint64_t> future = p.get_future();
     _mysql.run_statement_and_get_int<uint64_t>(
         _index_data_insert, std::move(p), database::mysql_task::LAST_INSERT_ID,
-        conn);
+        0);
     index_id = future.get();
     SPDLOG_LOGGER_DEBUG(
         _logger_sql, "sql: new index {} added for service ({}, {}), special {}",
         index_id, ss.host_id(), ss.service_id(), special ? "1" : "0");
-    index_info info{
-        .index_id = index_id,
-        .host_name = ss.host_name(),
-        .service_description = ss.description(),
-        .rrd_retention = _rrd_len,
-        .interval = ss.check_interval(),
-        .special = special,
-        .locked = false,
-    };
+    auto index_mapping = std::make_shared<storage::pb_index_mapping>();
+    auto& obj = index_mapping->mut_obj();
+    obj.set_index_id(index_id);
+    obj.set_host_id(ss.host_id());
+    obj.set_service_id(ss.service_id());
+    obj.set_host_name(fmt::to_string(hv));
+    obj.set_service_description(fmt::to_string(sv));
+    obj.set_interval(ss.check_interval());
+    obj.set_rrd_retention(_rrd_len);
+    obj.set_special(special);
+    obj.set_locked(false);
+    multiplexing::publisher pblshr;
+    pblshr.write(index_mapping);
     SPDLOG_LOGGER_DEBUG(
         _logger_sql,
         "sql: loaded index {} of ({}, {}) with rrd_len={} and interval={}",
-        index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
-        info.interval);
-    _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
-
-    if (cache_ptr) {
-      cache_ptr->set_index_mapping(index_id, ss.host_id(), ss.service_id());
-    }
-
-    // Create the metric mapping.
-    auto im{std::make_shared<storage::pb_index_mapping>()};
-    auto& im_obj = im->mut_obj();
-    im_obj.set_index_id(info.index_id);
-    im_obj.set_host_id(ss.host_id());
-    im_obj.set_service_id(ss.service_id());
-    multiplexing::publisher pblshr;
-    pblshr.write(im);
-
+        index_id, ss.host_id(), ss.service_id(), _rrd_len, ss.check_interval());
   } else {
-    uint64_t index_id = it_index_cache->second.index_id;
+    auto& index_mapping = index_info->obj();
+    uint64_t index_id = index_mapping.index_id();
 
-    if (it_index_cache->second.host_name != hv ||
-        it_index_cache->second.service_description != sv ||
-        it_index_cache->second.interval != ss.check_interval()) {
+    if (index_mapping.host_name() != hv ||
+        index_mapping.service_description() != sv ||
+        index_mapping.interval() != ss.check_interval()) {
       if (!_index_data_update.prepared())
         _index_data_update = _mysql.prepare_query(
-            "UPDATE index_data "
-            "SET host_name=?, service_description=?, "
-            "must_be_rebuild=?, "
-            "special=?, check_interval=? "
-            "WHERE id=?");
+            "UPDATE index_data SET host_name=?, service_description=?, "
+            "must_be_rebuild=?, special=?, check_interval=? WHERE id=?");
 
       _index_data_update.bind_value_as_str(0, hv);
       _index_data_update.bind_value_as_str(1, sv);
@@ -4325,18 +3713,19 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       _index_data_update.bind_value_as_u32(4, ss.check_interval());
       _index_data_update.bind_value_as_u64(5, index_id);
       _mysql.run_statement(_index_data_update, mysql_error::update_index_data,
-                           conn);
-      it_index_cache->second.host_name = fmt::to_string(hv);
-      it_index_cache->second.service_description = fmt::to_string(sv);
-      it_index_cache->second.interval = ss.check_interval();
+                           0);
+      auto& obj = index_info->mut_obj();
+      obj.set_host_name(fmt::to_string(hv));
+      obj.set_service_description(fmt::to_string(sv));
+      obj.set_interval(ss.check_interval());
+      multiplexing::publisher pblshr;
+      pblshr.write(index_info);
       SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "Updating index_data for host_id={} and "
                           "service_id={}: host_name={}, "
                           "service_description={}, check_interval={}",
-                          ss.host_id(), ss.service_id(),
-                          it_index_cache->second.host_name,
-                          it_index_cache->second.service_description,
-                          it_index_cache->second.interval);
+                          ss.host_id(), ss.service_id(), hv, sv,
+                          ss.check_interval());
     }
   }
 }
@@ -4352,8 +3741,6 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
   if (!_store_in_hosts_services)
     return;
 
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   neb::service_status const& ss{
       *static_cast<neb::service_status const*>(d.get())};
@@ -4394,11 +3781,8 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
 
     // Processing.
     _service_status_update << ss;
-    int32_t conn =
-        _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id]);
     _mysql.run_statement(_service_status_update,
-                         database::mysql_error::store_service_status, conn);
-    _add_action(conn, actions::hosts);
+                         database::mysql_error::store_service_status, 0);
   } else
     // Do nothing.
     SPDLOG_LOGGER_INFO(
@@ -4422,8 +3806,6 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
  *
  */
 void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& sscr = s->obj();
@@ -4457,13 +3839,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
     // Processing.
     if (_store_in_hosts_services) {
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       if (_bulk_prepared_statement) {
-        std::lock_guard<bulk_bind> lck(*_sscr_bind);
-        if (!_sscr_bind->bind(conn))
-          _sscr_bind->init_from_stmt(conn);
-        auto* b = _sscr_bind->bind(conn).get();
+        bulk_bind::scoped_lock lck(*_sscr_bind);
+        if (!_sscr_bind->bind(0))
+          _sscr_bind->init_from_stmt(0);
+        auto* b = _sscr_bind->bind(0).get();
         b->set_value_as_bool(0, sscr.checked());
         b->set_value_as_i32(1, sscr.check_type());
         b->set_value_as_i32(2, sscr.state());
@@ -4486,11 +3866,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         size_t size = common::adjust_size_utf8(
             full_output, get_centreon_storage_services_col_size(
                              centreon_storage_services_output));
-        b->set_value_as_str(11, fmt::string_view(full_output.data(), size));
+        b->set_value_as_str(11, std::string_view(full_output.data(), size));
         size = common::adjust_size_utf8(
             sscr.perfdata(), get_centreon_storage_services_col_size(
                                  centreon_storage_services_perfdata));
-        b->set_value_as_str(12, fmt::string_view(sscr.perfdata().data(), size));
+        b->set_value_as_str(12, std::string_view(sscr.perfdata().data(), size));
         b->set_value_as_bool(13, sscr.flapping());
         b->set_value_as_f64(14, sscr.percent_state_change());
         b->set_value_as_f64(15, sscr.latency());
@@ -4544,12 +3924,12 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
             full_output, get_centreon_storage_services_col_size(
                              centreon_storage_services_output));
         _sscr_update->bind_value_as_str(
-            11, fmt::string_view(full_output.data(), size));
+            11, std::string_view(full_output.data(), size));
         size = common::adjust_size_utf8(
             sscr.perfdata(), get_centreon_storage_services_col_size(
                                  centreon_storage_services_perfdata));
         _sscr_update->bind_value_as_str(
-            12, fmt::string_view(sscr.perfdata().data(), size));
+            12, std::string_view(sscr.perfdata().data(), size));
         _sscr_update->bind_value_as_bool(13, sscr.flapping());
         _sscr_update->bind_value_as_f64(14, sscr.percent_state_change());
         _sscr_update->bind_value_as_f64(15, sscr.latency());
@@ -4576,15 +3956,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_update->bind_value_as_i32(29, sscr.service_id());
 
         _mysql.run_statement(*_sscr_update,
-                             database::mysql_error::store_service_status, conn);
-
-        _add_action(conn, actions::services);
+                             database::mysql_error::store_service_status, 0);
       }
     }
 
     if (_store_in_resources) {
-      int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       size_t output_size = common::adjust_size_utf8(
           sscr.output(), get_centreon_storage_resources_col_size(
                              centreon_storage_resources_output));
@@ -4595,10 +3971,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _logger_sql->debug(
             "unified_sql: BULK pb service status ({}, {}) {} in resources",
             sscr.host_id(), sscr.service_id(), sscr.state());
-        std::lock_guard<bulk_bind> lck(*_sscr_resources_bind);
-        if (!_sscr_resources_bind->bind(conn))
-          _sscr_resources_bind->init_from_stmt(conn);
-        auto* b = _sscr_resources_bind->bind(conn).get();
+        bulk_bind::scoped_lock lck(*_sscr_resources_bind);
+        if (!_sscr_resources_bind->bind(0))
+          _sscr_resources_bind->init_from_stmt(0);
+        auto* b = _sscr_resources_bind->bind(0).get();
         b->set_value_as_i32(0, sscr.state());
         b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
         b->set_value_as_u64(2, sscr.last_state_change(),
@@ -4618,7 +3994,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         else
           b->set_value_as_u64(9, sscr.last_check());
         b->set_value_as_str(
-            10, fmt::string_view(sscr.output().c_str(), output_size));
+            10, std::string_view(sscr.output().c_str(), output_size));
         b->set_value_as_bool(11, sscr.flapping());
         b->set_value_as_f64(12, sscr.percent_state_change());
         b->set_value_as_u64(13, sscr.service_id());
@@ -4652,7 +4028,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_resources_update->bind_value_as_u64_ext(
             9, sscr.last_check(), mapping::entry::invalid_on_zero);
         _sscr_resources_update->bind_value_as_str(
-            10, fmt::string_view(sscr.output().c_str(), output_size));
+            10, std::string_view(sscr.output().c_str(), output_size));
         _sscr_resources_update->bind_value_as_bool(11, sscr.flapping());
         _sscr_resources_update->bind_value_as_f64(12,
                                                   sscr.percent_state_change());
@@ -4660,8 +4036,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_resources_update->bind_value_as_u64(14, sscr.host_id());
 
         _mysql.run_statement(*_sscr_resources_update,
-                             database::mysql_error::store_service_status, conn);
-        _add_action(conn, actions::resources);
+                             database::mysql_error::store_service_status, 0);
       }
     }
   } else
@@ -4689,8 +4064,6 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_adaptive_service_status(
     const std::shared_ptr<io::data>& d) {
-  _finish_action(
-      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   auto s{static_cast<const neb::pb_adaptive_service_status*>(d.get())};
   auto& sscr = s->obj();
@@ -4714,8 +4087,11 @@ void stream::_process_pb_adaptive_service_status(
     return;
   }
 
-  int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[sscr.host_id()]);
+  /* This adaptive status is applied right away through a direct query while a
+   * regular service status for the same row may still sit in the bulk bind with
+   * an older value. Flush the pending binds first so this update is not later
+   * clobbered by the buffered (stale) one. */
+  _flush_status_binds(true);
 
   if (_store_in_hosts_services) {
     constexpr std::string_view query("UPDATE services SET ");
@@ -4740,8 +4116,7 @@ void stream::_process_pb_adaptive_service_status(
                                sscr.host_id(), sscr.service_id());
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", buf_query);
       _mysql.run_query(buf_query, database::mysql_error::store_service_status,
-                       conn);
-      _add_action(conn, actions::services);
+                       0);
     }
   }
 
@@ -4768,8 +4143,7 @@ void stream::_process_pb_adaptive_service_status(
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
                           buf_res_query);
       _mysql.run_query(buf_res_query, database::mysql_error::update_resources,
-                       conn);
-      _add_action(conn, actions::resources);
+                       0);
     }
   }
 }
@@ -4779,7 +4153,6 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
     return;
 
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified_sql: processing severity");
-  _finish_action(-1, actions::resources);
 
   // Prepare queries.
   if (!_severity_insert.prepared()) {
@@ -4799,11 +4172,11 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       "unified_sql: severity event with id={}, type={}, name={}, "
       "level={}, icon_id={}",
       sv.id(), sv.type(), sv.name(), sv.level(), sv.icon_id());
-  uint64_t severity_id = _severity_cache[{sv.id(), sv.type()}];
-  int32_t conn = special_conn::severity % _mysql.connections_count();
+  uint64_t severity_id =
+      config::applier::state::instance().cache().get_db_id_for_severity(
+          sv.id(), sv.type());
   switch (sv.action()) {
     case Severity_Action_ADD:
-      _add_action(conn, actions::severities);
       if (severity_id) {
         SPDLOG_LOGGER_TRACE(_logger_sql,
                             "unified_sql: add already existing severity {}",
@@ -4815,7 +4188,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
         _severity_update.bind_value_as_u64(4, sv.icon_id());
         _severity_update.bind_value_as_u64(5, severity_id);
         _mysql.run_statement(_severity_update,
-                             database::mysql_error::store_severity, conn);
+                             database::mysql_error::store_severity, 0);
       } else {
         SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: add severity {}",
                             sv.id());
@@ -4828,10 +4201,11 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
         std::future<uint64_t> future = p.get_future();
         _mysql.run_statement_and_get_int<uint64_t>(
             _severity_insert, std::move(p),
-            database::mysql_task::LAST_INSERT_ID, conn);
+            database::mysql_task::LAST_INSERT_ID, 0);
         try {
           severity_id = future.get();
-          _severity_cache[{sv.id(), sv.type()}] = severity_id;
+          config::applier::state::instance().cache().set_db_id_for_severity(
+              sv.id(), sv.type(), severity_id);
         } catch (const std::exception& e) {
           SPDLOG_LOGGER_ERROR(
               _logger_sql,
@@ -4841,7 +4215,6 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       }
       break;
     case Severity_Action_MODIFY:
-      _add_action(conn, actions::severities);
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: modify severity {}",
                           sv.id());
       _severity_update.bind_value_as_u64(0, sv.id());
@@ -4852,8 +4225,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       if (severity_id) {
         _severity_update.bind_value_as_u64(5, severity_id);
         _mysql.run_statement(_severity_update,
-                             database::mysql_error::store_severity, conn);
-        _add_action(conn, actions::severities);
+                             database::mysql_error::store_severity, 0);
       } else
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
@@ -4879,9 +4251,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
     return;
 
   SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing tag");
-  _finish_action(-1, actions::tags);
-
-  auto cache_ptr = cache::global_cache::instance_ptr();
 
   // Prepare queries.
   if (!_tag_insert_update.prepared())
@@ -4895,15 +4264,11 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   auto& tg = s->obj();
   SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: processing tag {}",
                       tg.DebugString());
-  int32_t conn = special_conn::tag % _mysql.connections_count();
   switch (tg.action()) {
     case Tag_Action_ADD:
     case Tag_Action_MODIFY: {
       const char* debug_action =
           tg.action() == Tag_Action_ADD ? "insert" : "update";
-      if (cache_ptr) {
-        cache_ptr->add_tag(tg.id(), tg.name(), tg.type(), tg.poller_id());
-      }
       SPDLOG_LOGGER_TRACE(_logger_sql, "SQL: {} tag {}", debug_action, tg.id());
       _tag_insert_update.bind_value_as_u64(0, tg.id());
       _tag_insert_update.bind_value_as_u32(1, tg.type());
@@ -4912,7 +4277,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       std::future<uint64_t> future = p.get_future();
       _mysql.run_statement_and_get_int<uint64_t>(
           _tag_insert_update, std::move(p),
-          database::mysql_task::LAST_INSERT_ID, conn);
+          database::mysql_task::LAST_INSERT_ID, 0);
       try {
         uint64_t tag_id = future.get();
         _tags_cache[{tg.id(), tg.type()}] = tag_id;
@@ -4924,7 +4289,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
                             "unified sql: unable to {} tag ({},{}): {}",
                             debug_action, tg.id(), tg.type(), e.what());
       }
-      _add_action(conn, actions::tags);
       break;
     }
     case Tag_Action_DELETE:
@@ -4941,8 +4305,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
 
 void stream::_process_tag_from_resources(uint64_t resource_id,
                                          uint64_t tag_id,
-                                         int32_t tag_type,
-                                         int32_t conn) {
+                                         int32_t tag_type) {
   SPDLOG_LOGGER_DEBUG(_logger_sql, "add tag ({}, {}) for resource {}", tag_id,
                       tag_type, resource_id);
 
@@ -4964,7 +4327,7 @@ void stream::_process_tag_from_resources(uint64_t resource_id,
 
     _mysql.run_statement_and_get_int<uint64_t>(
         _tag_insert_update_nothing, std::move(p),
-        database::mysql_task::LAST_INSERT_ID, conn);
+        database::mysql_task::LAST_INSERT_ID, 0);
     try {
       uint64_t tag_index = future.get();
       it_tags_cache = _tags_cache.insert({{tag_id, tag_type}, tag_index}).first;
@@ -4983,9 +4346,7 @@ void stream::_process_tag_from_resources(uint64_t resource_id,
                         "and tag ({},{},{})",
                         resource_id, it_tags_cache->second, tag_id, tag_type);
     _mysql.run_statement(_resources_tags_insert,
-                         database::mysql_error::store_tags_resources_tags,
-                         conn);
-    _add_action(conn, actions::resources_tags);
+                         database::mysql_error::store_tags_resources_tags, 0);
   } else {
     SPDLOG_LOGGER_ERROR(
         _logger_sql,
@@ -5028,14 +4389,27 @@ void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
         "(?,?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled), "
         "infos=VALUES(infos)");
   }
-  int32_t conn = _mysql.choose_connection_by_instance(stats.poller_id());
-
   _agent_information_insert_update.bind_value_as_u32(0, stats.poller_id());
   _agent_information_insert_update.bind_value_as_bool(1, true);
   _agent_information_insert_update.bind_value_as_str(2, out_buff.GetString());
   _mysql.run_statement(_agent_information_insert_update,
                        database::mysql_error::insert_update_agent_information,
-                       conn);
+                       0);
+}
+
+/**
+ * @brief Process an engine state event.
+ *
+ * @param d A poller configuration event (pb_engine_state).
+ */
+void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing engine state");
+  std::shared_ptr<neb::pb_engine_state> state{
+      std::static_pointer_cast<neb::pb_engine_state>(d)};
+  database_configurator cfg(this, _logger_sql);
+  cfg.process_state(state->obj());
+  auto& cache = config::applier::state::instance().cache();
+  cache.merge(state->obj());
 }
 
 /**

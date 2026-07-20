@@ -19,8 +19,11 @@
 #ifndef CCB_LUA_LUABINDING_HH
 #define CCB_LUA_LUABINDING_HH
 
-#include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/variant.hh"
+#include <variant>
+
+#include <absl/container/btree_map.h>
+
+#include "com/centreon/broker/io/data.hh"
 
 extern "C" {
 #include "lauxlib.h"
@@ -29,6 +32,15 @@ extern "C" {
 }
 
 namespace com::centreon::broker::lua {
+
+using variant = std::variant<std::monostate,
+                             bool,
+                             int32_t,
+                             uint32_t,
+                             int64_t,
+                             uint64_t,
+                             double,
+                             std::string>;
 /**
  *  @class luabinding luabinding.hh
  * "com/centreon/broker/luabinding/luabinding.hh"
@@ -90,11 +102,8 @@ class luabinding {
   // True if there is a flush() function in the Lua script.
   bool _flush;
 
-  // The cache.
-  macro_cache& _cache;
-
   // Count on events
-  int32_t _total;
+  uint32_t _total;
 
   // Api version among (1, 2)
   uint32_t _broker_api_version;
@@ -104,21 +113,20 @@ class luabinding {
 
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
-  void _init_script(std::map<std::string, misc::variant> const& conf_params);
+  void _init_script(absl::btree_map<std::string, variant> const& conf_params);
   void _update_lua_path(std::string const& path);
 
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, misc::variant> const& conf_params,
-             macro_cache& cache);
+             absl::btree_map<std::string, variant> const& conf_params);
   luabinding(luabinding const&) = delete;
   luabinding& operator=(luabinding const&) = delete;
   ~luabinding() noexcept;
   bool has_filter() const noexcept;
-  int32_t write(std::shared_ptr<io::data> const& data) noexcept;
+  uint32_t write(std::shared_ptr<io::data> const& data) noexcept;
   bool has_flush() const noexcept;
-  int32_t flush() noexcept;
-  int32_t stop();
+  uint32_t flush() noexcept;
+  uint32_t stop();
 };
 
 // Event conversion to Lua table.

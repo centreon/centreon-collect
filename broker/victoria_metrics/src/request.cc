@@ -19,7 +19,7 @@
 #include "com/centreon/broker/victoria_metrics/request.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/config/applier/state.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
@@ -123,16 +123,17 @@ void request::add_status(const storage::pb_status& status) {
 }
 
 void request::append_metric_info(const Metric& metric) {
-  cache::global_cache::lock l;
-  const cache::metric_info* metric_inf =
-      cache::global_cache::instance_ptr()->get_metric_info(metric.metric_id());
-  if (metric_inf) {
-    absl::StrAppend(&body(), _sz_unit, string_filter(metric_inf->unit));
-    const cache::resource_info* res_info =
-        cache::global_cache::instance_ptr()->get_service(metric.host_id(),
-                                                         metric.service_id());
-    if (res_info) {
-      absl::StrAppend(&body(), _sz_severity_id, res_info->severity_id);
+  auto& bc = config::applier::state::instance().cache();
+  auto mapping = bc.get_metric_mapping(metric.metric_id());
+  if (mapping)
+    absl::StrAppend(&body(), _sz_unit, string_filter(mapping->obj().uom()));
+  auto svc = bc.service(metric.host_id(), metric.service_id());
+  if (svc) {
+    uint64_t sev_id = svc->obj().severity_id();
+    if (sev_id) {
+      uint64_t db_id = bc.get_db_id_for_severity(sev_id, 0);
+      if (db_id)
+        absl::StrAppend(&body(), _sz_severity_id, db_id);
     }
   }
 }
@@ -140,11 +141,14 @@ void request::append_metric_info(const Metric& metric) {
 void request::append_status_info(const Status& status) {
   absl::StrAppend(&body(), _sz_host_id, status.host_id(), _sz_serv_id,
                   status.service_id());
-  cache::global_cache::lock l;
-  const cache::resource_info* res_info =
-      cache::global_cache::instance_ptr()->get_service(status.host_id(),
-                                                       status.service_id());
-  if (res_info) {
-    absl::StrAppend(&body(), _sz_severity_id, res_info->severity_id);
+  auto& bc = config::applier::state::instance().cache();
+  auto svc = bc.service(status.host_id(), status.service_id());
+  if (svc) {
+    uint64_t sev_id = svc->obj().severity_id();
+    if (sev_id) {
+      uint64_t db_id = bc.get_db_id_for_severity(sev_id, 0);
+      if (db_id)
+        absl::StrAppend(&body(), _sz_severity_id, db_id);
+    }
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2024 Centreon
+ * Copyright 2018-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
  *
  * For more information : contact@centreon.com
  */
-
-#include <absl/strings/str_split.h>
 
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -402,8 +400,7 @@ void mysql::_get_server_infos() {
     if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
         absl::SimpleAtoi(v[2], &patch)) {
       _logger->info("connected to '{}' Server, version {}.{}.{}",
-                    fmt::string_view(server.data(), server.size()), major,
-                    minor, patch);
+                    server, major, minor, patch);
       if (server == "MariaDB" && (major > 10 || (major == 10 && minor >= 2))) {
         _logger->info("it supports column-wise binding in prepared statements");
         _support_bulk_statement = true;

@@ -17,7 +17,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <iostream>
 
 #include "check.hh"
 #include "com/centreon/common/rapidjson_helper.hh"

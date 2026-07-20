@@ -1,31 +1,38 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine add servicegroup
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
-EBNSG1
-    [Documentation]    New service group with several pollers and connections to DB
+BENSG1
+    [Documentation]    Scenario: Service group creation and synchronization across multiple pollers
+    ...    Given 3 Engine pollers and Broker are started in non-centralized mode
+    ...    And the unified SQL output is configured with 5 database connections
+    ...    When a service group is created on poller 0 with services service_1, service_2, service_3 from host_1
+    ...    And servicegroups.cfg is added to poller 0 configuration
+    ...    And Broker and Engine are reloaded
+    ...    Then the central broker log should confirm that all 3 services are members of service group 1 on instance 1
     [Tags]    broker    engine    servicegroup
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
 
+    Ctn Remove Service Group    ${0}    ${1}
     Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
 
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
@@ -42,13 +49,13 @@ EBNSG1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new service groups not found in logs.
 
-EBNSGU1
+BENSGU1
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    servicegroup    unified_sql
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
-    Ctn Config Broker    module
+    Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
     Ctn Config Broker Sql Output    central    unified_sql
@@ -58,6 +65,7 @@ EBNSGU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
@@ -74,7 +82,7 @@ EBNSGU1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new service groups not found in logs.
 
-EBNSGU2
+BENSGU2
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    servicegroup    unified_sql
     Ctn Config Engine    ${4}
@@ -115,7 +123,7 @@ EBNSGU2
     ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    9    30
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
-EBNSGU3_${test_label}
+BENSGU3_${test_label}
     [Documentation]    New service group with several pollers and connections to DB with broker and rename this servicegroup
     [Tags]    broker    engine    servicegroup
     Ctn Config Engine    ${3}

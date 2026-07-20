@@ -118,7 +118,9 @@ class service : public notifier {
 
   enum service_state { state_ok, state_warning, state_critical, state_unknown };
 
-  service(std::string const& hostname,
+  service(uint64_t host_id,
+          uint64_t service_id,
+          std::string const& hostname,
           std::string const& description,
           std::string const& display_name,
           std::string const& check_command,
@@ -151,9 +153,7 @@ class service : public notifier {
           uint64_t icon_id,
           service_type st = NONE);
   ~service() noexcept;
-  void set_host_id(uint64_t host_id);
   uint64_t host_id() const;
-  void set_service_id(uint64_t service_id);
   uint64_t service_id() const;
   service_type get_service_type() const;
   void set_hostname(std::string const& name);
@@ -264,8 +264,8 @@ class service : public notifier {
   std::string get_check_command_line(nagios_macros* macros);
 
  private:
-  uint64_t _host_id;
-  uint64_t _service_id;
+  const uint64_t _host_id;
+  const uint64_t _service_id;
   std::string _hostname;
   std::string _event_handler_args;
   std::string _check_command_args;

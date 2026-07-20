@@ -41,7 +41,7 @@ fi
 
 if [ $database_type == 'mysql' ]; then
     echo "########################### Start MySQL ######################################"
-    /usr/libexec/mysqldtoto --user=root &
+    /usr/sbin/mysqldtoto --user=root &
 else
     echo "########################### Start MariaDB ######################################"
     if [ "$distrib" = "ALMALINUX" ]; then
@@ -50,7 +50,6 @@ else
       mariadbd --socket=/run/mysqld/mysqld.sock --user=root > /dev/null 2>&1 &
     fi
     sleep 5
-
 fi
 
 
@@ -65,9 +64,7 @@ else
   apt-get install -y ./*.deb
 fi
 
-
 ulimit -c unlimited
-ulimit -S -n 524288
 
 #only privileged container can write core files
 if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then

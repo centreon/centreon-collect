@@ -54,7 +54,7 @@ bool publisher::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @return Number of elements acknowledged (1).
  */
-int32_t publisher::write(const std::shared_ptr<io::data>& d) {
+uint32_t publisher::write(const std::shared_ptr<io::data>& d) {
   engine::instance_ptr()->publish(d);
   return 1;
 }
@@ -68,7 +68,7 @@ int32_t publisher::write(const std::shared_ptr<io::data>& d) {
  *
  * @return The number of events published.
  */
-int publisher::write(const std::deque<std::shared_ptr<io::data>>& to_publish) {
+uint32_t publisher::write(const std::deque<std::shared_ptr<io::data>>& to_publish) {
   engine::instance_ptr()->publish(to_publish);
   return to_publish.size();
 }
@@ -79,6 +79,6 @@ int publisher::write(const std::deque<std::shared_ptr<io::data>>& to_publish) {
  *
  * @return the number of acknowledged events.
  */
-int32_t publisher::stop() {
+uint32_t publisher::stop() {
   return 0;
 }

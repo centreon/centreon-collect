@@ -194,7 +194,7 @@ uint32_t feeder::on_events(
 /**
  * @brief acknowledge events to the muxer and catch exception from it
  *
- * @param count
+ * @param count  Number of events to acknowledge.
  */
 void feeder::_ack_events_on_muxer(unsigned count) noexcept {
   try {

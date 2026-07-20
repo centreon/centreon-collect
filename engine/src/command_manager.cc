@@ -27,10 +27,8 @@
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
 
 /**
@@ -83,7 +81,7 @@ int command_manager::process_passive_service_check(
 
   /* skip this service check result if we aren't accepting passive service
    * checks */
-  if (!pb_config.accept_passive_service_checks())
+  if (!pb_indexed_config.state().accept_passive_service_checks())
     return ERROR;
 
   /* make sure we have a reasonable return code */
@@ -107,10 +105,6 @@ int command_manager::process_passive_service_check(
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for service '"
-        << svc_description << "' on host '" << host_name
-        << "', but the host could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the host could not be found!",
@@ -122,10 +116,6 @@ int command_manager::process_passive_service_check(
   service_map::const_iterator found(
       service::services.find({*real_host_name, svc_description}));
   if (found == service::services.end() || !found->second) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for service '"
-        << svc_description << "' on host '" << host_name
-        << "', but the service could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the service could not be found!",
@@ -174,7 +164,7 @@ int command_manager::process_passive_host_check(time_t check_time,
   const std::string* real_host_name = nullptr;
 
   /* skip this host check result if we aren't accepting passive host checks */
-  if (!pb_config.accept_passive_service_checks())
+  if (!pb_indexed_config.state().accept_passive_service_checks())
     return ERROR;
 
   /* make sure we have a reasonable return code */
@@ -198,9 +188,6 @@ int command_manager::process_passive_host_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for host '" << host_name
-        << "', but the host could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for host '{}', but the "
         "host could not be found!",
@@ -288,12 +275,12 @@ int command_manager::get_stats(std::string const& request, Stats* response) {
     uint32_t used_external_command_buffer_slots = 0;
     uint32_t high_external_command_buffer_slots = 0;
     // get number f items in the command buffer
-    if (pb_config.check_external_commands()) {
+    if (pb_indexed_config.state().check_external_commands()) {
       used_external_command_buffer_slots = external_command_buffer.size();
       high_external_command_buffer_slots = external_command_buffer.high();
     }
     response->mutable_program_status()->set_total_external_command_buffer_slots(
-        pb_config.external_command_buffer_slots());
+        pb_indexed_config.state().external_command_buffer_slots());
     response->mutable_program_status()->set_used_external_command_buffer_slots(
         used_external_command_buffer_slots);
     response->mutable_program_status()->set_high_external_command_buffer_slots(

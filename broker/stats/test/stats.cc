@@ -16,11 +16,12 @@
  * For more information : contact@centreon.com
  *
  */
+#include <absl/container/btree_map.h>
 #include <gtest/gtest.h>
 #include <com/centreon/broker/stats/parser.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
-#include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
@@ -38,7 +39,8 @@ using namespace com::centreon::broker;
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    config::applier::state::load(com::centreon::common::BROKER);
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
     mysql_manager::load();
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
@@ -84,13 +86,13 @@ class st : public io::stream {
     throw exceptions::shutdown("cannot read from connector");
   }
 
-  int32_t write(std::shared_ptr<io::data> const& d
+  uint32_t write(std::shared_ptr<io::data> const& d
                 __attribute__((__unused__))) override {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 };
 
 class endp : public io::endpoint {
@@ -122,10 +124,9 @@ class fact : public io::factory {
 
   io::endpoint* new_endpoint(
       config::endpoint& cfg [[maybe_unused]],
-      const std::map<std::string, std::string>& global_params [[maybe_unused]],
-      bool& is_acceptor,
-      std::shared_ptr<persistent_cache> cache
-      [[maybe_unused]] = std::shared_ptr<persistent_cache>()) const override {
+      const absl::btree_map<std::string, std::string>& global_params
+      [[maybe_unused]],
+      bool& is_acceptor) const override {
     endp* p{new endp()};
     is_acceptor = true;
     return p;
@@ -155,7 +156,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
       "    \"output\": [\n"
       "      {\n"
       "        \"name\": \"CentreonDatabase\",\n"
-      "        \"type\": \"sql\",\n"
+      "        \"type\": \"unified_sql\",\n"
       "        \"db_type\": \"mysql\",\n"
       "        \"db_host\": \"localhost\",\n"
       "        \"db_port\": \"3306\",\n"

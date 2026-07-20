@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine benchmark
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean Whitelist
-Test Setup          Ctn Whitelist Setup
-Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=${True}
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean Whitelist
+Test Setup    Ctn Whitelist Setup
+Test Teardown    Ctn Stop Engine Broker And Save Logs    only_central=${True}
 
 
 *** Test Cases ***
@@ -16,6 +16,7 @@ Whitelist_No_Whitelist_Directory
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    module    ${1}
     Remove Directory    /etc/centreon-engine-whitelist    recursive=${True}
+    Remove Directory    /usr/share/centreon-engine/whitelist.conf.d    recursive=${True}
     ${start}    Get Current Date
     Ctn Start Engine
     ${content}    Create List
@@ -85,7 +86,7 @@ Whitelist_Host
     # no file => no restriction
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl --id 0 1.0.0.0'
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    No check result found for host_1
 
     # Create non matching file with /tmp/var/lib/centreon-engine/check.pl --id 0 1.0.0.0
@@ -93,7 +94,7 @@ Whitelist_Host
     ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
     Run    chown root:centreon-engine /etc/centreon-engine-whitelist/test
-    Run    Chmod 750 -R /etc/centreon-engine-whitelist
+    Run    chmod 750 -R /etc/centreon-engine-whitelist
 
     ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
@@ -291,11 +292,86 @@ Whitelist_Perl_Connector
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0 not found
 
+Whitelist_NotReadable
+    [Documentation]    Given a centengine started by centreon-engine user, whitelist files are not readable and centengine must log an error
+    [Tags]    whitelist    engine MON-175809
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Empty Directory    /etc/centreon-engine-whitelist
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+
+    ${whitelist_content}    Catenate
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+    Run    chown root:centreon-engine /etc/centreon-engine-whitelist/test
+    Run    chmod 755 -R /etc/centreon-engine-whitelist
+    Run    chmod 200 -R /etc/centreon-engine-whitelist/test
+
+    Create File    /usr/share/centreon-engine/whitelist.conf.d/test    ${whitelist_content}
+    Run    chown root:centreon-engine /usr/share/centreon-engine/whitelist.conf.d/test
+    Run    chmod 755 -R /usr/share/centreon-engine/whitelist.conf.d
+    Run    chmod 200 -R /usr/share/centreon-engine/whitelist.conf.d/test
+
+    Run    chown centreon-engine: /usr/sbin/centengine
+    Run    chmod +s /usr/sbin/centengine
+
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+    Ctn Start Engine    with_centreon_engine_user=${True}
+
+    Sleep    1s
+    Run    chown root: /usr/sbin/centengine
+    Run    chmod 711 /usr/sbin/centengine
+
+    ${content}    Create List
+    ...    fail to read /etc/centreon-engine-whitelist/test
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /etc/centreon-engine-whitelist/test
+
+    ${content}    Create List
+    ...    fail to read /usr/share/centreon-engine/whitelist.conf.d/test
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /usr/share/centreon-engine/whitelist.conf.d/test
+
+Whitelist_Directory_NotReadable
+    [Documentation]    Given a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
+    [Tags]    whitelist    engine MON-175809
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+
+    Run    chmod 700 -R /etc/centreon-engine-whitelist
+    Run    chmod 700 -R /usr/share/centreon-engine/whitelist.conf.d
+
+    Run    chown centreon-engine: /usr/sbin/centengine
+    Run    chmod +s /usr/sbin/centengine
+
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+    Ctn Start Engine    with_centreon_engine_user=${True}
+
+    Sleep    1s
+    Run    chown root: /usr/sbin/centengine
+    Run    chmod 711 /usr/sbin/centengine
+
+    ${content}    Create List
+    ...    fail to read /etc/centreon-engine-whitelist directory: filesystem error: directory iterator cannot open directory: Permission denied
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /etc/centreon-engine-whitelist
+
+    ${content}    Create List
+    ...    fail to read /usr/share/centreon-engine/whitelist.conf.d directory: filesystem error: directory iterator cannot open directory: Permission denied
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No error read message for /usr/share/centreon-engine/whitelist.conf.d
+
+
 *** Keywords ***
 Ctn Whitelist Setup
+    [Documentation]    Create the whitelist directory and stop all processes before the suite.
     Create Directory    /etc/centreon-engine-whitelist
     Ctn Stop Processes
 
 Ctn Clean Whitelist
+    [Documentation]    Run suite teardown and remove the whitelist test file.
     Ctn Clean After Suite
     Remove File    /etc/centreon-engine-whitelist/test

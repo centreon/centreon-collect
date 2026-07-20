@@ -19,18 +19,11 @@
 #include <gtest/gtest.h>
 #include <com/centreon/engine/macros.hh>
 
-#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/connector_helper.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -39,8 +32,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierPbCommand : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -55,7 +51,7 @@ TEST_F(ApplierPbCommand, PbUnusableCommandFromConfig) {
   configuration::command_helper cmd_hlp(&cmd);
   cmd.set_command_name("cmd");
   ASSERT_THROW(aply.add_object(cmd), std::exception);
-  ASSERT_EQ(pb_config.commands().size(), 1u);
+  ASSERT_EQ(pb_indexed_config.commands().size(), 1u);
   ASSERT_EQ(commands::command::commands.size(), 0u);
 }
 
@@ -70,7 +66,7 @@ TEST_F(ApplierPbCommand, PbNewCommandFromConfig) {
   cmd.set_command_name("cmd");
   cmd.set_command_line("echo 1");
   aply.add_object(cmd);
-  ASSERT_EQ(pb_config.commands().size(), 1u);
+  ASSERT_EQ(pb_indexed_config.commands().size(), 1u);
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_FALSE(found == commands::command::commands.end());
   ASSERT_FALSE(!found->second);
@@ -89,7 +85,7 @@ TEST_F(ApplierPbCommand, PbNewCommandWithEmptyConnectorFromConfig) {
   cmd.set_command_line("echo 1");
   cmd.set_connector("perl");
   ASSERT_THROW(aply.add_object(cmd), std::exception);
-  ASSERT_EQ(pb_config.commands().size(), 1u);
+  ASSERT_EQ(pb_indexed_config.commands().size(), 1u);
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_TRUE(found == commands::command::commands.end());
 }
@@ -115,7 +111,7 @@ TEST_F(ApplierPbCommand, PbNewCommandWithConnectorFromConfig) {
   cnn_aply.add_object(cnn);
   aply.add_object(cmd);
 
-  ASSERT_EQ(pb_config.commands().size(), 1u);
+  ASSERT_EQ(pb_indexed_config.commands().size(), 1u);
   command_map::iterator found = commands::command::commands.find("cmd");
   ASSERT_EQ(found->second->get_name(), "cmd");
   ASSERT_EQ(found->second->get_command_line(), "echo 1");
@@ -143,7 +139,7 @@ TEST_F(ApplierPbCommand, PbNewCommandAndConnectorWithSameName) {
   cnn_aply.add_object(cnn);
   aply.add_object(cmd);
 
-  ASSERT_EQ(pb_config.commands().size(), 1u);
+  ASSERT_EQ(pb_indexed_config.commands().size(), 1u);
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_FALSE(found == commands::command::commands.end());
   ASSERT_FALSE(!found->second);
@@ -180,7 +176,8 @@ TEST_F(ApplierPbCommand, PbModifyCommandWithConnector) {
   cnn_aply.add_object(cnn);
   aply.add_object(cmd);
 
-  configuration::Command* to_modify = &pb_config.mutable_commands()->at(0);
+  configuration::Command* to_modify =
+      pb_indexed_config.mut_commands().at("cmd").get();
   cmd.set_command_line("date");
   aply.modify_object(to_modify, cmd);
   command_map::iterator found{commands::command::commands.find("cmd")};
@@ -201,10 +198,10 @@ TEST_F(ApplierPbCommand, PbRemoveCommand) {
 
   aply.add_object(cmd);
 
-  aply.remove_object(0);
+  aply.remove_object("cmd");
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_EQ(found, commands::command::commands.end());
-  ASSERT_TRUE(pb_config.commands().size() == 0);
+  ASSERT_TRUE(pb_indexed_config.commands().size() == 0);
 }
 
 // Given some command and connector appliers already applied with
@@ -226,10 +223,10 @@ TEST_F(ApplierPbCommand, PbRemoveCommandWithConnector) {
   cnn_aply.add_object(cnn);
   aply.add_object(cmd);
 
-  aply.remove_object(0);
+  aply.remove_object("cmd");
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_EQ(found, commands::command::commands.end());
-  ASSERT_TRUE(pb_config.commands().size() == 0);
+  ASSERT_TRUE(pb_indexed_config.commands().size() == 0);
 }
 
 // Given simple command (without connector) applier already applied with
@@ -254,7 +251,6 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   hst.set_host_name("hst_test");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
-  hst.set_host_id(1);
   configuration::CustomVariable* cv = hst.add_customvariables();
   cv->set_name("PACKETNUMBER");
   cv->set_value("42");
@@ -270,13 +266,14 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   command_map::iterator cmd_found{
       commands::command::commands.find("base_centreon_ping")};
   ASSERT_NE(cmd_found, commands::command::commands.end());
-  ASSERT_TRUE(pb_config.commands().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.commands().size() == 1);
 
   host_map::iterator hst_found{engine::host::hosts.find("hst_test")};
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(pb_config.hosts().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
+  // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
@@ -335,13 +332,14 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
   command_map::iterator cmd_found =
       commands::command::commands.find("base_centreon_ping");
   ASSERT_NE(cmd_found, commands::command::commands.end());
-  ASSERT_TRUE(pb_config.commands().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.commands().size() == 1);
 
   host_map::iterator hst_found = engine::host::hosts.find("hst_test");
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(pb_config.hosts().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
+  // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());

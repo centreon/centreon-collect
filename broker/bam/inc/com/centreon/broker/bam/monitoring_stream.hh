@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_MONITORING_STREAM_HH
 #define CCB_BAM_MONITORING_STREAM_HH
 
-#include <absl/hash/hash.h>
-
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/sql/database_config.hh"
@@ -67,6 +65,7 @@ namespace bam {
  *  will just make a new attempt in 5s.
  */
 class monitoring_stream : public io::stream {
+  const std::string _name;
   const std::string _ext_cmd_file;
 
   /* Logger */
@@ -76,7 +75,21 @@ class monitoring_stream : public io::stream {
   /* This mutex is to protect writes to the external command named pipe. */
   mutable std::mutex _ext_cmd_file_m;
 
+  /* We stack external commands because in case of a stopped centengine,
+   * before this modification external commands were lost. And we could have
+   * issues with downtimes. Now, Broker can retry to send them 5s later. */
+  std::deque<std::string> _queue_external_commands
+      ABSL_GUARDED_BY(_queue_external_commands_m);
+  mutable absl::Mutex _queue_external_commands_m;
+  boost::asio::steady_timer _queue_external_commands_timer;
+  bool _queue_external_commands_stopped;
+
   ba_svc_mapping _ba_mapping;
+  /* True until the first update() (cold start) completes. On a cold start the
+   * BA virtual service statuses are published to seed the RRD; on a reload they
+   * are not republished (the state is unchanged and already downstream), which
+   * would otherwise duplicate an RRD point at a constant last_check. */
+  bool _first_update{true};
   mutable std::mutex _statusm;
   mysql _mysql;
   unsigned _conf_queries_per_transaction;
@@ -86,10 +99,9 @@ class monitoring_stream : public io::stream {
   uint32_t _pending_events;
   unsigned _pending_request;
   database_config _storage_db_cfg;
-  std::shared_ptr<persistent_cache> _cache;
 
-  asio::steady_timer _forced_svc_checks_timer;
-  std::mutex _forced_svc_checks_m;
+  boost::asio::steady_timer _forced_svc_checks_timer;
+  mutable std::mutex _forced_svc_checks_m;
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
       _forced_svc_checks;
@@ -106,27 +118,29 @@ class monitoring_stream : public io::stream {
   void _prepare();
   void _rebuild();
   void _update_status(std::string const& status);
+  void _async_write_external_commands();
   void _write_external_command(const std::string& cmd);
+  void _handle_inherited_downtime(uint32_t ba_id, bool in_downtime);
 
   void _read_cache();
   void _write_cache();
   void _execute();
 
  public:
-  monitoring_stream(std::string const& ext_cmd_file,
-                    database_config const& db_cfg,
-                    database_config const& storage_db_cfg,
-                    std::shared_ptr<persistent_cache> cache,
+  monitoring_stream(const std::string& name,
+                    const std::string& ext_cmd_file,
+                    const database_config& db_cfg,
+                    const database_config& storage_db_cfg,
                     const std::shared_ptr<spdlog::logger>& logger);
   ~monitoring_stream();
   monitoring_stream(const monitoring_stream&) = delete;
   monitoring_stream& operator=(const monitoring_stream&) = delete;
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t flush() override;
+  uint32_t stop() override;
   void initialize();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override final;
-  int write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
 };
 }  // namespace bam
 }  // namespace com::centreon::broker

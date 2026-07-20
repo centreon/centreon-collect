@@ -19,8 +19,10 @@
 #ifndef CCB_SIMU_CONNECTOR_HH
 #define CCB_SIMU_CONNECTOR_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/misc/variant.hh"
+#include "com/centreon/broker/simu/luabinding.hh"
 
 namespace com::centreon::broker {
 
@@ -33,14 +35,14 @@ namespace simu {
  */
 class connector : public io::endpoint {
   std::string _lua_script;
-  std::map<std::string, misc::variant> _conf_params;
+  absl::btree_map<std::string, variant> _conf_params;
 
  public:
   connector();
   connector(connector const& other);
   ~connector();
   void connect_to(std::string const& lua_script,
-                  std::map<std::string, misc::variant> const& cfg_params);
+                  absl::btree_map<std::string, variant> const& cfg_params);
   std::shared_ptr<io::stream> open() override;
 };
 }  // namespace simu

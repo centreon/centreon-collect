@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/broker/influxdb/stream.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -39,8 +41,7 @@ stream::stream(std::string const& user,
                std::string const& status_ts,
                std::vector<column> const& status_cols,
                std::string const& metric_ts,
-               std::vector<column> const& metric_cols,
-               std::shared_ptr<persistent_cache> const& cache)
+               std::vector<column> const& metric_cols)
     : io::stream("influxdb"),
       _user(user),
       _password(passwd),
@@ -51,9 +52,7 @@ stream::stream(std::string const& user,
       _pending_queries(0),
       _actual_query(0),
       _commit(false),
-      _cache(cache),
-      _logger{cache ? cache->logger()
-                    : log_v2::instance().get(log_v2::INFLUXDB)},
+      _logger{log_v2::instance().get(log_v2::INFLUXDB)},
       _influx_db{std::make_unique<influxdb>(user,
                                             passwd,
                                             addr,
@@ -63,8 +62,11 @@ stream::stream(std::string const& user,
                                             status_cols,
                                             metric_ts,
                                             metric_cols,
-                                            _cache,
                                             _logger)} {
+  config::applier::state::instance().cache().enable_section(
+      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
+      cache::broker_cache::CACHE_INSTANCES |
+      cache::broker_cache::CACHE_METRIC_MAPPINGS);
   _logger->trace("influxdb::stream constructor {}", static_cast<void*>(this));
 }
 
@@ -73,9 +75,9 @@ stream::stream(std::string const& user,
  *
  *  @return Number of events acknowledged.
  */
-int32_t stream::flush() {
+uint32_t stream::flush() {
   _logger->debug("influxdb: commiting {} queries", _actual_query);
-  int ret(_pending_queries);
+  uint32_t ret(_pending_queries);
   _actual_query = 0;
   _pending_queries = 0;
   _influx_db->commit();
@@ -88,9 +90,9 @@ int32_t stream::flush() {
  *
  * @return Number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger->trace("influxdb::stream stop {}", static_cast<void*>(this));
-  int32_t retval = flush();
+  uint32_t retval = flush();
   _logger->info("influxdb stream stopped with {} acknowledged events", retval);
   return retval;
 }
@@ -128,14 +130,11 @@ void stream::statistics(nlohmann::json& tree) const {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_queries;
   if (!validate(data, get_name()))
     return 0;
-
-  // Give data to cache.
-  _cache.write(data);
 
   // Process metric events.
   switch (data->type()) {

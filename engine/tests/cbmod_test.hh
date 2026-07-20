@@ -29,7 +29,7 @@ class cbmod_test : public com::centreon::broker::neb::cbmod {
   const std::string _poller_name = "test";
 
  public:
-  cbmod_test() : cbmod() {}
+  cbmod_test(const std::filesystem::path& proto_conf) : cbmod(proto_conf) {}
   ~cbmod_test() noexcept = default;
 
   void write(const std::shared_ptr<io::data>&) {}

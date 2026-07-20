@@ -18,13 +18,13 @@
 
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include <fmt/format.h>
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/ba_best.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/ba_ratio_number.hh"
 #include "com/centreon/broker/bam/ba_ratio_percent.hh"
 #include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -218,11 +218,11 @@ std::shared_ptr<bam::ba> applier::ba::find_ba(uint32_t id) const {
  *
  *  @param[out] visitor  Visitor that will receive status.
  */
-void applier::ba::visit(io::stream* visitor) {
+void applier::ba::visit(io::stream* visitor, bool seed_service_status) {
   for (std::map<uint32_t, applied>::iterator it(_applied.begin()),
        end(_applied.end());
        it != end; ++it)
-    it->second.obj->visit(visitor);
+    it->second.obj->visit(visitor, seed_service_status);
 }
 
 /**

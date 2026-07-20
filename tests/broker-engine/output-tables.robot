@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -51,7 +51,6 @@ BEHS1
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    trace
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
     Ctn Clear Retention
@@ -92,10 +91,10 @@ BEINSTANCESTATUS
     Ctn Engine Config Set Value    0    accept_passive_service_checks    0    True
 
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -144,10 +143,10 @@ BEINSTANCE
     Ctn Config Engine    ${1}    ${50}    ${20}
 
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Ctn Config Broker Sql Output    central    unified_sql
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
 
@@ -168,6 +167,7 @@ BEINSTANCE
     Should Be True    ${result}    no correct end_time in instances table.
     @{bdd_start_time}    Query    SELECT start_time FROM instances WHERE instance_id=1
     ${now}    Ctn Get Round Current Date
+    Disconnect From Database
     Should Be True
     ...    ${start} <= ${bdd_start_time[0][0]} and ${bdd_start_time[0][0]} <= ${now}
     ...    sg=no correct start_time in instances table.
@@ -177,6 +177,7 @@ BE_NOTIF_OVERFLOW
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Broker Config Add Item    module0    bbdo_version    2.0.0
     Ctn Broker Config Add Item    central    bbdo_version    2.0.0
@@ -198,13 +199,14 @@ BE_NOTIF_OVERFLOW
 
     Ctn Set Svc Notification Number    host_16    service_314    40000
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    30  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}    Query
     ...    SELECT s.notification_number FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_16' AND s.description='service_314'
     Should Be True    ${output[0][0]} == None    notification_number is not null
+    Disconnect From Database
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -214,6 +216,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
@@ -240,14 +243,16 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Should Be Equal As Strings
     ...    ${output}
     ...    ((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
+    Disconnect From Database
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
+BE_DEFAULT_NOTIFICATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Documentation]    default notification_interval must be set to NULL in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
@@ -269,6 +274,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
         Sleep    1s
         IF    "${output}" == "((0.0, 0.0),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -280,7 +286,6 @@ BE_FLAPPING_SERVICE_RESOURCE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Engine Config Set Value    0    enable_flap_detection    1
     Ctn Set Services Passive    ${0}    service_1
@@ -293,14 +298,17 @@ BE_FLAPPING_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
 
     Ctn Clear Retention
+    Ctn Clear Logs
 
-    Ctn Start Broker    
+    ${start}    Get Current Date
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # generate flapping
     FOR    ${index}    IN RANGE    21
@@ -309,11 +317,10 @@ BE_FLAPPING_SERVICE_RESOURCE
         Sleep    1s
     END
 
-    ${result}    Ctn Check Service Flapping   host_1    service_1    30    5    50
-    Should Be True    ${result}   The service or resource (host_1,service_1) is not flapping as expected
+    ${result}    Ctn Check Service Flapping    host_1    service_1    30    5    50
+    Should Be True    ${result}    The service or resource (host_1,service_1) is not flapping as expected
 
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    
-
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BE_FLAPPING_HOST_RESOURCE
     [Documentation]    With BBDO 3, flapping detection must be set in hosts and resources tables.
@@ -322,7 +329,6 @@ BE_FLAPPING_HOST_RESOURCE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Engine Config Set Value    0    enable_flap_detection    1
     Ctn Set Hosts Passive    ${0}    host_1
@@ -336,14 +342,16 @@ BE_FLAPPING_HOST_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
 
     Ctn Clear Retention
 
-    Ctn Start Broker    
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # generate flapping
     FOR    ${index}    IN RANGE    21
@@ -352,7 +360,7 @@ BE_FLAPPING_HOST_RESOURCE
         Sleep    1s
     END
 
-    ${result}    Ctn Check Host Flapping   host_1    30    5    50
-    Should Be True    ${result}   The host or resource host_1 is not flapping as expected
+    ${result}    Ctn Check Host Flapping    host_1    30    5    50
+    Should Be True    ${result}    The host or resource host_1 is not flapping as expected
 
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    
+    [Teardown]    Ctn Stop Engine Broker And Save Logs

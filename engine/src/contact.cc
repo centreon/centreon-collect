@@ -21,10 +21,8 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -33,7 +31,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::string;
 
 contact_map contact::contacts;
@@ -531,15 +528,12 @@ std::shared_ptr<contact> add_contact(
     int retain_nonstatus_information) {
   // Make sure we have the data we need.
   if (name.empty()) {
-    engine_logger(log_config_error, basic) << "Error: Contact name is empty";
     config_logger->error("Error: Contact name is empty");
     return nullptr;
   }
 
   // Check if the contact already exist.
   if (contact::contacts.count(name)) {
-    engine_logger(log_config_error, basic)
-        << "Error: Contact '" << name << "' has already been defined";
     config_logger->error("Error: Contact '{}' has already been defined", name);
     return nullptr;
   }
@@ -782,9 +776,9 @@ contact::get_service_notification_commands() {
   return _service_notification_commands;
 }
 
-std::ostream& operator<<(std::ostream& os, contact_map_unsafe const& obj) {
-  for (contact_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
-       it != end; ++it) {
+std::ostream& operator<<(std::ostream& os, const contact_map& obj) {
+  for (contact_map::const_iterator it = obj.begin(), end = obj.end(); it != end;
+       ++it) {
     os << it->first;
     if (std::next(it) != end)
       os << ", ";
@@ -815,14 +809,11 @@ contactgroup_map_unsafe& contact::get_parent_groups() {
 bool contact::should_be_notified(notifier::notification_category cat,
                                  notifier::reason_type type,
                                  notifier const& notif) const {
-  engine_logger(dbg_functions, basic) << "contact::should_be_notified()";
   functions_logger->trace("contact::should_be_notified()");
   /* Are notifications enabled? */
   switch (notif.get_notifier_type()) {
     case notifier::service_notification: {
       if (!_service_notifications_enabled) {
-        engine_logger(dbg_notifications, most)
-            << "This contact shouldn't be notified from services.";
         notifications_logger->info(
             "This contact shouldn't be notified from services.");
         return false;
@@ -831,8 +822,6 @@ bool contact::should_be_notified(notifier::notification_category cat,
       timezone_locker lock(get_timezone());
       if (!check_time_against_period_for_notif(
               std::time(nullptr), get_service_notification_period_ptr())) {
-        engine_logger(dbg_notifications, most)
-            << "This contact shouldn't be notified at this time.";
         notifications_logger->info(
             "This contact shouldn't be notified at this time.");
         return false;
@@ -840,8 +829,6 @@ bool contact::should_be_notified(notifier::notification_category cat,
     } break;
     case notifier::host_notification: {
       if (!_host_notifications_enabled) {
-        engine_logger(dbg_notifications, most)
-            << "This contact shouldn't be notified from hosts.";
         notifications_logger->info(
             "This contact shouldn't be notified from hosts.");
         return false;
@@ -850,8 +837,6 @@ bool contact::should_be_notified(notifier::notification_category cat,
       timezone_locker lock(get_timezone());
       if (!check_time_against_period_for_notif(
               std::time(nullptr), get_host_notification_period_ptr())) {
-        engine_logger(dbg_notifications, most)
-            << "This contact shouldn't be notified at this time.";
         notifications_logger->info(
             "This contact shouldn't be notified at this time.");
         return false;
@@ -864,7 +849,6 @@ bool contact::should_be_notified(notifier::notification_category cat,
 bool contact::_to_notify_normal(notifier::reason_type type
                                 __attribute__((unused)),
                                 notifier const& notif) const {
-  engine_logger(dbg_functions, basic) << "contact::_to_notify_normal()";
   functions_logger->trace("contact::_to_notify_normal()");
   notifier::notifier_type nt{notif.get_notifier_type()};
   int state{notif.get_current_state_int()};
@@ -881,9 +865,6 @@ bool contact::_to_notify_normal(notifier::reason_type type
     t = type[state];
   }
   if (!notify_on(nt, t)) {
-    engine_logger(dbg_notifications, most)
-        << "We shouldn't notify this contact about state " << state
-        << " since it is not configured for this contact.";
     notifications_logger->info(
         "We shouldn't notify this contact about state {} since it is not "
         "configured for this contact.",
@@ -897,15 +878,10 @@ bool contact::_to_notify_normal(notifier::reason_type type
 bool contact::_to_notify_recovery(notifier::reason_type type
                                   __attribute__((unused)),
                                   notifier const& notif) const {
-  engine_logger(dbg_functions, basic) << "contact::_to_notify_recovery()";
   functions_logger->trace("contact::_to_notify_recovery()");
   notifier::notifier_type nt{notif.get_notifier_type()};
 
   if (!notify_on(nt, notifier::ok) && !notify_on(nt, notifier::up)) {
-    engine_logger(dbg_notifications, most)
-        << "We shouldn't notify this contact about a "
-        << (nt == notifier::service_notification ? "service" : "host")
-        << " recovery.";
     notifications_logger->info(
         "We shouldn't notify this contact about a {} recovery.",
         (nt == notifier::service_notification ? "service" : "host"));
@@ -915,10 +891,6 @@ bool contact::_to_notify_recovery(notifier::reason_type type
   notification* normal_notif =
       notif.get_current_notifications()[notifier::cat_normal].get();
   if (!normal_notif || !normal_notif->sent_to(get_name())) {
-    engine_logger(dbg_notifications, most)
-        << "We shouldn't notify this contact about a "
-        << (nt == notifier::service_notification ? "service" : "host")
-        << " recovery because he has not been notified about the incident.";
     notifications_logger->info(
         "We shouldn't notify this contact about a {} recovery because he has "
         "not been notified about the incident.",
@@ -933,12 +905,7 @@ bool contact::_to_notify_acknowledgement(notifier::reason_type type
                                          __attribute__((unused)),
                                          notifier const& notif
                                          __attribute__((unused))) const {
-  engine_logger(dbg_functions, basic)
-      << "contact::_to_notify_acknowledgement()";
   functions_logger->trace("contact::_to_notify_acknowledgement()");
-  engine_logger(dbg_notifications, most)
-      << "** Checking if contact '" << get_name()
-      << "' should be notified about a acknowledgement notification";
   notifications_logger->info(
       "** Checking if contact '{}' should be notified about a acknowledgement "
       "notification",
@@ -948,11 +915,7 @@ bool contact::_to_notify_acknowledgement(notifier::reason_type type
 
 bool contact::_to_notify_flapping(notifier::reason_type type,
                                   notifier const& notif) const {
-  engine_logger(dbg_functions, basic) << "contact::_to_notify_flapping()";
   functions_logger->trace("contact::_to_notify_flapping()");
-  engine_logger(dbg_notifications, most)
-      << "** Checking if contact '" << get_name()
-      << "' should be notified about a flapping notification";
   notifications_logger->info(
       "** Checking if contact '{}' should be notified about a flapping "
       "notification",
@@ -968,9 +931,6 @@ bool contact::_to_notify_flapping(notifier::reason_type type,
     what_notif = notifier::flappingdisabled;
 
   if (!notify_on(nt, what_notif)) {
-    engine_logger(dbg_notifications, most)
-        << "We shouldn't notify contact '" << _name << "' about "
-        << notifier::tab_notification_str[type] << " notifier events.";
     notifications_logger->info(
         "We shouldn't notify contact '{}' about {} notifier events.", _name,
         notifier::tab_notification_str[type]);
@@ -982,11 +942,7 @@ bool contact::_to_notify_flapping(notifier::reason_type type,
 bool contact::_to_notify_downtime(notifier::reason_type type
                                   __attribute__((unused)),
                                   notifier const& notif) const {
-  engine_logger(dbg_functions, basic) << "contact::_to_notify_downtime()";
   functions_logger->trace("contact::_to_notify_downtime()");
-  engine_logger(dbg_notifications, most)
-      << "** Checking if contact '" << get_name()
-      << "' should be notified about a downtime notification";
   notifications_logger->info(
       "** Checking if contact '{}' should be notified about a downtime "
       "notification",
@@ -994,8 +950,6 @@ bool contact::_to_notify_downtime(notifier::reason_type type
   notifier::notifier_type nt{notif.get_notifier_type()};
 
   if (!notify_on(nt, notifier::downtime)) {
-    engine_logger(dbg_notifications, most)
-        << "We shouldn't notify this contact about DOWNTIME notifier events.";
     notifications_logger->info(
         "We shouldn't notify this contact about DOWNTIME notifier events.");
     return false;
@@ -1007,11 +961,7 @@ bool contact::_to_notify_custom(notifier::reason_type type
                                 __attribute__((unused)),
                                 notifier const& notif
                                 __attribute__((unused))) const {
-  engine_logger(dbg_functions, basic) << "contact::_to_notify_custom()";
   functions_logger->trace("contact::_to_notify_custom()");
-  engine_logger(dbg_notifications, most)
-      << "** Checking if contact '" << _name
-      << "' should be notified about a custom notification";
   notifications_logger->info(
       "** Checking if contact '{}' should be notified about a custom "
       "notification",
@@ -1025,10 +975,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
 
   /* check service notification commands */
   if (get_service_notification_commands().empty()) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Contact '" << _name
-        << "' has no service "
-           "notification commands defined!";
     config_logger->error(
         "Error: Contact '{}' has no service "
         "notification commands defined!",
@@ -1038,10 +984,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
 
   /* check host notification commands */
   if (get_host_notification_commands().empty()) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Contact '" << _name
-        << "' has no host "
-           "notification commands defined!";
     config_logger->error(
         "Error: Contact '{}' has no host "
         "notification commands defined!",
@@ -1051,10 +993,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
 
   /* check service notification timeperiod */
   if (get_service_notification_period().empty()) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Contact '" << _name
-        << "' has no service "
-           "notification time period defined!";
     config_logger->warn(
         "Warning: Contact '{}' has no service "
         "notification time period defined!",
@@ -1066,10 +1004,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
         timeperiod::timeperiods.find(get_service_notification_period()));
 
     if (it == timeperiod::timeperiods.end() || !it->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Service notification period '"
-          << get_service_notification_period() << "' specified for contact '"
-          << _name << "' is not defined anywhere!";
       config_logger->error(
           "Error: Service notification period '{}' specified for contact '{}' "
           "is not defined anywhere!",
@@ -1083,10 +1017,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
 
   /* check host notification timeperiod */
   if (get_host_notification_period().empty()) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Contact '" << _name
-        << "' has no host "
-           "notification time period defined!";
     config_logger->warn(
         "Warning: Contact '{}' has no host "
         "notification time period defined!",
@@ -1098,10 +1028,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
         timeperiod::timeperiods.find(get_host_notification_period()));
 
     if (it == timeperiod::timeperiods.end() || !it->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Host notification period '"
-          << get_host_notification_period() << "' specified for contact '"
-          << _name << "' is not defined anywhere!";
       config_logger->warn(
           "Error: Host notification period '{}' specified for contact '{}' is "
           "not defined anywhere!",
@@ -1117,10 +1043,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
   if (notify_on(notifier::host_notification, notifier::up) &&
       !notify_on(notifier::host_notification, notifier::down) &&
       !notify_on(notifier::host_notification, notifier::unreachable)) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host recovery notification option for contact '" << _name
-        << "' doesn't make any sense - specify down "
-           "and/or unreachable options as well";
     config_logger->warn(
         "Warning: Host recovery notification option for contact '{}' doesn't "
         "make any sense - specify down "
@@ -1133,11 +1055,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
   if (notify_on(notifier::service_notification, notifier::ok) &&
       !notify_on(notifier::service_notification, notifier::critical) &&
       !notify_on(notifier::service_notification, notifier::warning)) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Service recovery notification option for contact '"
-        << _name
-        << "' doesn't make any sense - specify critical "
-           "and/or warning options as well";
     config_logger->warn(
         "Warning: Service recovery notification option for contact '{}' "
         "doesn't make any sense - specify critical "
@@ -1148,9 +1065,6 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
 
   /* check for illegal characters in contact name */
   if (contains_illegal_object_chars(const_cast<char*>(_name.c_str()))) {
-    engine_logger(log_verification_error, basic)
-        << "Error: The name of contact '" << _name
-        << "' contains one or more illegal characters.";
     config_logger->error(
         "Error: The name of contact '{}' contains one or more illegal "
         "characters.",

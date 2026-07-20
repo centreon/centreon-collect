@@ -19,8 +19,6 @@
 #ifndef CCB_PROCESSING_STAT_VISITABLE_HH
 #define CCB_PROCESSING_STAT_VISITABLE_HH
 
-#include <nlohmann/json.hpp>
-
 #include "com/centreon/broker/misc/processing_speed_computer.hh"
 #include "com/centreon/broker/timestamp.hh"
 

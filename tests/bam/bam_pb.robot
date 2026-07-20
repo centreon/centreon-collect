@@ -135,7 +135,7 @@ BAWORST
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}    Query
     ...    SELECT acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
-    Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)
+    Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)    Unexpected BA state: ${output}
 
     Disconnect From Database
 
@@ -162,7 +162,6 @@ BAWORST
 
     ${res}    Ctn Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
     Should Be True    ${res}    central-bam-reporting not connected
-    Disconnect From Database
 
     Ctn Reload Engine
     Ctn Reload Broker
@@ -1169,10 +1168,11 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_CHANGED
-    [Documentation]    A BA of type worst is configured with one service kpi.
-    ...    Then it is modified so that the service kpi is replaced
-    ...    by a boolean rule kpi. When cbd is reloaded, the BA is
-    ...    well updated.
+    [Documentation]    Scenario: Replace Service KPI with Boolean Rule KPI in Worst-type BA
+    ...    Given a BA of type "worst" is configured with one service KPI
+    ...    When the service KPI is replaced by a boolean rule KPI
+    ...    And Broker is reloaded
+    ...    Then the BA is correctly updated with the new KPI configuration
     [Tags]    MON-34895
     Ctn Bam Init
 
@@ -1294,9 +1294,12 @@ BA_IMPACT_IMPACT
 
         ${start}    Ctn Get Round Current Date
         Ctn Reload Broker
-        ${content}    Create List    BA states restored
+        # The BAM endpoint is updated in place on reload (no destroy/recreate), so
+        # the BA state persists in memory and is not restored from cache. Wait for
+        # BAM to reprocess the reload before querying the BA again.
+        ${content}    Create List    BAM: loading cache
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-        Should Be True    ${result}    It seems that no cache has been restored into BAM.
+        Should Be True    ${result}    Broker did not reprocess BAM after the reload.
 
         Ctn Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent2.dot
         Wait Until Created    /tmp/parent2.dot

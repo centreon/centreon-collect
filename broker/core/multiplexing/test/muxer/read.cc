@@ -19,7 +19,8 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
@@ -33,7 +34,9 @@ class MultiplexingMuxerRead : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }

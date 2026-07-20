@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2024 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2025 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,11 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
-#include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
@@ -40,7 +38,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::string;
 
 std::array<std::pair<uint32_t, std::string>, 4> const
@@ -52,7 +49,9 @@ std::array<std::pair<uint32_t, std::string>, 4> const
 service_map service::services;
 service_id_map service::services_by_id;
 
-service::service(const std::string& hostname,
+service::service(uint64_t host_id,
+                 uint64_t service_id,
+                 const std::string& hostname,
                  const std::string& description,
                  const std::string& display_name,
                  const std::string& check_command,
@@ -120,8 +119,8 @@ service::service(const std::string& hostname,
                is_volatile,
                icon_id},
       _service_type{st},
-      _host_id{0},
-      _service_id{0},
+      _host_id{host_id},
+      _service_id{service_id},
       _hostname{hostname},
       _process_performance_data{0},
       _check_flapping_recovery_notification{0},
@@ -679,28 +678,18 @@ com::centreon::engine::service* add_service(
     uint64_t icon_id) {
   // Make sure we have everything we need.
   if (!service_id) {
-    engine_logger(log_config_error, basic)
-        << "Error: Service comes from a database, therefore its service id "
-        << "must not be null";
     config_logger->error(
         "Error: Service comes from a database, therefore its service id must "
         "not be null");
     return nullptr;
   } else if (description.empty()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Service description is not set";
     config_logger->error("Error: Service description is not set");
     return nullptr;
   } else if (host_name.empty()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Host name of service '" << description << "' is not set";
     config_logger->error("Error: Host name of service '{}' is not set",
                          description);
     return nullptr;
   } else if (check_command.empty()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Check command of service '" << description << "' on host '"
-        << host_name << "' is not set";
     config_logger->error(
         "Error: Check command of service '{}' on host '{}' is not set",
         description, host_name);
@@ -709,20 +698,12 @@ com::centreon::engine::service* add_service(
 
   uint64_t hid = get_host_id(host_name);
   if (!host_id) {
-    engine_logger(log_config_error, basic)
-        << "Error: The service '" << description
-        << "' cannot be created because"
-        << " host '" << host_name << "' does not exist (host_id is null)";
     config_logger->error(
         "Error: The service '{}' cannot be created because host '{}' does not "
         "exist (host_id is null)",
         description, host_name);
     return nullptr;
   } else if (host_id != hid) {
-    engine_logger(log_config_error, basic)
-        << "Error: The service '" << description
-        << "' cannot be created because the host id corresponding to the host"
-        << " '" << host_name << "' is not the same as the one in configuration";
     config_logger->error(
         "Error: The service '{}' cannot be created because the host id "
         "corresponding to the host '{}' is not the same as the one in "
@@ -734,10 +715,6 @@ com::centreon::engine::service* add_service(
   // Check values.
   if (max_attempts <= 0 || check_interval < 0 || retry_interval <= 0 ||
       notification_interval < 0) {
-    engine_logger(log_config_error, basic)
-        << "Error: Invalid max_attempts, check_interval, retry_interval"
-           ", or notification_interval value for service '"
-        << description << "' on host '" << host_name << "'";
     config_logger->error(
         "Error: Invalid max_attempts, check_interval, retry_interval"
         ", or notification_interval value for service '{}' on host '{}'",
@@ -747,9 +724,6 @@ com::centreon::engine::service* add_service(
   // Check if the service is already exist.
   std::pair<uint64_t, uint64_t> id(std::make_pair(host_id, service_id));
   if (is_service_exist(id)) {
-    engine_logger(log_config_error, basic)
-        << "Error: Service '" << description << "' on host '" << host_name
-        << "' has already been defined";
     config_logger->error(
         "Error: Service '{}' on host '{}' has already been defined",
         description, host_name);
@@ -758,7 +732,8 @@ com::centreon::engine::service* add_service(
 
   // Allocate memory.
   auto obj{std::make_shared<service>(
-      host_name, description, display_name.empty() ? description : display_name,
+      host_id, service_id, host_name,
+      description, display_name.empty() ? description : display_name,
       check_command, checks_enabled, accept_passive_checks, check_interval,
       retry_interval, notification_interval, max_attempts,
       first_notification_delay, recovery_notification_delay,
@@ -771,7 +746,7 @@ com::centreon::engine::service* add_service(
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
-    flap_detection_on = none;
+    flap_detection_on = notifier::none;
     flap_detection_on |=
         (flap_detection_on_critical > 0 ? notifier::critical : 0);
     flap_detection_on |= (flap_detection_on_ok > 0 ? notifier::ok : 0);
@@ -782,7 +757,7 @@ com::centreon::engine::service* add_service(
     obj->set_flap_detection_on(flap_detection_on);
     obj->set_modified_attributes(MODATTR_NONE);
     uint32_t notify_on;
-    notify_on = none;
+    notify_on = notifier::none;
     notify_on |= (notify_critical > 0 ? notifier::critical : 0);
     notify_on |= (notify_downtime > 0 ? notifier::downtime : 0);
     notify_on |= (notify_flapping > 0
@@ -828,9 +803,6 @@ void service::check_for_expired_acknowledgement() {
     if (acknowledgement_timeout() > 0) {
       time_t now = time(nullptr);
       if (last_acknowledgement() + acknowledgement_timeout() >= now) {
-        engine_logger(log_info_message, basic)
-            << "Acknowledgement of service '" << description() << "' on host '"
-            << this->get_host_ptr()->name() << "' just expired";
         SPDLOG_LOGGER_INFO(
             events_logger,
             "Acknowledgement of service '{}' on host '{}' just expired",
@@ -941,16 +913,8 @@ void service::schedule_acknowledgement_expiration() {
   }
 }
 
-void service::set_host_id(uint64_t host_id) {
-  _host_id = host_id;
-}
-
 uint64_t service::host_id() const {
   return _host_id;
-}
-
-void service::set_service_id(uint64_t service_id) {
-  _service_id = service_id;
 }
 
 uint64_t service::service_id() const {
@@ -1080,16 +1044,17 @@ int service::handle_async_check_result(
   com::centreon::engine::service* master_service = nullptr;
   int run_async_check = true;
   int flapping_check_done = false;
-  uint32_t interval_length = pb_config.interval_length();
+  uint32_t interval_length = pb_indexed_config.state().interval_length();
   bool accept_passive_service_checks =
-      pb_config.accept_passive_service_checks();
-  bool log_passive_checks = pb_config.log_passive_checks();
-  uint32_t cached_host_check_horizon = pb_config.cached_host_check_horizon();
-  bool obsess_over_services = pb_config.obsess_over_services();
+      pb_indexed_config.state().accept_passive_service_checks();
+  bool log_passive_checks = pb_indexed_config.state().log_passive_checks();
+  uint32_t cached_host_check_horizon =
+      pb_indexed_config.state().cached_host_check_horizon();
+  bool obsess_over_services = pb_indexed_config.state().obsess_over_services();
   bool enable_predictive_service_dependency_checks =
-      pb_config.enable_predictive_service_dependency_checks();
+      pb_indexed_config.state().enable_predictive_service_dependency_checks();
   uint32_t cached_service_check_horizon =
-      pb_config.cached_service_check_horizon();
+      pb_indexed_config.state().cached_service_check_horizon();
 
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "service::handle_async_check_result() service {} res:{}",
@@ -1108,24 +1073,10 @@ int service::handle_async_check_result(
   if (execution_time < 0.0)
     execution_time = 0.0;
 
-  engine_logger(dbg_checks, basic)
-      << "** Handling check result for service '" << name() << "' on host '"
-      << _hostname << "'...";
   SPDLOG_LOGGER_TRACE(
       checks_logger,
       "** Handling check result for service '{}' on host '{}'...", name(),
       _hostname);
-  engine_logger(dbg_checks, more)
-      << "HOST: " << _hostname << ", SERVICE: " << name() << ", CHECK TYPE: "
-      << (queued_check_result.get_check_type() == check_active ? "Active"
-                                                               : "Passive")
-      << ", OPTIONS: " << queued_check_result.get_check_options()
-      << ", RESCHEDULE: "
-      << (queued_check_result.get_reschedule_check() ? "Yes" : "No")
-      << ", EXITED OK: " << (queued_check_result.get_exited_ok() ? "Yes" : "No")
-      << ", EXEC TIME: " << execution_time
-      << ", return CODE: " << queued_check_result.get_return_code()
-      << ", OUTPUT: " << queued_check_result.get_output();
   SPDLOG_LOGGER_DEBUG(
       checks_logger,
       "HOST: {}, SERVICE: {}, CHECK TYPE: {}, OPTIONS: {}, RESCHEDULE: {}, "
@@ -1148,9 +1099,6 @@ int service::handle_async_check_result(
    * passive check results */
   if (queued_check_result.get_check_type() == check_passive) {
     if (!accept_passive_service_checks) {
-      engine_logger(dbg_checks, basic)
-          << "Discarding passive service check result because passive "
-             "service checks are disabled globally.";
       SPDLOG_LOGGER_TRACE(
           checks_logger,
           "Discarding passive service check result because passive "
@@ -1158,9 +1106,6 @@ int service::handle_async_check_result(
       return ERROR;
     }
     if (!passive_checks_enabled()) {
-      engine_logger(dbg_checks, basic)
-          << "Discarding passive service check result because passive "
-             "checks are disabled for this service.";
       SPDLOG_LOGGER_TRACE(
           checks_logger,
           "Discarding passive service check result because passive "
@@ -1192,9 +1137,6 @@ int service::handle_async_check_result(
   if ((queued_check_result.get_check_options() &
        CHECK_OPTION_FRESHNESS_CHECK) &&
       is_result_fresh(current_time, false)) {
-    engine_logger(dbg_checks, basic)
-        << "Discarding service freshness check result because the service "
-           "is currently fresh (race condition avoided).";
     SPDLOG_LOGGER_TRACE(
         checks_logger,
         "Discarding service freshness check result because the service "
@@ -1235,9 +1177,6 @@ int service::handle_async_check_result(
    * shouldn't be happening)
    */
   if (!queued_check_result.get_exited_ok()) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Check of service '" << name() << "' on host '"
-        << _hostname << "' did not exit properly!";
     SPDLOG_LOGGER_WARN(
         runtime_logger,
         "Warning:  Check of service '{}' on host '{}' did not exit properly!",
@@ -1249,16 +1188,6 @@ int service::handle_async_check_result(
   /* make sure the return code is within bounds */
   else if (queued_check_result.get_return_code() < 0 ||
            queued_check_result.get_return_code() > 3) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: return (code of " << queued_check_result.get_return_code()
-        << " for check of service '" << name() << "' on host '" << _hostname
-        << "' was out of bounds."
-        << (queued_check_result.get_return_code() == 126
-                ? "Make sure the plugin you're trying to run is executable."
-                : (queued_check_result.get_return_code() == 127
-                       ? " Make sure the plugin you're trying to run actually "
-                         "exists."
-                       : ""));
     SPDLOG_LOGGER_WARN(
         runtime_logger,
         "Warning: return (code of {} for check of service '{}' on host '{}' "
@@ -1312,17 +1241,6 @@ int service::handle_async_check_result(
       set_plugin_output(plugin_output);
     }
 
-    engine_logger(dbg_checks, most)
-        << "Parsing check output...\n"
-        << "Short Output:\n"
-        << (get_plugin_output().empty() ? "nullptr" : get_plugin_output())
-        << "\n"
-        << "Long Output:\n"
-        << (get_long_plugin_output().empty() ? "nullptr"
-                                             : get_long_plugin_output())
-        << "\n"
-        << "Perf Data:\n"
-        << (get_perf_data().empty() ? "nullptr" : get_perf_data());
     SPDLOG_LOGGER_DEBUG(
         checks_logger,
         "Parsing check output Short Output: {} Long Output: {} Perf Data: {}",
@@ -1367,12 +1285,9 @@ int service::handle_async_check_result(
    */
   if (get_check_type() == check_passive) {
     if (log_passive_checks)
-      engine_logger(log_passive_check, basic)
-          << "PASSIVE SERVICE CHECK: " << _hostname << ";" << name() << ";"
-          << _current_state << ";" << get_plugin_output();
-    SPDLOG_LOGGER_INFO(checks_logger, "PASSIVE SERVICE CHECK: {};{};{};{}",
-                       _hostname, name(), static_cast<uint32_t>(_current_state),
-                       get_plugin_output());
+      SPDLOG_LOGGER_INFO(
+          checks_logger, "PASSIVE SERVICE CHECK: {};{};{};{}", _hostname,
+          name(), static_cast<uint32_t>(_current_state), get_plugin_output());
   }
 
   host* hst{get_host_ptr()};
@@ -1400,11 +1315,6 @@ int service::handle_async_check_result(
            get_current_attempt() < max_check_attempts())
     add_current_attempt(1);
 
-  engine_logger(dbg_checks, most)
-      << "ST: " << (get_state_type() == soft ? "SOFT" : "HARD")
-      << "  CA: " << get_current_attempt() << "  MA: " << max_check_attempts()
-      << "  CS: " << _current_state << "  LS: " << _last_state
-      << "  LHS: " << _last_hard_state;
   SPDLOG_LOGGER_DEBUG(
       checks_logger, "ST: {}  CA: {} MA: {} CS: {} LS: {} LHS: {}",
       (get_state_type() == soft ? "SOFT" : "HARD"), get_current_attempt(),
@@ -1414,8 +1324,6 @@ int service::handle_async_check_result(
 
   /* check for a state change (either soft or hard) */
   if (_current_state != _last_state) {
-    engine_logger(dbg_checks, most)
-        << "Service has changed state since last check!";
     SPDLOG_LOGGER_DEBUG(checks_logger,
                         "Service has changed state since last check {} => {}",
                         static_cast<uint32_t>(_last_state),
@@ -1430,7 +1338,6 @@ int service::handle_async_check_result(
    * looks like a soft recovery instead of a hard one
    */
   if (_host_problem_at_last_check && _current_state == service::state_ok) {
-    engine_logger(dbg_checks, most) << "Service had a HARD STATE CHANGE!!";
     SPDLOG_LOGGER_DEBUG(checks_logger, "Service had a HARD STATE CHANGE!!");
     hard_state_change = true;
   }
@@ -1442,7 +1349,6 @@ int service::handle_async_check_result(
   if (get_current_attempt() >= max_check_attempts() &&
       (_current_state != _last_hard_state ||
        get_last_state_change() > get_last_hard_state_change())) {
-    engine_logger(dbg_checks, most) << "Service had a HARD STATE CHANGE!!";
     SPDLOG_LOGGER_DEBUG(checks_logger, "Service had a HARD STATE CHANGE!!");
     hard_state_change = true;
   }
@@ -1530,7 +1436,6 @@ int service::handle_async_check_result(
 
   /* if the service is up and running OK... */
   if (_current_state == service::state_ok) {
-    engine_logger(dbg_checks, more) << "Service is OK.";
     SPDLOG_LOGGER_DEBUG(checks_logger, "Service is OK.");
 
     /* reset the acknowledgement flag (this should already have been done, but
@@ -1539,8 +1444,6 @@ int service::handle_async_check_result(
 
     /* verify the route to the host and send out host recovery notifications */
     if (hst->get_current_state() != host::state_up) {
-      engine_logger(dbg_checks, more)
-          << "Host is NOT UP, so we'll check it to see if it recovered...";
       SPDLOG_LOGGER_DEBUG(
           checks_logger,
           "Host is NOT UP, so we'll check it to see if it recovered...");
@@ -1548,9 +1451,6 @@ int service::handle_async_check_result(
       /* 09/23/07 EG don't launch a new host check if we already did so earlier
        */
       if (first_host_check_initiated) {
-        engine_logger(dbg_checks, more)
-            << "First host check was already initiated, so we'll skip a "
-               "new host check.";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "First host check was already initiated, so we'll skip a "
@@ -1563,8 +1463,6 @@ int service::handle_async_check_result(
             hst->has_been_checked() &&
             (static_cast<unsigned long>(current_time - hst->get_last_check()) <=
              cached_host_check_horizon)) {
-          engine_logger(dbg_checks, more)
-              << "* Using cached host state: " << hst->get_current_state();
           SPDLOG_LOGGER_DEBUG(checks_logger, "* Using cached host state: {}",
                               static_cast<uint32_t>(hst->get_current_state()));
           update_check_stats(ACTIVE_ONDEMAND_HOST_CHECK_STATS, current_time);
@@ -1580,7 +1478,6 @@ int service::handle_async_check_result(
 
     /* if a hard service recovery has occurred... */
     if (hard_state_change) {
-      engine_logger(dbg_checks, more) << "Service experienced a HARD RECOVERY.";
       SPDLOG_LOGGER_DEBUG(checks_logger,
                           "Service experienced a HARD RECOVERY.");
 
@@ -1610,7 +1507,6 @@ int service::handle_async_check_result(
 
     /* else if a soft service recovery has occurred... */
     else if (state_change) {
-      engine_logger(dbg_checks, more) << "Service experienced a SOFT RECOVERY.";
       SPDLOG_LOGGER_DEBUG(checks_logger,
                           "Service experienced a SOFT RECOVERY.");
 
@@ -1658,14 +1554,10 @@ int service::handle_async_check_result(
 
   /* hey, something's not working quite like it should... */
   else {
-    engine_logger(dbg_checks, more) << "Service is in a non-OK state!";
     SPDLOG_LOGGER_DEBUG(checks_logger, "Service is in a non-OK state!");
 
     /* check the route to the host if its up right now... */
     if (hst->get_current_state() == host::state_up) {
-      engine_logger(dbg_checks, more)
-          << "Host is currently UP, so we'll recheck its state to "
-             "make sure...";
       SPDLOG_LOGGER_DEBUG(checks_logger,
                           "Host is currently UP, so we'll recheck its state to "
                           "make sure...");
@@ -1679,8 +1571,6 @@ int service::handle_async_check_result(
               cached_host_check_horizon) {
         /* use current host state as route result */
         route_result = hst->get_current_state();
-        engine_logger(dbg_checks, more)
-            << "* Using cached host state: " << hst->get_current_state();
         SPDLOG_LOGGER_DEBUG(checks_logger, "* Using cached host state: {}",
                             static_cast<uint32_t>(hst->get_current_state()));
         update_check_stats(ACTIVE_ONDEMAND_HOST_CHECK_STATS, current_time);
@@ -1701,8 +1591,6 @@ int service::handle_async_check_result(
       /* else assume same host state */
       else {
         route_result = hst->get_current_state();
-        engine_logger(dbg_checks, more)
-            << "* Using last known host state: " << hst->get_current_state();
         SPDLOG_LOGGER_DEBUG(checks_logger, "* Using last known host state: {}",
                             static_cast<uint32_t>(hst->get_current_state()));
         update_check_stats(ACTIVE_ONDEMAND_HOST_CHECK_STATS, current_time);
@@ -1713,15 +1601,11 @@ int service::handle_async_check_result(
     /* else the host is either down or unreachable, so recheck it if necessary
      */
     else {
-      engine_logger(dbg_checks, more) << "Host is currently DOWN/UNREACHABLE.";
       SPDLOG_LOGGER_DEBUG(checks_logger, "Host is currently DOWN/UNREACHABLE.");
 
       /* the service wobbled between non-OK states, so check the host... */
       if ((state_change && !state_changes_use_cached_state) &&
           _last_hard_state != service::state_ok) {
-        engine_logger(dbg_checks, more)
-            << "Service wobbled between non-OK states, so we'll recheck"
-               " the host state...";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "Service wobbled between non-OK states, so we'll recheck"
@@ -1738,8 +1622,6 @@ int service::handle_async_check_result(
       /* else fake the host check, but (possibly) resend host notifications to
          contacts... */
       else {
-        engine_logger(dbg_checks, more)
-            << "Assuming host is in same state as before...";
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "Assuming host is in same state as before...");
 
@@ -1765,8 +1647,6 @@ int service::handle_async_check_result(
      * check retries/caching.  Not sure if we should take that into account and
      * do something different or not... */
     if (route_result != host::state_up) {
-      engine_logger(dbg_checks, most)
-          << "Host is not UP, so we mark state changes if appropriate";
       SPDLOG_LOGGER_DEBUG(
           checks_logger,
           "Host is not UP, so we mark state changes if appropriate");
@@ -1811,9 +1691,6 @@ int service::handle_async_check_result(
         set_current_attempt(1);
     }
 
-    engine_logger(dbg_checks, more)
-        << "Current/Max Attempt(s): " << get_current_attempt() << '/'
-        << max_check_attempts();
     SPDLOG_LOGGER_DEBUG(checks_logger, "Current/Max Attempt(s): {}/{}",
                         get_current_attempt(), max_check_attempts());
 
@@ -1823,8 +1700,6 @@ int service::handle_async_check_result(
       /* the host is down or unreachable, so don't attempt to retry the service
        * check */
       if (route_result != host::state_up) {
-        engine_logger(dbg_checks, more)
-            << "Host isn't UP, so we won't retry the service check...";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "Host isn't UP, so we won't retry the service check...");
@@ -1847,8 +1722,6 @@ int service::handle_async_check_result(
 
       /* the host is up, so continue to retry the service check */
       else {
-        engine_logger(dbg_checks, more)
-            << "Host is UP, so we'll retry the service check...";
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "Host is UP, so we'll retry the service check...");
 
@@ -1870,9 +1743,6 @@ int service::handle_async_check_result(
       /* perform dependency checks on the second to last check of the service */
       if (enable_predictive_service_dependency_checks &&
           get_current_attempt() == max_check_attempts() - 1) {
-        engine_logger(dbg_checks, more)
-            << "Looking for services to check for predictive "
-               "dependency checks...";
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "Looking for services to check for predictive "
                             "dependency checks...");
@@ -1890,10 +1760,6 @@ int service::handle_async_check_result(
           if (temp_dependency->dependent_service_ptr == this &&
               temp_dependency->master_service_ptr) {
             master_service = temp_dependency->master_service_ptr;
-            engine_logger(dbg_checks, most)
-                << "Predictive check of service '"
-                << master_service->description() << "' on host '"
-                << master_service->get_hostname() << "' queued.";
             SPDLOG_LOGGER_DEBUG(
                 checks_logger,
                 "Predictive check of service '{}' on host '{}' queued.",
@@ -1907,9 +1773,6 @@ int service::handle_async_check_result(
     /* we've reached the maximum number of service rechecks, so handle the error
      */
     else {
-      engine_logger(dbg_checks, more)
-          << "Service has reached max number of rechecks, so we'll "
-             "handle the error...";
       SPDLOG_LOGGER_DEBUG(
           checks_logger,
           "Service has reached max number of rechecks, so we'll "
@@ -2091,23 +1954,17 @@ int service::handle_async_check_result(
  *  @return Return true on success.
  */
 int service::log_event() {
-  bool log_service_retries = pb_config.log_service_retries();
+  bool log_service_retries = pb_indexed_config.state().log_service_retries();
   if (get_state_type() == soft && !log_service_retries)
     return OK;
 
-  uint32_t log_options{NSLOG_SERVICE_UNKNOWN};
   char const* state{"UNKNOWN"};
   if (_current_state >= 0 &&
       (unsigned int)_current_state < tab_service_states.size()) {
-    log_options = tab_service_states[_current_state].first;
     state = tab_service_states[_current_state].second.c_str();
   }
   const std::string& state_type{tab_state_type[get_state_type()]};
 
-  engine_logger(log_options, basic)
-      << "SERVICE ALERT: " << _hostname << ";" << name() << ";" << state << ";"
-      << state_type << ";" << get_current_attempt() << ";"
-      << get_plugin_output();
   SPDLOG_LOGGER_INFO(events_logger, "SERVICE ALERT: {};{};{};{};{};{}",
                      _hostname, name(), state, state_type,
                      get_current_attempt(), get_plugin_output());
@@ -2134,19 +1991,17 @@ void service::check_for_flapping(bool update,
   float high_service_flap_threshold;
   bool enable_flap_detection;
 
-  low_service_flap_threshold = pb_config.low_service_flap_threshold();
-  high_service_flap_threshold = pb_config.high_service_flap_threshold();
-  enable_flap_detection = pb_config.enable_flap_detection();
+  low_service_flap_threshold =
+      pb_indexed_config.state().low_service_flap_threshold();
+  high_service_flap_threshold =
+      pb_indexed_config.state().high_service_flap_threshold();
+  enable_flap_detection = pb_indexed_config.state().enable_flap_detection();
 
   /* large install tweaks skips all flap detection logic - including state
    * change calculation */
 
-  engine_logger(dbg_functions, basic) << "check_for_flapping()";
   SPDLOG_LOGGER_TRACE(functions_logger, "check_for_flapping()");
 
-  engine_logger(dbg_flapping, more)
-      << "Checking service '" << name() << "' on host '" << _hostname
-      << "' for flapping...";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Checking service '{}' on host '{}' for flapping...",
                       name(), _hostname);
@@ -2214,10 +2069,6 @@ void service::check_for_flapping(bool update,
 
   set_percent_state_change(curved_percent_change);
 
-  engine_logger(dbg_flapping, most)
-      << com::centreon::logging::setprecision(2) << "LFT=" << low_threshold
-      << ", HFT=" << high_threshold << ", CPC=" << curved_percent_change
-      << ", PSC=" << curved_percent_change << "%";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "LFT={:.2f}, HFT={:.2f}, CPC={:.2f}, PSC={:.2f}%",
                       low_threshold, high_threshold, curved_percent_change,
@@ -2248,10 +2099,6 @@ void service::check_for_flapping(bool update,
     if ((_current_state != service::state_ok) || get_is_flapping())
       is_flapping = true;
   }
-  engine_logger(dbg_flapping, more)
-      << com::centreon::logging::setprecision(2) << "Service "
-      << (is_flapping ? "is" : "is not") << " flapping ("
-      << curved_percent_change << "% state change).";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Service {} flapping ({:.2f}% state change).",
                       is_flapping ? "is" : "is not", curved_percent_change);
@@ -2270,11 +2117,11 @@ void service::check_for_flapping(bool update,
 int service::handle_service_event() {
   nagios_macros* mac(get_global_macros());
 
-  engine_logger(dbg_functions, basic) << "handle_service_event()";
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_service_event()");
 
   /* bail out if we shouldn't be running event handlers */
-  bool enable_event_handlers = pb_config.enable_event_handlers();
+  bool enable_event_handlers =
+      pb_indexed_config.state().enable_event_handlers();
   if (!enable_event_handlers)
     return OK;
   if (!event_handler_enabled())
@@ -2314,12 +2161,10 @@ int service::obsessive_compulsive_service_check_processor() {
 
   bool obsess_over_services;
   uint32_t ocsp_timeout;
-  obsess_over_services = pb_config.obsess_over_services();
-  const std::string& ocsp_command = pb_config.ocsp_command();
-  ocsp_timeout = pb_config.ocsp_timeout();
+  obsess_over_services = pb_indexed_config.state().obsess_over_services();
+  const std::string& ocsp_command = pb_indexed_config.state().ocsp_command();
+  ocsp_timeout = pb_indexed_config.state().ocsp_timeout();
 
-  engine_logger(dbg_functions, basic)
-      << "obsessive_compulsive_service_check_processor()";
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "obsessive_compulsive_service_check_processor()");
 
@@ -2349,10 +2194,6 @@ int service::obsessive_compulsive_service_check_processor() {
     return ERROR;
   }
 
-  engine_logger(dbg_checks, most)
-      << "Raw obsessive compulsive service processor "
-         "command line: "
-      << raw_command;
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Raw obsessive compulsive service processor "
                       "command line: {}",
@@ -2365,9 +2206,6 @@ int service::obsessive_compulsive_service_check_processor() {
     return ERROR;
   }
 
-  engine_logger(dbg_checks, most) << "Processed obsessive compulsive service "
-                                     "processor command line: "
-                                  << processed_command;
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Processed obsessive compulsive service "
                       "processor command line: {}",
@@ -2380,9 +2218,6 @@ int service::obsessive_compulsive_service_check_processor() {
       my_system_r(mac, processed_command, ocsp_timeout, &early_timeout,
                   &exectime, tmp, 0);
     } catch (std::exception const& e) {
-      engine_logger(log_runtime_error, basic)
-          << "Error: can't execute compulsive service processor command line '"
-          << processed_command << "' : " << e.what();
       SPDLOG_LOGGER_ERROR(runtime_logger,
                           "Error: can't execute compulsive service processor "
                           "command line '{}' : "
@@ -2400,15 +2235,11 @@ int service::obsessive_compulsive_service_check_processor() {
 
   /* check to see if the command timed out */
   if (early_timeout)
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: OCSP command '" << processed_command << "' for service '"
-        << name() << "' on host '" << _hostname << "' timed out after "
-        << ocsp_timeout << " seconds";
-  SPDLOG_LOGGER_WARN(
-      runtime_logger,
-      "Warning: OCSP command '{}' for service '{}' on host '{}' timed out "
-      "after {} seconds",
-      processed_command, name(), _hostname, ocsp_timeout);
+    SPDLOG_LOGGER_WARN(
+        runtime_logger,
+        "Warning: OCSP command '{}' for service '{}' on host '{}' timed out "
+        "after {} seconds",
+        processed_command, name(), _hostname, ocsp_timeout);
 
   return OK;
 }
@@ -2416,7 +2247,7 @@ int service::obsessive_compulsive_service_check_processor() {
 /* updates service performance data */
 int service::update_service_performance_data() {
   /* should we be processing performance data for anything? */
-  bool process_pd = pb_config.process_performance_data();
+  bool process_pd = pb_indexed_config.state().process_performance_data();
   if (!process_pd)
     return OK;
 
@@ -2435,12 +2266,7 @@ int service::run_scheduled_check(int check_options, double latency) {
   time_t next_valid_time = 0L;
   bool time_is_valid = true;
 
-  engine_logger(dbg_functions, basic) << "run_scheduled_service_check()";
   SPDLOG_LOGGER_TRACE(functions_logger, "run_scheduled_service_check()");
-  engine_logger(dbg_checks, basic)
-      << "Attempting to run scheduled check of service '" << name()
-      << "' on host '" << _hostname << "': check options=" << check_options
-      << ", latency=" << latency;
   SPDLOG_LOGGER_TRACE(
       checks_logger,
       "Attempting to run scheduled check of service '{}' on host '{}': check "
@@ -2453,8 +2279,6 @@ int service::run_scheduled_check(int check_options, double latency) {
 
   /* an error occurred, so reschedule the check */
   if (result == ERROR) {
-    engine_logger(dbg_checks, more)
-        << "Unable to run scheduled service check at this time";
     SPDLOG_LOGGER_DEBUG(checks_logger,
                         "Unable to run scheduled service check at this time");
 
@@ -2469,7 +2293,7 @@ int service::run_scheduled_check(int check_options, double latency) {
        * minutes from now
        * */
       if (current_time >= preferred_time) {
-        uint32_t interval_length = pb_config.interval_length();
+        uint32_t interval_length = pb_indexed_config.state().interval_length();
         preferred_time =
             current_time +
             static_cast<time_t>(check_interval() <= 0
@@ -2488,19 +2312,11 @@ int service::run_scheduled_check(int check_options, double latency) {
         if (!time_is_valid && !check_time_against_period(
                                   next_valid_time, this->check_period_ptr)) {
           set_next_check((time_t)(next_valid_time + 60 * 60 * 24 * 7));
-          engine_logger(log_runtime_warning, basic)
-              << "Warning: Check of service '" << name() << "' on host '"
-              << _hostname
-              << "' could not be "
-                 "rescheduled properly. Scheduling check for next week...";
           SPDLOG_LOGGER_WARN(
               runtime_logger,
               "Warning: Check of service '{}' on host '{}' could not be "
               "rescheduled properly. Scheduling check for next week...",
               name(), _hostname);
-          engine_logger(dbg_checks, more)
-              << "Unable to find any valid times to reschedule the next "
-                 "service check!";
           SPDLOG_LOGGER_DEBUG(
               checks_logger,
               "Unable to find any valid times to reschedule the next "
@@ -2510,9 +2326,6 @@ int service::run_scheduled_check(int check_options, double latency) {
         else {
           set_next_check(next_valid_time);
           set_should_be_scheduled(true);
-          engine_logger(dbg_checks, more)
-              << "Rescheduled next service check for "
-              << my_ctime(&next_valid_time);
           SPDLOG_LOGGER_DEBUG(checks_logger,
                               "Rescheduled next service check for {}",
                               my_ctime(&next_valid_time));
@@ -2576,10 +2389,6 @@ int service::run_async_check_local(int check_options,
                                    bool* time_is_valid,
                                    time_t* preferred_time,
                                    service* svc) noexcept {
-  engine_logger(dbg_functions, basic)
-      << "service::run_async_check, check_options=" << check_options
-      << ", latency=" << latency << ", scheduled_check=" << scheduled_check
-      << ", reschedule_check=" << reschedule_check;
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "service::run_async_check, check_options={}, latency={}, "
                       "scheduled_check={}, reschedule_check={}",
@@ -2588,9 +2397,6 @@ int service::run_async_check_local(int check_options,
 
   // Preamble.
   if (!get_check_command_ptr()) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Attempt to run active check on service '" << description()
-        << "' on host '" << get_host_ptr()->name() << "' with no check command";
     SPDLOG_LOGGER_ERROR(
         runtime_logger,
         "Error: Attempt to run active check on service '{}' on host '{}' with "
@@ -2599,9 +2405,6 @@ int service::run_async_check_local(int check_options,
     return ERROR;
   }
 
-  engine_logger(dbg_checks, basic)
-      << "** Running async check of service '" << description() << "' on host '"
-      << get_hostname() << "'...";
   SPDLOG_LOGGER_TRACE(checks_logger,
                       "** Running async check of service '{} on host '{}'...",
                       description(), get_hostname());
@@ -2618,13 +2421,10 @@ int service::run_async_check_local(int check_options,
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
     if (preferred_time != nullptr) {
-      uint32_t interval_length = pb_config.interval_length();
+      uint32_t interval_length = pb_indexed_config.state().interval_length();
       *preferred_time +=
           static_cast<time_t>(check_interval() * interval_length);
     }
-    engine_logger(log_runtime_error, basic)
-        << "Error: Some broker module cancelled check of service '"
-        << description() << "' on host '" << get_hostname();
     SPDLOG_LOGGER_ERROR(
         runtime_logger,
         "Error: Some broker module cancelled check of service '{}' on host "
@@ -2634,9 +2434,6 @@ int service::run_async_check_local(int check_options,
   }
   // Service check was override by NEB module.
   else if (NEBERROR_CALLBACKOVERRIDE == res) {
-    engine_logger(dbg_functions, basic)
-        << "Some broker module overrode check of service '" << description()
-        << "' on host '" << get_hostname() << "' so we'll bail out";
     SPDLOG_LOGGER_TRACE(
         functions_logger,
         "Some broker module overrode check of service '{}' on host '{}' so "
@@ -2646,8 +2443,6 @@ int service::run_async_check_local(int check_options,
   }
 
   // Checking starts.
-  engine_logger(dbg_checks, basic) << "Checking service '" << description()
-                                   << "' on host '" << get_hostname() << "'...";
   SPDLOG_LOGGER_TRACE(checks_logger, "Checking service '{}' on host '{}'...",
                       description(), get_hostname());
 
@@ -2668,8 +2463,6 @@ int service::run_async_check_local(int check_options,
 
   // Update the number of running service checks.
   ++currently_running_service_checks;
-  engine_logger(dbg_checks, basic)
-      << "Current running service checks: " << currently_running_service_checks;
   SPDLOG_LOGGER_TRACE(checks_logger, "Current running service checks: {}",
                       currently_running_service_checks);
 
@@ -2715,7 +2508,7 @@ int service::run_async_check_local(int check_options,
   };
 
   bool use_host_down_disable_service_checks =
-      pb_config.host_down_disable_service_checks();
+      pb_indexed_config.state().host_down_disable_service_checks();
   bool has_to_execute_check = true;
   if (use_host_down_disable_service_checks) {
     auto hst = host::hosts_by_id.find(_host_id);
@@ -2749,7 +2542,8 @@ int service::run_async_check_local(int check_options,
       retry = false;
       try {
         // Run command.
-        uint32_t service_check_timeout = pb_config.service_check_timeout();
+        uint32_t service_check_timeout =
+            pb_indexed_config.state().service_check_timeout();
         uint64_t id = get_check_command_ptr()->run(processed_cmd, *macros,
                                                    service_check_timeout,
                                                    check_result_info, this);
@@ -2760,8 +2554,6 @@ int service::run_async_check_local(int check_options,
       } catch (std::exception const& e) {
         run_failure("(Execute command failed)");
 
-        engine_logger(log_runtime_warning, basic)
-            << "Error: Service check command execution failed: " << e.what();
         SPDLOG_LOGGER_WARN(runtime_logger,
                            "Error: Service check command execution failed: {}",
                            e.what());
@@ -2921,21 +2713,13 @@ void service::set_flap(double percent_change,
                        double high_threshold,
                        double low_threshold [[maybe_unused]],
                        int allow_flapstart_notification) {
-  engine_logger(dbg_functions, basic) << "set_service_flap()";
   SPDLOG_LOGGER_TRACE(functions_logger, "set_service_flap()");
 
-  engine_logger(dbg_flapping, more) << "Service '" << name() << "' on host '"
-                                    << _hostname << "' started flapping!";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Service '{}' on host '{}' started flapping!", name(),
                       _hostname);
 
   /* log a notice - this one is parsed by the history CGI */
-  engine_logger(log_runtime_warning, basic)
-      << com::centreon::logging::setprecision(1)
-      << "SERVICE FLAPPING ALERT: " << _hostname << ";" << name()
-      << ";STARTED; Service appears to have started flapping ("
-      << percent_change << "% change >= " << high_threshold << "% threshold)";
   SPDLOG_LOGGER_WARN(
       runtime_logger,
       "SERVICE FLAPPING ALERT: {};{};STARTED; Service appears to have started "
@@ -2975,21 +2759,13 @@ void service::set_flap(double percent_change,
 void service::clear_flap(double percent_change,
                          double high_threshold [[maybe_unused]],
                          double low_threshold) {
-  engine_logger(dbg_functions, basic) << "clear_service_flap()";
   SPDLOG_LOGGER_TRACE(functions_logger, "clear_service_flap()");
 
-  engine_logger(dbg_flapping, more) << "Service '" << name() << "' on host '"
-                                    << _hostname << "' stopped flapping.";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Service '{}' on host '{}' stopped flapping.", name(),
                       _hostname);
 
   /* log a notice - this one is parsed by the history CGI */
-  engine_logger(log_info_message, basic)
-      << com::centreon::logging::setprecision(1)
-      << "SERVICE FLAPPING ALERT: " << _hostname << ";" << name()
-      << ";STOPPED; Service appears to have stopped flapping ("
-      << percent_change << "% change < " << low_threshold << "% threshold)";
   SPDLOG_LOGGER_INFO(
       events_logger,
       "SERVICE FLAPPING ALERT: {};{};STOPPED; Service appears to have stopped "
@@ -3015,12 +2791,8 @@ void service::clear_flap(double percent_change,
 void service::enable_flap_detection() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
-  engine_logger(dbg_functions, basic) << "service::enable_flap_detection()";
   SPDLOG_LOGGER_TRACE(functions_logger, "service::enable_flap_detection()");
 
-  engine_logger(dbg_flapping, more)
-      << "Enabling flap detection for service '" << name() << "' on host '"
-      << _hostname << "'.";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Enabling flap detection for service '{}' on host '{}'.",
                       name(), _hostname);
@@ -3052,12 +2824,8 @@ void service::enable_flap_detection() {
 void service::disable_flap_detection() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
-  engine_logger(dbg_functions, basic) << "disable_service_flap_detection()";
   SPDLOG_LOGGER_TRACE(functions_logger, "disable_service_flap_detection()");
 
-  engine_logger(dbg_flapping, more)
-      << "Disabling flap detection for service '" << name() << "' on host '"
-      << _hostname << "'.";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Disabling flap detection for service '{}' on host '{}'.",
                       name(), _hostname);
@@ -3112,11 +2880,10 @@ bool service::verify_check_viability(int check_options,
   time_t preferred_time = 0L;
   int check_interval = 0;
 
-  engine_logger(dbg_functions, basic) << "check_service_check_viability()";
   SPDLOG_LOGGER_TRACE(functions_logger, "check_service_check_viability()");
 
   /* get the check interval to use if we need to reschedule the check */
-  uint32_t interval_length = pb_config.interval_length();
+  uint32_t interval_length = pb_indexed_config.state().interval_length();
   if (get_state_type() == soft && _current_state != service::state_ok)
     check_interval = static_cast<int>(retry_interval() * interval_length);
   else
@@ -3135,8 +2902,6 @@ bool service::verify_check_viability(int check_options,
       preferred_time = current_time + check_interval;
       perform_check = false;
 
-      engine_logger(dbg_checks, most)
-          << "Active checks of the service are currently disabled.";
       SPDLOG_LOGGER_DEBUG(
           checks_logger,
           "Active checks of the service are currently disabled.");
@@ -3151,9 +2916,6 @@ bool service::verify_check_viability(int check_options,
         if (time_is_valid)
           *time_is_valid = false;
         perform_check = false;
-        engine_logger(dbg_checks, most)
-            << "This is not a valid time for this service to be actively "
-               "checked.";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "This is not a valid time for this service to be actively "
@@ -3166,9 +2928,6 @@ bool service::verify_check_viability(int check_options,
       preferred_time = current_time + check_interval;
       perform_check = false;
 
-      engine_logger(dbg_checks, most)
-          << "Execution dependencies for this service failed, so it will "
-             "not be actively checked.";
       SPDLOG_LOGGER_DEBUG(
           checks_logger,
           "Execution dependencies for this service failed, so it will "
@@ -3195,7 +2954,7 @@ int service::notify_contact(nagios_macros* mac,
                             const std::string& not_author,
                             const std::string& not_data,
                             int options __attribute__((unused)),
-                            int escalated) {
+                            int escalated [[maybe_unused]]) {
   std::string raw_command;
   std::string processed_command;
   bool early_timeout = false;
@@ -3203,10 +2962,7 @@ int service::notify_contact(nagios_macros* mac,
   struct timeval start_time, end_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
 
-  engine_logger(dbg_functions, basic) << "notify_contact_of_service()";
   SPDLOG_LOGGER_TRACE(functions_logger, "notify_contact_of_service()");
-  engine_logger(dbg_notifications, most)
-      << "** Notifying contact '" << cntct->get_name() << "'";
   notifications_logger->debug("** Notifying contact '{}'", cntct->get_name());
 
   /* get start time */
@@ -3221,8 +2977,6 @@ int service::notify_contact(nagios_macros* mac,
     if (raw_command.empty())
       continue;
 
-    engine_logger(dbg_notifications, most)
-        << "Raw notification command: " << raw_command;
     notifications_logger->debug("Raw notification command: {}", raw_command);
 
     /* process any macros contained in the argument */
@@ -3232,13 +2986,11 @@ int service::notify_contact(nagios_macros* mac,
 
     /* run the notification command... */
 
-    engine_logger(dbg_notifications, most)
-        << "Processed notification command: " << processed_command;
     notifications_logger->trace("Processed notification command: {}",
                                 processed_command);
 
     /* log the notification to program log file */
-    bool log_notifications = pb_config.log_notifications();
+    bool log_notifications = pb_indexed_config.state().log_notifications();
     if (log_notifications) {
       char const* service_state_str("UNKNOWN");
       if ((unsigned int)_current_state < tab_service_states.size())
@@ -3263,11 +3015,6 @@ int service::notify_contact(nagios_macros* mac,
             .append(service_state_str)
             .append(")");
 
-      engine_logger(log_service_notification, basic)
-          << "SERVICE NOTIFICATION: " << cntct->get_name() << ';'
-          << get_hostname() << ';' << description() << ';'
-          << service_notification_state << ";" << cmd->get_name() << ';'
-          << get_plugin_output() << info;
       notifications_logger->info("SERVICE NOTIFICATION: {};{};{};{};{};{};{}",
                                  cntct->get_name(), get_hostname(),
                                  description(), service_notification_state,
@@ -3276,15 +3023,13 @@ int service::notify_contact(nagios_macros* mac,
 
     /* run the notification command */
     if (command_is_allowed_by_whitelist(processed_command, NOTIF_TYPE)) {
-      uint32_t notification_timeout = pb_config.notification_timeout();
+      uint32_t notification_timeout =
+          pb_indexed_config.state().notification_timeout();
       try {
         std::string tmp;
         my_system_r(mac, processed_command, notification_timeout,
                     &early_timeout, &exectime, tmp, 0);
       } catch (std::exception const& e) {
-        engine_logger(log_runtime_error, basic)
-            << "Error: can't execute service notification for contact '"
-            << cntct->get_name() << "' : " << e.what();
         SPDLOG_LOGGER_ERROR(
             runtime_logger,
             "Error: can't execute service notification for contact '{}': {}",
@@ -3299,10 +3044,6 @@ int service::notify_contact(nagios_macros* mac,
 
     /* check to see if the notification command timed out */
     if (early_timeout) {
-      engine_logger(log_service_notification | log_runtime_warning, basic)
-          << "Warning: Contact '" << cntct->get_name()
-          << "' service notification command '" << processed_command
-          << "' timed out after " << notification_timeout << " seconds";
       notifications_logger->info(
           "Warning: Contact '{}' service notification command '{}' timed out "
           "after {} seconds",
@@ -3338,8 +3079,6 @@ bool service::is_valid_escalation_for_notification(escalation const* e,
   uint32_t notification_number;
   time_t current_time;
 
-  engine_logger(dbg_functions, basic)
-      << "service::is_valid_escalation_for_notification()";
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "service::is_valid_escalation_for_notification()");
 
@@ -3410,9 +3149,6 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   int tminutes = 0;
   int tseconds = 0;
 
-  engine_logger(dbg_checks, most)
-      << "Checking freshness of service '" << this->description()
-      << "' on host '" << this->get_hostname() << "'...";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Checking freshness of service '{}' on host '{}'...",
                       this->description(), this->get_hostname());
@@ -3420,9 +3156,11 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   uint32_t interval_length;
   int32_t additional_freshness_latency;
   uint32_t max_service_check_spread;
-  interval_length = pb_config.interval_length();
-  additional_freshness_latency = pb_config.additional_freshness_latency();
-  max_service_check_spread = pb_config.max_service_check_spread();
+  interval_length = pb_indexed_config.state().interval_length();
+  additional_freshness_latency =
+      pb_indexed_config.state().additional_freshness_latency();
+  max_service_check_spread =
+      pb_indexed_config.state().max_service_check_spread();
 
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
@@ -3438,9 +3176,6 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   } else
     freshness_threshold = this->get_freshness_threshold();
 
-  engine_logger(dbg_checks, most)
-      << "Freshness thresholds: service=" << this->get_freshness_threshold()
-      << ", use=" << freshness_threshold;
   SPDLOG_LOGGER_DEBUG(checks_logger, "Freshness thresholds: service={}, use={}",
                       this->get_freshness_threshold(), freshness_threshold);
 
@@ -3467,10 +3202,6 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 
-  engine_logger(dbg_checks, most)
-      << "HBC: " << this->has_been_checked() << ", PS: " << program_start
-      << ", ES: " << event_start << ", LC: " << get_last_check()
-      << ", CT: " << current_time << ", ET: " << expiration_time;
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "HBC: {}, PS: {}, ES: {}, LC: {}, CT: {}, ET: {}",
                       this->has_been_checked(), program_start, event_start,
@@ -3485,30 +3216,15 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
 
     /* log a warning */
     if (log_this)
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: The results of service '" << this->description()
-          << "' on host '" << this->get_hostname() << "' are stale by " << days
-          << "d " << hours << "h " << minutes << "m " << seconds
-          << "s (threshold=" << tdays << "d " << thours << "h " << tminutes
-          << "m " << tseconds
-          << "s).  I'm forcing an immediate check "
-             "of the service.";
-    SPDLOG_LOGGER_WARN(
-        runtime_logger,
-        "Warning: The results of service '{}' on host '{}' are stale by {}d "
-        "{}h {}m {}s (threshold={}d {}h {}m {}s).  I'm forcing an immediate "
-        "check "
-        "of the service.",
-        this->description(), this->get_hostname(), days, hours, minutes,
-        seconds, tdays, thours, tminutes, tseconds);
+      SPDLOG_LOGGER_WARN(
+          runtime_logger,
+          "Warning: The results of service '{}' on host '{}' are stale by {}d "
+          "{}h {}m {}s (threshold={}d {}h {}m {}s).  I'm forcing an immediate "
+          "check "
+          "of the service.",
+          this->description(), this->get_hostname(), days, hours, minutes,
+          seconds, tdays, thours, tminutes, tseconds);
 
-    engine_logger(dbg_checks, more)
-        << "Check results for service '" << this->description() << "' on host '"
-        << this->get_hostname() << "' are stale by " << days << "d " << hours
-        << "h " << minutes << "m " << seconds << "s (threshold=" << tdays
-        << "d " << thours << "h " << tminutes << "m " << tseconds
-        << "s).  Forcing an immediate check of "
-           "the service...";
     SPDLOG_LOGGER_DEBUG(
         checks_logger,
         "Check results for service '{}' on host '{}' are stale by {}d {}h {}m "
@@ -3520,9 +3236,6 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
     return false;
   }
 
-  engine_logger(dbg_checks, more)
-      << "Check results for service '" << this->description() << "' on host '"
-      << this->get_hostname() << "' are fresh.";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Check results for service '{}' on host '{}' are fresh.",
                       this->description(), this->get_hostname());
@@ -3535,8 +3248,6 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
  * (globally or per-service).
  */
 void service::handle_flap_detection_disabled() {
-  engine_logger(dbg_functions, basic)
-      << "handle_service_flap_detection_disabled()";
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "handle_service_flap_detection_disabled()");
 
@@ -3550,9 +3261,6 @@ void service::handle_flap_detection_disabled() {
     set_flapping_comment_id(0);
 
     /* log a notice - this one is parsed by the history CGI */
-    engine_logger(log_info_message, basic)
-        << "SERVICE FLAPPING ALERT: " << this->get_hostname() << ";"
-        << this->description() << ";DISABLED; Flap detection has been disabled";
     events_logger->debug(
         "SERVICE FLAPPING ALERT: {};{};DISABLED; Flap detection has been "
         "disabled",
@@ -3594,8 +3302,6 @@ timeperiod* service::get_notification_timeperiod() const {
  */
 bool service::authorized_by_dependencies(
     dependency::types dependency_type) const {
-  engine_logger(dbg_functions, basic)
-      << "service::authorized_by_dependencies()";
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "service::authorized_by_dependencies()");
 
@@ -3622,7 +3328,8 @@ bool service::authorized_by_dependencies(
 
     /* Get the status to use (use last hard state if it's currently in a soft
      * state) */
-    bool soft_state_dependencies = pb_config.soft_state_dependencies();
+    bool soft_state_dependencies =
+        pb_indexed_config.state().soft_state_dependencies();
     service_state state =
         (dep->master_service_ptr->get_state_type() == notifier::soft &&
          !soft_state_dependencies)
@@ -3653,7 +3360,6 @@ void service::check_for_orphaned() {
   time_t current_time{0L};
   time_t expected_time{0L};
 
-  engine_logger(dbg_functions, basic) << "check_for_orphaned_services()";
   SPDLOG_LOGGER_TRACE(functions_logger, "check_for_orphaned_services()");
 
   /* get the current time */
@@ -3661,8 +3367,8 @@ void service::check_for_orphaned() {
 
   uint32_t service_check_timeout;
   uint32_t check_reaper_interval;
-  service_check_timeout = pb_config.service_check_timeout();
-  check_reaper_interval = pb_config.check_reaper_interval();
+  service_check_timeout = pb_indexed_config.state().service_check_timeout();
+  check_reaper_interval = pb_indexed_config.state().check_reaper_interval();
   /* check all services... */
   for (service_map::iterator it(service::services.begin()),
        end(service::services.end());
@@ -3681,12 +3387,6 @@ void service::check_for_orphaned() {
      * reason the results haven't come back in... */
     if (expected_time < current_time) {
       /* log a warning */
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: The check of service '" << it->first.second
-          << "' on host '" << it->first.first
-          << "' looks like it was orphaned "
-             "(results never came back).  I'm scheduling an immediate check "
-             "of the service...";
       SPDLOG_LOGGER_WARN(
           runtime_logger,
           "Warning: The check of service '{}' on host '{}' looks like it was "
@@ -3695,9 +3395,6 @@ void service::check_for_orphaned() {
           "of the service...",
           it->first.second, it->first.first);
 
-      engine_logger(dbg_checks, more)
-          << "Service '" << it->first.second << "' on host '" << it->first.first
-          << "' was orphaned, so we're scheduling an immediate check...";
       SPDLOG_LOGGER_DEBUG(
           checks_logger,
           "Service '{}' on host '{}' was orphaned, so we're scheduling an "
@@ -3721,19 +3418,15 @@ void service::check_for_orphaned() {
 void service::check_result_freshness() {
   time_t current_time{0L};
 
-  engine_logger(dbg_functions, basic) << "check_service_result_freshness()";
   SPDLOG_LOGGER_TRACE(functions_logger, "check_service_result_freshness()");
-  engine_logger(dbg_checks, more)
-      << "Checking the freshness of service check results...";
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Checking the freshness of service check results...");
 
   /* bail out if we're not supposed to be checking freshness */
 
-  bool check_service_freshness = pb_config.check_service_freshness();
+  bool check_service_freshness =
+      pb_indexed_config.state().check_service_freshness();
   if (!check_service_freshness) {
-    engine_logger(dbg_checks, more)
-        << "Service freshness checking is disabled.";
     SPDLOG_LOGGER_DEBUG(checks_logger,
                         "Service freshness checking is disabled.");
     return;
@@ -3796,7 +3489,8 @@ const std::string& service::get_current_state_as_string() const {
 }
 
 bool service::get_notify_on_current_state() const {
-  bool soft_state_dependencies = pb_config.soft_state_dependencies();
+  bool soft_state_dependencies =
+      pb_indexed_config.state().soft_state_dependencies();
   if (_host_ptr->get_current_state() != host::state_up &&
       (_host_ptr->get_state_type() || soft_state_dependencies))
     return false;
@@ -3828,9 +3522,6 @@ void service::resolve(uint32_t& w, uint32_t& e) {
   try {
     notifier::resolve(warnings, errors);
   } catch (std::exception const& e) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Service description '" << name() << "' of host '"
-        << _hostname << "' has problem in its notifier part: " << e.what();
     config_logger->error(
         "Error: Service description '{}' of host '{}' has problem in its "
         "notifier part: {}",
@@ -3844,11 +3535,6 @@ void service::resolve(uint32_t& w, uint32_t& e) {
     /* we couldn't find an associated host! */
 
     if (it == host::hosts.end() || !it->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Host '" << _hostname
-          << "' specified in service "
-             "'"
-          << name() << "' not defined anywhere!";
       config_logger->error(
           "Error: Host '{}' specified in service '{}' not defined anywhere!",
           _hostname, name());
@@ -3872,11 +3558,6 @@ void service::resolve(uint32_t& w, uint32_t& e) {
   // Check for sane recovery options.
   if (get_notifications_enabled() && get_notify_on(notifier::ok) &&
       !get_notify_on(notifier::warning) && !get_notify_on(notifier::critical)) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Recovery notification option in service '" << name()
-        << "' for host '" << _hostname
-        << "' doesn't make any sense - specify warning and /or critical "
-           "options as well";
     config_logger->warn(
         "Warning: Recovery notification option in service '{}' for host '{}' "
         "doesn't make any sense - specify warning and /or critical "
@@ -3888,12 +3569,6 @@ void service::resolve(uint32_t& w, uint32_t& e) {
   // See if the notification interval is less than the check interval.
   if (get_notifications_enabled() && get_notification_interval() &&
       get_notification_interval() < check_interval()) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Service '" << name() << "' on host '" << _hostname
-        << "'  has a notification interval less than "
-           "its check interval!  Notifications are only re-sent after "
-           "checks are made, so the effective notification interval will "
-           "be that of the check interval.";
     config_logger->warn(
         "Warning: Service '{}' on host '{}'  has a notification interval less "
         "than "
@@ -3906,10 +3581,6 @@ void service::resolve(uint32_t& w, uint32_t& e) {
 
   /* check for illegal characters in service description */
   if (contains_illegal_object_chars(name().c_str())) {
-    engine_logger(log_verification_error, basic)
-        << "Error: The description string for service '" << name()
-        << "' on host '" << _hostname
-        << "' contains one or more illegal characters.";
     config_logger->error(
         "Error: The description string for service '{}' on host '{}' contains "
         "one or more illegal characters.",

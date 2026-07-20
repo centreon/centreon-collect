@@ -42,8 +42,8 @@ class event_cache_visitor : public io::stream {
   event_cache_visitor& operator=(const event_cache_visitor&) = delete;
   void commit_to(io::stream& to);
   virtual bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  virtual int write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override { return 0; }
+  virtual uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override { return 0; }
 };
 }  // namespace com::centreon::broker::bam
 

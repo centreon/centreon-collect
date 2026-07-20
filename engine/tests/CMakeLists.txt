@@ -123,11 +123,14 @@ if(WITH_TESTING)
       ${TESTS_DIR}/notifications/service_timeperiod_notification.cc
       ${TESTS_DIR}/notifications/service_flapping_notification.cc
       ${TESTS_DIR}/notifications/service_downtime_notification_test.cc
+      ${TESTS_DIR}/opentelemetry/agent_check_result_builder_test.cc
+      ${TESTS_DIR}/opentelemetry/agent_reverse_client_test.cc
       ${TESTS_DIR}/opentelemetry/grpc_config_test.cc
       ${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc
-      ${TESTS_DIR}/opentelemetry/otl_server_test.cc
-      ${TESTS_DIR}/opentelemetry/otl_converter_test.cc
       ${TESTS_DIR}/opentelemetry/open_telemetry_test.cc
+      ${TESTS_DIR}/opentelemetry/otl_converter_test.cc
+      ${TESTS_DIR}/opentelemetry/otl_server_test.cc
+      ${TESTS_DIR}/opentelemetry/pb_agent_to_engine_test.cc
       ${TESTS_DIR}/retention/host.cc
       ${TESTS_DIR}/retention/service.cc
       ${TESTS_DIR}/string/string.cc
@@ -188,7 +191,6 @@ if(WITH_TESTING)
             centreon_grpc
             centreon_http
             centreon_process
-	    #Boost::url
 	    Boost::program_options
             pthread
             ${GCOV}

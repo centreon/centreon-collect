@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -26,7 +26,7 @@ BEEXTCMD30
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -73,7 +73,7 @@ BEEXTCMD31
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -160,7 +160,7 @@ BEEXTCMD32
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -233,7 +233,7 @@ BEEXTCMD33
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -281,7 +281,7 @@ BEEXTCMD34
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -332,7 +332,7 @@ BEEXTCMD35
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -394,7 +394,7 @@ BEEXTCMD36
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -441,7 +441,7 @@ BEEXTCMD37
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -507,7 +507,7 @@ BEEXTCMD38
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -558,7 +558,7 @@ BEEXTCMD39
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -602,7 +602,7 @@ BEEXTCMD40
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -649,7 +649,7 @@ BEEXTCMD41
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -697,7 +697,7 @@ BEEXTCMD42
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -749,7 +749,7 @@ BEEXTCMD_GRPC1
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -785,7 +785,7 @@ BEEXTCMD_GRPC2
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -825,7 +825,7 @@ BEEXTCMD_GRPC3
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -860,7 +860,7 @@ BEEXTCMD_GRPC4
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -900,15 +900,15 @@ BEEXTCMD_REVERSE_GRPC1
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-        Ctn Wait For Engine To Be Ready    ${1}
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         #lets time to grpc to start
-        Sleep  0.1
+        Sleep    0.1
 
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database
-	...    pymysql
-	...    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        ...    pymysql
+        ...    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
         FOR    ${index}    IN RANGE    60
             Log To Console
@@ -945,7 +945,7 @@ BEEXTCMD_REVERSE_GRPC2
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -989,7 +989,7 @@ BEEXTCMD_REVERSE_GRPC3
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1028,7 +1028,7 @@ BEEXTCMD_REVERSE_GRPC4
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Sleep    1s
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
@@ -1067,7 +1067,7 @@ BEEXTCMD_COMPRESS_GRPC1
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1240,6 +1240,7 @@ BECUSTOMHOSTVAR
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1275,6 +1276,7 @@ BECUSTOMSVCVAR
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1310,6 +1312,7 @@ BESERVCHECK
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1339,6 +1342,7 @@ BEHOSTCHECK
     [Tags]    broker    engine    host    extcmd    bbdo3
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1351,10 +1355,9 @@ BEHOSTCHECK
     ${result}    Ctn Check Host Check With Timeout    host_1    ${start}    30
     Should Be True    ${result}    last_check column in resources table not updated.
 
-
 BE_BACKSLASH_CHECK_RESULT
     [Documentation]    external command PROCESS_SERVICE_CHECK_RESULT with \:
-    [Tags]    broker    engine    services    extcmd   MON-51121
+    [Tags]    broker    engine    services    extcmd    MON-51121
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Config Broker    rrd
@@ -1364,16 +1367,16 @@ BE_BACKSLASH_CHECK_RESULT
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Broker Config Log    central    sql    debug
-    FOR    ${use_grpc}    IN RANGE    0    2
-        Log To Console    external command PROCESS_SERVICE_CHECK_RESULT  use_grpc=${use_grpc}
+    FOR    ${use_grpc}    IN RANGE    2
+        Log To Console    external command PROCESS_SERVICE_CHECK_RESULT use_grpc=${use_grpc}
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
         Ctn Start Engine
-        Ctn Wait For Engine To Be Ready    ${start}  ${1}
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
         ${start}    Ctn Get Round Current Date
-        Ctn Process Service Check Result    host_1    service_1    0    output ok D: \\: Total: 1.205TB - Used: 1.203TB (100%) - Free: 2.541GB (0%) ${use_grpc}  config0  ${use_grpc}
+        Ctn Process Service Check Result    host_1    service_1    0    output ok D: \\: Total: 1.205TB - Used: 1.203TB (100%) - Free: 2.541GB (0%) ${use_grpc}    config0    ${use_grpc}
 
         ${result}    Ctn Check Service Output Resource Status With Timeout
         ...    host_1
@@ -1384,7 +1387,6 @@ BE_BACKSLASH_CHECK_RESULT
         ...    HARD
         ...    output ok D: \\: Total: 1.205TB - Used: 1.203TB (100%) - Free: 2.541GB (0%) ${use_grpc}
         Should Be True    ${result}    resources table not updated
-
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker

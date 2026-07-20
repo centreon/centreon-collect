@@ -23,18 +23,25 @@
 namespace com::centreon::common::crypto {
 
 class aes256 {
-  const std::string _first_key;
-  const std::string _second_key;
+  std::string _first_key;
+  std::string _second_key;
 
   std::string _app_secret();
 
  public:
   aes256(const std::string& first_key, const std::string& second_key);
+  aes256(const std::string_view& json_file_path);
   aes256(const aes256&) = delete;
   aes256& operator=(const aes256&) = delete;
-  std::string decrypt(const std::string& input);
-  std::string encrypt(const std::string& input);
-  void set_env_file(const std::string& env_file);
+  std::string decrypt(const std::string_view& input) const {
+    std::string output;
+    decrypt(input, &output);
+    return output;
+  }
+  void decrypt(const std::string_view& input, std::string* output) const;
+  std::string encrypt(const std::string_view& input) const;
+  const std::string& first_key() const { return _first_key; }
+  const std::string second_key() const { return _second_key; }
 };
 }  // namespace com::centreon::common::crypto
 

@@ -129,7 +129,7 @@ VALUE(bool, bool, MYSQL_TYPE_TINY)
 #undef SET_VALUE
 #undef VALUE
 
-void mysql_bind::set_value_as_str(size_t range, const fmt::string_view& value) {
+void mysql_bind::set_value_as_str(size_t range, const std::string_view& value) {
   assert(range < _bind.size());
   _set_typed(range);
   _bind[range].buffer_type = MYSQL_TYPE_STRING;

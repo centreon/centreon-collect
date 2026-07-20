@@ -18,7 +18,7 @@
 #include <errmsg.h>
 #include <mysqld_error.h>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -54,7 +54,7 @@ void (mysql_connection::*const mysql_connection::_task_processing_table[])(
 
 /**
  * @brief check if the error code is a server error. At the moment, we only
- * check two errors. Maybe we will need to add some.
+ * check three errors. Maybe we will need to add some.
  *
  * @param code the code to check
  *
@@ -64,6 +64,11 @@ bool mysql_connection::_server_error(int code) const {
   switch (code) {
     case CR_SERVER_GONE_ERROR:
     case CR_SERVER_LOST:
+      /* This last error has been seen with MySql when the server is behind
+       * a virtual IP and the VIP changes after an upgrade of the server. Broker
+       * does not know that the server has changed, so it tries to
+       * use a prepared statement that is not valid anymore. */
+    case ER_UNKNOWN_STMT_HANDLER:
       return true;
     default:
       return false;
@@ -391,9 +396,9 @@ void mysql_connection::_commit(mysql_task* t) {
 void mysql_connection::_prepare(mysql_task* t) {
   mysql_task_prepare* task(static_cast<mysql_task_prepare*>(t));
   if (_stmt.find(task->id) != _stmt.end()) {
-    SPDLOG_LOGGER_ERROR(_logger,
-                        "mysql_connection: Statement already prepared: {} ({})",
-                        task->id, task->query);
+    SPDLOG_LOGGER_INFO(_logger,
+                       "mysql_connection: Statement already prepared: {} ({})",
+                       task->id, task->query);
     return;
   }
 

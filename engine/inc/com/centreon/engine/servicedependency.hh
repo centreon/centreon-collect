@@ -78,6 +78,8 @@ class servicedependency : public dependency {
   void resolve(uint32_t& w, uint32_t& e);
   bool get_fail_on(int state) const override;
 
+  using dependency::operator==;
+  using dependency::operator<;
   bool operator==(servicedependency const& obj) = delete;
 
   service* master_service_ptr;

@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/influxdb/connector.hh"
-#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -34,8 +33,6 @@ static constexpr multiplexing::muxer_filter _influxdb_stream_filter = {
     neb::instance::static_type(), neb::pb_instance::static_type(),
     neb::host::static_type(), neb::pb_host::static_type(),
     neb::service::static_type(), neb::pb_service::static_type(),
-    storage::index_mapping::static_type(),
-    storage::pb_index_mapping::static_type(),
     storage::metric_mapping::static_type(),
     storage::pb_metric_mapping::static_type(),
     make_type(io::extcmd, extcmd::de_pb_bench)};
@@ -63,8 +60,7 @@ void connector::connect_to(std::string const& user,
                            std::string const& status_ts,
                            std::vector<column> const& status_cols,
                            std::string const& metric_ts,
-                           std::vector<column> const& metric_cols,
-                           std::shared_ptr<persistent_cache> const& cache) {
+                           std::vector<column> const& metric_cols) {
   _user = user;
   _password = passwd;
   _addr = addr;
@@ -74,7 +70,6 @@ void connector::connect_to(std::string const& user,
   _status_cols = status_cols;
   _metric_ts = metric_ts;
   _metric_cols = metric_cols;
-  _cache = cache;
 }
 
 /**
@@ -83,7 +78,7 @@ void connector::connect_to(std::string const& user,
  * @return An Influxdb connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  return std::unique_ptr<stream>(
-      new stream(_user, _password, _addr, _port, _db, _queries_per_transaction,
-                 _status_ts, _status_cols, _metric_ts, _metric_cols, _cache));
+  return std::make_unique<stream>(_user, _password, _addr, _port, _db,
+                                  _queries_per_transaction, _status_ts,
+                                  _status_cols, _metric_ts, _metric_cols);
 }

@@ -20,9 +20,15 @@
 #include "com/centreon/broker/http_tsdb/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
+
+namespace asio = boost::asio;
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -141,7 +147,7 @@ stream::~stream() {}
  *
  * @return int number of metric and status sent
  */
-int stream::flush() {
+uint32_t stream::flush() {
   request::pointer to_send;
   {
     std::lock_guard<std::mutex> l(_protect);
@@ -218,7 +224,7 @@ void stream::statistics(nlohmann::json& tree) const {
  * @param data
  * @return int
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   unsigned acknowledged = 0;
   if (!validate(data, get_name())) {
@@ -260,16 +266,16 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         std::static_pointer_cast<storage::status>(data)->convert_to_pb(
             converted);
         {
-          const cache::host_serv_pair* host_serv =
-              cache::global_cache::instance_ptr()->get_host_serv_id(
+          auto index_mapping =
+              config::applier::state::instance().cache().get_index_mapping(
                   converted.index_id());
-          if (!host_serv) {
+          if (!index_mapping) {
             SPDLOG_LOGGER_ERROR(
                 _logger, "unable to find host_id service_id from index_id:{}",
                 converted.index_id());
           } else {
-            converted.set_host_id(host_serv->first);
-            converted.set_service_id(host_serv->second);
+            converted.set_host_id(index_mapping->obj().host_id());
+            converted.set_service_id(index_mapping->obj().service_id());
           }
         }
         if (converted.service_id()) {
@@ -303,8 +309,8 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   return acknowledged;
 }
 
-int32_t stream::stop() {
-  int32_t retval = flush();
+uint32_t stream::stop() {
+  uint32_t retval = flush();
   _http_client->shutdown();
   SPDLOG_LOGGER_INFO(_logger, "{} stream stopped with {} acknowledged events",
                      get_name(), retval);

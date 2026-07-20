@@ -16,12 +16,18 @@
 # For more information : contact@centreon.com
 #
 
+include_directories(
+  ${CMAKE_SOURCE_DIR}/common/inc
+      )
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(
     ut_common
     absl_flyweight_factory_test.cc
     crypto/base64.cc
+    crypto/aes256.cc
     engine_conf/expand_conf.cc
+    engine_conf/indexed_diff_state.cc
     file_test.cc
     jwt_test.cc
     hex_dump_test.cc
@@ -69,7 +75,11 @@ endif()
 
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo.bat
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/bad_script.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.sh
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_common)
@@ -82,6 +92,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             centreon_http
             centreon_process
+            ctncrypto
             protobuf::libprotobuf
             engine_conf
             Boost::program_options
@@ -108,7 +119,10 @@ else()
     ut_common
     PRIVATE centreon_common
             centreon_process
+            ctncrypto
             Boost::program_options
+            Boost::process
+            gRPC::grpc++
             re2::re2
             GTest::gtest
             GTest::gtest_main
@@ -120,7 +134,7 @@ else()
             absl::bits
             fmt::fmt)
 
-  add_dependencies(ut_common centreon_common)
+  add_dependencies(ut_common centreon_common ctncrypto)
 
 endif()
 

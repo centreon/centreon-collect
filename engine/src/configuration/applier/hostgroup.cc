@@ -21,11 +21,8 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -39,8 +36,9 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
   config_logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
   // Add host group to the global configuration state.
-  auto* new_obj = pb_config.add_hostgroups();
-  new_obj->CopyFrom(obj);
+  pb_indexed_config.mut_hostgroups().emplace(
+      std::make_pair(obj.hostgroup_name(), obj.poller_id()),
+      std::make_unique<Hostgroup>(obj));
 
   // Create host group.
   auto hg = std::make_shared<com::centreon::engine::hostgroup>(
@@ -57,14 +55,6 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
   for (auto& h : obj.members().data())
     hg->members.insert({h, nullptr});
 }
-
-/**
- *  Expand all host groups.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::hostgroup::expand_objects(configuration::State& s
-                                        [[maybe_unused]]) {}
 
 /**
  *  Modified hostgroup.
@@ -120,14 +110,13 @@ void applier::hostgroup::modify_object(
  *  @param[in] obj  The new hostgroup to remove from the monitoring
  *                  engine.
  */
-void applier::hostgroup::remove_object(ssize_t idx) {
-  const Hostgroup& obj = pb_config.hostgroups(idx);
+void applier::hostgroup::remove_object(
+    const std::pair<std::string, uint32_t>& key) {
   // Logging.
-  config_logger->debug("Removing host group '{}'", obj.hostgroup_name());
+  config_logger->debug("Removing host group '{}'", key.second);
 
   // Find host group.
-  hostgroup_map::iterator it =
-      engine::hostgroup::hostgroups.find(obj.hostgroup_name());
+  hostgroup_map::iterator it = engine::hostgroup::hostgroups.find(key.first);
   if (it != engine::hostgroup::hostgroups.end()) {
     engine::hostgroup* grp(it->second.get());
 
@@ -139,7 +128,7 @@ void applier::hostgroup::remove_object(ssize_t idx) {
   }
 
   // Remove host group from the global configuration set.
-  pb_config.mutable_hostgroups()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_hostgroups().erase(key);
 }
 
 /**

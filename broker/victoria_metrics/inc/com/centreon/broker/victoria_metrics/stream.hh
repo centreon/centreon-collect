@@ -39,7 +39,7 @@ class stream : public http_tsdb::stream {
   std::string _account_id;
 
  protected:
-  stream(const std::shared_ptr<asio::io_context>& io_context,
+  stream(const std::shared_ptr<boost::asio::io_context>& io_context,
          const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
          const std::string& account_id,
          http::connection_creator conn_creator);
@@ -50,7 +50,7 @@ class stream : public http_tsdb::stream {
   static const std::string allowed_macros;
 
   static std::shared_ptr<stream> load(
-      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<boost::asio::io_context>& io_context,
       const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
       const std::string& account_id,
       http::connection_creator conn_creator);

@@ -19,11 +19,13 @@
 #define CCB_NEB_CBMOD_HH
 #include <filesystem>
 #include "bbdo/bbdo_version.hh"
+// #include "com/centreon/broker/config/applier/cbmod_state.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
+
 namespace multiplexing {
 class publisher;
 }  // namespace multiplexing
@@ -33,7 +35,6 @@ class cbmodimpl;
 class cbmod {
   std::shared_ptr<spdlog::logger> _neb_logger;
   std::unique_ptr<cbmodimpl> _impl;
-  std::filesystem::path _proto_conf;
   bool _use_protobuf;
 
   // Acknowledgements list.
@@ -43,10 +44,13 @@ class cbmod {
 
   // Unstarted downtimes.
   std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
+  bool _centralized_conf = false;
 
  public:
-  cbmod();
-  cbmod(const std::string& config_file);
+  cbmod(const std::filesystem::path& proto_conf);
+  cbmod(const std::string& config_file,
+        const std::filesystem::path& proto_conf,
+        const std::string& engine_conf_version);
   cbmod& operator=(const cbmod&) = delete;
 
   virtual ~cbmod() noexcept;
@@ -79,6 +83,11 @@ class cbmod {
   void stop_downtime(uint64_t downtime_id, bool cancelled);
   void remove_downtime(uint64_t downtime_id);
   void reload();
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  void set_diff_state_applied(const std::string& config_version);
+  bool centralized_conf() const;
+  void send_engine_conf(
+      std::unique_ptr<com::centreon::engine::configuration::State>&& conf);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker

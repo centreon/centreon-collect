@@ -530,6 +530,25 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
 }
 
 /**
+ * @brief Reset downtime state when the poller hosting this service restarts.
+ *        Clears tracked downtime IDs and notifies parents so they can
+ *        recompute inherited downtimes from scratch.
+ *
+ * @param visitor The stream to write events into.
+ */
+void kpi_service::reset_downtime_state(io::stream* visitor) {
+  if (_downtime_ids.empty() && !_downtimed)
+    return;
+  _logger->debug(
+      "BAM: kpi_service::reset_downtime_state for service ({}, {}): clearing "
+      "{} downtime(s)",
+      _host_id, _service_id, _downtime_ids.size());
+  _downtime_ids.clear();
+  _downtimed = false;
+  notify_parents_of_change(visitor);
+}
+
+/**
  *  Set service as acknowledged.
  *
  *  @param[in] acknowledged Acknowledged flag.

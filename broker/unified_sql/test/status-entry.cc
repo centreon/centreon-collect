@@ -22,11 +22,10 @@
 
 #include "bbdo/storage/status.hh"
 #include "broker/core/bbdo/stream.hh"
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/unified_sql/factory.hh"
 #include "common/log_v2/log_v2.hh"
@@ -53,12 +52,12 @@ class into_memory : public io::stream {
     return true;
   }
 
-  int32_t write(std::shared_ptr<io::data> const& d) override {
+  uint32_t write(std::shared_ptr<io::data> const& d) override {
     _memory = std::static_pointer_cast<io::raw>(d)->get_buffer();
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 
   std::vector<char> const& get_memory() const { return _memory; }
   std::vector<char>& get_mutable_memory() { return _memory; }
@@ -69,7 +68,9 @@ class UnifiedSqlEntryTest : public ::testing::Test {
   void SetUp() override {
     io::data::broker_id = 0;
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -104,11 +105,9 @@ TEST_F(UnifiedSqlEntryTest, WriteStatus) {
       12345, 123456789123456789, 34567, false, 789789, 2)};
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(st);
 
   std::shared_ptr<io::data> ev;

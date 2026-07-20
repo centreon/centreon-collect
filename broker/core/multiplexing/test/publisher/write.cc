@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +19,17 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 const std::string MSG1("0123456789abcdef");
 const std::string MSG2("foo bar baz qux");
@@ -34,7 +37,10 @@ const std::string MSG2("foo bar baz qux");
 class PublisherWrite : public testing::Test {
  public:
   void SetUp() override {
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init<com::centreon::broker::config::applier::broker_state>(
+        "", 0, "test_broker", 0);
+    log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::trace);
+    config::applier::state::instance().initialize_cache();
   }
 
   void TearDown() override { config::applier::deinit(); }
@@ -44,7 +50,7 @@ class PublisherWrite : public testing::Test {
  *  We should be able to read from publisher.
  */
 TEST_F(PublisherWrite, Write) {
-  int retval{0};
+  int retval = 0;
   {
     // Publisher.
     multiplexing::publisher p;

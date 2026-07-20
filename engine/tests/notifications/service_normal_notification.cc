@@ -45,9 +45,12 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ServiceNotification : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
-    init_config_state();
+    _state_hlp = init_config_state();
     error_cnt err;
 
     configuration::applier::contact ct_aply;
@@ -56,7 +59,7 @@ class ServiceNotification : public TestEngine {
         new_pb_configuration_contact("admin1", false, "c,r")};
     ct_aply.add_object(ctct);
     ct_aply.add_object(ctct1);
-    ct_aply.expand_objects(pb_config);
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
     ct_aply.resolve_object(ctct1, err);
 
@@ -129,7 +132,7 @@ TEST_F(ServiceNotification,
   /* We are using a local time() function defined in tests/timeperiod/utils.cc.
    * If we call time(), it is not the glibc time() function that will be called.
    */
-  pb_config.set_enable_notifications(false);
+  pb_indexed_config.mut_state().set_enable_notifications(false);
   set_time(43200);
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
@@ -193,7 +196,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationForcedWithNotificationDisabled) {
-  pb_config.set_enable_notifications(false);
+  pb_indexed_config.mut_state().set_enable_notifications(false);
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
@@ -732,8 +735,8 @@ TEST_F(ServiceNotification, ServiceEscalationCG) {
   configuration::Contact ctct{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
   error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
@@ -741,14 +744,14 @@ TEST_F(ServiceNotification, ServiceEscalationCG) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
-  se_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   se_aply.resolve_object(se, err);
 
   int now{50000};
@@ -975,7 +978,7 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   id = _svc->get_next_notification_id();
   _svc->set_notification_period_ptr(tperiod.get());
   _svc->set_notifications_enabled(true);
-  pb_config.set_enable_notifications(false);
+  pb_indexed_config.mut_state().set_enable_notifications(false);
   ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
                          notifier::notification_option_none),
             OK);

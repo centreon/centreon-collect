@@ -20,7 +20,6 @@
 #define CCE_COMMANDS_RESULT_HH
 
 #include "com/centreon/process.hh"
-#include "com/centreon/timestamp.hh"
 
 namespace com::centreon::engine {
 
@@ -59,7 +58,7 @@ std::ostream& operator<<(std::ostream& s, const result& to_dump);
 
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>

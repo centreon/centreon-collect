@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2024 Centreon
+ * Copyright 2013-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/container/btree_map.h>
 #include <fcntl.h>
 #include <rrd.h>
 
@@ -45,12 +46,12 @@ using com::centreon::common::log_v2::log_v2;
  *  @param[in] tmpl_path  The template path.
  *  @param[in] cache_size The maximum number of cache element.
  */
-creator::creator(std::string const& tmpl_path, uint32_t cache_size)
-    : _cache_size(cache_size), _tmpl_path(tmpl_path) {
+creator::creator(std::filesystem::path tmpl_path, uint32_t cache_size)
+    : _cache_size(cache_size), _tmpl_path(std::move(tmpl_path)) {
   SPDLOG_LOGGER_DEBUG(
       log_v2::instance().get(log_v2::RRD),
       "RRD: file creator will maintain at most {} templates in '{}'",
-      _cache_size, _tmpl_path);
+      _cache_size, _tmpl_path.string());
 }
 
 /**
@@ -64,7 +65,7 @@ creator::~creator() {
  *  Clear cache and remove template file.
  */
 void creator::clear() {
-  for (std::map<tmpl_info, fd_info>::const_iterator it(_fds.begin()),
+  for (absl::btree_map<tmpl_info, fd_info>::const_iterator it(_fds.begin()),
        end(_fds.end());
        it != end; ++it) {
     ::close(it->second.fd);
@@ -102,7 +103,8 @@ void creator::create(std::string const& filename,
         .from = 0, .length = length, .step = step, .value_type = value_type};
 
     // Find fd informations.
-    std::map<tmpl_info, fd_info>::const_iterator it(_fds.lower_bound(info));
+    absl::btree_map<tmpl_info, fd_info>::const_iterator it(
+        _fds.lower_bound(info));
 
     // Is in the cache, just duplicate file.
     if (it != _fds.end() && it->first.is_length_step_type_equal(info) &&
@@ -114,9 +116,10 @@ void creator::create(std::string const& filename,
     // Not in the cache, but we have enough space in the cache.
     // Create new entry.
     else if (_fds.size() < _cache_size) {
-      std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}_{}.rrd",
-                                            _tmpl_path, from, length, step,
-                                            value_type));
+      auto tmpl_filename =
+          (_tmpl_path /
+           fmt::format("tmpl_{}_{}_{}_{}.rrd", from, length, step, value_type))
+              .string();
       info.from = from;
 
       // Create new template.

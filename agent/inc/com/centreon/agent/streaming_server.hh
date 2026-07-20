@@ -36,7 +36,7 @@ class server_reactor;
  */
 class streaming_server : public common::grpc::grpc_server_base,
                          public std::enable_shared_from_this<streaming_server>,
-                         public ReversedAgentService::Service {
+                         public ReversedAgentService::CallbackService {
   std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
   const std::string _supervised_host;

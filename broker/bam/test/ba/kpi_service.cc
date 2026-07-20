@@ -21,6 +21,8 @@
 #include <gtest/gtest.h>
 #include <regex>
 #include "bbdo/bam/state.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/bam/ba_best.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/ba_ratio_number.hh"
@@ -28,7 +30,6 @@
 #include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/kpi_ba.hh"
-#include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -48,7 +49,8 @@ class BamBA : public ::testing::Test {
   void SetUp() override {
     // Initialization.
     _logger = log_v2::instance().get(log_v2::BAM);
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init<com::centreon::broker::config::applier::broker_state>(
+        "", 0, "test_broker", 0);
 
     _aply_state = std::make_unique<bam::configuration::applier::state>(_logger);
     _state = std::make_unique<bam::configuration::state>(_logger);

@@ -16,6 +16,7 @@
     "boost-flyweight",
     "rapidjson",
     "gtest",
+    "benchmark",
     {
       "name": "libssh2",
       "platform": "linux"
@@ -30,6 +31,10 @@
     },
     {
       "name": "boost-beast",
+      "platform": "linux"
+    },
+    {
+      "name": "boost-bimap",
       "platform": "linux"
     },
     {
@@ -63,6 +68,10 @@
     {
       "name": "nlohmann-json",
       "platform": "linux"
+    },
+    {
+      "name": "openssl",
+      "platform": "windows"
     }
   ]
 }

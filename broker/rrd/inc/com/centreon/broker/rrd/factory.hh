@@ -19,12 +19,13 @@
 #ifndef CCB_RRD_FACTORY_HH
 #define CCB_RRD_FACTORY_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/factory.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::rrd {
 
-namespace rrd {
 /**
  *  @class factory factory.hh "com/centreon/broker/rrd/factory.hh"
  *  @brief RRD layer factory.
@@ -36,17 +37,14 @@ class factory : public io::factory {
   factory() = default;
   ~factory() = default;
   factory(factory const& other) = delete;
-  factory& operator=(factory const& other) = delete;
+  factory& operator=(const factory&) = delete;
   bool has_endpoint(config::endpoint& cfg, io::extension* ext);
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
-      const std::map<std::string, std::string>& global_params,
-      bool& is_acceptor,
-      std::shared_ptr<persistent_cache> cache =
-          std::shared_ptr<persistent_cache>()) const;
+      const absl::btree_map<std::string, std::string>& global_params,
+      bool& is_acceptor) const;
 };
-}  // namespace rrd
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::rrd
 
 #endif  // !CCB_RRD_FACTORY_HH

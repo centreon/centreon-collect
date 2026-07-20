@@ -17,10 +17,11 @@
  */
 
 #include <gtest/gtest.h>
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/kpi.hh"
-#include "com/centreon/broker/config/applier/init.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -30,10 +31,12 @@ class ApplierBoolexp : public ::testing::Test {
  public:
   void SetUp() override {
     // Initialization.
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init<com::centreon::broker::config::applier::broker_state>(
+        "", 0, "test_broker", 0);
     auto logger = log_v2::instance().get(log_v2::BAM);
 
-    _aply_state = std::make_unique<bam::configuration::applier::state>(logger);
+    _aply_state =
+        std::make_unique<bam::configuration::applier::state>(logger);
     _state = std::make_unique<bam::configuration::state>(logger);
   }
 

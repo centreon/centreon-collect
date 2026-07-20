@@ -20,9 +20,7 @@
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_STAT_HH
 
 #include <absl/base/thread_annotations.h>
-#include <boost/asio/io_context.hpp>
 #include <boost/system/detail/error_code.hpp>
-#include <memory>
 #include "centreon_agent/agent.pb.h"
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {

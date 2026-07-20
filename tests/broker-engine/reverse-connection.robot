@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine communication with or without compression
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -24,10 +24,8 @@ BRGC1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Ctn Run Reverse Bam    ${50}    ${0.2}
 
     Ctn Kindly Stop Broker
@@ -35,7 +33,7 @@ BRGC1
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
-    ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+    ...    file: end of file '${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
     ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed.
@@ -52,13 +50,11 @@ BRCTS1
 
     Ctn Broker Config Log    central    bbdo    info
     Ctn Broker Config Log    module0    bbdo    info
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Ctn Run Reverse Bam    ${150}    ${10}
 
     Ctn Kindly Stop Broker
@@ -66,7 +62,7 @@ BRCTS1
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
-    ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+    ...    file: end of file '${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
     ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed
@@ -89,16 +85,14 @@ BRCS1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
-    ...    file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+    ...    file: end of file '${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
     ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Not Be True    ${result}    Connection to map has failed
@@ -165,6 +159,8 @@ BRCTSMNS
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Add Item    central    event_queue_max_size    ${100000}
+    Remove Directory    /etc/centreon-engine-whitelist    recursive=True
+    Remove File    /usr/share/centreon-engine/whitelist.conf.d/test
 
     Ctn Broker Config Output Set Json
     ...    central
@@ -182,9 +178,8 @@ BRCTSMNS
 
     Ctn Start Engine
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message about check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
     # pb_service pb_host pb_service_status pb_host_status pb_metric pb_status pb_index_mapping
     ${expected_events}    Create List    65563    65566    65565    65568    196617    196618    196619
     ${categories}    Create List    1    3

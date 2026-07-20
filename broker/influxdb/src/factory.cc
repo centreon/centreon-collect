@@ -17,8 +17,6 @@
  */
 
 #include "com/centreon/broker/influxdb/factory.hh"
-#include <absl/strings/match.h>
-#include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/influxdb/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -73,9 +71,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
+    bool& is_acceptor) const {
   std::string user(find_param(cfg, "db_user"));
   std::string passwd(find_param(cfg, "db_password"));
   std::string addr(find_param(cfg, "db_host"));
@@ -160,7 +158,7 @@ io::endpoint* factory::new_endpoint(
   std::unique_ptr<influxdb::connector> c(new influxdb::connector);
   c->connect_to(user, passwd, addr, port, db, queries_per_transaction,
                 status_timeseries, status_column_list, metric_timeseries,
-                metric_column_list, cache);
+                metric_column_list);
   is_acceptor = false;
   return c.release();
 }

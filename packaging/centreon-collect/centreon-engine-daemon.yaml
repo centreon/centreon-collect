@@ -56,6 +56,9 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - dst: "/etc/centreon-engine/engine-context.json"
+    type: ghost
+
   - src: "../../engine/scripts/logrotate.conf"
     dst: "/etc/logrotate.d/centengine"
     type: config|noreplace

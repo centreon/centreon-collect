@@ -22,7 +22,7 @@
 //#include <iostream>
 //#include "com/centreon/broker/bbdo/internal.hh"
 //#include "com/centreon/broker/bbdo/stream.hh"
-//#include "com/centreon/broker/config/applier/init.hh"
+//#include "broker/core/config/applier/init.hh"
 //#include "com/centreon/broker/exceptions/msg.hh"
 //#include "com/centreon/broker/extcmd/command_request.hh"
 //#include "com/centreon/broker/extcmd/internal.hh"

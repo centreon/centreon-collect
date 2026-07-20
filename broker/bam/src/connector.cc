@@ -34,6 +34,7 @@
 #include "com/centreon/broker/bam/reporting_stream.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 
 using namespace com::centreon::broker;
@@ -56,7 +57,8 @@ static constexpr multiplexing::muxer_filter _monitoring_stream_filter = {
     inherited_downtime::static_type(),
     pb_inherited_downtime::static_type(),
     extcmd::pb_ba_info::static_type(),
-    pb_services_book_state::static_type()};
+    pb_services_book_state::static_type(),
+    neb::pb_instance::static_type()};
 
 static constexpr multiplexing::muxer_filter _monitoring_forbidden_filter =
     multiplexing::muxer_filter(_monitoring_stream_filter).reverse();
@@ -99,11 +101,13 @@ static constexpr multiplexing::muxer_filter _reporting_forbidden_filter =
  * @param mandatory_filter The mandatory filters of the underlying stream.
  * @param forbidden_filter The forbidden filters of the underlying stream.
  */
-connector::connector(stream_type type,
+connector::connector(const std::string& name,
+                     stream_type type,
                      const database_config& db_cfg,
                      const multiplexing::muxer_filter& mandatory_filter,
                      const multiplexing::muxer_filter& forbidden_filter)
     : io::endpoint(false, mandatory_filter, forbidden_filter),
+      _name{name},
       _type{type},
       _db_cfg{db_cfg} {}
 
@@ -118,15 +122,14 @@ connector::connector(stream_type type,
  * @return An unique ptr to the newly bam connector created.
  */
 std::unique_ptr<bam::connector> connector::create_monitoring_connector(
+    const std::string& name,
     const std::string& ext_cmd_file,
     const database_config& db_cfg,
-    const std::string& storage_db_name,
-    std::shared_ptr<persistent_cache> cache) {
-  auto retval = std::unique_ptr<bam::connector>(
-      new bam::connector(bam_monitoring_type, db_cfg, _monitoring_stream_filter,
-                         _monitoring_forbidden_filter));
+    const std::string& storage_db_name) {
+  auto retval = std::unique_ptr<bam::connector>(new bam::connector(
+      name, bam_monitoring_type, db_cfg, _monitoring_stream_filter,
+      _monitoring_forbidden_filter));
   retval->_ext_cmd_file = ext_cmd_file;
-  retval->_cache = std::move(cache);
   if (storage_db_name.empty())
     retval->_storage_db_name = db_cfg.get_name();
   else
@@ -140,10 +143,11 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
  *  @param[in] db_cfg  Database configuration.
  */
 std::unique_ptr<bam::connector> connector::create_reporting_connector(
+    const std::string& name,
     const database_config& db_cfg) {
-  auto retval = std::unique_ptr<bam::connector>(
-      new bam::connector(bam_reporting_type, db_cfg, _reporting_stream_filter,
-                         _reporting_forbidden_filter));
+  auto retval = std::unique_ptr<bam::connector>(new bam::connector(
+      name, bam_reporting_type, db_cfg, _reporting_stream_filter,
+      _reporting_forbidden_filter));
   return retval;
 }
 
@@ -159,11 +163,8 @@ std::shared_ptr<io::stream> connector::open() {
   else {
     database_config storage_db_cfg(_db_cfg);
     storage_db_cfg.set_name(_storage_db_name);
-    auto u = std::make_shared<monitoring_stream>(
-        _ext_cmd_file, _db_cfg, storage_db_cfg, _cache, logger);
-    // FIXME DBR: just after this creation, initialize() is called by update()
-    // So I think this call is not needed. But for now not totally sure.
-    // u->initialize();
+    auto u = std::make_shared<monitoring_stream>(_name, _ext_cmd_file, _db_cfg,
+                                                 storage_db_cfg, logger);
     return u;
   }
 }

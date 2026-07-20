@@ -106,8 +106,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
           // Skip corrupted data, one byte at a time.
           _logger->error(
               "compression: stream got corrupted packet size of {} bytes, not "
-              "in "
-              "the 0-{} range, skipping next byte",
+              "in the 0-{} range, skipping next byte",
               size, max_data_size);
           if (!skipped)
             _logger->error("compression: peer {} is sending corrupted data",
@@ -197,7 +196,7 @@ void stream::statistics(nlohmann::json& tree) const {
  *
  *  @return The number of events acknowledged.
  */
-int stream::flush() {
+uint32_t stream::flush() {
   _flush();
   return 0;
 }
@@ -207,7 +206,7 @@ int stream::flush() {
  *
  * @return The number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _flush();
   return 0;
 }
@@ -221,7 +220,7 @@ int32_t stream::stop() {
  *
  *  @return 1.
  */
-int stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   if (!validate(d, get_name()))
     return 1;
 

@@ -21,6 +21,7 @@
 
 #include <boost/flyweight/factory_tag.hpp>
 #include "absl/container/node_hash_set.h"
+#include "absl/synchronization/mutex.h"
 
 namespace com::centreon::common {
 
@@ -32,8 +33,8 @@ class lock_policy<true> {
   absl::Mutex _mut;
 
  public:
-  void lock() { _mut.Lock(); }
-  void unlock() { _mut.Unlock(); }
+  void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_mut) { _mut.Lock(); }
+  void unlock() ABSL_UNLOCK_FUNCTION(_mut) { _mut.Unlock(); }
 };
 
 template <>

@@ -19,8 +19,8 @@
 
 #include <gtest/gtest.h>
 
-#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/graphite/query.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -31,9 +31,23 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 
-TEST(graphiteQuery, ComplexMetric) {
-  std::shared_ptr<persistent_cache> pcache;
-  graphite::macro_cache cache(pcache);
+class graphiteQuery : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+
+ public:
+  void SetUp() override {
+    _logger = log_v2::instance().get(log_v2::LUA);
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("unittest");
+    config::applier::state::instance().initialize_cache();
+    config::applier::state::instance().cache().enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
+  }
+  void TearDown() override { config::applier::state::unload(); }
+};
+
+TEST_F(graphiteQuery, ComplexMetric) {
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
   m.set_host_id(1);
@@ -51,43 +65,41 @@ TEST(graphiteQuery, ComplexMetric) {
       std::make_shared<neb::pb_instance>()};
   std::shared_ptr<storage::metric_mapping> metric_map{
       std::make_shared<storage::metric_mapping>()};
-  auto index_map{std::make_shared<storage::index_mapping>()};
 
   m_event.source_id = 3;
 
   svc->service_description = "svc.1";
   svc->service_id = 1;
   svc->host_id = 1;
+  svc->enabled = true;
 
   host->host_name = "host1";
   host->host_id = 1;
+  host->enabled = true;
 
   instance->mut_obj().set_instance_id(3);
   instance->mut_obj().set_name("poller test");
+  instance->mut_obj().set_running(true);
 
   metric_map->metric_id = 40;
   metric_map->index_id = 41;
 
-  index_map->index_id = 41;
-
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(metric_map);
-  cache.write(index_map);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(host);
+  cache.publish(svc);
+  cache.publish(instance);
+  cache.publish(metric_map);
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$",
-      "a", graphite::query::metric, cache};
+      "a", graphite::query::metric};
 
   ASSERT_EQ(q.generate_metric(m_event),
             "test_._host1_1_svca1_1_poller_test_3_41__TEST_$ 42 2000\n");
 }
 
-TEST(graphiteQuery, ComplexStatus) {
-  std::shared_ptr<persistent_cache> pcache;
-  graphite::macro_cache cache(pcache);
+TEST_F(graphiteQuery, ComplexStatus) {
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
   s.set_time(2000llu);
@@ -102,44 +114,39 @@ TEST(graphiteQuery, ComplexStatus) {
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
   std::shared_ptr<neb::pb_instance> instance{
       std::make_shared<neb::pb_instance>()};
-  std::shared_ptr<storage::index_mapping> index_map{
-      std::make_shared<storage::index_mapping>()};
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$",
-      "a", graphite::query::status, cache};
+      "a", graphite::query::status};
 
   svc->service_description = "svc1";
   svc->service_id = 1;
   svc->host_id = 1;
+  svc->enabled = true;
 
   host->host_name = "host1";
   host->host_id = 1;
+  host->enabled = true;
 
   instance->mut_obj().set_instance_id(3);
   instance->mut_obj().set_name("poller test");
-
-  index_map->index_id = 3;
-  index_map->host_id = 1;
-  index_map->service_id = 1;
+  instance->mut_obj().set_running(true);
 
   s_event.source_id = 3;
   s_event.destination_id = 4;
   s_event.broker_id = 1;
 
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(index_map);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(host);
+  cache.publish(svc);
+  cache.publish(instance);
 
   ASSERT_EQ(q.generate_status(s_event),
             "test_._host1_1_svc1_1_poller_test_3_3__TEST_$ 2 2000\n");
 }
 
-TEST(graphiteQuery, ComplexPbMetric) {
-  std::shared_ptr<persistent_cache> pcache;
-  graphite::macro_cache cache(pcache);
+TEST_F(graphiteQuery, ComplexPbMetric) {
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
   m.set_host_id(1);
@@ -156,43 +163,41 @@ TEST(graphiteQuery, ComplexPbMetric) {
   std::shared_ptr<neb::pb_instance> instance{
       std::make_shared<neb::pb_instance>()};
   auto metric_map{std::make_shared<storage::metric_mapping>()};
-  auto index_map{std::make_shared<storage::index_mapping>()};
 
   m_event.source_id = 3;
 
   svc->mut_obj().set_description("svc.1");
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_enabled(true);
 
   host->mut_obj().set_name("host1");
   host->mut_obj().set_host_id(1);
+  host->mut_obj().set_enabled(true);
 
   instance->mut_obj().set_instance_id(3);
   instance->mut_obj().set_name("poller test");
+  instance->mut_obj().set_running(true);
 
   metric_map->metric_id = 40;
   metric_map->index_id = 41;
 
-  index_map->index_id = 41;
-
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(metric_map);
-  cache.write(index_map);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(host);
+  cache.publish(svc);
+  cache.publish(instance);
+  cache.publish(metric_map);
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$",
-      "a", graphite::query::metric, cache};
+      "a", graphite::query::metric};
 
   ASSERT_EQ(q.generate_metric(m_event),
             "test_._host1_1_svca1_1_poller_test_3_41__TEST_$ 42 2000\n");
 }
 
-TEST(graphiteQuery, ComplexPbStatus) {
-  std::shared_ptr<persistent_cache> pcache;
-  graphite::macro_cache cache(pcache);
+TEST_F(graphiteQuery, ComplexPbStatus) {
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
   s.set_time(2000llu);
@@ -207,66 +212,61 @@ TEST(graphiteQuery, ComplexPbStatus) {
   auto svc{std::make_shared<neb::pb_service>()};
   std::shared_ptr<neb::pb_instance> instance{
       std::make_shared<neb::pb_instance>()};
-  auto index_map{std::make_shared<storage::index_mapping>()};
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$",
-      "a", graphite::query::status, cache};
+      "a", graphite::query::status};
 
   svc->mut_obj().set_description("svc1");
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_enabled(true);
 
   host->mut_obj().set_name("host1");
   host->mut_obj().set_host_id(1);
+  host->mut_obj().set_enabled(true);
 
   instance->mut_obj().set_instance_id(3);
   instance->mut_obj().set_name("poller test");
-
-  index_map->index_id = 3;
-  index_map->host_id = 1;
-  index_map->service_id = 1;
+  instance->mut_obj().set_running(true);
 
   s_event.source_id = 3;
   s_event.destination_id = 4;
   s_event.broker_id = 1;
 
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(index_map);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(host);
+  cache.publish(svc);
+  cache.publish(instance);
 
   ASSERT_EQ(q.generate_status(s_event),
             "test_._host1_1_svc1_1_poller_test_3_3__TEST_$ 2 2000\n");
 }
 
-TEST(graphiteQuery, Except) {
-  std::shared_ptr<persistent_cache> pcache;
-  graphite::macro_cache cache(pcache);
+TEST_F(graphiteQuery, Except) {
   storage::pb_status s;
   storage::pb_metric m;
 
-  graphite::query q{"test .", "a", graphite::query::metric, cache};
-  graphite::query q2{"test .", "a", graphite::query::status, cache};
+  graphite::query q{"test .", "a", graphite::query::metric};
+  graphite::query q2{"test .", "a", graphite::query::status};
 
   try {
-    graphite::query q3{"test . $METRICID$", "a", graphite::query::status,
-                       cache};
+    graphite::query q3{"test . $METRICID$", "a", graphite::query::status};
     ASSERT_TRUE(false);
   } catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
   }
 
   try {
-    graphite::query q3{"test . $METRIC$", "a", graphite::query::status, cache};
+    graphite::query q3{"test . $METRIC$", "a", graphite::query::status};
     ASSERT_TRUE(false);
   } catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
   }
 
   try {
-    graphite::query q3{"test . $METRIC", "a", graphite::query::status, cache};
+    graphite::query q3{"test . $METRIC", "a", graphite::query::status};
     ASSERT_TRUE(false);
   } catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
@@ -275,16 +275,16 @@ TEST(graphiteQuery, Except) {
   m.mut_obj().set_metric_id(3);
   m.mut_obj().set_name("The.full.name.A");
 
-  graphite::query q4{"test . $METRICID$ $METRIC$", "a", graphite::query::metric,
-                     cache};
+  graphite::query q4{"test . $METRICID$ $METRIC$", "a",
+                     graphite::query::metric};
 
   ASSERT_THROW(q.generate_status(s), msg_fmt);
   ASSERT_THROW(q2.generate_metric(m), msg_fmt);
   ASSERT_EQ(q4.generate_metric(m), "test_._3_TheafullanameaA 0 0\n");
 
-  graphite::query q5{"test . $INSTANCE$", "a", graphite::query::metric, cache};
+  graphite::query q5{"test . $INSTANCE$", "a", graphite::query::metric};
   ASSERT_EQ(q5.generate_metric(m), "");
 
-  graphite::query q6{"test . $INSTANCE$", "a", graphite::query::status, cache};
+  graphite::query q6{"test . $INSTANCE$", "a", graphite::query::status};
   ASSERT_EQ(q6.generate_status(s), "");
 }

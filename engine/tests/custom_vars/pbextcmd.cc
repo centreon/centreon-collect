@@ -37,8 +37,11 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 class PbCustomVar : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -58,7 +61,6 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   cmd.set_command_line(
       "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
       "$_HOSTWARNING$ -c $_HOSTCRITICAL$ $CONTACTNAME$");
-  cmd_aply.add_object(cmd);
 
   configuration::Contact cnt;
   configuration::contact_helper cnt_hlp(&cnt);
@@ -67,7 +69,6 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   cnt.set_pager("0473729383");
   cnt.set_host_notification_period("24x7");
   cnt.set_service_notification_period("24x7");
-  cnt_aply.add_object(cnt);
 
   configuration::Host hst;
   configuration::host_helper hst_hlp(&hst);
@@ -79,19 +80,21 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   hst_hlp.insert_customvariable("_CRITICAL", "400,50%");
   hst.set_check_command("base_centreon_ping");
   hst.mutable_contacts()->add_data("user");
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  cmd_aply.add_object(cmd);
+  cnt_aply.add_object(cnt);
   hst_aply.add_object(hst);
 
   command_map::iterator cmd_found{
       commands::command::commands.find("base_centreon_ping")};
   ASSERT_NE(cmd_found, commands::command::commands.end());
-  ASSERT_TRUE(pb_config.commands().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.commands().size() == 1);
 
   host_map::iterator hst_found{engine::host::hosts.find("hst_test")};
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(pb_config.hosts().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_config);
-  configuration::error_cnt err;
   hst_aply.resolve_object(hst, err);
   ASSERT_EQ(hst_found->second->custom_variables.size(), 3);
   nagios_macros* macros(get_global_macros());

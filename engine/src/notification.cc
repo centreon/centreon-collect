@@ -20,14 +20,12 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notifier.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 notification::notification(notifier* parent,
                            notifier::reason_type type,
@@ -58,7 +56,8 @@ notification::notification(notifier* parent,
  *
  * @return OK on success, ERROR otherwise.
  */
-int notification::execute(std::unordered_set<contact*> const& to_notify) {
+int notification::execute(
+    const std::unordered_set<std::shared_ptr<contact>>& to_notify) {
   uint32_t contacts_notified{0};
 
   struct timeval start_time;
@@ -156,7 +155,10 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
     mac->x[MACRO_SERVICENOTIFICATIONID] = std::to_string(_id);
   }
 
-  for (contact* ctc : to_notify) {
+  for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
+    /* get the contact */
+    auto ctc = ctc_ptr.get();
+
     /* grab the macro variables for this contact */
     grab_contact_macros_r(mac, ctc);
 
@@ -178,8 +180,6 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
     }
   }
 
-  engine_logger(dbg_notifications, basic)
-      << contacts_notified << " contacts were notified.";
   notifications_logger->trace("{} contacts were notified.", contacts_notified);
   return OK;
 }

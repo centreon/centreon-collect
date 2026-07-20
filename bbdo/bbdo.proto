@@ -40,6 +40,8 @@ message Welcome {
   string broker_name = 5;
   com.centreon.common.PeerType peer_type = 6;
   bool extended_negotiation = 7;
+  /* Engine configuration version sent by Engine so Broker is aware of it. */
+  string engine_conf = 8;
 }
 
 /* io::bbdo, bbdo::de_pb_ack, 50 */
@@ -52,15 +54,37 @@ message Stop {
   uint64 poller_id = 1;
 }
 
-/* io::bbdo, bbdo::de_pb_engine_configuration, 52 */
-message EngineConfiguration {
-  uint64 poller_id = 1;    // Poller ID of the sender (Engine or Broker)
-  string poller_name = 2;  // Poller name of the sender
-  string broker_name = 3;  // Broker name of the sender
-  com.centreon.common.PeerType peer_type =
-      4;  // Peer type of the sender (Engine or Broker)
-  string engine_config_version =
-      5;  // Engine uses this to send the conf version
-  bool need_update =
-      6;  // Broker uses this to tell Engine if an update is needed
+/* io::bbdo, bbdo::de_pb_diff_state_ack, 55 */
+message DiffStateAck {
+  uint64 poller_id = 1;
+  string config_version = 2;
+}
+
+/* Sent by a relay Broker to its upstream Broker to request the Engine
+ * configuration for the given poller. The config_version field carries the
+ * version currently known by the relay (empty if none). */
+/* io::bbdo, bbdo::de_pb_config_request, 58 */
+message ConfigRequest {
+  uint64 poller_id = 1;
+  string poller_name = 2;
+  string config_version = 3;
+}
+
+/* Sent by upstream Broker to a relay to inform it that the given poller is
+ * no longer managed by the central and the relay should stop forwarding its
+ * configuration. */
+/* io::bbdo, bbdo::de_pb_config_revoke, 59 */
+message ConfigRevoke {
+  uint64 poller_id = 1;
+}
+
+/* Written on disk (topology.cache) on clean central shutdown. Loaded on
+ * restart as routing hints: engine peer N is reachable via relay R. */
+/* Ignore */
+message TopologyCache {
+  message Entry {
+    uint64 poller_id = 1;
+    uint64 relay_id  = 2;
+  }
+  repeated Entry entries = 1;
 }

@@ -22,8 +22,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/misc.hh"
-#include "com/centreon/engine/string.hh"
-
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
@@ -38,16 +36,9 @@ using namespace com::centreon::engine::configuration;
  *  @return  True if the key is old-style and has been parsed succesfully.
  */
 static bool is_old_style_user_macro(std::string const& key, unsigned int& val) {
-  if (::strncmp(key.c_str(), "USER", ::strlen("USER")) != 0)
-    return (false);
-
-  std::string rest = key.substr(4);
-  // Super strict validation.
-  for (size_t i = 0; i < rest.size(); ++i)
-    if (rest[i] < '0' || rest[i] > '9')
-      return (false);
-  string::to(rest.c_str(), val);
-  return (true);
+  if (!absl::StartsWith(key, "USER"))
+    return false;
+  return absl::SimpleAtoi(key.substr(4), &val);
 }
 
 /**
@@ -61,7 +52,7 @@ void applier::macros::apply(configuration::State& pb_config) {
   _set_macro(MACRO_COMMANDFILE, pb_config.command_file());
   _set_macro(MACRO_LOGFILE, pb_config.log_file());
   _set_macro(MACRO_MAINCONFIGFILE, pb_config.cfg_main());
-  if (pb_config.resource_file().size() > 0)
+  if (!pb_config.resource_file().empty())
     _set_macro(MACRO_RESOURCEFILE, pb_config.resource_file(0));
   _set_macro(MACRO_STATUSDATAFILE, pb_config.status_file());
   _set_macro(MACRO_RETENTIONDATAFILE, pb_config.state_retention_file());
@@ -120,7 +111,7 @@ applier::macros::macros() : _mac(get_global_macros()) {
 /**
  *  Destructor.
  */
-applier::macros::~macros() throw() {
+applier::macros::~macros() noexcept {
   clear_volatile_macros_r(_mac);
   free_macrox_names();
 

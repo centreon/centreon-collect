@@ -83,6 +83,7 @@ class log_v2 {
     MACROS = 27,
     RUNTIME = 28,
     OTL = 29,
+    CACHE = 30,
     LOGGER_SIZE
   };
 

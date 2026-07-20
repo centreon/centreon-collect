@@ -19,6 +19,8 @@
 #ifndef CCB_IO_FACTORY_HH
 #define CCB_IO_FACTORY_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
@@ -35,8 +37,8 @@ class factory {
  public:
   factory() = default;
   virtual ~factory() = default;
-  factory(factory const& other) = delete;
-  factory& operator=(factory const& other) = delete;
+  factory(const factory&) = delete;
+  factory& operator=(const factory&) = delete;
   /**
    * @brief This method has two roles:
    *   * The first one is to know if this endpoint has to be set on cbd startup.
@@ -54,10 +56,8 @@ class factory {
   virtual bool has_endpoint(config::endpoint& cfg, io::extension* ext) = 0;
   virtual endpoint* new_endpoint(
       config::endpoint& cfg,
-      const std::map<std::string, std::string>& global_params,
-      bool& is_acceptor,
-      std::shared_ptr<persistent_cache> cache =
-          std::shared_ptr<persistent_cache>()) const = 0;
+      const absl::btree_map<std::string, std::string>& global_params,
+      bool& is_acceptor) const = 0;
   virtual std::shared_ptr<stream> new_stream(
       std::shared_ptr<stream> substream,
       bool is_acceptor,

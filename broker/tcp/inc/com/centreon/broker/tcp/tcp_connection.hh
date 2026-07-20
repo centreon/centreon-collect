@@ -18,6 +18,8 @@
 #ifndef CENTREON_BROKER_TCP_CONNECTION_HH
 #define CENTREON_BROKER_TCP_CONNECTION_HH
 
+namespace asio = boost::asio;
+
 namespace com::centreon::broker::tcp {
 
 class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
@@ -62,7 +64,7 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   asio::ip::tcp::socket& socket();
   asio::io_context::strand& get_strand() { return _strand; }
 
-  int32_t flush();
+  uint32_t flush();
 
   void writing();
   void handle_write(const boost::system::error_code& ec);

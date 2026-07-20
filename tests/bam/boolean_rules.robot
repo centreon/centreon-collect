@@ -80,7 +80,7 @@ BABOO
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BABOOOR
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
@@ -127,7 +127,7 @@ BABOOOR
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BABOOAND
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
@@ -174,7 +174,7 @@ BABOOAND
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service state and reload cbd. So the rule is something like "False OR True" which is equal to True. And to pass from True to False, we change the second service.
@@ -266,7 +266,7 @@ BABOOORREL
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
@@ -321,7 +321,7 @@ BABOOCOMPL
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 BABOOCOMPL_RESTART
@@ -385,9 +385,7 @@ BABOOCOMPL_RESTART
     ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
 
-    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical.
-    ...               And in each step, Broker is restarted to check that the BA states
-    ...               did not change during the restart.
+    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical. And in each step, Broker is restarted to check that the BA states did not change during the restart.
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
         Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
@@ -415,7 +413,7 @@ BABOOCOMPL_RESTART
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 BABOOCOMPL_RELOAD
@@ -479,9 +477,7 @@ BABOOCOMPL_RELOAD
     ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
 
-    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical.
-    ...               And in each step, Broker is restarted to check that the BA states
-    ...               did not change during the restart.
+    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical. And in each step, Broker is restarted to check that the BA states did not change during the restart.
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
         Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
@@ -491,9 +487,15 @@ BABOOCOMPL_RELOAD
 
         # A restart of cbd should not alter the boolean rules content.
         Ctn Reload Broker
-        ${content}    Create List    BA states restored
+        # On reload the BAM endpoint is updated in place (not destroyed), but the
+        # applier may recreate individual KPI objects whose config changed (e.g. an
+        # opened_event got attached). A recreated boolean-expression KPI re-syncs its
+        # state from the preserved (already-known) boolean expression via
+        # kpi_boolexp::link_boolexp, so it must not expose a transient UNKNOWN state.
+        # Wait for BAM to finish reprocessing the reload before querying the BA again.
+        ${content}    Create List    BAM: loading cache
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-        Should Be True    ${result}    It seems that no cache has been restored into BAM.
+        Should Be True    ${result}    Broker did not reprocess BAM after the reload.
 
         Ctn Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
 
@@ -509,7 +511,7 @@ BABOOCOMPL_RELOAD
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 *** Keywords ***

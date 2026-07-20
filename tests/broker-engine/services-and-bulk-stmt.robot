@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Test Clean
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Test Clean
 
 
 *** Test Cases ***
@@ -20,7 +20,7 @@ EBBPS1
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    core    debug
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
@@ -44,20 +44,13 @@ EBBPS1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    60
-        ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    Check Query Result    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1    ==    ${0}    retry_timeout=60s    retry_pause=1s
     Disconnect From Database
 
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
-            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Ctn Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
@@ -82,14 +75,8 @@ EBBPS1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    120
-        ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    Check Query Result
+    ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2    ==    ${0}    retry_timeout=120s    retry_pause=1s
     Disconnect From Database
 
 EBBPS2
@@ -343,6 +330,7 @@ metric_mapping
     Ctn Config Engine    ${1}    ${1}    ${10}
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Log    central    lua    debug
@@ -440,7 +428,6 @@ Services_and_bulks_${id}
     ...    1    1020
     ...    2    150
 
-
 EBMSSMDBD
     [Documentation]    1000 services are configured with 100 metrics each.
     ...    The rrd output is removed from the broker configuration.
@@ -490,11 +477,11 @@ EBMSSMDBD
 
     FOR    ${i}    IN RANGE    ${3}
         Ctn Stop Mysql
-	Sleep    10s
-	Ctn Start Mysql
-	${content}    Create List    could not insert data in data_bin
-	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
-	Log To Console    ${result}
+        Sleep    10s
+        Ctn Start Mysql
+        ${content}    Create List    could not insert data in data_bin
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+        Log To Console    ${result}
     END
 
 EBMSSMPART
@@ -559,8 +546,8 @@ EBMSSMPART
 
     ${content}    Create List    errno=
     FOR    ${i}    IN RANGE    ${6}
-	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
-	IF    ${result}    BREAK
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+        IF    ${result}    BREAK
     END
 
     Log To Console    Let's recreate the p2 partition...
@@ -588,8 +575,10 @@ EBMSSMPART
 
     Ctn Init Data Bin Without Partition
 
+
 *** Keywords ***
 Ctn Test Clean
+    [Documentation]    Stop engine and broker, then save logs if the test failed.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     Ctn Save Logs If Failed

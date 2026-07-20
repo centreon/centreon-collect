@@ -23,7 +23,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/lua/test")
 include_directories(
   "${INC_DIR}" "${PROJECT_SOURCE_DIR}/neb/inc" "${PROJECT_SOURCE_DIR}/bam/inc"
-  ${CMAKE_BINARY_DIR}/common/process_stat)
+  ${CMAKE_BINARY_DIR}/common/process_stat ${PROJECT_SOURCE_DIR})
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 
 # Storage module.
@@ -34,7 +34,7 @@ set(LUA
 add_library(
   "${LUA}" SHARED
   # Sources.
-  "${SRC_DIR}/broker_cache.cc"
+  "${SRC_DIR}/lua_cache.cc"
   "${SRC_DIR}/broker_event.cc"
   "${SRC_DIR}/broker_log.cc"
   "${SRC_DIR}/broker_socket.cc"
@@ -42,11 +42,10 @@ add_library(
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/luabinding.cc"
-  "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
-  "${INC_DIR}/broker_cache.hh"
+  "${INC_DIR}/lua_cache.hh"
   "${INC_DIR}/broker_event.hh"
   "${INC_DIR}/broker_log.hh"
   "${INC_DIR}/broker_socket.hh"
@@ -54,7 +53,6 @@ add_library(
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/luabinding.hh"
-  "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh")
 add_dependencies(${LUA} pb_neb_lib pb_storage_lib pb_bam_lib process_stat
                  pb_open_telemetry_lib)
@@ -67,7 +65,7 @@ target_link_libraries(
 	  pb_storage_lib
           spdlog::spdlog)
 
-target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hh)
 set_target_properties(
   "${LUA}" PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY
                                 "${CMAKE_BINARY_DIR}/broker/lib")

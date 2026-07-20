@@ -1,17 +1,23 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine add Hostgroup
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
-EBNHG1
-    [Documentation]    New host group with several pollers and connections to DB
+BENHG1
+    [Documentation]    GIVEN a Centreon platform with 3 Engine instances
+    ...                AND Broker is configured with RRD, central and module outputs
+    ...                AND the central broker has 5 database connections
+    ...                WHEN I create a host group containing 3 hosts
+    ...                AND I reload both Broker and Engine configurations
+    ...                THEN the membership of all 3 hosts to the host group should be logged
+    ...                AND all membership entries should appear within 45 seconds
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
@@ -19,35 +25,6 @@ EBNHG1
     Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
-
-    Sleep    3s
-    Ctn Reload Broker
-    Ctn Reload Engine
-
-    ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
-    ...    enabling membership of host 1 to host group 1 on instance 1
-
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    One of the new host groups not found in logs.
-
-EBNHGU1
-    [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
-    [Tags]    broker    engine    hostgroup    unified_sql
-    Ctn Config Engine    ${3}
-    Ctn Config Broker    rrd
-    Ctn Config Broker    central
-    Ctn Config Broker    module    ${3}
-
-    Ctn Broker Config Log    central    sql    info
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
@@ -66,8 +43,46 @@ EBNHGU1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-EBNHGU2
-    [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
+BENHGU1
+    [Documentation]    GIVEN a Centreon platform with 3 Engine instances
+    ...                AND Broker is configured with RRD, central and module outputs
+    ...                AND Broker uses unified_sql output for database operations
+    ...                AND SQL logging is enabled at info level
+    ...                AND the unified_sql output has 5 database connections
+    ...                WHEN I create a host group containing 3 hosts
+    ...                AND I reload both Broker and Engine configurations
+    ...                THEN the membership of all 3 hosts to the host group should be logged
+    ...                AND all membership entries should appear within 45 seconds
+    [Tags]    broker    engine    hostgroup    unified_sql
+    Ctn Config Engine    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
+
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
+
+    Sleep    3s
+    Ctn Reload Broker
+    Ctn Reload Engine
+
+    ${content}    Create List
+    ...    enabling membership of host 3 to host group 1 on instance 1
+    ...    enabling membership of host 2 to host group 1 on instance 1
+    ...    enabling membership of host 1 to host group 1 on instance 1
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new host groups not found in logs.
+
+BENHGU2
+    [Documentation]    GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections
+    ...                AND BBDO3 protocol is enabled
+    ...                WHEN I create a host group with 3 hosts and reload configurations
+    ...                THEN at least 2 host memberships should be logged within 45 seconds
     [Tags]    broker    engine    hostgroup    unified_sql
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
@@ -94,8 +109,13 @@ EBNHGU2
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-EBNHGU3
-    [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
+BENHGU3
+    [Documentation]    GIVEN a platform with 4 Engine instances and unified_sql output with 5 connections
+    ...                AND BBDO3 protocol is enabled with SQL debug logging
+    ...                WHEN I create host group 1 across 4 pollers with 3 hosts each and reload
+    ...                THEN host group 1 should contain 12 host members within 30 seconds
+    ...                WHEN I remove the hostgroups configuration from poller 0 and reload
+    ...                THEN host group 1 should contain only 9 host members within 30 seconds
     [Tags]    broker    engine    hostgroup    unified_sql
     Ctn Config Engine    ${4}
     Ctn Config Broker    rrd
@@ -131,8 +151,13 @@ EBNHGU3
     ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    9    30
     Should Be True    ${result}    We should have 9 hosts members in the hostgroup 1.
 
-EBNHG4
-    [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
+BENHG4
+    [Documentation]    GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections
+    ...    AND detailed logging is enabled on module0 (neb debug, core and processing error)
+    ...    WHEN I create host group 1 with 3 hosts and reload configurations
+    ...    THEN at least 2 host memberships should be logged within 45 seconds
+    ...    WHEN I rename host group 1 to "hostgroup_test" and reload configurations
+    ...    THEN the hostgroup name should be updated in database within 60 seconds
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
@@ -141,10 +166,11 @@ EBNHG4
 
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    module0    neb    debug
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
-    log to console    Interesting date: ${start}
+    log to console    Starting date: ${start}
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
@@ -164,14 +190,10 @@ EBNHG4
 
     Sleep    10s
     ${start}    Get Current Date
-    Log To Console    Step-1
     Ctn Reload Broker
-    Log To Console    Step0
     Ctn Reload Engine
 
-    Log To Console    Step1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    Step1
     FOR    ${index}    IN RANGE    60
         Log To Console    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         ${output}    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
@@ -179,10 +201,23 @@ EBNHG4
         Sleep    1s
         IF    "${output}" == "(('hostgroup_test',),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    (('hostgroup_test',),)
 
-EBNHGU4_${test_label}
-    [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
+BENHGU4_${test_label}
+    [Documentation]    GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections
+    ...    AND detailed trace/debug logging is enabled (sql, lua, core)
+    ...    AND a Lua output dumps host groups to /tmp/lua-engine.log
+    ...    AND BBDO protocol version is configured based on test parameter
+    ...    WHEN I create host group 1 with 3 hosts and reload configurations
+    ...    THEN all 3 host memberships should be logged and stored in database within 60 seconds
+    ...    AND the hostgroup should appear in the Lua output file
+    ...    WHEN I rename host group 1 to "hostgroup_test" and reload configurations
+    ...    THEN the hostgroup name should be updated in database within 60 seconds
+    ...    AND the renamed hostgroup should appear in the Lua output file
+    ...    WHEN I remove the host group configuration and reload
+    ...    THEN the hostgroup should be deleted from database within 60 seconds
+    ...    AND no hostgroup should appear in the Lua output file after 10 seconds
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
     Ctn Engine Config Set Value    ${0}    log_level_config    debug
@@ -192,9 +227,10 @@ EBNHGU4_${test_label}
 
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    lua    trace
+    Ctn Broker Config Log    central    core    debug
     Ctn Broker Config Source Log    central    1
     Ctn Broker Config Source Log    module0    1
-    Ctn Config Broker Sql Output    central    unified_sql    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    queries_per_transaction    5
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
     Ctn Clear Retention
@@ -226,8 +262,7 @@ EBNHGU4_${test_label}
 
     FOR    ${loop_index}    IN RANGE    60
         Log To Console
-        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id
-        ...    WHERE h.hostgroup_id = ${1}
+        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         ${output}    Query
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         Log To Console    ${output}
@@ -256,8 +291,7 @@ EBNHGU4_${test_label}
 
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id.
-        ...    WHERE h.hostgroup_id = ${1}
+        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
 
         ${output}    Query
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
@@ -285,8 +319,7 @@ EBNHGU4_${test_label}
 
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id
-        ...    WHERE h.hostgroup_id = ${1}
+        ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         ${output}    Query
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id WHERE h.hostgroup_id = ${1}
         Log To Console    ${output}
@@ -306,6 +339,7 @@ EBNHGU4_${test_label}
     # Do we still have no host group?
     ${grep_result}    Grep File    /tmp/lua-engine.log    host_group_name:
     Should Be True    len("""${grep_result}""") == 0    The hostgroup 1 still exists
+    Disconnect From Database
 
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3

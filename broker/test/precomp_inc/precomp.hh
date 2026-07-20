@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CC_CORE_PRECOMP_HH
-#define CC_CORE_PRECOMP_HH
+#ifndef CC_TEST_PRECOMP_HH
+#define CC_TEST_PRECOMP_HH
 
 #include <algorithm>
 #include <array>
@@ -58,6 +58,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/hash/hash.h>
+#include <absl/strings/match.h>
 #include <absl/strings/numbers.h>
 #include <absl/synchronization/mutex.h>
 
@@ -68,6 +69,8 @@
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
@@ -77,7 +80,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
-namespace asio = boost::asio;
 #include <boost/container/flat_map.hpp>
 
-#endif
+#endif  // CC_TEST_PRECOMP_HH
