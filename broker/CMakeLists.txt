@@ -548,6 +548,8 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
       ${TEST_DIR}/misc/misc.cc
       ${TEST_DIR}/misc/string.cc
       ${TEST_DIR}/modules/module.cc
+      ${SRC_DIR}/broker_notification_callbacks.cc
+      ${TEST_DIR}/notification/broker_notification_callbacks.cc
       ${TEST_DIR}/processing/acceptor.cc
       ${TEST_DIR}/processing/feeder.cc
       ${TEST_DIR}/time/timerange.cc
