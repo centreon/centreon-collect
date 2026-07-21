@@ -632,9 +632,8 @@ define command {{
     """
             ff.write(content)
 
-    @staticmethod
-    def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependencies_file(self, poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = f"""define servicedependency {{
     ;dependency_name               HD_test
@@ -650,9 +649,8 @@ define command {{
     """
             ff.write(content)
 
-    @staticmethod
-    def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependenciesgrp_file(self, poller: int, dependentservicegroup: str, servicegroup: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define servicedependency {{
     ;dependency_name               MSD_test 
@@ -666,9 +664,8 @@ define command {{
     """.format(dependentservicegroup, servicegroup)
             ff.write(content)
 
-    @staticmethod
-    def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependencieshst_file(self, poller: int, dependenthost: str, host: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
     ;dependency_name               HD_test2 
@@ -682,9 +679,8 @@ define command {{
     """.format(dependenthost, host)
             ff.write(content)
 
-    @staticmethod
-    def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependencieshstgrp_file(self, poller: int, dependenthostgrp: str, hostgrp: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
     ;dependency_name               HD_test2 
@@ -3455,7 +3451,7 @@ def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     conf_dir = engine.get_config_dir(poller)
     with open(f"{conf_dir}/centengine.cfg", "r") as ff:
         lines = ff.readlines()
-    new_line = f"cfg_file={CONF_DIR}/config{poller}/{cfg}\n"
+    new_line = f"cfg_file={conf_dir}/{cfg}\n"
     # Do not add the file if it is already referenced (avoid duplicate loading).
     if new_line in lines:
         return

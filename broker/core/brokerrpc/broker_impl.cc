@@ -899,6 +899,92 @@ grpc::Status broker_impl::GetService(grpc::ServerContext* context
 }
 
 /**
+ * @brief Evaluate the notification dependencies of a host or service as the
+ * Broker sees them in its cache.
+ *
+ * The dependent resource is designated by the ServiceIdentifier: host by name
+ * or id (required), service by name or id (optional; unset ⇒ host-level
+ * check). Names are resolved to ids through the cache, then the evaluation is
+ * delegated to broker_cache::notification_authorized_by_dependencies.
+ *
+ * @param context gRPC context (unused).
+ * @param request The dependent resource identifier.
+ * @param response Its authorized flag tells whether a notification is allowed.
+ *
+ * @return grpc::Status::OK, grpc::StatusCode::NOT_FOUND if the resource is not
+ * in the cache, grpc::StatusCode::INVALID_ARGUMENT if the host is unset, or
+ * grpc::StatusCode::UNAVAILABLE if the required cache section is disabled.
+ */
+grpc::Status broker_impl::NotificationAuthorizedByDependencies(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceIdentifier* request,
+    NotificationAuthorizedByDependenciesResponse* response) {
+  auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_HOSTS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Host cache is not enabled in this broker instance");
+
+  /* Resolve the dependent host (required). */
+  std::shared_ptr<neb::pb_host> host;
+  switch (request->host_case()) {
+    case ServiceIdentifier::kHostName:
+      host = cache.host(request->host_name());
+      if (!host)
+        return grpc::Status(
+            grpc::StatusCode::NOT_FOUND,
+            fmt::format("Host '{}' not found", request->host_name()));
+      break;
+    case ServiceIdentifier::kHostId:
+      host = cache.host(request->host_id());
+      if (!host)
+        return grpc::Status(
+            grpc::StatusCode::NOT_FOUND,
+            fmt::format("Host with id '{}' not found", request->host_id()));
+      break;
+    case ServiceIdentifier::HOST_NOT_SET:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Host must be specified by its ID or by its name");
+  }
+  uint64_t host_id = host->obj().host_id();
+  uint64_t service_id = 0;
+
+  /* Resolve the dependent service if one was given; a host-level check keeps
+   * service_id at 0. */
+  switch (request->service_case()) {
+    case ServiceIdentifier::kDescription:
+    case ServiceIdentifier::kServiceId: {
+      if (!cache.section_enabled(cache::broker_cache::CACHE_SERVICES))
+        return grpc::Status(
+            grpc::StatusCode::UNAVAILABLE,
+            "Service cache is not enabled in this broker instance");
+      std::shared_ptr<neb::pb_service> service;
+      if (request->service_case() == ServiceIdentifier::kDescription) {
+        service = cache.service(host->obj().name(), request->description());
+        if (!service)
+          return grpc::Status(
+              grpc::StatusCode::NOT_FOUND,
+              fmt::format("Service '{}/{}' not found", host->obj().name(),
+                          request->description()));
+      } else {
+        service = cache.service(host_id, request->service_id());
+        if (!service)
+          return grpc::Status(
+              grpc::StatusCode::NOT_FOUND,
+              fmt::format("Service with id '{}:{}' not found", host_id,
+                          request->service_id()));
+      }
+      service_id = service->obj().service_id();
+    } break;
+    case ServiceIdentifier::SERVICE_NOT_SET:
+      break;
+  }
+
+  response->set_authorized(
+      cache.notification_authorized_by_dependencies(host_id, service_id));
+  return grpc::Status::OK;
+}
+
+/**
  * @brief Return the IDs of all hostgroups currently in the broker cache.
  *
  * @param context gRPC context (unused).
