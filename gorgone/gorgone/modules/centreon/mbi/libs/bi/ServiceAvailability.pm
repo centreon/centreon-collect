@@ -143,7 +143,7 @@ sub getHGMonthAvailability {
 	my $db = $self->{"centstorage"};
 
 	my $query = "SELECT  s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id,";
-	$query .= "  hc.id as hcat_id, hg.id as group_id, sc.id as scat_id,";
+	$query .= "  MAX(hc.id) as hcat_id, MAX(hg.id) as group_id, MAX(sc.id) as scat_id,";
 	$query .= " avg((available+degraded)/(available+unavailable+degraded)) as av_percent,";
 	$query .= " sum(available) as av_time, sum(unavailable) as unav_time, sum(degraded) as degraded_time,";
 	$query .= "  sum(alert_unavailable_opened) as unav_opened,sum(alert_unavailable_closed) as unav_closed,";
@@ -156,7 +156,7 @@ sub getHGMonthAvailability {
 	$query .= " STRAIGHT_JOIN mod_bi_hostcategories hc ON (s.hc_name=hc.hc_name AND s.hc_id=hc.hc_id)";
 	$query .= " STRAIGHT_JOIN mod_bi_servicecategories sc ON (s.sc_id=sc.sc_id AND s.sc_name=sc.sc_name)";
 	$query .= " WHERE t.year = YEAR('".$start."') AND t.month = MONTH('".$start."') and t.hour=0";
-	$query .= " GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id, hc.id, hg.id, sc.id";
+	$query .= " GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id";
 	my $sth = $db->query({ query => $query });
 
 	my @data = ();
@@ -182,7 +182,7 @@ sub getHGMonthAvailability_optimised {
 	my ($self, $start, $end, $eventObj) = @_;
 	my $db = $self->{"centstorage"};
 	
-	my $query = "SELECT * from  ( SELECT  s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id,   hc.id as hcat_id, hg.id as group_id, sc.id as scat_id,"; 
+	my $query = "SELECT * from  ( SELECT  s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id,   MAX(hc.id) as hcat_id, MAX(hg.id) as group_id, MAX(sc.id) as scat_id,"; 
 	$query .= "avg((available+degraded)/(available+unavailable+degraded)) as av_percent, ";
 	$query .= "sum(available) as av_time, sum(unavailable) as unav_time, sum(degraded) as degraded_time, ";
 	$query .= "sum(alert_unavailable_opened) as unav_opened,sum(alert_unavailable_closed) as unav_closed, ";
@@ -194,7 +194,7 @@ sub getHGMonthAvailability_optimised {
 	$query .= "STRAIGHT_JOIN mod_bi_hostcategories hc ON (s.hc_name=hc.hc_name AND s.hc_id=hc.hc_id) ";
 	$query .= "STRAIGHT_JOIN mod_bi_servicecategories sc ON (s.sc_id=sc.sc_id AND s.sc_name=sc.sc_name)";
 	$query .= " WHERE YEAR(from_unixtime(time_id)) = YEAR('".$start."') AND MONTH(from_unixtime(time_id))  = MONTH('".$start."') and hour(from_unixtime(time_id)) = 0 ";
-	$query .= "GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id, hc.id, sc.id, hg.id ) availability ";
+	$query .= "GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id ) availability ";
 	$query .= "LEFT JOIN (  SELECT s.hg_id,s.hc_id,s.sc_id,e.modbiliveservice_id, ";
 	$query .= "SUM(IF(state=1,1,0)) as warningEvents,   SUM(IF(state=2,1,0)) as criticalEvents, ";
 	$query .= "SUM(IF(state=3,1,0)) as unknownEvents  FROM mod_bi_servicestateevents e ";
