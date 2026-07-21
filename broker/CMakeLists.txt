@@ -328,6 +328,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/broker_downtime_callbacks.cc
+    ${SRC_DIR}/broker_notification_callbacks.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -548,7 +549,6 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
       ${TEST_DIR}/misc/misc.cc
       ${TEST_DIR}/misc/string.cc
       ${TEST_DIR}/modules/module.cc
-      ${SRC_DIR}/broker_notification_callbacks.cc
       ${TEST_DIR}/notification/broker_notification_callbacks.cc
       ${TEST_DIR}/processing/acceptor.cc
       ${TEST_DIR}/processing/feeder.cc

@@ -19,8 +19,6 @@
 
 #include "com/centreon/broker/broker_notification_callbacks.hh"
 
-#include <array>
-
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "common/log_v2/log_v2.hh"
@@ -105,9 +103,9 @@ notifications::config broker_notification_callbacks::get_config(
  * The snapshot is read from the Broker cache pb objects. The notification
  * timeperiod is evaluated against the cache timeperiod registry, with the
  * config-inheritance rule the Engine applier uses (an empty service value
- * inherits the host's). One input is not known to Broker yet and gets a
- * permissive default: the notification dependencies
- * (authorized_by_dependencies == true).
+ * inherits the host's). The notification dependencies are evaluated against the
+ * cache dependency registry
+ * (@c broker_cache::notification_authorized_by_dependencies).
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.
@@ -217,9 +215,8 @@ notifications::resource_state broker_notification_callbacks::get_state(
   retval.in_notification_period = cache.in_notification_period(
       notification_period, timezone, std::time(nullptr));
 
-  /* TODO(MON-187019): evaluate the notification dependencies on Broker
-   * instead of this permissive default. */
-  retval.authorized_by_dependencies = true;
+  retval.authorized_by_dependencies =
+      cache.notification_authorized_by_dependencies(host_id, service_id);
 
   return retval;
 }
