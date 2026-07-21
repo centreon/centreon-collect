@@ -898,12 +898,21 @@ sub create_httpserver_child {
     $httpserver = { pid => $child_pid, ready => 0, running => 1 };
 }
 
-sub get_id_from_uid {
+# Arg : target (either id or uid of the distant poller we want to reach)
+# Return either the id or uid the poller is using as identifier.
+# the id/uid decision is made based on the "identity" sent by the poller, which is constructed from the gorgone_core.id config file parameter.
+# If the poller is not found, return the target given as parameter of the function.
+sub get_poller_identifier {
     my $target = shift;
-    if ($register_nodes->{$target}->{uid} eq $target) {
-        return $register_nodes->{$target}->{id};
+    # if we don't find the poller in register_nodes we simply send back the input value.
+    # it probably mean that the poller never connected.
+    if ($register_nodes->{$target}->{uid} ne $target and $register_nodes->{$target}->{id} ne $target) {
+        return $target;
     }
-    return $target;
+    if ($register_nodes->{$target}->{identity} !~ /^gorgone-(.*)-.+$/ or !defined($1)){
+        return $target;
+    }
+    return $1;
 }
 
 sub pull_request {
@@ -913,7 +922,7 @@ sub pull_request {
         action => $options{action},
         raw_data_ref => $options{raw_data_ref},
         token => $options{token},
-        target => get_id_from_uid($options{target})
+        target => get_poller_identifier($options{target})
     );
 
     if (!defined($register_nodes->{ $options{target_parent} }->{identity})) {
@@ -1063,6 +1072,9 @@ sub register_nodes {
         }
         if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity}) ) {
             $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
+            $options{logger}->writeLogInfo("[EVAN] registered identity $node->{identity}");
+            use Data::Dumper;
+            $options{logger}->writeLogInfo("[proxy] register_node is : " . Dumper($register_nodes));
             $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
         }
     }
