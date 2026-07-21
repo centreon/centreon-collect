@@ -17,6 +17,7 @@
  */
 #include <boost/preprocessor/seq/for_each.hpp>
 
+#include <array>
 #include <memory>
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
@@ -453,8 +454,9 @@ void broker_cache::_insert_service_notif_dep(
     return;
 
   const auto& by_name_idx = _services.get<by_name>();
-  auto dependent = by_name_idx.find(std::make_pair(
-      dep.dependent_hosts().data(0), dep.dependent_service_description().data(0)));
+  auto dependent = by_name_idx.find(
+      std::make_pair(dep.dependent_hosts().data(0),
+                     dep.dependent_service_description().data(0)));
   auto master = by_name_idx.find(
       std::make_pair(dep.hosts().data(0), dep.service_description().data(0)));
   if (dependent == by_name_idx.end() || master == by_name_idx.end()) {
@@ -2745,6 +2747,185 @@ std::vector<service_notif_dep> broker_cache::service_notif_dependencies(
   for (auto it = range.first; it != range.second; ++it)
     result.push_back(*it);
   return result;
+}
+
+/**
+ * @brief Evaluate the notification dependencies of a resource.
+ *
+ * Broker counterpart of Engine's host/service::authorized_by_dependencies for
+ * dependency::notification. Takes the read lock once and dispatches to the
+ * recursive per-type helpers (which require the lock held: absl reader locks
+ * are not reentrant, so the inherits_parent recursion must not re-lock).
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ *
+ * @return false when a master resource fails the dependency test; true
+ * otherwise (including for a resource unknown to the cache).
+ */
+bool broker_cache::notification_authorized_by_dependencies(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::time_t now = std::time(nullptr);
+  return service_id
+             ? _service_notification_authorized_by_dependencies(host_id,
+                                                                service_id, now)
+             : _host_notification_authorized_by_dependencies(host_id, now);
+}
+
+/**
+ * @brief Notification-dependency evaluation for a host (see
+ * notification_authorized_by_dependencies). The lock must be held by the
+ * caller.
+ *
+ * @param host_id The dependent host id.
+ * @param now The reference time for the dependency-period checks.
+ *
+ * @return Whether the host's notification dependencies authorize a
+ * notification.
+ */
+bool broker_cache::_host_notification_authorized_by_dependencies(
+    uint64_t host_id,
+    std::time_t now) const {
+  const auto& hosts_by_id = _hosts.get<by_id>();
+  auto dependent = hosts_by_id.find(host_id);
+  if (dependent == hosts_by_id.end())
+    return true;
+
+  const absl::TimeZone tz =
+      common::timeperiods::string_to_timezone((*dependent)->obj().timezone());
+
+  /* action_hd_* bits are aligned with the neb host state enum
+   * (UP=0, DOWN=1, UNREACHABLE=2). */
+  static constexpr std::array<uint32_t, 3> fail_bit{
+      engine::configuration::action_hd_up,
+      engine::configuration::action_hd_down,
+      engine::configuration::action_hd_unreachable};
+
+  const auto& deps = _host_notif_deps.get<by_dependent>();
+  for (auto [it, end] = deps.equal_range(host_id); it != end; ++it) {
+    const host_notif_dep& dep = *it;
+    auto master = hosts_by_id.find(dep.master_host_id);
+    if (master == hosts_by_id.end())
+      continue;
+    const Host& m = (*master)->obj();
+
+    /* The dependency does not apply when now is outside its dependency
+     * period. */
+    if (!dep.dependency_period.empty()) {
+      auto tp = _timeperiods.find(dep.dependency_period);
+      if (tp != _timeperiods.end() &&
+          !tp->second->check_time_against_period(now, tz))
+        return true;
+    }
+
+    bool soft_state_dependencies = false;
+    if (auto inst = _instances.find(dep.poller_id); inst != _instances.end())
+      soft_state_dependencies = inst->second.soft_state_dependencies;
+
+    /* Use the last hard state when the master is in a soft state, unless the
+     * poller opted into soft-state dependencies. */
+    int state = (m.state_type() == Host::SOFT && !soft_state_dependencies)
+                    ? m.last_hard_state()
+                    : m.state();
+
+    if (state >= 0 && state < static_cast<int>(fail_bit.size()) &&
+        (dep.notification_failure_options & fail_bit[state]))
+      return false;
+
+    if (state == Host::UP && !m.checked() &&
+        (dep.notification_failure_options &
+         engine::configuration::action_hd_pending))
+      return false;
+
+    if (dep.inherits_parent &&
+        !_host_notification_authorized_by_dependencies(dep.master_host_id, now))
+      return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Notification-dependency evaluation for a service (see
+ * notification_authorized_by_dependencies). The lock must be held by the
+ * caller.
+ *
+ * @param host_id The dependent service's host id.
+ * @param service_id The dependent service id.
+ * @param now The reference time for the dependency-period checks.
+ *
+ * @return Whether the service's notification dependencies authorize a
+ * notification.
+ */
+bool broker_cache::_service_notification_authorized_by_dependencies(
+    uint64_t host_id,
+    uint64_t service_id,
+    std::time_t now) const {
+  const auto& svc_by_id = _services.get<by_id>();
+  auto dependent = svc_by_id.find(std::make_pair(host_id, service_id));
+  if (dependent == svc_by_id.end())
+    return true;
+
+  /* Notification timezone inheritance: an empty service timezone falls back to
+   * the host's, mirroring get_state. */
+  std::string tz_str = (*dependent)->obj().timezone();
+  if (tz_str.empty()) {
+    const auto& hosts_by_id = _hosts.get<by_id>();
+    auto h = hosts_by_id.find(host_id);
+    if (h != hosts_by_id.end())
+      tz_str = (*h)->obj().timezone();
+  }
+  const absl::TimeZone tz = common::timeperiods::string_to_timezone(tz_str);
+
+  /* action_sd_* bit order differs from the neb service state enum
+   * (OK=0, WARNING=1, CRITICAL=2, UNKNOWN=3), so map explicitly. */
+  static constexpr std::array<uint32_t, 4> fail_bit{
+      engine::configuration::action_sd_ok,
+      engine::configuration::action_sd_warning,
+      engine::configuration::action_sd_critical,
+      engine::configuration::action_sd_unknown};
+
+  const auto& deps = _service_notif_deps.get<by_dependent>();
+  for (auto [it, end] = deps.equal_range(std::make_pair(host_id, service_id));
+       it != end; ++it) {
+    const service_notif_dep& dep = *it;
+    auto master = svc_by_id.find(
+        std::make_pair(dep.master_host_id, dep.master_service_id));
+    if (master == svc_by_id.end())
+      continue;
+    const Service& m = (*master)->obj();
+
+    if (!dep.dependency_period.empty()) {
+      auto tp = _timeperiods.find(dep.dependency_period);
+      if (tp != _timeperiods.end() &&
+          !tp->second->check_time_against_period(now, tz))
+        return true;
+    }
+
+    bool soft_state_dependencies = false;
+    if (auto inst = _instances.find(dep.poller_id); inst != _instances.end())
+      soft_state_dependencies = inst->second.soft_state_dependencies;
+
+    int state = (m.state_type() == Service::SOFT && !soft_state_dependencies)
+                    ? m.last_hard_state()
+                    : m.state();
+
+    if (state >= 0 && state < static_cast<int>(fail_bit.size()) &&
+        (dep.notification_failure_options & fail_bit[state]))
+      return false;
+
+    if (state == Service::OK && !m.checked() &&
+        (dep.notification_failure_options &
+         engine::configuration::action_sd_pending))
+      return false;
+
+    if (dep.inherits_parent &&
+        !_service_notification_authorized_by_dependencies(
+            dep.master_host_id, dep.master_service_id, now))
+      return false;
+  }
+  return true;
 }
 
 /**

@@ -23,6 +23,7 @@
 
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/broker_state.hh"
+#include "common/engine_conf/hostdependency_helper.hh"
 
 using namespace com::centreon::broker;
 
@@ -54,6 +55,13 @@ class BrokerNotificationCallbacksTest : public ::testing::Test {
     config::applier::state::unload();
   }
 
+  /**
+   * @brief Publish a host to the cache with its notify flag set.
+   *
+   * @param host_id The host id.
+   * @param poller_id The poller (instance) id the host belongs to.
+   * @param notify The resource's own notification-enable flag.
+   */
   void publish_host(uint64_t host_id, uint64_t poller_id, bool notify) {
     auto h = std::make_shared<neb::pb_host>();
     Host& o = h->mut_obj();
@@ -63,6 +71,69 @@ class BrokerNotificationCallbacksTest : public ::testing::Test {
     o.set_enabled(true);
     o.set_notify(notify);
     _cache->publish(h);
+  }
+
+  /**
+   * @brief Republish a host with the given runtime state.
+   *
+   * Replaces the cached host object (update_host replaces by id), used to set a
+   * dependency master's live state before evaluating a notification dependency.
+   *
+   * @param host_id The host id.
+   * @param poller_id The poller (instance) id the host belongs to.
+   * @param state The current host state.
+   * @param state_type SOFT or HARD.
+   * @param checked Whether the host has already been checked (drives the
+   * fail-on-pending path).
+   */
+  void publish_host_state(uint64_t host_id,
+                          uint64_t poller_id,
+                          Host::State state,
+                          Host::StateType state_type,
+                          bool checked) {
+    auto h = std::make_shared<neb::pb_host>();
+    Host& o = h->mut_obj();
+    o.set_host_id(host_id);
+    o.set_name(fmt::format("host_{}", host_id));
+    o.set_instance_id(poller_id);
+    o.set_enabled(true);
+    o.set_state(state);
+    o.set_state_type(state_type);
+    o.set_last_hard_state(state);
+    o.set_checked(checked);
+    _cache->publish(h);
+  }
+
+  /**
+   * @brief Republish a service with the given runtime state.
+   *
+   * Service counterpart of publish_host_state: replaces the cached service
+   * object to set a dependency master's live state.
+   *
+   * @param host_id The service's host id.
+   * @param service_id The service id.
+   * @param state The current service state.
+   * @param state_type SOFT or HARD.
+   * @param checked Whether the service has already been checked (drives the
+   * fail-on-pending path).
+   */
+  void publish_service_state(uint64_t host_id,
+                             uint64_t service_id,
+                             Service::State state,
+                             Service::StateType state_type,
+                             bool checked) {
+    auto s = std::make_shared<neb::pb_service>();
+    Service& o = s->mut_obj();
+    o.set_host_id(host_id);
+    o.set_service_id(service_id);
+    o.set_host_name(fmt::format("host_{}", host_id));
+    o.set_description(fmt::format("service_{}", service_id));
+    o.set_enabled(true);
+    o.set_state(state);
+    o.set_state_type(state_type);
+    o.set_last_hard_state(state);
+    o.set_checked(checked);
+    _cache->publish(s);
   }
 };
 
@@ -127,4 +198,80 @@ TEST_F(BrokerNotificationCallbacksTest, GetStateServiceMapping) {
   EXPECT_TRUE(state.notify_on_current_state);
   /* 3 interval units * 60s (default interval_length) = 180s. */
   EXPECT_EQ(state.notification_interval, std::chrono::seconds{180});
+}
+
+/**
+ * @brief A notification host dependency blocks the notification when the master
+ * host is in a failing state, and get_state reflects it.
+ */
+TEST_F(BrokerNotificationCallbacksTest, AuthorizedByDependenciesHost) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(1);
+  for (uint64_t id : {1u, 2u}) {
+    auto* h = st.mutable_hosts()->Add();
+    h->set_host_id(id);
+    h->set_host_name(fmt::format("host_{}", id));
+  }
+  /* host_1 depends on host_2 (master); the dependency fails on master DOWN. */
+  auto* hd = st.mutable_hostdependencies()->Add();
+  hd->set_dependency_type(cfg::notification_dependency);
+  hd->mutable_dependent_hosts()->add_data("host_1");
+  hd->mutable_hosts()->add_data("host_2");
+  hd->set_notification_failure_options(cfg::action_hd_down);
+  _cache->merge(st);
+
+  /* Master UP (hard, checked): the dependency does not fail. */
+  publish_host_state(2, 1, Host::UP, Host::HARD, /*checked=*/true);
+  EXPECT_TRUE(_cache->notification_authorized_by_dependencies(1, 0));
+
+  /* Master DOWN (hard): the dependency fails -> notification not authorized,
+   * and get_state carries it through. */
+  publish_host_state(2, 1, Host::DOWN, Host::HARD, /*checked=*/true);
+  EXPECT_FALSE(_cache->notification_authorized_by_dependencies(1, 0));
+  EXPECT_FALSE(_cb->get_state(1, 0).authorized_by_dependencies);
+
+  /* A host with no dependency is always authorized. */
+  EXPECT_TRUE(_cache->notification_authorized_by_dependencies(2, 0));
+}
+
+/**
+ * @brief Service dependency evaluation maps the master state onto the correct
+ * action_sd_* bit (whose order differs from the neb service state enum).
+ */
+TEST_F(BrokerNotificationCallbacksTest,
+       AuthorizedByDependenciesServiceBitOrder) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  for (uint64_t svc_id : {10u, 20u}) {
+    auto* s = st.mutable_services()->Add();
+    s->set_host_id(1);
+    s->set_service_id(svc_id);
+    s->set_host_name("host_1");
+    s->set_service_description(fmt::format("service_{}", svc_id));
+  }
+  /* (1,20) depends on (1,10); fails only on master CRITICAL. */
+  auto* sd = st.mutable_servicedependencies()->Add();
+  sd->set_dependency_type(cfg::notification_dependency);
+  sd->mutable_dependent_hosts()->add_data("host_1");
+  sd->mutable_dependent_service_description()->add_data("service_20");
+  sd->mutable_hosts()->add_data("host_1");
+  sd->mutable_service_description()->add_data("service_10");
+  sd->set_notification_failure_options(cfg::action_sd_critical);
+  _cache->merge(st);
+
+  /* Master CRITICAL matches action_sd_critical -> not authorized. */
+  publish_service_state(1, 10, Service::CRITICAL, Service::HARD, true);
+  EXPECT_FALSE(_cache->notification_authorized_by_dependencies(1, 20));
+
+  /* Master WARNING does not match (proves the bit is not read positionally,
+   * where CRITICAL=2 would collide with action_sd_warning). */
+  publish_service_state(1, 10, Service::WARNING, Service::HARD, true);
+  EXPECT_TRUE(_cache->notification_authorized_by_dependencies(1, 20));
 }

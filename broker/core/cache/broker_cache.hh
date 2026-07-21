@@ -557,6 +557,13 @@ class broker_cache {
   void _insert_service_notif_dep(
       const com::centreon::engine::configuration::Servicedependency& dep,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  bool _host_notification_authorized_by_dependencies(uint64_t host_id,
+                                                     std::time_t now) const
+      ABSL_SHARED_LOCKS_REQUIRED(_mutex);
+  bool _service_notification_authorized_by_dependencies(
+      uint64_t host_id,
+      uint64_t service_id,
+      std::time_t now) const ABSL_SHARED_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
@@ -642,6 +649,9 @@ class broker_cache {
   std::vector<service_notif_dep> service_notif_dependencies(
       uint64_t dependent_host_id,
       uint64_t dependent_service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  bool notification_authorized_by_dependencies(uint64_t host_id,
+                                               uint64_t service_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::chrono::seconds interval_length(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool in_notification_period(const std::string& period_name,
