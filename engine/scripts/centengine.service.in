@@ -28,6 +28,7 @@ ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/centengine @PREFIX_ENGINE_CONF@/centengin
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-engine
+LimitNOFILE=65536:1048576
 Restart=on-success
 
 [Install]
