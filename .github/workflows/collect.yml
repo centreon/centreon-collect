@@ -930,7 +930,7 @@ jobs:
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: testing # TEMP(test-pulp-only): force testing so the promotion has a source
-          release_type: ${{ needs.get-environment.outputs.release_type }}
+          release_type: release # TEMP(test-pulp-only): versioned repos use the testing-release segment
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           pulp_url: ${{ vars.PULP_API_URL }}
@@ -1021,7 +1021,7 @@ jobs:
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: testing # TEMP(test-pulp-only): force testing so the promotion has a source
-          release_type: ${{ needs.get-environment.outputs.release_type }}
+          release_type: release # TEMP(test-pulp-only): versioned repos use the testing-release segment
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
