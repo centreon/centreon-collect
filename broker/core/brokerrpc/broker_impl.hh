@@ -194,6 +194,10 @@ class broker_impl final : public Broker::Service {
   grpc::Status CheckPollerConfig(grpc::ServerContext* context,
                                  const CheckPollerConfigRequest* request,
                                  CheckPollerConfigResponse* response) override;
+  grpc::Status NotificationAuthorizedByDependencies(
+      grpc::ServerContext* context,
+      const ServiceIdentifier* request,
+      NotificationAuthorizedByDependenciesResponse* response) override;
 
  public:
   broker_impl();

@@ -1750,6 +1750,88 @@ forced_notif
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+broker_cache_host_notif_dependency
+    [Documentation]    Scenario: the broker cache evaluates a host notification dependency, queried through gRPC
+    ...    Given host_2 depending on host_1 (notification failing on DOWN) fed to the broker cache in BBDO3
+    ...    When the master host_1 is UP then DOWN HARD
+    ...    Then NotificationAuthorizedByDependencies returns True then False for host_2, and always True for the independent host_3
+    [Tags]    broker    engine    hosts    notification
+    # Centralized mode is required so the broker cache is fed the full Engine
+    # State (dependencies) through merge(State), not only the neb host events.
+    Ctn Config Centralized Engine    ${1}    ${3}    ${3}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    # Passive results must stay authoritative on the master.
+    Ctn Engine Config Set Value In Hosts    0    host_1    active_checks_enabled    0
+    Ctn Create Dependencieshst File    0    host_2    host_1
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    # Wait until the dependent and master hosts reached the broker cache.
+    Ctn Get Host Ids    ${51001}    ${3}
+
+    # Master UP: the dependency does not block a notification.
+    Ctn Process Host Result Hard    host_1    ${0}    host_1 UP
+    ${auth}    Ctn Broker Notification Authorized By Dependencies    host_2    expected=${True}
+    Should Be Equal    ${auth}    ${True}    A host whose master is UP must be authorized
+
+    # An independent host is always authorized.
+    ${auth}    Ctn Broker Notification Authorized By Dependencies    host_3    expected=${True}
+    Should Be Equal    ${auth}    ${True}    A host with no dependency must be authorized
+
+    # Master DOWN HARD: the dependency (fail on DOWN) blocks the notification.
+    Ctn Process Host Result Hard    host_1    ${1}    host_1 DOWN
+    ${auth}    Ctn Broker Notification Authorized By Dependencies    host_2    expected=${False}
+    Should Be Equal    ${auth}    ${False}    A host whose master is DOWN must not be authorized
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+broker_cache_svc_notif_dependency
+    [Documentation]    Scenario: the broker cache evaluates a service notification dependency, queried through gRPC
+    ...    Given service_2 (host_2) depending on service_1 (host_1), notification failing on CRITICAL, fed to the broker cache in BBDO3
+    ...    When the master service_1 is CRITICAL HARD then OK HARD
+    ...    Then NotificationAuthorizedByDependencies returns False then True for (host_2, service_2)
+    [Tags]    broker    engine    services    notification
+    # Centralized mode is required so the broker cache is fed the full Engine
+    # State (dependencies) through merge(State), not only the neb service events.
+    Ctn Config Centralized Engine    ${1}    ${2}    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    # Passive results must stay authoritative on the master.
+    Ctn Engine Config Set Value In Services    0    service_1    active_checks_enabled    0
+    Ctn Create Dependencies File    0    host_2    host_1    service_2    service_1
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    # Wait until the services reached the broker cache.
+    Ctn Get Service Ids    ${51001}    ${2}
+
+    # Master CRITICAL HARD: the dependency (fail on CRITICAL) blocks.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    service_1 CRITICAL
+    ${auth}    Ctn Broker Notification Authorized By Dependencies    host_2    service_2    expected=${False}
+    Should Be Equal    ${auth}    ${False}    A service whose master is CRITICAL must not be authorized
+
+    # Master OK HARD: the dependency no longer blocks.
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    service_1 OK
+    ${auth}    Ctn Broker Notification Authorized By Dependencies    host_2    service_2    expected=${True}
+    Should Be Equal    ${auth}    ${True}    A service whose master is OK must be authorized
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 
 *** Keywords ***
 Ctn Config Notifications

@@ -236,6 +236,21 @@ service Broker {
    */
   rpc CheckPollerConfig(CheckPollerConfigRequest)
       returns (CheckPollerConfigResponse) {}
+
+  /**
+   * @brief Evaluate the notification dependencies of a host or service, as the
+   * Broker sees them in its cache (counterpart of Engine's
+   * host/service::authorized_by_dependencies for dependency::notification).
+   *
+   * @param ServiceIdentifier The dependent resource, by name or by ID. Leave
+   * the service oneof unset for a host-level check.
+   *
+   * @return A NotificationAuthorizedByDependenciesResponse whose authorized
+   * flag tells whether the notification dependencies allow a notification, or
+   * grpc::StatusCode::NOT_FOUND if the resource is not in the cache.
+   */
+  rpc NotificationAuthorizedByDependencies(ServiceIdentifier)
+      returns (NotificationAuthorizedByDependenciesResponse) {}
 }
 
 message PollerEntry {
@@ -589,4 +604,10 @@ message CheckPollerConfigResponse {
   // true when the configuration has no error (warnings are tolerated).
   bool ok = 1;
   repeated ConfigDiagnostic diagnostics = 2;
+}
+
+message NotificationAuthorizedByDependenciesResponse {
+  // true when the notification dependencies of the resource authorize a
+  // notification.
+  bool authorized = 1;
 }
