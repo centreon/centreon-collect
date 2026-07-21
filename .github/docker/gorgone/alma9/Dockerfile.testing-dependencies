@@ -57,6 +57,13 @@ dnf install -y \
   "perl(XML::Simple)" \
   "perl(ZMQ::FFI)"
 
+# centreon-engine-daemon (ships /usr/sbin/centenginestats, needed by
+# centreon/statistics.robot) used to be pulled in transitively via
+# centreon-gorgone-centreon-config -> centreon-common -> centreon-engine-daemon.
+# That link was removed to fix a packaging layer inversion (centreon-common no
+# longer depends on centreon-engine-daemon), so it must be installed explicitly here.
+dnf install -y centreon-engine-daemon
+
 dnf clean all
 
 EOF
