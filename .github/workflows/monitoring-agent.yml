@@ -894,7 +894,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   set-skip-label:
-    if: false # TEMP(test-pulp-only): keep the skip-workflow label away
+    # TEMP(test-pulp-only): the label would skip the next retrigger
     needs:
       [
         get-environment,
@@ -905,6 +905,7 @@ jobs:
         promote-windows,
       ]
     if: |
+      false &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
