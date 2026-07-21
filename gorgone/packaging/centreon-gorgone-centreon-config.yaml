@@ -15,6 +15,13 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
+  - dst: "/etc/centreon-gorgone/config.d"
+    type: dir
+    file_info:
+      owner: centreon-gorgone
+      group: centreon-gorgone
+      mode: 0770
+
   - src: "./configuration/centreon.yaml"
     dst: "/etc/centreon-gorgone/config.d/30-centreon.yaml"
     type: config|noreplace
@@ -47,16 +54,15 @@ contents:
       mode: 0770
 
 scripts:
+  preinstall: ./scripts/centreon-gorgone-centreon-config-preinstall.sh
   postinstall: ./scripts/centreon-gorgone-centreon-config-postinstall.sh
 
 overrides:
   rpm:
     depends:
-      - centreon-gorgone = ${VERSION}-${RELEASE}${DIST}
       - centreon-common
   deb:
     depends:
-      - centreon-gorgone (= ${VERSION}-${RELEASE}${DIST})
       - centreon-common
     replaces:
       - centreon-gorgone (<< 24.11.0)
