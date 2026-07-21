@@ -1067,14 +1067,10 @@ sub register_nodes {
 
     foreach my $node (@{$options{data}->{nodes}}) {
         if (! defined($register_nodes->{ $node->{id} })) {
-            $options{logger}->writeLogInfo("[proxy] failed to authenticate poller $node->{id}. Poller should be declared in centreon database (or in the deprecated register configuration file) to be accepted.");
             next;
         }
         if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity}) ) {
             $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
-            $options{logger}->writeLogInfo("[EVAN] registered identity $node->{identity}");
-            use Data::Dumper;
-            $options{logger}->writeLogInfo("[proxy] register_node is : " . Dumper($register_nodes));
             $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
         }
     }
