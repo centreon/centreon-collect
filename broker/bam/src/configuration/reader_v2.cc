@@ -234,10 +234,13 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
       std::string query(
           fmt::format("SELECT b.ba_id, b.name, b.state_source, b.level_w,"
                       " b.level_c, b.last_state_change, b.current_status,"
-                      " b.in_downtime, b.inherit_kpi_downtimes"
+                      " b.in_downtime, b.inherit_kpi_downtimes, b.icon_id,"
+                      " vi.img_path, vi.img_comment"
                       " FROM mod_bam AS b"
                       " INNER JOIN mod_bam_poller_relations AS pr"
                       " ON b.ba_id=pr.ba_id"
+                      " LEFT JOIN view_img AS vi"
+                      " ON vi.img_id=b.icon_id"
                       " WHERE b.activate='1'"
                       " AND pr.poller_id={}",
                       config::applier::state::instance().poller_id()));
@@ -257,7 +260,13 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
                           res.value_as_f32(3),       // Warning level.
                           res.value_as_f32(4),       // Critical level.
                           static_cast<configuration::ba::downtime_behaviour>(
-                              res.value_as_u32(8)));  // Downtime inheritance.
+                              res.value_as_u32(8)),  // Downtime inheritance.
+                          res.value_as_u32(9),        // Icon id.
+                          res.value_is_null(10) ? ""
+                                                 : res.value_as_str(10),  // Icon image.
+                          res.value_is_null(11)
+                              ? ""
+                              : res.value_as_str(11));  // Icon image alt.
 
           // BA state.
           if (!res.value_is_null(5)) {
