@@ -894,6 +894,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   set-skip-label:
+    if: false # TEMP(test-pulp-only): keep the skip-workflow label away
     needs:
       [
         get-environment,

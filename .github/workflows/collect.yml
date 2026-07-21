@@ -1110,6 +1110,7 @@ jobs:
           echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
 
   set-skip-label:
+    if: false # TEMP(test-pulp-only): keep the skip-workflow label away
     needs: [get-environment, deliver-rpm, deliver-deb, promote]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
