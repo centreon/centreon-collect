@@ -3449,18 +3449,19 @@ def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
         cfg (str): Configuration file name to add.
     """
     conf_dir = engine.get_config_dir(poller)
-    with open(f"{conf_dir}/centengine.cfg", "r") as ff:
+    centengine = f"{conf_dir}/centengine.cfg"
+    with open(centengine, "r") as ff:
         lines = ff.readlines()
-    new_line = f"cfg_file={conf_dir}/{cfg}\n"
-    # Do not add the file if it is already referenced (avoid duplicate loading).
-    if new_line in lines:
+
+    already = re.compile(rf"^\s*cfg_file=.*/{re.escape(cfg)}\s*$")
+    if any(already.match(line) for line in lines):
         return
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i, new_line)
+            lines.insert(i, f"cfg_file={conf_dir}/{cfg}\n")
             break
-    with open(f"{conf_dir}/centengine.cfg", "w+") as ff:
+    with open(centengine, "w+") as ff:
         ff.writelines(lines)
 
 
