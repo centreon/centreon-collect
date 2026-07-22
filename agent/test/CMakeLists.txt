@@ -17,8 +17,8 @@
 #
 
 set(SRC_COMMON check_test.cc check_exec_test.cc drive_size_test.cc
-               check_health_test.cc scheduler_test.cc check_timeperiod_test.cc
-               test_main.cc)
+               check_health_test.cc scheduler_test.cc
+               check_timeperiod_test.cc test_main.cc)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
@@ -85,6 +85,8 @@ else()
             centreon_common_timeperiod
             centreon_common
             centreon_process
+            centreon_hexdump
+            centreon_file_system
             ctncrypto
             GTest::gtest
             GTest::gtest_main

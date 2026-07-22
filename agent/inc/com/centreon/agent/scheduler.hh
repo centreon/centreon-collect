@@ -21,6 +21,7 @@
 
 #include <memory>
 #include "check.hh"
+#include "com/centreon/common/file_watcher.hh"
 #include "common/crypto/aes256.hh"
 #include "common/engine_conf/timeperiod.pb.h"
 
@@ -106,7 +107,11 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
                       const com::centreon::engine::configuration::Timeperiod*>
       _timeperiods;
 
+  std::shared_ptr<com::centreon::common::file_watcher> _custom_checks_watcher;
+
   void _start();
+  void _start_custom_checks_watcher();
+  void _on_custom_checks_file_change();
   void _start_send_timer();
   void _send_timer_handler(const boost::system::error_code& err);
   void _start_check_timer();
