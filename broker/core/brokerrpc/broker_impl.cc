@@ -686,6 +686,7 @@ grpc::Status broker_impl::GetPollers(grpc::ServerContext* context
     peer->set_engine_conf(p.engine_conf);
     peer->set_available_conf(p.available_conf);
     peer->set_type(common::ENGINE);
+    peer->set_timezone(p.timezone);
   }
   return grpc::Status::OK;
 }
@@ -721,6 +722,7 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
     peer->set_engine_conf(p.engine_conf);
     peer->set_available_conf(p.available_conf);
     peer->set_type(p.peer_type);
+    peer->set_timezone(p.timezone);
   }
   return grpc::Status::OK;
 }

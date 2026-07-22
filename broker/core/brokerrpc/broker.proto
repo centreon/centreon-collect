@@ -293,6 +293,9 @@ message Peer {
   common.PeerType type = 5;
   string engine_conf = 6;
   string available_conf = 7;
+  /* Local timezone (IANA name) advertised by the poller machine in its Welcome
+   * message. Only meaningful for ENGINE peers; empty when the peer sent none. */
+  string timezone = 8;
 }
 
 message AesMessage {
