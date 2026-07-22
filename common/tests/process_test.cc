@@ -142,6 +142,7 @@ TEST_F(process_test, echo) {
 }
 
 #ifndef _WIN32
+#if defined(SYS_pidfd_open)
 
 namespace {
 /**
@@ -206,6 +207,7 @@ TEST_F(process_test, pidfd_open_failure) {
   EXPECT_THROW(to_wait->start_process(), com::centreon::exceptions::msg_fmt);
 }
 
+#endif  // defined(SYS_pidfd_open)
 #endif  // !_WIN32
 
 TEST_F(process_test, throw_on_error) {
