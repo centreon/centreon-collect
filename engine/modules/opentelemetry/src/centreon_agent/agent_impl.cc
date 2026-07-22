@@ -527,6 +527,31 @@ void agent_impl<bireactor_class>::shutdown_all() {
   }
 }
 
+/**
+ * @brief block until every connection has been removed from _instances (i.e.
+ * grpc has called OnDone for each of them), or until timeout elapses.
+ *
+ * Used at engine shutdown, after the connections have been cancelled: it lets
+ * the pending OnDone handlers run (and their log lines be forwarded) while the
+ * broker infrastructure is still alive, so nothing races with its teardown.
+ *
+ * @tparam bireactor_class
+ * @param timeout maximum time to wait
+ * @return true if _instances got empty, false on timeout
+ */
+template <class bireactor_class>
+bool agent_impl<bireactor_class>::wait_no_more_instances(
+    absl::Duration timeout) {
+  absl::MutexLock l(&_instances_m);
+  return _instances_m.AwaitWithTimeout(
+      absl::Condition(
+          +[](std::set<std::shared_ptr<agent_impl>>** instances) {
+            return (*instances)->empty();
+          },
+          &_instances),
+      timeout);
+}
+
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 
 template class agent_impl<

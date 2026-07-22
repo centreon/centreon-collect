@@ -136,6 +136,8 @@ class agent_impl
   virtual void shutdown();
 
   static void shutdown_all();
+
+  static bool wait_no_more_instances(absl::Duration timeout);
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry::centreon_agent

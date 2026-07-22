@@ -18,6 +18,7 @@
 
 #include "com/centreon/common/defer.hh"
 
+#include "centreon_agent/agent_reverse_client.hh"
 #include "centreon_agent/to_agent_connector.hh"
 
 #include "centreon_agent/agent_impl.hh"
@@ -231,4 +232,16 @@ void to_agent_connector::shutdown() {
 void to_agent_connector::on_error() {
   common::defer(_io_context, std::chrono::seconds(10),
                 [me = shared_from_this()] { me->start(); });
+}
+
+/**
+ * @brief block until all reverse connections have been fully closed by grpc
+ * (OnDone called for each), or until timeout elapses. To be called at shutdown
+ * after the reverse client has been reset (which cancels the connections).
+ *
+ * @param timeout maximum time to wait
+ * @return true if all connections are closed, false on timeout
+ */
+bool agent_reverse_client::wait_all_closed(std::chrono::milliseconds timeout) {
+  return agent_connection::wait_no_more_instances(absl::FromChrono(timeout));
 }

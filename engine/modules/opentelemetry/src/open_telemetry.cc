@@ -264,6 +264,24 @@ void open_telemetry::_shutdown() {
   if (to_shutdown) {
     to_shutdown->shutdown(std::chrono::seconds(10));
   }
+  /* Cancel the reverse connections to agents: ~agent_reverse_client calls
+   * shutdown() (TryCancel) on every stream. This must happen here, while
+   * libopentelemetry.so is still mapped and the io_context still runs, so grpc
+   * finalizes the pending Read ops and delivers OnDone in time. Otherwise those
+   * completions are only finalized during grpc's global teardown, after the
+   * deferred dlclose() has unmapped this module, which crashes (a completion's
+   * vtable then points into unmapped memory). */
+  _agent_reverse_client.reset();
+  /* Wait for grpc to actually close the cancelled reverse connections (OnDone
+   * called for each). This must complete here, while broker is still up, so
+   * that the OnDone log lines are forwarded without racing broker's teardown,
+   * and so that no otel completion survives past the deferred dlclose(). */
+  if (!centreon_agent::agent_reverse_client::wait_all_closed(
+          std::chrono::seconds(10))) {
+    SPDLOG_LOGGER_ERROR(
+        _logger,
+        "timeout while waiting for reverse agent connections to close");
+  }
   _agent_stats->stop_send_timer();
 }
 
