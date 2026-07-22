@@ -299,6 +299,7 @@ On AlmaLinux, we have to install some python packages, some perl packages:
 dnf install "Development Tools" python3-devel -y
 dnf install perl-HTTP-Daemon-SSL -y
 dnf install perl-JSON -y
+dnf install tzdata -y
 ```
 
 On rpm based system, we have to execute the following commands (maybe to update a little):
@@ -307,14 +308,22 @@ On rpm based system, we have to execute the following commands (maybe to update 
 yum install "Development Tools" python3-devel -y
 yum install perl-HTTP-Daemon-SSL -y
 yum install perl-JSON -y
+yum install tzdata -y
 ```
 
 On deb based system, we have to execute:
 
 
 ```bash
-apt-get install python3-dev openssh-server
+apt-get install python3-dev openssh-server tzdata
 ```
+
+The `tzdata` package (the IANA time zone database, providing `/usr/share/zoneinfo`)
+is required: some tests start several `centengine` processes with distinct `TZ`
+environment variables (e.g. `Europe/Paris` and `America/New_York`) to check that
+Broker evaluates notification timeperiods in each poller's own timezone. Without
+`tzdata`, those timezones cannot be loaded and the tests silently fall back to the
+machine's local timezone, which invalidates them.
 
 Once these packages, we recommand to create a python virtual environment to play with robot framework.
 
