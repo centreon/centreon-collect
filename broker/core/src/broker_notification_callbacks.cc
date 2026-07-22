@@ -212,6 +212,15 @@ notifications::resource_state broker_notification_callbacks::get_state(
     timezone = oh.timezone();
   }
 
+  /* ISO with Engine: when neither the service nor the host carries an explicit
+   * timezone, Engine evaluates timeperiods in the poller machine's local
+   * timezone. Broker cannot use its own local timezone (it may live in another
+   * zone), so it falls back to the timezone the poller advertised at
+   * negotiation time. */
+  if (timezone.empty())
+    timezone =
+        config::applier::state::instance().poller_timezone(oh.instance_id());
+
   retval.in_notification_period = cache.in_notification_period(
       notification_period, timezone, std::time(nullptr));
 

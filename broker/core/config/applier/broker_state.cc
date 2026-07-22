@@ -354,7 +354,8 @@ void broker_state::add_peer(uint64_t poller_id,
                             const std::string& broker_name,
                             common::PeerType peer_type,
                             bool extended_negotiation,
-                            const std::string& engine_conf) {
+                            const std::string& engine_conf,
+                            const std::string& timezone) {
   assert(poller_id && !broker_name.empty());
   {
     absl::WriterMutexLock lck(&_connected_peers_m);
@@ -409,6 +410,7 @@ void broker_state::add_peer(uint64_t poller_id,
                                                true,
                                                false,
                                                0u};
+        _engine_peers[poller_id].timezone = timezone;
         if (is_relay() && extended_negotiation)
           _pending_config_requests[poller_id] = {poller_name,
                                                  effective_engine_conf};
@@ -506,6 +508,22 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
 bool broker_state::_is_engine_peer_connected(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   return _engine_peers.contains(poller_id);
+}
+
+/**
+ * @brief Get the local timezone advertised by an Engine peer at negotiation
+ * time.
+ *
+ * @param poller_id The poller ID.
+ * @return The poller machine's timezone (IANA name), or an empty string when
+ * the poller is unknown or sent no timezone.
+ */
+std::string broker_state::poller_timezone(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto found = _engine_peers.find(poller_id);
+  if (found == _engine_peers.end())
+    return {};
+  return found->second.timezone;
 }
 
 /**
@@ -682,7 +700,8 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
                       .peer_type = common::ENGINE,
                       .available_conf = ep.available_conf,
                       .engine_conf = ep.engine_conf,
-                      .via_remote = ep.via_remote});
+                      .via_remote = ep.via_remote,
+                      .timezone = ep.timezone});
   }
   for (const auto& [_, up] : _unknown_peers) {
     retval.push_back({.poller_id = up.poller_id,

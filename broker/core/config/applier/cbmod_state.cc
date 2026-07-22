@@ -56,7 +56,8 @@ void cbmod_state::add_peer(uint64_t poller_id,
                            const std::string& broker_name,
                            common::PeerType peer_type,
                            bool extended_negotiation,
-                           const std::string& engine_conf) {
+                           const std::string& engine_conf,
+                           const std::string& timezone [[maybe_unused]]) {
   assert(poller_id && !broker_name.empty());
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
