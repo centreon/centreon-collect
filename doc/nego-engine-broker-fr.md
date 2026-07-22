@@ -366,6 +366,7 @@ Le message `Welcome` se voit ajouter quelques paramètres :
 -   `broker_name`,
 -   `extended_negociation`
 -   `peer_type`
+-   `timezone`
 
 Si `cbmod` est configuré avec les nouveaux paramètres, alors il remplit
 ces nouveaux champs.
@@ -386,6 +387,11 @@ Le message `Welcome` est maintenant défini comme suit :
       bool extended_negotiation = 7;
       /* Engine configuration version sent by Engine so Broker is aware of it. */
       string engine_conf = 8;
+      /* Local timezone of the poller machine (IANA name), sent by Engine so Broker
+       * can evaluate notification/dependency timeperiods in the poller's timezone
+       * when a host/service carries no explicit timezone. Empty for non-Engine
+       * peers. */
+      string timezone = 9;
     }
 ```
 
@@ -403,10 +409,20 @@ sens dans le cas d’`Engine`).
 -   MAP
 -   UNKNOWN
 
-Enfin, `extended_negotiation` est un booléen qui indique si le programme
+`extended_negotiation` est un booléen qui indique si le programme
 est capable de gérer la nouvelle négociation, donc pour un `Engine`,
 s’il a connaissance du répertoire de configuration Protobuf, et pour un
 `Broker`, s’il a connaissance du répertoire de cache php.
+
+Enfin, `timezone` contient le fuseau horaire local de la machine du poller
+(nom IANA, par exemple `Europe/Paris`), tel que renvoyé par
+`absl::LocalTimeZone()` côté `Engine`. Il est renseigné uniquement par un
+`Engine`. `Broker` le conserve par poller et s’en sert comme fuseau de repli
+pour évaluer les timeperiods de notification (et de dépendance) lorsqu’un
+host/service ne porte pas de directive `timezone` explicite : dans ce cas
+`Engine` évalue les timeperiods dans le fuseau local de sa machine, et
+`Broker`, qui peut vivre dans un autre fuseau, doit donc utiliser celui du
+poller plutôt que le sien.
 
 Jusqu'à présent, quand le code était exécuté dans `cbmod` ou dans `Broker`, on
 n’avait pas la visibilité sur le programme en cours d’exécution, on ne
