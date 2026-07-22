@@ -91,7 +91,7 @@ file_watcher::file_watcher(const std::shared_ptr<asio::io_context>& io_context,
       _impl(std::make_unique<impl>()) {}
 
 file_watcher::~file_watcher() {
-  std::lock_guard<std::mutex> lock(_mutex);
+  absl::MutexLock lock(_mutex);
   _stop_native();
 }
 
@@ -113,7 +113,7 @@ std::shared_ptr<file_watcher> file_watcher::load(
   // the native descriptors and asio objects must only be touched from the
   // io_context thread, so start the watch there
   asio::post(*io_context, [watcher]() {
-    std::lock_guard<std::mutex> lock(watcher->_mutex);
+    absl::MutexLock lock(watcher->_mutex);
     if (!watcher->_alive) {
       return;
     }
@@ -138,7 +138,7 @@ std::shared_ptr<file_watcher> file_watcher::load(
  * descriptors are not themselves thread safe.
  */
 void file_watcher::stop() {
-  std::lock_guard<std::mutex> lock(_mutex);
+  absl::MutexLock lock(_mutex);
   if (!_alive) {
     return;
   }
@@ -171,7 +171,7 @@ void file_watcher::_schedule_change() {
  */
 void file_watcher::_debounce_handler(const boost::system::error_code& err) {
   {
-    std::lock_guard<std::mutex> lock(_mutex);
+    absl::MutexLock lock(_mutex);
     if (err || !_alive) {
       return;
     }
@@ -248,7 +248,7 @@ void file_watcher::_arm_native() {
         if (err) {
           return;
         }
-        std::lock_guard<std::mutex> lock(me->_mutex);
+        absl::MutexLock lock(me->_mutex);
         me->_on_native_event();
         me->_arm_native();
       });
@@ -362,7 +362,7 @@ void file_watcher::_arm_native() {
         if (err) {
           return;
         }
-        std::lock_guard<std::mutex> lock(me->_mutex);
+        absl::MutexLock lock(me->_mutex);
         me->_on_native_event();
         me->_arm_native();
       });

@@ -20,7 +20,6 @@
 #define CCCM_FILE_WATCHER_HH
 
 #include <filesystem>
-#include <mutex>
 
 namespace com::centreon::common {
 
@@ -67,15 +66,16 @@ class file_watcher : public std::enable_shared_from_this<file_watcher> {
   asio::steady_timer _debounce_timer;
   on_change_handler _on_change;
   std::unique_ptr<impl> _impl;
-  bool _alive = true;
-  std::mutex _mutex;
+  absl::Mutex _mutex;
+  bool _alive ABSL_GUARDED_BY(_mutex) = true;
 
-  bool _start_native() noexcept;
-  void _arm_native();
-  void _stop_native() noexcept;
-  void _on_native_event();
-  void _schedule_change();
-  void _debounce_handler(const boost::system::error_code& err);
+  bool _start_native() noexcept ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _arm_native() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _stop_native() noexcept ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _on_native_event() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _schedule_change() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _debounce_handler(const boost::system::error_code& err)
+      ABSL_LOCKS_EXCLUDED(_mutex);
 
  public:
   file_watcher(const std::shared_ptr<asio::io_context>& io_context,
@@ -93,7 +93,7 @@ class file_watcher : public std::enable_shared_from_this<file_watcher> {
       const std::filesystem::path& watched_path,
       on_change_handler&& on_change);
 
-  void stop();
+  void stop() ABSL_LOCKS_EXCLUDED(_mutex);
 
   const std::filesystem::path& get_watched_path() const {
     return _watched_path;
