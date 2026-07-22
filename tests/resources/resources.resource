@@ -345,6 +345,38 @@ Ctn Start Engine With Extended Conf
         ...    stderr=${log}/centengine-stderr.log
     END
 
+Ctn Start Engine With Timezones
+    [Documentation]    Start the configured centengine instances the centralized
+    ...    (newGeneration) way, exactly like "Ctn Start Engine newGeneration=True",
+    ...    but each one with its own TZ environment variable so that centengine i runs
+    ...    in the timezone given by @{timezones}[i] (IANA name, e.g. Europe/Paris).
+    ...    Engine advertises its machine local timezone to Broker in the BBDO3 Welcome
+    ...    message. The caller must have configured centralized engine instances
+    ...    (Ctn Config Centralized Engine) and started Broker with newGeneration=True.
+    ...    Requires tzdata to be installed (see tests/README.md).
+    [Arguments]    @{timezones}
+    ${count}    Ctn Get Engines Count
+    Ctn Broker Config Flush    ${False}
+    FOR    ${idx}    IN RANGE    0    ${count}
+        ${tz}    Set Variable    ${timezones}[${idx}]
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${log}    Catenate    SEPARATOR=    ${ENGINE_LOG}    /config    ${idx}
+        ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
+        Create Directory    ${log}
+        Create Directory    ${lib}
+        TRY
+            Remove File    ${lib}/rw/centengine.cmd
+        EXCEPT
+            Log    can't remove ${lib}/rw/centengine.cmd don't worry
+        END
+        ${grpc_port}    Evaluate    ${idx} + 50001
+        ${free}    Ctn Wait For Port Free    ${grpc_port}
+        Should Be True
+        ...    ${free}
+        ...    gRPC port ${grpc_port} still in use: a previous centengine was not stopped.
+        Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    env:TZ=${tz}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+    END
+
 Ctn Restart Engine
     [Arguments]    ${newGeneration}=False
     Ctn Stop Engine
