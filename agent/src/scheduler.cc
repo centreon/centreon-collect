@@ -144,6 +144,47 @@ void scheduler::_start() {
   _check_time_step =
       time_step(_next_send_time_point, std::chrono::milliseconds(100));
   update(_conf);
+  _start_custom_checks_watcher();
+}
+
+/**
+ * @brief if a custom checks file is configured, watch it in order to refresh
+ * commands without agent restart
+ *
+ */
+void scheduler::_start_custom_checks_watcher() {
+  const config* conf = config::instance_ptr();
+  if (!conf || conf->get_path_to_custom_checks().empty()) {
+    return;
+  }
+  _custom_checks_watcher = common::file_watcher::load(
+      _io_context, _logger, conf->get_path_to_custom_checks(),
+      [me = std::weak_ptr<scheduler>(shared_from_this())]() {
+        std::shared_ptr<scheduler> to_notify = me.lock();
+        if (to_notify) {
+          to_notify->_on_custom_checks_file_change();
+        }
+      });
+}
+
+/**
+ * @brief called (from the io_context thread) when the custom checks file has
+ * been created, modified or deleted
+ * It only refreshes the custom check commands of the global configuration:
+ * they will be used the next time check objects are built (new engine
+ * configuration)
+ * If the file can't be read or is malformed, the reload fails and the
+ * previous commands are kept
+ *
+ */
+void scheduler::_on_custom_checks_file_change() {
+  if (!_alive) {
+    return;
+  }
+  if (config::reload_custom_checks()) {
+    SPDLOG_LOGGER_INFO(
+        _logger, "custom checks file updated => refresh custom check commands");
+  }
 }
 
 /**
@@ -412,13 +453,12 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     auto group_iter = group_serv.begin();
 
     /**
-     * When we receive conf, old checks are yet running, so without the delay of
-     * 1 second above, we could have this scenario:
-     * at 12:00:00.100 an old check executes
-     * at 12:00:00.200 we receive a new configuration
-     * at 12:00:00.200 we executes the first check
-     * so if checks are fast, engine can receives two checks for the same
-     * service with the same time (rounded to 1 second)
+     * When we receive conf, old checks are yet running, so without the delay
+     * of 1 second above, we could have this scenario: at 12:00:00.100 an old
+     * check executes at 12:00:00.200 we receive a new configuration at
+     * 12:00:00.200 we executes the first check so if checks are fast, engine
+     * can receives two checks for the same service with the same time
+     * (rounded to 1 second)
      */
     time_point next =
         std::chrono::system_clock::now() + std::chrono::seconds(1);
@@ -493,8 +533,8 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
 }
 
 /**
- * @brief do a force check by moving service (if waiting in queue) to the top of
- * the queue
+ * @brief do a force check by moving service (if waiting in queue) to the top
+ * of the queue
  *
  * @param request
  */
@@ -608,6 +648,10 @@ void scheduler::stop() {
     _alive = false;
     _send_timer.cancel();
     _check_timer.cancel();
+    if (_custom_checks_watcher) {
+      _custom_checks_watcher->stop();
+      _custom_checks_watcher.reset();
+    }
   }
 }
 
@@ -711,7 +755,8 @@ void scheduler::_store_result_in_metrics_and_exemplars(
 /**
  * @brief metrics are grouped by host service
  * (one resource_metrics by host serv pair)
- * no resource_metrics for this service must exist before calling this function
+ * no resource_metrics for this service must exist before calling this
+ * function
  * @param service
  * @return a new scheduler::scope_metric_request&
  */
@@ -737,8 +782,8 @@ scheduler::scope_metric_request& scheduler::_get_scope_metrics(
 }
 
 /**
- * @brief one metric by metric name (can contains several datapoints in case of
- * multiple checks during send period )
+ * @brief one metric by metric name (can contains several datapoints in case
+ * of multiple checks during send period )
  *
  * @param scope_metric
  * @param metric_name
