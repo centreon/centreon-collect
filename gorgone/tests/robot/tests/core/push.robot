@@ -13,23 +13,39 @@ connect 1 poller to a central
 
     Log To Console    \nStarting the gorgone setup
     Setup Two Gorgone Instances    communication_mode=push_zmq     central_name=push_zmq_gorgone_central    poller_name=push_zmq_gorgone_poller_2
-    # Test
+
     Log To Console    End of tests.
 
 check central don't eat cpu when poller is not connected
     [Tags]    long_tests    MON-130747
-    ${central_name}=    Set Variable    push_zmq_gorgone_central
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    push_zmq_gorgone_central    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
+    ${central_name}=    Set Variable    ${communication_mode}_zmq_gorgone_central
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    ${central_name}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
 
     Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
-    @{central_push_config}=    Create List    ${push_central_config}    ${gorgone_core_config}
-    Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}/database/insert_push_poller.sql
-    Start Gorgone    debug    ${central_name}
-    Wait Until Port Is Bind    8085
-    Ctn Wait Until Poller Fail To Connect    1
-    Ctn Check Cpu Until Timeout    
 
+    ${poller_id_copy}=    Create List    ${poller_id}
+    ${replace_from}=    Create List    @POLLERID@
+    @{central_push_config}=    Create List    ${push_central_config}    ${gorgone_core_config}
     
+    Setup Gorgone Config
+    ...    ${central_push_config}
+    ...    gorgone_name=${central_name}
+    ...    sql_file=${ROOT_CONFIG}/database/insert_push_poller.sql
+    ...    replace_from=${replace_from}
+    ...    replace_to=${poller_id_copy}
+
+    Start Gorgone    debug    ${central_name}
+    Wait Until Port Is Bind    ${Capi_port}
+    ${none}=    GET  http://127.0.0.1:${Capi_port}/api/internal/nodes/${poller_id}/ping
+
+    Ctn Wait Until Poller Fail To Connect    1
+    Ctn Check Cpu Until Timeout
+    Examples:    communication_mode    poller_id    --
+        ...    push_zmq        2
+        ...    push_zmq        299123456
+        ...    push_zmq_uid    2
+        ...    push_zmq_uid    299123456
+
 *** Keywords ***
 Ctn Check Cpu Until Timeout
     [Arguments]    ${timeout}=60s    ${process_whitelist}=gorgone-proxy    ${max_cpu_usage}=40

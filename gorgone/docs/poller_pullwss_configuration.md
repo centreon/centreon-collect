@@ -1,33 +1,30 @@
-# Architecture
+# Pullwss mode configuration
 
-We are showing how to configure gorgone to manage that architecture:
+In pullwss mode the Poller opens a **WebSocket connection** to the Central. No ZMQ port is exposed; the Central listens on a standard HTTP(S) port. This is designed for environments where only outbound HTTPS is allowed from the Poller (e.g. cloud deployments).
 
 ```text
-
 Central server <------- Distant Poller
 ```
-unlike for the pull module, the communication is entirely done on the HTTP(S) websocket.
-In our case, we have the following configuration (you need to adapt it to your configuration).
 
-* Central server:
-  * address: 10.30.2.203
+For an overview of all communication modes and when to use each one, see [communication_modes.md](communication_modes.md).
+
+The `register` module is an old method of registering Pollers with the Central. It is still supported but the preferred method is to use the `nodes` module, which reads the Centreon database and automatically registers all Pollers inside.
+
+For each gorgone module you can see the dedicated documentation in the [modules](modules) section, documenting every possible parameter.
+
+## Example topology
+
+* Central server: `10.30.2.203`
 * Distant Poller:
-  * id: 6 (configured in the Centreon interface as **zmq**. You get it in the Centreon interface)
-  * address: 10.30.2.179
-  * rsa public key thumbprint: nJSH9nZN2ugQeksHif7Jtv19RQA58yjxfX-Cpnhx09s
+  * id: `6` (Poller id in the Centreon database)
+  * address: `10.30.2.179`
 
-# Distant Poller
+## Distant Poller configuration
 
-## Installation
-
-The Distant Poller is already installed with Gorgone.
-
-## Configuration
-
-We configure the file **/etc/centreon-gorgone/config.d/40-gorgoned.yaml**:
+File: **/etc/centreon-gorgone/config.d/40-gorgoned.yaml**
 
 ```yaml
-name:  distant-server
+name: distant-server
 description: Configuration for distant server
 gorgone:
   gorgonecore:
@@ -46,28 +43,19 @@ gorgone:
       enable: true
       ssl: true
       port: 443
-      token: "1234"
+      token: "your_secret_token"
       address: 10.30.2.203
-      ping: 1
 ```
 
-# Central server
+## Central server configuration
 
-## Installation
+The Central requires the `proxy` module (with its httpserver sub-process enabled) and the `nodes` module.
 
-The Central server is already installed and Gorgone too.
-
-## Configuration
-
-We configure the file **/etc/centreon-gorgone/config.d/40-gorgoned.yaml**:
+File: **/etc/centreon-gorgone/config.d/40-gorgoned.yaml**
 
 ```yaml
-
-...
 gorgone:
-    ...
   modules:
-    ...
     - name: proxy
       package: "gorgone::modules::core::proxy::hooks"
       enable: true
@@ -76,21 +64,43 @@ gorgone:
         ssl: true
         ssl_cert_file: /etc/centreon-gorgone/keys/certificate.crt
         ssl_key_file: /etc/centreon-gorgone/keys/private.key
-        token: "1234"
         address: "0.0.0.0"
-        port: 443      
-    - name: register
-      package: "gorgone::modules::core::register::hooks"
+        port: 443
+
+    - name: nodes
+      package: "gorgone::modules::core::nodes::hooks"
       enable: true
-      config_file: /etc/centreon-gorgone/nodes-register-override.yml
-    ...
 ```
 
-We create the file **/etc/centreon-gorgone/nodes-register-override.yml**:
+### Generating a self-signed certificate for testing
 
-```yaml
-nodes:
-  - id: 6
-    type: pullwss
-    prevail: 1
+```bash
+openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/centreon-gorgone/keys/private.key \
+  -out /etc/centreon-gorgone/keys/certificate.crt
 ```
+
+Do not use a self-signed certificate in production. Use a certificate signed by a trusted CA and set `https_cert_no_verify: false` on the Poller side.
+
+## Authentication flow
+
+Connection and authentication happen in two steps:
+
+1. **Token check**: the Poller connects to the Central's WebSocket endpoint and sends the shared token in the HTTP `Authorization: Bearer <token>` header.
+ - the token is either in the form `Bearer <token_name>:<token_value>` or `Bearer <token>`.
+ - If the token contain a name, it's tested against the Centreon API `/administration/tokens/<token_name>` to check that the token exists and is valid.
+ - If the token is just a value, it's checked against the gorgone configuration file (httpserver->token).
+ - If the token is not found in both cases, the connection is closed.
+
+2. **Node identification**: the first WebSocket message the Poller sends must be a `REGISTERNODES` message containing the Poller's id (or uid). The Central checks that this id exists in its internal node list (populated by the `nodes` module from the Centreon database, or by the `register` module). If the id is unknown, the connection is closed.
+
+Subsequent messages on the same WebSocket connection are processed without re-authentication.
+
+every 5 second check every token from the centreon api used to authenticate are still valid, or disconnect any poller using it.
+
+
+See the full startup sequence diagram [here](modules/core/pullwss.md).
+
+## uid or id
+
+Both id and uid are supported in gorgonecore->id directive on the poller, see [documentation](configuration.md) "node on id and uid" for more detail.

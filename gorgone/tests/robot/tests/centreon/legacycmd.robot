@@ -24,14 +24,20 @@ Legacycmd with ${communication_mode} communication
     ...    poller_name=${poller}
     ...    poller_config=${poller_config}
 
-    Force Check Execution On Poller    comm=${communication_mode}
-    Push Engine And vmware Configuration    comm=${communication_mode}
-    Test SYNCTRAP Execution
-    Examples:    communication_mode   --
-        ...    push_zmq
-        ...    pullwss
-        ...    pullwss_uid
-        ...    pull
+    Force Check Execution On Poller    comm=${communication_mode}    poller_id=${poller_id}
+    Push Engine And vmware Configuration    comm=${communication_mode}    poller_id=${poller_id}
+    Test SYNCTRAP Execution        poller_id=${poller_id}
+    Examples:    communication_mode   poller_id    --
+        ...    push_zmq       2
+        ...    push_zmq       299123456
+        ...    push_zmq_uid   2
+        ...    push_zmq_uid   299123456
+        ...    pullwss        2
+        ...    pullwss        299123456
+        ...    pullwss_uid    2
+        ...    pullwss_uid    299123456
+        ...    pull           2
+#        ...    pull           299123456
         
 *** Keywords ***
 Legacycmd Teardown
@@ -67,7 +73,7 @@ Push Engine And vmware Configuration
     ${log_query}    Create List    Copy to '/etc/centreon-engine//' finished successfully
     # SENDCFGFILE say to gorgone to push conf to poller for a poller id.
     Run    echo SENDCFGFILE:${poller_id} > /var/lib/centreon/centcore/random.cmd
-    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_poller${poller_id}_legacycmd/gorgoned.log    content=${log_query}    regex=0    timeout=40
+    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_poller2_legacycmd/gorgoned.log    content=${log_query}    regex=0    timeout=40
     Should Be True    ${log_status}    Didn't found the logs : ${log_status}
     Log To Console    File should be set in /etc/centreon/ now
 
@@ -92,7 +98,7 @@ Push Engine And vmware Configuration
     Should Be Equal As Strings    ${res}    Broker conf, communication mode:${comm}    data in /etc/centreon-broker/broker.cfg is not correct.
 
 Force Check Execution On Poller
-    [Arguments]    ${comm}=
+    [Arguments]    ${comm}=    ${poller_id}=2
     # @TODO: This pipe name seem hard coded somewhere in gorgone, changing it is the engine.yaml configuration don't work.
     # this should be investigated, maybe some other configuration have the same problem too ?
     ${process}    Start Process
@@ -107,7 +113,7 @@ Force Check Execution On Poller
     Sleep    0.5
     ${date}=    Get Time
     ${forced_check_command}=    Set Variable    SCHEDULE_FORCED_SVC_CHECK;local2_${comm};Cpu;${date}
-    Run    echo "EXTERNALCMD:2:[1724242926] ${forced_check_command}" > /var/lib/centreon/centcore/random.cmd
+    Run    echo "EXTERNALCMD:${poller_id}:[1724242926] ${forced_check_command}" > /var/lib/centreon/centcore/random.cmd
     ${log_query}    Create List    ${forced_check_command}
     ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_central_legacycmd/legacycmd-pipe-poller.log    content=${log_query}    regex=0    timeout=20
     Should Be True    ${log_status}    Didn't found the logs : ${log_status}

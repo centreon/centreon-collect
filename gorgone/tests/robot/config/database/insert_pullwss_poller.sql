@@ -10,7 +10,7 @@ INSERT IGNORE INTO `nagios_server` (
   VALUES
   (
     2, 'pullwsspoller', '0', 0,
-    22, '4', 443, 42992345,
+    22, '4', 443, 299123456,
     NULL, '127.0.0.1',
     '1', '0', 'service centengine start',
     'service centengine stop', 'service centengine restart',
@@ -24,7 +24,7 @@ INSERT IGNORE INTO `nagios_server` (
     NULL, '1', '0'
   ),(
     4, 'pullwsspoller_4', '0', 0,
-    22, '4', 443, 44992764,
+    22, '4', 443, 499123456,
     NULL, '127.0.0.1',
     '1', '0', 'service centengine start',
     'service centengine stop', 'service centengine restart',

@@ -104,7 +104,7 @@ sub cache_refresh {
     # get pollers config
     $self->{pollers} = undef;
     my ($status, $datas) = $self->{class_object_centreon}->custom_execute(
-        request => 'SELECT nagios_server_id, command_file, cfg_dir, centreonbroker_cfg_path, snmp_trapd_path_conf, ' .
+        request => 'SELECT nagios_server_id, uid, command_file, cfg_dir, centreonbroker_cfg_path, snmp_trapd_path_conf, ' .
             'engine_start_command, engine_stop_command, engine_restart_command, engine_reload_command, ' .
             'broker_reload_command, init_script_centreontrapd ' .
             'FROM cfg_nagios, nagios_server ' .
@@ -118,6 +118,11 @@ sub cache_refresh {
     }
 
     $self->{pollers} = $datas;
+    # both uid and id are used as key, but they contain the same pointer to the same data as value. This allow to reach a poller by both it's id and uid.
+    for my $key (keys(%{$self->{pollers}})){
+        my $uid = $self->{pollers}->{$key}->{uid};
+        $self->{pollers}->{$uid} = $self->{pollers}->{$key};
+    }
 
     # check illegal characters
     ($status, $datas) = $self->{class_object_centreon}->custom_execute(

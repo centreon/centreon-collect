@@ -462,7 +462,7 @@ sub is_empty {
     }
     return 0;
 }
-=head3 $self->is_token_ok(ws_id => $ws_id, data => $data)
+=head3 $self->is_logged_websocket(ws_id => $ws_id, data => $data)
 
 validate a client sent the correct token/node Id couple to authenticate.
 Authentication id done only once when websocket client send the first message, then the websocket session is considered authenticated.
