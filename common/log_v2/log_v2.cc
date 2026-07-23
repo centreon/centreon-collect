@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include <charconv>
+
 #include "common/log_v2/log_v2.hh"
 
 #include <absl/base/log_severity.h>
@@ -29,7 +31,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
-#include "centreon_file_sink.hh"
+#include "centreon_rotating_file_sink-inl.hh"
 
 #include <atomic>
 #include <initializer_list>
@@ -157,7 +159,7 @@ void log_v2::unload() {
  * @param ilist List of loggers to initialize.
  */
 log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
-  create_loggers(config::logger_type::LOGGER_STDOUT);
+  _create_loggers(config::logger_type::LOGGER_STDOUT);
 }
 
 /**
@@ -229,7 +231,7 @@ log_v2::logger_id log_v2::get_id(const std::string& name) const noexcept {
  * @param typ The log type, to log in syslog, a file, in stdout.
  * @param length The max length of the log receiver (only used for files).
  */
-void log_v2::create_loggers(config::logger_type typ, size_t length) {
+void log_v2::_create_loggers(config::logger_type typ, size_t length) {
   _not_threadsafe_configuration = true;
   sink_ptr my_sink;
 
@@ -240,9 +242,10 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
     case config::logger_type::LOGGER_FILE: {
       if (length)
         my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-            _file_path, _current_max_size, 99);
+            "/tmp/centreon-collect.log", _current_max_size, 99);
       else
-        my_sink = std::make_shared<sinks::centreon_file_sink_mt>(_file_path);
+        my_sink = std::make_shared<sinks::centreon_file_sink_mt>(
+            "/tmp/centreon-collect.log");
     } break;
     case config::logger_type::LOGGER_SYSLOG:
       my_sink = std::make_shared<sinks::syslog_sink_mt>(_log_name, 0, 0, true);
@@ -319,21 +322,24 @@ void log_v2::apply(const config& log_conf) {
   /* This part is about sinks so it is reserved for masters */
   if (!log_conf.only_atomic_changes()) {
     _not_threadsafe_configuration = true;
-    _file_path = log_conf.log_path();
+    const std::string file_path = log_conf.log_path();
     switch (log_conf.log_type()) {
-      case config::logger_type::LOGGER_FILE: {
-        if (log_conf.max_size())
-          my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-              _file_path, log_conf.max_size(), 99);
-        else
-          my_sink = std::make_shared<sinks::centreon_file_sink_mt>(_file_path);
-      } break;
-      case config::logger_type::LOGGER_SYSLOG:
-        my_sink =
-            std::make_shared<sinks::syslog_sink_mt>(_file_path, 0, 0, true);
-        break;
+      case config::logger_type::LOGGER_FILE:
+        if (!file_path.empty()) {
+          if (log_conf.max_size())
+            my_sink = std::make_shared<sinks::centreon_rotating_file_sink_mt>(
+                file_path, log_conf.max_size(), 99);
+          else
+            my_sink = std::make_shared<sinks::centreon_file_sink_mt>(file_path);
+          break;
+        }
+        [[fallthrough]];
       case config::logger_type::LOGGER_STDOUT:
         my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+        break;
+      case config::logger_type::LOGGER_SYSLOG:
+        my_sink =
+            std::make_shared<sinks::syslog_sink_mt>(file_path, 0, 0, true);
         break;
     }
 
@@ -348,18 +354,6 @@ void log_v2::apply(const config& log_conf) {
       sinks.push_back(my_sink);
       auto logger = _loggers[id];
       logger->sinks() = sinks;
-      if (log_conf.log_pid()) {
-        if (log_conf.log_source())
-          logger->set_pattern(
-              "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
-        else
-          logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-      } else {
-        if (log_conf.log_source())
-          logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
-        else
-          logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-      }
     }
     _not_threadsafe_configuration = false;
   }
@@ -367,27 +361,55 @@ void log_v2::apply(const config& log_conf) {
   _flush_interval = std::chrono::seconds(
       log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
   spdlog::flush_every(_flush_interval);
-  /* This is for all loggers, a slave will overwrite the master
-   * configuration
-   */
-  for (int32_t id = 0; id < LOGGER_SIZE; id++) {
-    auto& name = logger_name[id];
-    if (log_conf.loggers().contains(name)) {
-      auto logger = _loggers[id];
-      level::level_enum lvl = level::from_str(log_conf.loggers().at(name));
-      logger->set_level(lvl);
-      if (log_conf.flush_interval() > 0)
-        logger->flush_on(level::warn);
-      else
-        logger->flush_on(lvl);
-    }
-  }
 
-  for (auto& s : _loggers[0]->sinks()) {
-    spdlog::sinks::centreon_file_sink_mt* file_sink =
-        dynamic_cast<spdlog::sinks::centreon_file_sink_mt*>(s.get());
-    if (file_sink)
-      file_sink->reopen();
+  if (log_conf.allow_change_pattern_and_path()) {
+    for (int32_t id = 0; id < LOGGER_SIZE; id++) {
+      auto& name = logger_name[id];
+      if (log_conf.loggers().contains(name)) {
+        auto logger = _loggers[id];
+        level::level_enum lvl = level::from_str(log_conf.loggers().at(name));
+        logger->set_level(lvl);
+        if (log_conf.flush_interval() > 0)
+          logger->flush_on(level::warn);
+        else
+          logger->flush_on(lvl);
+        if (log_conf.log_pid()) {
+          if (log_conf.log_source())
+            logger->set_pattern(
+                "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
+          else
+            logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+        } else {
+          if (log_conf.log_source())
+            logger->set_pattern(
+                "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
+          else
+            logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+        }
+      }
+    }
+
+    for (auto& s : _loggers[0]->sinks()) {
+      spdlog::sinks::centreon_file_sink_base* file_sink =
+          dynamic_cast<spdlog::sinks::centreon_file_sink_base*>(s.get());
+      if (file_sink) {
+        if (!file_sink->set_filename(log_conf.log_path())) {
+          // filename not changed => output not reopened => we have to do it
+          auto* to_reopen =
+              dynamic_cast<spdlog::sinks::centreon_file_sink_mt*>(file_sink);
+          if (to_reopen)
+            to_reopen->reopen();
+        }
+      }
+    }
+  } else {
+    for (auto& s : _loggers[0]->sinks()) {
+      spdlog::sinks::centreon_file_sink_mt* file_sink =
+          dynamic_cast<spdlog::sinks::centreon_file_sink_mt*>(s.get());
+      if (file_sink) {
+        file_sink->reopen();
+      }
+    }
   }
 }
 
@@ -451,4 +473,15 @@ void log_v2::disable(std::initializer_list<logger_id> ilist) {
     if (_loggers[id])
       _loggers[id]->set_level(spdlog::level::level_enum::off);
   }
+}
+
+std::string log_v2::filename() const {
+  for (auto& s : _loggers[0]->sinks()) {
+    spdlog::sinks::centreon_file_sink_base* file_sink =
+        dynamic_cast<spdlog::sinks::centreon_file_sink_base*>(s.get());
+    if (file_sink) {
+      return file_sink->filename();
+    }
+  }
+  return "";
 }

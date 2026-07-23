@@ -25,6 +25,7 @@
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/common/file.hh"
 #include "common/engine_conf/state.pb.h"
 #include "google/protobuf/json/json.h"
 
@@ -118,7 +119,7 @@ void broker_cache::merge(
 
   /* Work on hosts */
   if (section_enabled(CACHE_HOSTS)) {
-    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts for poller {}",
+    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts fro poller {}",
                         state.hosts().size(), state.poller_id());
     // remove all host for this poller
     SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} before clean",
@@ -193,15 +194,6 @@ void broker_cache::merge(
         uint64_t host_id = (*host_it)->obj().host_id();
         _host_hostgroups.emplace(host_id, (*host_it)->obj().instance_id(),
                                  found->first);
-      }
-    }
-    // we have first erased members for this poller so we will empty hostgroups
-    const auto& host_hostgroup_index = _host_hostgroups.get<by_hostgroup>();
-    for (auto iter = _hostgroups.begin(); iter != _hostgroups.end();) {
-      if (host_hostgroup_index.contains(iter->first->obj().hostgroup_id())) {
-        ++iter;
-      } else {
-        iter = _hostgroups.erase(iter);
       }
     }
   }
@@ -286,19 +278,11 @@ void broker_cache::merge(
             {host_id, service_id, instance_id, found->first});
       }
     }
-    // we have first erased members for this poller so we will erase empty
-    // groups
-    auto& service_service_group_index =
-        _service_servicegroups.get<by_servicegroup>();
-    for (auto iter = _servicegroups.begin(); iter != _servicegroups.end();) {
-      if (service_service_group_index.contains(
-              iter->first->obj().servicegroup_id())) {
-        ++iter;
-      } else {
-        iter = _servicegroups.erase(iter);
-      }
-    }
   }
+
+  // we have first erased members for this poller so we will erase empty
+  // groups
+  _clean_empty_groups();
 
   /* Work on tags */
   if (section_enabled(CACHE_TAGS)) {
@@ -358,13 +342,9 @@ void broker_cache::apply(
   //   merge(diff.state());
   // }
 
-  /*
-  FIX ME JCR
-  là, state est vide et seuls "fullConfPollerId"
-      : [ "5", "3" ] est renseigné de plus le traitement de full_conf_poller_id
-            dans database_configurator ne couvre que les hosts et services
-            Il faut revoir le mécanisme pour les state complets
-*/
+  for (uint64_t poller_id : diff.full_conf_poller_id()) {
+    remove_instance(poller_id);
+  }
   absl::WriterMutexLock lck{&_mutex};
   /* Work on instances */
   // if (diff.has_poller_name() && diff.poller_id())
@@ -1132,17 +1112,11 @@ void broker_cache::remove_instance(uint64_t instance_id) {
   absl::WriterMutexLock l{&_mutex};
   _instances.erase(instance_id);
 
-  auto& index_svc = _services.get<by_id>();
-  auto& host_by_instance = _hosts.get<by_instance>();
-  auto range = host_by_instance.equal_range(instance_id);
-  for (auto it = range.first; it != range.second;) {
-    auto lower =
-        index_svc.lower_bound(std::make_pair((*it)->obj().host_id(), 0));
-    auto upper =
-        index_svc.upper_bound(std::make_pair((*it)->obj().host_id() + 1, 0));
-    index_svc.erase(lower, upper);
-    it = host_by_instance.erase(it);
-  }
+  _hosts.get<by_instance>().erase(instance_id);
+  _services.get<by_instance>().erase(instance_id);
+  _host_hostgroups.get<by_instance>().erase(instance_id);
+  _service_servicegroups.get<by_instance>().erase(instance_id);
+  _clean_empty_groups();
 }
 
 /**
@@ -2733,83 +2707,86 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
 void broker_cache::_load_cache() {
   SPDLOG_LOGGER_INFO(_logger, "broker_cache: loading cache from '{}'",
                      _cache_file.string());
-  std::ifstream ifs{_cache_file, std::ios::binary};
-  if (ifs) {
-    BrokerCache to_load;
-    if (!to_load.ParseFromIstream(&ifs)) {
-      SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot parse cache file '{}'",
-                          _cache_file.string());
-    } else {
-      absl::WriterMutexLock lck{&_mutex};
-      for (const auto& inst_pair : to_load.instances())
-        _instances.insert({inst_pair.id(), inst_pair.name()});
-
-      absl::flat_hash_map<uint64_t, uint64_t> host_to_instance;
-      for (const auto& host : to_load.hosts()) {
-        auto h = std::make_shared<neb::pb_host>();
-        h->mut_obj().CopyFrom(host);
-        host_to_instance.emplace(h->obj().host_id(), h->obj().instance_id());
-        _hosts.get<by_id>().insert(h);
-      }
-      absl::flat_hash_map<
-          std::pair<uint64_t /*host_id*/, uint64_t /*service_id*/>, uint64_t>
-          service_to_instance;
-      for (const auto& svc : to_load.services()) {
-        auto s = std::make_shared<neb::pb_service>();
-        s->mut_obj().CopyFrom(svc);
-        _services.get<by_id>().insert(s);
-        service_to_instance.emplace(
-            std::make_pair(s->obj().host_id(), s->obj().service_id()),
-            s->obj().instance_id());
-      }
-      for (const auto& hgp : to_load.hostgroups()) {
-        auto hst_grp = std::make_shared<neb::pb_host_group>();
-        auto poller_ids = absl::flat_hash_set<uint64_t>();
-        hst_grp->mut_obj().CopyFrom(hgp.hostgroup());
-        /* The poller_id field is not saved in the cache, so we set it to 0
-         * here. The actual poller IDs are stored in the poller_ids set, which
-         * is populated from the pollers() field of the host group in the
-         * cache file. */
-        hst_grp->mut_obj().set_poller_id(0);
-        for (const auto& poller_id : hgp.pollers())
-          poller_ids.insert(poller_id);
-        _hostgroups.get<by_id>().insert(
-            std::make_pair(hst_grp, std::move(poller_ids)));
-        for (uint64_t host_id : hgp.hosts()) {
-          auto hst_instance = host_to_instance.find(host_id);
-          if (hst_instance != host_to_instance.end())
-            _host_hostgroups.emplace(host_id, hst_instance->second, hst_grp);
-        }
-      }
-
-      for (const auto& sgp : to_load.servicegroups()) {
-        auto svc_grp = std::make_shared<neb::pb_service_group>();
-        auto poller_ids = absl::flat_hash_set<uint64_t>();
-        svc_grp->mut_obj().CopyFrom(sgp.servicegroup());
-        /* The poller_id field is not saved in the cache, so we set it to 0
-         * here. The actual poller IDs are stored in the poller_ids set, which
-         * is populated from the pollers() field of the service group in the
-         * cache file. */
-        svc_grp->mut_obj().set_poller_id(0);
-        for (const auto& poller_id : sgp.pollers())
-          poller_ids.insert(poller_id);
-        _servicegroups.get<by_id>().insert(
-            std::make_pair(svc_grp, std::move(poller_ids)));
-        for (const auto& id : sgp.services()) {
-          auto instance_search = service_to_instance.find(
-              std::make_pair(id.host_id(), id.service_id()));
-          if (instance_search != service_to_instance.end())
-            _service_servicegroups.insert({id.host_id(), id.service_id(),
-                                           instance_search->second, svc_grp});
-        }
-      }
-      SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
+  BrokerCache to_load;
+  try {
+    if (!common::load_proto_from_disk(_cache_file, to_load)) {
+      SPDLOG_LOGGER_INFO(_logger,
+                         "broker_cache: cache file '{}' does not exist",
                          _cache_file.string());
+      return;
     }
-  } else {
-    SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache file '{}' does not exist",
-                       _cache_file.string());
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "broker_cache: cannot parse cache file '{}' : {}",
+                        _cache_file.string(), e.what());
+    return;
   }
+
+  absl::WriterMutexLock lck{&_mutex};
+  for (const auto& inst_pair : to_load.instances())
+    _instances.insert({inst_pair.id(), inst_pair.name()});
+
+  absl::flat_hash_map<uint64_t, uint64_t> host_to_instance;
+  for (const auto& host : to_load.hosts()) {
+    auto h = std::make_shared<neb::pb_host>();
+    h->mut_obj().CopyFrom(host);
+    host_to_instance.emplace(h->obj().host_id(), h->obj().instance_id());
+    _hosts.get<by_id>().insert(h);
+  }
+  absl::flat_hash_map<std::pair<uint64_t /*host_id*/, uint64_t /*service_id*/>,
+                      uint64_t>
+      service_to_instance;
+  for (const auto& svc : to_load.services()) {
+    auto s = std::make_shared<neb::pb_service>();
+    s->mut_obj().CopyFrom(svc);
+    _services.get<by_id>().insert(s);
+    service_to_instance.emplace(
+        std::make_pair(s->obj().host_id(), s->obj().service_id()),
+        s->obj().instance_id());
+  }
+  for (const auto& hgp : to_load.hostgroups()) {
+    auto hst_grp = std::make_shared<neb::pb_host_group>();
+    auto poller_ids = absl::flat_hash_set<uint64_t>();
+    hst_grp->mut_obj().CopyFrom(hgp.hostgroup());
+    /* The poller_id field is not saved in the cache, so we set it to 0
+     * here. The actual poller IDs are stored in the poller_ids set, which
+     * is populated from the pollers() field of the host group in the
+     * cache file. */
+    hst_grp->mut_obj().set_poller_id(0);
+    for (const auto& poller_id : hgp.pollers())
+      poller_ids.insert(poller_id);
+    _hostgroups.get<by_id>().insert(
+        std::make_pair(hst_grp, std::move(poller_ids)));
+    for (uint64_t host_id : hgp.hosts()) {
+      auto hst_instance = host_to_instance.find(host_id);
+      if (hst_instance != host_to_instance.end())
+        _host_hostgroups.emplace(host_id, hst_instance->second, hst_grp);
+    }
+  }
+
+  for (const auto& sgp : to_load.servicegroups()) {
+    auto svc_grp = std::make_shared<neb::pb_service_group>();
+    auto poller_ids = absl::flat_hash_set<uint64_t>();
+    svc_grp->mut_obj().CopyFrom(sgp.servicegroup());
+    /* The poller_id field is not saved in the cache, so we set it to 0
+     * here. The actual poller IDs are stored in the poller_ids set, which
+     * is populated from the pollers() field of the service group in the
+     * cache file. */
+    svc_grp->mut_obj().set_poller_id(0);
+    for (const auto& poller_id : sgp.pollers())
+      poller_ids.insert(poller_id);
+    _servicegroups.get<by_id>().insert(
+        std::make_pair(svc_grp, std::move(poller_ids)));
+    for (const auto& id : sgp.services()) {
+      auto instance_search = service_to_instance.find(
+          std::make_pair(id.host_id(), id.service_id()));
+      if (instance_search != service_to_instance.end())
+        _service_servicegroups.insert(
+            {id.host_id(), id.service_id(), instance_search->second, svc_grp});
+    }
+  }
+  SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
+                     _cache_file.string());
 }
 
 /**
@@ -2866,20 +2843,14 @@ void broker_cache::_save_cache() {
       }
     }
   }
-  /* Saving the BrokerCache */
-  std::ofstream ofs{_cache_file, std::ios::binary | std::ios::trunc};
-  if (!ofs) {
-    SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot open cache file '{}'",
-                        _cache_file.string());
-  } else {
-    if (!to_save.SerializeToOstream(&ofs)) {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "broker_cache: cannot serialize cache to file '{}'",
-                          _cache_file.string());
-    } else {
-      SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache saved to file '{}'",
-                         _cache_file.string());
-    }
+  try {
+    /* Saving the BrokerCache */
+    common::save_proto_to_disk(_cache_file, to_save);
+    SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache saved to file '{}'",
+                       _cache_file.string());
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "broker_cache: can't save file {}: {}",
+                        _cache_file.string(), e.what());
   }
 }
 
@@ -2903,5 +2874,29 @@ void broker_cache::remove_index_mapping(uint64_t host_id, uint64_t service_id) {
   absl::WriterMutexLock l{&_mutex};
   auto& index = _index_mappings.get<by_service>();
   index.erase(std::make_pair(host_id, service_id));
+}
+
+void broker_cache::_clean_empty_groups() {
+  if (section_enabled(CACHE_GROUPS)) {
+    const auto& host_hostgroup_index = _host_hostgroups.get<by_hostgroup>();
+    for (auto iter = _hostgroups.begin(); iter != _hostgroups.end();) {
+      if (host_hostgroup_index.contains(iter->first->obj().hostgroup_id())) {
+        ++iter;
+      } else {
+        iter = _hostgroups.erase(iter);
+      }
+    }
+
+    auto& service_service_group_index =
+        _service_servicegroups.get<by_servicegroup>();
+    for (auto iter = _servicegroups.begin(); iter != _servicegroups.end();) {
+      if (service_service_group_index.contains(
+              iter->first->obj().servicegroup_id())) {
+        ++iter;
+      } else {
+        iter = _servicegroups.erase(iter);
+      }
+    }
+  }
 }
 }  // namespace com::centreon::broker::cache

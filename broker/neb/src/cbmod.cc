@@ -67,6 +67,7 @@ cbmod::cbmod(const std::string& config_file,
   /* This is a little hack to avoid to replace the log file set by
    * centengine */
   s.mut_log_conf().allow_only_atomic_changes(true);
+  s.mut_log_conf().allow_change_pattern_and_path(false);
   com::centreon::broker::config::applier::init<
       com::centreon::broker::config::applier::cbmod_state>(engine_conf_version,
                                                            s);
@@ -289,8 +290,8 @@ std::shared_ptr<pb_downtime> cbmod::_update_downtime(
     absl::FunctionRef<void(Downtime&)> mutator) {
   auto found = _downtimes.find(downtime_id);
   if (found == _downtimes.end()) {
-    SPDLOG_LOGGER_ERROR(_neb_logger,
-                        "cbmod: no downtime with ID {} to update", downtime_id);
+    SPDLOG_LOGGER_ERROR(_neb_logger, "cbmod: no downtime with ID {} to update",
+                        downtime_id);
     return nullptr;
   }
 

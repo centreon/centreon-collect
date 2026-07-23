@@ -2956,12 +2956,8 @@ void database_configurator::_add_hostgroups_mysql(
                          "enabling membership of host {} to host group {}",
                          found->second, msg_hg.hostgroup_id());
     }
-  }
-  if (!values.empty()) {
-    query = fmt::format(
-        "INSERT INTO hosts_hostgroups (host_id, hostgroup_id) VALUES {}",
         fmt::join(values, ","));
-    mysql.run_query(query);
+        mysql.run_query(query);
   }
 }
 
