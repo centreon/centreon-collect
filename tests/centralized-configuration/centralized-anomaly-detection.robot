@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -40,8 +40,7 @@ CANO_NOFILE
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    full output
     ${result}    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Should Be True    ${result}    The anomaly detection service must be in UNKNOWN state.
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    only_central=True
 
 CANO_TOO_OLD_FILE
     [Documentation]    Given an anomaly detection service is configured with metric monitoring
@@ -74,8 +73,7 @@ CANO_TOO_OLD_FILE
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    foobar|metric=70%;50;75
     ${result}    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Should Be True    ${result}    The anomaly detection service must be in UNKNOWN state.
-    Ctn Stop Broker    True
-    Ctn Stop Engine
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    only_central=True
 
 CANO_OUT_LOWER_THAN_LIMIT
     [Documentation]    Given an anomaly detection service is configured with valid threshold data
@@ -108,8 +106,7 @@ CANO_OUT_LOWER_THAN_LIMIT
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    foobar|metric=20%;50;75
     ${result}    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Should Be True    ${result}    The anomaly detection service must be in CRITICAL state.
-    Ctn Stop Broker    True
-    Ctn Stop Engine
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    only_central=True
 
 CANO_OUT_UPPER_THAN_LIMIT
     [Documentation]    Given an anomaly detection service is configured with valid threshold data
@@ -141,8 +138,7 @@ CANO_OUT_UPPER_THAN_LIMIT
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     ${result}    Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Should Be True    ${result}    The anomaly detection service must be in CRITICAL state.
-    Ctn Stop Broker    True
-    Ctn Stop Engine
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    only_central=True
 
 CANO_JSON_SENSITIVITY_NOT_SAVED
     [Documentation]    Given an anomaly detection service is configured with threshold data including sensitivity
@@ -179,6 +175,8 @@ CANO_JSON_SENSITIVITY_NOT_SAVED
     Ctn Stop Broker    True
     ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=0.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=0.00
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    only_central=True
+
 
 CANO_CFG_SENSITIVITY_SAVED
     [Documentation]    Given an anomaly detection service is configured with a specific sensitivity value in configuration
@@ -214,6 +212,7 @@ CANO_CFG_SENSITIVITY_SAVED
     Ctn Stop Broker    True
     ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=4.00
     Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.00
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    only_central=True
 
 CANO_EXTCMD_SENSITIVITY_SAVED
     [Documentation]    Given an anomaly detection service is configured with threshold data
@@ -253,6 +252,7 @@ CANO_EXTCMD_SENSITIVITY_SAVED
         ${retention_sensitivity}    Ctn Grep Retention    ${0}    sensitivity=4.55
         Should Be Equal As Strings    ${retention_sensitivity}    sensitivity=4.55
     END
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    only_central=True
 
 CAOUTLU1
     [Documentation]    Given an anomaly detection service is configured with valid threshold data using BBDO3 protocol
@@ -324,8 +324,6 @@ CANO_DT1
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 
 CANO_DT2
     [Documentation]    Given an anomaly detection service is configured with a dependent service relationship
@@ -366,9 +364,6 @@ CANO_DT2
     Should Be True    ${result}    dependent service must not be in downtime
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
     Should Be True    ${result}    anomaly service must not be in downtime
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 
 CANO_DT3
     [Documentation]    Given an anomaly detection service is configured with a dependent service relationship
@@ -411,9 +406,6 @@ CANO_DT3
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    dependent service must be in downtime
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
 CANO_DT4
     [Documentation]    Scenario: Removing downtime from service keeps it on anomaly detection
     ...    Given an anomaly detection is attached to a service
@@ -454,9 +446,6 @@ CANO_DT4
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    The anomaly detection should still be in downtime.
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
 CANO_INC_AD
     [Tags]    broker    engine    anomaly    MON-153802
     Ctn Config Centralized Engine    ${1}    ${50}    ${20}
@@ -481,7 +470,7 @@ CANO_INC_AD
         ${start}    Ctn Get Round Current Date
         ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
         Ctn Notify Broker Of Engine Config Change    ${0}
-        ${content}    Create List    Anomaly detection resource with id 1:${serv_id}
+        ${content}    Create List    Anomaly detection resource with id ${serv_id}:1
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True    ${result}    The broker must process the new anomaly detection service.
     END
@@ -495,16 +484,13 @@ CANO_INC_AD
 	Ctn Delete Anomaly Detection At Index    ${0}    ${0}
 	Ctn Modify Anomaly Detection    ${0}    ${i + 1010}    service_description    ad_${i + 1}
         Ctn Notify Broker Of Engine Config Change    ${0}
-        ${content}    Create List    Anomaly detection resource with id 1:${serv_id}
-	...    Anomaly detection resource with id 1:${i + 1010}
-	...    Disabling service resource with id 1:${i + 1001}
+        ${content}    Create List    Anomaly detection resource with id ${serv_id}:1
+	...    Anomaly detection resource with id ${i + 1010}:1
+	...    Disabling service resource with id ${i + 1001}:1
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True    ${result}    The broker must process the new anomaly detection services configuration.
     END
 
     ${result}    Ctn Check Resource IDs    AD    ${centralLog}
     Should Be True    ${result}    The anomaly detection resources must be identical.
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 

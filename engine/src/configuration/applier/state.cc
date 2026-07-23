@@ -136,6 +136,8 @@ void applier::state::apply(configuration::State& new_cfg,
       pb_indexed_config.serialize_to_ostream(&f);
       f.close();
     }
+    SPDLOG_LOGGER_INFO(config_logger, "config with version {} loaded",
+                       new_cfg.config_version());
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -143,11 +145,13 @@ void applier::state::apply(configuration::State& new_cfg,
       throw;
 
     // If is not the first time, we can restore the old one.
-    config_logger->error("Cannot apply new configuration: {}", e.what());
+    SPDLOG_LOGGER_ERROR(config_logger, "Cannot apply new configuration: {}",
+                        e.what());
 
     // Check if we need to restore old configuration.
     if (_processing_state == state_error) {
-      config_logger->debug("configuration: try to restore old configuration");
+      SPDLOG_LOGGER_DEBUG(config_logger,
+                          "configuration: try to restore old configuration");
       auto old_state = std::unique_ptr<configuration::State>(save.release());
       _processing(*old_state, err, state);
     }
@@ -178,12 +182,14 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
       throw;
 
     // If is not the first time, we can restore the old one.
-    config_logger->error("Cannot apply new configuration: {}", e.what());
+    SPDLOG_LOGGER_ERROR(config_logger, "Cannot apply new configuration: {}",
+                        e.what());
 
     // Check if we need to restore old configuration.
     if (_processing_state == state_error) {
       auto old_state = std::unique_ptr<configuration::State>(save.release());
-      config_logger->debug("configuration: try to restore old configuration");
+      SPDLOG_LOGGER_DEBUG(config_logger,
+                          "configuration: try to restore old configuration");
       _processing(*old_state, err);
     }
   }
@@ -589,7 +595,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Global host event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
@@ -608,7 +615,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Global service event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
@@ -629,7 +637,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Obsessive compulsive service processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
@@ -645,7 +654,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Obsessive compulsive host processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
@@ -693,7 +703,8 @@ void applier::state::_check_serviceescalations() const {
         }
       }
       if (!found) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on serviceescalation !!! The service {}/{} contains a non "
             "existing service escalation",
             srv->get_hostname(), srv->get_description());
@@ -701,7 +712,8 @@ void applier::state::_check_serviceescalations() const {
       }
     }
     if (s.size() != srv->get_escalations().size()) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on serviceescalation !!! Some escalations are stored "
           "several times in service {}/{} set size: {} ; list size: {}",
           srv->get_hostname(), srv->get_description(), s.size(),
@@ -718,7 +730,8 @@ void applier::state::_check_serviceescalations() const {
       if (p.second.get() == se->notifier_ptr) {
         found = true;
         if (se->get_hostname() != p.second->get_hostname()) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Host name given by the escalation is {} "
               "whereas the hostname from the notifier is {}.",
@@ -726,7 +739,8 @@ void applier::state::_check_serviceescalations() const {
           throw engine_error() << "This is a bug";
         }
         if (se->get_description() != p.second->get_description()) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Service description given by the "
               "escalation is {} whereas the service description from the "
@@ -738,7 +752,8 @@ void applier::state::_check_serviceescalations() const {
       }
     }
     if (!found) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on serviceescalation !!! The notifier seen by the "
           "escalation is wrong The bug is detected on escalation concerning "
           "host {} and service {}",
@@ -767,7 +782,8 @@ void applier::state::_check_hostescalations() const {
         }
       }
       if (!found) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on hostescalation !!! The host {} contains a non existing "
             "host escalation",
             hst->get_name());
@@ -784,7 +800,8 @@ void applier::state::_check_hostescalations() const {
       if (p.second.get() == he->notifier_ptr) {
         found = true;
         if (he->get_hostname() != p.second->get_name()) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on hostescalation !!! The notifier seen by the escalation "
               "is wrong. Host name given by the escalation is {} whereas the "
               "hostname from the notifier is {}.",
@@ -795,7 +812,8 @@ void applier::state::_check_hostescalations() const {
       }
     }
     if (!found) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on hostescalation !!! The notifier seen by the escalation is "
           "wrong The bug is detected on escalation concerning host {}",
           he->get_hostname());
@@ -817,7 +835,8 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contact !!! The contact {} used in contactgroup {} is "
             "not or badly defined",
             pp.first, p.first);
@@ -831,7 +850,8 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contact !!! The contact {} used in service {}/{} is not "
             "or badly defined",
             pp.first, p.second->get_hostname(), p.second->get_description());
@@ -845,7 +865,8 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contact !!! The contact {} used in service {} is not or "
             "badly defined",
             pp.first, p.second->get_name());
@@ -869,7 +890,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in service "
             "{}/{} is not or badly defined",
             pp.first, p.first.first, p.first.second);
@@ -884,7 +906,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in host {} is "
             "not or badly defined",
             pp.first, p.first);
@@ -899,7 +922,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in "
             "serviceescalation {} is not or badly defined",
             pp.first, p.second->internal_key());
@@ -914,7 +938,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in "
             "hostescalation {} is not or badly defined",
             pp.first, p.second->internal_key());
@@ -940,7 +965,8 @@ void applier::state::_check_services() const {
           {svc->get_host_id(), svc->get_service_id()})};
       if (found == engine::service::services_by_id.end() ||
           found->second.get() != svc) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on service !!! The service {}/{} used in service dependency "
             "{}/{} is not or badly defined",
             p.first.first, p.first.second, p.first.first, p.first.second);
@@ -954,7 +980,8 @@ void applier::state::_check_services() const {
         {p.second->get_hostname(), p.second->get_description()})};
     if (found == engine::service::services.end() ||
         found->second.get() != p.second.get()) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on service !!! The service {}/{} defined in services is not "
           "defined in services_by_id",
           p.first.first, p.first.second);
@@ -977,7 +1004,8 @@ void applier::state::_check_services() const {
           }
         }
         if (!found) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on service !!! The service {}/{} defined in services has "
               "a wrong check command",
               p.first.first, p.first.second);
@@ -989,7 +1017,8 @@ void applier::state::_check_services() const {
 
   if (engine::service::services_by_id.size() !=
       engine::service::services.size()) {
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error on service !!! services_by_id contains ices that are not in "
         "services. The first one size is {}  the second size is {}",
         engine::service::services.size(), engine::service::services.size());
@@ -1008,7 +1037,8 @@ void applier::state::_check_hosts() const {
                               std::string const& where) {
     host_map::const_iterator found{engine::host::hosts.find(hst->get_name())};
     if (found == engine::host::hosts.end() || found->second.get() != hst) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on host !!! The host {} used in {} is not defined or badly "
           "defined in hosts",
           hst->get_name(), where);
@@ -1042,7 +1072,8 @@ void applier::state::_check_hosts() const {
           }
         }
         if (!found) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on host !!! The host {} defined in hosts has a wrong "
               "check command",
               p.first);
@@ -1053,7 +1084,8 @@ void applier::state::_check_hosts() const {
   }
 
   if (engine::host::hosts_by_id.size() != engine::host::hosts.size()) {
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error on host !!! hosts_by_id contains hosts that are not in "
         "hosts. The first one size is {} whereas the second size is {}",
         engine::service::services.size(), engine::service::services.size());
@@ -1442,7 +1474,8 @@ void applier::state::_apply_diff_conf(
           if (mod)
             mod->open();
           else {
-            config_logger->error(
+            SPDLOG_LOGGER_ERROR(
+                config_logger,
                 "Error loading broker module '{}' with parameters '{}'",
                 file_path, args);
           }
@@ -1815,9 +1848,9 @@ void applier::state::_processing(configuration::State& new_cfg,
       credentials_decrypt.reset();
     }
 
-    config_logger->debug("Old version: {} - New version: {}",
-                         pb_indexed_config.state().config_version(),
-                         new_cfg.config_version());
+    SPDLOG_LOGGER_DEBUG(config_logger, "Old version: {} - New version: {}",
+                        pb_indexed_config.state().config_version(),
+                        new_cfg.config_version());
     // Apply new global on the current state.
     if (!verify_config) {
       _apply(new_cfg, err);
@@ -1942,8 +1975,9 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     std::lock_guard<std::mutex> lock(_apply_lock);
     _apply_diff_conf(diff_conf, &tv, err);
 
-    config_logger->debug("Duration to apply the diff state configuration {}",
-                         tv[2] - tv[1]);
+    SPDLOG_LOGGER_DEBUG(config_logger,
+                        "Duration to apply the diff state configuration {}",
+                        tv[2] - tv[1]);
     // Apply scheduler
     applier::scheduler::instance().apply(pb_indexed_config.mut_state(),
                                          diff_conf);
@@ -1952,7 +1986,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     // Timing.
     tv[3] = std::chrono::system_clock::now();
 
-    config_logger->debug("Duration to reload the whitelist {}", tv[3] - tv[2]);
+    SPDLOG_LOGGER_DEBUG(config_logger, "Duration to reload the whitelist {}",
+                        tv[3] - tv[2]);
     // Check for circular paths between hosts.
     pre_flight_circular_check(&err.config_warnings, &err.config_errors);
 
@@ -1982,8 +2017,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
 
     // Timing.
     tv[4] = std::chrono::system_clock::now();
-    config_logger->debug("Duration to apply resources change {}",
-                         tv[4] - tv[3]);
+    SPDLOG_LOGGER_DEBUG(config_logger, "Duration to apply resources change {}",
+                        tv[4] - tv[3]);
   } catch (...) {
     _processing_state = state_error;
     throw;

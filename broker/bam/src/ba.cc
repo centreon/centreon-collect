@@ -378,8 +378,11 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
  *
  *  @param[in] cache  The cache.
  */
-void ba::save_inherited_downtime(persistent_cache& cache
-                                 [[maybe_unused]]) const {}
+void ba::save_inherited_downtime(persistent_cache& cache) const {
+  if (_inherited_downtime)
+    cache.add(
+        std::make_shared<pb_inherited_downtime>(_inherited_downtime->obj()));
+}
 
 /**
  *  Set the inherited downtime of this ba.

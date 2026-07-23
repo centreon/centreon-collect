@@ -85,7 +85,8 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     bool found_storage =
         std::find(lst.begin(), lst.end(), "20-storage.so") != lst.end();
     if (found_sql || found_storage) {
-      logger->error(
+      SPDLOG_LOGGER_ERROR(
+          logger,
           "Configuration check error: bbdo versions >= 3.0.0 need the "
           "unified_sql module to be configured.");
       throw msg_fmt(
@@ -159,9 +160,10 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   else {
     uint32_t module_count = _modules.size();
     if (module_count)
-      logger->info("applier: {} modules loaded", module_count);
+      SPDLOG_LOGGER_INFO(logger, "applier: {} modules loaded", module_count);
     else
-      logger->info(
+      SPDLOG_LOGGER_INFO(
+          logger,
           "applier: no module loaded, you might want to check the "
           "'module_directory' directory");
   }
