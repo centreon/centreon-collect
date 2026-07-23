@@ -164,7 +164,7 @@ check poller token revocation
     ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
     Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
     # Token revoked
-    ${start_date}    Get Current Date
+    ${start_date}    Get Current Date    increment=-1s
     ${response}    PUT    ${revoked_url}/true
     Sleep    ${sleep}
     # The poller is disconnected
@@ -174,7 +174,7 @@ check poller token revocation
     ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
     Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}
     # Token revoked
-    ${start_date}    Get Current Date
+    ${start_date}    Get Current Date    increment=-1s
     ${response}    PUT    ${revoked_url}/false
     Sleep    ${sleep}
     # The poller is connected
@@ -184,7 +184,7 @@ check poller token revocation
     ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
     Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
     # Token revoked
-    ${start_date}    Get Current Date
+    ${start_date}    Get Current Date    increment=-1s
     ${response}    PUT    ${expired_url}/true
     Sleep    ${sleep}
     # The poller is disconnected
