@@ -684,6 +684,15 @@ def ctn_find_line_from(lines, date, agent_format: bool = False):
             start = idx
         else:
             break
+
+    # The dichotomy may stop on a line older than my_date (typically the last
+    # one when no line has been written since my_date). Skip those lines, so
+    # that an old line cannot match a pattern searched from my_date.
+    while idx < len(lines):
+        idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
+        if idx_d is not None and idx_d >= my_date:
+            break
+        idx += 1
     return idx
 
 
@@ -2609,6 +2618,47 @@ def ctn_check_state_configurations_are_equal(file1, file2):
     dico2 = MessageToDict(pb2)
 
     return compare_dicts(dico1, dico2)
+
+
+def ctn_get_prot_config_version(file: str):
+    """
+    Return the configuration version stored in a protobuf configuration file
+    (the Engine state.prot or a Broker <ID>.prot file).
+
+    Args:
+        file: Path to the .prot file.
+
+    Returns:
+        The config_version of the file, or None if the file cannot be read.
+    """
+    try:
+        with open(file, "rb") as f:
+            content = f.read()
+    except OSError as e:
+        logger.console(f"Unable to read '{file}': {e}")
+        return None
+    pb = state_pb2.State()
+    pb.ParseFromString(content)
+    return pb.config_version
+
+
+def ctn_set_prot_config_version(file: str, version: str):
+    """
+    Replace the configuration version stored in a protobuf configuration file
+    (the Engine state.prot or a Broker <ID>.prot file). The rest of the file
+    is kept unchanged.
+
+    Args:
+        file: Path to the .prot file.
+        version: The new config_version to write.
+    """
+    with open(file, "rb") as f:
+        content = f.read()
+    pb = state_pb2.State()
+    pb.ParseFromString(content)
+    pb.config_version = version
+    with open(file, "wb") as f:
+        f.write(pb.SerializeToString())
 
 
 def ctn_notify_broker_of_engine_config_change(idx: int):

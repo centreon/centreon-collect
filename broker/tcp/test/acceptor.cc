@@ -35,7 +35,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using com::centreon::common::log_v2::log_v2;
 
-
 const static std::string test_addr("127.0.0.1");
 constexpr static uint16_t test_port(4444);
 static tcp::tcp_config::pointer test_conf(

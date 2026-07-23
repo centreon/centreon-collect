@@ -19,7 +19,6 @@
 #include "broker/core/config/applier/broker_state.hh"
 #include "bbdo/bbdo.pb.h"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/vars.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/engine_conf/indexed_state.hh"
@@ -130,19 +129,14 @@ void broker_state::save_topology_cache() const {
     }
   }
   const auto path = _pollers_config_dir / "topology.cache";
-  std::ofstream f(path, std::ios::binary | std::ios::trunc);
-  if (!f) {
-    SPDLOG_LOGGER_WARN(_logger,
-                       "Cannot write topology cache: '{}' not accessible",
-                       path.string());
-    return;
-  }
-  if (!cache.SerializeToOstream(&f))
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to write topology cache to '{}'",
-                        path.string());
-  else
+  try {
+    common::save_proto_to_disk(path, cache);
     SPDLOG_LOGGER_INFO(_logger, "Topology cache written: {} entries",
                        cache.entries_size());
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to write topology cache to '{}': {}",
+                        path.string(), e.what());
+  }
 }
 
 /**
@@ -155,13 +149,14 @@ void broker_state::load_topology_cache() {
   if (_pollers_config_dir.empty())
     return;
   const auto path = _pollers_config_dir / "topology.cache";
-  std::ifstream f(path, std::ios::binary);
-  if (!f)
-    return;
   TopologyCache cache;
-  if (!cache.ParseFromIstream(&f)) {
-    SPDLOG_LOGGER_WARN(_logger, "Failed to parse topology cache from '{}'",
-                       path.string());
+  try {
+    if (!common::load_proto_from_disk(path, cache)) {
+      return;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_WARN(_logger, "Failed to parse topology cache from '{}': {}",
+                       path.string(), e.what());
     return;
   }
   absl::WriterMutexLock lck(&_connected_peers_m);
@@ -243,16 +238,15 @@ void broker_state::create_prot_file(
     return;
   }
 
-  std::ofstream f(prot_file);
-  if (f) {
-    conf.SerializeToOstream(&f);
-    f.close();
+  try {
+    common::save_proto_to_disk(prot_file, conf);
     SPDLOG_LOGGER_DEBUG(_logger, "Created prot file '{}' for poller id {}",
                         prot_file.string(), poller_id);
     set_poller_engine_conf_unknown(poller_id, false);
     _feed_cache_and_wake_up_resources(poller_id);
-  } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Unable to create '{}'", prot_file.string());
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "Unable to create '{}': {}",
+                        prot_file.string(), e.what());
   }
 }
 
@@ -354,6 +348,10 @@ void broker_state::add_peer(uint64_t poller_id,
  * the Engine state. If neither a .prot file nor a .lck file is found, the
  * poller configuration is considered lost and Broker will request it from
  * Engine via a DiffState{unknown=true} at the next negotiation.
+ * If the poller announced a configuration version that does not match the
+ * one stored in the <poller_id>.prot file (for example because it lost its
+ * state.prot), and no new configuration is pending (no .lck file), the whole
+ * known configuration is prepared so that it is sent back to the poller.
  *
  * @param poller_id The poller ID.
  * @return true if the configuration was found, false if it is lost/unknown.
@@ -362,13 +360,16 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   bool retval = true;
   std::filesystem::path prot_file =
       pollers_config_dir() / fmt::format("{}.prot", poller_id);
-  std::fstream f(prot_file);
   multiplexing::publisher pblshr;
   bool poller_conf_lost = false;
-  if (f) {
-    auto engine_state = std::make_shared<neb::pb_engine_state>();
-    auto& state = engine_state->mut_obj();
-    poller_conf_lost = !state.ParseFromIstream(&f);
+  /* Set when the poller announced a configuration that is not the one
+   * Broker knows for it. */
+  bool have_to_send_all_conf = false;
+  auto engine_state = std::make_shared<neb::pb_engine_state>();
+  engine::configuration::State& full_state = engine_state->mut_obj();
+
+  try {
+    poller_conf_lost = !common::load_proto_from_disk(prot_file, full_state);
     if (!poller_conf_lost) {
       if (_logger->level() <= spdlog::level::trace) {
         std::string debug_diff;
@@ -376,8 +377,11 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
             ::google::protobuf::json::MessageToJsonString(engine_state->obj(),
                                                           &debug_diff);
         SPDLOG_LOGGER_TRACE(_logger, "read from file {} version {} state: {}",
-                            prot_file, state.config_version(), debug_diff);
+                            prot_file, full_state.config_version(), debug_diff);
       }
+
+      SPDLOG_LOGGER_DEBUG(_logger, "Publishing poller {} configuration",
+                          poller_id);
       pblshr.write(engine_state);
 
       /* The poller announced its own engine_conf at connection time (from
@@ -392,26 +396,25 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
       absl::WriterMutexLock lck(&_connected_peers_m);
       auto found = _engine_peers.find(poller_id);
       if (found != _engine_peers.end() &&
-          found->second.engine_conf != state.config_version()) {
+          found->second.engine_conf != full_state.config_version()) {
         SPDLOG_LOGGER_WARN(
             _logger,
             "Poller {} announced engine conf '{}' which does not match "
             "Broker's configuration '{}' for it (from '{}'): clearing the "
             "known engine conf for this poller",
-            poller_id, found->second.engine_conf, state.config_version(),
+            poller_id, found->second.engine_conf, full_state.config_version(),
             prot_file.string());
         found->second.engine_conf.clear();
+        have_to_send_all_conf = true;
       }
+    } else {
+      SPDLOG_LOGGER_INFO(_logger,
+                         "Unable to fill global cache: cannot open '{}'",
+                         prot_file.string());
     }
-  } else {
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "Fail to load {} : {}", prot_file, e.what());
     poller_conf_lost = true;
-  }
-  if (!poller_conf_lost) {
-    SPDLOG_LOGGER_DEBUG(_logger, "Publishing poller {} configuration",
-                        poller_id);
-  } else {
-    SPDLOG_LOGGER_INFO(_logger, "Unable to fill global cache: cannot open '{}'",
-                       prot_file.string());
   }
 
   /* The directory watcher has been started but may be there were <ID>.lck
@@ -424,6 +427,25 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
     absl::MutexLock lck(&_lck_set_m);
     _lck_set.insert(existing_lck);
     poller_conf_lost = false;
+  } else if (have_to_send_all_conf) {
+    /* No new configuration is pending for this poller, so nothing will
+     * trigger the preparation of a diff for it. Since its current
+     * configuration is not the one Broker knows, the poller may have lost
+     * it (e.g. its state.prot has been removed). We prepare its whole
+     * configuration so that it is sent to it: the most recent one if it has
+     * already been prepared (new-<ID>.prot), otherwise the known one. */
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "Poller {} does not run the configuration known by Broker, preparing "
+        "its whole configuration to send it",
+        poller_id);
+    if (!_prepare_diff_from_new_prot_file(poller_id)) {
+      // no new-<ID>.prot pending => we create a diff<ID>.prot with only
+      // mismatched_state
+      _prepare_diff_for_poller(
+          poller_id,
+          std::make_unique<engine::configuration::State>(full_state));
+    }
   }
   if (poller_conf_lost) {
     /* Broker is unable to update the cache concerning this poller because
@@ -806,19 +828,17 @@ void broker_state::_check_last_engine_conf() {
         }
         std::filesystem::path last_prot_conf =
             pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
-        std::ofstream f(last_prot_conf);
-        if (f) {
-          state->SerializeToOstream(&f);
-          f.close();
+        try {
+          common::save_proto_to_disk(last_prot_conf, *state);
           SPDLOG_LOGGER_INFO(_logger,
                              "New Engine configuration for poller {} stored, "
                              "version '{}' file {}",
                              poller_id, version, last_prot_conf);
-        } else {
+        } catch (const std::exception& e) {
           SPDLOG_LOGGER_ERROR(
               _logger,
               "Cannot write the new Engine protobuf configuration '{}': {}",
-              last_prot_conf.string(), strerror(errno));
+              last_prot_conf.string(), e.what());
         }
         /* The .lck marks a PHP-pushed configuration still pending delivery.
          * Consume it only once the poller is connected, so the diff prepared
@@ -956,39 +976,45 @@ bool broker_state::_prepare_diff_for_poller(
       peer.poller_name, poller_id, peer.engine_conf, state->config_version());
   std::filesystem::path previous_prot_conf =
       pollers_config_dir() / fmt::format("{}.prot", poller_id);
-  std::fstream f(previous_prot_conf);
-  std::unique_ptr<engine::configuration::DiffState> diff_state;
+  std::unique_ptr<engine::configuration::DiffState> diff_state =
+      std::make_unique<engine::configuration::DiffState>();
   std::string new_version = state->config_version();
-  if (f) {
-    /* There is a previous configuration */
-    auto previous_state = std::make_unique<engine::configuration::State>();
-    previous_state->ParseFromIstream(&f);
-    /* If the known configuration by Broker is the same as the one
-     * sent by the poller, we can compute the diff. */
-    if (previous_state->config_version() == peer.engine_conf) {
-      diff_state = std::make_unique<engine::configuration::DiffState>();
-      if (_logger->level() <= spdlog::level::trace) {
-        std::string debug;
-        auto dummy [[maybe_unused]] =
-            ::google::protobuf::json::MessageToJsonString(*previous_state,
-                                                          &debug);
-        SPDLOG_LOGGER_TRACE(_logger,
-                            "previous state for poller {} from file {}: {}",
-                            poller_id, previous_prot_conf, debug);
-      }
-      auto previous_indexed_state =
-          engine::configuration::indexed_state(std::move(previous_state));
+  bool previous_loaded = false;
+  auto previous_state = std::make_unique<engine::configuration::State>();
 
-      previous_indexed_state.diff_with_new_config(*state, _logger,
-                                                  diff_state.get());
-      if (_logger->level() <= spdlog::level::trace) {
-        std::string debug;
-        auto dummy [[maybe_unused]] =
-            ::google::protobuf::json::MessageToJsonString(*diff_state, &debug);
-        SPDLOG_LOGGER_TRACE(_logger, "diff for poller {}: {}", poller_id,
-                            debug);
-      }
-    } else {
+  try {
+    previous_loaded =
+        common::load_proto_from_disk(previous_prot_conf, *previous_state);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_WARN(_logger, "Cannot load {} : {}", previous_prot_conf,
+                       e.what());
+  }
+
+  /* If the known configuration by Broker is the same as the one
+   * sent by the poller, we can compute the diff. */
+  if (previous_loaded && previous_state->config_version() == peer.engine_conf) {
+    if (_logger->level() <= spdlog::level::trace) {
+      std::string debug;
+      auto dummy [[maybe_unused]] =
+          ::google::protobuf::json::MessageToJsonString(*previous_state,
+                                                        &debug);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "previous state for poller {} from file {}: {}",
+                          poller_id, previous_prot_conf, debug);
+    }
+    auto previous_indexed_state =
+        engine::configuration::indexed_state(std::move(previous_state));
+
+    previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                diff_state.get());
+    if (_logger->level() <= spdlog::level::trace) {
+      std::string debug;
+      auto dummy [[maybe_unused]] =
+          ::google::protobuf::json::MessageToJsonString(*diff_state, &debug);
+      SPDLOG_LOGGER_TRACE(_logger, "diff for poller {}: {}", poller_id, debug);
+    }
+  } else {
+    if (previous_loaded) {
       /* Otherwise, we do as if there was no previous configuration,
        * so the diff will be the whole new configuration. */
       SPDLOG_LOGGER_WARN(
@@ -999,32 +1025,32 @@ bool broker_state::_prepare_diff_for_poller(
           "whole new configuration.",
           peer.poller_name, poller_id, peer.engine_conf,
           state->config_version());
-      diff_state = std::make_unique<engine::configuration::DiffState>();
-      diff_state->set_allocated_state(state.release());
+    } else {
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "No previous or corrupted configuration for poller {}, "
+          "sending the whole configuration",
+          poller_id);
     }
-  } else {
-    /* No previous configuration */
-    diff_state = std::make_unique<engine::configuration::DiffState>();
     diff_state->set_allocated_state(state.release());
   }
+
   std::filesystem::path diff_prot_conf =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
-  std::ofstream df(diff_prot_conf);
-  if (df) {
-    diff_state->SerializeToOstream(&df);
-    df.close();
-
+  try {
+    common::save_proto_to_disk(diff_prot_conf, *diff_state);
     /* The new configuration to send to the poller is
      * new-<poller-ID>.prot. Once sent to it, this file must be renamed
      * into <poller-ID>.prot and the diff file can be removed. */
     peer.available_conf = new_version;
     peer.available_conf_sent = false;
     return true;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "Cannot write the diff Engine protobuf configuration '{}': {}",
+        diff_prot_conf.string(), e.what());
+    return false;
   }
-  SPDLOG_LOGGER_ERROR(
-      _logger, "Cannot write the diff Engine protobuf configuration '{}': {}",
-      diff_prot_conf.string(), strerror(errno));
-  return false;
 }
 
 /**
@@ -1224,16 +1250,18 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
     uint64_t poller_id) {
   const auto new_file =
       pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
-  std::ifstream f(new_file);
-  if (!f)
-    return std::nullopt;
   auto state = std::make_unique<engine::configuration::State>();
-  if (!state->ParseFromIstream(&f)) {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to parse new-{}.prot for poller {}",
-                        poller_id, poller_id);
+  try {
+    if (!common::load_proto_from_disk(new_file, *state)) {
+      return std::nullopt;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Failed to parse new-{}.prot for poller {}: {}",
+                        poller_id, poller_id, e.what());
     return std::nullopt;
   }
-  f.close();
+
   if (_logger->level() <= spdlog::level::trace) {
     std::string debug;
     auto dummy [[maybe_unused]] =
@@ -1281,50 +1309,46 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
 
   /* 3. */
   {
-    std::ifstream f(prev_file);
-    if (f) {
-      auto state = std::make_unique<engine::configuration::State>();
-      if (!state->ParseFromIstream(&f)) {
-        SPDLOG_LOGGER_ERROR(_logger,
-                            "Failed to parse {}.prot for relay poller {}",
-                            engine_id, engine_id);
-        return relay_config_response::unknown;
-      }
-      f.close();
-      if (state->config_version() == relay_config_version)
-        return relay_config_response::up_to_date;
+    auto state = std::make_unique<engine::configuration::State>();
+    try {
+      if (common::load_proto_from_disk(prev_file, *state)) {
+        if (state->config_version() == relay_config_version)
+          return relay_config_response::up_to_date;
 
-      /* Relay is behind the last acknowledged state: send it as full state. */
-      const std::string version = state->config_version();
-      engine::configuration::DiffState diff;
-      diff.set_allocated_state(state.release());
-      std::ofstream df(diff_file);
-      if (!df) {
-        SPDLOG_LOGGER_ERROR(_logger,
-                            "Cannot write diff-{}.prot for relay poller {}: {}",
-                            engine_id, engine_id, strerror(errno));
-        return relay_config_response::unknown;
-      }
-      if (_logger->level() <= spdlog::level::trace) {
-        std::string debug;
-        auto dummy [[maybe_unused]] =
-            ::google::protobuf::json::MessageToJsonString(diff, &debug);
-        SPDLOG_LOGGER_TRACE(_logger,
-                            "Save diff to file {} for poller {}, content:{}",
-                            diff_file, engine_id, debug);
-      }
-
-      diff.SerializeToOstream(&df);
-      df.close();
-      {
+        /* Relay is behind the last acknowledged state: send it as full state.
+         */
+        const std::string version = state->config_version();
+        engine::configuration::DiffState diff;
+        diff.set_allocated_state(state.release());
+        try {
+          common::save_proto_to_disk(diff_file, diff);
+          if (_logger->level() <= spdlog::level::trace) {
+            std::string debug;
+            auto dummy [[maybe_unused]] =
+                ::google::protobuf::json::MessageToJsonString(diff, &debug);
+            SPDLOG_LOGGER_TRACE(
+                _logger, "Save diff to file {} for poller {}, content:{}",
+                diff_file, engine_id, debug);
+          }
+        } catch (const std::exception& e) {
+          SPDLOG_LOGGER_ERROR(
+              _logger, "Cannot write diff-{}.prot for relay poller {}: {}",
+              engine_id, engine_id, e.what());
+          return relay_config_response::unknown;
+        }
         absl::WriterMutexLock lck(&_connected_peers_m);
         auto it = _engine_peers.find(engine_id);
         if (it != _engine_peers.end()) {
           it->second.available_conf = version;
           it->second.available_conf_sent = false;
         }
+        return relay_config_response::diff_ready;
       }
-      return relay_config_response::diff_ready;
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "Failed to parse {}.prot for relay poller {} : {}",
+                          engine_id, engine_id, e.what());
+      return relay_config_response::unknown;
     }
   }
 

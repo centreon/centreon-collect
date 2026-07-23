@@ -20,6 +20,8 @@
 #ifndef CCE_ENGINE_CONF_PRECOMP_HH
 #define CCE_ENGINE_CONF_PRECOMP_HH
 
+#include <filesystem>
+
 #include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
