@@ -38,6 +38,8 @@ static constexpr multiplexing::muxer_filter _rrd_stream_filter =
          storage::pb_rebuild_message::static_type(),
          storage::remove_graph::static_type(),
          storage::pb_remove_graph_message::static_type(),
+         storage::pb_end_metric_merge::static_type(),
+         storage::pb_end_status_merge::static_type(),
          make_type(io::extcmd, extcmd::de_pb_bench)});
 
 static constexpr multiplexing::muxer_filter _rrd_forbidden_filter =

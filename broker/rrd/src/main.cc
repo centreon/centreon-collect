@@ -26,6 +26,7 @@
 #include "com/centreon/broker/rrd/factory.hh"
 #include "com/centreon/broker/rrd/internal.hh"
 #include "common/log_v2/log_v2.hh"
+#include "events.hh"
 
 using namespace com::centreon::broker;
 using log_v2 = com::centreon::common::log_v2::log_v2;
@@ -108,6 +109,14 @@ void broker_module_init(void const* arg) {
                        "pb_metric", &storage::pb_metric::operations);
       e.register_event(make_type(io::storage, storage::de_pb_status),
                        "pb_status", &storage::pb_status::operations);
+
+      // End of retention merge, sent by the rrd merge thread to the rrd stream.
+      e.register_event(make_type(io::storage, storage::de_pb_end_metric_merge),
+                       "pb_end_metric_merge",
+                       &storage::pb_end_metric_merge::operations);
+      e.register_event(make_type(io::storage, storage::de_pb_end_status_merge),
+                       "pb_end_status_merge",
+                       &storage::pb_end_status_merge::operations);
     }
 
     // Register RRD layer.

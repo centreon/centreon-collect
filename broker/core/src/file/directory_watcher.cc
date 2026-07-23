@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/file/directory_watcher.hh"
 
-
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"

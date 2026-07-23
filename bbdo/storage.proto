@@ -72,3 +72,19 @@ message MetricMapping {
   double max = 4;
   string uom = 5;
 }
+
+/* io::storage, storage::de_pb_end_metric_merge, 60 */
+message EndMetricMerge {
+  uint64 metric_id = 1;
+  /* most recent timestamp written in the RRD file by the merge, 0 if nothing
+   * was merged. Postponed events older or equal are not written again. */
+  uint64 last_metric_time = 2;
+}
+
+/* io::storage, storage::de_pb_end_status_merge, 61 */
+message EndStatusMerge {
+  uint64 index_id = 1;
+  /* most recent timestamp written in the RRD file by the merge, 0 if nothing
+   * was merged. */
+  uint64 last_status_time = 2;
+}

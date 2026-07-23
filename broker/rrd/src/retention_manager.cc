@@ -218,7 +218,8 @@ status_retention_state& retention_manager::_get_or_create_status(uint64_t id) {
  * @brief Serialise the pending batch to a new immutable rotated file.
  *
  * Picks a unique filename by incrementing the timestamp suffix until no
- * collision is found on disk.  Clears the batch on success.
+ * collision is found on disk (the file is opened with O_EXCL).  Clears the
+ * batch on success.
  */
 template <typename StateT>
 void retention_manager::_flush_to_rotated(StateT& state) {
@@ -256,7 +257,9 @@ void retention_manager::_flush_to_rotated(StateT& state) {
 /**
  * @brief Serialise remaining pending batch to the current (non-rotated) file.
  *
- * Called at graceful shutdown so that data survives a restart.
+ * Called at graceful shutdown so that data survives a restart.  The batch is
+ * appended to the file (concatenated serialized batches parse as one merged
+ * batch).
  */
 template <typename StateT>
 void retention_manager::_flush_pending(StateT& state) {
@@ -497,6 +500,11 @@ std::vector<std::pair<uint64_t, double>> retention_manager::_read_metric_points(
   return result;
 }
 
+/**
+ * @brief Same as _read_metric_points for status points.
+ *
+ * @return (time, status) pairs in file order (not sorted).
+ */
 std::vector<std::pair<uint64_t, uint32_t>>
 retention_manager::_read_status_points(const std::vector<fs::path>& files,
                                        const fs::path& current,

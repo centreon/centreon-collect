@@ -84,12 +84,19 @@ class stream : public io::stream {
       _merge_work;
   std::thread _merge_thread;
 
-  /// Prevents duplicate merge scheduling for the same metric/status.
-  absl::Mutex _merge_pending_m;
-  absl::flat_hash_set<uint64_t> _pending_metric_merges
-      ABSL_GUARDED_BY(_merge_pending_m);
-  absl::flat_hash_set<uint64_t> _pending_status_merges
-      ABSL_GUARDED_BY(_merge_pending_m);
+  /**
+   * @brief Merges scheduled and not yet finished, keyed by metric_id /
+   * index_id.
+   *
+   * An entry is inserted by _schedule_metric/status_merge (preventing duplicate
+   * merges) and erased by write() when the matching pb_end_metric/status_merge
+   * event is received. Meanwhile, write() postpones in it the events of this
+   * metric/status, they are replayed at the end of the merge. Only accessed
+   * from the stream thread (the merge thread communicates through the
+   * multiplexing engine), so no mutex.
+   */
+  rebuild_cache _pending_metric_merges;
+  rebuild_cache _pending_status_merges;
 
   /**
    * @brief Earliest current-data timestamp seen per metric/status since this
@@ -115,16 +122,18 @@ class stream : public io::stream {
 
   void _rebuild_data(const RebuildMessage& rm);
   void _write_postponed(rebuild_entry& entry, uint64_t id, bool is_status);
-  void _do_metric_merge(uint64_t metric_id, const std::filesystem::path& rrd_path);
-  void _do_status_merge(uint64_t index_id, const std::filesystem::path& rrd_path);
+  /// Merge retention buffer into the RRD file, return the last time merged.
+  int64_t _do_metric_merge(uint64_t metric_id,
+                           const std::filesystem::path& rrd_path);
+  int64_t _do_status_merge(uint64_t index_id,
+                           const std::filesystem::path& rrd_path);
   void _startup_merge();
 
   /// Schedule a background merge, skipping if one is already queued.
   void _schedule_metric_merge(uint64_t metric_id,
-                               std::filesystem::path rrd_path)
+                              std::filesystem::path rrd_path)
       ABSL_LOCKS_EXCLUDED(_merge_pending_m);
-  void _schedule_status_merge(uint64_t index_id,
-                               std::filesystem::path rrd_path)
+  void _schedule_status_merge(uint64_t index_id, std::filesystem::path rrd_path)
       ABSL_LOCKS_EXCLUDED(_merge_pending_m);
 
  public:
