@@ -197,6 +197,87 @@ logic was closed. The notification library *will* leak (config access, macro
 expansion). Put only the **decision core** in `common`, and accept that the
 boundary will be less clean than for downtimes.
 
+## Decision made (2026-07-22): model C — "fat decision", "thin execution"
+
+`broker_notification_callbacks::deliver()` is currently a stub (TODO
+MON-187019). Three models were compared to implement it:
+
+* **A — fire-and-forget.** Broker decides *when*, dispatches "notify R" to a
+  poller that does selection + escalations + macros + command, with no feedback.
+  **Rejected**: intolerable regressions — the escalation interval is ignored
+  (Broker falls back to the base interval) and recovery is routed to the current
+  config instead of the contacts historically notified.
+* **B — asynchronous round-trip.** Like A, but the poller sends back
+  `{notified_contacts, interval, escalated}` which Broker records. **Rejected**:
+  Engine↔Broker round-trips have proven error-prone in the past, and it breaks
+  the synchronous contract of `deliver()`.
+* **C — fat decision / thin execution (CHOSEN).** Broker itself performs contact
+  selection + escalations (⇒ contacts/contactgroups/escalations in the cache),
+  computes `notified_contacts` + interval **synchronously**, then dispatches only
+  the *execution* (macro expansion + command launch) to the poller. The
+  synchronous `deliver()` contract is preserved, recovery and escalation interval
+  stay exact, **no round-trip**.
+
+### Splitting `deliver`
+
+* **decision** (`get_contacts_to_notify` + escalation interval) → ported into
+  `common/notifications` over the cache data;
+* **execution** (macros + the `notify_contact` loop, the tail of
+  `engine_notification_callbacks::deliver`) → stays on the poller, triggered by a
+  **one-way Broker→poller** dispatch event.
+
+### Data to add to `broker_cache` (from the Engine selection code)
+
+* **contact**: name, `host`/`service_notifications_enabled`,
+  `host`/`service_notification_period`, `timezone`, `notify_on` bitmasks for host
+  and service;
+* **contactgroup**: name → members;
+* **resource→contacts + contactgroups** links (host and service);
+* **host/service escalations**: `first`/`last_notification`,
+  `escalation_period`, `notification_interval`, contactgroups;
+* reuse the notification-timeperiod cache for the `escalation_period` /
+  `contact_notification_period`.
+
+### Brick order
+
+1. **one-way dispatch channel** — BBDO event `pb_notification_execute`
+   (`{host_id, service_id, reason_type, category, notification_id,
+   notification_number, escalated, author, message, options,
+   repeated contact_name}`) + poller execution handler; prototypable end-to-end
+   with an injected contact list (de-risks the channel first);
+2. **notification-config cache** (the items above);
+3. **selection logic** ported over the cache;
+4. **wiring `deliver`** = selection → emit the event → `delivery_result`;
+5. `on_notification_number_changed` (status push) — later.
+
+### Sub-decisions still open (to settle before coding)
+
+* **(a) — DECIDED (2026-07-22).** Broker dispatches execution to the **poller
+  that supervises the resource**, identified by `resource→poller` from the cache
+  (`host->obj().instance_id()`). That poller **always** has the macro context
+  locally (a poller only notifies resources it supervises) — nothing to carry in
+  the event. Same shape in v1 and HA: HA only changes the `resource→poller`
+  resolution (to the **active** poller of a redundancy group, which also holds the
+  config), not the event shape. Associated rule: **supervising poller
+  disconnected → `deliver()` returns empty → retry on the next notification
+  cycle** (consistent with "the next notification fires in X minutes").
+* **(b) — DECIDED (2026-07-22).** Broker **replicates the per-contact filtering**
+  of `contact::should_be_notified` (`contact.cc:826`): (1) `host`/
+  `service_notifications_enabled`, (2) the contact's notification period evaluated
+  in **its own** timezone, (3) the `notify_on` bitmask. This is the only option
+  consistent with C without a round-trip (delegating this filtering to the poller
+  would make Broker's `notified_contacts` wrong → mis-routed recovery / wrong
+  `last_notification`). Point (2) directly reuses
+  `string_to_timezone(contact.timezone)` + the timeperiod cache shipped for the
+  timezone fallback. This is the config "leak" the doc announced, accepted.
+* **(c) — DECIDED (2026-07-22).** Channel = a **dedicated new BBDO protobuf event
+  `pb_notification_execute`** (in `bbdo/`), routed by `destination_id` to the
+  supervising poller; the cbmod/neb handler is just one more `read()`. Rejected:
+  hijacking the external-command path (historical text stream meant for "user
+  orders", ill-suited to a structured payload, and colliding with the roadmap's
+  external-command router) and a parallel gRPC RPC (Broker has no outbound channel
+  to pollers outside BBDO; duplicate plumbing/HA).
+
 # Acknowledgement and flapping follow notification
 
 Ack and flapping are first of all **inputs to the notification decision** (an ack
@@ -262,7 +343,9 @@ how much state any of the above may safely hold centrally.
 
 1. **Where the notification command executes** — dispatch-to-poller (recommended)
    vs an executor inside Broker. This gates the entire notification track and
-   should be prototyped first.
+   should be prototyped first. **DECIDED (2026-07-22): model C** — decision
+   (contact selection + escalations) in Broker, execution (macros + command)
+   dispatched to the poller; see "Decision made: model C" above.
 2. **The id model** — switch comment deletion to a natural key. Small, but it
    conditions the cleanliness of everything else.
 3. **Broker durable state / HA** — if Broker carries downtimes + comments +
