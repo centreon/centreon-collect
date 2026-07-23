@@ -173,6 +173,14 @@ void cbmod_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
     case pb_diff_state::static_type():
       _state.set_diff_state(d);
       break;
+    case pb_notification_execute::static_type():
+      /* notification_mode=broker: Broker made the notification decision and
+       * dispatched the execution here. Queue it for the Engine event loop,
+       * which runs the notification commands (macros + notify_contact). A
+       * notification for a resource this poller does not supervise is dropped
+       * later by the loop when the resource is not found. */
+      _state.push_notification_execute(d);
+      break;
     default:
       break;
   }

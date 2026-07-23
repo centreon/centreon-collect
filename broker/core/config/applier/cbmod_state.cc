@@ -185,6 +185,39 @@ void cbmod_state::set_diff_state_applied(bool done) {
 }
 
 /**
+ * @brief Store a notification-execute event received from Broker so the Engine
+ * event loop can run it (notification_mode=broker). Called on the Engine side
+ * from cbmod_stream when a pb_notification_execute is received.
+ *
+ * @param ne A shared pointer to a bbdo::pb_notification_execute event.
+ */
+void cbmod_state::push_notification_execute(
+    const std::shared_ptr<io::data>& ne) {
+  auto evt =
+      std::static_pointer_cast<com::centreon::broker::bbdo::pb_notification_execute>(
+          ne);
+  absl::MutexLock lck(&_pending_notifications_m);
+  _pending_notifications.push_back(evt->obj());
+}
+
+/**
+ * @brief Drain all the notification-execute events pending for this poller.
+ * Called from the Engine event loop, which then runs each one (macros +
+ * notification commands). The queue is emptied.
+ *
+ * @return The pending notifications, in arrival order.
+ */
+std::vector<NotificationExecute> cbmod_state::drain_notification_executes() {
+  absl::MutexLock lck(&_pending_notifications_m);
+  std::vector<NotificationExecute> retval;
+  retval.reserve(_pending_notifications.size());
+  for (auto& ne : _pending_notifications)
+    retval.push_back(std::move(ne));
+  _pending_notifications.clear();
+  return retval;
+}
+
+/**
  * @brief Store the current Engine configuration to be sent to Broker.
  * Called when Broker requests the Engine configuration via a
  * DiffState{unknown=true} message.

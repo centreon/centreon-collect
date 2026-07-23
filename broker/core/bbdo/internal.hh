@@ -58,6 +58,10 @@ using pb_config_request = com::centreon::broker::io::protobuf<
 using pb_config_revoke = com::centreon::broker::io::protobuf<
     ConfigRevoke, make_type(io::bbdo, bbdo::de_pb_config_revoke)>;
 
+using pb_notification_execute = com::centreon::broker::io::protobuf<
+    NotificationExecute,
+    make_type(io::bbdo, bbdo::de_pb_notification_execute)>;
+
 using pb_bench = com::centreon::broker::io::
     protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 

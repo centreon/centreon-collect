@@ -18,6 +18,9 @@
 
 #ifndef CCB_CONFIG_APPLIER_CBMOD_STATE_HH
 #define CCB_CONFIG_APPLIER_CBMOD_STATE_HH
+#include <deque>
+
+#include "bbdo/bbdo.pb.h"
 #include "broker/core/config/applier/state.hh"
 
 namespace com::centreon::broker::config::applier {
@@ -51,6 +54,13 @@ class cbmod_state : public state {
   std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
   std::unique_ptr<com::centreon::engine::configuration::State>
       _current_engine_state;
+  /* Notification-execute events pushed by Broker (notification_mode=broker):
+   * Broker made the decision and dispatched the execution here; the Engine event
+   * loop drains this queue and runs the notification commands. Several may be
+   * pending between two loop iterations, hence a queue and not a single slot. */
+  std::deque<NotificationExecute> _pending_notifications
+      ABSL_GUARDED_BY(_pending_notifications_m);
+  mutable absl::Mutex _pending_notifications_m;
 
  public:
   cbmod_state(const std::string& engine_conf_version,
@@ -75,6 +85,10 @@ class cbmod_state : public state {
   void set_diff_state(const std::shared_ptr<io::data>& diff);
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   void set_diff_state_applied(bool done);
+  void push_notification_execute(const std::shared_ptr<io::data>& ne)
+      ABSL_LOCKS_EXCLUDED(_pending_notifications_m);
+  std::vector<NotificationExecute> drain_notification_executes()
+      ABSL_LOCKS_EXCLUDED(_pending_notifications_m);
   /**
    * @brief Check if the diff state has been applied. This method is called from
    * Engine. It must return true if the diff state has been applied but only

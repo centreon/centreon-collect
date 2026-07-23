@@ -83,6 +83,35 @@ message ConfigRevoke {
   uint64 poller_id = 1;
 }
 
+// Broker-side notification model C (notification_mode=broker): Broker owns the
+// notification DECISION (contact selection + escalations) and dispatches only
+// the EXECUTION (macro expansion + notification command launch) to the poller
+// that supervises the resource, through this one-way event. It is an io::bbdo
+// event so the poller's cbmod_stream catches it in _handle_bbdo_event (like
+// pb_diff_state) and hands it to the Engine event loop. Broker broadcasts it;
+// each poller acts only on the resources it supervises and ignores the rest.
+//
+// The contacts field already holds the exact set Broker selected (per-contact
+// filtering — enable flags, notification period, notify_on — is done on Broker),
+// so the poller only expands macros and runs each contact's notification
+// command. category/reason_type/options carry the integer values of the
+// matching com::centreon::common::notifications enums (notification_category,
+// reason_type, notification_option). service_id == 0 designates a host.
+/* io::bbdo, bbdo::de_pb_notification_execute, 60 */
+message NotificationExecute {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+  uint32 category = 3;
+  uint32 reason_type = 4;
+  uint64 notification_id = 5;
+  uint32 notification_number = 6;
+  bool escalated = 7;
+  string author = 8;
+  string message = 9;
+  uint32 options = 10;
+  repeated string contacts = 11;
+}
+
 /* Written on disk (topology.cache) on clean central shutdown. Loaded on
  * restart as routing hints: engine peer N is reachable via relay R. */
 /* Ignore */

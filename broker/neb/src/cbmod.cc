@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/broker/neb/cbmod.hh"
-#include "broker/core/config/applier/cbmod_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -357,6 +356,16 @@ void cbmod::reload() {
 std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
   auto retval = _impl->state().diff_state();
   return retval;
+}
+
+/**
+ * @brief Drain the notification-execute events Broker dispatched to this poller
+ * (notification_mode=broker), so the Engine event loop can run them.
+ *
+ * @return The pending notifications, in arrival order.
+ */
+std::vector<NotificationExecute> cbmod::drain_notification_executes() {
+  return _impl->state().drain_notification_executes();
 }
 
 /**

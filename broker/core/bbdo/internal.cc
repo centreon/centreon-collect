@@ -60,6 +60,9 @@ void bbdo::load() {
                    "ConfigRequest", &bbdo::pb_config_request::operations);
   e.register_event(make_type(io::bbdo, bbdo::de_pb_config_revoke),
                    "ConfigRevoke", &bbdo::pb_config_revoke::operations);
+  e.register_event(make_type(io::bbdo, bbdo::de_pb_notification_execute),
+                   "NotificationExecute",
+                   &bbdo::pb_notification_execute::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,
