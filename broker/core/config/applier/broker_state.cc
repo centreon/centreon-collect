@@ -349,9 +349,15 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   if (f) {
     auto engine_state = std::make_shared<neb::pb_engine_state>();
     auto& state = engine_state->mut_obj();
-    state.ParseFromIstream(&f);
+    poller_conf_lost = !state.ParseFromIstream(&f);
+    if (!poller_conf_lost) {
+      pblshr.write(engine_state);
+    }
+  } else {
+    poller_conf_lost = true;
+  }
+  if (!poller_conf_lost) {
     _logger->debug("Publishing poller {} configuration", poller_id);
-    pblshr.write(engine_state);
   } else {
     _logger->info("Unable to fill global cache: cannot open '{}'",
                   prot_file.string());
@@ -502,8 +508,11 @@ void broker_state::remove_peer(uint64_t poller_id,
   assert(poller_id && !broker_name.empty());
   absl::WriterMutexLock lck(&_connected_peers_m);
   const peer_key key{poller_id, poller_name, broker_name};
-  bool erased = _engine_peers.erase(poller_id) || _broker_peers.erase(key) ||
-                _unknown_peers.erase(key);
+  bool erased = _broker_peers.erase(key) || _unknown_peers.erase(key);
+  if (!erased) {  // in case of a poller has same id as a broker such rrd. It
+                  // should never happen.
+    erased = _engine_peers.erase(poller_id);
+  }
   if (erased) {
     _logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
                   poller_name, broker_name, poller_id);
@@ -568,14 +577,14 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
                       .peer_type = common::BROKER});
   }
   for (const auto& [_, ep] : _engine_peers) {
-    retval.push_back({.poller_id = ep.poller_id,
-                      .poller_name = ep.poller_name,
-                      .connected_since = ep.connected_since,
-                      .extended_negotiation = ep.extended_negotiation,
-                      .peer_type = common::ENGINE,
-                      .available_conf = ep.available_conf,
-                      .engine_conf = ep.engine_conf,
-                      .via_remote = ep.via_remote});
+    retval.push_back(peer{.poller_id = ep.poller_id,
+                          .poller_name = ep.poller_name,
+                          .connected_since = ep.connected_since,
+                          .extended_negotiation = ep.extended_negotiation,
+                          .peer_type = common::ENGINE,
+                          .available_conf = ep.available_conf,
+                          .engine_conf = ep.engine_conf,
+                          .via_remote = ep.via_remote});
   }
   for (const auto& [_, up] : _unknown_peers) {
     retval.push_back({.poller_id = up.poller_id,

@@ -66,7 +66,6 @@ void stream::negotiate(stream::negotiation_type neg) {
   if (!_negotiate) {
     SPDLOG_LOGGER_INFO(_logger, "BBDO: negotiation disabled.");
     extensions = _get_extension_names(true);
-    return;
   } else
     extensions = _get_extension_names(false);
 

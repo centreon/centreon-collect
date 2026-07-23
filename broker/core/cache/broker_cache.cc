@@ -467,13 +467,11 @@ void broker_cache::apply(
       std::tie(found, inserted) = hg_index.emplace(
           hostgroup, absl::flat_hash_set<uint64_t>{hg.poller_id()});
     } else {
-      auto extracted = hg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(hg.hostgroup_name());
-      obj.set_alias(hg.alias());
-      set.insert(hg.poller_id());
-      hg_index.insert(std::move(extracted));
+      hg_index.modify(found, [&hg](HostgroupContainer::value_type& to_update) {
+        to_update.first->mut_obj().set_name(hg.hostgroup_name());
+        to_update.first->mut_obj().set_alias(hg.alias());
+        to_update.second.insert(hg.poller_id());
+      });
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
@@ -680,13 +678,12 @@ void broker_cache::apply(
       std::tie(found, inserted) = sg_index.emplace(
           servicegroup, absl::flat_hash_set<uint64_t>{sg.poller_id()});
     } else {
-      auto extracted = sg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(sg.servicegroup_name());
-      obj.set_alias(sg.alias());
-      set.insert(sg.poller_id());
-      sg_index.insert(std::move(extracted));
+      sg_index.modify(
+          found, [&sg](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(sg.servicegroup_name());
+            to_update.first->mut_obj().set_alias(sg.alias());
+            to_update.second.insert(sg.poller_id());
+          });
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
@@ -1091,13 +1088,11 @@ void broker_cache::update_servicegroup(
     auto& sg_index = _servicegroups.get<by_id>();
     if (auto found = sg_index.find(sg_id); found != sg_index.end()) {
       // The element already exists, we update it
-      auto extracted = sg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(servicegroup->obj().name());
-      obj.set_alias(servicegroup->obj().alias());
-      set.insert(servicegroup->obj().poller_id());
-      sg_index.insert(std::move(extracted));
+      sg_index.modify(found, [&](ServicegroupContainer::value_type& to_update) {
+        to_update.first->mut_obj().set_name(servicegroup->obj().name());
+        to_update.first->mut_obj().set_alias(servicegroup->obj().alias());
+        to_update.second.insert(servicegroup->obj().poller_id());
+      });
     } else {
       // The element is missing, we create it and insert it
       auto filled_servicegroup = std::make_shared<neb::pb_service_group>();
@@ -1246,17 +1241,19 @@ void broker_cache::update_hostgroup_member(
 
     assert(it->hostgroup->obj().hostgroup_id() == hgm_obj.hostgroup_id());
     if (it->hostgroup->obj().name() != hgm_obj.name()) {
-      auto extracted = _hostgroups.extract(found);
-      std::string old_name = extracted.value().first->mut_obj().name();
-      extracted.value().first->mut_obj().set_name(hgm_obj.name());
-      auto result = _hostgroups.get<by_id>().insert(std::move(extracted));
-      if (!result.inserted) {
-        SPDLOG_LOGGER_ERROR(
-            _logger, "Failed to update the name of the host group {} to '{}'",
-            hgm_obj.hostgroup_id(), hgm_obj.name());
-        extracted.value().first->mut_obj().set_name(std::move(old_name));
-        _hostgroups.get<by_id>().insert(std::move(extracted));
-      }
+      std::string old_name = found->first->obj().name();
+      _hostgroups.modify(
+          found,
+          [&](HostgroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(hgm_obj.name());
+          },
+          [&](HostgroupContainer::value_type& to_rollback) {
+            to_rollback.first->mut_obj().set_name(std::move(old_name));
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "Failed to update the name of the host group {} to '{}'",
+                hgm_obj.hostgroup_id(), hgm_obj.name());
+          });
     }
   } else {
     _host_hostgroups.erase(key);
@@ -1306,18 +1303,19 @@ void broker_cache::update_servicegroup_member(
     assert(it->servicegroup->obj().servicegroup_id() ==
            sgm_obj.servicegroup_id());
     if (it->servicegroup->obj().name() != sgm_obj.name()) {
-      auto extracted = _servicegroups.extract(found);
-      std::string old_name = extracted.value().first->mut_obj().name();
-      extracted.value().first->mut_obj().set_name(sgm_obj.name());
-      auto result = _servicegroups.get<by_id>().insert(std::move(extracted));
-      if (!result.inserted) {
-        SPDLOG_LOGGER_ERROR(
-            _logger,
-            "Failed to update the name of the service group {} to '{}'",
-            sgm_obj.servicegroup_id(), sgm_obj.name());
-        extracted.value().first->mut_obj().set_name(std::move(old_name));
-        _servicegroups.get<by_id>().insert(std::move(extracted));
-      }
+      std::string old_name = found->first->obj().name();
+      _servicegroups.modify(
+          found,
+          [&](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(sgm_obj.name());
+          },
+          [&](ServicegroupContainer::value_type& to_rollback) {
+            to_rollback.first->mut_obj().set_name(std::move(old_name));
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "Failed to update the name of the service group {} to '{}'",
+                sgm_obj.servicegroup_id(), sgm_obj.name());
+          });
     }
   } else {
     _service_servicegroups.erase(key);
