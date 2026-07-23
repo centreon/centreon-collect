@@ -190,6 +190,8 @@ add_library(centagent_lib STATIC
   ${SRC}
 )
 
+target_link_libraries(centagent_lib PUBLIC centreon_file_system)
+
 include_directories(
   ${INCLUDE_DIR}
   ${NATIVE_INC}
@@ -239,7 +241,6 @@ else()
     centreon_common
     centreon_grpc
     centreon_process
-    centreon_file_system
     ctncrypto
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits

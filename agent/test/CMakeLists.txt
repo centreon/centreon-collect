@@ -85,8 +85,6 @@ else()
             centreon_common_timeperiod
             centreon_common
             centreon_process
-            centreon_hexdump
-            centreon_file_system
             ctncrypto
             GTest::gtest
             GTest::gtest_main

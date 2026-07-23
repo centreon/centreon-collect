@@ -117,6 +117,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             centreon_http
             centreon_process
+            centreon_file_system
             centreon_grpc
             centreon_engine_conf
             log_v2
