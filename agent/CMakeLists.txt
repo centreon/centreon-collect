@@ -239,6 +239,7 @@ else()
     centreon_common
     centreon_grpc
     centreon_process
+    centreon_file_system
     ctncrypto
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits

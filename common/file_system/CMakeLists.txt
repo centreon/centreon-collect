@@ -23,7 +23,7 @@ add_definitions(${spdlog_DEFINITIONS})
 # file_system.cc relies on Linux only syscalls (getdents64); the file_watcher is
 # cross platform (inotify on Linux, ReadDirectoryChangesW on Windows).
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(FILE_SYSTEM_SOURCES file_system.cc file_watcher.cc)
+  set(FILE_SYSTEM_SOURCES file_watcher.cc)
 else()
   set(FILE_SYSTEM_SOURCES file_watcher.cc)
 endif()
