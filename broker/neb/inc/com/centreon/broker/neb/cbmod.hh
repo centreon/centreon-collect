@@ -18,6 +18,9 @@
 #ifndef CCB_NEB_CBMOD_HH
 #define CCB_NEB_CBMOD_HH
 #include <filesystem>
+#include <vector>
+
+#include "bbdo/bbdo.pb.h"
 #include "bbdo/bbdo_version.hh"
 // #include "com/centreon/broker/config/applier/cbmod_state.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
@@ -72,6 +75,7 @@ class cbmod {
   void remove_downtime(uint64_t downtime_id);
   void reload();
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  std::vector<NotificationExecute> drain_notification_executes();
   void set_diff_state_applied(const std::string& config_version);
   bool centralized_conf() const;
   void send_engine_conf(

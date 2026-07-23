@@ -175,12 +175,12 @@ void notifier::set_notification_number(int num) {
  *
  * @return A set of contacts to notify.
  */
-std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
+absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     notifications::notification_category cat,
     notifications::reason_type type,
     uint32_t& notification_interval,
     bool& escalated) {
-  std::unordered_set<std::shared_ptr<contact>> retval;
+  absl::flat_hash_set<std::shared_ptr<contact>> retval;
   escalated = false;
   uint32_t notif_interv{_notification_interval};
 

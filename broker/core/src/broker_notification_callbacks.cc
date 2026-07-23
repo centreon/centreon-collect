@@ -19,8 +19,11 @@
 
 #include "com/centreon/broker/broker_notification_callbacks.hh"
 
-#include "broker/core/cache/broker_cache.hh"
+#include <vector>
+
+#include "bbdo/internal.hh"
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::broker {
@@ -231,14 +234,18 @@ notifications::resource_state broker_notification_callbacks::get_state(
 }
 
 /**
- * @brief Select the contacts and actually send the notification.
+ * @brief Select the contacts and dispatch the notification execution to the
+ * poller that supervises the resource (notification model C).
  *
- * @note Not implemented yet on the Broker side. Contact selection, macro
- * expansion and the actual delivery are still to be ported (the Engine
- * counterpart relies on the runtime @c notifier, @c contact and @c
- * nagios_macros objects that do not exist on Broker). For now this returns an
- * empty result so the notification library links and can be exercised in unit
- * tests.
+ * On the Broker side the DECISION (contact selection + escalations) is made
+ * here, then only the EXECUTION (macro expansion + notification command launch)
+ * is dispatched to the poller through a pb_notification_execute event; the
+ * poller holds the macro context. The event is broadcast: every poller receives
+ * it but only the one supervising the resource acts on it.
+ *
+ * @note Brick 1 (dispatch channel) only. The real contact selection over the
+ * broker cache is not ported yet (brick 3); for now a fixed contact list is
+ * injected so the channel can be exercised end to end.
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.
@@ -250,26 +257,73 @@ notifications::resource_state broker_notification_callbacks::get_state(
  * @param message The notification message/comment.
  * @param options The notification options.
  *
- * @return An empty delivery result (no contact notified).
+ * @return The (injected) contacts reported as notified.
  */
 notifications::delivery_result broker_notification_callbacks::deliver(
     uint64_t host_id,
     uint64_t service_id,
-    notifications::notification_category cat [[maybe_unused]],
-    notifications::reason_type type [[maybe_unused]],
-    uint64_t notification_id [[maybe_unused]],
-    uint32_t notification_number [[maybe_unused]],
-    const std::string& author [[maybe_unused]],
-    const std::string& message [[maybe_unused]],
-    notifications::notification_option options [[maybe_unused]]) {
-  /* TODO(MON-187019): implement Broker-side contact selection, macro expansion
-   * and delivery. */
-  SPDLOG_LOGGER_WARN(
+    notifications::notification_category cat,
+    notifications::reason_type type,
+    uint64_t notification_id,
+    uint32_t notification_number,
+    const std::string& author,
+    const std::string& message,
+    notifications::notification_option options) {
+  notifications::delivery_result result;
+
+  /* Resolve the poller supervising the resource: the execution is dispatched to
+   * it (it holds the resource state and config needed for macro expansion). */
+  auto& cache = config::applier::state::instance().cache();
+  auto host = cache.host(host_id);
+  if (!host) {
+    SPDLOG_LOGGER_WARN(
+        _logger,
+        "notification for host {} unknown to the broker cache: dropped",
+        host_id);
+    return result;
+  }
+  uint64_t poller_id = host->obj().instance_id();
+
+  /* TODO(MON-187019) brick 1 placeholder: contact selection (contacts,
+   * contactgroups, escalations, per-contact filtering) is not ported to the
+   * broker cache yet. A fixed contact list is injected so the dispatch channel
+   * can be exercised end to end; brick 3 replaces this with the real
+   * selection and the escalation-adjusted interval. */
+  static const std::vector<std::string> injected_contacts{"John_Doe"};
+
+  auto evt = std::make_shared<bbdo::pb_notification_execute>();
+  /* Broadcast (destination_id kept as a hint for a future targeted routing):
+   * every poller receives the event, only the supervisor acts on it. */
+  evt->source_id = 0;
+  evt->destination_id = static_cast<uint32_t>(poller_id);
+  auto& obj = evt->mut_obj();
+  obj.set_host_id(host_id);
+  obj.set_service_id(service_id);
+  obj.set_category(static_cast<uint32_t>(cat));
+  obj.set_reason_type(static_cast<uint32_t>(type));
+  obj.set_notification_id(notification_id);
+  obj.set_notification_number(notification_number);
+  obj.set_escalated(false);
+  obj.set_author(author);
+  obj.set_message(message);
+  obj.set_options(static_cast<uint32_t>(options));
+  for (const auto& c : injected_contacts)
+    obj.add_contacts(c);
+
+  multiplexing::publisher pblshr;
+  pblshr.write(evt);
+
+  SPDLOG_LOGGER_INFO(
       _logger,
-      "Broker-side notification delivery is not implemented yet: notification "
-      "for resource ({}, {}) is dropped",
-      host_id, service_id);
-  return notifications::delivery_result{};
+      "dispatched notification execution for resource ({}, {}) to poller {} "
+      "with {} contact(s)",
+      host_id, service_id, poller_id, injected_contacts.size());
+
+  /* Report the injected contacts as notified so the notification_manager
+   * bookkeeping (last_notification, recovery routing) works end to end. */
+  result.notified_contacts.insert(injected_contacts.begin(),
+                                  injected_contacts.end());
+  return result;
 }
 
 /**

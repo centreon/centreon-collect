@@ -21,15 +21,13 @@
 
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/defines.hh"
-#include "com/centreon/engine/neberrors.hh"
-#include "common/timeperiods/timeperiod.hh"
+#include "com/centreon/engine/notification_execution.hh"
 #include "common/timeperiods/timezone.hh"
 
-using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 namespace notifications = com::centreon::common::notifications;
+
+namespace com::centreon::engine {
 
 namespace {
 /**
@@ -154,7 +152,7 @@ notifications::delivery_result engine_notification_callbacks::deliver(
    * consults the manager through the notifier's accessors. */
   bool escalated;
   uint32_t notification_interval = 0;
-  std::unordered_set<std::shared_ptr<contact>> to_notify =
+  absl::flat_hash_set<std::shared_ptr<contact>> to_notify =
       n->get_contacts_to_notify(cat, type, notification_interval, escalated);
   result.escalated = escalated;
   /* Convert the escalation-adjusted interval to seconds, as the notification
@@ -162,105 +160,9 @@ notifications::delivery_result engine_notification_callbacks::deliver(
   result.notification_interval = std::chrono::seconds(
       notification_interval * pb_indexed_config.state().interval_length());
 
-  nagios_macros* mac(get_global_macros());
-
-  /* Grab the macro variables */
-  n->grab_macros_r(mac);
-
-  contact* author_contact{nullptr};
-  contact_map::const_iterator it{contact::contacts.find(author)};
-  if (it != contact::contacts.end())
-    author_contact = it->second.get();
-  else {
-    for (contact_map::const_iterator cit{contact::contacts.begin()},
-         cend{contact::contacts.end()};
-         cit != cend; ++cit) {
-      if (cit->second->get_alias() == author) {
-        author_contact = cit->second.get();
-        break;
-      }
-    }
-  }
-
-  /* Get author and comment macros */
-  mac->x[MACRO_NOTIFICATIONAUTHOR] = author;
-  mac->x[MACRO_NOTIFICATIONCOMMENT] = message;
-  if (author_contact) {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = author_contact->get_name();
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = author_contact->get_alias();
-  } else {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "";
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "";
-  }
-
-  /* set the notification type macro */
-  switch (type) {
-    case notifications::reason_acknowledgement:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "ACKNOWLEDGEMENT";
-      break;
-    case notifications::reason_flappingstart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTART";
-      break;
-    case notifications::reason_flappingstop:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTOP";
-      break;
-    case notifications::reason_flappingdisabled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGDISABLED";
-      break;
-    case notifications::reason_downtimestart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMESTART";
-      break;
-    case notifications::reason_downtimeend:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMEEND";
-      break;
-    case notifications::reason_downtimecancelled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMECANCELLED";
-      break;
-    case notifications::reason_custom:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "CUSTOM";
-      break;
-    case notifications::reason_recovery:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "RECOVERY";
-      break;
-    default:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "PROBLEM";
-      break;
-  }
-
-  if (n->get_notifier_type() == notifications::host_notification) {
-    mac->x[MACRO_HOSTNOTIFICATIONNUMBER] = std::to_string(notification_number);
-    /* The $NOTIFICATIONNUMBER$ macro is maintained for backward compatibility
-     */
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_HOSTNOTIFICATIONNUMBER];
-    mac->x[MACRO_NOTIFICATIONISESCALATED] = std::to_string(escalated);
-    mac->x[MACRO_HOSTNOTIFICATIONID] = std::to_string(notification_id);
-  } else {
-    mac->x[MACRO_SERVICENOTIFICATIONNUMBER] =
-        std::to_string(notification_number);
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_SERVICENOTIFICATIONNUMBER];
-    mac->x[MACRO_NOTIFICATIONISESCALATED] = std::to_string(escalated);
-    mac->x[MACRO_SERVICENOTIFICATIONID] = std::to_string(notification_id);
-  }
-
-  for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
-    contact* ctc = ctc_ptr.get();
-
-    /* grab the macro variables for this contact */
-    grab_contact_macros_r(mac, ctc);
-    /* clear summary macros (they are customized for each contact) */
-    clear_summary_macros_r(mac);
-
-    if (n->notify_contact(mac, ctc, type, author.c_str(), message.c_str(),
-                          options, escalated) == OK) {
-      result.notified_contacts.insert(ctc->get_name());
-      if (mac->x[MACRO_NOTIFICATIONRECIPIENTS].empty())
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS] = ctc->get_name();
-      else {
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(",");
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(ctc->get_name());
-      }
-    }
-  }
+  result.notified_contacts = run_notification_commands(
+      n, to_notify, type, notification_id, notification_number, escalated,
+      author, message, options);
 
   return result;
 }
@@ -278,3 +180,5 @@ void engine_notification_callbacks::on_notification_number_changed(
   if (n)
     n->update_status(notifications::STATUS_NOTIFICATION_NUMBER);
 }
+
+}  // namespace com::centreon::engine

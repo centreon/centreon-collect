@@ -20,6 +20,8 @@
 #ifndef CCE_NOTIFIER_HH
 #define CCE_NOTIFIER_HH
 
+#include <absl/container/flat_hash_set.h>
+
 #include "bbdo/neb.pb.h"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/contactgroup.hh"
@@ -205,7 +207,7 @@ class notifier : public checkable {
       common::notifications::notification_category cat,
       common::notifications::reason_type type,
       common::notifications::notification_option options);
-  std::unordered_set<std::shared_ptr<contact>> get_contacts_to_notify(
+  absl::flat_hash_set<std::shared_ptr<contact>> get_contacts_to_notify(
       common::notifications::notification_category cat,
       common::notifications::reason_type type,
       uint32_t& notification_interval,
