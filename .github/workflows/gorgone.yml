@@ -255,453 +255,463 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
 
-  dockerize:
-    needs: [get-environment, changes, package]
-    if: |
-      needs.changes.outputs.trigger_packaging == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
-    name: dockerize ${{ matrix.operating_system }}
-    env:
-      project: gorgone-testing
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (dockerize)
+#   dockerize:
+#     needs: [get-environment, changes, package]
+#     if: |
+#       needs.changes.outputs.trigger_packaging == 'true' &&
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       needs.get-environment.outputs.stability != 'stable' &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled')
+#     runs-on: ubuntu-24.04
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
+#     name: dockerize ${{ matrix.operating_system }}
+#     env:
+#       project: gorgone-testing
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+#
+#       - name: Login to registry
+#         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+#         with:
+#           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+#           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+#           password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+#
+#       - name: Parse distrib name
+#         id: parse-distrib
+#         uses: ./.github/actions/parse-distrib
+#         with:
+#           distrib: ${{ matrix.operating_system }}
+#
+#       - name: Get FROM image tag
+#         id: from_image_version
+#         env:
+#           MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+#           OPERATING_SYSTEM: ${{ matrix.operating_system }}
+#           REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+#           GH_HEAD_REF: ${{ github.head_ref || github.ref_name }}
+#           GH_BASE_REF: ${{ github.base_ref || github.ref_name }}
+#           PROJECT: ${{ env.project }}
+#         run: |
+#           FROM_IMAGE_VERSION="$MAJOR_VERSION"
+#           FROM_IMAGE="gorgone-testing-dependencies-$OPERATING_SYSTEM"
+#           IMAGE_TAG_EXISTS=$(docker manifest inspect "$REGISTRY_URL/${FROM_IMAGE}:$GH_HEAD_REF" >/dev/null 2>&1 && echo yes || echo no)
+#           if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
+#             FROM_IMAGE_VERSION="$GH_HEAD_REF"
+#             echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image $PROJECT-$OPERATING_SYSTEM."
+#           else
+#             IMAGE_TAG_EXISTS=$(docker manifest inspect "$REGISTRY_URL/${FROM_IMAGE}:$GH_BASE_REF" >/dev/null 2>&1 && echo yes || echo no)
+#             if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
+#               FROM_IMAGE_VERSION="$GH_BASE_REF"
+#               echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image $PROJECT-$OPERATING_SYSTEM."
+#             fi
+#           fi
+#
+#           echo "from_image_version=$FROM_IMAGE_VERSION" >> $GITHUB_OUTPUT
+#         shell: bash
+#
+#       - name: get cached gorgone and perl-libs package
+#         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+#         with:
+#           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
+#           key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.repo_distrib_name }}
+#           fail-on-cache-miss: true
+#
+#       - env:
+#           PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
+#         run: |
+#           mkdir packages-centreon-gorgone
+#           mv *."$PACKAGE_EXTENSION" packages-centreon-gorgone/
+#         shell: bash
+#
+#       - name: Get linked branch of centreon repository
+#         id: centreon_repo_linked_branch
+#         env:
+#           MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+#           GH_REF: ${{ github.head_ref || github.ref_name }}
+#         run: |
+#           CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${MAJOR_VERSION}\.x$" >/dev/null 2>&1 && echo "dev-${MAJOR_VERSION}.x" || echo develop)
+#
+#           GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${GH_REF}$" >/dev/null 2>&1 && echo yes || echo no)
+#           if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
+#             CENTREON_REPO_LINKED_BRANCH="$GH_REF"
+#           fi
+#
+#           echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
+#         shell: bash
+#
+#       - name: Checkout sources
+#         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+#         with:
+#           repository: centreon/centreon
+#           path: centreon
+#           ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
+#           sparse-checkout: |
+#             centreon/www/install/createTables.sql
+#             centreon/www/install/createTablesCentstorage.sql
+#
+#       - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+#
+#       - name: Docker build and push
+#         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+#         env:
+#           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+#           DOCKER_BUILD_SUMMARY: false
+#           DOCKER_BUILD_RECORD_UPLOAD: false
+#         with:
+#           context: .
+#           file: .github/docker/gorgone/${{ matrix.operating_system }}/Dockerfile.testing
+#           build-args: |
+#             "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
+#             "FROM_IMAGE_VERSION=${{ steps.from_image_version.outputs.from_image_version }}"
+#           pull: true
+#           push: true
+#           load: true
+#           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+#
+#       - name: Store image in local archive
+#         env:
+#           REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+#           OPERATING_SYSTEM: ${{ matrix.operating_system }}
+#           GH_REF: ${{ github.head_ref || github.ref_name }}
+#         run: |
+#           docker tag "$REGISTRY_URL/gorgone-testing-$OPERATING_SYSTEM:$GH_REF" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
+#           mkdir -p docker-image
+#           docker save --output "./docker-image/gorgone-testing-$OPERATING_SYSTEM.tar" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
+#         shell: bash
+#
+#       - name: Clear previous docker image from cache
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           OPERATING_SYSTEM: ${{ matrix.operating_system }}
+#           GH_REF: ${{ github.head_ref || github.ref_name }}
+#         run: |
+#           curl \
+#             -X DELETE \
+#             -H "Accept: application/vnd.github.v3+json" \
+#             -H "Authorization: token $GITHUB_TOKEN" \
+#             "https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-$OPERATING_SYSTEM-$GH_REF"
+#         shell: bash
+#
+#       - name: Store docker image in cache
+#         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+#         with:
+#           path: ./docker-image
+#           key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
 
-      - name: Login to registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
-          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (robot-test)
+#   robot-test:
+#     needs: [get-environment, changes, dockerize]
+#     if: |
+#       github.repository == 'centreon/centreon-collect' &&
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       needs.get-environment.outputs.stability != 'stable' &&
+#       needs.changes.outputs.trigger_e2e_testing == 'true' &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled')
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
+#     name: robot-test ${{ matrix.operating_system }}
+#     uses: ./.github/workflows/robot-test-gorgone.yml
+#     with:
+#       distrib: ${{ matrix.operating_system }}
+#     secrets:
+#       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+#       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-      - name: Parse distrib name
-        id: parse-distrib
-        uses: ./.github/actions/parse-distrib
-        with:
-          distrib: ${{ matrix.operating_system }}
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (deliver-sources)
+#   deliver-sources:
+#     runs-on: centreon-common
+#     needs: [get-environment, package]
+#     if: |
+#       github.event_name != 'workflow_dispatch' &&
+#       needs.get-environment.outputs.stability == 'stable' &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled') &&
+#       needs.get-environment.outputs.is_cloud == 'false'
+#
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+#
+#       - name: Deliver sources
+#         uses: ./.github/actions/release-sources
+#         with:
+#           bucket_directory: centreon-gorgone
+#           module_directory: gorgone
+#           module_name: centreon-gorgone
+#           major_version: ${{ needs.get-environment.outputs.major_version }}
+#           minor_version: ${{ needs.get-environment.outputs.minor_version }}
+#           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
-      - name: Get FROM image tag
-        id: from_image_version
-        env:
-          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
-          OPERATING_SYSTEM: ${{ matrix.operating_system }}
-          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          GH_HEAD_REF: ${{ github.head_ref || github.ref_name }}
-          GH_BASE_REF: ${{ github.base_ref || github.ref_name }}
-          PROJECT: ${{ env.project }}
-        run: |
-          FROM_IMAGE_VERSION="$MAJOR_VERSION"
-          FROM_IMAGE="gorgone-testing-dependencies-$OPERATING_SYSTEM"
-          IMAGE_TAG_EXISTS=$(docker manifest inspect "$REGISTRY_URL/${FROM_IMAGE}:$GH_HEAD_REF" >/dev/null 2>&1 && echo yes || echo no)
-          if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
-            FROM_IMAGE_VERSION="$GH_HEAD_REF"
-            echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image $PROJECT-$OPERATING_SYSTEM."
-          else
-            IMAGE_TAG_EXISTS=$(docker manifest inspect "$REGISTRY_URL/${FROM_IMAGE}:$GH_BASE_REF" >/dev/null 2>&1 && echo yes || echo no)
-            if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
-              FROM_IMAGE_VERSION="$GH_BASE_REF"
-              echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image $PROJECT-$OPERATING_SYSTEM."
-            fi
-          fi
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (deliver-rpm)
+#   deliver-rpm:
+#     runs-on: ubuntu-24.04
+#     needs: [get-environment, unit-test-perl, robot-test, changes]
+#     if: |
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       needs.changes.outputs.trigger_delivery == 'true' &&
+#       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+#       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled')
+#
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         distrib: [el9, el10]
+#
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+#
+#       - name: Delivery
+#         uses: ./.github/actions/rpm-delivery
+#         with:
+#           module_name: gorgone
+#           distrib: ${{ matrix.distrib }}
+#           version: ${{ needs.get-environment.outputs.major_version }}
+#           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+#           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+#           stability: ${{ needs.get-environment.outputs.stability }}
+#           release_type: ${{ needs.get-environment.outputs.release_type }}
+#           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+#           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+#           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
-          echo "from_image_version=$FROM_IMAGE_VERSION" >> $GITHUB_OUTPUT
-        shell: bash
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (deliver-rpm-pulp)
+#   deliver-rpm-pulp:
+#     continue-on-error: true
+#     runs-on: centreon-ubuntu-22.04
+#     needs: [get-environment, unit-test-perl, robot-test, changes]
+#     if: |
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       needs.changes.outputs.trigger_delivery == 'true' &&
+#       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+#       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled')
+#
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         distrib: [el9, el10]
+#
+#     name: deliver ${{ matrix.distrib }} (pulp)
+#     permissions:
+#       contents: read
+#       id-token: write
+#
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+#
+#       - name: Deliver packages on Pulp
+#         id: deliver_rpm_pulp
+#         uses: ./.github/actions/package-delivery-pulp
+#         continue-on-error: true
+#         with:
+#           module_name: gorgone
+#           distrib: ${{ matrix.distrib }}
+#           version: ${{ needs.get-environment.outputs.major_version }}
+#           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+#           stability: ${{ needs.get-environment.outputs.stability }}
+#           release_type: ${{ needs.get-environment.outputs.release_type }}
+#           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+#           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+#           pulp_url: ${{ vars.PULP_API_URL }}
+#           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+#           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+#
+#       - name: Warn if the Pulp delivery failed
+#         if: steps.deliver_rpm_pulp.outcome == 'failure'
+#         shell: bash
+#         run: |
+#           echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
-      - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
-          key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.repo_distrib_name }}
-          fail-on-cache-miss: true
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (deliver-deb)
+#   deliver-deb:
+#     runs-on: ubuntu-24.04
+#     needs: [get-environment, unit-test-perl, robot-test, changes]
+#     if: |
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       needs.changes.outputs.trigger_delivery == 'true' &&
+#       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled') &&
+#       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+#
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         distrib: [trixie]  # No ubuntu in 24.10, 24.11 or later for now
+#
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+#
+#       - name: Delivery
+#         uses: ./.github/actions/deb-delivery
+#         with:
+#           module_name: gorgone
+#           distrib: ${{ matrix.distrib }}
+#           version: ${{ needs.get-environment.outputs.major_version }}
+#           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+#           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+#           stability: ${{ needs.get-environment.outputs.stability }}
+#           release_type: ${{ needs.get-environment.outputs.release_type }}
+#           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-      - env:
-          PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
-        run: |
-          mkdir packages-centreon-gorgone
-          mv *."$PACKAGE_EXTENSION" packages-centreon-gorgone/
-        shell: bash
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (deliver-deb-pulp)
+#   deliver-deb-pulp:
+#     continue-on-error: true
+#     runs-on: centreon-ubuntu-22.04
+#     needs: [get-environment, unit-test-perl, robot-test, changes]
+#     if: |
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       needs.changes.outputs.trigger_delivery == 'true' &&
+#       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled') &&
+#       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+#
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         distrib: [trixie]  # No ubuntu in 24.10, 24.11 or later for now
+#
+#     name: deliver ${{ matrix.distrib }} (pulp)
+#     permissions:
+#       contents: read
+#       id-token: write
+#
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+#
+#       - name: Deliver packages on Pulp
+#         id: deliver_deb_pulp
+#         uses: ./.github/actions/package-delivery-pulp
+#         continue-on-error: true
+#         with:
+#           module_name: gorgone
+#           distrib: ${{ matrix.distrib }}
+#           version: ${{ needs.get-environment.outputs.major_version }}
+#           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+#           stability: ${{ needs.get-environment.outputs.stability }}
+#           release_type: ${{ needs.get-environment.outputs.release_type }}
+#           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+#           pulp_url: ${{ vars.PULP_API_URL }}
+#           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+#           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+#
+#       - name: Warn if the Pulp delivery failed
+#         if: steps.deliver_deb_pulp.outcome == 'failure'
+#         shell: bash
+#         run: |
+#           echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
-      - name: Get linked branch of centreon repository
-        id: centreon_repo_linked_branch
-        env:
-          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
-          GH_REF: ${{ github.head_ref || github.ref_name }}
-        run: |
-          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${MAJOR_VERSION}\.x$" >/dev/null 2>&1 && echo "dev-${MAJOR_VERSION}.x" || echo develop)
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (promote)
+#   promote:
+#     needs: [get-environment, deliver-rpm, deliver-deb]
+#     if: |
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled') &&
+#       github.repository == 'centreon/centreon-collect'
+#
+#     runs-on: ubuntu-24.04
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         distrib: [el9, el10, trixie]
+#
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+#
+#       - name: Promote ${{ matrix.distrib }} to stable
+#         uses: ./.github/actions/promote-to-stable
+#         with:
+#           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+#           module_name: gorgone
+#           distrib: ${{ matrix.distrib }}
+#           major_version: ${{ needs.get-environment.outputs.major_version }}
+#           minor_version: ${{ needs.get-environment.outputs.minor_version }}
+#           stability: ${{ needs.get-environment.outputs.stability }}
+#           github_ref_name: ${{ github.ref_name }}
+#           release_type: ${{ needs.get-environment.outputs.release_type }}
+#           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${GH_REF}$" >/dev/null 2>&1 && echo yes || echo no)
-          if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
-            CENTREON_REPO_LINKED_BRANCH="$GH_REF"
-          fi
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (promote-pulp)
+#   promote-pulp:
+#     continue-on-error: true
+#     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
+#     if: |
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled') &&
+#       github.repository == 'centreon/centreon-collect'
+#
+#     runs-on: centreon-ubuntu-22.04
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         distrib: [el9, el10, trixie]
+#     permissions:
+#       contents: read
+#       id-token: write
+#
+#     steps:
+#       - name: Checkout sources
+#         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+#
+#       - name: Promote ${{ matrix.distrib }} to stable on Pulp
+#         id: promote_pulp
+#         uses: ./.github/actions/promote-to-stable-pulp
+#         continue-on-error: true
+#         with:
+#           module_name: gorgone
+#           distrib: ${{ matrix.distrib }}
+#           major_version: ${{ needs.get-environment.outputs.major_version }}
+#           stability: ${{ needs.get-environment.outputs.stability }}
+#           release_type: ${{ needs.get-environment.outputs.release_type }}
+#           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+#           pulp_url: ${{ vars.PULP_API_URL }}
+#           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+#           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+#
+#       - name: Warn if the Pulp promotion failed
+#         if: steps.promote_pulp.outcome == 'failure'
+#         shell: bash
+#         run: |
+#           echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
 
-          echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: centreon/centreon
-          path: centreon
-          ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
-          sparse-checkout: |
-            centreon/www/install/createTables.sql
-            centreon/www/install/createTablesCentstorage.sql
-
-      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-
-      - name: Docker build and push
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        env:
-          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_RECORD_UPLOAD: false
-        with:
-          context: .
-          file: .github/docker/gorgone/${{ matrix.operating_system }}/Dockerfile.testing
-          build-args: |
-            "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
-            "FROM_IMAGE_VERSION=${{ steps.from_image_version.outputs.from_image_version }}"
-          pull: true
-          push: true
-          load: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
-
-      - name: Store image in local archive
-        env:
-          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          OPERATING_SYSTEM: ${{ matrix.operating_system }}
-          GH_REF: ${{ github.head_ref || github.ref_name }}
-        run: |
-          docker tag "$REGISTRY_URL/gorgone-testing-$OPERATING_SYSTEM:$GH_REF" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
-          mkdir -p docker-image
-          docker save --output "./docker-image/gorgone-testing-$OPERATING_SYSTEM.tar" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
-        shell: bash
-
-      - name: Clear previous docker image from cache
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPERATING_SYSTEM: ${{ matrix.operating_system }}
-          GH_REF: ${{ github.head_ref || github.ref_name }}
-        run: |
-          curl \
-            -X DELETE \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-$OPERATING_SYSTEM-$GH_REF"
-        shell: bash
-
-      - name: Store docker image in cache
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: ./docker-image
-          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
-
-  robot-test:
-    needs: [get-environment, changes, dockerize]
-    if: |
-      github.repository == 'centreon/centreon-collect' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
-      needs.changes.outputs.trigger_e2e_testing == 'true' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
-    name: robot-test ${{ matrix.operating_system }}
-    uses: ./.github/workflows/robot-test-gorgone.yml
-    with:
-      distrib: ${{ matrix.operating_system }}
-    secrets:
-      registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-      registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-
-  deliver-sources:
-    runs-on: centreon-common
-    needs: [get-environment, package]
-    if: |
-      github.event_name != 'workflow_dispatch' &&
-      needs.get-environment.outputs.stability == 'stable' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      needs.get-environment.outputs.is_cloud == 'false'
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Deliver sources
-        uses: ./.github/actions/release-sources
-        with:
-          bucket_directory: centreon-gorgone
-          module_directory: gorgone
-          module_name: centreon-gorgone
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
-
-  deliver-rpm:
-    runs-on: ubuntu-24.04
-    needs: [get-environment, unit-test-perl, robot-test, changes]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el9, el10]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Delivery
-        uses: ./.github/actions/rpm-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
-          centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
-
-  deliver-rpm-pulp:
-    continue-on-error: true
-    runs-on: centreon-ubuntu-22.04
-    needs: [get-environment, unit-test-perl, robot-test, changes]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el9, el10]
-
-    name: deliver ${{ matrix.distrib }} (pulp)
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Deliver packages on Pulp
-        id: deliver_rpm_pulp
-        uses: ./.github/actions/package-delivery-pulp
-        continue-on-error: true
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp delivery failed
-        if: steps.deliver_rpm_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
-
-  deliver-deb:
-    runs-on: ubuntu-24.04
-    needs: [get-environment, unit-test-perl, robot-test, changes]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
-
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [trixie]  # No ubuntu in 24.10, 24.11 or later for now
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Delivery
-        uses: ./.github/actions/deb-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
-  deliver-deb-pulp:
-    continue-on-error: true
-    runs-on: centreon-ubuntu-22.04
-    needs: [get-environment, unit-test-perl, robot-test, changes]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
-
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [trixie]  # No ubuntu in 24.10, 24.11 or later for now
-
-    name: deliver ${{ matrix.distrib }} (pulp)
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Deliver packages on Pulp
-        id: deliver_deb_pulp
-        uses: ./.github/actions/package-delivery-pulp
-        continue-on-error: true
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp delivery failed
-        if: steps.deliver_deb_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
-
-  promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el9, el10, trixie]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Promote ${{ matrix.distrib }} to stable
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
-  promote-pulp:
-    continue-on-error: true
-    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    runs-on: centreon-ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el9, el10, trixie]
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Promote ${{ matrix.distrib }} to stable on Pulp
-        id: promote_pulp
-        uses: ./.github/actions/promote-to-stable-pulp
-        continue-on-error: true
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp promotion failed
-        if: steps.promote_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
-
-  set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    uses: ./.github/workflows/set-pull-request-skip-label.yml
+  # [release-bump test — TO REVERT] disabled: downstream of packaging (set-skip-label)
+#   set-skip-label:
+#     needs: [get-environment, deliver-rpm, deliver-deb, promote]
+#     if: |
+#       needs.get-environment.outputs.skip_workflow == 'false' &&
+#       ! cancelled() &&
+#       ! contains(needs.*.result, 'failure') &&
+#       ! contains(needs.*.result, 'cancelled')
+#     uses: ./.github/workflows/set-pull-request-skip-label.yml
