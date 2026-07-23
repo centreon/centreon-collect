@@ -180,7 +180,8 @@ TEST_F(LuaTest, IncompleteScript) {
 TEST_F(LuaTest, SimpleScript) {
   std::filesystem::remove("/tmp/test.log");
   absl::btree_map<std::string, lua::variant> conf;
-  conf.insert({"address", "127.0.0.1"});
+  using namespace std::string_literals;
+  conf.insert({"address", "127.0.0.1"s});
   conf.insert({"port", 8857});
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   char tmp[256];
@@ -240,11 +241,12 @@ TEST_F(LuaTest, SimpleScript) {
 // function.
 TEST_F(LuaTest, WriteAcknowledgement) {
   std::filesystem::remove("/tmp/test.log");
+  using namespace std::string_literals;
   absl::btree_map<std::string, lua::variant> conf;
-  conf.insert({"address", "127.0.0.1"});
+  conf.insert({"address", "127.0.0.1"s});
   conf.insert({"double", 3.14159265358979323846});
   conf.insert({"port", 8857});
-  conf.insert({"name", "test-centreon"});
+  conf.insert({"name", "test-centreon"s});
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
 
