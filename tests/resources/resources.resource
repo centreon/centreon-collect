@@ -9,6 +9,7 @@ Library     Common.py
 ${BROKER_LOG}       ${VarRoot}/log/centreon-broker
 ${BROKER_LIB}       ${VarRoot}/lib/centreon-broker
 ${ENGINE_LOG}       ${VarRoot}/log/centreon-engine
+${ENGINE_LIB}       ${VarRoot}/lib/centreon-engine
 ${SCRIPTS}          ${CURDIR}${/}scripts${/}
 ${centralLog}       ${BROKER_LOG}/central-broker-master.log
 ${moduleLog0}       ${BROKER_LOG}/central-module-master0.log
@@ -466,6 +467,8 @@ Ctn Save Logs
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
+    Copy Directory    ${BROKER_LIB}/central-broker-master  ${failDir}/var/lib/centreon-broker
+    Copy Directory    ${ENGINE_LIB}                    ${failDir}/var/lib/centreon-engine
     Move Files    /tmp/lua*.log    ${failDir}
     Move Files    /tmp/mariadb.log    ${failDir}
     Move Files    /tmp/tcpdump.pcap    ${failDir}
