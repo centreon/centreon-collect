@@ -574,6 +574,11 @@ jobs:
           fi
         shell: bash
 
+      - name: Compute build date
+        id: build-date
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
       - name: Build and push image
         id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -589,6 +594,11 @@ jobs:
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
             "STABILITY=${{ needs.get-environment.outputs.stability }}"
+            "BUILD_DATE=${{ steps.build-date.outputs.date }}"
+            "BUILD_VERSION=${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}-${{ needs.get-environment.outputs.release }}"
+            "PACKAGE_SOURCES=centreon-collect ${{ matrix.image }} (Debian ${{ matrix.distrib }})"
+          sbom: true
+          provenance: mode=max
           pull: true
           push: true
           # Disabled: BuildKit's own attestation manifests would make this
@@ -724,6 +734,144 @@ jobs:
           path: /tmp/centreon-engine-config-wiring-test.log
           retention-days: 1
 
+  docker-trivy-cves:
+    needs: [get-environment, dockerize-engine-broker]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-engine-broker.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+    name: docker trivy cves ${{ matrix.image }}-${{ matrix.distrib }}
+    permissions:
+      contents: read
+    env:
+      SCAN_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Login to registry
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Run Trivy CVE scan (informational)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
+          format: json
+          output: cve-report-${{ matrix.image }}-${{ matrix.distrib }}.json
+          exit-code: '0'
+
+      - name: Write CVE summary
+        env:
+          REPORT: cve-report-${{ matrix.image }}-${{ matrix.distrib }}.json
+          IMAGE: ${{ env.SCAN_IMAGE }}
+        run: |
+          count_sev() {
+            jq --arg sev "$1" '[.Results[]?.Vulnerabilities[]?] | group_by(.VulnerabilityID) | map(.[0]) | map(select(.Severity==$sev)) | length' "$REPORT"
+          }
+          badge() {
+            echo -n "![${1} ${2}](https://img.shields.io/badge/${1}-${2}-${3})"
+          }
+          critical=$(count_sev CRITICAL)
+          high=$(count_sev HIGH)
+          medium=$(count_sev MEDIUM)
+          low=$(count_sev LOW)
+          unknown=$(count_sev UNKNOWN)
+          {
+            echo "### Trivy CVE scan — ${{ matrix.image }}-${{ matrix.distrib }}"
+            echo
+            echo "_ignore-unfixed: true — counts below are fixable CVEs only (a fix is available upstream)._"
+            echo
+            echo "\`${IMAGE}\`"
+            echo
+            badge CRITICAL "$critical" 8b0000
+            echo -n ' '
+            badge HIGH "$high" e05d44
+            echo -n ' '
+            badge MEDIUM "$medium" fe7d37
+            echo -n ' '
+            badge LOW "$low" dfb317
+            echo -n ' '
+            badge UNKNOWN "$unknown" 9f9f9f
+            echo
+            echo
+            high_crit=$(( high + critical ))
+            if [ "$high_crit" -eq 0 ]; then
+              echo "No fixable CRITICAL/HIGH vulnerability found. ✅"
+            else
+              echo "**${high_crit} fixable CRITICAL/HIGH unique CVE(s)** — detail below."
+              echo
+              echo "| CVE | Severity | Status | Fixed version | Affected package(s) |"
+              echo "| --- | --- | --- | --- | --- |"
+              jq -r '
+                [.Results[]?.Vulnerabilities[]?] as $vulns |
+                ($vulns | group_by(.VulnerabilityID) | map({
+                  id: .[0].VulnerabilityID,
+                  severity: .[0].Severity,
+                  status: (.[0].Status // "affected"),
+                  fixed: ([.[].FixedVersion] | map(select(. != null and . != "")) | unique | join(", ")),
+                  pkgs: ([.[].PkgName] | unique | join(", "))
+                })) | map(select(.severity=="CRITICAL" or .severity=="HIGH")) | sort_by(.severity) | .[] |
+                "| [\(.id)](https://avd.aquasec.com/nvd/\(.id | ascii_downcase)) | \(.severity) | \(.status) | \(if .fixed == "" then "—" else .fixed end) | \(.pkgs) |"
+              ' "$REPORT"
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+      - name: Upload CVE report artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: cve-report-${{ matrix.image }}-${{ matrix.distrib }}
+          path: cve-report-*.json
+          retention-days: 30
+
+      - name: Generate SBOM (CycloneDX format)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          format: cyclonedx
+          output: sbom-${{ matrix.image }}-${{ matrix.distrib }}-cyclonedx.json
+
+      - name: Generate SBOM (SPDX format)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          format: spdx-json
+          output: sbom-${{ matrix.image }}-${{ matrix.distrib }}-spdx.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: sbom-${{ matrix.image }}-${{ matrix.distrib }}
+          path: sbom-*.json
+          retention-days: 30
+
+      - name: Trivy info message
+        env:
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
+        run: |
+          if [[ "$STABILITY" == "stable" ]]; then
+            echo "::notice::Trivy CVE scan complete (stable build). Review critical/high CVEs above; consider resolving before Pulp promotion."
+          else
+            echo "::notice::Trivy CVE scan complete (unstable build). SBOMs uploaded as artifacts for audit trail."
+          fi
+        shell: bash
+
   promote-docker-tag:
     # Handles both mutually-exclusive cases produced by "Compute Docker tag":
     # the develop floating tag (additional_tag) and the deterministic
@@ -739,6 +887,7 @@ jobs:
         dockerize-engine-broker,
         docker-boot-test,
         docker-config-wiring-test,
+        docker-trivy-cves,
       ]
     if: |
       ! cancelled() &&
