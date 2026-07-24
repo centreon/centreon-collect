@@ -69,9 +69,7 @@ monitoring_stream::monitoring_stream(
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
       _pending_request(0),
-      _storage_db_cfg(storage_db_cfg),
-      _forced_svc_checks_timer{com::centreon::common::pool::io_context()},
-      _forced_svc_checks_timer_stopped{false} {
+      _storage_db_cfg(storage_db_cfg) {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream constructor");
   if (!_conf_queries_per_transaction) {
     _conf_queries_per_transaction = 1;
@@ -124,46 +122,24 @@ uint32_t monitoring_stream::stop() {
   uint32_t retval = flush();
   _logger->info("monitoring stream: stopped with {} events acknowledged",
                 retval);
-  /* I want to be sure the timer is really stopped. */
   std::promise<void> p;
-  _forced_svc_checks_timer_stopped = true;
-  {
-    _logger->info(
-        "bam: monitoring_stream - waiting for forced service checks to be "
-        "done");
-    std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-    time_t delay = time(nullptr) - _last_forced_svc_check;
-    if (delay <= 1)
-      delay = 1;
-    else
-      delay = 0;
-    /* This delay is just to avoid duplicates in rrd files. */
-    _forced_svc_checks_timer.expires_after(std::chrono::seconds(delay));
-    _forced_svc_checks_timer.async_wait(
-        [this, &p](const boost::system::error_code& ec) {
-          _explicitly_send_forced_svc_checks(ec);
-          {
-            std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-            _forced_svc_checks_timer.cancel();
-          }
-          p.set_value();
-        });
-  }
+  _queue_external_commands_stopped = true;
+  _logger->info(
+      "bam: monitoring_stream - waiting for external commands to be sent");
+  absl::MutexLock l(&_queue_external_commands_m);
+  time_t delay = time(nullptr) - _last_forced_svc_check;
+  if (delay <= 1)
+    delay = 1;
+  else
+    delay = 0;
+  _queue_external_commands_timer.expires_after(std::chrono::seconds(delay));
+  _queue_external_commands_timer.async_wait(
+      [this, &p](const boost::system::error_code& ec) {
+        if (!ec)
+          _async_write_external_commands();
+        p.set_value();
+      });
   p.get_future().wait();
-  {
-    std::promise<void> p;
-    _queue_external_commands_stopped = true;
-    _logger->info(
-        "bam: monitoring_stream - waiting for external commands to be sent");
-    _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
-    _queue_external_commands_timer.async_wait(
-        [this, &p](const boost::system::error_code& ec) {
-          if (!ec)
-            _async_write_external_commands();
-          p.set_value();
-        });
-    p.get_future().wait();
-  }
 
   /* Now, it is really cancelled. */
   _logger->info("bam: monitoring_stream - stop finished");
@@ -737,57 +713,6 @@ void monitoring_stream::_rebuild() {
 }
 
 /**
- * @brief This internal function is called by the _forced_svc_checks_timer. It
- * empties the set _forced_svc_checks, fills the set _timer_forced_svc_checks
- * and sends all its contents to centengine, using a misc::fifo_client object
- * to avoid getting stuck. If at a moment, it fails to send queries, the
- * function is rescheduled in 5s.
- *
- * @param ec boost::system::error_code to handle errors due to asio, not the
- * files sent to centengine. Usually, "operation aborted" when cbd stops.
- */
-void monitoring_stream::_explicitly_send_forced_svc_checks(
-    const boost::system::error_code& ec) {
-  static int count = 0;
-  SPDLOG_LOGGER_DEBUG(_logger, "BAM: time to send forced service checks {}",
-                      count++);
-  if (!ec) {
-    if (_timer_forced_svc_checks.empty()) {
-      std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-      _timer_forced_svc_checks.swap(_forced_svc_checks);
-    }
-    if (!_timer_forced_svc_checks.empty()) {
-      std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
-      _logger->trace("opening {}", _ext_cmd_file);
-      misc::fifo_client fc(_ext_cmd_file);
-      SPDLOG_LOGGER_DEBUG(_logger, "BAM: {} forced checks to schedule",
-                          _timer_forced_svc_checks.size());
-      for (auto it = _timer_forced_svc_checks.begin();
-           it != _timer_forced_svc_checks.end();) {
-        _last_forced_svc_check = time(nullptr);
-        std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
-                                    _last_forced_svc_check, it->first,
-                                    it->second, _last_forced_svc_check)};
-        _logger->debug("writing '{}' into {}", cmd, _ext_cmd_file);
-        if (fc.write(cmd) < 0 && !_forced_svc_checks_timer_stopped) {
-          _logger->error(
-              "BAM: could not write forced service check to command file '{}'",
-              _ext_cmd_file);
-          _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
-          _forced_svc_checks_timer.async_wait(
-              std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
-                        this, std::placeholders::_1));
-          break;
-        } else {
-          _logger->trace("BAM: forced service check sent");
-          it = _timer_forced_svc_checks.erase(it);
-        }
-      }
-    }
-  }
-}
-
-/**
  *  Write an external command to Engine.
  *
  *  @param[in] cmd  Command to write to the external command pipe.
@@ -799,12 +724,8 @@ void monitoring_stream::_write_forced_svc_check(
       _logger,
       "BAM: monitoring stream _write_forced_svc_check on service {}:{}", host,
       description);
-  std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+  absl::MutexLock lck(&_queue_external_commands_m);
   _forced_svc_checks.emplace(host, description);
-  _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
-  _forced_svc_checks_timer.async_wait(
-      std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks, this,
-                std::placeholders::_1));
 }
 
 /**
@@ -815,10 +736,8 @@ void monitoring_stream::_write_forced_svc_check(
 void monitoring_stream::_write_external_command(const std::string& cmd) {
   SPDLOG_LOGGER_TRACE(
       _logger, "BAM: monitoring stream _write_external_command <<{}>>", cmd);
-  {
-    absl::MutexLock lck(&_queue_external_commands_m);
-    _queue_external_commands.push_back(cmd);
-  }
+  absl::MutexLock lck(&_queue_external_commands_m);
+  _queue_external_commands.push_back(cmd);
   _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
   _queue_external_commands_timer.async_wait(
       [this](const boost::system::error_code& ec) {
@@ -858,18 +777,32 @@ void monitoring_stream::_handle_inherited_downtime(uint32_t ba_id,
   _write_external_command(cmd);
 }
 
+/**
+ * @brief Flush the queued external commands (and forced service checks) to
+ * Engine's command file.
+ *
+ * The queues are swapped out under `_queue_external_commands_m` so the
+ * (potentially slow) fifo write happens without holding the lock. Commands
+ * that fail to write are pushed back onto the shared queue so they are
+ * retried on the next run. Unless `_queue_external_commands_stopped` is set,
+ * this method reschedules itself on `_queue_external_commands_timer` every 5
+ * seconds, turning it into a recurring flush loop.
+ */
 void monitoring_stream::_async_write_external_commands() {
   SPDLOG_LOGGER_TRACE(_logger,
                       "BAM: monitoring stream _async_write_external_commands");
   std::deque<std::string> local_queue;
-  bool need_to_restart = false;
+  forced_svc_checks_cont local_forced_queue;
   {
     absl::MutexLock lck(&_queue_external_commands_m);
     std::swap(local_queue, _queue_external_commands);
+    std::swap(local_forced_queue, _forced_svc_checks);
   }
   _logger->debug("BAM: sending {} external commands", local_queue.size());
+  std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+  _logger->trace("opening {}", _ext_cmd_file);
+  misc::fifo_client fc(_ext_cmd_file);
   for (auto& cmd : local_queue) {
-    misc::fifo_client fc(_ext_cmd_file);
     int32_t ret = fc.write(cmd);
     if (ret >= 0)
       _logger->info("BAM: external command '{}' sent to command file '{}'", cmd,
@@ -881,12 +814,31 @@ void monitoring_stream::_async_write_external_commands() {
       {
         absl::MutexLock lck(&_queue_external_commands_m);
         _queue_external_commands.push_back(std::move(cmd));
-        need_to_restart = true;
       }
     }
   }
 
-  if (need_to_restart && !_queue_external_commands_stopped) {
+  for (const auto& [host, description] : local_forced_queue) {
+    _last_forced_svc_check = time(nullptr);
+    std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
+                                _last_forced_svc_check, host, description,
+                                _last_forced_svc_check)};
+    int32_t ret = fc.write(cmd);
+    if (ret >= 0)
+      _logger->info("BAM: forced service check '{}' sent to command file '{}'",
+                    cmd, _ext_cmd_file);
+    else {
+      _logger->error(
+          "BAM: could not write forced service check '{}' to command file "
+          "'{}'",
+          cmd, _ext_cmd_file);
+      absl::MutexLock lck(&_queue_external_commands_m);
+      _forced_svc_checks.emplace(host, description);
+    }
+  }
+
+  if (!_queue_external_commands_stopped) {
+    absl::MutexLock lck(&_queue_external_commands_m);
     _queue_external_commands_timer.expires_after(std::chrono::seconds(5));
     _queue_external_commands_timer.async_wait(
         [this](const boost::system::error_code& ec) {

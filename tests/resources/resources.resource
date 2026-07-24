@@ -467,8 +467,13 @@ Ctn Save Logs
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
-    Copy Directory    ${BROKER_LIB}/central-broker-master  ${failDir}/var/lib/centreon-broker
-    Copy Directory    ${ENGINE_LIB}                    ${failDir}/var/lib/centreon-engine
+    
+    IF    os.path.isdir('${BROKER_LIB}/central-broker-master')
+        Copy Directory    ${BROKER_LIB}/central-broker-master    ${failDir}/var/lib/centreon-broker
+    END
+    IF    os.path.isdir('${ENGINE_LIB}')
+        Copy Directory    ${ENGINE_LIB}    ${failDir}/var/lib/centreon-engine
+    END
     Move Files    /tmp/lua*.log    ${failDir}
     Move Files    /tmp/mariadb.log    ${failDir}
     Move Files    /tmp/tcpdump.pcap    ${failDir}
