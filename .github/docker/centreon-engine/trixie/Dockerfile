@@ -173,6 +173,15 @@ COPY --from=extractor --link --chmod=755 \
 COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
      /extracted/etc/ /etc/
 
+# COPY --chmod applies the same mode to every copied entry, files and
+# directories alike. The 664 above (no execute bit) landed on
+# /etc/centreon-engine and /etc/centreon-engine/conf.d too, since the .deb
+# package ships those as real directory entries under /extracted/etc/ — that
+# silently clobbered the 775 already set on them above, making the
+# directories non-traversable and centengine.cfg unreadable
+# ("Permission denied") even though the file itself was still mode 664.
+RUN chmod 0775 /etc/centreon-engine /etc/centreon-engine/conf.d /etc/centreon-broker
+
 # Copy entrypoint and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 --chown=centreon-engine:centreon-engine \
      ./.github/docker/centreon-engine/trixie/entrypoint /var/lib/centreon-engine
