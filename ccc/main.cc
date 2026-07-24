@@ -38,13 +38,11 @@
 using namespace nlohmann;
 using namespace com::centreon::ccc;
 
-static struct option long_options[] = {{"version", no_argument, 0, 'v'},
-                                       {"help", no_argument, 0, 'h'},
-                                       {"port", required_argument, 0, 'p'},
-                                       {"list", no_argument, 0, 'l'},
-                                       {"nocolor", no_argument, 0, 'n'},
-                                       {"full", no_argument, 0, 'F'},
-                                       {0, 0, 0, 0}};
+static struct option long_options[] = {
+    {"version", no_argument, 0, 'v'},     {"help", no_argument, 0, 'h'},
+    {"port", required_argument, 0, 'p'},  {"list", no_argument, 0, 'l'},
+    {"nocolor", no_argument, 0, 'n'},     {"full", no_argument, 0, 'F'},
+    {"proto", required_argument, 0, 'P'}, {0, 0, 0, 0}};
 
 static void usage(bool color_enabled) {
   std::cout
@@ -148,28 +146,22 @@ struct content_printer {
   /**
    * @brief Print a protobuf string-to-string map as a JSON object.
    *
+   * The map is serialized through nlohmann::json so that keys and values
+   * containing characters that must be escaped (quotes, backslashes, control
+   * characters, ...) still produce valid JSON.
+   *
    * @param to_print The map to serialize.
    */
   void print(
       const ::google::protobuf::Map<std::string, std::string>& to_print) const {
-    std::cout << '{';
-    if (print_options.add_whitespace)
-      std::cout << std::endl;
-    bool first = true;
+    json obj = json::object();
     for (const auto& [key, value] : to_print) {
-      if (!first) {
-        std::cout << ',';
-        if (print_options.add_whitespace)
-          std::cout << std::endl;
-      }
-      if (print_options.add_whitespace)
-        std::cout << "  ";
-      std::cout << '"' << key << "\":\"" << value << '"';
-      first = false;
+      obj[key] = value;
     }
     if (print_options.add_whitespace)
-      std::cout << std::endl;
-    std::cout << '}';
+      std::cout << obj.dump(2) << std::endl;
+    else
+      std::cout << obj.dump();
   }
 };
 
@@ -280,7 +272,7 @@ bool decode_prot_file(const char* file_path_with_filter,
 
     if (filter_search == engine_state_filters.end()) {
       std::cerr << "unknown filter:" << filter << std::endl;
-      std::cerr << "allowed _filters are:";
+      std::cerr << "allowed filters are:";
       for (const auto& [filt, _] : engine_state_filters) {
         std::cerr << filt << ' ';
       }
