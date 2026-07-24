@@ -158,15 +158,16 @@ COPY --chown=centreon-engine:centreon-engine <<EOF /etc/centreon-engine/engine-c
 EOF
 
 # Copy runtime files from extractor in bulk
-# Batch copy binaries, libraries, configs, and modules to reduce layers and cherry-picking
+# Batch copy binaries, libraries and modules to reduce layers and cherry-picking.
+# NOTE: a single non-wildcard destination is required here — Docker does not
+# glob-expand COPY destinations, so a previous "/usr/lib*/ /usr/lib*/" form
+# literally created a directory named "lib*" instead of landing files in
+# /usr/lib, /usr/lib64 or the real multiarch lib dir, which the dynamic linker
+# never searches (centengine failed at runtime with "cannot open shared
+# object file", while the path-guessing verify RUN below still "passed"
+# because its shell glob matched that same bogus literal directory).
 COPY --from=extractor --link --chmod=755 \
-    /extracted/usr/sbin/ /usr/sbin/
-
-COPY --from=extractor --link --chmod=755 \
-    /extracted/usr/lib*/ /usr/lib*/
-
-COPY --from=extractor --link --chmod=755 \
-    /extracted/usr/share/centreon/ /usr/share/centreon/
+    /extracted/usr/ /usr/
 
 # Configuration files (--chown prevents --link)
 COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
@@ -178,10 +179,13 @@ COPY --chmod=755 --chown=centreon-engine:centreon-engine \
 
 COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d/centreon
 
-# Verify critical runtime files
+# Verify critical runtime files. Checking the dynamic linker can actually
+# resolve centengine's shared libs (rather than guessing their path with a
+# glob) is what would have caught the /usr/lib* destination bug above at
+# build time instead of ~1 minute into the boot-test job.
 RUN test -f /usr/sbin/centengine && \
-    test -f /usr/lib*/libcentreon_clib.so && \
-    test -d /etc/centreon-engine/
+    test -d /etc/centreon-engine/ && \
+    ! ldd /usr/sbin/centengine | grep -q "not found"
 
 # OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
 ARG BUILD_DATE
