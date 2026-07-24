@@ -172,10 +172,12 @@ sub wss_connect {
         $proto = 'wss';
         $self->{ua}->insecure($self->{config}->{https_cert_no_verify} // 1);
     }
+    my $uri = $proto . '://' . $self->{config}->{address} . ':' . $self->{config}->{port} . $self->{config}->{central_uri};
+    $connector->{logger}->writeLogInfo('[pullwss] connecting to ' . $uri);
 
     $self->{ua}->websocket(
-        $proto . '://' . $self->{config}->{address} . ':' . $self->{config}->{port} . $self->{config}->{central_uri} =>
-            { Authorization => 'Bearer ' . $self->{config}->{token} } => sub {
+
+        $uri => { Authorization => 'Bearer ' . $self->{config}->{token} } => sub {
             my ($ua, $tx) = @_;
 
             $connector->{tx} = $tx;
