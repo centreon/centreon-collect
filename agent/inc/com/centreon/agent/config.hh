@@ -74,6 +74,24 @@ class config {
 
   static const config& instance() { return *_global_conf; }
 
+  /**
+   * @brief unlike instance(), it can be called when no configuration has been
+   * loaded (some UT)
+   *
+   * @return const config* nullptr if no configuration loaded
+   */
+  static const config* instance_ptr() { return _global_conf.get(); }
+
+  /**
+   * @brief re-read the custom checks file and refresh commands of the global
+   * configuration
+   *
+   * @return true if commands have been refreshed
+   */
+  static bool reload_custom_checks() {
+    return _global_conf && _global_conf->read_custom_checks();
+  }
+
   config(const std::string& path);
 
   /**
@@ -126,9 +144,15 @@ class config {
     return _custom_checks;
   }
 
-  void read_custom_checks() {
+  /**
+   * @brief read the custom checks file and replace commands on success
+   * If the file can't be read or is malformed, the previous commands are kept
+   *
+   * @return true if commands have been refreshed
+   */
+  bool read_custom_checks() {
     if (_path_to_custom_checks.empty()) {
-      return;
+      return false;
     }
     // lambda for trimming spaces
     auto trimming = [](std::string& s) {
@@ -136,35 +160,52 @@ class config {
       s = absl::StripTrailingAsciiWhitespace(s);
     };
 
-    _custom_checks.clear();
     try {
       std::ifstream f(_path_to_custom_checks);
       if (!f) {
         throw exceptions::msg_fmt("could not open file {}",
                                   _path_to_custom_checks);
       }
+      absl::flat_hash_map<std::string, std::string> read_checks;
       std::string line;
+      unsigned line_number = 0;
       while (std::getline(f, line)) {
-        // skip if comments or empty line
-        if (line.empty() || line[0] == ';') {
+        ++line_number;
+        trimming(line);
+        // skip comments, empty lines and section headers like [custom_checks]
+        if (line.empty() || line[0] == ';' || line[0] == '[') {
           continue;
         }
         auto pos = line.find('=');
         if (pos == std::string::npos) {
-          continue;
+          throw exceptions::msg_fmt(
+              "line {} is not in the <name>=<command> format", line_number);
         }
         std::string name = line.substr(0, pos);
         std::string path = line.substr(pos + 1);
         trimming(name);
         trimming(path);
-        if (!name.empty() && !path.empty()) {
-          SPDLOG_INFO("custom check loaded: name: {}, path: {}", name, path);
-          _custom_checks.emplace(std::move(name), std::move(path));
+        if (name.empty() || path.empty()) {
+          throw exceptions::msg_fmt("line {} has an empty name or command",
+                                    line_number);
         }
+        read_checks.emplace(std::move(name), std::move(path));
       }
+      if (f.bad()) {
+        throw exceptions::msg_fmt("error while reading file {}",
+                                  _path_to_custom_checks);
+      }
+      _custom_checks = std::move(read_checks);
+      for (const auto& [name, path] : _custom_checks) {
+        SPDLOG_INFO("custom check loaded: name: {}, path: {}", name, path);
+      }
+      return true;
     } catch (const std::exception& e) {
-      SPDLOG_ERROR("could not read custom checks from file {}: the error: {}",
-                   _path_to_custom_checks, e.what());
+      SPDLOG_ERROR(
+          "could not read custom checks from file {}: the error: {} => "
+          "previous custom checks are kept",
+          _path_to_custom_checks, e.what());
+      return false;
     }
   }
 };
