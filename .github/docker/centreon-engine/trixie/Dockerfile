@@ -7,35 +7,29 @@ FROM debian:13-slim AS extractor
 
 ARG TARGETARCH
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    dpkg \
-    && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    dpkg file
 
 # Extract .deb packages (mounted via --mount during build)
-# Engine installs all except broker-cbd (line 90 of original Dockerfile)
+# Smart extraction: skip broker-cbd, extract all others, then clean up junk files
 RUN --mount=type=bind,source=packages-centreon,target=/packages \
     mkdir -p /extracted && \
     cd /packages/${TARGETARCH} && \
     for deb in centreon*.deb; do \
-        # Skip broker-cbd package (not needed for engine)
-        if [[ "$deb" == *"broker-cbd"* ]]; then \
-            echo "Skipping $deb (not needed for engine)"; \
-            continue; \
-        fi; \
-        echo "Extracting $deb..."; \
+        case "$deb" in \
+            *broker-cbd*) continue ;; \
+        esac; \
         dpkg-deb -x "$deb" /extracted/; \
     done && \
-    echo "=== Extracted binaries ===" && \
-    ls -lah /extracted/usr/sbin/ || true && \
-    echo "=== Extracted libraries ===" && \
-    ls -lah /extracted/usr/lib*/ || true && \
-    echo "=== Extracted engine modules ===" && \
-    ls -lah /extracted/usr/lib*/centreon-engine/ || true && \
-    echo "=== Extracted broker module ===" && \
-    ls -lah /extracted/usr/lib*/cbmod.so || true && \
-    echo "=== Extracted configs ===" && \
-    ls -lah /extracted/etc/centreon-engine/ || true && \
-    ls -lah /extracted/etc/centreon-broker/ || true
+    rm -rf /extracted/usr/share/doc/* \
+           /extracted/usr/share/man/* \
+           /extracted/usr/share/info/* \
+           /extracted/usr/share/locale/* \
+           /extracted/usr/share/licenses/* \
+           /extracted/var/cache/* \
+           /extracted/var/log/*
 
 #############################################
 # Stage 2: Runtime - Minimal final image
@@ -87,10 +81,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     bash -e <<EOF
 apt-get update
 apt-get install -y --no-install-recommends gnupg wget ca-certificates
-wget -O- https://apt-key.centreon.com | gpg --dearmor \
-    | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
-echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
-    > /etc/apt/sources.list.d/centreon-plugins.list
+wget -qO- https://apt-key.centreon.com | gpg --dearmor > /etc/apt/trusted.gpg.d/centreon.gpg
+echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" > /etc/apt/sources.list.d/centreon-plugins.list
 EOF
 
 # apt-plugins-stable now publishes arm64 .deb packages for libnet-curl-perl,
@@ -104,7 +96,7 @@ apt-get install -y --no-install-recommends \
     libnet-curl-perl \
     libcrypt-openssl-aes-perl \
     libssh-session-perl \
-    python3 \
+    python3-minimal \
     libmariadb3 \
     libgnutls30t64 \
     libssl3 \
@@ -119,9 +111,9 @@ apt-get install -y --no-install-recommends \
     gnupg \
     centreon-plugin-applications-monitoring-centreon-poller
 setcap cap_net_raw+ep /usr/lib/nagios/plugins/check_icmp
-apt-get remove -y --purge libcap2-bin
+apt-get remove -y --purge libcap2-bin gnupg wget
 apt-get autoremove -y
-rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
+rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/* /var/cache/apt/* /var/log/*
 EOF
 
 # Create directory structure
@@ -165,33 +157,20 @@ COPY --chown=centreon-engine:centreon-engine <<EOF /etc/centreon-engine/engine-c
 {"app_secret":"","salt":""}
 EOF
 
-# Copy ONLY runtime files from extractor
+# Copy runtime files from extractor in bulk
+# Batch copy binaries, libraries, configs, and modules to reduce layers and cherry-picking
+COPY --from=extractor --link --chmod=755 \
+    /extracted/usr/sbin/ /usr/sbin/
 
-# Binaries
-COPY --from=extractor --link --chmod=755 /extracted/usr/sbin/centengine /usr/sbin/centengine
+COPY --from=extractor --link --chmod=755 \
+    /extracted/usr/lib*/ /usr/lib*/
 
-# Core library
-COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_clib.so /usr/lib/libcentreon_clib.so
-
-# Protobuf shared libraries (centreon-protobuf-lib package)
-COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_engine_conf.so /usr/lib/libcentreon_engine_conf.so
-COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_pb_bbdo.so /usr/lib/libcentreon_pb_bbdo.so
-
-# Broker module (cbmod.so) - engine loads this
-COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/cbmod.so /usr/lib/cbmod.so
-
-# Broker modules (cbmod.so needs these!)
-COPY --from=extractor --link --chmod=755 /extracted/usr/share/centreon/lib/centreon-broker/*.so /usr/share/centreon/lib/centreon-broker/
-
-# Engine modules (directory already created above)
-COPY --from=extractor --link --chmod=755 /extracted/usr/lib64/centreon-engine/*.so /usr/lib64/centreon-engine/
-
-# Connector binaries
-COPY --from=extractor --link --chmod=755 /extracted/usr/lib64/centreon-connector/ /usr/lib64/centreon-connector/
+COPY --from=extractor --link --chmod=755 \
+    /extracted/usr/share/centreon/ /usr/share/centreon/
 
 # Configuration files (--chown prevents --link)
 COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
-     /extracted/etc/centreon-engine/ /etc/centreon-engine/
+     /extracted/etc/ /etc/
 
 # Copy entrypoint and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 --chown=centreon-engine:centreon-engine \
@@ -199,18 +178,23 @@ COPY --chmod=755 --chown=centreon-engine:centreon-engine \
 
 COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d/centreon
 
-# Verify all critical files exist
-RUN echo "=== Verification ===" && \
-    ls -lah /usr/sbin/centengine && \
-    ls -lah /usr/lib/libcentreon_clib.so && \
-    ls -lah /usr/lib/libcentreon_engine_conf.so && \
-    ls -lah /usr/lib/libcentreon_pb_bbdo.so && \
-    ls -lah /usr/lib/cbmod.so && \
-    ls -lah /usr/lib64/centreon-engine/*.so && \
-    ls -lah /usr/lib64/centreon-connector/ && \
-    ls -lah /etc/centreon-engine/*.cfg && \
-    echo "=== Files verified ===" && \
-    echo "Note: Binary version check skipped during build (will work at runtime)"
+# Verify critical runtime files
+RUN test -f /usr/sbin/centengine && \
+    test -f /usr/lib*/libcentreon_clib.so && \
+    test -d /etc/centreon-engine/
+
+# OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
+ARG BUILD_DATE
+ARG BUILD_VERSION=unknown
+ARG PACKAGE_SOURCES=unknown
+
+LABEL org.opencontainers.image.title="Centreon Engine" \
+      org.opencontainers.image.description="Centreon Engine monitoring scheduler/executor" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.vendor="Centreon" \
+      org.centreon.package-sources="${PACKAGE_SOURCES}" \
+      org.centreon.base-image="debian:13-slim"
 
 # gRPC engine management API (inter-container, no host mapping needed)
 EXPOSE 50155
@@ -222,7 +206,7 @@ USER centreon-engine
 # /tmp/docker.ready is touched by 99-logs.sh once every container.d/*.sh
 # entrypoint script has run, right before centengine itself is exec'd.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
-    CMD test -f /tmp/docker.ready
+    CMD test -f /tmp/docker.ready || exit 1
 
 ENTRYPOINT ["/var/lib/centreon-engine/container.sh"]
 
