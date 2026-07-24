@@ -85,9 +85,22 @@ static void usage(bool color_enabled) {
          "  ccc -p 51001 GetVersion{} # Calls the GetVersion method.\n";
 }
 
+/**
+ * @brief Helper that serializes protobuf content to JSON on the standard
+ * output.
+ *
+ * The struct exposes several overloads of print() so that either a whole
+ * engine State message, a repeated field or a string map can be dumped with
+ * the same @a print_options (pretty printing, primitive fields, ...).
+ */
 struct content_printer {
   ::google::protobuf::json::PrintOptions print_options;
 
+  /**
+   * @brief Print a full engine configuration State message as JSON.
+   *
+   * @param engine_state The message to serialize.
+   */
   void print(
       const com::centreon::engine::configuration::State& engine_state) const {
     std::string output;
@@ -96,6 +109,15 @@ struct content_printer {
     std::cout << output << std::endl;
   }
 
+  /**
+   * @brief Print a repeated protobuf field as a JSON array.
+   *
+   * Each element is serialized individually and elements are separated by
+   * commas so that the whole output stays a valid JSON array.
+   *
+   * @tparam mess_type The message type held by the repeated field.
+   * @param to_print The repeated field to serialize.
+   */
   template <class mess_type>
   void print(
       const ::google::protobuf::RepeatedPtrField<mess_type>& to_print) const {
@@ -123,6 +145,11 @@ struct content_printer {
       std::cout << std::endl;
   }
 
+  /**
+   * @brief Print a protobuf string-to-string map as a JSON object.
+   *
+   * @param to_print The map to serialize.
+   */
   void print(
       const ::google::protobuf::Map<std::string, std::string>& to_print) const {
     std::cout << '{';
@@ -200,6 +227,24 @@ std::array<std::pair<std::string_view, engine_state_filter>, 19>
          PRINT_FIELD(tags),
          PRINT_FIELD(user)}};
 
+/**
+ * @brief Decode a serialized protobuf file and print its content as JSON.
+ *
+ * The file is currently expected to hold a serialized engine configuration
+ * State message. An optional filter may be appended to the path with a colon
+ * (e.g. "/path/to/file:hosts") to only print a given section; the accepted
+ * filters are the keys of @a engine_state_filters ("all", "hosts", ...).
+ * When no filter is given, the "all" filter is used.
+ *
+ * @param file_path_with_filter Path to the protobuf file, optionally followed
+ * by ":<filter>".
+ * @param prettier_json When true, the JSON output is indented with whitespace.
+ * @param always_print_primitive_fields When true, primitive fields are printed
+ * even when they hold their default value.
+ *
+ * @return true on success, false if the file cannot be opened, the filter is
+ * unknown or the content cannot be decoded.
+ */
 bool decode_prot_file(const char* file_path_with_filter,
                       bool prettier_json,
                       bool always_print_primitive_fields) {
