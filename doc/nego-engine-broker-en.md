@@ -3004,10 +3004,12 @@ never informed of this setting.
 
 - `notification_mode = broker`: Broker becomes the sole authority. PHP sends downtimes,
   acknowledgements, and escalation rules to Broker via the `BrokerRpc` gRPC API; Broker stores
-  them directly in its database. Engine emits `pb_notification_request` events instead of
-  executing notification commands. Engine is never informed of downtimes, acknowledgements, or
-  escalation rules. `hostescalation` and `serviceescalation` objects are removed from
-  `centengine.cfg` entirely.
+  them directly in its database. Broker makes the notification **decision** (contact selection,
+  escalations) and dispatches only the **execution** (macro expansion + command launch) to the
+  supervising poller through the `pb_notification_execute` event; Engine no longer decides
+  notifications on its own, it merely executes what Broker dispatches to it. Engine is never
+  informed of downtimes, acknowledgements, or escalation rules. `hostescalation` and
+  `serviceescalation` objects are removed from `centengine.cfg` entirely.
   This mode is **required** when Poller HA is active (multiple pollers in a zone with automatic
   resource distribution); it is also available as a standalone option for single-poller zones,
   allowing the infrastructure to be built and tested before HA is introduced.
@@ -3028,6 +3030,91 @@ No action is required during a host migration. Downtimes and acknowledgements li
 database and remain accessible regardless of which poller currently monitors the host. The
 `MigrationStateSnapshot` carries no downtime or acknowledgement data in centralized
 configuration mode.
+
+## Driving the notification decision on Broker
+
+In `notification_mode = broker`, the notification **decision** (model C, see
+`doc/ha-target-architecture`) runs in Broker: the `common/notifications` library
+(`notification_manager`) is instantiated there with the
+`broker_notification_callbacks` backend, and Broker dispatches the **execution**
+(macro expansion + command launch) to the supervising poller through the
+`pb_notification_execute` event (`io::bbdo`). The poller only executes it.
+
+### Backend initialization
+
+The backend is injected **at the same place as the timeperiods initialization**
+on Broker, and only when `notification_mode = broker`. In engine mode nothing is
+instantiated.
+
+### Trigger: a third treatment in `multiplexing::engine`
+
+Broker observes state changes through the `pb_host_status`/`pb_service_status`
+events coming up from the pollers. The natural observation point is the core of
+`multiplexing::engine`, whose send loop already processes each **batch** of
+events (obtained by swapping the main `_kiew` queue with a local one) through two
+parallel treatments: sending to the muxers/streams (`unified_sql`, `rrd`, …) and
+updating the **global cache**. We add a **third treatment**, active only in broker
+mode: a consumer that, for each `*_status`, calls `notify()` on the
+`notification_manager`.
+
+```mermaid
+sequenceDiagram
+    participant IN as input flow
+    participant E as multiplexing::engine
+    participant MUX as muxers / streams<br/>(unified_sql, rrd…)
+    participant CACHE as global cache
+    participant NOTIF as notification channel<br/>(broker mode only)
+    IN->>E: publish(event)
+    Note over E: push into _kiew
+    E->>E: _send_to_subscribers()<br/>swap _kiew → local kiew
+    par send to muxers
+        E-)MUX: asio::post mux->publish(kiew)
+    and update the cache
+        E->>CACHE: cache.publish(kiew)
+    and notification (broker only)
+        E-)NOTIF: asio::post on_events(kiew)
+        NOTIF->>NOTIF: notify() on the *_status
+        NOTIF-)E: publish(pb_notification_execute)
+    end
+    Note over E: cb released by every consumer<br/>→ next batch if _kiew refilled
+```
+
+Key points:
+
+- The notification channel exists **only in broker mode**: in engine mode no task
+  is created (zero cost, a mere pointer check in the loop).
+- Like the muxers, it runs on the asio pool and **captures the same completion
+  object** (`callback_caller`): the next batch is only dispatched once **all**
+  consumers — notification included — are done. This per-batch serialization is
+  enough to guarantee a single `notify()` runs at a time (the
+  `notification_manager` is not thread-safe), **without a strand**.
+- **Ordering** relative to the cache / `unified_sql` does not matter: in
+  centralized config the cache configuration comes from `State`/`diff_state`, not
+  from the status events; a `*_status` only carries a runtime state change. The
+  consumer takes the triggering state from the event itself.
+
+### Turning off the decision on Engine
+
+In broker mode, Engine's notification decision must be neutralized to avoid a
+**double notification** (a local one from Engine and the one dispatched by
+Broker). The mechanism: **at negotiation**, Broker advertises in its `Welcome`
+message the `broker_handles_notifications` flag (true when
+`notification_mode=broker`); Engine receives it (`cbmod_stream`, `pb_welcome`
+case), stores it in `cbmod_state`, and `notifier::notify()` then becomes a
+**no-op**. Engine no longer decides; it only **executes** the notifications
+Broker dispatches (`execute_broker_notification`, triggered by
+`pb_notification_execute`) — that execution path is **independent** of this gate.
+
+Design notes:
+
+- **Sticky flag**: once received, it is not reset if Broker briefly disconnects
+  — Engine does not take the decision back, which would reopen the double-
+  notification door. A durably absent Broker is an HA concern (out of scope).
+- **Startup window**: before negotiation the flag is false, so Engine would
+  decide — but it has not run any check yet at that point, so it is harmless.
+- Engine is **not informed** of `notification_mode` as such: it only learns, at
+  runtime and through negotiation, that "Broker handles notifications" — in line
+  with the "Engine config does not carry the mode" principle.
 
 # Preparatory work before Poller HA
 
@@ -3053,8 +3140,8 @@ gates the notification service (T7) — see
 | **T3** | BrokerRpc endpoints: downtimes and acknowledgements |
 | **T4** | BrokerRpc endpoints: escalation rules |
 | **T5** | Inherited downtimes via BrokerRpc (BAM) |
-| **T6** | `pb_notification_request` emission in Engine |
-| **T7** | Notification service in Broker |
+| **T6** | Poller-side execution of dispatched notifications (`pb_notification_execute`) + turning off Engine's decision |
+| **T7** | Notification decision (`notification_manager`) in Broker |
 | **T8** | `notification_mode` parameter |
 | **T9** | Test suite for `notification_mode = broker` |
 
@@ -3072,7 +3159,7 @@ gantt
     T4 · BrokerRpc escalation rules       :t4, 2024-01-01, 3d
 
     section Engine
-    T6 · pb_notification_request          :t6, 2024-01-01, 4d
+    T6 · pb_notification_execute (poller)  :t6, 2024-01-01, 4d
 
     section Cache & BAM
     T2 · global_cache downtime state      :t2, after t1 t3, 4d
@@ -3129,7 +3216,7 @@ work, not an optional step.
 
 Today the neb module maintains a single FIFO queue for all monitoring events. When Engine has
 a large retention backlog (e.g. after a two-week disconnection), every event — including urgent
-downtimes and notification requests — must wait behind hours of accumulated check results before
+downtimes and acknowledgements — must wait behind hours of accumulated check results before
 reaching Broker.
 
 To resolve this, the neb event queue is split into three. The queue an event is placed in is
@@ -3137,7 +3224,7 @@ determined **at insertion time**, based on the event type and its timestamp:
 
 | Event type | Classification rule | Queue |
 |------------|---------------------|-------|
-| `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Always priority (P)** — age is irrelevant; what matters is whether the downtime or acknowledgement is still active | P |
+| `pb_downtime`, `pb_acknowledgement` | **Always priority (P)** — age is irrelevant; what matters is whether the downtime or acknowledgement is still active | P |
 | Host / service status | Inserted into **Current (C)**; demoted to **Historical (H)** when `now − insertion_time ≥ priority_age_threshold` (default: 5 min) | C or H |
 | Performance data, logs, other bulk events | Always **Historical (H)** | H |
 
@@ -3167,7 +3254,7 @@ neb historical H →  drained last         (bulk data, old check results)
 **Connected Engine with large historical queue**
 
 Even when Engine is actively connected but saturated with check results, a new `pb_downtime` or
-`pb_notification_request` is placed in queue P and delivered to Broker immediately,
+`pb_acknowledgement` is placed in queue P and delivered to Broker immediately,
 without waiting for queues C or H to drain.
 
 **Reconnection after a long absence**
@@ -3197,7 +3284,6 @@ in order. Broker processes them in sequence: downtime created, then closed.
 When the first real-time check result arrives, no downtime is active — and notification fires
 correctly.
 
-- `pb_notification_request` stays in the `neb` namespace; no `bbdo`-namespace workaround is needed.
 - BrokerRpc (path 2 below) remains the appropriate path for downtimes created directly via the
   PHP/API layer, and for the case where Engine is completely disconnected.
 
@@ -3236,7 +3322,7 @@ a new priority event is pushed, `_priority_read_pos` already equals the index of
 
 | Condition | Queue | Stored timestamp |
 |-----------|-------|-----------------|
-| type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | P | `INT64_MAX` |
+| type ∈ {`pb_downtime`, `pb_acknowledgement`} | P | `INT64_MAX` |
 | host/service status | C (at insertion); demoted to H once `now − insertion_time ≥ priority_age_threshold` | `now` (insertion time) |
 | all other types (perf data, logs, …) | H | `now` (insertion time) |
 
@@ -3280,7 +3366,7 @@ With the triple-priority queue, the spill policy is:
 - Queue P events have a separate, higher in-memory limit before spilling.
 - Events reloaded from `_file` on restart are reclassified based on their **event type** — the
   `queue_entry` timestamp is an in-memory artifact that is not persisted on disk. Events of type
-  `pb_downtime`, `pb_acknowledgement`, or `pb_notification_request` go back into queue P (they
+  `pb_downtime` or `pb_acknowledgement` go back into queue P (they
   are potentially still active and must reach Broker before any check results); all other events
   go into queue H (they are historical backlog at this point). The file format is unchanged and
   files produced by older versions reload correctly.
@@ -3488,7 +3574,7 @@ time.
 
 In `notification_mode = broker`, escalation rules are moved out of Engine configuration
 entirely. PHP sends them to Broker via `BrokerRpc`; Broker stores them in its database and
-evaluates them when processing a `pb_notification_request`.
+evaluates them as part of its own notification decision (`notification_manager`).
 
 Two consequences follow:
 
@@ -3499,17 +3585,19 @@ Two consequences follow:
   model, where each Engine only knew about its own resources.
 
 As a corollary, `hostescalation` / `serviceescalation` objects are no longer a co-location
-constraint in the resource distribution algorithm: because the notification service runs in
+constraint in the resource distribution algorithm: because the notification decision runs in
 Broker and has access to all escalation rules regardless of poller, there is no requirement that
 escalated hosts share a poller.
 
-### pb_notification_request
+### pb_notification_execute
 
-Engine no longer executes notification commands directly. Instead it emits
-`pb_notification_request` BBDO events (see [Notifications](#notifications-in-ha-mode)) that
-Broker forwards to the configured notification endpoint. The notification service checks
-downtimes, acknowledgements, and escalation rules from Broker's database before executing the
-command.
+In `notification_mode = broker`, Broker makes the notification decision (contact selection +
+escalations, from its cache) and dispatches only the execution to the poller that supervises the
+resource, through a `pb_notification_execute` BBDO event (`io::bbdo`, Broker→poller). The poller
+expands the macros and runs each contact's notification command; it no longer decides
+notifications on its own. Suppression by downtimes and acknowledgements happens on Broker,
+*before* dispatch. See [Driving the notification decision on Broker](#driving-the-notification-decision-on-broker)
+for the full mechanism.
 
 ## Test strategy
 
@@ -4182,34 +4270,45 @@ receiving Engine can recreate the records locally before its first check run.
 
 #### notification_mode = broker
 
-A dedicated notification service handles all notifications for the zone. Engine does not
-execute notification commands. When Engine determines that a notification is due (state change,
-re-notification interval elapsed, etc.), it emits a `pb_notification_request` BBDO event
-instead of calling a command directly:
+Broker makes the whole notification **decision** for the zone (model C). Broker's
+`notification_manager` observes the state changes (`pb_host_status`/`pb_service_status`), checks
+active downtimes and acknowledgements, **evaluates the resource's `notification_period`** (hence
+the [T0: Broker-manageable timeperiods](#prerequisite-timeperiods-must-be-broker-manageable)
+prerequisite), selects the contacts and applies the escalation rules — all from Broker's cache
+and database. It then dispatches only the **execution** (macro expansion + command launch) to
+the poller that supervises the resource, through a `pb_notification_execute` BBDO event:
 
 ```protobuf
-// neb queue P — Engine → Broker: delivered before all queue C and H events.
-// Notification requests must not be delayed by accumulated check results.
-message NotificationRequest {
-  uint32 poller_id         = 1;
-  uint64 host_id           = 2;
-  uint64 service_id        = 3;   // 0 for a host notification
-  int32  notification_type = 4;
-  string contact_name      = 5;
-  string command           = 6;
-  string output            = 7;
+// io::bbdo — Broker → poller. Carries an already-decided notification: the
+// contacts are the exact set Broker selected; the poller only expands macros
+// and runs each contact's notification command.
+message NotificationExecute {
+  uint64 host_id             = 1;
+  uint64 service_id          = 2;   // 0 for a host notification
+  uint32 category            = 3;
+  uint32 reason_type         = 4;
+  uint64 notification_id     = 5;
+  uint32 notification_number = 6;
+  bool   escalated           = 7;
+  string author              = 8;
+  string message             = 9;
+  uint32 options             = 10;
+  repeated string contacts   = 11;
 }
 ```
 
-Broker forwards `pb_notification_request` to the notification service. The notification
-service checks active downtimes and acknowledgements from Broker's database, **evaluates the
-resource's `notification_period`** (hence the [T0: Broker-manageable timeperiods](#prerequisite-timeperiods-must-be-broker-manageable)
-prerequisite) and executes the command if suppression conditions are not met.
+On the poller, `execute_broker_notification` resolves the contact names, expands the macros and
+runs the notification commands. Engine no longer decides notifications on its own; suppression by
+downtimes and acknowledgements happens on Broker, *before* dispatch. See
+[Driving the notification decision on Broker](#driving-the-notification-decision-on-broker) for
+the trigger mechanism (the third treatment in `multiplexing::engine`).
 
 Advantages:
-- Only the notification service needs access to the notification infrastructure
-- Pollers can be fully network-isolated
-- Notification history and suppression logic are centralised
+- The notification decision is centralised (consistent history, suppression and escalations),
+  which is what Poller HA needs — a decision about a *logical* resource belongs to the centre.
+- No command executor or macro engine has to be reimplemented in Broker: execution stays on the
+  poller, which already has the resource context.
+- Escalation rules can span several pollers.
 
 With `notification_mode = broker`, `MigrationStateSnapshot` carries no notification state, no
 downtimes, and no acknowledgements — Engine holds none of this information.
