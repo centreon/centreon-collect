@@ -369,6 +369,17 @@ std::vector<NotificationExecute> cbmod::drain_notification_executes() {
 }
 
 /**
+ * @brief Tell whether Broker owns the notification decision
+ * (notification_mode=broker), as advertised at negotiation. When true, Engine
+ * must not decide notifications on its own.
+ *
+ * @return True if Broker handles the notification decision.
+ */
+bool cbmod::broker_handles_notifications() const {
+  return _impl->state().broker_handles_notifications();
+}
+
+/**
  * @brief Send the current Engine configuration to the connected Broker.
  * Stores the configuration in the cbmod state so it is sent on the next
  * write cycle, in response to a DiffState{unknown=true} from Broker.

@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/multiplexing/engine.hh"
-#include <absl/synchronization/mutex.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -25,9 +23,9 @@
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/broker/multiplexing/event_sink.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/pool.hh"
-#include "common/log_v2/log_v2.hh"
 
 namespace asio = boost::asio;
 
@@ -465,6 +463,14 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   _center->update(&EngineStats::set_processed_events, _stats,
                   static_cast<uint32_t>(kiew->size()));
   cache.publish(*kiew);
+
+  /* Notification driver (notification_mode=broker only): posted AFTER
+   * cache.publish so the sink sees a cache already up to date with this batch,
+   * and capturing cb so the next batch waits for it (serialization). nullptr in
+   * engine mode → nothing posted. */
+  if (_notification_sink)
+    asio::post(com::centreon::common::pool::io_context(),
+               [kiew, cb, sink = _notification_sink] { sink->on_events(*kiew); });
 
   return retval;
 }

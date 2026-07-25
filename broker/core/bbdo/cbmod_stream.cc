@@ -17,10 +17,10 @@
  */
 #include <absl/time/time.h>
 
-#include "broker/core/bbdo/cbmod_stream.hh"
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "broker/core/bbdo/cbmod_stream.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -133,6 +133,16 @@ void cbmod_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           pb_version.major(), pb_version.minor(), pb_version.patch(),
           get_bbdo_version().major_v, get_bbdo_version().minor_v,
           get_bbdo_version().patch);
+      /* If Broker owns the notification decision (notification_mode=broker),
+       * Engine must stop deciding notifications on its own; it will only
+       * execute the notifications Broker dispatches. */
+      if (welcome->obj().broker_handles_notifications()) {
+        SPDLOG_LOGGER_INFO(
+            _logger,
+            "BBDO: Broker handles notifications; Engine notification decision "
+            "disabled");
+        _state.set_broker_handles_notifications(true);
+      }
       break;
     }
     case ack::static_type():

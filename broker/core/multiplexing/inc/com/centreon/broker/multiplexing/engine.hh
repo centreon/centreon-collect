@@ -61,6 +61,8 @@ class callback_caller;
  *
  *  @see muxer
  */
+class event_sink;
+
 class engine {
   static absl::Mutex _load_m;
   static std::shared_ptr<engine> _instance;
@@ -85,6 +87,12 @@ class engine {
   EngineStats* _stats;
 
   std::atomic_bool _sending_to_subscribers;
+
+  /* Optional extra batch consumer, set only when Broker owns the notification
+   * decision (notification_mode=broker). nullptr otherwise, so the publish path
+   * pays only a pointer test. Set at startup and cleared at teardown; the sink
+   * outlives the engine's task draining (see deinit order). */
+  event_sink* _notification_sink = nullptr;
 
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -112,6 +120,7 @@ class engine {
   void subscribe(const std::shared_ptr<muxer>& subscriber)
       ABSL_LOCKS_EXCLUDED(_kiew_m);
   void unsubscribe_muxer(const muxer* subscriber) ABSL_LOCKS_EXCLUDED(_kiew_m);
+  void set_notification_sink(event_sink* sink) { _notification_sink = sink; }
 };
 }  // namespace com::centreon::broker::multiplexing
 

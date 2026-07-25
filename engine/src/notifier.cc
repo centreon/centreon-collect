@@ -254,6 +254,11 @@ int notifier::notify(notifications::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
                      notifications::notification_option options) {
+  /* notification_mode=broker: Broker owns the notification decision (advertised
+   * at negotiation). Engine must not decide on its own — it only executes the
+   * notifications Broker dispatches (via execute_broker_notification). */
+  if (cbm && cbm->broker_handles_notifications())
+    return OK;
   return notifications::notification_manager::instance().notify(
       _host_id, _service_id, type, not_author, not_data, options);
 }

@@ -21,6 +21,7 @@
 #include <boost/asio/strand.hpp>
 
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/broker_notification_dispatcher.hh"
 
 namespace com::centreon::broker::config::applier {
 class broker_state : public state {
@@ -94,8 +95,17 @@ class broker_state : public state {
  public:
   enum notification_mode { notification_mode_engine, notification_mode_broker };
 
+  /* @brief True when Broker owns the notification decision. Advertised to Engine
+   * at negotiation so it stops deciding notifications on its own. */
+  bool notifications_on_broker() const {
+    return _notification_mode == notification_mode_broker;
+  }
+
  private:
   notification_mode _notification_mode = notification_mode_engine;
+  /* Notification decision trigger, registered as an event_sink on the
+   * multiplexing engine. Created only in notification_mode=broker. */
+  std::unique_ptr<broker_notification_dispatcher> _notification_dispatcher;
 
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
