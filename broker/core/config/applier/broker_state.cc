@@ -26,6 +26,8 @@
 #include "bbdo/bbdo.pb.h"
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/broker_downtime_callbacks.hh"
+#include "com/centreon/broker/broker_notification_callbacks.hh"
+#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
@@ -33,6 +35,9 @@
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
+#include "common/notifications/notification_manager.hh"
+
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::config::applier {
 
@@ -40,6 +45,12 @@ namespace com::centreon::broker::config::applier {
  * @brief Destructor of the state class.
  */
 broker_state::~broker_state() {
+  /* Unregister the notification sink so the engine stops referencing the
+   * dispatcher before it is destroyed. In the normal shutdown order the engine
+   * is already unloaded (deinit() unloads it before state::unload()), so this
+   * is defensive; instance_ptr() is null then. */
+  if (auto engine = multiplexing::engine::instance_ptr())
+    engine->set_notification_sink(nullptr);
   if (_watch_engine_conf_timer) {
     _watch_engine_conf_stopped.store(true);
     _watch_engine_conf_timer->cancel();
@@ -91,6 +102,7 @@ broker_state::~broker_state() {
         std::move(active));
   }
   com::centreon::common::downtimes::downtime_manager::unload();
+  com::centreon::common::notifications::notification_manager::unload();
 }
 
 /**
@@ -101,6 +113,7 @@ broker_state::~broker_state() {
  */
 void broker_state::apply(const com::centreon::broker::config::state& s,
                          bool run_mux) {
+  auto logger = log_v2::instance().get(log_v2::CORE);
   /* Load the downtime_manager BEFORE state::apply(): the latter initializes
    * (and, in legacy mode, loads from disk) the global cache, and the cache
    * load re-injects the persisted active downtimes into the manager — so the
@@ -119,11 +132,27 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
      * that the gRPC ScheduleDowntime/DeleteDowntime endpoints are usable. It
      * goes to the CORE logger (enabled at info by default) rather than the
      * CONFIG logger (error by default) so it is reliably observable. */
-    com::centreon::common::log_v2::log_v2::instance()
-        .get(com::centreon::common::log_v2::log_v2::CORE)
-        ->info(
-            "notification_mode=broker: downtime management enabled, downtime "
-            "manager loaded");
+    logger->info(
+        "notification_mode=broker: downtime management enabled, downtime "
+        "manager loaded");
+
+    /* Broker owns the notification decision: inject the Broker backend into the
+     * notification library. The execution is dispatched to the pollers via
+     * pb_notification_execute. In engine mode the manager is never loaded here.
+     */
+    com::centreon::common::notifications::notification_manager::load(
+        std::make_unique<broker_notification_callbacks>());
+    logger->info(
+        "notification_mode=broker: notification decision enabled, "
+        "notification manager loaded");
+
+    /* Register the notification trigger as an event_sink on the multiplexing
+     * engine: it drives the notification_manager on each host/service status
+     * batch. */
+    _notification_dispatcher =
+        std::make_unique<broker_notification_dispatcher>();
+    multiplexing::engine::instance_ptr()->set_notification_sink(
+        _notification_dispatcher.get());
   }
 
   state::apply(s, run_mux);
@@ -910,10 +939,10 @@ void broker_state::_check_last_engine_conf() {
       } catch (const std::exception& e) {
         _logger->error("rejecting invalid configuration for poller {}: {}",
                        poller_id, e.what());
-        /* The pushed configuration is structurally invalid (parse/expand/resolve
-         * error): it will never become valid on its own, so consume its .lck
-         * unconditionally instead of retrying it forever. PHP creates a fresh
-         * .lck when it pushes a corrected configuration. */
+        /* The pushed configuration is structurally invalid
+         * (parse/expand/resolve error): it will never become valid on its own,
+         * so consume its .lck unconditionally instead of retrying it forever.
+         * PHP creates a fresh .lck when it pushes a corrected configuration. */
         std::filesystem::path lck_file =
             cache_config_dir() / fmt::format("{}.lck", poller_id);
         std::error_code lck_ec;

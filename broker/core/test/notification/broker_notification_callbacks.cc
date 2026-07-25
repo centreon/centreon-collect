@@ -21,8 +21,12 @@
 
 #include <gtest/gtest.h>
 
+#include <thread>
+
+#include "broker/core/bbdo/internal.hh"
 #include "broker/core/cache/broker_cache.hh"
-#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 
 using namespace com::centreon::broker;
@@ -274,4 +278,112 @@ TEST_F(BrokerNotificationCallbacksTest,
    * where CRITICAL=2 would collide with action_sd_warning). */
   publish_service_state(1, 10, Service::WARNING, Service::HARD, true);
   EXPECT_TRUE(_cache->notification_authorized_by_dependencies(1, 20));
+}
+
+/**
+ * @brief Fixture for broker_notification_callbacks::deliver(): it must, on the
+ * Broker side, publish a pb_notification_execute event so the poller that
+ * supervises the resource runs the notification command (model C, brick 1).
+ *
+ * Unlike the read-only callbacks above, deliver() publishes through the
+ * multiplexing engine, so this fixture brings the engine up and subscribes a
+ * muxer filtered on the pb_notification_execute type to capture the emission.
+ */
+class BrokerNotificationDeliverTest : public ::testing::Test {
+ protected:
+  cache::broker_cache* _cache = nullptr;
+  std::unique_ptr<broker_notification_callbacks> _cb;
+  std::shared_ptr<multiplexing::muxer> _mux;
+
+ public:
+  void SetUp() override {
+    config::applier::init<config::applier::broker_state>("", 0, "test_broker",
+                                                         0);
+    auto& st = config::applier::state::instance();
+    st.initialize_cache();
+    _cache = &st.cache();
+    _cache->enable_section(cache::broker_cache::CACHE_ALL);
+    _cb = std::make_unique<broker_notification_callbacks>();
+
+    multiplexing::muxer_filter f{bbdo::pb_notification_execute::static_type()};
+    _mux = multiplexing::muxer::create(
+        "test-notif-exec", multiplexing::engine::instance_ptr(), f, f, false);
+    multiplexing::engine::instance_ptr()->start();
+  }
+
+  void TearDown() override {
+    _mux->unsubscribe();
+    _mux.reset();
+    _cb.reset();
+    config::applier::deinit();
+  }
+
+  /** @brief Read the next event from the muxer, retrying briefly since the
+   * multiplexing engine dispatches asynchronously. */
+  std::shared_ptr<io::data> read_one() {
+    std::shared_ptr<io::data> d;
+    for (int i = 0; i < 100 && !d; ++i) {
+      _mux->read(d, 0);
+      if (!d)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return d;
+  }
+};
+
+/**
+ * @brief deliver() publishes a pb_notification_execute carrying the
+ * notification parameters and the selected contacts, addressed (destination_id)
+ * to the poller that supervises the resource.
+ */
+TEST_F(BrokerNotificationDeliverTest, DispatchesNotificationExecute) {
+  auto h = std::make_shared<neb::pb_host>();
+  Host& o = h->mut_obj();
+  o.set_host_id(1);
+  o.set_name("host_1");
+  o.set_instance_id(7);
+  o.set_enabled(true);
+  o.set_notify(true);
+  _cache->publish(h);
+
+  notifications::delivery_result res =
+      _cb->deliver(1, 5, notifications::cat_normal, notifications::reason_normal,
+                   42, 3, "admin", "the service is down",
+                   notifications::notification_option_none);
+
+  /* deliver() reports the (injected, brick 1) contact set as notified. */
+  EXPECT_EQ(res.notified_contacts.size(), 1u);
+  EXPECT_EQ(res.notified_contacts.count("John_Doe"), 1u);
+
+  /* and it published the dispatch event for poller 7. */
+  std::shared_ptr<io::data> d = read_one();
+  ASSERT_TRUE(d);
+  ASSERT_EQ(d->type(), bbdo::pb_notification_execute::static_type());
+  auto evt = std::static_pointer_cast<bbdo::pb_notification_execute>(d);
+  const NotificationExecute& n = evt->obj();
+  EXPECT_EQ(n.host_id(), 1u);
+  EXPECT_EQ(n.service_id(), 5u);
+  EXPECT_EQ(n.category(), static_cast<uint32_t>(notifications::cat_normal));
+  EXPECT_EQ(n.reason_type(), static_cast<uint32_t>(notifications::reason_normal));
+  EXPECT_EQ(n.notification_id(), 42u);
+  EXPECT_EQ(n.notification_number(), 3u);
+  EXPECT_EQ(n.author(), "admin");
+  EXPECT_EQ(n.message(), "the service is down");
+  ASSERT_EQ(n.contacts_size(), 1);
+  EXPECT_EQ(n.contacts(0), "John_Doe");
+  EXPECT_EQ(evt->destination_id, 7u);
+}
+
+/**
+ * @brief A notification for a host unknown to the cache is dropped: no dispatch
+ * event is published and no contact is reported as notified.
+ */
+TEST_F(BrokerNotificationDeliverTest, UnknownHostDropped) {
+  notifications::delivery_result res =
+      _cb->deliver(999, 0, notifications::cat_normal, notifications::reason_normal,
+                   1, 1, "admin", "msg",
+                   notifications::notification_option_none);
+
+  EXPECT_TRUE(res.notified_contacts.empty());
+  EXPECT_FALSE(read_one());
 }

@@ -50,6 +50,9 @@ class cbmod_state : public state {
       _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
   std::atomic_bool _diff_state_applied;
+  /* Set from broker's Welcome at negotiation: true when Broker owns the
+   * notification decision. Read from the Engine event loop, hence atomic. */
+  std::atomic_bool _broker_handles_notifications{false};
   mutable absl::Mutex _diff_state_m;
   std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
   std::unique_ptr<com::centreon::engine::configuration::State>
@@ -89,6 +92,12 @@ class cbmod_state : public state {
       ABSL_LOCKS_EXCLUDED(_pending_notifications_m);
   std::vector<NotificationExecute> drain_notification_executes()
       ABSL_LOCKS_EXCLUDED(_pending_notifications_m);
+  void set_broker_handles_notifications(bool on) {
+    _broker_handles_notifications.store(on);
+  }
+  bool broker_handles_notifications() const {
+    return _broker_handles_notifications.load();
+  }
   /**
    * @brief Check if the diff state has been applied. This method is called from
    * Engine. It must return true if the diff state has been applied but only

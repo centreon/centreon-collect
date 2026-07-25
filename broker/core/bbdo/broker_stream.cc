@@ -417,12 +417,15 @@ bool broker_stream::supports_centralized_conf() const {
 
 /**
  * @brief Fill the Welcome message with broker-specific negotiation parameters.
- * Sets the extended negotiation flag if centralized configuration is supported.
+ * Sets the extended negotiation flag if centralized configuration is supported,
+ * and tells Engine whether Broker owns the notification decision so Engine can
+ * stop deciding notifications on its own (notification_mode=broker).
  *
  * @param obj The Welcome message to fill.
  */
 void broker_stream::specific_negotiate(Welcome& obj) {
   obj.set_extended_negotiation(supports_centralized_conf());
+  obj.set_broker_handles_notifications(_state.notifications_on_broker());
 }
 
 }  // namespace com::centreon::broker::bbdo

@@ -47,6 +47,11 @@ message Welcome {
    * when a host/service carries no explicit timezone. Empty for non-Engine
    * peers. */
   string timezone = 9;
+  /* Sent by Broker to Engine at negotiation: true when Broker owns the
+   * notification decision (notification_mode=broker). Engine then stops
+   * deciding notifications on its own (notifier::notify becomes a no-op) and
+   * only executes what Broker dispatches via pb_notification_execute. */
+  bool broker_handles_notifications = 10;
 }
 
 /* io::bbdo, bbdo::de_pb_ack, 50 */

@@ -76,6 +76,7 @@ class cbmod {
   void reload();
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   std::vector<NotificationExecute> drain_notification_executes();
+  bool broker_handles_notifications() const;
   void set_diff_state_applied(const std::string& config_version);
   bool centralized_conf() const;
   void send_engine_conf(

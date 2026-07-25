@@ -329,6 +329,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/broker_downtime_callbacks.cc
     ${SRC_DIR}/broker_notification_callbacks.cc
+    ${SRC_DIR}/broker_notification_dispatcher.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -357,6 +358,7 @@ target_link_libraries(
           bbdo_bbdo
           broker_cache
           downtimes_lib
+          notifications
           timeperiods
           pb_broker_lib
           ctncrypto
