@@ -180,7 +180,7 @@ TEST_F(BrokerNotificationCallbacksTest, GetStateServiceMapping) {
   o.set_is_volatile(true);
   o.set_state(Service::CRITICAL);
   o.set_state_type(Service::HARD);
-  o.set_acknowledged(true);
+  o.set_acknowledgement_type(AckType::NORMAL);
   o.set_flapping(false);
   o.set_scheduled_downtime_depth(2);
   o.set_notify_on_critical(true);

@@ -36,6 +36,7 @@ class cbmod_stream : public stream {
             config::applier::state::instance())} {}
   bool supports_centralized_conf() const override;
   void specific_negotiate(Welcome& obj) override;
+  void specific_negotiate_received(const Welcome& peer) override;
   void send_engine_conf(
       std::unique_ptr<com::centreon::engine::configuration::State>& conf);
   uint32_t write(const std::shared_ptr<io::data>& d) override;

@@ -1239,6 +1239,43 @@ broker_state::pop_pending_diff_state_acks() {
 }
 
 /**
+ * @brief Queue a pb_notification_execute for delivery to the poller supervising
+ * the resource (notification_mode=broker). Called from the notification
+ * dispatcher on the multiplexing thread; the event is drained later by that
+ * poller's ENGINE-connected stream in read().
+ *
+ * @param poller_id The id of the poller that must run the notification.
+ * @param evt The pb_notification_execute event to deliver.
+ */
+void broker_state::push_pending_notification_execute(
+    uint64_t poller_id,
+    std::shared_ptr<io::data> evt) {
+  absl::WriterMutexLock lck(&_pending_notif_m);
+  _pending_notification_executes[poller_id].push_back(std::move(evt));
+}
+
+/**
+ * @brief Drain and return the notification executes queued for a poller
+ * (notification_mode=broker). Called from that poller's ENGINE-connected
+ * stream read().
+ *
+ * @param poller_id The id of the poller whose queue must be drained.
+ *
+ * @return The queued events in arrival order, or an empty vector if the poller
+ * has nothing pending.
+ */
+std::vector<std::shared_ptr<io::data>>
+broker_state::pop_pending_notification_executes(uint64_t poller_id) {
+  absl::WriterMutexLock lck(&_pending_notif_m);
+  auto it = _pending_notification_executes.find(poller_id);
+  if (it == _pending_notification_executes.end())
+    return {};
+  auto result = std::move(it->second);
+  _pending_notification_executes.erase(it);
+  return result;
+}
+
+/**
  * @brief Register an engine peer that is reachable via a relay.  Called at
  * the central when it receives a ConfigRequest from relay R for poller N.
  * Creates (or updates) an engine_peer entry in _engine_peers with

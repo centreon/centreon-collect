@@ -529,7 +529,8 @@ static void forward_pb_host(int type,
     auto& host = h->mut_obj();
 
     // Set host parameters.
-    host.set_acknowledged(eh->problem_has_been_acknowledged());
+    // Host.acknowledged is deprecated (see neb.proto): the acknowledgement
+    // state is carried solely by acknowledgement_type.
     host.set_acknowledgement_type(eh->get_acknowledgement());
     if (!eh->get_action_url().empty())
       host.set_action_url(common::check_string_utf8(eh->get_action_url()));
@@ -1027,7 +1028,8 @@ static void forward_pb_service(int type,
     com::centreon::broker::Service& srv = s.get()->mut_obj();
 
     // Fill output var.
-    srv.set_acknowledged(es->problem_has_been_acknowledged());
+    // Service.acknowledged is deprecated (see neb.proto): the acknowledgement
+    // state is carried solely by acknowledgement_type.
     srv.set_acknowledgement_type(es->get_acknowledgement());
     if (!es->get_action_url().empty())
       srv.set_action_url(common::check_string_utf8(es->get_action_url()));

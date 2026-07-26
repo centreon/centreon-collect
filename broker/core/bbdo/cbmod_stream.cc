@@ -107,44 +107,6 @@ void cbmod_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
 
       break;
     }
-    case pb_welcome::static_type(): {
-      auto welcome(std::static_pointer_cast<pb_welcome>(d));
-      const auto& pb_version = welcome->obj().version();
-      if (pb_version.major() != get_bbdo_version().major_v) {
-        SPDLOG_LOGGER_ERROR(
-            _logger,
-            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-            "using protocol version {}.{}.{}",
-            pb_version.major(), pb_version.minor(), pb_version.patch(),
-            get_bbdo_version().major_v, get_bbdo_version().minor_v,
-            get_bbdo_version().patch);
-        throw msg_fmt(
-            "BBDO: peer is using protocol version {}.{}.{} "
-            "whereas we're using protocol version {}.{}.{}",
-            pb_version.major(), pb_version.minor(), pb_version.patch(),
-            get_bbdo_version().major_v, get_bbdo_version().minor_v,
-            get_bbdo_version().patch);
-      }
-      SPDLOG_LOGGER_INFO(
-          _logger,
-          "BBDO: peer is using protocol version {}.{}.{} , we're using "
-          "version "
-          "{}.{}.{}",
-          pb_version.major(), pb_version.minor(), pb_version.patch(),
-          get_bbdo_version().major_v, get_bbdo_version().minor_v,
-          get_bbdo_version().patch);
-      /* If Broker owns the notification decision (notification_mode=broker),
-       * Engine must stop deciding notifications on its own; it will only
-       * execute the notifications Broker dispatches. */
-      if (welcome->obj().broker_handles_notifications()) {
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: Broker handles notifications; Engine notification decision "
-            "disabled");
-        _state.set_broker_handles_notifications(true);
-      }
-      break;
-    }
     case ack::static_type():
       SPDLOG_LOGGER_INFO(
           _logger, "BBDO: received acknowledgement for {} events",
@@ -223,6 +185,24 @@ void cbmod_stream::specific_negotiate(Welcome& obj) {
    * no explicit timezone directive (which resolves, on Engine, to the machine's
    * local timezone). */
   obj.set_timezone(absl::LocalTimeZone().name());
+}
+
+/**
+ * @brief Extract cbmod-specific negotiation parameters from the peer's Welcome.
+ * If Broker advertised that it owns the notification decision
+ * (notification_mode=broker), Engine must stop deciding notifications on its
+ * own; it will only execute the notifications Broker dispatches.
+ *
+ * @param peer The Welcome message received from Broker.
+ */
+void cbmod_stream::specific_negotiate_received(const Welcome& peer) {
+  if (peer.broker_handles_notifications()) {
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "BBDO: Broker handles notifications; Engine notification decision "
+        "disabled");
+    _state.set_broker_handles_notifications(true);
+  }
 }
 
 }  // namespace com::centreon::broker::bbdo

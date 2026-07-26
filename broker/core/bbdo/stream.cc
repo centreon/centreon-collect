@@ -230,6 +230,10 @@ void stream::negotiate(stream::negotiation_type neg) {
     }
     peer_engine_conf = w.engine_conf();
     peer_timezone = w.timezone();
+    /* Let the subclass extract its specific negotiation parameters from the
+     * peer's Welcome (only the protobuf path carries them; the legacy
+     * version_response cannot). */
+    specific_negotiate_received(w);
     peer_extensions = w.extensions();
     set_poller_id(w.poller_id());
     set_poller_name(w.poller_name());
