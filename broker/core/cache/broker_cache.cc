@@ -114,6 +114,20 @@ void broker_cache::merge(
     _resolve_timeperiods();
   }
 
+  /* Work on notification contacts and contactgroups. Reference-counted per
+   * poller like the timeperiods above. A full state rebuilds this poller's
+   * contribution: drop it first, then re-insert, so contacts/contactgroups
+   * removed from the poller's configuration do not linger. Names are stored
+   * as-is; contactgroups are expanded to contacts lazily at notification time
+   * (see contactgroup_members()), so no resolution is done here. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    _remove_poller_from_contacts(state.poller_id());
+    for (const engine::configuration::Contact& c : state.contacts())
+      _insert_contact(c, state.poller_id());
+    for (const engine::configuration::Contactgroup& cg : state.contactgroups())
+      _insert_contactgroup(cg, state.poller_id());
+  }
+
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
     for (const engine::configuration::Severity& sev : state.severities()) {
@@ -397,6 +411,90 @@ void broker_cache::_insert_service_notif_dep(
 }
 
 /**
+ * @brief Store (or replace) a notification contact and register @p poller_id as
+ * one of its referencing pollers.
+ *
+ * The contact is stored by name; only the fields the notification decision
+ * needs are kept. Resolution of the contactgroups the contact belongs to is not
+ * done here (it happens at notification time).
+ *
+ * @param c A configuration Contact (post-expand).
+ * @param poller_id The poller referencing this contact.
+ */
+void broker_cache::_insert_contact(const engine::configuration::Contact& c,
+                                   uint64_t poller_id) {
+  const std::string& name = c.contact_name();
+  contact entry;
+  entry.name = name;
+  entry.host_notifications_enabled = c.host_notifications_enabled();
+  entry.service_notifications_enabled = c.service_notifications_enabled();
+  entry.host_notification_period = c.host_notification_period();
+  entry.service_notification_period = c.service_notification_period();
+  entry.host_notification_options = c.host_notification_options();
+  entry.service_notification_options = c.service_notification_options();
+  entry.timezone = c.timezone();
+  auto [it, inserted] = _contacts.try_emplace(name, std::move(entry),
+                                              absl::flat_hash_set<uint64_t>{});
+  if (!inserted)
+    it->second.first = std::move(entry);
+  it->second.second.insert(poller_id);
+}
+
+/**
+ * @brief Store (or replace) a notification contactgroup and register
+ * @p poller_id as one of its referencing pollers.
+ *
+ * The Engine flattens nested contactgroups into `members` before the
+ * configuration reaches Broker, so `members` holds only concrete contact names.
+ *
+ * @param cg A configuration Contactgroup (post-expand).
+ * @param poller_id The poller referencing this contactgroup.
+ */
+void broker_cache::_insert_contactgroup(
+    const engine::configuration::Contactgroup& cg,
+    uint64_t poller_id) {
+  const std::string& name = cg.contactgroup_name();
+  contactgroup entry;
+  entry.name = name;
+  for (const std::string& member : cg.members().data())
+    entry.members.insert(member);
+  auto [it, inserted] = _contactgroups.try_emplace(
+      name, std::move(entry), absl::flat_hash_set<uint64_t>{});
+  if (!inserted)
+    it->second.first = std::move(entry);
+  it->second.second.insert(poller_id);
+}
+
+/**
+ * @brief Drop @p poller_id from every contact and contactgroup reference set,
+ * erasing the entries no poller references anymore.
+ *
+ * Used both on a full re-merge (to rebuild the poller's contribution from
+ * scratch) and on poller removal.
+ *
+ * @param poller_id The poller to drop.
+ */
+void broker_cache::_remove_poller_from_contacts(uint64_t poller_id) {
+  std::vector<std::string> orphaned;
+  for (auto& [name, value] : _contacts) {
+    value.second.erase(poller_id);
+    if (value.second.empty())
+      orphaned.push_back(name);
+  }
+  for (const std::string& name : orphaned)
+    _contacts.erase(name);
+
+  orphaned.clear();
+  for (auto& [name, value] : _contactgroups) {
+    value.second.erase(poller_id);
+    if (value.second.empty())
+      orphaned.push_back(name);
+  }
+  for (const std::string& name : orphaned)
+    _contactgroups.erase(name);
+}
+
+/**
  * @brief Apply a configuration state difference into the cache. Used when some
  * new Engine configurations are pushed by a user (i.e. when a
  * `pb_global_diff_state` event is received).
@@ -474,6 +572,39 @@ void broker_cache::apply(
         }
       }
       _resolve_timeperiods();
+    }
+  }
+
+  /* Work on notification contacts and contactgroups. Same reference-counted
+   * per-poller model as the timeperiods above; a DiffContact/DiffContactgroup
+   * carries added, modified and removed (by name) entries. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    const engine::configuration::DiffContact& dc = diff.contacts();
+    for (const engine::configuration::Contact& c : dc.added())
+      _insert_contact(c, diff.poller_id());
+    for (const engine::configuration::Contact& c : dc.modified())
+      _insert_contact(c, diff.poller_id());
+    for (const std::string& name : dc.removed()) {
+      auto it = _contacts.find(name);
+      if (it != _contacts.end()) {
+        it->second.second.erase(diff.poller_id());
+        if (it->second.second.empty())
+          _contacts.erase(it);
+      }
+    }
+
+    const engine::configuration::DiffContactgroup& dcg = diff.contactgroups();
+    for (const engine::configuration::Contactgroup& cg : dcg.added())
+      _insert_contactgroup(cg, diff.poller_id());
+    for (const engine::configuration::Contactgroup& cg : dcg.modified())
+      _insert_contactgroup(cg, diff.poller_id());
+    for (const std::string& name : dcg.removed()) {
+      auto it = _contactgroups.find(name);
+      if (it != _contactgroups.end()) {
+        it->second.second.erase(diff.poller_id());
+        if (it->second.second.empty())
+          _contactgroups.erase(it);
+      }
     }
   }
 
@@ -1308,6 +1439,9 @@ void broker_cache::remove_instance(uint64_t instance_id) {
 
     _host_notif_deps.get<by_instance>().erase(instance_id);
     _service_notif_deps.get<by_instance>().erase(instance_id);
+
+    /* Contacts/contactgroups are reference-counted per poller too. */
+    _remove_poller_from_contacts(instance_id);
   }
 
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
@@ -2595,6 +2729,49 @@ std::vector<service_notif_dep> broker_cache::service_notif_dependencies(
       idx.equal_range(std::make_pair(dependent_host_id, dependent_service_id));
   for (auto it = range.first; it != range.second; ++it)
     result.push_back(*it);
+  return result;
+}
+
+/**
+ * @brief Look up a cached notification contact by name.
+ *
+ * @param name The contact name.
+ *
+ * @return The cached contact, or std::nullopt when no contact of that name is
+ * known to the cache.
+ */
+std::optional<broker_cache::contact> broker_cache::contact_config(
+    const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _contacts.find(name);
+  if (it == _contacts.end())
+    return std::nullopt;
+  return it->second.first;
+}
+
+/**
+ * @brief Expand a contactgroup to the names of its member contacts.
+ *
+ * This is the contactgroup->contacts resolution done at notification time: the
+ * group members are read straight from the cache instead of being flattened
+ * onto the resources or contacts at configuration time.
+ *
+ * @param name The contactgroup name.
+ *
+ * @return The member contact names; empty when the group is unknown or has no
+ * member.
+ */
+std::vector<std::string> broker_cache::contactgroup_members(
+    const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::vector<std::string> result;
+  auto it = _contactgroups.find(name);
+  if (it == _contactgroups.end())
+    return result;
+  const auto& members = it->second.first.members;
+  result.reserve(members.size());
+  for (const std::string& member : members)
+    result.push_back(member);
   return result;
 }
 

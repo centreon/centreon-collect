@@ -25,6 +25,7 @@
 #include <boost/multi_index_container.hpp>
 #include <chrono>
 #include <filesystem>
+#include <optional>
 
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
@@ -38,6 +39,8 @@ class Host;
 class Service;
 class Hostdependency;
 class Servicedependency;
+class Contact;
+class Contactgroup;
 }  // namespace com::centreon::engine::configuration
 
 namespace com::centreon::broker {
@@ -391,6 +394,33 @@ class broker_cache {
     bool soft_state_dependencies = false;
   };
 
+  /* Cache view of a notification contact, mirrored from the Engine
+   * configuration. Only the fields the notification decision needs are kept.
+   * The contactgroups a contact belongs to are NOT stored here: the
+   * contactgroup->contacts resolution is done lazily at notification time (iso
+   * Engine, which never flattens groups onto the contact either). */
+  struct contact {
+    std::string name;
+    bool host_notifications_enabled = true;
+    bool service_notifications_enabled = true;
+    std::string host_notification_period;
+    std::string service_notification_period;
+    /* Bitmasks of the states a contact wants to be notified on (action_hst_*
+     * / action_svc_* from the Engine configuration). */
+    uint32_t host_notification_options = 0;
+    uint32_t service_notification_options = 0;
+    std::string timezone;
+  };
+
+  /* Cache view of a contactgroup: its name and the names of its member
+   * contacts. The Engine flattens nested contactgroups (contactgroup_members)
+   * into `members` before the configuration reaches Broker (post-expand
+   * State), so `members` already holds only concrete contact names. */
+  struct contactgroup {
+    std::string name;
+    absl::flat_hash_set<std::string> members;
+  };
+
   enum cache_section : uint32_t {
     CACHE_NONE = 0,
     CACHE_INSTANCES = 1 << 0,
@@ -453,6 +483,20 @@ class broker_cache {
    * ids). */
   HostNotifDepContainer _host_notif_deps ABSL_GUARDED_BY(_mutex);
   ServiceNotifDepContainer _service_notif_deps ABSL_GUARDED_BY(_mutex);
+
+  /* Notification contacts and contactgroups, keyed by name. Each value pairs
+   * the cached object with the set of pollers referencing it (same "central,
+   * reference-counted" model as _tags / _severities): an entry is dropped only
+   * when no poller references it anymore. Only fed when CACHE_NOTIFICATIONS is
+   * enabled. Contactgroups are kept unflattened onto the contacts; the
+   * contactgroup->contacts expansion is done at query time (see
+   * contactgroup_members()). */
+  absl::flat_hash_map<std::string,
+                      std::pair<contact, absl::flat_hash_set<uint64_t>>>
+      _contacts ABSL_GUARDED_BY(_mutex);
+  absl::flat_hash_map<std::string,
+                      std::pair<contactgroup, absl::flat_hash_set<uint64_t>>>
+      _contactgroups ABSL_GUARDED_BY(_mutex);
 
   IndexMappingContainer _index_mappings ABSL_GUARDED_BY(_mutex);
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
@@ -549,13 +593,24 @@ class broker_cache {
   void _insert_service_notif_dep(
       const com::centreon::engine::configuration::Servicedependency& dep,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _insert_contact(const com::centreon::engine::configuration::Contact& c,
+                       uint64_t poller_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _insert_contactgroup(
+      const com::centreon::engine::configuration::Contactgroup& cg,
+      uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  /* Drop @p poller_id from every contact/contactgroup reference set, erasing
+   * the entries no poller references anymore. Used on a full re-merge (rebuild
+   * the poller's contribution) and on poller removal. */
+  void _remove_poller_from_contacts(uint64_t poller_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   bool _host_notification_authorized_by_dependencies(uint64_t host_id,
                                                      std::time_t now) const
       ABSL_SHARED_LOCKS_REQUIRED(_mutex);
-  bool _service_notification_authorized_by_dependencies(
-      uint64_t host_id,
-      uint64_t service_id,
-      std::time_t now) const ABSL_SHARED_LOCKS_REQUIRED(_mutex);
+  bool _service_notification_authorized_by_dependencies(uint64_t host_id,
+                                                        uint64_t service_id,
+                                                        std::time_t now) const
+      ABSL_SHARED_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
@@ -643,6 +698,15 @@ class broker_cache {
       uint64_t dependent_service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   bool notification_authorized_by_dependencies(uint64_t host_id,
                                                uint64_t service_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Look up a cached notification contact by name. Returns std::nullopt when no
+   * contact of that name is known to the cache. */
+  std::optional<contact> contact_config(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Return the member contact names of a cached contactgroup (empty when the
+   * group is unknown or has no member). This is the lazy contactgroup->contacts
+   * expansion performed at notification time. */
+  std::vector<std::string> contactgroup_members(const std::string& name) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::chrono::seconds interval_length(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
