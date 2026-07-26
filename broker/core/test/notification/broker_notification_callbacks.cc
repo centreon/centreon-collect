@@ -21,12 +21,13 @@
 
 #include <gtest/gtest.h>
 
-#include <thread>
+#include <algorithm>
+#include <vector>
 
 #include "broker/core/bbdo/internal.hh"
 #include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
-#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 
 using namespace com::centreon::broker;
@@ -281,19 +282,173 @@ TEST_F(BrokerNotificationCallbacksTest,
 }
 
 /**
+ * @brief merge(State) populates the contacts and contactgroups caches; a
+ * contact is read back with its notification fields and a contactgroup is
+ * expanded to its member contact names at query time.
+ */
+TEST_F(BrokerNotificationCallbacksTest, ContactsAndContactgroupsFromState) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(1);
+
+  auto* c1 = st.mutable_contacts()->Add();
+  c1->set_contact_name("John_Doe");
+  c1->set_host_notifications_enabled(true);
+  c1->set_service_notifications_enabled(false);
+  c1->set_host_notification_period("24x7");
+  c1->set_service_notification_period("workhours");
+  c1->set_host_notification_options(cfg::action_hst_down);
+  c1->set_service_notification_options(cfg::action_svc_critical);
+  c1->set_timezone(":Europe/Paris");
+
+  auto* c2 = st.mutable_contacts()->Add();
+  c2->set_contact_name("Jane_Doe");
+
+  auto* cg = st.mutable_contactgroups()->Add();
+  cg->set_contactgroup_name("admins");
+  cg->mutable_members()->add_data("John_Doe");
+  cg->mutable_members()->add_data("Jane_Doe");
+
+  _cache->merge(st);
+
+  auto john = _cache->contact_config("John_Doe");
+  ASSERT_TRUE(john.has_value());
+  EXPECT_EQ(john->name, "John_Doe");
+  EXPECT_TRUE(john->host_notifications_enabled);
+  EXPECT_FALSE(john->service_notifications_enabled);
+  EXPECT_EQ(john->host_notification_period, "24x7");
+  EXPECT_EQ(john->service_notification_period, "workhours");
+  EXPECT_EQ(john->host_notification_options, cfg::action_hst_down);
+  EXPECT_EQ(john->service_notification_options, cfg::action_svc_critical);
+  EXPECT_EQ(john->timezone, ":Europe/Paris");
+
+  /* An unknown contact yields no value. */
+  EXPECT_FALSE(_cache->contact_config("nobody").has_value());
+
+  /* The contactgroup expands to its two members (order-independent). */
+  auto members = _cache->contactgroup_members("admins");
+  std::sort(members.begin(), members.end());
+  EXPECT_EQ(members, (std::vector<std::string>{"Jane_Doe", "John_Doe"}));
+  /* An unknown contactgroup expands to nothing. */
+  EXPECT_TRUE(_cache->contactgroup_members("unknown").empty());
+}
+
+/**
+ * @brief apply(DiffState) adds, modifies and removes contacts/contactgroups
+ * incrementally, mirroring the DiffContact/DiffContactgroup added/modified/
+ * removed lists.
+ */
+TEST_F(BrokerNotificationCallbacksTest, ContactsDiffAddModifyRemove) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* c = st.mutable_contacts()->Add();
+  c->set_contact_name("John_Doe");
+  c->set_host_notifications_enabled(true);
+  auto* cg = st.mutable_contactgroups()->Add();
+  cg->set_contactgroup_name("admins");
+  cg->mutable_members()->add_data("John_Doe");
+  _cache->merge(st);
+
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  /* Add a contact, modify John_Doe, remove nothing yet. */
+  auto* added = diff.mutable_contacts()->mutable_added()->Add();
+  added->set_contact_name("Jane_Doe");
+  auto* modified = diff.mutable_contacts()->mutable_modified()->Add();
+  modified->set_contact_name("John_Doe");
+  modified->set_host_notifications_enabled(false);
+  /* Add a member to the contactgroup (modified replaces the whole group). */
+  auto* mcg = diff.mutable_contactgroups()->mutable_modified()->Add();
+  mcg->set_contactgroup_name("admins");
+  mcg->mutable_members()->add_data("John_Doe");
+  mcg->mutable_members()->add_data("Jane_Doe");
+  _cache->apply(diff);
+
+  EXPECT_TRUE(_cache->contact_config("Jane_Doe").has_value());
+  auto john = _cache->contact_config("John_Doe");
+  ASSERT_TRUE(john.has_value());
+  EXPECT_FALSE(john->host_notifications_enabled);
+  auto admins = _cache->contactgroup_members("admins");
+  std::sort(admins.begin(), admins.end());
+  EXPECT_EQ(admins, (std::vector<std::string>{"Jane_Doe", "John_Doe"}));
+
+  /* Remove Jane_Doe and the whole contactgroup. */
+  cfg::DiffState diff2;
+  diff2.set_poller_id(1);
+  diff2.mutable_contacts()->add_removed("Jane_Doe");
+  diff2.mutable_contactgroups()->add_removed("admins");
+  _cache->apply(diff2);
+
+  EXPECT_FALSE(_cache->contact_config("Jane_Doe").has_value());
+  EXPECT_TRUE(_cache->contact_config("John_Doe").has_value());
+  EXPECT_TRUE(_cache->contactgroup_members("admins").empty());
+}
+
+/**
+ * @brief Contacts and contactgroups are reference-counted per poller: an entry
+ * shared by two pollers survives the removal of one of them and is dropped only
+ * when the last referencing poller goes away. A full re-merge rebuilds a
+ * poller's contribution, dropping the contacts it no longer defines.
+ */
+TEST_F(BrokerNotificationCallbacksTest, ContactsReferenceCountedPerPoller) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  auto merge_shared = [this](uint32_t poller_id) {
+    cfg::State st;
+    st.set_poller_id(poller_id);
+    st.mutable_contacts()->Add()->set_contact_name("shared");
+    auto* cg = st.mutable_contactgroups()->Add();
+    cg->set_contactgroup_name("grp");
+    cg->mutable_members()->add_data("shared");
+    _cache->merge(st);
+  };
+  merge_shared(1);
+  merge_shared(2);
+
+  /* Poller 1 leaves: the shared contact/group is still referenced by poller 2. */
+  _cache->remove_instance(1);
+  EXPECT_TRUE(_cache->contact_config("shared").has_value());
+  EXPECT_FALSE(_cache->contactgroup_members("grp").empty());
+
+  /* Poller 2 leaves too: now nothing references them. */
+  _cache->remove_instance(2);
+  EXPECT_FALSE(_cache->contact_config("shared").has_value());
+  EXPECT_TRUE(_cache->contactgroup_members("grp").empty());
+
+  /* A full re-merge without a previously present contact drops it. */
+  cfg::State st;
+  st.set_poller_id(1);
+  st.mutable_contacts()->Add()->set_contact_name("first");
+  _cache->merge(st);
+  EXPECT_TRUE(_cache->contact_config("first").has_value());
+
+  cfg::State st2;
+  st2.set_poller_id(1);
+  st2.mutable_contacts()->Add()->set_contact_name("second");
+  _cache->merge(st2);
+  EXPECT_FALSE(_cache->contact_config("first").has_value());
+  EXPECT_TRUE(_cache->contact_config("second").has_value());
+}
+
+/**
  * @brief Fixture for broker_notification_callbacks::deliver(): it must, on the
  * Broker side, publish a pb_notification_execute event so the poller that
  * supervises the resource runs the notification command (model C, brick 1).
  *
- * Unlike the read-only callbacks above, deliver() publishes through the
- * multiplexing engine, so this fixture brings the engine up and subscribes a
- * muxer filtered on the pb_notification_execute type to capture the emission.
+ * deliver() does not broadcast through the multiplexing engine: it queues the
+ * pb_notification_execute on broker_state for targeted delivery to the poller
+ * supervising the resource (drained in that poller's ENGINE-connected stream
+ * read()). The fixture therefore captures the emission by draining that
+ * per-poller pending queue.
  */
 class BrokerNotificationDeliverTest : public ::testing::Test {
  protected:
   cache::broker_cache* _cache = nullptr;
+  config::applier::broker_state* _state = nullptr;
   std::unique_ptr<broker_notification_callbacks> _cb;
-  std::shared_ptr<multiplexing::muxer> _mux;
 
  public:
   void SetUp() override {
@@ -303,31 +458,22 @@ class BrokerNotificationDeliverTest : public ::testing::Test {
     st.initialize_cache();
     _cache = &st.cache();
     _cache->enable_section(cache::broker_cache::CACHE_ALL);
+    _state = &static_cast<config::applier::broker_state&>(st);
     _cb = std::make_unique<broker_notification_callbacks>();
-
-    multiplexing::muxer_filter f{bbdo::pb_notification_execute::static_type()};
-    _mux = multiplexing::muxer::create(
-        "test-notif-exec", multiplexing::engine::instance_ptr(), f, f, false);
-    multiplexing::engine::instance_ptr()->start();
   }
 
   void TearDown() override {
-    _mux->unsubscribe();
-    _mux.reset();
     _cb.reset();
     config::applier::deinit();
   }
 
-  /** @brief Read the next event from the muxer, retrying briefly since the
-   * multiplexing engine dispatches asynchronously. */
-  std::shared_ptr<io::data> read_one() {
-    std::shared_ptr<io::data> d;
-    for (int i = 0; i < 100 && !d; ++i) {
-      _mux->read(d, 0);
-      if (!d)
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-    return d;
+  /** @brief Pop the single notification execute queued for @p poller_id, or
+   * nullptr when the poller's queue is empty. */
+  std::shared_ptr<io::data> pop_one(uint64_t poller_id) {
+    auto pending = _state->pop_pending_notification_executes(poller_id);
+    if (pending.empty())
+      return nullptr;
+    return pending.front();
   }
 };
 
@@ -355,8 +501,8 @@ TEST_F(BrokerNotificationDeliverTest, DispatchesNotificationExecute) {
   EXPECT_EQ(res.notified_contacts.size(), 1u);
   EXPECT_EQ(res.notified_contacts.count("John_Doe"), 1u);
 
-  /* and it published the dispatch event for poller 7. */
-  std::shared_ptr<io::data> d = read_one();
+  /* and it queued the dispatch event for poller 7 (host_1's supervisor). */
+  std::shared_ptr<io::data> d = pop_one(7);
   ASSERT_TRUE(d);
   ASSERT_EQ(d->type(), bbdo::pb_notification_execute::static_type());
   auto evt = std::static_pointer_cast<bbdo::pb_notification_execute>(d);
@@ -385,5 +531,6 @@ TEST_F(BrokerNotificationDeliverTest, UnknownHostDropped) {
                    notifications::notification_option_none);
 
   EXPECT_TRUE(res.notified_contacts.empty());
-  EXPECT_FALSE(read_one());
+  /* Nothing was queued for any poller (the resource has no supervisor). */
+  EXPECT_FALSE(pop_one(7));
 }
