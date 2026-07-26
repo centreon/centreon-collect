@@ -10,7 +10,7 @@ Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-srv_notif_then_rm_and_reload
+SRV_NOTIF_THEN_RM_AND_RELOAD
     [Documentation]    Scenario: removing a notified service that is in downtime and reloading does not crash Engine
     ...    Given a service in a non-OK HARD state that has sent a notification and is under a scheduled downtime
     ...    When the service is removed from the configuration and Engine and Broker are reloaded
@@ -68,7 +68,7 @@ srv_notif_then_rm_and_reload
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_crit_notif
+SRV_CRIT_NOTIF
     [Documentation]    Scenario: a critical service triggers a notification
     ...    Given a service configured with notifications enabled
     ...    When the service enters a non-OK HARD state
@@ -112,7 +112,7 @@ srv_crit_notif
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_allowed_by_wlist
+SRV_NOTIF_ALLOWED_BY_WLIST
     [Documentation]    Scenario: a service notification command allowed by the whitelist is executed
     ...    Given a service in a non-OK HARD state and a whitelist allowing its notification command
     ...    When the notification is triggered
@@ -160,7 +160,7 @@ srv_notif_allowed_by_wlist
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_blocked_by_wlist
+SRV_NOTIF_BLOCKED_BY_WLIST
     [Documentation]    Scenario: a service notification command blocked by the whitelist is not executed
     ...    Given a service in a non-OK HARD state and a whitelist not allowing its notification command
     ...    When the notification is triggered
@@ -208,7 +208,7 @@ srv_notif_blocked_by_wlist
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_rec_notif
+SRV_REC_NOTIF
     [Documentation]    Scenario: a service recovery triggers a recovery notification
     ...    Given a service that sent a CRITICAL notification
     ...    When the service returns to an OK HARD state
@@ -265,7 +265,7 @@ srv_rec_notif
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_suppr_during_downtime
+SRV_NOTIF_SUPPR_DURING_DT
     [Documentation]    Scenario: notifications are suppressed while a service is in downtime
     ...    Given a service with a scheduled downtime
     ...    When the service enters a CRITICAL state during the downtime
@@ -332,7 +332,7 @@ srv_notif_suppr_during_downtime
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_rec_notif_after_ack
+SRV_REC_NOTIF_AFTER_ACK
     [Documentation]    Scenario: a recovery notification is sent after an acknowledged problem recovers
     ...    Given a CRITICAL service that has been acknowledged
     ...    When the service returns to an OK HARD state
@@ -394,7 +394,7 @@ srv_rec_notif_after_ack
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_routed_to_correct_ctct
+SRV_NOTIF_ROUTED_TO_CORRECT_CTCT
     [Documentation]    Scenario: each service notification is routed to its own contact
     ...    Given two services each assigned to a different contact
     ...    When both services enter a CRITICAL HARD state
@@ -464,7 +464,7 @@ srv_notif_routed_to_correct_ctct
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_suppr_by_empty_tp
+SRV_NOTIF_SUPPR_BY_EMPTY_TP
     [Documentation]    Scenario: an empty notification period suppresses notifications
     ...    Given a CRITICAL service whose notification period is then set to none
     ...    When the service state changes
@@ -528,7 +528,7 @@ srv_notif_suppr_by_empty_tp
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-host_down_alert
+HOST_DOWN_ALERT
     [Documentation]    Scenario: a host going down raises a host alert
     ...    Given a host configured with notifications
     ...    When the host enters a DOWN HARD state
@@ -565,7 +565,7 @@ host_down_alert
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-host_down_notif
+HOST_DOWN_NOTIF
     [Documentation]    Scenario: a host going down triggers a DOWN notification
     ...    Given a host configured with notifications
     ...    When the host enters a DOWN HARD state
@@ -602,7 +602,7 @@ host_down_notif
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-host_rec_notif
+HOST_REC_NOTIF
     [Documentation]    Scenario: a host recovery triggers a recovery notification
     ...    Given a host that sent a DOWN notification
     ...    When the host returns to an UP HARD state
@@ -652,7 +652,7 @@ host_rec_notif
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-host_rec_notif_with_downtime
+HOST_REC_NOTIF_WITH_DT
     [Documentation]    Scenario: host notifications across a downtime episode until recovery
     ...    Given a DOWN host for which a downtime is scheduled
     ...    When the downtime suppresses notifications, then is removed while the host is still DOWN, and the host later returns to UP
@@ -723,7 +723,7 @@ host_rec_notif_with_downtime
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_state_alerts_soft_and_hard
+SRV_STATE_ALERTS_SOFT_AND_HARD
     [Documentation]    Scenario: successive state changes raise SOFT then HARD service alerts
     ...    Given a service configured with several check attempts
     ...    When the service stays CRITICAL over successive checks
@@ -772,7 +772,7 @@ srv_state_alerts_soft_and_hard
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_escalations
+SRV_NOTIF_ESCALATIONS
     [Documentation]    Scenario: service notifications follow the configured escalations
     ...    Given services with notification escalations to different contact groups
     ...    When the services stay CRITICAL across successive notifications
@@ -888,7 +888,7 @@ srv_notif_escalations
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U4 is not sent
 
-host_notif_dependency
+HOST_NOTIF_DEPENDENCY
     [Documentation]    Scenario: a host notification is suppressed by a host dependency
     ...    Given a host depending on another host that has already been notified
     ...    When the dependent host enters a DOWN state
@@ -996,7 +996,7 @@ host_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_dependency
+SRV_NOTIF_DEPENDENCY
     [Documentation]    Scenario: a service notification is suppressed by a service dependency
     ...    Given a service depending on another service that has already been notified
     ...    When the dependent service enters a CRITICAL state
@@ -1107,7 +1107,7 @@ srv_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_multiple_commands
+SRV_NOTIF_MULTIPLE_COMMANDS
     [Documentation]    Scenario: a contact with several notification commands runs them all
     ...    Given a contact configured with two service notification commands
     ...    When a service enters a CRITICAL HARD state
@@ -1159,7 +1159,7 @@ srv_notif_multiple_commands
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srvgrp_notif_dependency
+SRVGRP_NOTIF_DEPENDENCY
     [Documentation]    Scenario: service notifications are suppressed by a servicegroup dependency
     ...    Given a servicegroup depending on another servicegroup that has already been notified
     ...    When a service of the dependent servicegroup enters a CRITICAL state
@@ -1312,7 +1312,7 @@ srvgrp_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-hostgrp_notif_dependency
+HOSTGRP_NOTIF_DEPENDENCY
     [Documentation]    Scenario: host notifications are suppressed by a hostgroup dependency
     ...    Given a hostgroup depending on another hostgroup that has already been notified
     ...    When a host of the dependent hostgroup enters a DOWN state
@@ -1424,7 +1424,7 @@ hostgrp_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-first_notif_delay_equal_retry_interval
+FIRST_NOTIF_DELAY_EQUAL_RETRY_INTERVAL
     [Documentation]    Scenario: first notification delay equal to the retry interval
     ...    Given a service whose first_notification_delay equals its retry interval
     ...    When the service enters a CRITICAL HARD state
@@ -1471,7 +1471,7 @@ first_notif_delay_equal_retry_interval
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-first_notif_delay_gt_retry_interval
+FIRST_NOTIF_DELAY_GT_RETRY_INTERVAL
     [Documentation]    Scenario: first notification delay greater than the retry interval
     ...    Given a service whose first_notification_delay is greater than its retry interval
     ...    When the service enters a CRITICAL HARD state
@@ -1517,7 +1517,7 @@ first_notif_delay_gt_retry_interval
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-first_notif_delay_lt_retry_interval
+FIRST_NOTIF_DELAY_LT_RETRY_INTERVAL
     [Documentation]    Scenario: first notification delay smaller than the retry interval
     ...    Given a service whose first_notification_delay is smaller than its retry interval
     ...    When the service enters a CRITICAL HARD state
@@ -1563,7 +1563,7 @@ first_notif_delay_lt_retry_interval
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-rec_notif_outside_tp_not_sent
+REC_NOTIF_OUTSIDE_TP_NOT_SENT
     [Documentation]    Scenario: a recovery is not sent outside the notification period when the flag is off
     ...    Given a CRITICAL service inside its notification period
     ...    When the service recovers outside its notification period and send_recovery_notifications_anyway is off
@@ -1617,7 +1617,7 @@ rec_notif_outside_tp_not_sent
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Not Be True    ${result}    The notification is sent out of time period
 
-rec_notif_outside_tp_sent_when_enabled
+REC_NOTIF_OUTSIDE_TP_SENT_WHEN_ENABLED
     [Documentation]    Scenario: a recovery is sent outside the notification period when the flag is on
     ...    Given a CRITICAL service inside its notification period
     ...    When the service recovers outside its notification period and send_recovery_notifications_anyway is on
@@ -1669,7 +1669,7 @@ rec_notif_outside_tp_sent_when_enabled
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent outside time period
 
-flapping_notif
+FLAPPING_NOTIF
     [Documentation]    Scenario: a flapping service triggers a FLAPPINGSTART notification
     ...    Given a service with flap detection and flapping notifications enabled
     ...    When the service state oscillates enough to start flapping
@@ -1717,7 +1717,7 @@ flapping_notif
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-forced_notif
+FORCED_NOTIF
     [Documentation]    Scenario: a forced custom notification bypasses the notification-enabled check
     ...    Given a host with notifications disabled
     ...    When a forced custom notification is sent for the host
@@ -1750,7 +1750,7 @@ forced_notif
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-broker_cache_host_notif_dependency
+BROKER_CACHE_HOST_NOTIF_DEPENDENCY
     [Documentation]    Scenario: the broker cache evaluates a host notification dependency, queried through gRPC
     ...    Given host_2 depending on host_1 (notification failing on DOWN) fed to the broker cache in BBDO3
     ...    When the master host_1 is UP then DOWN HARD
@@ -1793,7 +1793,7 @@ broker_cache_host_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-broker_cache_svc_notif_dependency
+BROKER_CACHE_SVC_NOTIF_DEPENDENCY
     [Documentation]    Scenario: the broker cache evaluates a service notification dependency, queried through gRPC
     ...    Given service_2 (host_2) depending on service_1 (host_1), notification failing on CRITICAL, fed to the broker cache in BBDO3
     ...    When the master service_1 is CRITICAL HARD then OK HARD
@@ -1832,7 +1832,7 @@ broker_cache_svc_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_crit_notif_broker
+SRV_CRIT_NOTIF_BROKER
     [Documentation]    Scenario: in notification_mode=broker, Broker decides the notification and dispatches its execution to the poller
     ...    Given a service with a contact, in notification_mode=broker (BBDO3)
     ...    When the service enters a CRITICAL HARD state
@@ -1883,6 +1883,170 @@ srv_crit_notif_broker
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The poller did not run the dispatched notification command
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
+SRV_NOTIF_SUPPR_DURING_DT_BROKER
+    [Documentation]    Scenario: in notification_mode=broker, notifications are suppressed while a service is in downtime
+    ...    Given a service with a contact, in notification_mode=broker (BBDO3)
+    ...    And a scheduled downtime set on the service via Broker gRPC
+    ...    When the service enters a CRITICAL HARD state during the downtime
+    ...    Then Broker does not dispatch any notification execution
+    ...    And once the downtime is removed Broker dispatches the CRITICAL then RECOVERY notifications
+    [Tags]    broker    engine    services    notification    downtimes    MON-187019
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
+    Ctn Config Notifications
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    core    info
+    # The suppression message asserted below is logged on the notifications
+    # channel at debug level, so enable it.
+    Ctn Broker Config Log    central    notifications    debug
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Wait until Broker has loaded its downtime_manager so the gRPC
+    # ScheduleDowntime endpoint is usable (avoids a startup race).
+    ${content}    Create List    downtime management enabled, downtime manager loaded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not enable downtime management (notification_mode=broker) in time
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    # Schedule a downtime on the service via Broker gRPC.
+    ${dt_id}    Ctn Broker Schedule Service Downtime    host_1    service_1    ${3600}
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    90
+    Should Be True    ${result}    service must be in downtime
+
+    # The service becomes CRITICAL HARD while in downtime.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    # Broker decides not to notify because of the downtime.
+    ${content}    Create List    This notifier is currently in a scheduled downtime, so we won't send notifications.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should have suppressed the notification during the downtime
+
+    # And no execution was dispatched to the poller.
+    ${content}    Create List    dispatched notification execution for resource
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
+    Should Not Be True    ${result}    Broker must not dispatch a notification while the service is in downtime
+
+    # Remove the downtime: the CRITICAL notification is now dispatched.
+    ${start}    Ctn Get Round Current Date
+    Ctn Broker Delete Downtime    ${dt_id}
+
+    ${content}    Create List    dispatched notification execution for resource
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    90
+    Should Be True    ${result}    Broker did not dispatch the CRITICAL notification after the downtime removal
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The poller did not run the dispatched CRITICAL notification command
+
+    # Recovery: the service returns OK HARD and a RECOVERY notification is dispatched.
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The poller did not run the dispatched RECOVERY notification command
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+SRV_REC_NOTIF_AFTER_ACK_BROKER
+    [Documentation]    Scenario: in notification_mode=broker, a recovery notification is sent after an acknowledged problem recovers
+    ...    Given a service with a contact, in notification_mode=broker (BBDO3)
+    ...    When the service enters CRITICAL HARD, is acknowledged, then a new CRITICAL check occurs
+    ...    Then Broker suppresses the notification because of the acknowledgement
+    ...    And when the service returns to OK HARD Broker dispatches the RECOVERY notification
+    [Tags]    broker    engine    services    acknowledgement    notification    MON-187019
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
+    Ctn Config Notifications
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    core    info
+    # The acknowledgement suppression message asserted below is logged on the
+    # notifications channel at debug level, so enable it.
+    Ctn Broker Config Log    central    notifications    debug
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    # The service becomes CRITICAL HARD: Broker dispatches the critical notification.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The poller did not run the dispatched CRITICAL notification command
+
+    # Acknowledge the problem.
+    Ctn Acknowledge Service Problem    host_1    service_1    STICKY
+    ${content}    Create List    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;0;0;admin;Service (host_1,service_1) acknowledged
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The acknowledgement external command was not processed
+
+    # A new CRITICAL check while acknowledged: Broker suppresses the notification.
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is still CRITICAL
+    ${content}    Create List    This notifier problem has been acknowledged, so we won't send notifications.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should have suppressed the notification because of the acknowledgement
+
+    # Recovery: the service returns OK HARD and a RECOVERY notification is dispatched.
+    ${start}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The poller did not run the dispatched RECOVERY notification command
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
