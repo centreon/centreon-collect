@@ -45,6 +45,10 @@ message Service {
   uint64 host_id = 1;
   uint64 service_id = 2;
 
+  // DEPRECATED — DO NOT READ THIS FIELD.
+  // It is only a point-in-time snapshot set on this full Service event;
+  // acknowledgement_type is sufficient to determine whether a resource is
+  // acknowledged or not.
   bool acknowledged = 3;
   AckType acknowledgement_type = 4;
 
@@ -276,6 +280,10 @@ message AdaptiveService {
 message Host {
   uint64 host_id = 1;
 
+  // DEPRECATED — DO NOT READ THIS FIELD.
+  // It is only a point-in-time snapshot set on this full Host event;
+  // acknowledgement_type is sufficient to determine whether a resource is
+  // acknowledged or not.
   bool acknowledged = 2;
   AckType acknowledgement_type = 3;
 

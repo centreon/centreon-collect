@@ -154,6 +154,12 @@ class broker_state : public state {
    * upstream central. */
   std::vector<std::shared_ptr<io::data>> _pending_diff_state_acks
       ABSL_GUARDED_BY(_connected_peers_m);
+  /* notification_mode=broker: pb_notification_execute events the notification
+   * dispatcher produced, queued per supervising poller. Drained by that
+   * poller's ENGINE-connected stream in read() and written down to it. */
+  absl::flat_hash_map<uint64_t, std::vector<std::shared_ptr<io::data>>>
+      _pending_notification_executes ABSL_GUARDED_BY(_pending_notif_m);
+  mutable absl::Mutex _pending_notif_m;
   mutable absl::Mutex _connected_peers_m;
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -275,6 +281,16 @@ class broker_state : public state {
    * BROKER-connected stream's read() to forward them upstream. */
   std::vector<std::shared_ptr<io::data>> pop_pending_diff_state_acks()
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  /* notification_mode=broker: queue a pb_notification_execute for delivery to
+   * the poller supervising the resource. Called from the notification
+   * dispatcher (multiplexing thread). */
+  void push_pending_notification_execute(uint64_t poller_id,
+                                         std::shared_ptr<io::data> evt)
+      ABSL_LOCKS_EXCLUDED(_pending_notif_m);
+  /* notification_mode=broker: drain the notification executes queued for
+   * poller N. Called from that poller's ENGINE-connected stream read(). */
+  std::vector<std::shared_ptr<io::data>> pop_pending_notification_executes(
+      uint64_t poller_id) ABSL_LOCKS_EXCLUDED(_pending_notif_m);
 
   /* Central: returns the poller IDs of engine peers reachable via relay_id
    * that have a pending configuration update not yet sent. */

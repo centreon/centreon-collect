@@ -22,8 +22,7 @@
 #include <vector>
 
 #include "bbdo/internal.hh"
-#include "broker/core/config/applier/state.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::broker {
@@ -146,7 +145,10 @@ notifications::resource_state broker_notification_callbacks::get_state(
     retval.flapping = o.flapping();
     retval.is_volatile = o.is_volatile();
     retval.hard_state = o.state_type() == Service::HARD;
-    retval.acknowledged = o.acknowledged();
+    /* We don't use anymore the acknowledged field from Service or
+     * ServiceStatus. The acknowledgement_type fiel is sufficient to determiner
+     * if a service is acknowledged or not. */
+    retval.acknowledged = o.acknowledgement_type() != AckType::NONE;
     retval.current_state = o.state();
     retval.scheduled_downtime_depth = o.scheduled_downtime_depth();
     retval.last_hard_state_change = o.last_hard_state_change();
@@ -183,7 +185,10 @@ notifications::resource_state broker_notification_callbacks::get_state(
     /* is_volatile stays false: it is a service-only attribute (engine
      * hardcodes false for hosts and neb.proto has no such host field). */
     retval.hard_state = oh.state_type() == Host::HARD;
-    retval.acknowledged = oh.acknowledged();
+    /* Same as services: don't use the acknowledged field from Host or
+     * HostStatus, instead rely on the acknowledgement_type field to determine
+     * if a host is acknowledged or not. */
+    retval.acknowledged = oh.acknowledgement_type() != AckType::NONE;
     retval.current_state = oh.state();
     retval.scheduled_downtime_depth = oh.scheduled_downtime_depth();
     retval.last_hard_state_change = oh.last_hard_state_change();
@@ -310,8 +315,13 @@ notifications::delivery_result broker_notification_callbacks::deliver(
   for (const auto& c : injected_contacts)
     obj.add_contacts(c);
 
-  multiplexing::publisher pblshr;
-  pblshr.write(evt);
+  /* Deliver the execution to the poller supervising the resource: queue it on
+   * broker_state so that poller's ENGINE-connected stream writes it down in
+   * read(). A plain multiplexing broadcast would not reach the poller (the
+   * central does not feed its multiplexing back to pollers). */
+  static_cast<config::applier::broker_state&>(
+      config::applier::state::instance())
+      .push_pending_notification_execute(poller_id, evt);
 
   SPDLOG_LOGGER_INFO(
       _logger,
