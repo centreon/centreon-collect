@@ -26,6 +26,24 @@ import sys
 import xml.etree.ElementTree as ET
 
 
+def _gherkin_bullet(txt):
+    """Format one Gherkin documentation line as an indented Markdown bullet with
+    its keyword in bold, e.g. 'Given x' -> '* **GIVEN** x'. Feature/Scenario/
+    Background titles are bulleted too, so every line of a Gherkin test renders
+    uniformly. A line with no recognised keyword is returned verbatim (a wrapped
+    continuation of the previous step)."""
+    t = txt.strip()
+    # 'AND WHEN' must be tested before 'AND'; the colon keywords match without a
+    # trailing space.
+    for kw in ("SCENARIO:", "FEATURE:", "BACKGROUND:",
+               "AND WHEN", "GIVEN", "WHEN", "THEN", "AND"):
+        prefix = kw if kw.endswith(":") else kw + " "
+        if t.upper().startswith(prefix):
+            rest = t[len(kw):].lstrip()
+            return f"* **{kw}** {rest}" if rest else f"* **{kw}**"
+    return t
+
+
 def complete_doc(dico, ff):
     with open(ff, 'r') as f:
         content = f.readlines()
@@ -41,34 +59,9 @@ def complete_doc(dico, ff):
             m = rd.match(line)
             if m:
                 if gherkin:
-                    txt = m.group(2)
-                    txt = txt.strip()
-                    nl = ''
+                    txt = m.group(2).strip()
                     if len(txt) > 0:
-                        if txt.upper().startswith("WHEN "):
-                            txt = re.sub(r"When", "* **WHEN**", txt, flags=re.IGNORECASE, count=1)
-                            #txt = txt.replace("When", "* **When**", 1)
-                        if txt.upper().startswith("GIVEN "):
-                            txt = re.sub(r"Given", "* **GIVEN**", txt, flags=re.IGNORECASE, count=1)
-                            #txt = txt.replace("Given", "* **Given**", 1)
-                            nl = '\n'
-                        if txt.upper().startswith("THEN "):
-                            txt = re.sub(r"Then", "* **THEN**", txt, flags=re.IGNORECASE, count=1)
-                            #txt = txt.replace("Then", "* **Then**", 1)
-                        if txt.upper().startswith("AND WHEN "):
-                            txt = re.sub(r"And when", "* **AND WHEN**", txt, flags=re.IGNORECASE, count=1)
-                            #txt = txt.replace("And", "* **And**", 1)
-                        if txt.upper().startswith("AND "):
-                            txt = re.sub(r"And", "* **AND**", txt, flags=re.IGNORECASE, count=1)
-                            #txt = txt.replace("And", "* **And**", 1)
-                        if txt.upper().startswith("SCENARIO: "):
-                            txt = re.sub(r"Scenario:", "**SCENARIO:**", txt, flags=re.IGNORECASE, count=1)
-                            nl = '\n'
-                            #txt = txt.replace("Scenario:", "**Scenario:**", 1)
-                        if txt.upper().startswith("BACKGROUND:"):
-                            txt = re.sub(r"Background:", "**BACKGROUND:**", txt, flags=re.IGNORECASE, count=1)
-                            nl = '\n'
-                        dico[test_name] += f"{nl}\n     {txt}"
+                        dico[test_name] += "\n     " + _gherkin_bullet(txt)
                 else:
                     dico[test_name] += " " + m.group(2)
                 continue
@@ -83,16 +76,14 @@ def complete_doc(dico, ff):
                 m = r.match(line)
                 if m:
                     in_documentation = True
-                    if m.group(1).upper().startswith("GIVEN") or m.group(1).upper().startswith("WHEN"):
+                    first = m.group(1)
+                    if first.upper().startswith(("GIVEN", "WHEN", "SCENARIO:",
+                                                 "FEATURE:", "BACKGROUND:")):
                         gherkin = True
-                        dico[test_name] = "\n     * " + re.sub(r"(Given|When)", lambda m: f"**{m.group(1).upper()}**", m.group(1), flags=re.IGNORECASE)
-                    elif m.group(1).upper().startswith("SCENARIO:") or m.group(1).upper().startswith("FEATURE:"):
-                        gherkin = True
-                        txt = re.sub(r"(Scenario:|Feature:)", lambda m: f"**{m.group(1).upper()}**", m.group(1), flags=re.IGNORECASE)
-                        dico[test_name] = txt
+                        dico[test_name] = "\n     " + _gherkin_bullet(first)
                     else:
                         gherkin = False
-                        dico[test_name] = m.group(1)
+                        dico[test_name] = first
             if not line.startswith('\t') and not line.startswith("  "):
                 test_name = line.strip()
         elif line.startswith("*** Test Cases ***"):
@@ -451,7 +442,13 @@ for title, anchor, items in chapters:
     plural = "s" if len(items) != 1 else ""
     out.write(f"This chapter contains {len(items)} test{plural}.\n\n")
     for idx, (name, doc) in enumerate(items, start=1):
-        out.write(f"{idx}. **{name}**: {doc}\n")
+        # Gherkin docs start with a newline (the first bullet on its own line):
+        # skip the separating space so the name line has no trailing whitespace.
+        # Keep the list TIGHT (single '\n', no blank line between items): a blank
+        # line would make the ordered list "loose", and GitHub then wraps each
+        # item in <p>, reintroducing a visible gap before a test's first bullet.
+        sep = "" if doc.startswith("\n") else " "
+        out.write(f"{idx}. **{name}**:{sep}{doc}\n")
     out.write("\n")
 
 out.write(f"\n{count} tests currently implemented.\n")
