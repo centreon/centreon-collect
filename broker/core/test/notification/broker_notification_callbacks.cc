@@ -587,26 +587,43 @@ class BrokerNotificationDeliverTest : public ::testing::Test {
 };
 
 /**
- * @brief deliver() publishes a pb_notification_execute carrying the
- * notification parameters and the selected contacts, addressed (destination_id)
- * to the poller that supervises the resource.
+ * @brief Feed a poller-7 configuration with service (1,5) owned by contact
+ * John_Doe, whose service notifications are enabled or not per @p enabled.
+ */
+static void merge_service_with_contact(cache::broker_cache* cache,
+                                       bool enabled) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  auto* c = st.mutable_contacts()->Add();
+  c->set_contact_name("John_Doe");
+  c->set_service_notifications_enabled(enabled);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  auto* s = st.mutable_services()->Add();
+  s->set_host_id(1);
+  s->set_service_id(5);
+  s->set_host_name("host_1");
+  s->set_service_description("service_1");
+  s->mutable_contacts()->add_data("John_Doe");
+  cache->merge(st);
+}
+
+/**
+ * @brief deliver() selects the resource's contacts (filtered by viability) and
+ * queues a pb_notification_execute carrying them, addressed (destination_id) to
+ * the poller that supervises the resource.
  */
 TEST_F(BrokerNotificationDeliverTest, DispatchesNotificationExecute) {
-  auto h = std::make_shared<neb::pb_host>();
-  Host& o = h->mut_obj();
-  o.set_host_id(1);
-  o.set_name("host_1");
-  o.set_instance_id(7);
-  o.set_enabled(true);
-  o.set_notify(true);
-  _cache->publish(h);
+  merge_service_with_contact(_cache, /*enabled=*/true);
 
-  notifications::delivery_result res =
-      _cb->deliver(1, 5, notifications::cat_normal, notifications::reason_normal,
-                   42, 3, "admin", "the service is down",
-                   notifications::notification_option_none);
+  notifications::delivery_result res = _cb->deliver(
+      1, 5, notifications::cat_acknowledgement,
+      notifications::reason_acknowledgement, 42, 3, "admin",
+      "the service is acknowledged", notifications::notification_option_none);
 
-  /* deliver() reports the (injected, brick 1) contact set as notified. */
+  /* deliver() reports the selected contact as notified. */
   EXPECT_EQ(res.notified_contacts.size(), 1u);
   EXPECT_EQ(res.notified_contacts.count("John_Doe"), 1u);
 
@@ -618,15 +635,33 @@ TEST_F(BrokerNotificationDeliverTest, DispatchesNotificationExecute) {
   const NotificationExecute& n = evt->obj();
   EXPECT_EQ(n.host_id(), 1u);
   EXPECT_EQ(n.service_id(), 5u);
-  EXPECT_EQ(n.category(), static_cast<uint32_t>(notifications::cat_normal));
-  EXPECT_EQ(n.reason_type(), static_cast<uint32_t>(notifications::reason_normal));
+  EXPECT_EQ(n.category(),
+            static_cast<uint32_t>(notifications::cat_acknowledgement));
+  EXPECT_EQ(n.reason_type(),
+            static_cast<uint32_t>(notifications::reason_acknowledgement));
   EXPECT_EQ(n.notification_id(), 42u);
   EXPECT_EQ(n.notification_number(), 3u);
   EXPECT_EQ(n.author(), "admin");
-  EXPECT_EQ(n.message(), "the service is down");
+  EXPECT_EQ(n.message(), "the service is acknowledged");
   ASSERT_EQ(n.contacts_size(), 1);
   EXPECT_EQ(n.contacts(0), "John_Doe");
   EXPECT_EQ(evt->destination_id, 7u);
+}
+
+/**
+ * @brief A contact whose notifications are disabled is filtered out: nobody is
+ * notified and no dispatch event is queued.
+ */
+TEST_F(BrokerNotificationDeliverTest, ContactFilteredOutNotDispatched) {
+  merge_service_with_contact(_cache, /*enabled=*/false);
+
+  notifications::delivery_result res = _cb->deliver(
+      1, 5, notifications::cat_acknowledgement,
+      notifications::reason_acknowledgement, 1, 1, "admin", "msg",
+      notifications::notification_option_none);
+
+  EXPECT_TRUE(res.notified_contacts.empty());
+  EXPECT_FALSE(pop_one(7));
 }
 
 /**

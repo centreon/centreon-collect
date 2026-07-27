@@ -34,6 +34,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
+    notifications/contact_viability_test.cc
     perfdata_test.cc
     process_stat_test.cc
     process_test.cc
@@ -118,6 +119,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             protobuf::libprotobuf
             engine_conf
+            notifications
             timeperiods
             Boost::program_options
             re2::re2

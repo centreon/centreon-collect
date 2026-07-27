@@ -111,6 +111,27 @@ struct config {
 };
 
 /**
+ * @brief The notification-relevant configuration of a contact, as a value
+ * snapshot. The host application fills it from its own contact storage; the
+ * viability logic (should_notify_contact) reasons on this pure value with no
+ * engine/broker object dependency.
+ *
+ * host_notification_options / service_notification_options are bitmasks of
+ * notification_flag. The host_* fields apply when the notified resource is a
+ * host (service_id == 0), the service_* fields otherwise.
+ */
+struct contact {
+  std::string name;
+  bool host_notifications_enabled = true;
+  bool service_notifications_enabled = true;
+  std::string host_notification_period;
+  std::string service_notification_period;
+  uint32_t host_notification_options = 0;
+  uint32_t service_notification_options = 0;
+  std::string timezone;
+};
+
+/**
  * @brief Per-resource state snapshot, as seen by the notification engine.
  *
  * One backend call fills this; the viability logic then reasons on a pure
