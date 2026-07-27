@@ -312,12 +312,12 @@ void stream::negotiate(stream::negotiation_type neg) {
         poller_id(), poller_name(), broker_name(), peer_type(),
         _extended_negotiation, peer_engine_conf);
     if (!config::applier::state::instance().is_peer_conf_known(poller_id())) {
-      _logger->error("No known configuration for the poller {}:{}:{}",
-                     poller_id(), poller_name(), broker_name());
       /* We send an unknown diff state to let the peer know that its
        * configuration is not known by Broker. */
       if (_extended_negotiation && peer_type() == common::ENGINE &&
           supports_centralized_conf()) {
+        _logger->error("No known configuration for the poller {}:{}:{}",
+                       poller_id(), poller_name(), broker_name());
         _logger->debug(
             "Sending unknown diff state to peer {}:{}:{} to let it know that "
             "its configuration is not known by Broker.",

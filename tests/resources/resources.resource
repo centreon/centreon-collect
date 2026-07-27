@@ -459,9 +459,26 @@ Ctn Save Logs
     Log To Console      Save test logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${failDir0}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config0
+    ${failDir1}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config1
+    ${failDir2}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config2
+    ${failDir3}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config3
+    ${failDir4}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config4
     Create Directory    ${failDir}
     Copy Files    ${BROKER_LOG}/*    ${failDir}
-    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir}
+    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir0}
+    IF    os.path.isdir('${ENGINE_LOG}/config1')
+        Copy Files    ${ENGINE_LOG}/config1/*.log    ${failDir1}
+    END
+    IF    os.path.isdir('${ENGINE_LOG}/config2')
+        Copy Files    ${ENGINE_LOG}/config2/*.log    ${failDir2}
+    END
+    IF    os.path.isdir('${ENGINE_LOG}/config3')
+        Copy Files    ${ENGINE_LOG}/config3/*.log    ${failDir3}
+    END
+    IF    os.path.isdir('${ENGINE_LOG}/config4')
+        Copy Files    ${ENGINE_LOG}/config4/*.log    ${failDir4}
+    END
     Copy Files    ${ENGINE_LOG}/config0/*.dat    ${failDir}
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
