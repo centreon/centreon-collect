@@ -333,6 +333,10 @@ TCP_TEST_CONTAINER="centreon-engine-wiring-tcp-$$"
 docker create --name "$TCP_TEST_CONTAINER" --network "$WIRING_NET" "$IMAGE" > /dev/null
 CONTAINERS+=("$TCP_TEST_CONTAINER")
 docker cp "$FIXTURE_DIR/engine/." "$TCP_TEST_CONTAINER:/etc/centreon-engine"
+# mktemp files are 0600 owned by the runner's uid; docker cp preserves mode+uid,
+# and cbmod runs as centreon-engine (uid 901) - without this it hits a silent
+# permission-denied read (same gotcha as create_with_configs() above).
+chmod 644 "$broker_cfg"
 docker cp "$broker_cfg" "$TCP_TEST_CONTAINER:/etc/centreon-broker/my-poller-module.json"
 docker start "$TCP_TEST_CONTAINER" > /dev/null
 wait_ready "$TCP_TEST_CONTAINER" || exit 1
