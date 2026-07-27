@@ -55,13 +55,17 @@ PLUGIN_PKG="centreon-plugin-applications-monitoring-centreon-poller"
 
 declare -a CONTAINERS=()
 declare -a TMPFILES=()
+declare -a NETWORKS=()
 
 cleanup() {
   local rc=$?
-  local c
+  local c n
   for c in "${CONTAINERS[@]}"; do
     { echo "=== docker logs $c ==="; docker logs "$c"; } >> "$LOG_FILE" 2>&1 || true
     docker rm -f "$c" > /dev/null 2>&1 || true
+  done
+  for n in "${NETWORKS[@]}"; do
+    docker network rm "$n" > /dev/null 2>&1 || true
   done
   rm -f "${TMPFILES[@]}" 2>/dev/null || true
   _summary_render "Config/wiring test — centreon-engine" "$rc"
@@ -227,6 +231,126 @@ if [ "$output" != "OK - dummy check" ]; then
   exit 1
 fi
 echo "OK: user script mounted at /usr/lib/nagios/plugins/custom ran successfully as centreon-engine."
+summary_step_pass
+
+summary_step_start "cbmod opens a real TCP connection to a remote BBDO listener"
+echo "=== [wiring:cbmod-tcp-connect] cbmod actually connects out over TCP/BBDO, not just loads ==="
+# The other scenarios all seed my-poller-module.json with an empty "output"
+# array (see FIXTURE_DIR/broker/) precisely so cbmod loads without needing a
+# reachable peer - that only proves the module loads, not that engine ever
+# tries to push data anywhere. This scenario gives cbmod a real "output"
+# pointing at a plain TCP listener (no BBDO peer behind it) on a dedicated
+# docker network, and checks the listener actually received bytes - proof of
+# a completed TCP handshake plus cbmod sending its BBDO negotiation payload,
+# not just a log message that could change wording later.
+WIRING_NET="engine-wiring-net-$$"
+docker network create "$WIRING_NET" > /dev/null
+NETWORKS+=("$WIRING_NET")
+
+TCP_STUB="tcp-stub-$$"
+docker run -d --name "$TCP_STUB" --network "$WIRING_NET" debian:13-slim \
+  bash -c "apt-get update -qq && apt-get install -y --no-install-recommends netcat-openbsd >/dev/null 2>&1 && exec nc -lk 5669" > /dev/null
+CONTAINERS+=("$TCP_STUB")
+
+# Give the stub a moment to apt-get install netcat before cbmod starts retrying.
+for _ in $(seq 1 30); do
+  docker exec "$TCP_STUB" sh -c "command -v nc" > /dev/null 2>&1 && break
+  sleep 1
+done
+
+broker_cfg=$(mktemp); TMPFILES+=("$broker_cfg")
+# NOTE: "loggers" must list actual levels, not null - a real working poller's
+# my-poller-module.json (compared against in session) always sets these
+# explicitly. With "loggers": null every category (including "core"/"tcp"/
+# "bbdo") is silenced, so a first pass at this fixture using null produced
+# zero log evidence either way and looked like cbmod wasn't even trying to
+# connect - it was connecting fine, just logging nothing about it.
+cat > "$broker_cfg" <<JSON
+{
+  "centreonBroker": {
+    "broker_id": 7,
+    "broker_name": "e2e-test-module",
+    "poller_id": 1,
+    "poller_name": "e2e-test-poller",
+    "module_directory": "/usr/share/centreon/lib/centreon-broker",
+    "log_timestamp": false,
+    "log_thread_id": false,
+    "event_queue_max_size": 100000,
+    "command_file": "",
+    "cache_directory": "/var/lib/centreon-engine",
+    "bbdo_version": "3.0.1",
+    "log": {
+      "directory": "/var/log/centreon-broker",
+      "filename": "",
+      "max_size": 0,
+      "loggers": {
+        "core": "info",
+        "config": "error",
+        "sql": "error",
+        "processing": "error",
+        "perfdata": "error",
+        "bbdo": "info",
+        "tcp": "info",
+        "tls": "error",
+        "lua": "error",
+        "bam": "error",
+        "neb": "error",
+        "rrd": "error",
+        "grpc": "error",
+        "influxdb": "error",
+        "graphite": "error",
+        "victoria_metrics": "error",
+        "stats": "error"
+      }
+    },
+    "output": [
+      {
+        "type": "ipv4",
+        "name": "wiring-tcp-test",
+        "host": "$TCP_STUB",
+        "port": "5669",
+        "tls": "no",
+        "protocol": "bbdo",
+        "negotiation": "yes",
+        "one_peer_retention_mode": "no"
+      }
+    ],
+    "stats": [
+      {
+        "type": "stats",
+        "name": "wiring-tcp-test-stats",
+        "json_fifo": "/var/lib/centreon-engine/wiring-tcp-test-stats.json"
+      }
+    ],
+    "grpc": {
+      "port": 51007
+    }
+  }
+}
+JSON
+
+TCP_TEST_CONTAINER="centreon-engine-wiring-tcp-$$"
+docker create --name "$TCP_TEST_CONTAINER" --network "$WIRING_NET" "$IMAGE" > /dev/null
+CONTAINERS+=("$TCP_TEST_CONTAINER")
+docker cp "$FIXTURE_DIR/engine/." "$TCP_TEST_CONTAINER:/etc/centreon-engine"
+docker cp "$broker_cfg" "$TCP_TEST_CONTAINER:/etc/centreon-broker/my-poller-module.json"
+docker start "$TCP_TEST_CONTAINER" > /dev/null
+wait_ready "$TCP_TEST_CONTAINER" || exit 1
+
+received_ok=false
+for _ in $(seq 1 30); do
+  if [ -n "$(docker logs "$TCP_STUB" 2>/dev/null)" ]; then
+    received_ok=true
+    break
+  fi
+  sleep 1
+done
+if [ "$received_ok" != "true" ]; then
+  echo "::error::the TCP stub listener never received any data - cbmod did not attempt (or complete) a connection"
+  docker logs "$TCP_TEST_CONTAINER" || true
+  exit 1
+fi
+echo "OK: cbmod opened a TCP connection to the remote stub and sent BBDO negotiation data."
 summary_step_pass
 
 summary_step_start "gRPC GetVersion answers on port 50155"
