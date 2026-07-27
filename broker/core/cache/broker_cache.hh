@@ -32,6 +32,7 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timeperiod.hh"
 
 namespace com::centreon::engine::configuration {
@@ -396,23 +397,14 @@ class broker_cache {
     bool soft_state_dependencies = false;
   };
 
-  /* Cache view of a notification contact, mirrored from the Engine
-   * configuration. Only the fields the notification decision needs are kept.
-   * The contactgroups a contact belongs to are NOT stored here: the
-   * contactgroup->contacts resolution is done lazily at notification time (iso
-   * Engine, which never flattens groups onto the contact either). */
-  struct contact {
-    std::string name;
-    bool host_notifications_enabled = true;
-    bool service_notifications_enabled = true;
-    std::string host_notification_period;
-    std::string service_notification_period;
-    /* Bitmasks of the states a contact wants to be notified on (action_hst_*
-     * / action_svc_* from the Engine configuration). */
-    uint32_t host_notification_options = 0;
-    uint32_t service_notification_options = 0;
-    std::string timezone;
-  };
+  /* Cache view of a notification contact. This is the shared notification-library
+   * snapshot (com::centreon::common::notifications::contact): the same value the
+   * viability logic (should_notify_contact) reasons on, so no conversion is
+   * needed at decision time. The contactgroups a contact belongs to are NOT
+   * stored on it: the contactgroup->contacts resolution is done lazily at
+   * notification time (iso Engine, which never flattens groups onto the contact
+   * either). */
+  using contact = com::centreon::common::notifications::contact;
 
   /* Cache view of a contactgroup: its name and the names of its member
    * contacts. The Engine flattens nested contactgroups (contactgroup_members)
