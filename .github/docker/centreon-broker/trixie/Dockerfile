@@ -85,7 +85,7 @@ apt-get install -y --no-install-recommends \
     libmariadb3 \
     librrd8t64 \
     libgnutls30t64 \
-    liblua5.3-0 \
+    liblua5.4-0 \
     libssl3 \
     libssh2-1t64 \
     libcurl4t64 \
