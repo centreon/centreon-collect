@@ -19,8 +19,11 @@
 # actual package state (dpkg-query) with a timeout.
 set -e
 
-IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=lib/centreon-docker-test-common.sh
+source "$REPO_ROOT/.github/scripts/lib/centreon-docker-test-common.sh"
+
+IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
 FIXTURE_DIR="$REPO_ROOT/.github/docker/centreon-engine/fixtures/minimal-config"
 LOG_FILE=/tmp/centreon-engine-config-wiring-test.log
 : > "$LOG_FILE"
@@ -54,12 +57,14 @@ declare -a CONTAINERS=()
 declare -a TMPFILES=()
 
 cleanup() {
+  local rc=$?
   local c
   for c in "${CONTAINERS[@]}"; do
     { echo "=== docker logs $c ==="; docker logs "$c"; } >> "$LOG_FILE" 2>&1 || true
     docker rm -f "$c" > /dev/null 2>&1 || true
   done
   rm -f "${TMPFILES[@]}" 2>/dev/null || true
+  _summary_render "Config/wiring test — centreon-engine" "$rc"
 }
 trap cleanup EXIT
 
@@ -121,6 +126,7 @@ create_with_configs() {
   docker start "$container" > /dev/null
 }
 
+summary_step_start "custom-deps.json installs a plain valid apt package"
 echo "=== [config:custom-deps-install] custom-deps.json installs a plain valid apt package ==="
 deps_file=$(mktemp); TMPFILES+=("$deps_file")
 echo '{"apt": ["cowsay"]}' > "$deps_file"
@@ -131,7 +137,9 @@ if ! wait_for_pkg_installed centreon-engine-cfg-install-$$ cowsay; then
   exit 1
 fi
 echo "OK: cowsay installed from custom-deps.json."
+summary_step_pass
 
+summary_step_start "Mixed valid+invalid packages still installs the valid one"
 echo "=== [config:custom-deps-isolate-invalid] a mix of valid+invalid packages still installs the valid one ==="
 deps_file=$(mktemp); TMPFILES+=("$deps_file")
 echo '{"apt": ["this-package-does-not-exist-xyz", "figlet"]}' > "$deps_file"
@@ -146,7 +154,9 @@ if ! wait_for_log centreon-engine-cfg-mixed-$$ "skipping unavailable package: th
   exit 1
 fi
 echo "OK: valid package installed and invalid one isolated/skipped, per-package retry fallback confirmed."
+summary_step_pass
 
+summary_step_start "custom-deps.json hot-reload triggers inotify install"
 echo "=== [config:custom-deps-hot-reload] custom-deps.json changes at runtime trigger inotify install ==="
 create_with_configs centreon-engine-cfg-reload-$$
 wait_ready centreon-engine-cfg-reload-$$ || exit 1
@@ -156,7 +166,9 @@ if ! wait_for_pkg_installed centreon-engine-cfg-reload-$$ sl; then
   exit 1
 fi
 echo "OK: custom-deps.json hot-reload installed the new package without a restart."
+summary_step_pass
 
+summary_step_start "Concurrent apt installs (plugins.json + custom-deps.json) don't conflict"
 echo "=== [config:concurrent-apt-callers] plugins.json + custom-deps.json installing at the same boot do not hit a dpkg lock conflict ==="
 installed_version=$(docker run --rm --entrypoint dpkg-query "$IMAGE" -W -f='${Version}' "$PLUGIN_PKG" 2>/dev/null)
 plugins_file=$(mktemp); TMPFILES+=("$plugins_file")
@@ -178,7 +190,9 @@ if docker logs centreon-engine-cfg-concurrent-$$ 2>&1 | grep -Ei "could not get 
   exit 1
 fi
 echo "OK: plugins.json and custom-deps.json installed concurrently with no dpkg lock conflict."
+summary_step_pass
 
+summary_step_start "plugins.json no-op when already up to date"
 echo "=== [config:plugins-up-to-date-skip] plugins.json requesting the already-installed version is a no-op ==="
 plugins_file=$(mktemp); TMPFILES+=("$plugins_file")
 printf '{"%s": "%s"}' "$PLUGIN_PKG" "$installed_version" > "$plugins_file"
@@ -190,7 +204,9 @@ if docker logs centreon-engine-cfg-skip-$$ 2>&1 | grep -q "Installing plugins fr
   exit 1
 fi
 echo "OK: plugins.json correctly skipped an already up-to-date package."
+summary_step_pass
 
+summary_step_start "Custom plugin volume mount is usable"
 echo "=== [config:custom-plugins-volume] a script mounted at /usr/lib/nagios/plugins/custom is usable ==="
 plugins_dir=$(mktemp -d); TMPFILES+=("$plugins_dir")
 cat > "$plugins_dir/check_dummy.sh" <<'SCRIPT'
@@ -211,7 +227,9 @@ if [ "$output" != "OK - dummy check" ]; then
   exit 1
 fi
 echo "OK: user script mounted at /usr/lib/nagios/plugins/custom ran successfully as centreon-engine."
+summary_step_pass
 
+summary_step_start "gRPC GetVersion answers on port 50155"
 echo "=== [wiring:grpc-get-version] the engine gRPC management API (port 50155) actually answers ==="
 CREATE_EXTRA_ARGS="-p 50155:50155" create_with_configs centreon-engine-wiring-$$
 wait_ready centreon-engine-wiring-$$ || exit 1
@@ -231,5 +249,6 @@ if ! echo "$grpc_output" | grep -q '"major"'; then
   exit 1
 fi
 echo "OK: engine gRPC management API answered GetVersion on port 50155."
+summary_step_pass
 
 echo "=== [config/wiring] PASSED ==="
