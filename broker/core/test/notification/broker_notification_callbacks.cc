@@ -434,6 +434,115 @@ TEST_F(BrokerNotificationCallbacksTest, ContactsReferenceCountedPerPoller) {
 }
 
 /**
+ * @brief merge(State) links each resource to its direct contacts and
+ * contactgroups; notification_contact_names resolves that link at query time to
+ * the deduplicated union of direct contacts and contactgroup members.
+ */
+TEST_F(BrokerNotificationCallbacksTest, ResourceContactsResolvedFromState) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(1);
+
+  /* The contacts a resource references directly must be defined (a resource
+   * stores non-owning pointers into the contacts cache). */
+  for (const char* name : {"John_Doe", "Jane_Doe", "Bob"})
+    st.mutable_contacts()->Add()->set_contact_name(name);
+
+  /* host_1: one direct contact + one contactgroup. */
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->mutable_contacts()->add_data("John_Doe");
+  h->mutable_contactgroups()->add_data("admins");
+
+  /* service (1,5): only a direct contact, no group. */
+  auto* s = st.mutable_services()->Add();
+  s->set_host_id(1);
+  s->set_service_id(5);
+  s->set_host_name("host_1");
+  s->set_service_description("service_1");
+  s->mutable_contacts()->add_data("Bob");
+
+  auto* cg = st.mutable_contactgroups()->Add();
+  cg->set_contactgroup_name("admins");
+  cg->mutable_members()->add_data("Jane_Doe");
+  cg->mutable_members()->add_data("John_Doe");
+
+  _cache->merge(st);
+
+  /* Host: direct John_Doe + group members {Jane_Doe, John_Doe}, deduplicated. */
+  EXPECT_EQ(_cache->notification_contact_names(1, 0),
+            (absl::flat_hash_set<std::string>{"Jane_Doe", "John_Doe"}));
+
+  /* Service: only its direct contact. */
+  EXPECT_EQ(_cache->notification_contact_names(1, 5),
+            (absl::flat_hash_set<std::string>{"Bob"}));
+
+  /* Unknown resource: empty. */
+  EXPECT_TRUE(_cache->notification_contact_names(42, 0).empty());
+
+  /* Purge on poller removal. */
+  _cache->remove_instance(1);
+  EXPECT_TRUE(_cache->notification_contact_names(1, 0).empty());
+  EXPECT_TRUE(_cache->notification_contact_names(1, 5).empty());
+}
+
+/**
+ * @brief apply(DiffState) feeds the resource->contacts link incrementally; a
+ * modification that clears a resource's contacts drops the link, and a removed
+ * resource drops it too.
+ */
+TEST_F(BrokerNotificationCallbacksTest, ResourceContactsDiffAddModifyRemove) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(1);
+  st.mutable_contacts()->Add()->set_contact_name("John_Doe");
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->mutable_contacts()->add_data("John_Doe");
+  _cache->merge(st);
+  EXPECT_EQ(_cache->notification_contact_names(1, 0),
+            (absl::flat_hash_set<std::string>{"John_Doe"}));
+
+  /* Add a service with a contact. The contact is added in the same diff; the
+   * contacts block is applied before the services block, so the resource can
+   * resolve its pointer. */
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  diff.mutable_contacts()->mutable_added()->Add()->set_contact_name("Bob");
+  auto* s = diff.mutable_services()->mutable_added()->Add();
+  s->set_host_id(1);
+  s->set_service_id(5);
+  s->set_host_name("host_1");
+  s->set_service_description("service_1");
+  s->mutable_contacts()->add_data("Bob");
+  _cache->apply(diff);
+  EXPECT_EQ(_cache->notification_contact_names(1, 5),
+            (absl::flat_hash_set<std::string>{"Bob"}));
+
+  /* Modify host_1 to have no contact anymore: the link is dropped. */
+  cfg::DiffState diff2;
+  diff2.set_poller_id(1);
+  auto* mh = diff2.mutable_hosts()->mutable_modified()->Add();
+  mh->set_host_id(1);
+  mh->set_host_name("host_1");
+  _cache->apply(diff2);
+  EXPECT_TRUE(_cache->notification_contact_names(1, 0).empty());
+
+  /* Remove the service: its link is dropped. */
+  cfg::DiffState diff3;
+  diff3.set_poller_id(1);
+  auto* rk = diff3.mutable_services()->mutable_removed()->Add();
+  rk->set_host_id(1);
+  rk->set_service_id(5);
+  _cache->apply(diff3);
+  EXPECT_TRUE(_cache->notification_contact_names(1, 5).empty());
+}
+
+/**
  * @brief Fixture for broker_notification_callbacks::deliver(): it must, on the
  * Broker side, publish a pb_notification_execute event so the poller that
  * supervises the resource runs the notification command (model C, brick 1).

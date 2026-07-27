@@ -19,6 +19,7 @@
 #define CCB_CACHE_BROKER_CACHE_HH
 #include <absl/base/thread_annotations.h>
 #include <absl/container/btree_set.h>
+#include <absl/container/node_hash_map.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -41,6 +42,7 @@ class Hostdependency;
 class Servicedependency;
 class Contact;
 class Contactgroup;
+class StringSet;
 }  // namespace com::centreon::engine::configuration
 
 namespace com::centreon::broker {
@@ -421,6 +423,22 @@ class broker_cache {
     absl::flat_hash_set<std::string> members;
   };
 
+  /* The direct contacts and contactgroups a resource (host or service) notifies.
+   * To avoid duplicating the names (already owned once by _contacts /
+   * _contactgroups), the resource holds non-owning pointers into those maps.
+   * This is safe because _contacts / _contactgroups are node_hash_maps (stable
+   * element addresses across rehash) and, feeding being ordered (contacts before
+   * resources) and done entirely under the write lock, a pointer is never
+   * observed dangling. Kept separate (not merged), as done by Engine: the
+   * contactgroup->contacts expansion is done at query time. `poller_id` is
+   * carried so the whole per-poller set can be purged on reconfiguration or
+   * disconnection. */
+  struct resource_contacts {
+    std::vector<const contact*> contacts;
+    std::vector<const contactgroup*> contactgroups;
+    uint64_t poller_id = 0;
+  };
+
   enum cache_section : uint32_t {
     CACHE_NONE = 0,
     CACHE_INSTANCES = 1 << 0,
@@ -490,13 +508,25 @@ class broker_cache {
    * when no poller references it anymore. Only fed when CACHE_NOTIFICATIONS is
    * enabled. Contactgroups are kept unflattened onto the contacts; the
    * contactgroup->contacts expansion is done at query time (see
-   * contactgroup_members()). */
-  absl::flat_hash_map<std::string,
+   * contactgroup_members()).
+   *
+   * node_hash_map (not flat) is mandatory here: _resource_contacts holds raw
+   * pointers into these values, so element addresses must stay stable across
+   * rehash. For the same reason a modification updates the object in place
+   * (assigns into it->second.first); it never rebinds the map entry. */
+  absl::node_hash_map<std::string,
                       std::pair<contact, absl::flat_hash_set<uint64_t>>>
       _contacts ABSL_GUARDED_BY(_mutex);
-  absl::flat_hash_map<std::string,
+  absl::node_hash_map<std::string,
                       std::pair<contactgroup, absl::flat_hash_set<uint64_t>>>
       _contactgroups ABSL_GUARDED_BY(_mutex);
+
+  /* The direct contacts/contactgroups of each resource, keyed by
+   * {host_id, service_id} (service_id == 0 designates a host). Fed alongside the
+   * hosts/services when CACHE_NOTIFICATIONS is enabled; resolved to concrete
+   * contact names at query time (see notification_contact_names()). */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, resource_contacts>
+      _resource_contacts ABSL_GUARDED_BY(_mutex);
 
   IndexMappingContainer _index_mappings ABSL_GUARDED_BY(_mutex);
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
@@ -599,9 +629,19 @@ class broker_cache {
   void _insert_contactgroup(
       const com::centreon::engine::configuration::Contactgroup& cg,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
-  /* Drop @p poller_id from every contact/contactgroup reference set, erasing
-   * the entries no poller references anymore. Used on a full re-merge (rebuild
-   * the poller's contribution) and on poller removal. */
+  /* Store (or, when the resource has neither contact nor contactgroup, erase)
+   * the direct contacts/contactgroups of a resource. service_id == 0 designates
+   * a host. */
+  void _insert_resource_contacts(
+      uint64_t host_id,
+      uint64_t service_id,
+      const com::centreon::engine::configuration::StringSet& contacts,
+      const com::centreon::engine::configuration::StringSet& contactgroups,
+      uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  /* Drop @p poller_id from every contact/contactgroup reference set and from the
+   * per-resource contacts, erasing the entries no poller references anymore.
+   * Used on a full re-merge (rebuild the poller's contribution) and on poller
+   * removal. */
   void _remove_poller_from_contacts(uint64_t poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   bool _host_notification_authorized_by_dependencies(uint64_t host_id,
@@ -708,6 +748,15 @@ class broker_cache {
    * expansion performed at notification time. */
   std::vector<std::string> contactgroup_members(const std::string& name) const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Resolve the notification contacts of a resource ({host_id, service_id};
+   * service_id == 0 designates a host): the set of its direct contacts and the
+   * members of each of its contactgroups (a set, so naturally deduplicated).
+   * This is the query-time contactgroup->contacts expansion (iso Engine);
+   * per-contact runtime filtering (should_be_notified) is left to the caller.
+   * Empty when the resource is unknown or references no contact. */
+  absl::flat_hash_set<std::string> notification_contact_names(
+      uint64_t host_id,
+      uint64_t service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::chrono::seconds interval_length(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool in_notification_period(const std::string& period_name,
