@@ -156,3 +156,4 @@ tests/resources/grpc_stream.proto
 tests/resources/opentelemetry
 
 compile_commands.json
+.unprocessed

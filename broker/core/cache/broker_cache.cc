@@ -227,6 +227,9 @@ void broker_cache::merge(
       auto [it, inserted] = index.insert(h);
       if (!inserted)
         index.replace(it, h);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(host.host_id(), 0, host.contacts(),
+                                  host.contactgroups(), state.poller_id());
     }
   }
 
@@ -300,6 +303,10 @@ void broker_cache::merge(
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted)
         index_svc.replace(it, s);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(svc.host_id(), svc.service_id(),
+                                  svc.contacts(), svc.contactgroups(),
+                                  state.poller_id());
     }
 
     /* Work on anomaly detections */
@@ -503,7 +510,8 @@ void broker_cache::_insert_service_notif_dep(
 void broker_cache::_insert_contact(const engine::configuration::Contact& c,
                                    uint64_t poller_id) {
   const std::string& name = c.contact_name();
-  contact entry;
+  auto& value = _contacts[name];
+  contact& entry = value.first;
   entry.name = name;
   entry.host_notifications_enabled = c.host_notifications_enabled();
   entry.service_notifications_enabled = c.service_notifications_enabled();
@@ -512,11 +520,7 @@ void broker_cache::_insert_contact(const engine::configuration::Contact& c,
   entry.host_notification_options = c.host_notification_options();
   entry.service_notification_options = c.service_notification_options();
   entry.timezone = c.timezone();
-  auto [it, inserted] = _contacts.try_emplace(name, std::move(entry),
-                                              absl::flat_hash_set<uint64_t>{});
-  if (!inserted)
-    it->second.first = std::move(entry);
-  it->second.second.insert(poller_id);
+  value.second.insert(poller_id);
 }
 
 /**
@@ -533,20 +537,65 @@ void broker_cache::_insert_contactgroup(
     const engine::configuration::Contactgroup& cg,
     uint64_t poller_id) {
   const std::string& name = cg.contactgroup_name();
-  contactgroup entry;
+  auto& value = _contactgroups[name];
+  contactgroup& entry = value.first;
   entry.name = name;
+  entry.members.clear();
   for (const std::string& member : cg.members().data())
     entry.members.insert(member);
-  auto [it, inserted] = _contactgroups.try_emplace(
-      name, std::move(entry), absl::flat_hash_set<uint64_t>{});
-  if (!inserted)
-    it->second.first = std::move(entry);
-  it->second.second.insert(poller_id);
+  value.second.insert(poller_id);
 }
 
 /**
- * @brief Drop @p poller_id from every contact and contactgroup reference set,
- * erasing the entries no poller references anymore.
+ * @brief Store (or erase) the direct contacts/contactgroups of a resource.
+ *
+ * The names are resolved to non-owning pointers into _contacts / _contactgroups
+ * (which own the objects once); those maps are node_hash_maps, so the pointers
+ * stay valid across later insertions. Feeding is ordered (contacts and
+ * contactgroups are inserted before the hosts/services in both merge() and
+ * apply()), so the referenced entries already exist here; a name that is not
+ * found is skipped. The two lists are kept separate (as done by Engine). When
+ * the resource references neither a contact nor a contactgroup the entry is
+ * erased rather than stored empty, so a modification clearing the contacts drops
+ * the stale entry.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ * @param contacts The resource's direct contact names.
+ * @param contactgroups The resource's contactgroup names.
+ * @param poller_id The poller owning the resource (for per-poller purge).
+ */
+void broker_cache::_insert_resource_contacts(
+    uint64_t host_id,
+    uint64_t service_id,
+    const engine::configuration::StringSet& contacts,
+    const engine::configuration::StringSet& contactgroups,
+    uint64_t poller_id) {
+  auto key = std::make_pair(host_id, service_id);
+  if (contacts.data().empty() && contactgroups.data().empty()) {
+    _resource_contacts.erase(key);
+    return;
+  }
+  resource_contacts& rc = _resource_contacts[key];
+  rc.contacts.clear();
+  rc.contactgroups.clear();
+  rc.poller_id = poller_id;
+  for (const std::string& c : contacts.data()) {
+    auto it = _contacts.find(c);
+    if (it != _contacts.end())
+      rc.contacts.push_back(&it->second.first);
+  }
+  for (const std::string& g : contactgroups.data()) {
+    auto it = _contactgroups.find(g);
+    if (it != _contactgroups.end())
+      rc.contactgroups.push_back(&it->second.first);
+  }
+}
+
+/**
+ * @brief Drop @p poller_id from every contact and contactgroup reference set and
+ * from the per-resource contacts, erasing the entries no poller references
+ * anymore.
  *
  * Used both on a full re-merge (to rebuild the poller's contribution from
  * scratch) and on poller removal.
@@ -571,6 +620,10 @@ void broker_cache::_remove_poller_from_contacts(uint64_t poller_id) {
   }
   for (const std::string& name : orphaned)
     _contactgroups.erase(name);
+
+  absl::erase_if(_resource_contacts, [poller_id](const auto& entry) {
+    return entry.second.poller_id == poller_id;
+  });
 }
 
 /**
@@ -803,6 +856,9 @@ void broker_cache::apply(
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
         hosts_by_id.replace(it, h);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(host.host_id(), 0, host.contacts(),
+                                  host.contactgroups(), diff.poller_id());
     }
 
     /* Modifying hosts */
@@ -812,6 +868,9 @@ void broker_cache::apply(
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
         hosts_by_id.replace(it, h);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(host.host_id(), 0, host.contacts(),
+                                  host.contactgroups(), diff.poller_id());
     }
   }
 
@@ -972,6 +1031,10 @@ void broker_cache::apply(
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(svc.host_id(), svc.service_id(),
+                                  svc.contacts(), svc.contactgroups(),
+                                  diff.poller_id());
     }
 
     /* Modifying services */
@@ -982,6 +1045,10 @@ void broker_cache::apply(
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(svc.host_id(), svc.service_id(),
+                                  svc.contacts(), svc.contactgroups(),
+                                  diff.poller_id());
     }
 
     /* Removing services */
@@ -995,6 +1062,9 @@ void broker_cache::apply(
           removed_service_severity_ids.insert(severity_id);
         s_index.erase(svc_it);
       }
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _resource_contacts.erase(
+            std::make_pair(key.host_id(), key.service_id()));
     }
 
     /* Work on anomaly detections */
@@ -1182,6 +1252,8 @@ void broker_cache::apply(
 
         hosts_by_id.erase(host_it);
       }
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _resource_contacts.erase(std::make_pair(host_id, 0));
     }
 
     auto& index_by_severity = _hosts.get<by_severity>();
@@ -2924,6 +2996,37 @@ std::vector<std::string> broker_cache::contactgroup_members(
   for (const std::string& member : members)
     result.push_back(member);
   return result;
+}
+
+/**
+ * @brief Resolve the notification contacts of a resource.
+ *
+ * Returns the union of the resource's direct contacts and the members of each of
+ * its contactgroups, deduplicated. This is the query-time contactgroup->contacts
+ * expansion (iso Engine): the resource holds non-owning pointers to the contact
+ * and contactgroup objects, read directly here (no map lookup). Per-contact
+ * runtime filtering (should_be_notified) is left to the caller.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ *
+ * @return The set of contact names; empty when the resource is unknown or
+ * references no contact.
+ */
+absl::flat_hash_set<std::string> broker_cache::notification_contact_names(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _resource_contacts.find(std::make_pair(host_id, service_id));
+  if (it == _resource_contacts.end())
+    return {};
+
+  absl::flat_hash_set<std::string> names;
+  for (const contact* c : it->second.contacts)
+    names.insert(c->name);
+  for (const contactgroup* group : it->second.contactgroups)
+    names.insert(group->members.begin(), group->members.end());
+  return names;
 }
 
 /**
