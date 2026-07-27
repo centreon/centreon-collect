@@ -34,7 +34,7 @@ RUN --mount=type=bind,source=packages-centreon,target=/packages \
 #############################################
 # Stage 2: Runtime - Minimal final image
 #############################################
-FROM debian:13-slim
+FROM debian:13-slim AS runtime
 
 ARG VERSION
 ARG IS_CLOUD
@@ -52,13 +52,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN bash -e <<EOF
 groupadd -g 33 www-data 2>/dev/null || true
 groupadd -g 900 centreon
-useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon
+useradd -u 900 -g centreon -m -r -l -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon
 groupadd -g 901 centreon-engine
-useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -c "Centreon Engine" -s /bin/bash centreon-engine
+useradd -u 901 -g centreon-engine -m -r -l -d /var/lib/centreon-engine -c "Centreon Engine" -s /bin/bash centreon-engine
 groupadd -g 902 centreon-broker
-useradd -u 902 -g centreon-broker -m -r -d /var/lib/centreon-broker -c "Centreon Broker" -s /bin/bash centreon-broker
+useradd -u 902 -g centreon-broker -m -r -l -d /var/lib/centreon-broker -c "Centreon Broker" -s /bin/bash centreon-broker
 groupadd -g 903 centreon-gorgone
-useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -c "Centreon Gorgone" -s /bin/bash centreon-gorgone
+useradd -u 903 -g centreon-gorgone -m -r -l -d /var/lib/centreon-gorgone -c "Centreon Gorgone" -s /bin/bash centreon-gorgone
 usermod -aG centreon-broker centreon-engine
 usermod -aG centreon-engine centreon-broker
 usermod -aG centreon-gorgone centreon-engine
@@ -76,21 +76,25 @@ APT::Install-Recommends "false";
 APT::Install-Suggests "false";
 EOF
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    bash -e <<EOF
-apt-get update
-apt-get install -y --no-install-recommends gnupg wget ca-certificates
-wget -qO- https://apt-key.centreon.com | gpg --dearmor > /etc/apt/trusted.gpg.d/centreon.gpg
-echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" > /etc/apt/sources.list.d/centreon-plugins.list
-EOF
-
+# Fetch the apt-plugins-stable GPG key/repo and install runtime dependencies
+# in a single layer. gnupg/wget are only needed transiently to bootstrap the
+# repo, so they're installed and removed within this same RUN — keeping
+# install+removal in one layer means their bytes never persist in the final
+# image. A previous version split this across two RUNs, installing gnupg/wget
+# in one layer and only purging them in a later one; that doesn't shrink the
+# earlier layer at all (overlay layers are additive), so their full install
+# footprint stayed baked into the image regardless of the later purge.
+#
 # apt-plugins-stable now publishes arm64 .deb packages for libnet-curl-perl,
 # libcrypt-openssl-aes-perl and libssh-session-perl, so the CPAN compilation
 # fallback (and the build-essential/dev headers it required) is no longer needed.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    bash -e <<'EOF'
+    bash -eo pipefail <<'EOF'
+apt-get update
+apt-get install -y --no-install-recommends gnupg wget ca-certificates
+wget -qO- https://apt-key.centreon.com | gpg --dearmor > /etc/apt/trusted.gpg.d/centreon.gpg
+echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" > /etc/apt/sources.list.d/centreon-plugins.list
 apt-get update
 apt-get install -y --no-install-recommends \
     libnet-curl-perl \
@@ -106,9 +110,6 @@ apt-get install -y --no-install-recommends \
     libcap2-bin \
     inotify-tools \
     sudo \
-    ca-certificates \
-    wget \
-    gnupg \
     centreon-plugin-applications-monitoring-centreon-poller
 setcap cap_net_raw+ep /usr/lib/nagios/plugins/check_icmp
 apt-get remove -y --purge libcap2-bin gnupg wget
@@ -191,10 +192,13 @@ COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d
 # Verify critical runtime files. Checking the dynamic linker can actually
 # resolve centengine's shared libs (rather than guessing their path with a
 # glob) is what would have caught the /usr/lib* destination bug above at
-# build time instead of ~1 minute into the boot-test job.
-RUN test -f /usr/sbin/centengine && \
-    test -d /etc/centreon-engine/ && \
-    ! ldd /usr/sbin/centengine | grep -q "not found"
+# build time instead of ~1 minute into the boot-test job. bash -eo pipefail
+# so a failing `ldd` isn't masked by grep's own (unrelated) exit status.
+RUN bash -eo pipefail <<'EOF'
+test -f /usr/sbin/centengine
+test -d /etc/centreon-engine/
+! ldd /usr/sbin/centengine | grep -q "not found"
+EOF
 
 # OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
 ARG BUILD_DATE
