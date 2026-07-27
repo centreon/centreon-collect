@@ -96,7 +96,6 @@ std::shared_ptr<io::stream> acceptor::open() {
     std::shared_ptr<io::stream> u = _from->open();
 
     // Add BBDO layer.
-    std::shared_ptr<io::stream> retval;
     if (u) {
       assert(!_coarse);
       // if _is_output, the stream is an output
