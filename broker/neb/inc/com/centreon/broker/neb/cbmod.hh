@@ -42,9 +42,19 @@ class cbmod {
                       std::shared_ptr<pb_acknowledgement>>
       _acknowledgements;
 
-  // Unstarted downtimes.
+  /* Downtimes known by cbmod, indexed by downtime ID.
+   *
+   * Invariant: once a downtime has been handed to _publish_downtime(), the
+   * pointed object must never be mutated again — the muxer thread may still be
+   * serializing it. _update_downtime() is the only legal way to change a
+   * stored downtime; do not call mut_obj() on an entry of this map. */
   std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
   bool _centralized_conf = false;
+
+  void _publish_downtime(const std::shared_ptr<neb::pb_downtime>& dt);
+  std::shared_ptr<neb::pb_downtime> _update_downtime(
+      uint64_t downtime_id,
+      absl::FunctionRef<void(Downtime&)> mutator);
 
  public:
   cbmod(const std::filesystem::path& proto_conf);
