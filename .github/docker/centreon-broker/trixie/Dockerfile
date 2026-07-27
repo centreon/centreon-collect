@@ -165,7 +165,8 @@ RUN bash -e <<EOF
 python3 -m venv /opt/centreon/venv
 /opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip
 /opt/centreon/venv/bin/pip install --no-cache-dir \
-    fastapi==0.115.0 \
+    fastapi==0.140.0 \
+    starlette==1.3.1 \
     uvicorn==0.32.0
 chown -R centreon-broker:centreon-broker /opt/centreon/venv
 EOF
