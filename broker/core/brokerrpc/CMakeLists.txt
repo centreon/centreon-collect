@@ -84,7 +84,7 @@ set_target_properties(pb_broker_lib PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
 
-# Bibliothèque brokerrpc
+# brokerrpc library
 add_library(brokerrpc
   broker_impl.cc
   brokerrpc.cc

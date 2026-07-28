@@ -1783,14 +1783,16 @@ std::shared_ptr<neb::pb_tag> broker_cache::get_tag(uint64_t tag_id,
  */
 std::vector<uint64_t> broker_cache::host_tag_ids(uint64_t host_id,
                                                  TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<uint64_t> result;
-  auto it = _hosts.get<by_id>().find(host_id);
-  if (it == _hosts.get<by_id>().end())
-    return result;
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() == type)
-      result.push_back(t.id());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto it = _hosts.get<by_id>().find(host_id);
+    if (it == _hosts.get<by_id>().end())
+      return result;
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() == type)
+        result.push_back(t.id());
+    }
   }
   std::sort(result.begin(), result.end());
   return result;
@@ -1806,17 +1808,19 @@ std::vector<uint64_t> broker_cache::host_tag_ids(uint64_t host_id,
  */
 std::vector<std::string> broker_cache::host_tag_names(uint64_t host_id,
                                                       TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<std::pair<uint64_t, std::string>> pairs;
-  auto it = _hosts.get<by_id>().find(host_id);
-  if (it == _hosts.get<by_id>().end())
-    return {};
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() != type)
-      continue;
-    auto tag_it = _tags.find({t.id(), type});
-    if (tag_it != _tags.end())
-      pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto it = _hosts.get<by_id>().find(host_id);
+    if (it == _hosts.get<by_id>().end())
+      return {};
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() != type)
+        continue;
+      auto tag_it = _tags.find({t.id(), type});
+      if (tag_it != _tags.end())
+        pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+    }
   }
   std::sort(pairs.begin(), pairs.end());
   std::vector<std::string> result;
@@ -1837,15 +1841,17 @@ std::vector<std::string> broker_cache::host_tag_names(uint64_t host_id,
 std::vector<uint64_t> broker_cache::service_tag_ids(uint64_t host_id,
                                                     uint64_t service_id,
                                                     TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<uint64_t> result;
-  auto& index = _services.get<by_id>();
-  auto it = index.find(std::make_pair(host_id, service_id));
-  if (it == index.end())
-    return result;
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() == type)
-      result.push_back(t.id());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto& index = _services.get<by_id>();
+    auto it = index.find(std::make_pair(host_id, service_id));
+    if (it == index.end())
+      return result;
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() == type)
+        result.push_back(t.id());
+    }
   }
   std::sort(result.begin(), result.end());
   return result;
@@ -1863,18 +1869,20 @@ std::vector<uint64_t> broker_cache::service_tag_ids(uint64_t host_id,
 std::vector<std::string> broker_cache::service_tag_names(uint64_t host_id,
                                                          uint64_t service_id,
                                                          TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<std::pair<uint64_t, std::string>> pairs;
-  auto& index = _services.get<by_id>();
-  auto it = index.find(std::make_pair(host_id, service_id));
-  if (it == index.end())
-    return {};
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() != type)
-      continue;
-    auto tag_it = _tags.find({t.id(), type});
-    if (tag_it != _tags.end())
-      pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto& index = _services.get<by_id>();
+    auto it = index.find(std::make_pair(host_id, service_id));
+    if (it == index.end())
+      return {};
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() != type)
+        continue;
+      auto tag_it = _tags.find({t.id(), type});
+      if (tag_it != _tags.end())
+        pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+    }
   }
   std::sort(pairs.begin(), pairs.end());
   std::vector<std::string> result;

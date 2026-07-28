@@ -385,10 +385,6 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                  static_cast<void*>(this), _name, event_queue.size());
   auto evt = event_queue.begin();
   while (evt != event_queue.end()) {
-    if (_name == "central-broker-unified-sql") {
-      _logger->debug("publishing into unified_sql event of type {:x}",
-                     (*evt)->type());
-    }
     bool at_least_one_push_to_queue = false;
     {
       // we stop this first loop when mux queue is full in order to release
@@ -398,9 +394,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
           "muxer::publish ({}) starting the loop to stack events --- "
           "events_size = {} <> {}",
           _name, _total_queue_size(), event_queue_max_size());
-      for (;
-           evt != event_queue.end() &&
-           _total_queue_size() < event_queue_max_size();
+      for (; evt != event_queue.end() &&
+             _total_queue_size() < event_queue_max_size();
            ++evt) {
         auto event = *evt;
         if (!_write_filter.allows(event->type())) {
@@ -426,7 +421,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       }
       _logger->trace("muxer::publish ({}) loop finished", _name);
       if (at_least_one_push_to_queue ||
-          _total_queue_size() >= event_queue_max_size())  // async handler waiting?
+          _total_queue_size() >=
+              event_queue_max_size())  // async handler waiting?
         _execute_reader_if_needed();
     }
 
@@ -835,10 +831,9 @@ void muxer::_update_stats() noexcept {
     /* Since _events_m is locked, we can get interesting values and copy them
      * in the capture. Then the execute() function can put them in the stats
      * object asynchronously. */
-    _center->update_muxer(_name, _file ? _queue_file_name : "",
-                          _total_queue_size(),
-                          _priority_read_pos + _current_read_pos +
-                              _historical_read_pos);
+    _center->update_muxer(
+        _name, _file ? _queue_file_name : "", _total_queue_size(),
+        _priority_read_pos + _current_read_pos + _historical_read_pos);
   }
 }
 
