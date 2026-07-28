@@ -91,8 +91,10 @@ check one poller can connect to a central with env var ${id}
     Setup Two Gorgone Instances    communication_mode=${mode}    central_name=${mode}_gorgone_central_simple    poller_name=${mode}_gorgone_poller_2_simple
     Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
     Examples:    id    mode         env_token    --
-        ...    1    pullwss        poller-1:myPollerToken
-        ...    2    pullwss_uid    poller-1:myPollerToken
+        ...    1    pullwss        poller-ok-expdate:myPollerToken
+        ...    2    pullwss_uid    poller-ok-expdate:myPollerToken
+        ...    3    pullwss        poller-ok-noexpdate:myPollerToken
+        ...    4    pullwss_uid    poller-ok-noexpdate:myPollerToken
 
 check one poller cannot connect to a central with env var ${id}
     [Teardown]    Run Keywords
@@ -117,11 +119,12 @@ check one poller cannot connect to a central with env var ${id}
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_poller_2_simple/gorgoned.log    content=${log_poller_query}    date=${start_date}
     Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}
 
-    Examples:    id    mode    env_token    message_central    --
-        ...    1    pullwss    Central-1:centralCMAtoken      [proxy-httpserver] invalid token
-        ...    2    pullwss    poller-2:myPollerToken         [proxy-httpserver] invalid token
-        ...    3    pullwss    poller-3:myPollerToken         [proxy-httpserver] invalid token
-        ...    4    pullwss    do_not_exists:myPollerToken    [proxy-httpserver] cannot get token
+    Examples:    id    mode       env_token                                 message_central    --
+        ...      1     pullwss    Central-1:centralCMAtoken                 [proxy-httpserver] invalid token
+        ...      2     pullwss    poller-revoked-expdate:myPollerToken      [proxy-httpserver] invalid token
+        ...      3     pullwss    poller-revoked-noexpdate:myPollerToken    [proxy-httpserver] invalid token
+        ...      4     pullwss    poller-expired:myPollerToken              [proxy-httpserver] invalid token
+        ...      5     pullwss    do_not_exists:myPollerToken               [proxy-httpserver] cannot get token
 
 check poller token revocation
     [Teardown]    Run Keywords
@@ -129,8 +132,8 @@ check poller token revocation
     ...    AND
     ...    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
-    Set Local Variable    ${revoked_url}    http://127.0.0.1:80/set-poller-4-is-revoked
-    Set Local Variable    ${expired_url}    http://127.0.0.1:80/set-poller-4-is-expired
+    Set Local Variable    ${revoked_url}    http://127.0.0.1:80/set-poller-config-is-revoked
+    Set Local Variable    ${expired_url}    http://127.0.0.1:80/set-poller-config-is-expired
     Set Local Variable    ${port}    8086
     Set Local Variable    ${timeout}    11
     Set Local Variable    ${sleep}    6
@@ -143,7 +146,7 @@ check poller token revocation
     ${start_date}    Get Current Date
     @{process_list}    Set Variable    pullwss_gorgone_central_simple    pullwss_gorgone_poller_2_simple
     Log To Console    \nStarting the gorgone setup
-    Set Environment Variable    GORGONE_TOKEN    poller-4:myPollerToken
+    Set Environment Variable    GORGONE_TOKEN    poller-config:myPollerToken
     ${response}    PUT    ${revoked_url}/false
     ${response}    PUT    ${expired_url}/false
     Setup Two Gorgone Instances    communication_mode=pullwss    central_name=pullwss_gorgone_central_simple    poller_name=pullwss_gorgone_poller_2_simple
@@ -176,6 +179,7 @@ check poller token revocation
     # Token revoked
     ${start_date}    Get Current Date    increment=-1s
     ${response}    PUT    ${revoked_url}/false
+    ${response}    PUT    ${expired_url}/null
     Sleep    ${sleep}
     # The poller is connected
     Check Poller Is Connected    port=${port}    expected_nb=2
