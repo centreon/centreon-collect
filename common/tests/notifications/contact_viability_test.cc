@@ -21,7 +21,19 @@
 
 #include <gtest/gtest.h>
 
+#include "common/log_v2/log_v2.hh"
+
 using namespace com::centreon::common::notifications;
+
+/* should_notify_contact logs its rejection reasons on the NOTIFICATIONS
+ * channel, so log_v2 must be loaded around these tests. */
+class ContactViability : public ::testing::Test {
+ public:
+  void SetUp() override {
+    com::centreon::common::log_v2::log_v2::load("ut_common");
+  }
+  void TearDown() override { com::centreon::common::log_v2::log_v2::unload(); }
+};
 
 namespace {
 /* A contact accepting everything on both host and service, in period. */
@@ -40,7 +52,7 @@ contact all_on() {
 }  // namespace
 
 /* The host/service notification-enable flag gates everything. */
-TEST(ContactViability, EnableFlag) {
+TEST_F(ContactViability, EnableFlag) {
   contact c = all_on();
 
   c.service_notifications_enabled = false;
@@ -58,7 +70,7 @@ TEST(ContactViability, EnableFlag) {
 }
 
 /* An out-of-period contact is never notified. */
-TEST(ContactViability, OutOfPeriod) {
+TEST_F(ContactViability, OutOfPeriod) {
   contact c = all_on();
   EXPECT_FALSE(should_notify_contact(c, false, cat_acknowledgement,
                                      reason_acknowledgement, 0,
@@ -66,7 +78,7 @@ TEST(ContactViability, OutOfPeriod) {
 }
 
 /* Normal notification: the current state must map to a bit set in the mask. */
-TEST(ContactViability, NormalStateToBitService) {
+TEST_F(ContactViability, NormalStateToBitService) {
   contact c = all_on();
   /* Accept only CRITICAL (service state 2). */
   c.service_notification_options = critical;
@@ -81,7 +93,7 @@ TEST(ContactViability, NormalStateToBitService) {
                                      true, false));
 }
 
-TEST(ContactViability, NormalStateToBitHost) {
+TEST_F(ContactViability, NormalStateToBitHost) {
   contact c = all_on();
   c.host_notification_options = down;  // accept only DOWN (host state 1)
 
@@ -93,7 +105,7 @@ TEST(ContactViability, NormalStateToBitHost) {
 
 /* Recovery: needs the ok/up bit AND the contact to have been notified of the
  * problem. */
-TEST(ContactViability, Recovery) {
+TEST_F(ContactViability, Recovery) {
   contact c = all_on();
 
   /* accepts recovery + already notified -> true */
@@ -110,27 +122,27 @@ TEST(ContactViability, Recovery) {
 }
 
 /* Flapping: the flag depends on the reason. */
-TEST(ContactViability, Flapping) {
+TEST_F(ContactViability, Flapping) {
   contact c = all_on();
   c.service_notification_options = flappingstart;  // only accept start
 
-  EXPECT_TRUE(should_notify_contact(c, false, cat_flapping,
-                                    reason_flappingstart, 0, true, false));
-  EXPECT_FALSE(should_notify_contact(c, false, cat_flapping,
-                                     reason_flappingstop, 0, true, false));
+  EXPECT_TRUE(should_notify_contact(
+      c, false, cat_flapping, reason_flappingstart, 0, true, false));
+  EXPECT_FALSE(should_notify_contact(
+      c, false, cat_flapping, reason_flappingstop, 0, true, false));
 }
 
-TEST(ContactViability, Downtime) {
+TEST_F(ContactViability, Downtime) {
   contact c = all_on();
-  EXPECT_TRUE(should_notify_contact(c, false, cat_downtime,
-                                    reason_downtimestart, 0, true, false));
+  EXPECT_TRUE(should_notify_contact(
+      c, false, cat_downtime, reason_downtimestart, 0, true, false));
   c.service_notification_options = critical;  // no downtime bit
-  EXPECT_FALSE(should_notify_contact(c, false, cat_downtime,
-                                     reason_downtimestart, 0, true, false));
+  EXPECT_FALSE(should_notify_contact(
+      c, false, cat_downtime, reason_downtimestart, 0, true, false));
 }
 
 /* Acknowledgement and custom are unconditional (once enabled and in period). */
-TEST(ContactViability, AcknowledgementAndCustomUnconditional) {
+TEST_F(ContactViability, AcknowledgementAndCustomUnconditional) {
   contact c = all_on();
   c.service_notification_options = none;  // even with an empty mask
 
