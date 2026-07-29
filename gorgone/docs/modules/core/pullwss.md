@@ -10,15 +10,16 @@ The proxy module has to bind to a tcp port for the pullwss module to connect to.
 
 ## Configuration
 
-| Directive            | Description                                                                    | Default value |
-|:---------------------|:-------------------------------------------------------------------------------|:--------------|
-| ssl                  | should the connection be made over TLS/SSL or not                              | `false`       |
-| address              | IP address to connect to                                                       |               |
-| port                 | TCP port to connect to                                                         |               |
-| token                | token to authenticate to the central gorgone                                   |               |
-| proxy                | HTTP(S) proxy to access central gorgone                                        |               |
-| https_cert_no_verify | if ssl=true, if ssl=true, should certificate host name verification be skipped | `true`        |
-| max_msg_size         | max message size to send to the central Gorgone                                | `130000`      |
+| Directive            | Description                                                                                                                                 | Default value |
+|:---------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:--------------|
+| ssl                  | should the connection be made over TLS/SSL or not                                                                                           | `false`       |
+| address              | IP address to connect to                                                                                                                    |               |
+| port                 | TCP port to connect to                                                                                                                      |               |
+| token                | token to authenticate to the central gorgone                                                                                                |               |
+| proxy                | HTTP(S) proxy to access central gorgone                                                                                                     |               |
+| https_cert_no_verify | if ssl=true, if ssl=true, should certificate host name verification be skipped                                                              | `true`        |
+| max_msg_size         | max message size to send to the central Gorgone                                                                                             | `130000`      |
+ | central_uri         | URI to connect on the central. after 26.10, you can connect on apache on port 443 by using the value `/centreon/gorgone/pullwss/websocket`. | `/`           |
 
 > **Note on `https_cert_no_verify`:** Certificate verification is **disabled by default** (`true`). Set it to `false` and use a valid certificate signed by a trusted CA for production environments.
 
