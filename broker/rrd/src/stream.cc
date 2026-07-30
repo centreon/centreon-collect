@@ -286,11 +286,10 @@ void stream<T>::update() {
       continue;  // junction detection in write() handles this case.
     auto rrd_path = _metrics_path / fmt::format("{}.rrd", metric_id);
     if (std::filesystem::exists(rrd_path)) {
-      SPDLOG_LOGGER_DEBUG(
-          _logger,
-          "RRD: metric {} has buffered data and .rrd exists; "
-          "scheduling deferred merge from update()",
-          metric_id);
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "RRD: metric {} has buffered data and .rrd exists; "
+                          "scheduling deferred merge from update()",
+                          metric_id);
       _schedule_metric_merge(metric_id, std::move(rrd_path));
     }
   }
@@ -306,11 +305,10 @@ void stream<T>::update() {
       continue;
     auto rrd_path = _status_path / fmt::format("{}.rrd", index_id);
     if (std::filesystem::exists(rrd_path)) {
-      SPDLOG_LOGGER_DEBUG(
-          _logger,
-          "RRD: status {} has buffered data and .rrd exists; "
-          "scheduling deferred merge from update()",
-          index_id);
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "RRD: status {} has buffered data and .rrd exists; "
+                          "scheduling deferred merge from update()",
+                          index_id);
       _schedule_status_merge(index_id, std::move(rrd_path));
     }
   }
@@ -418,8 +416,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
                 _logger,
                 "RRD: metric {} t={} is old (step={}s) → retention buffer",
                 m.metric_id(), m.time(), step);
-            const uint64_t prev_t =
-                _retention.last_metric_time(m.metric_id());
+            const uint64_t prev_t = _retention.last_metric_time(m.metric_id());
             if (_retention.write_metric(m.metric_id(), m.time(), m.value(),
                                         step)) {
               _schedule_metric_merge(m.metric_id(), metric_path);
@@ -445,13 +442,13 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
                   m.time() > prev_t + 2 * static_cast<uint64_t>(step) &&
                   prev_t + static_cast<uint64_t>(step) >= ect) {
                 should_merge = true;
-                SPDLOG_LOGGER_DEBUG(_logger,
-                                    "RRD: metric {} gap detected "
-                                    "(t={} − prev={}={}s > 2×step={}s), "
-                                    "prev junction (prev+step={} >= ect={}) → merge",
-                                    m.metric_id(), m.time(), prev_t,
-                                    m.time() - prev_t, step,
-                                    prev_t + step, ect);
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: metric {} gap detected "
+                    "(t={} − prev={}={}s > 2×step={}s), "
+                    "prev junction (prev+step={} >= ect={}) → merge",
+                    m.metric_id(), m.time(), prev_t, m.time() - prev_t, step,
+                    prev_t + step, ect);
               }
               // Step 3.3: Partial merge — interval of data accumulated.
               if (!should_merge &&
@@ -556,8 +553,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
                 _logger,
                 "RRD: metric {} t={} is old (step={}s) → retention buffer",
                 e->metric_id, e->time, step);
-            const uint64_t prev_t =
-                _retention.last_metric_time(e->metric_id);
+            const uint64_t prev_t = _retention.last_metric_time(e->metric_id);
             if (_retention.write_metric(e->metric_id, e->time, e->value,
                                         step)) {
               _schedule_metric_merge(e->metric_id, metric_path);
@@ -675,8 +671,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
                 _logger,
                 "RRD: status {} t={} is old (step={}s) → retention buffer",
                 s.index_id(), s.time(), step);
-            const uint64_t prev_t =
-                _retention.last_status_time(s.index_id());
+            const uint64_t prev_t = _retention.last_status_time(s.index_id());
             if (_retention.write_status(s.index_id(), s.time(), s.state(),
                                         step)) {
               _schedule_status_merge(s.index_id(), status_path);
@@ -794,8 +789,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
                 _logger,
                 "RRD: status {} t={} is old (step={}s) → retention buffer",
                 e->index_id, e->time, step);
-            const uint64_t prev_t =
-                _retention.last_status_time(e->index_id);
+            const uint64_t prev_t = _retention.last_status_time(e->index_id);
             if (_retention.write_status(e->index_id, e->time, e->state, step)) {
               _schedule_status_merge(e->index_id, status_path);
             } else {
@@ -1344,7 +1338,7 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   auto fill_status_request = [&](uint64_t index_id, uint32_t check_interval,
                                  uint32_t rrd_retention,
                                  const com::centreon::broker::Point& pt) {
-    if (!index_id)
+    if (!index_id || pt.status() > 2)
       return;
     status_data& to_update = status_values[index_id];
     if (to_update.check_interval < check_interval)
@@ -1438,8 +1432,8 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   for (const auto& by_index_status_values : status_values) {
     SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding status {}",
                         by_index_status_values.first);
-    auto status_path = _status_path /
-                       fmt::format("{}.rrd", by_index_status_values.first);
+    auto status_path =
+        _status_path / fmt::format("{}.rrd", by_index_status_values.first);
 
     time_t start_time =
         by_index_status_values.second.time_to_value.begin()->first -
