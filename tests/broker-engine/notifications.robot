@@ -1840,7 +1840,7 @@ SRV_CRIT_NOTIF_BROKER
     ...    And the poller runs the contact notification command (no local Engine decision)
     [Tags]    broker    engine    services    notification    MON-187019
     Ctn Clear Commands Status
-    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
     Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config BBDO3    ${1}
@@ -1862,9 +1862,13 @@ SRV_CRIT_NOTIF_BROKER
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Wait until Broker has received and stored the poller's centralized config,
+    # so the contact is in its cache before the first notification decision.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -1897,7 +1901,7 @@ SRV_NOTIF_SUPPR_DURING_DT_BROKER
     ...    And once the downtime is removed Broker dispatches the CRITICAL then RECOVERY notifications
     [Tags]    broker    engine    services    notification    downtimes    MON-187019
     Ctn Clear Commands Status
-    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
     Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config BBDO3    ${1}
@@ -1919,9 +1923,13 @@ SRV_NOTIF_SUPPR_DURING_DT_BROKER
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Wait until Broker has received and stored the poller's centralized config,
+    # so the contact is in its cache before the first notification decision.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
 
     # Wait until Broker has loaded its downtime_manager so the gRPC
     # ScheduleDowntime endpoint is usable (avoids a startup race).
@@ -1986,7 +1994,7 @@ SRV_REC_NOTIF_AFTER_ACK_BROKER
     ...    And when the service returns to OK HARD Broker dispatches the RECOVERY notification
     [Tags]    broker    engine    services    acknowledgement    notification    MON-187019
     Ctn Clear Commands Status
-    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
     Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config BBDO3    ${1}
@@ -2008,9 +2016,13 @@ SRV_REC_NOTIF_AFTER_ACK_BROKER
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
     ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Wait until Broker has received and stored the poller's centralized config,
+    # so the contact is in its cache before the first notification decision.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -2047,6 +2059,142 @@ SRV_REC_NOTIF_AFTER_ACK_BROKER
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The poller did not run the dispatched RECOVERY notification command
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
+SRV_NOTIF_ESCALATIONS_BROKER
+    [Documentation]    Scenario: in notification_mode=broker, Broker resolves the escalations and dispatches the right contact group at each level
+    ...    Given services with notification escalations to different contact groups, in notification_mode=broker (BBDO3)
+    ...    When the services stay CRITICAL across successive notifications
+    ...    Then Broker (not Engine) picks the escalation contact group for each notification number
+    ...    And the poller runs the notification command for the contacts Broker selected
+    [Tags]    broker    engine    services    hosts    notification    MON-187019
+    Ctn Clear Commands Status
+    Ctn Config Centralized Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Engine Config Set Value    0    interval_length    1    True
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Engine Config Set Value    ${0}    log_level_config    trace
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
+    Ctn Config Notifications
+    Ctn Config Escalations
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    core    info
+    # The "dispatched notification execution" message asserted below is logged on
+    # the notifications channel at info level, so enable it.
+    Ctn Broker Config Log    central    notifications    info
+
+    Ctn Add Contact Group    ${0}    ${1}    ["U1"]
+    Ctn Add Contact Group    ${0}    ${2}    ["U2","U3"]
+    Ctn Add Contact Group    ${0}    ${3}    ["U4"]
+
+    Ctn Create Escalations File    0    1    servicegroup_1    contactgroup_2
+    Ctn Create Escalations File    0    2    servicegroup_1    contactgroup_3
+
+    Ctn Engine Config Set Value In Escalations    0    esc1    first_notification    2
+    Ctn Engine Config Set Value In Escalations    0    esc1    last_notification    2
+    Ctn Engine Config Set Value In Escalations    0    esc1    notification_interval    1
+    Ctn Engine Config Set Value In Escalations    0    esc2    first_notification    3
+    Ctn Engine Config Set Value In Escalations    0    esc2    last_notification    0
+    Ctn Engine Config Set Value In Escalations    0    esc2    notification_interval    1
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Wait until Broker has received and stored the poller's centralized config,
+    # so the contacts/contactgroups/escalations are in its cache before the first
+    # notification decision.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    ${cmd_service_2}    Ctn Get Service Command Id    ${2}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+    Ctn Set Command Status    ${cmd_service_2}    ${2}
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+    # Broker (not Engine) makes the decision and dispatches the execution.
+    ${content}    Create List    dispatched notification execution for resource
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not dispatch the notification execution to the poller
+
+    # First notification (number 1, below every escalation's first_notification):
+    # the base contact group (U1) is notified. The poller runs the command.
+    ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The first notification of U1 is not sent
+    ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The first notification of contact group 1 is not sent
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+    # Second notification (number 2): esc1 (contactgroup_2 = U2, U3) takes over.
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The first notification of U2 is not sent
+
+    ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The first notification of U3 is not sent
+
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The second notification of U2 is not sent
+
+    ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The second notification of U3 is not sent
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+    # Third notification (number 3): esc2 (contactgroup_3 = U4) takes over.
+    ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The first notification of U4 is not sent
+
+    ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The second notification of U4 is not sent
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

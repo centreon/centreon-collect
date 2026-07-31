@@ -252,9 +252,11 @@ notifications::resource_state broker_notification_callbacks::get_state(
  * poller holds the macro context. The event is broadcast: every poller receives
  * it but only the one supervising the resource acts on it.
  *
- * @note Brick 1 (dispatch channel) only. The real contact selection over the
- * broker cache is not ported yet (brick 3); for now a fixed contact list is
- * injected so the channel can be exercised end to end.
+ * The decision reproduces notifier::get_contacts_to_notify: escalations are
+ * evaluated first (the broker cache holds them per resource), and when one is
+ * viable its contactgroups' members and notification interval take over;
+ * otherwise the resource's direct contacts and contactgroups are used. The
+ * candidates are then filtered by the shared should_notify_contact viability.
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.
@@ -266,7 +268,8 @@ notifications::resource_state broker_notification_callbacks::get_state(
  * @param message The notification message/comment.
  * @param options The notification options.
  *
- * @return The (injected) contacts reported as notified.
+ * @return The contacts reported as notified, the notification interval and
+ * whether an escalation was active.
  */
 notifications::delivery_result broker_notification_callbacks::deliver(
     uint64_t host_id,
@@ -298,6 +301,7 @@ notifications::delivery_result broker_notification_callbacks::deliver(
   const bool is_host = service_id == 0;
   const std::chrono::seconds interval_length = cache.interval_length(poller_id);
   int current_state = host->obj().state();
+  std::string timezone = host->obj().timezone();
   std::chrono::seconds notification_interval{0};
   if (is_host) {
     notification_interval =
@@ -313,20 +317,42 @@ notifications::delivery_result broker_notification_callbacks::deliver(
       return result;
     }
     current_state = svc->obj().state();
+    if (!svc->obj().timezone().empty())
+      timezone = svc->obj().timezone();
     notification_interval =
         static_cast<int64_t>(svc->obj().notification_interval()) *
         interval_length;
   }
 
-  /* Select the contacts to notify: the resource's direct contacts and the
-   * members of its contactgroups, each filtered by the shared
-   * should_notify_contact viability (enable flag, contact notification period
-   * in the contact's timezone, notify_on bitmask). Escalations are not handled
-   * yet. */
+  /* ISO with Engine: when the resource carries no explicit timezone, fall back
+   * to the timezone the poller advertised at negotiation time (Broker cannot use
+   * its own local timezone). Used to evaluate the escalation periods. */
+  if (timezone.empty())
+    timezone =
+        config::applier::state::instance().poller_timezone(poller_id);
+
   const std::time_t now = std::time(nullptr);
+
+  /* Escalations first (iso notifier::get_contacts_to_notify): if any escalation
+   * is viable for the current state / notification number / time, notify its
+   * contactgroups' members and use its (smallest) notification interval instead
+   * of the resource's; otherwise fall back to the resource's direct contacts. */
+  auto esc = cache.notification_escalation(
+      host_id, service_id, current_state, notification_number, timezone, now);
+  absl::flat_hash_set<std::string> candidates;
+  if (esc.escalated) {
+    candidates = std::move(esc.contact_names);
+    notification_interval =
+        static_cast<int64_t>(esc.notification_interval) * interval_length;
+  } else
+    candidates = cache.notification_contact_names(host_id, service_id);
+
+  /* Select the contacts to notify among the candidates (escalation members or
+   * the resource's direct contacts), each filtered by the shared
+   * should_notify_contact viability (enable flag, contact notification period
+   * in the contact's timezone, notify_on bitmask). */
   absl::btree_set<std::string> notified;
-  for (const std::string& name :
-       cache.notification_contact_names(host_id, service_id)) {
+  for (const std::string& name : candidates) {
     auto c = cache.contact_config(name);
     if (!c)
       continue;
@@ -366,7 +392,7 @@ notifications::delivery_result broker_notification_callbacks::deliver(
   obj.set_reason_type(static_cast<uint32_t>(type));
   obj.set_notification_id(notification_id);
   obj.set_notification_number(notification_number);
-  obj.set_escalated(false);
+  obj.set_escalated(esc.escalated);
   obj.set_author(author);
   obj.set_message(message);
   obj.set_options(static_cast<uint32_t>(options));
@@ -388,7 +414,7 @@ notifications::delivery_result broker_notification_callbacks::deliver(
       host_id, service_id, poller_id, notified.size());
 
   result.notification_interval = notification_interval;
-  result.escalated = false;
+  result.escalated = esc.escalated;
   result.notified_contacts = std::move(notified);
   return result;
 }

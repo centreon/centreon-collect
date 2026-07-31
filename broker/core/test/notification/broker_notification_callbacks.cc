@@ -26,7 +26,6 @@
 
 #include "broker/core/bbdo/internal.hh"
 #include "broker/core/cache/broker_cache.hh"
-#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 
@@ -288,6 +287,7 @@ TEST_F(BrokerNotificationCallbacksTest,
  */
 TEST_F(BrokerNotificationCallbacksTest, ContactsAndContactgroupsFromState) {
   namespace cfg = com::centreon::engine::configuration;
+  namespace notifications = com::centreon::common::notifications;
 
   cfg::State st;
   st.set_poller_id(1);
@@ -319,8 +319,11 @@ TEST_F(BrokerNotificationCallbacksTest, ContactsAndContactgroupsFromState) {
   EXPECT_FALSE(john->service_notifications_enabled);
   EXPECT_EQ(john->host_notification_period, "24x7");
   EXPECT_EQ(john->service_notification_period, "workhours");
-  EXPECT_EQ(john->host_notification_options, cfg::action_hst_down);
-  EXPECT_EQ(john->service_notification_options, cfg::action_svc_critical);
+  /* The Engine option bitmasks are stored converted to the notification_flag
+   * encoding the viability logic reasons on. down shares its bit across the two
+   * encodings; critical does not (proto 1<<3 vs library 1<<5). */
+  EXPECT_EQ(john->host_notification_options, notifications::down);
+  EXPECT_EQ(john->service_notification_options, notifications::critical);
   EXPECT_EQ(john->timezone, ":Europe/Paris");
 
   /* An unknown contact yields no value. */
@@ -543,6 +546,88 @@ TEST_F(BrokerNotificationCallbacksTest, ResourceContactsDiffAddModifyRemove) {
 }
 
 /**
+ * @brief notification_escalation evaluates a service's escalations: an
+ * escalation is viable when the current state is in its escalate_on set and the
+ * notification number is within [first, last]; the result then carries the
+ * union of its contactgroups' members and the smallest interval among the
+ * viable escalations.
+ */
+TEST_F(BrokerNotificationCallbacksTest, EscalationServiceSelection) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  auto* s = st.mutable_services()->Add();
+  s->set_host_id(1);
+  s->set_service_id(5);
+  s->set_host_name("host_1");
+  s->set_service_description("service_5");
+  for (const char* n : {"first_level", "second_level"})
+    st.mutable_contacts()->Add()->set_contact_name(n);
+  auto* cg1 = st.mutable_contactgroups()->Add();
+  cg1->set_contactgroup_name("grp1");
+  cg1->mutable_members()->add_data("first_level");
+  auto* cg2 = st.mutable_contactgroups()->Add();
+  cg2->set_contactgroup_name("grp2");
+  cg2->mutable_members()->add_data("second_level");
+
+  /* First escalation: notif 2..4 on CRITICAL, interval 10, contacts grp1. */
+  auto* se1 = st.mutable_serviceescalations()->Add();
+  se1->mutable_hosts()->add_data("host_1");
+  se1->mutable_service_description()->add_data("service_5");
+  se1->mutable_contactgroups()->add_data("grp1");
+  se1->set_escalation_options(cfg::action_se_critical);
+  se1->set_first_notification(2);
+  se1->set_last_notification(4);
+  se1->set_notification_interval(10);
+  /* Second escalation: notif 3.. (unbounded) on CRITICAL, interval 7, grp2. */
+  auto* se2 = st.mutable_serviceescalations()->Add();
+  se2->mutable_hosts()->add_data("host_1");
+  se2->mutable_service_description()->add_data("service_5");
+  se2->mutable_contactgroups()->add_data("grp2");
+  se2->set_escalation_options(cfg::action_se_critical);
+  se2->set_first_notification(3);
+  se2->set_last_notification(0);
+  se2->set_notification_interval(7);
+  _cache->merge(st);
+
+  const std::time_t now = std::time(nullptr);
+
+  /* Notif 2, CRITICAL: only the first escalation is in range. */
+  auto r2 = _cache->notification_escalation(1, 5, Service::CRITICAL, 2, "", now);
+  EXPECT_TRUE(r2.escalated);
+  EXPECT_EQ(r2.notification_interval, 10u);
+  EXPECT_EQ(r2.contact_names,
+            (absl::flat_hash_set<std::string>{"first_level"}));
+
+  /* Notif 3, CRITICAL: both escalations viable -> union of contacts and the
+   * smallest interval (7). */
+  auto r3 = _cache->notification_escalation(1, 5, Service::CRITICAL, 3, "", now);
+  EXPECT_TRUE(r3.escalated);
+  EXPECT_EQ(r3.notification_interval, 7u);
+  EXPECT_EQ(r3.contact_names,
+            (absl::flat_hash_set<std::string>{"first_level", "second_level"}));
+
+  /* Notif 1 (below both first_notification): no escalation. */
+  EXPECT_FALSE(
+      _cache->notification_escalation(1, 5, Service::CRITICAL, 1, "", now)
+          .escalated);
+  /* WARNING is not in escalate_on: no escalation. */
+  EXPECT_FALSE(
+      _cache->notification_escalation(1, 5, Service::WARNING, 3, "", now)
+          .escalated);
+
+  /* Purge on poller removal. */
+  _cache->remove_instance(1);
+  EXPECT_FALSE(
+      _cache->notification_escalation(1, 5, Service::CRITICAL, 3, "", now)
+          .escalated);
+}
+
+/**
  * @brief Fixture for broker_notification_callbacks::deliver(): it must, on the
  * Broker side, publish a pb_notification_execute event so the poller that
  * supervises the resource runs the notification command (model C, brick 1).
@@ -677,4 +762,76 @@ TEST_F(BrokerNotificationDeliverTest, UnknownHostDropped) {
   EXPECT_TRUE(res.notified_contacts.empty());
   /* Nothing was queued for any poller (the resource has no supervisor). */
   EXPECT_FALSE(pop_one(7));
+}
+
+/**
+ * @brief When an escalation is viable, deliver() notifies its contactgroups'
+ * members instead of the resource's direct contacts and flags the dispatched
+ * event as escalated (iso notifier::get_contacts_to_notify).
+ */
+TEST_F(BrokerNotificationDeliverTest, EscalationContactsTakeOver) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  cfg::State st;
+  st.set_poller_id(7);
+  /* A direct contact on the service and a distinct escalation contact. Both
+   * accept acknowledgement notifications (permissive category, as elsewhere). */
+  auto* c1 = st.mutable_contacts()->Add();
+  c1->set_contact_name("direct");
+  c1->set_service_notifications_enabled(true);
+  auto* c2 = st.mutable_contacts()->Add();
+  c2->set_contact_name("escal");
+  c2->set_service_notifications_enabled(true);
+  auto* cg = st.mutable_contactgroups()->Add();
+  cg->set_contactgroup_name("esc_group");
+  cg->mutable_members()->add_data("escal");
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  auto* s = st.mutable_services()->Add();
+  s->set_host_id(1);
+  s->set_service_id(5);
+  s->set_host_name("host_1");
+  s->set_service_description("service_1");
+  s->mutable_contacts()->add_data("direct");
+  auto* se = st.mutable_serviceescalations()->Add();
+  se->mutable_hosts()->add_data("host_1");
+  se->mutable_service_description()->add_data("service_1");
+  se->mutable_contactgroups()->add_data("esc_group");
+  se->set_escalation_options(cfg::action_se_critical);
+  se->set_first_notification(2);
+  se->set_last_notification(0);
+  se->set_notification_interval(9);
+  _cache->merge(st);
+
+  /* Set the service's live state to CRITICAL so the escalation's escalate_on
+   * matches (merge() does not carry the runtime state). */
+  auto svc = std::make_shared<neb::pb_service>();
+  Service& so = svc->mut_obj();
+  so.set_host_id(1);
+  so.set_service_id(5);
+  so.set_host_name("host_1");
+  so.set_description("service_1");
+  so.set_enabled(true);
+  so.set_state(Service::CRITICAL);
+  so.set_state_type(Service::HARD);
+  _cache->publish(svc);
+
+  /* Notification number 3 >= first_notification 2: the escalation is viable. */
+  notifications::delivery_result res = _cb->deliver(
+      1, 5, notifications::cat_acknowledgement,
+      notifications::reason_acknowledgement, 42, 3, "admin", "msg",
+      notifications::notification_option_none);
+
+  EXPECT_TRUE(res.escalated);
+  /* Only the escalation contact, not the resource's direct contact. */
+  EXPECT_EQ(res.notified_contacts, (absl::btree_set<std::string>{"escal"}));
+
+  std::shared_ptr<io::data> d = pop_one(7);
+  ASSERT_TRUE(d);
+  auto evt = std::static_pointer_cast<bbdo::pb_notification_execute>(d);
+  const NotificationExecute& n = evt->obj();
+  EXPECT_TRUE(n.escalated());
+  ASSERT_EQ(n.contacts_size(), 1);
+  EXPECT_EQ(n.contacts(0), "escal");
 }
