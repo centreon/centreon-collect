@@ -31,7 +31,7 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "common/notifications/notification_types.hh"
+#include "common/notifications/escalation.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -184,33 +184,46 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
   escalated = false;
   uint32_t notif_interv{_notification_interval};
 
-  /* Let's start looking at escalations */
+  /* Let's start looking at escalations. We snapshot them and let the shared
+   * notification library pick the viable ones (smallest interval, contactgroup
+   * union); the member resolution and should_be_notified filtering stay here.
+   */
+  std::time_t now;
+  std::time(&now);
+  std::vector<notifications::escalation> snap;
+  snap.reserve(_escalations.size());
+  absl::flat_hash_map<std::string, contactgroup*> groups;
   for (auto* e : _escalations) {
-    if (e->is_viable(get_current_state_int(), get_notification_number())) {
-      /* Among escalations, we choose the smallest notification interval. */
-      if (escalated) {
-        if (e->get_notification_interval() < notif_interv)
-          notif_interv = e->get_notification_interval();
-      } else {
-        /* Here is the first escalation, so we take its notification_interval.
-         */
-        escalated = true;
-        notif_interv = e->get_notification_interval();
-      }
+    notifications::escalation s;
+    s.first_notification = e->get_first_notification();
+    s.last_notification = e->get_last_notification();
+    s.notification_interval = e->get_notification_interval();
+    s.escalate_on = e->get_escalate_on();
+    s.in_period = e->get_escalation_period().empty() ||
+                  !e->escalation_period_ptr ||
+                  e->escalation_period_ptr->check_time_against_period(now);
+    for (const auto& [gname, gptr] : e->get_contactgroups()) {
+      s.contactgroups.push_back(gname);
+      groups.emplace(gname, gptr.get());
+    }
+    snap.push_back(std::move(s));
+  }
 
-      /* For each contact group, we also add its contacts. */
-      for (contactgroup_map::const_iterator
-               cgit = e->get_contactgroups().begin(),
-               cgend = e->get_contactgroups().end();
-           cgit != cgend; ++cgit) {
-        for (contact_map::const_iterator
-                 cit = cgit->second->get_members().begin(),
-                 cend = cgit->second->get_members().end();
-             cit != cend; ++cit) {
-          assert(cit->second);
-          if (cit->second->should_be_notified(cat, type, *this))
-            retval.insert(cit->second);
-        }
+  auto ev = notifications::evaluate_escalations(snap, get_notifier_type(),
+                                                get_current_state_int(),
+                                                get_notification_number());
+  escalated = ev.escalated;
+  if (escalated) {
+    notif_interv = ev.notification_interval;
+    /* For each viable escalation contactgroup, add its notifiable members. */
+    for (const std::string& gname : ev.contactgroups) {
+      auto git = groups.find(gname);
+      if (git == groups.end())
+        continue;
+      for (const auto& [cname, cptr] : git->second->get_members()) {
+        assert(cptr);
+        if (cptr->should_be_notified(cat, type, *this))
+          retval.insert(cptr);
       }
     }
   }

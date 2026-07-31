@@ -3335,72 +3335,57 @@ broker_cache::escalation_result broker_cache::notification_escalation(
     std::time_t now) const {
   namespace notifications = com::centreon::common::notifications;
   absl::ReaderMutexLock l{&_mutex};
-  escalation_result res;
+  escalation_result retval;
   const absl::TimeZone tz = common::timeperiods::string_to_timezone(timezone);
 
-  /* An escalation is viable for the current notification when now is inside its
-   * escalation period, [first,last] covers the notification number and its
-   * escalate_on covers the current state (iso escalation::is_viable). */
-  auto period_ok = [&](const std::string& period) {
+  auto in_period = [&](const std::string& period) {
     if (period.empty())
       return true;
     auto tp = _timeperiods.find(period);
     return tp == _timeperiods.end() ||
            tp->second->check_time_against_period(now, tz);
   };
-  auto number_ok = [&](uint32_t first, uint32_t last) {
-    return notification_number >= first &&
-           (last == 0 || notification_number <= last);
-  };
 
-  /* neb state enums are contiguous from 0, aligned with these flag arrays. */
-  static constexpr std::array<uint32_t, 3> host_flag{
-      notifications::up, notifications::down, notifications::unreachable};
-  static constexpr std::array<uint32_t, 4> service_flag{
-      notifications::ok, notifications::warning, notifications::critical,
-      notifications::unknown};
-
-  auto gather = [&](const auto& esc) {
-    if (res.escalated) {
-      if (esc.notification_interval < res.notification_interval)
-        res.notification_interval = esc.notification_interval;
-    } else {
-      res.escalated = true;
-      res.notification_interval = esc.notification_interval;
-    }
-    for (const std::string& g : esc.contactgroups) {
-      auto cg = _contactgroups.find(g);
-      if (cg != _contactgroups.end())
-        res.contact_names.insert(cg->second.first.members.begin(),
-                                 cg->second.first.members.end());
-    }
+  /* Materialize the resource escalations as value snapshots and let the shared
+   * library evaluate their viability and aggregate them. */
+  std::vector<notifications::escalation> snap;
+  auto to_snapshot = [&](const auto& esc) {
+    notifications::escalation s;
+    s.first_notification = esc.first_notification;
+    s.last_notification = esc.last_notification;
+    s.notification_interval = esc.notification_interval;
+    s.escalate_on = esc.escalate_on;
+    s.in_period = in_period(esc.escalation_period);
+    s.contactgroups = esc.contactgroups;
+    snap.push_back(std::move(s));
   };
 
   if (service_id == 0) {
     const auto& idx = _host_escalations.get<by_id>();
-    for (auto [it, end] = idx.equal_range(host_id); it != end; ++it) {
-      if (state < 0 || state >= static_cast<int>(host_flag.size()) ||
-          !(it->escalate_on & host_flag[state]))
-        continue;
-      if (!number_ok(it->first_notification, it->last_notification) ||
-          !period_ok(it->escalation_period))
-        continue;
-      gather(*it);
-    }
+    for (auto [it, end] = idx.equal_range(host_id); it != end; ++it)
+      to_snapshot(*it);
   } else {
     const auto& idx = _service_escalations.get<by_id>();
     for (auto [it, end] = idx.equal_range(std::make_pair(host_id, service_id));
-         it != end; ++it) {
-      if (state < 0 || state >= static_cast<int>(service_flag.size()) ||
-          !(it->escalate_on & service_flag[state]))
-        continue;
-      if (!number_ok(it->first_notification, it->last_notification) ||
-          !period_ok(it->escalation_period))
-        continue;
-      gather(*it);
-    }
+         it != end; ++it)
+      to_snapshot(*it);
   }
-  return res;
+
+  const notifications::notifier_type type =
+      service_id == 0 ? notifications::host_notification
+                      : notifications::service_notification;
+  auto ev = notifications::evaluate_escalations(snap, type, state,
+                                                notification_number);
+  retval.escalated = ev.escalated;
+  retval.notification_interval = ev.notification_interval;
+  /* Resolve the viable escalations' contactgroups to their member contacts. */
+  for (const std::string& g : ev.contactgroups) {
+    auto cg = _contactgroups.find(g);
+    if (cg != _contactgroups.end())
+      retval.contact_names.insert(cg->second.first.members.begin(),
+                                  cg->second.first.members.end());
+  }
+  return retval;
 }
 
 /**
