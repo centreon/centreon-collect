@@ -32,6 +32,7 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "common/notifications/escalation.hh"
 #include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timeperiod.hh"
 

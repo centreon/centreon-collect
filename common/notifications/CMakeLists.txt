@@ -19,6 +19,7 @@
 # Notifications library.
 add_library(notifications STATIC
   contact_viability.cc
+  escalation.cc
   notification_manager.cc
 )
 
