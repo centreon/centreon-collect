@@ -2849,12 +2849,10 @@ void database_configurator::_add_hostgroups_mariadb(
             member, msg_hg.hostgroup_name());
         continue;
       }
-      auto h = global_cache.host(found->second);
       bind_members->set_value_as_i32(0, found->second);
       bind_members->set_value_as_i32(1, msg_hg.hostgroup_id());
-      _logger->info(
-          "enabling membership of host {} to host group {} on instance {}",
-          found->second, msg_hg.hostgroup_id(), h->obj().instance_id());
+      _logger->info("enabling membership of host {} to host group {}",
+                    found->second, msg_hg.hostgroup_id());
       bind_members->next_row();
     }
   }
@@ -2936,10 +2934,8 @@ void database_configurator::_add_hostgroups_mysql(
       std::string value(
           fmt::format("({}, {})", found->second, msg_hg.hostgroup_id()));
       values.emplace_back(value);
-      auto h = global_cache.host(found->second);
-      _logger->info(
-          "enabling membership of host {} to host group {} on instance {}",
-          found->second, msg_hg.hostgroup_id(), h->obj().instance_id());
+      _logger->info("enabling membership of host {} to host group {}",
+                    found->second, msg_hg.hostgroup_id());
     }
   }
   if (!values.empty()) {
@@ -3049,12 +3045,9 @@ void database_configurator::_add_servicegroups_mariadb(
       bind_members->set_value_as_i32(0, fnd_host->second);
       bind_members->set_value_as_i32(1, fnd_service->second);
       bind_members->set_value_as_i32(2, msg_sg.servicegroup_id());
-      auto h = global_cache.host(fnd_host->second);
       _logger->info(
-          "enabling membership of service ({}:{}) to service group {} on "
-          "instance {}",
-          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id(),
-          h->obj().instance_id());
+          "enabling membership of service ({}:{}) to service group {}",
+          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id());
       bind_members->next_row();
     }
   }
@@ -3143,12 +3136,9 @@ void database_configurator::_add_servicegroups_mysql(
                                     fnd_service->second,
                                     msg_sg.servicegroup_id()));
       values.emplace_back(value);
-      auto h = global_cache.host(fnd_host->second);
       _logger->info(
-          "enabling membership of service ({}:{}) to service group {} on "
-          "instance {}",
-          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id(),
-          h->obj().instance_id());
+          "enabling membership of service ({}:{}) to service group {}",
+          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id());
     }
   }
   if (!values.empty()) {
