@@ -150,7 +150,8 @@ void stream::clean_tables(uint32_t instance_id) {
       instance_id);
   query = fmt::format(
       "UPDATE downtimes SET cancelled=1, actual_end_time={0}, "
-      "deletion_time={0} WHERE cancelled=0 AND instance_id={1}",
+      "deletion_time=COALESCE(deletion_time, {0}) WHERE cancelled=0 AND "
+      "instance_id={1}",
       time(nullptr), instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, 0);
