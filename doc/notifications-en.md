@@ -113,10 +113,14 @@ Key points:
 
 `notifier::get_contacts_to_notify()` builds the set of contacts:
 
-1. **Escalations first**: for each escalation that `is_viable(state, number)`,
-   its contacts/contactgroups are added. If at least one escalation is viable,
-   we are in **escalated** mode (`escalated = true`) and the chosen notification
-   interval is the **smallest** among the viable escalations.
+1. **Escalations first**: each escalation's viability (state covered by
+   `escalate_on`, notification number within `[first, last]`, active period) and
+   the aggregation (**escalated** mode as soon as one escalation is viable,
+   **smallest** interval among the viable ones, union of their contactgroups)
+   are now computed by the shared function
+   `notifications::evaluate_escalations()` (see
+   [Escalations: shared evaluation](#escalations-shared-evaluation)). The viable
+   contactgroups it returns are then resolved to contacts here.
 2. **Otherwise** (no viable escalation): the notifier's direct contacts **and**
    the contacts of its contactgroups are used.
 
@@ -395,7 +399,9 @@ Parameters influencing the viability and the pace of notifications:
   timeperiod, host/service notification commands — all evaluated in
   `contact::should_be_notified()` then `notify_contact()`.
 - **Escalations**: own interval, `first_notification`/`last_notification`
-  range, contactgroups — evaluated by `escalation::is_viable()`.
+  range, `escalate_on`, contactgroups — their viability and aggregation are
+  evaluated by the shared function `notifications::evaluate_escalations()` (on
+  both the Engine and the Broker side).
 
 ## 7. Going further (code)
 
@@ -414,9 +420,13 @@ Parameters influencing the viability and the pace of notifications:
 ## Introduction to the new notification
 
 The diagrams in the previous sections describe the **legacy** notification,
-tightly coupled to `notifier`. This section describes the **new notification
-library**, whose goal is to make notifications independent from Engine so that
-they can eventually be reused (notably by Broker).
+tightly coupled to `notifier`. This section describes the **shared notification
+library**, whose goal is to make notifications independent from Engine. It lives
+in **`common/notifications/`** and is **already consumed by Broker** in
+`notification_mode = broker` (Broker-side notification decision, see
+`doc/nego-engine-broker-*.md`) as well as by Engine: viability
+(`notification_manager`), contact filtering (`should_notify_contact`) and, now,
+escalation evaluation (`evaluate_escalations`).
 
 ### Principle
 
@@ -432,11 +442,14 @@ the coupling to Engine is concentrated in a **single** implementation,
 
 | Component | Location | Role |
 |---|---|---|
-| `notification_manager` | library (`engine/src/notifications/`) | Singleton. Viability policy, per-`(host_id, service_id)` runtime state, orchestration of `notify()`. **No Engine dependency.** |
-| `notification` | library | **Pure data** of an emitted notification event (type, author, message, id, number, notified contacts). No more `execute()`, no more `notifier*`. |
+| `notification_manager` | library (`common/notifications/`) | Singleton. Viability policy, per-`(host_id, service_id)` runtime state, orchestration of `notify()`. **No Engine/Broker dependency.** |
+| `notification` (struct) | library (`notification_types.hh`) | **Pure data** of an emitted notification event (type, interval, notified contacts). No more `execute()`, no more `notifier*`. |
 | `notification_callbacks` | library | Abstract interface to the host application, id-addressed. |
-| `notification_types.hh` | library | Enums + value structs `global_config`, `resource_state`, `delivery_result`. |
+| `contact_viability` | library | `should_notify_contact()`: pure per-contact filter (options, period, accepted type) on a `contact` snapshot. |
+| `evaluate_escalations` | library (`escalation.{hh,cc}`) | Pure function: escalation viability + aggregation on snapshots (shared Engine/Broker). |
+| `notification_types.hh` | library | Enums + value structs `config`, `contact`, `resource_state`, `delivery_result`, `notification`. |
 | `engine_notification_callbacks` | Engine (`cce_core`) | Implementation: resolves host/service by id, provides the state, and **performs delivery** (contact selection + macros + `notify_contact`). |
+| `broker_notification_callbacks` | Broker (`broker/core`) | Broker-side implementation: reads state from `broker_cache`, decides, and dispatches execution to the poller via `pb_notification_execute`. |
 | `notifier` | Engine | No longer stores notification state. Keeps `host_id()/service_id()` and **delegates** to the manager by id. |
 
 ```mermaid
@@ -569,6 +582,93 @@ sequenceDiagram
 > loop therefore stays correct without the library having to know about the
 > contacts.
 
+### Escalations: shared evaluation
+
+Both Engine and Broker evaluate a resource's escalations, but from different
+data sources: Engine walks the `notifier`'s `_escalations` list (pointer
+objects), Broker queries its `broker_cache` (`multi_index` containers). The
+**algorithm** is strictly identical, though: test each escalation's viability,
+keep the smallest interval and union the contactgroups of the viable ones.
+
+This logic now lives **once**, in `common/notifications/escalation.{hh,cc}`:
+
+```cpp
+struct escalation {                    // snapshot of one escalation
+  uint32_t first_notification;         // notification-number range ...
+  uint32_t last_notification;          // ... 0 = unbounded
+  uint32_t notification_interval;      // raw config units
+  uint32_t escalate_on;                // notification_flag bitmask
+  bool in_period;                      // now ∈ period, PRECOMPUTED by the host
+  std::vector<std::string> contactgroups;
+};
+
+struct escalation_evaluation {         // evaluation result
+  bool escalated;
+  uint32_t notification_interval;      // smallest among the viable ones
+  absl::btree_set<std::string> contactgroups;   // union of the viable ones
+};
+
+escalation_evaluation evaluate_escalations(
+    const std::vector<escalation>& escalations,
+    notifier_type type,                // host or service → flag array
+    int state, uint32_t notification_number);
+```
+
+An escalation is **viable** when `escalate_on` covers the current state, the
+notification number is within `[first, last]` (`last == 0` = unbounded) and
+`in_period` is true. The function depends on **no** timeperiod: the period test,
+whose source (`escalation_period_ptr` on the Engine side, the `_timeperiods` map
+on the Broker side) and timezone differ, is **precomputed** by each host into
+`in_period`. Likewise the interval stays in raw config units: the function only
+does `min` comparisons (unit-independent), each side then multiplying by its own
+`interval_length`.
+
+#### Engine side — `notifier::get_contacts_to_notify()`
+
+```mermaid
+sequenceDiagram
+    participant GC as notifier::get_contacts_to_notify()
+    participant LIB as evaluate_escalations()  (common/notifications)
+    participant CG as contactgroups (local resolution)
+
+    GC->>GC: for each escalation in _escalations:<br/>snapshot { first,last,interval,escalate_on }
+    GC->>GC: in_period = empty period OR escalation_period_ptr->check_time_against_period(now)
+    GC->>GC: keep a local map name → contactgroup*
+    GC->>LIB: evaluate_escalations(snapshots, type, state, number)
+    LIB-->>GC: { escalated, notification_interval, contactgroups }
+    alt escalated
+        GC->>CG: for each viable contactgroup → its members
+        CG->>GC: contact kept if should_be_notified(cat, type)
+    else not escalated
+        GC->>CG: direct contacts + notifier's contactgroups<br/>(same should_be_notified filter)
+    end
+    GC-->>GC: contact set + notification_interval + escalated
+```
+
+#### Broker side — `broker_cache::notification_escalation()`
+
+```mermaid
+sequenceDiagram
+    participant NE as broker_cache::notification_escalation()
+    participant MI as multi_index (_host/_service_escalations)
+    participant LIB as evaluate_escalations()  (common/notifications)
+    participant CG as _contactgroups (local resolution)
+
+    NE->>MI: equal_range(host_id[, service_id])
+    MI-->>NE: the resource's escalations
+    NE->>NE: for each: snapshot { first,last,interval,escalate_on,contactgroups }
+    NE->>NE: in_period = empty period OR _timeperiods[period]->check_time_against_period(now, tz)
+    NE->>LIB: evaluate_escalations(snapshots, type, state, number)
+    LIB-->>NE: { escalated, notification_interval, contactgroups }
+    NE->>CG: for each viable contactgroup → its members
+    CG-->>NE: escalation_result { escalated, notification_interval, contact_names }
+```
+
+What **stays specific to each side**: resolving contactgroups to contacts
+(Engine filters by `should_be_notified` and handles the non-escalated fallback;
+Broker returns the member names, filtered later by `should_notify_contact`) and
+the `in_period` computation.
+
 ### Key points
 
 - The notification runtime state (number, ids, timestamps, and the six
@@ -578,19 +678,32 @@ sequenceDiagram
 - `notification_manager`, `notification` and the interface **reference no
   Engine type**; the library logs through `common/log_v2` (categories
   `FUNCTIONS` / `NOTIFICATIONS`).
-- The only coupling to Engine is `engine_notification_callbacks` (on the
-  `cce_core` side), injected at startup.
+- The coupling to the host application is concentrated in the backend
+  implementations, injected at startup: `engine_notification_callbacks` (Engine)
+  and `broker_notification_callbacks` (Broker in `notification_mode = broker`).
 - The `notifier` destructor calls `forget(host_id, service_id)`; without it the
   state would leak in the global map.
 
 ### Files (code)
 
-- `engine/src/notifications/notification_manager.{hh,cc}` — policy, state,
-  `notify()`, viability.
-- `engine/src/notifications/notification.{hh,cc}` — the event (pure data).
-- `engine/src/notifications/notification_callbacks.hh` — the injected interface.
-- `engine/src/notifications/notification_types.hh` — enums + value structs.
-- `engine/src/engine_notification_callbacks.{hh,cc}` — Engine implementation
-  (id resolution, delivery).
-- `engine/src/notifier.cc` — id delegators, `host_id()/service_id()`,
-  `~notifier` → `forget`.
+Shared library (`common/notifications/`, no Engine/Broker dependency):
+
+- `notification_manager.{hh,cc}` — policy, state, `notify()`, viability.
+- `notification_callbacks.hh` — the injected interface.
+- `contact_viability.{hh,cc}` — `should_notify_contact()` (pure per-contact
+  filter).
+- `escalation.{hh,cc}` — `evaluate_escalations()` (escalation viability +
+  aggregation).
+- `notification_types.hh` — enums + value structs (`config`, `contact`,
+  `resource_state`, `delivery_result`, `notification`, `escalation`…).
+
+Host implementations (the only coupling):
+
+- `engine/src/engine_notification_callbacks.{hh,cc}` — Engine backend (id
+  resolution, local delivery through `notify_contact`).
+- `engine/src/notifier.cc` — id delegators, `get_contacts_to_notify()` (calls
+  `evaluate_escalations`), `~notifier` → `forget`.
+- `broker/core/src/broker_notification_callbacks.cc` — Broker backend (decision
+  then `pb_notification_execute` dispatch).
+- `broker/core/cache/broker_cache.cc` — `notification_escalation()` (calls
+  `evaluate_escalations`).
