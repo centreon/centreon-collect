@@ -774,6 +774,7 @@ sub full_sync_history {
     my (%options) = @_;
     
     foreach my $id (keys %{$register_nodes}) {
+        next if ($id ne $register_nodes->{$id}->{id}); # register_node container one key per id and one per uid for each poller.
         if ($register_nodes->{$id}->{type} eq 'push_zmq') {
             routing(action => 'GETLOG', target => $id, frame => gorgone::class::frame->new(data => {}), gorgone => $options{gorgone}, dbh => $options{dbh}, logger => $options{logger});
         } elsif ($register_nodes->{$id}->{type} =~ /^(?:pull|wss|pullwss)$/) {
