@@ -41,6 +41,8 @@ class Host;
 class Service;
 class Hostdependency;
 class Servicedependency;
+class Hostescalation;
+class Serviceescalation;
 class Contact;
 class Contactgroup;
 class StringSet;
@@ -369,6 +371,76 @@ using ServiceNotifDepContainer = boost::multi_index::multi_index_container<
                                        uint64_t,
                                        &service_notif_dep::poller_id>>>>;
 
+/* Notification escalation of a host, mirrored from the Engine configuration
+ * (post-expand: a single host, resolved to its id). `escalate_on` is stored
+ * already converted from the config escalation_options bitmask to the
+ * notification_flag bitmask used at evaluation time. The contactgroups are kept
+ * by name and expanded to member contacts at query time, as done for the
+ * resource's direct contactgroups. `key` is the engine_conf
+ * hostescalation_key() hash, kept so an incremental DiffState can erase an
+ * entry by the key its `removed` list carries. Indexed by host id (the
+ * evaluation lookup) and by poller id (bulk purge on reconfiguration or
+ * disconnection). */
+struct host_escalation {
+  uint64_t host_id;
+  uint64_t poller_id;
+  uint32_t first_notification;
+  uint32_t last_notification;
+  uint32_t notification_interval;
+  std::string escalation_period;
+  uint32_t escalate_on;
+  std::vector<std::string> contactgroups;
+  size_t key;
+};
+
+struct host_escalation_host_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const host_escalation& e) const { return e.host_id; }
+};
+
+using HostEscalationContainer = boost::multi_index::multi_index_container<
+    host_escalation,
+    boost::multi_index::indexed_by<
+        boost::multi_index::hashed_non_unique<boost::multi_index::tag<by_id>,
+                                              host_escalation_host_extractor>,
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_instance>,
+            boost::multi_index::member<host_escalation,
+                                       uint64_t,
+                                       &host_escalation::poller_id>>>>;
+
+struct service_escalation {
+  uint64_t host_id;
+  uint64_t service_id;
+  uint64_t poller_id;
+  uint32_t first_notification;
+  uint32_t last_notification;
+  uint32_t notification_interval;
+  std::string escalation_period;
+  uint32_t escalate_on;
+  std::vector<std::string> contactgroups;
+  size_t key;
+};
+
+struct service_escalation_service_extractor {
+  using result_type = std::pair<uint64_t, uint64_t>;
+  result_type operator()(const service_escalation& e) const {
+    return {e.host_id, e.service_id};
+  }
+};
+
+using ServiceEscalationContainer = boost::multi_index::multi_index_container<
+    service_escalation,
+    boost::multi_index::indexed_by<
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_id>,
+            service_escalation_service_extractor>,
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_instance>,
+            boost::multi_index::member<service_escalation,
+                                       uint64_t,
+                                       &service_escalation::poller_id>>>>;
+
 class broker_cache {
  public:
   struct severity {
@@ -397,13 +469,13 @@ class broker_cache {
     bool soft_state_dependencies = false;
   };
 
-  /* Cache view of a notification contact. This is the shared notification-library
-   * snapshot (com::centreon::common::notifications::contact): the same value the
+  /* Cache view of a notification contact. This is the shared
+   * notification-library snapshot
+   * (com::centreon::common::notifications::contact): the same value the
    * viability logic (should_notify_contact) reasons on, so no conversion is
    * needed at decision time. The contactgroups a contact belongs to are NOT
    * stored on it: the contactgroup->contacts resolution is done lazily at
-   * notification time (iso Engine, which never flattens groups onto the contact
-   * either). */
+   * notification time. */
   using contact = com::centreon::common::notifications::contact;
 
   /* Cache view of a contactgroup: its name and the names of its member
@@ -415,13 +487,13 @@ class broker_cache {
     absl::flat_hash_set<std::string> members;
   };
 
-  /* The direct contacts and contactgroups a resource (host or service) notifies.
-   * To avoid duplicating the names (already owned once by _contacts /
+  /* The direct contacts and contactgroups a resource (host or service)
+   * notifies. To avoid duplicating the names (already owned once by _contacts /
    * _contactgroups), the resource holds non-owning pointers into those maps.
    * This is safe because _contacts / _contactgroups are node_hash_maps (stable
-   * element addresses across rehash) and, feeding being ordered (contacts before
-   * resources) and done entirely under the write lock, a pointer is never
-   * observed dangling. Kept separate (not merged), as done by Engine: the
+   * element addresses across rehash) and, feeding being ordered (contacts
+   * before resources) and done entirely under the write lock, a pointer is
+   * never observed dangling. Kept separate (not merged), as done by Engine: the
    * contactgroup->contacts expansion is done at query time. `poller_id` is
    * carried so the whole per-poller set can be purged on reconfiguration or
    * disconnection. */
@@ -429,6 +501,21 @@ class broker_cache {
     std::vector<const contact*> contacts;
     std::vector<const contactgroup*> contactgroups;
     uint64_t poller_id = 0;
+  };
+
+  /* Result of the escalation evaluation for a resource (see
+   * notification_escalation()). `escalated` is true as soon as one escalation
+   * is viable for the current (state, notification_number, time); in that case
+   * `notification_interval` is the smallest interval among the viable
+   * escalations (raw config units, to be multiplied by the poller
+   * interval_length) and `contact_names` is the union of the member contacts of
+   * their contactgroups. When no escalation is viable, `escalated` is false and
+   * the caller falls back to the resource's direct contacts (iso Engine
+   * get_contacts_to_notify). */
+  struct escalation_result {
+    bool escalated = false;
+    uint32_t notification_interval = 0;
+    absl::flat_hash_set<std::string> contact_names;
   };
 
   enum cache_section : uint32_t {
@@ -494,6 +581,12 @@ class broker_cache {
   HostNotifDepContainer _host_notif_deps ABSL_GUARDED_BY(_mutex);
   ServiceNotifDepContainer _service_notif_deps ABSL_GUARDED_BY(_mutex);
 
+  /* Notification-only host/service escalations, keyed by resource id and by
+   * poller. Fed alongside the dependencies (same CACHE_NOTIFICATIONS gate); the
+   * referenced contactgroups live in _contactgroups. */
+  HostEscalationContainer _host_escalations ABSL_GUARDED_BY(_mutex);
+  ServiceEscalationContainer _service_escalations ABSL_GUARDED_BY(_mutex);
+
   /* Notification contacts and contactgroups, keyed by name. Each value pairs
    * the cached object with the set of pollers referencing it (same "central,
    * reference-counted" model as _tags / _severities): an entry is dropped only
@@ -514,9 +607,9 @@ class broker_cache {
       _contactgroups ABSL_GUARDED_BY(_mutex);
 
   /* The direct contacts/contactgroups of each resource, keyed by
-   * {host_id, service_id} (service_id == 0 designates a host). Fed alongside the
-   * hosts/services when CACHE_NOTIFICATIONS is enabled; resolved to concrete
-   * contact names at query time (see notification_contact_names()). */
+   * {host_id, service_id} (service_id == 0 designates a host). Fed alongside
+   * the hosts/services when CACHE_NOTIFICATIONS is enabled; resolved to
+   * concrete contact names at query time (see notification_contact_names()). */
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, resource_contacts>
       _resource_contacts ABSL_GUARDED_BY(_mutex);
 
@@ -615,6 +708,12 @@ class broker_cache {
   void _insert_service_notif_dep(
       const com::centreon::engine::configuration::Servicedependency& dep,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _insert_host_escalation(
+      const com::centreon::engine::configuration::Hostescalation& esc,
+      uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _insert_service_escalation(
+      const com::centreon::engine::configuration::Serviceescalation& esc,
+      uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _insert_contact(const com::centreon::engine::configuration::Contact& c,
                        uint64_t poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
@@ -630,10 +729,10 @@ class broker_cache {
       const com::centreon::engine::configuration::StringSet& contacts,
       const com::centreon::engine::configuration::StringSet& contactgroups,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
-  /* Drop @p poller_id from every contact/contactgroup reference set and from the
-   * per-resource contacts, erasing the entries no poller references anymore.
-   * Used on a full re-merge (rebuild the poller's contribution) and on poller
-   * removal. */
+  /* Drop @p poller_id from every contact/contactgroup reference set and from
+   * the per-resource contacts, erasing the entries no poller references
+   * anymore. Used on a full re-merge (rebuild the poller's contribution) and on
+   * poller removal. */
   void _remove_poller_from_contacts(uint64_t poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   bool _host_notification_authorized_by_dependencies(uint64_t host_id,
@@ -730,6 +829,13 @@ class broker_cache {
       uint64_t dependent_service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   bool notification_authorized_by_dependencies(uint64_t host_id,
                                                uint64_t service_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  escalation_result notification_escalation(uint64_t host_id,
+                                            uint64_t service_id,
+                                            int state,
+                                            uint32_t notification_number,
+                                            const std::string& timezone,
+                                            std::time_t now) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   /* Look up a cached notification contact by name. Returns std::nullopt when no
    * contact of that name is known to the cache. */

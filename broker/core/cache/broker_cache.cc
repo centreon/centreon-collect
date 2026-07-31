@@ -28,10 +28,109 @@
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
+#include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
+#include "common/engine_conf/serviceescalation_helper.hh"
 #include "common/timeperiods/timezone.hh"
 
 namespace com::centreon::broker::cache {
+
+namespace {
+namespace notifications = com::centreon::common::notifications;
+
+/* The three library flapping reasons a single Engine "flapping" option maps to:
+ * the proto keeps one flag, the notification library distinguishes
+ * start/stop/disabled. */
+constexpr uint32_t all_flapping_flags = notifications::flappingstart |
+                                        notifications::flappingstop |
+                                        notifications::flappingdisabled;
+
+/**
+ * @brief Convert an Engine ActionServiceOn option bitmask into the
+ * notification_flag bitmask the notification library reasons on.
+ *
+ * The two encodings differ (e.g. critical is 1<<3 in the proto but 1<<5 in the
+ * library) and the proto keeps host and service states on the same bits, so a
+ * proto value must never be handed to the library as-is. This is the single
+ * place the service option mapping lives; every cache insertion routes through
+ * it so no site can forget the conversion.
+ *
+ * @param opts A raw ActionServiceOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t service_options_to_flags(uint32_t opts) {
+  namespace ec = com::centreon::engine::configuration;
+  return (opts & ec::action_svc_ok ? notifications::ok : notifications::none) |
+         (opts & ec::action_svc_warning ? notifications::warning
+                                        : notifications::none) |
+         (opts & ec::action_svc_unknown ? notifications::unknown
+                                        : notifications::none) |
+         (opts & ec::action_svc_critical ? notifications::critical
+                                         : notifications::none) |
+         (opts & ec::action_svc_flapping ? all_flapping_flags
+                                         : notifications::none) |
+         (opts & ec::action_svc_downtime ? notifications::downtime
+                                         : notifications::none);
+}
+
+/**
+ * @brief ActionHostOn counterpart of service_options_to_flags().
+ *
+ * @param opts A raw ActionHostOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t host_options_to_flags(uint32_t opts) {
+  namespace ec = com::centreon::engine::configuration;
+  return (opts & ec::action_hst_up ? notifications::up : notifications::none) |
+         (opts & ec::action_hst_down ? notifications::down
+                                     : notifications::none) |
+         (opts & ec::action_hst_unreachable ? notifications::unreachable
+                                            : notifications::none) |
+         (opts & ec::action_hst_flapping ? all_flapping_flags
+                                         : notifications::none) |
+         (opts & ec::action_hst_downtime ? notifications::downtime
+                                         : notifications::none);
+}
+
+/**
+ * @brief Convert an Engine ActionServiceEscalationOn option bitmask into the
+ * notification_flag bitmask (iso serviceescalation::matches).
+ *
+ * The escalation proto enum is a separate, smaller set than ActionServiceOn
+ * (recovery maps to ok), hence its own helper.
+ *
+ * @param opts A raw ActionServiceEscalationOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t service_escalation_options_to_flags(uint32_t opts) {
+  namespace ec = com::centreon::engine::configuration;
+  return (opts & ec::action_se_warning ? notifications::warning
+                                       : notifications::none) |
+         (opts & ec::action_se_unknown ? notifications::unknown
+                                       : notifications::none) |
+         (opts & ec::action_se_critical ? notifications::critical
+                                        : notifications::none) |
+         (opts & ec::action_se_recovery ? notifications::ok
+                                        : notifications::none);
+}
+
+/**
+ * @brief ActionHostEscalationOn counterpart of
+ * service_escalation_options_to_flags() (iso hostescalation::matches).
+ *
+ * @param opts A raw ActionHostEscalationOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t host_escalation_options_to_flags(uint32_t opts) {
+  namespace ec = com::centreon::engine::configuration;
+  return (opts & ec::action_he_down ? notifications::down
+                                    : notifications::none) |
+         (opts & ec::action_he_unreachable ? notifications::unreachable
+                                           : notifications::none) |
+         (opts & ec::action_he_recovery ? notifications::up
+                                        : notifications::none);
+}
+}  // namespace
 
 /**
  * @brief Constructor
@@ -342,6 +441,14 @@ void broker_cache::merge(
     for (const engine::configuration::Servicedependency& dep :
          state.servicedependencies())
       _insert_service_notif_dep(dep, state.poller_id());
+    _host_escalations.get<by_instance>().erase(state.poller_id());
+    for (const engine::configuration::Hostescalation& esc :
+         state.hostescalations())
+      _insert_host_escalation(esc, state.poller_id());
+    _service_escalations.get<by_instance>().erase(state.poller_id());
+    for (const engine::configuration::Serviceescalation& esc :
+         state.serviceescalations())
+      _insert_service_escalation(esc, state.poller_id());
   }
 }
 
@@ -418,12 +525,96 @@ void broker_cache::_insert_service_notif_dep(
 }
 
 /**
+ * @brief Resolve a host escalation to a host id and store it.
+ *
+ * The escalation is post-expand: it references exactly one host by name,
+ * resolved to its id through the by_name index. The config escalation_options
+ * bitmask is converted to the notification_flag bitmask used at evaluation time
+ * (iso hostescalation::matches). A host name that cannot be resolved (validated
+ * intra-poller beforehand) is logged and skipped.
+ *
+ * @param esc A post-expand Hostescalation.
+ * @param poller_id The poller owning this escalation.
+ */
+void broker_cache::_insert_host_escalation(
+    const engine::configuration::Hostescalation& esc,
+    uint64_t poller_id) {
+  const auto& by_name_idx = _hosts.get<by_name>();
+  auto host = by_name_idx.find(esc.hosts().data(0));
+  if (host == by_name_idx.end()) {
+    _logger->warn(
+        "broker_cache: cannot store escalation for host '{}' on poller {}: "
+        "host not found in cache",
+        esc.hosts().data(0), poller_id);
+    return;
+  }
+  const uint32_t escalate_on =
+      host_escalation_options_to_flags(esc.escalation_options());
+  host_escalation e;
+  e.host_id = (*host)->obj().host_id();
+  e.poller_id = poller_id;
+  e.first_notification = esc.first_notification();
+  e.last_notification = esc.last_notification();
+  e.notification_interval = esc.notification_interval();
+  e.escalation_period = esc.escalation_period();
+  e.escalate_on = escalate_on;
+  e.contactgroups.assign(esc.contactgroups().data().begin(),
+                         esc.contactgroups().data().end());
+  e.key = hostescalation_key(esc);
+  _host_escalations.insert(std::move(e));
+}
+
+/**
+ * @brief Resolve a service escalation to a {host id, service id} pair and store
+ * it.
+ *
+ * Same contract as _insert_host_escalation, but the escalation references a
+ * single service by its {host_name, service_description} pair (iso
+ * serviceescalation::matches for the escalation_options conversion).
+ *
+ * @param esc A post-expand Serviceescalation.
+ * @param poller_id The poller owning this escalation.
+ */
+void broker_cache::_insert_service_escalation(
+    const engine::configuration::Serviceescalation& esc,
+    uint64_t poller_id) {
+  const auto& by_name_idx = _services.get<by_name>();
+  auto svc = by_name_idx.find(
+      std::make_pair(esc.hosts().data(0), esc.service_description().data(0)));
+  if (svc == by_name_idx.end()) {
+    _logger->warn(
+        "broker_cache: cannot store escalation for service '{}/{}' on poller "
+        "{}: service not found in cache",
+        esc.hosts().data(0), esc.service_description().data(0), poller_id);
+    return;
+  }
+  const uint32_t escalate_on =
+      service_escalation_options_to_flags(esc.escalation_options());
+  service_escalation e;
+  e.host_id = (*svc)->obj().host_id();
+  e.service_id = (*svc)->obj().service_id();
+  e.poller_id = poller_id;
+  e.first_notification = esc.first_notification();
+  e.last_notification = esc.last_notification();
+  e.notification_interval = esc.notification_interval();
+  e.escalation_period = esc.escalation_period();
+  e.escalate_on = escalate_on;
+  e.contactgroups.assign(esc.contactgroups().data().begin(),
+                         esc.contactgroups().data().end());
+  e.key = serviceescalation_key(esc);
+  _service_escalations.insert(std::move(e));
+}
+
+/**
  * @brief Store (or replace) a notification contact and register @p poller_id as
  * one of its referencing pollers.
  *
  * The contact is stored by name; only the fields the notification decision
- * needs are kept. Resolution of the contactgroups the contact belongs to is not
- * done here (it happens at notification time).
+ * needs are kept. The Engine option bitmasks are converted to the
+ * notification_flag bitmask should_notify_contact reasons on through the shared
+ * {host,service}_options_to_flags helpers (the two encodings differ, so the raw
+ * proto value must never be stored as-is). Resolution of the contactgroups the
+ * contact belongs to is not done here (it happens at notification time).
  *
  * @param c A configuration Contact (post-expand).
  * @param poller_id The poller referencing this contact.
@@ -438,8 +629,10 @@ void broker_cache::_insert_contact(const engine::configuration::Contact& c,
   entry.service_notifications_enabled = c.service_notifications_enabled();
   entry.host_notification_period = c.host_notification_period();
   entry.service_notification_period = c.service_notification_period();
-  entry.host_notification_options = c.host_notification_options();
-  entry.service_notification_options = c.service_notification_options();
+  entry.host_notification_options =
+      host_options_to_flags(c.host_notification_options());
+  entry.service_notification_options =
+      service_options_to_flags(c.service_notification_options());
   entry.timezone = c.timezone();
   value.second.insert(poller_id);
 }
@@ -477,8 +670,8 @@ void broker_cache::_insert_contactgroup(
  * apply()), so the referenced entries already exist here; a name that is not
  * found is skipped. The two lists are kept separate (as done by Engine). When
  * the resource references neither a contact nor a contactgroup the entry is
- * erased rather than stored empty, so a modification clearing the contacts drops
- * the stale entry.
+ * erased rather than stored empty, so a modification clearing the contacts
+ * drops the stale entry.
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.
@@ -514,8 +707,8 @@ void broker_cache::_insert_resource_contacts(
 }
 
 /**
- * @brief Drop @p poller_id from every contact and contactgroup reference set and
- * from the per-resource contacts, erasing the entries no poller references
+ * @brief Drop @p poller_id from every contact and contactgroup reference set
+ * and from the per-resource contacts, erasing the entries no poller references
  * anymore.
  *
  * Used both on a full re-merge (to rebuild the poller's contribution from
@@ -1256,6 +1449,55 @@ void broker_cache::apply(
       for (const engine::configuration::Servicedependency& dep : dsd.modified())
         _insert_service_notif_dep(dep, diff.poller_id());
     }
+
+    /* Notification escalations (incremental), same key-based add/remove/replace
+     * scheme as the dependencies above. */
+    const engine::configuration::DiffHostescalation& dhe =
+        diff.hostescalations();
+    if (dhe.added_size() || dhe.modified_size() || dhe.removed_size()) {
+      absl::flat_hash_set<size_t> to_erase;
+      for (uint64_t k : dhe.removed())
+        to_erase.insert(k);
+      for (const engine::configuration::Hostescalation& esc : dhe.modified())
+        to_erase.insert(hostescalation_key(esc));
+      if (!to_erase.empty()) {
+        auto& by_inst = _host_escalations.get<by_instance>();
+        auto range = by_inst.equal_range(diff.poller_id());
+        for (auto it = range.first; it != range.second;) {
+          if (to_erase.contains(it->key))
+            it = by_inst.erase(it);
+          else
+            ++it;
+        }
+      }
+      for (const engine::configuration::Hostescalation& esc : dhe.added())
+        _insert_host_escalation(esc, diff.poller_id());
+      for (const engine::configuration::Hostescalation& esc : dhe.modified())
+        _insert_host_escalation(esc, diff.poller_id());
+    }
+    const engine::configuration::DiffServiceescalation& dse =
+        diff.serviceescalations();
+    if (dse.added_size() || dse.modified_size() || dse.removed_size()) {
+      absl::flat_hash_set<size_t> to_erase;
+      for (uint64_t k : dse.removed())
+        to_erase.insert(k);
+      for (const engine::configuration::Serviceescalation& esc : dse.modified())
+        to_erase.insert(serviceescalation_key(esc));
+      if (!to_erase.empty()) {
+        auto& by_inst = _service_escalations.get<by_instance>();
+        auto range = by_inst.equal_range(diff.poller_id());
+        for (auto it = range.first; it != range.second;) {
+          if (to_erase.contains(it->key))
+            it = by_inst.erase(it);
+          else
+            ++it;
+        }
+      }
+      for (const engine::configuration::Serviceescalation& esc : dse.added())
+        _insert_service_escalation(esc, diff.poller_id());
+      for (const engine::configuration::Serviceescalation& esc : dse.modified())
+        _insert_service_escalation(esc, diff.poller_id());
+    }
   }
 }
 
@@ -1346,6 +1588,13 @@ void broker_cache::_fill_host(Host* obj,
     t->set_id(tag.first());
     t->set_type(static_cast<TagType>(tag.second()));
   }
+  /* The neb `notify` flag is the notifications-enabled switch the notification
+   * decision reads (get_config). It is a runtime field an adaptive event may
+   * later toggle, but it must be seeded from the configured value here:
+   * otherwise a merge()/apply() that rebuilds this object drops it to false
+   * and, in notification_mode=broker, the resource would look
+   * notification-disabled. */
+  obj->set_notify(cfg.notifications_enabled());
   obj->set_instance_id(pid);
 }
 
@@ -1412,6 +1661,9 @@ void broker_cache::_fill_service_common(Service* obj, const ConfigType& cfg) {
     t->set_id(tag.first());
     t->set_type(static_cast<TagType>(tag.second()));
   }
+  /* Seed the notifications-enabled switch read by the notification decision
+   * (get_config); see the same call in _fill_host for the rationale. */
+  obj->set_notify(cfg.notifications_enabled());
   obj->set_description(cfg.service_description());
 }
 
@@ -1511,6 +1763,8 @@ void broker_cache::remove_instance(uint64_t instance_id) {
 
     _host_notif_deps.get<by_instance>().erase(instance_id);
     _service_notif_deps.get<by_instance>().erase(instance_id);
+    _host_escalations.get<by_instance>().erase(instance_id);
+    _service_escalations.get<by_instance>().erase(instance_id);
 
     /* Contacts/contactgroups are reference-counted per poller too. */
     _remove_poller_from_contacts(instance_id);
@@ -2850,11 +3104,12 @@ std::vector<std::string> broker_cache::contactgroup_members(
 /**
  * @brief Resolve the notification contacts of a resource.
  *
- * Returns the union of the resource's direct contacts and the members of each of
- * its contactgroups, deduplicated. This is the query-time contactgroup->contacts
- * expansion (iso Engine): the resource holds non-owning pointers to the contact
- * and contactgroup objects, read directly here (no map lookup). Per-contact
- * runtime filtering (should_be_notified) is left to the caller.
+ * Returns the union of the resource's direct contacts and the members of each
+ * of its contactgroups, deduplicated. This is the query-time
+ * contactgroup->contacts expansion (iso Engine): the resource holds non-owning
+ * pointers to the contact and contactgroup objects, read directly here (no map
+ * lookup). Per-contact runtime filtering (should_be_notified) is left to the
+ * caller.
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.
@@ -2901,6 +3156,100 @@ bool broker_cache::notification_authorized_by_dependencies(
              ? _service_notification_authorized_by_dependencies(host_id,
                                                                 service_id, now)
              : _host_notification_authorized_by_dependencies(host_id, now);
+}
+
+/**
+ * @brief Evaluate the escalations of a resource: an escalation is viable when
+ * now is inside its escalation period, its [first,last] notification range
+ * covers the current notification number and its escalate_on bitmask covers the
+ * current state. The result aggregates every viable escalation (union of
+ * contacts, smallest interval); when none is viable the caller falls back to
+ * the direct contacts.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ * @param state The resource current state (neb enum: host up/down/unreachable,
+ * service ok/warning/critical/unknown).
+ * @param notification_number The current notification number.
+ * @param timezone The timezone used to evaluate the escalation periods (already
+ * resolved by the caller, with the poller fallback).
+ * @param now The reference time.
+ */
+broker_cache::escalation_result broker_cache::notification_escalation(
+    uint64_t host_id,
+    uint64_t service_id,
+    int state,
+    uint32_t notification_number,
+    const std::string& timezone,
+    std::time_t now) const {
+  namespace notifications = com::centreon::common::notifications;
+  absl::ReaderMutexLock l{&_mutex};
+  escalation_result res;
+  const absl::TimeZone tz = common::timeperiods::string_to_timezone(timezone);
+
+  /* An escalation is viable for the current notification when now is inside its
+   * escalation period, [first,last] covers the notification number and its
+   * escalate_on covers the current state (iso escalation::is_viable). */
+  auto period_ok = [&](const std::string& period) {
+    if (period.empty())
+      return true;
+    auto tp = _timeperiods.find(period);
+    return tp == _timeperiods.end() ||
+           tp->second->check_time_against_period(now, tz);
+  };
+  auto number_ok = [&](uint32_t first, uint32_t last) {
+    return notification_number >= first &&
+           (last == 0 || notification_number <= last);
+  };
+
+  /* neb state enums are contiguous from 0, aligned with these flag arrays. */
+  static constexpr std::array<uint32_t, 3> host_flag{
+      notifications::up, notifications::down, notifications::unreachable};
+  static constexpr std::array<uint32_t, 4> service_flag{
+      notifications::ok, notifications::warning, notifications::critical,
+      notifications::unknown};
+
+  auto gather = [&](const auto& esc) {
+    if (res.escalated) {
+      if (esc.notification_interval < res.notification_interval)
+        res.notification_interval = esc.notification_interval;
+    } else {
+      res.escalated = true;
+      res.notification_interval = esc.notification_interval;
+    }
+    for (const std::string& g : esc.contactgroups) {
+      auto cg = _contactgroups.find(g);
+      if (cg != _contactgroups.end())
+        res.contact_names.insert(cg->second.first.members.begin(),
+                                 cg->second.first.members.end());
+    }
+  };
+
+  if (service_id == 0) {
+    const auto& idx = _host_escalations.get<by_id>();
+    for (auto [it, end] = idx.equal_range(host_id); it != end; ++it) {
+      if (state < 0 || state >= static_cast<int>(host_flag.size()) ||
+          !(it->escalate_on & host_flag[state]))
+        continue;
+      if (!number_ok(it->first_notification, it->last_notification) ||
+          !period_ok(it->escalation_period))
+        continue;
+      gather(*it);
+    }
+  } else {
+    const auto& idx = _service_escalations.get<by_id>();
+    for (auto [it, end] = idx.equal_range(std::make_pair(host_id, service_id));
+         it != end; ++it) {
+      if (state < 0 || state >= static_cast<int>(service_flag.size()) ||
+          !(it->escalate_on & service_flag[state]))
+        continue;
+      if (!number_ok(it->first_notification, it->last_notification) ||
+          !period_ok(it->escalation_period))
+        continue;
+      gather(*it);
+    }
+  }
+  return res;
 }
 
 /**
