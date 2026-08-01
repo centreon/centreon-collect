@@ -32,6 +32,17 @@ namespace com::centreon::engine::configuration {
 size_t hostescalation_key(const Hostescalation& he);
 
 /**
+ * @brief Convert an ActionHostEscalationOn option bitmask
+ * (`escalation_options()`) into the notification_flag bitmask used by the
+ * notification library (down→down, unreachable→unreachable, recovery→up).
+ * Shared by Engine (applier, hostescalation::matches) and Broker (broker_cache).
+ *
+ * @param escalation_options A raw ActionHostEscalationOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t host_escalation_options_to_flags(uint32_t escalation_options);
+
+/**
  * @brief Helper for the Hostescalation message. The helper is instanciated
  * just after a message is created. It provides default values for it and also
  * several methods to help the developer to fill the message fields.

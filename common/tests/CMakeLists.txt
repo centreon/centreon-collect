@@ -26,6 +26,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     absl_flyweight_factory_test.cc
     crypto/base64.cc
     crypto/aes256.cc
+    engine_conf/escalation_options.cc
     engine_conf/expand_conf.cc
     engine_conf/resolve_conf.cc
     engine_conf/indexed_diff_state.cc
