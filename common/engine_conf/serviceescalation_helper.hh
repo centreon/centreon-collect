@@ -32,6 +32,18 @@ namespace com::centreon::engine::configuration {
 
 size_t serviceescalation_key(const Serviceescalation& se);
 
+/**
+ * @brief Convert an ActionServiceEscalationOn option bitmask
+ * (`escalation_options()`) into the notification_flag bitmask used by the
+ * notification library (warning→warning, unknown→unknown, critical→critical,
+ * recovery→ok). Shared by Engine (applier, serviceescalation::matches) and
+ * Broker (broker_cache).
+ *
+ * @param escalation_options A raw ActionServiceEscalationOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t service_escalation_options_to_flags(uint32_t escalation_options);
+
 class serviceescalation_helper : public message_helper {
   void _init();
 

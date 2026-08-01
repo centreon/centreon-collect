@@ -24,7 +24,6 @@
 #include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine::configuration;
-namespace notifications = com::centreon::common::notifications;
 
 /**
  *  Add new service escalation.
@@ -58,18 +57,7 @@ void applier::serviceescalation::add_object(
       obj.hosts().data()[0], obj.service_description().data()[0],
       obj.first_notification(), obj.last_notification(),
       obj.notification_interval(), obj.escalation_period(),
-      ((obj.escalation_options() & action_se_warning) ? notifications::warning
-                                                      : notifications::none) |
-          ((obj.escalation_options() & action_se_unknown)
-               ? notifications::unknown
-               : notifications::none) |
-          ((obj.escalation_options() & action_se_critical)
-               ? notifications::critical
-               : notifications::none) |
-          ((obj.escalation_options() & action_se_recovery)
-               ? notifications::ok
-               : notifications::none),
-      key);
+      service_escalation_options_to_flags(obj.escalation_options()), key);
 
   // Add new items to the global list.
   engine::serviceescalation::serviceescalations.insert(

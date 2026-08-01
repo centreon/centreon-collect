@@ -19,10 +19,22 @@
 #include "common/engine_conf/hostescalation_helper.hh"
 #include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/notifications/notification_types.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+namespace notifications = com::centreon::common::notifications;
+
+uint32_t host_escalation_options_to_flags(uint32_t escalation_options) {
+  return (escalation_options & action_he_down ? notifications::down
+                                              : notifications::none) |
+         (escalation_options & action_he_unreachable ? notifications::unreachable
+                                                     : notifications::none) |
+         (escalation_options & action_he_recovery ? notifications::up
+                                                  : notifications::none);
+}
 
 /**
  * @brief Builds a key from a Hostescalation message. This is useful to check

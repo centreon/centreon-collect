@@ -25,7 +25,6 @@
 #include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine::configuration;
-namespace notifications = com::centreon::common::notifications;
 
 /**
  *  Add new host escalation.
@@ -53,15 +52,7 @@ void applier::hostescalation::add_object(
   auto he = std::make_shared<engine::hostescalation>(
       obj.hosts().data(0), obj.first_notification(), obj.last_notification(),
       obj.notification_interval(), obj.escalation_period(),
-      ((obj.escalation_options() & action_he_down) ? notifications::down
-                                                   : notifications::none) |
-          ((obj.escalation_options() & action_he_unreachable)
-               ? notifications::unreachable
-               : notifications::none) |
-          ((obj.escalation_options() & action_he_recovery)
-               ? notifications::up
-               : notifications::none),
-      key);
+      host_escalation_options_to_flags(obj.escalation_options()), key);
 
   // Add new items to the configuration state.
   engine::hostescalation::hostescalations.insert({he->get_hostname(), he});
@@ -124,13 +115,8 @@ void applier::hostescalation::remove_object(uint64_t hash_key) {
         it->second->get_notification_interval() ==
             obj.notification_interval() &&
         it->second->get_escalation_period() == obj.escalation_period() &&
-        it->second->get_escalate_on(notifications::down) ==
-            static_cast<bool>(obj.escalation_options() & action_he_down) &&
-        it->second->get_escalate_on(notifications::unreachable) ==
-            static_cast<bool>(obj.escalation_options() &
-                              action_he_unreachable) &&
-        it->second->get_escalate_on(notifications::up) ==
-            static_cast<bool>(obj.escalation_options() & action_he_recovery)) {
+        it->second->get_escalate_on() ==
+            host_escalation_options_to_flags(obj.escalation_options())) {
       // We have the hostescalation to remove.
 
       if (host_exists) {

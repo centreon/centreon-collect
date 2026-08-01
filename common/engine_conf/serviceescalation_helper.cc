@@ -19,10 +19,24 @@
 #include "common/engine_conf/serviceescalation_helper.hh"
 #include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/notifications/notification_types.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {
+
+namespace notifications = com::centreon::common::notifications;
+
+uint32_t service_escalation_options_to_flags(uint32_t escalation_options) {
+  return (escalation_options & action_se_warning ? notifications::warning
+                                                 : notifications::none) |
+         (escalation_options & action_se_unknown ? notifications::unknown
+                                                 : notifications::none) |
+         (escalation_options & action_se_critical ? notifications::critical
+                                                  : notifications::none) |
+         (escalation_options & action_se_recovery ? notifications::ok
+                                                  : notifications::none);
+}
 
 size_t serviceescalation_key(const Serviceescalation& se) {
   assert(se.hosts().data().size() == 1 && se.hostgroups().data().empty() &&

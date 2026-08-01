@@ -92,44 +92,6 @@ uint32_t host_options_to_flags(uint32_t opts) {
                                          : notifications::none);
 }
 
-/**
- * @brief Convert an Engine ActionServiceEscalationOn option bitmask into the
- * notification_flag bitmask (iso serviceescalation::matches).
- *
- * The escalation proto enum is a separate, smaller set than ActionServiceOn
- * (recovery maps to ok), hence its own helper.
- *
- * @param opts A raw ActionServiceEscalationOn bitmask.
- * @return The equivalent notification_flag bitmask.
- */
-uint32_t service_escalation_options_to_flags(uint32_t opts) {
-  namespace ec = com::centreon::engine::configuration;
-  return (opts & ec::action_se_warning ? notifications::warning
-                                       : notifications::none) |
-         (opts & ec::action_se_unknown ? notifications::unknown
-                                       : notifications::none) |
-         (opts & ec::action_se_critical ? notifications::critical
-                                        : notifications::none) |
-         (opts & ec::action_se_recovery ? notifications::ok
-                                        : notifications::none);
-}
-
-/**
- * @brief ActionHostEscalationOn counterpart of
- * service_escalation_options_to_flags() (iso hostescalation::matches).
- *
- * @param opts A raw ActionHostEscalationOn bitmask.
- * @return The equivalent notification_flag bitmask.
- */
-uint32_t host_escalation_options_to_flags(uint32_t opts) {
-  namespace ec = com::centreon::engine::configuration;
-  return (opts & ec::action_he_down ? notifications::down
-                                    : notifications::none) |
-         (opts & ec::action_he_unreachable ? notifications::unreachable
-                                           : notifications::none) |
-         (opts & ec::action_he_recovery ? notifications::up
-                                        : notifications::none);
-}
 }  // namespace
 
 /**
@@ -628,7 +590,8 @@ void broker_cache::_insert_host_escalation(
     return;
   }
   const uint32_t escalate_on =
-      host_escalation_options_to_flags(esc.escalation_options());
+      com::centreon::engine::configuration::host_escalation_options_to_flags(
+          esc.escalation_options());
   host_escalation e;
   e.host_id = (*host)->obj().host_id();
   e.poller_id = poller_id;
@@ -668,7 +631,8 @@ void broker_cache::_insert_service_escalation(
     return;
   }
   const uint32_t escalate_on =
-      service_escalation_options_to_flags(esc.escalation_options());
+      com::centreon::engine::configuration::service_escalation_options_to_flags(
+          esc.escalation_options());
   service_escalation e;
   e.host_id = (*svc)->obj().host_id();
   e.service_id = (*svc)->obj().service_id();
