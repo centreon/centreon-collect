@@ -31,7 +31,9 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
+#include "common/notifications/contact_viability.hh"
 #include "common/notifications/escalation.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -186,10 +188,46 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
 
   /* Let's start looking at escalations. We snapshot them and let the shared
    * notification library pick the viable ones (smallest interval, contactgroup
-   * union); the member resolution and should_be_notified filtering stay here.
+   * union); the member resolution and contact filtering stay here.
    */
   std::time_t now;
   std::time(&now);
+
+  /* Per-candidate viability. We resolve the two environment-dependent inputs
+   * the shared should_notify_contact cannot compute itself — the contact's
+   * notification period evaluated in its own timezone, and (for a recovery)
+   * whether the contact was told about the ongoing problem — then delegate to
+   * the shared function on a contact snapshot. is_host, current_state and the
+   * previous normal notification are constant over this call, so hoist them. */
+  const notifications::notifier_type nt = get_notifier_type();
+  const bool is_host = nt == notifications::host_notification;
+  const int current_state = get_current_state_int();
+  const notifications::notification* normal_notif =
+      get_current_notifications()[notifications::cat_normal];
+  auto should_notify = [&](const std::shared_ptr<contact>& c) {
+    auto* tp = is_host ? c->get_host_notification_period_ptr()
+                       : c->get_service_notification_period_ptr();
+    const bool in_period =
+        !tp || tp->check_time_against_period_for_notif(
+                   now, string_to_timezone(c->get_timezone()));
+    bool already_notified = false;
+    if (cat == notifications::cat_recovery)
+      already_notified = normal_notif && normal_notif->sent_to(c->get_name());
+
+    notifications::contact snapshot;
+    snapshot.name = c->get_name();
+    snapshot.host_notifications_enabled = c->get_host_notifications_enabled();
+    snapshot.service_notifications_enabled =
+        c->get_service_notifications_enabled();
+    snapshot.host_notification_options =
+        c->notify_on(notifications::host_notification);
+    snapshot.service_notification_options =
+        c->notify_on(notifications::service_notification);
+    return notifications::should_notify_contact(snapshot, is_host, cat, type,
+                                                current_state, in_period,
+                                                already_notified);
+  };
+
   std::vector<notifications::escalation> snap;
   snap.reserve(_escalations.size());
   absl::flat_hash_map<std::string, contactgroup*> groups;
@@ -209,8 +247,7 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     snap.push_back(std::move(s));
   }
 
-  auto ev = notifications::evaluate_escalations(snap, get_notifier_type(),
-                                                get_current_state_int(),
+  auto ev = notifications::evaluate_escalations(snap, nt, current_state,
                                                 get_notification_number());
   escalated = ev.escalated;
   if (escalated) {
@@ -222,7 +259,7 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
         continue;
       for (const auto& [cname, cptr] : git->second->get_members()) {
         assert(cptr);
-        if (cptr->should_be_notified(cat, type, *this))
+        if (should_notify(cptr))
           retval.insert(cptr);
       }
     }
@@ -234,7 +271,7 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     for (auto it = contacts().begin(), end = contacts().end(); it != end;
          ++it) {
       assert(it->second);
-      if (it->second->should_be_notified(cat, type, *this))
+      if (should_notify(it->second))
         retval.insert(it->second);
     }
 
@@ -246,7 +283,7 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
                                        cend = it->second->get_members().end();
            cit != cend; ++cit) {
         assert(cit->second);
-        if (cit->second->should_be_notified(cat, type, *this))
+        if (should_notify(cit->second))
           retval.insert(cit->second);
       }
     }

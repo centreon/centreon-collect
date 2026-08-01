@@ -859,8 +859,8 @@ class broker_cache {
    * service_id == 0 designates a host): the set of its direct contacts and the
    * members of each of its contactgroups (a set, so naturally deduplicated).
    * This is the query-time contactgroup->contacts expansion (iso Engine);
-   * per-contact runtime filtering (should_be_notified) is left to the caller.
-   * Empty when the resource is unknown or references no contact. */
+   * per-contact runtime filtering (should_notify_contact) is left to the
+   * caller. Empty when the resource is unknown or references no contact. */
   absl::flat_hash_set<std::string> notification_contact_names(
       uint64_t host_id,
       uint64_t service_id) const ABSL_LOCKS_EXCLUDED(_mutex);

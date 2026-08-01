@@ -19,7 +19,6 @@
 
 #include "common/notifications/contact_viability.hh"
 
-
 #include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::common::notifications {
@@ -42,9 +41,9 @@ std::shared_ptr<spdlog::logger> notifications_logger() {
 }  // namespace
 
 /**
- * @brief Decide whether a contact must be notified, replicating Engine's
- * contact::should_be_notified on a pure value snapshot (shared by Engine and
- * Broker).
+ * @brief Decide whether a contact must be notified, applying the historical
+ * Engine per-contact viability on a pure value snapshot (shared by Engine's
+ * notifier::get_contacts_to_notify and Broker's deliver()).
  *
  * The two environment-dependent inputs are resolved by the caller so the
  * function stays free of any timeperiod / notification-history dependency:

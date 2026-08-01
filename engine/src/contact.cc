@@ -25,16 +25,13 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "common/notifications/contact_viability.hh"
 #include "common/notifications/notification_types.hh"
-#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
-using com::centreon::common::timeperiods::string_to_timezone;
 namespace notifications = com::centreon::common::notifications;
 
 contact_map contact::contacts;
@@ -803,55 +800,6 @@ contactgroup_map_unsafe const& contact::get_parent_groups() const {
 
 contactgroup_map_unsafe& contact::get_parent_groups() {
   return _contactgroups;
-}
-
-/**
- *  Returns a boolean telling if this contact should be notified by a notifier
- *  with the given properties.
- *
- * @param type A service or a host.
- * @param cat The notification category
- * @param state The notifier current state
- *
- * @return true if the contact should be notified, false otherwise.
- */
-bool contact::should_be_notified(notifications::notification_category cat,
-                                 notifications::reason_type type,
-                                 notifier const& notif) const {
-  functions_logger->trace("contact::should_be_notified()");
-
-  const notifications::notifier_type nt = notif.get_notifier_type();
-  const bool is_host = nt == notifications::host_notification;
-
-  /* Resolve the two environment-dependent inputs the shared viability function
-   * cannot compute itself: whether the contact's notification period is
-   * currently open (evaluated in the contact's own timezone; a missing period
-   * means always-in), and, for a recovery, whether the contact was told about
-   * the ongoing problem. */
-  auto* tp = is_host ? get_host_notification_period_ptr()
-                     : get_service_notification_period_ptr();
-  const bool in_period =
-      !tp || tp->check_time_against_period_for_notif(
-                 std::time(nullptr), string_to_timezone(get_timezone()));
-
-  bool already_notified = false;
-  if (cat == notifications::cat_recovery) {
-    const notifications::notification* normal_notif =
-        notif.get_current_notifications()[notifications::cat_normal];
-    already_notified = normal_notif && normal_notif->sent_to(get_name());
-  }
-
-  notifications::contact snapshot;
-  snapshot.name = get_name();
-  snapshot.host_notifications_enabled = _host_notifications_enabled;
-  snapshot.service_notifications_enabled = _service_notifications_enabled;
-  snapshot.host_notification_options = notify_on(notifications::host_notification);
-  snapshot.service_notification_options =
-      notify_on(notifications::service_notification);
-
-  return notifications::should_notify_contact(
-      snapshot, is_host, cat, type, notif.get_current_state_int(), in_period,
-      already_notified);
 }
 
 timeperiod* contact::get_host_notification_period_ptr() const {

@@ -122,9 +122,6 @@ class contact {
   get_service_notification_commands();
   contactgroup_map_unsafe const& get_parent_groups() const;
   contactgroup_map_unsafe& get_parent_groups();
-  bool should_be_notified(common::notifications::notification_category cat,
-                          common::notifications::reason_type type,
-                          notifier const& notif) const;
   map_customvar const& get_custom_variables() const;
   map_customvar& get_custom_variables();
   com::centreon::common::timeperiods::timeperiod*
