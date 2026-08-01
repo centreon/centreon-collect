@@ -3072,7 +3072,7 @@ std::vector<std::string> broker_cache::contactgroup_members(
  * of its contactgroups, deduplicated. This is the query-time
  * contactgroup->contacts expansion (iso Engine): the resource holds non-owning
  * pointers to the contact and contactgroup objects, read directly here (no map
- * lookup). Per-contact runtime filtering (should_be_notified) is left to the
+ * lookup). Per-contact runtime filtering (should_notify_contact) is left to the
  * caller.
  *
  * @param host_id The host id.
