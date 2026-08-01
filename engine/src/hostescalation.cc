@@ -17,6 +17,7 @@
  */
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/broker.hh"
+#include "common/engine_conf/hostescalation_helper.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -101,16 +102,8 @@ bool hostescalation::is_viable(int state, uint32_t notification_number) const {
  * @return A boolean that is True if they match.
  */
 bool hostescalation::matches(const configuration::Hostescalation& obj) const {
-  uint32_t escalate_on =
-      ((obj.escalation_options() & configuration::action_he_down)
-           ? notifications::down
-           : notifications::none) |
-      ((obj.escalation_options() & configuration::action_he_unreachable)
-           ? notifications::unreachable
-           : notifications::none) |
-      ((obj.escalation_options() & configuration::action_he_recovery)
-           ? notifications::up
-           : notifications::none);
+  uint32_t escalate_on = configuration::host_escalation_options_to_flags(
+      obj.escalation_options());
   if (_hostname != *obj.hosts().data().begin() ||
       get_first_notification() != obj.first_notification() ||
       get_last_notification() != obj.last_notification() ||

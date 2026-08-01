@@ -329,6 +329,12 @@ BEPOLLERTZ
     [Tags]    broker    engine    notification    MON-187019
     Ctn Clear Engine Logs
     Ctn Config Centralized Engine    ${3}
+    # Wipe any stale Engine state.prot / Broker .prot left by a previous run, so
+    # each poller negotiates its configuration from scratch. A leftover
+    # state.prot makes an Engine load an inconsistent old configuration and exit
+    # at boot (e.g. a service referencing a severity that is no longer defined),
+    # so it never connects and its poller configuration is never delivered.
+    Ctn Clear Prot Files
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
     Ctn Config Broker    rrd
