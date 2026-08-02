@@ -2200,6 +2200,144 @@ SRV_NOTIF_ESCALATIONS_BROKER
     Ctn Kindly Stop Broker
 
 
+HOST_DOWN_NOTIF_BROKER
+    [Documentation]    Scenario: in notification_mode=broker, Broker decides a HOST notification and dispatches its execution to the poller
+    ...    Given a host with a contact, in notification_mode=broker (BBDO3)
+    ...    When the host enters a DOWN HARD state
+    ...    Then Broker dispatches the host notification execution to the supervising poller
+    ...    And the poller runs the contact notification command (no local Engine decision)
+    [Tags]    broker    engine    host    notification    MON-187019
+    Ctn Clear Commands Status
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
+    Ctn Config Notifications
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    core    info
+    # The "dispatched notification execution" message asserted below is logged on
+    # the notifications channel at info level, so enable it.
+    Ctn Broker Config Log    central    notifications    info
+    # Make the host check return DOWN so forced checks drive it to DOWN HARD.
+    Ctn Config Host Command Status    ${0}    checkh1    2
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Wait until Broker has received and stored the poller's centralized config,
+    # so the contact is in its cache before the first notification decision.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
+
+    # Drive the host to DOWN HARD through forced active checks.
+    FOR    ${i}    IN RANGE    ${4}
+        Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Sleep    5s
+    END
+
+    ${result}    Ctn Check Host Status    host_1    ${1}    ${1}    ${True}    60
+    Should Be True    ${result}    Host host_1 should be DOWN HARD
+
+    # Broker (not Engine) makes the decision and dispatches the execution.
+    ${content}    Create List    dispatched notification execution for resource
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not dispatch the host notification execution to the poller
+
+    # The poller ran the dispatched host notification command.
+    ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The poller did not run the dispatched host notification command
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
+SRV_NOTIF_BROKER_RESTART
+    [Documentation]    Scenario: in notification_mode=broker, the notification chain survives a Broker restart
+    ...    Given a service that sent a CRITICAL notification decided by Broker
+    ...    When Broker is gracefully restarted (persisting and re-injecting its notification state)
+    ...    Then on the service recovery Broker still dispatches a RECOVERY notification to the very contact told about the problem
+    ...    proving the notification number and notified-contact set were persisted across the restart
+    [Tags]    broker    engine    services    notification    MON-187019
+    Ctn Clear Commands Status
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
+    Ctn Config Notifications
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    notifications    info
+    # The notification-state re-injection message asserted below is logged on the
+    # cache channel at info level, so enable it.
+    Ctn Broker Config Log    central    cache    info
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    # The service becomes CRITICAL HARD: Broker dispatches the critical notification.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The poller did not run the dispatched CRITICAL notification command
+
+    # Gracefully restart Broker: the graceful stop snapshots and persists the
+    # notification runtime state, the restart reloads and re-injects it.
+    Ctn Kindly Stop Broker
+    ${start_restart}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=${True}
+
+    # Broker re-injected the persisted notification state (number + notified
+    # contacts) into the notification manager after the restart. The count is not
+    # asserted (empty states of merely-evaluated resources are persisted too);
+    # the log is only emitted when at least one state is re-injected.
+    ${content}    Create List    notification state(s) into the notification manager
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_restart}    ${content}    90
+    Should Be True    ${result}    Broker did not re-inject the persisted notification state after the restart
+
+    # Recovery after the restart: a RECOVERY notification is dispatched ONLY if the
+    # notified-contact set survived (recovery goes to the contacts told about the
+    # problem). If persistence were lost, no recovery would be sent.
+    ${start_rec}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start_rec}    ${content}    90
+    Should Be True    ${result}    The RECOVERY notification was not dispatched after the restart: notification state was lost
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
 *** Keywords ***
 Ctn Config Notifications
     [Documentation]    Configuring engine notification settings.
