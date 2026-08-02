@@ -937,6 +937,42 @@ message BrokerCache {
    * close them on recovery after a restart (host acks carry service_id 0). The
    * DB rows already exist; this only restores the in-memory tracking. */
   repeated Acknowledgement acknowledgements = 10;
+
+  /* Per-resource notification runtime state of the notification_manager,
+   * persisted so the notification chain (number, timings and the contacts told
+   * about the ongoing problem) survives a Broker restart (only meaningful when
+   * notification_mode=broker). The notification_number itself is also mirrored
+   * to the DB for the GUI, but the DB cannot hold the notified-contact set that
+   * recovery routing needs, so the whole state is snapshotted here. Host states
+   * carry service_id 0. */
+  message NotificationState {
+    /* The last notification emitted for one category (index into the
+     * notification_manager events array): its reason type, re-notification
+     * interval in seconds, and the contacts it was sent to. */
+    message Event {
+      /* category is the C++ enum notification_category and reason_type the C++
+       * enum reason_type, both defined in
+       * common/notifications/notification_types.hh. Values:
+       *   category:    0 normal, 1 recovery, 2 acknowledgement, 3 flapping,
+       *                4 downtime, 5 custom.
+       *   reason_type: 0 normal, 1 recovery, 2 acknowledgement,
+       *   3 flappingstart, 4 flappingstop, 5 flappingdisabled, 6 downtimestart,
+       *   7 downtimeend, 8 downtimecancelled, 99 custom. */
+      uint32 category = 1;
+      uint32 reason_type = 2;
+      uint32 interval = 3;  // seconds
+      repeated string notified_contacts = 4;
+    }
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+    uint64 number = 3;
+    uint64 current_id = 4;
+    int64 last = 5;
+    int64 next = 6;
+    int64 initial = 7;
+    repeated Event events = 8;
+  }
+  repeated NotificationState notification_states = 11;
 }
 
 /* Ignore */

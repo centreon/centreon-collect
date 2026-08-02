@@ -21,7 +21,9 @@
 #define CCC_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
 
 #include <array>
+#include <optional>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 
@@ -30,6 +32,25 @@
 namespace com::centreon::common::notifications {
 
 class notification_callbacks;
+
+/**
+ * @brief A copyable snapshot of the notification runtime state of one resource.
+ *
+ * Used by the host application to persist and restore the notification chain
+ * across a restart (Broker snapshots it into its cache; the DB alone cannot hold
+ * the per-category notified-contact sets that recovery routing needs). Host
+ * states carry service_id == 0.
+ */
+struct resource_notification_snapshot {
+  uint64_t host_id = 0;
+  uint64_t service_id = 0;
+  uint64_t number = 0;
+  uint64_t current_id = 0;
+  std::time_t last = 0;
+  std::time_t next = 0;
+  std::time_t initial = 0;
+  std::array<std::optional<notification>, 6> events;
+};
 
 /**
  * @brief Central manager for notifications.
@@ -111,6 +132,8 @@ class notification_manager {
       {"SOFT", "HARD"}};
 
   static notification_manager& instance();
+  /* Whether the singleton is currently loaded (mirrors downtime_manager). */
+  static bool is_loaded() noexcept { return _instance != nullptr; }
   /* Inject the host-application backend (mirrors downtime_manager::load).
    * load() also creates the singleton and unload() destroys it: the lifetime
    * is controlled on purpose (see class doc). */
@@ -118,6 +141,13 @@ class notification_manager {
   /* Release the backend, drop all per-resource state and destroy the singleton.
    */
   static void unload();
+
+  /* Snapshot every resource's notification runtime state (for persistence) and
+   * restore one back (after a restart). restore() sets the state directly and
+   * never fires the backend callback, so a re-injection does not echo back to
+   * the host application (e.g. no spurious DB status push). */
+  std::vector<resource_notification_snapshot> snapshot_states() const;
+  void restore(const resource_notification_snapshot& snap);
 
   notification_manager(const notification_manager&) = delete;
   notification_manager& operator=(const notification_manager&) = delete;

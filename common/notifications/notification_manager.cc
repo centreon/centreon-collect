@@ -594,6 +594,80 @@ void notification_manager::set_notification(uint64_t host_id,
 }
 
 /**
+ * @brief Take a copyable snapshot of every live notification chain, for
+ * persistence by the host application.
+ *
+ * Empty entries are skipped: the manager creates a state for every resource it
+ * merely evaluates, but a resource with no notification number and no live event
+ * has no chain to resume and would only bloat the persisted cache.
+ *
+ * @return One snapshot per resource carrying a live notification chain.
+ */
+std::vector<resource_notification_snapshot>
+notification_manager::snapshot_states() const {
+  std::vector<resource_notification_snapshot> retval;
+  retval.reserve(_states.size());
+  for (const auto& [k, st] : _states) {
+    /* Only persist a live chain. The manager creates a state entry for every
+     * resource it merely evaluates (operator[]), so most entries are empty
+     * (number 0, no live event): there is nothing to resume for those, and
+     * persisting one per resource would bloat the cache at scale. */
+    bool has_event = false;
+    for (const auto& ev : st.events)
+      if (ev) {
+        has_event = true;
+        break;
+      }
+    if (st.number == 0 && !has_event)
+      continue;
+    resource_notification_snapshot snap;
+    snap.host_id = k.first;
+    snap.service_id = k.second;
+    snap.number = st.number;
+    snap.current_id = st.current_id;
+    snap.last = st.last;
+    snap.next = st.next;
+    snap.initial = st.initial;
+    for (int i = 0; i < 6; i++)
+      if (st.events[i])
+        snap.events[i] = *st.events[i];
+    retval.push_back(std::move(snap));
+  }
+  return retval;
+}
+
+/**
+ * @brief Restore a resource's notification runtime state from a snapshot, after
+ * a restart.
+ *
+ * Sets the state directly and never fires the backend callback, so a
+ * re-injection does not echo the restored value back to the host application
+ * (e.g. no spurious DB status push). The notification-id generator is bumped
+ * past any restored current_id so future ids stay unique.
+ *
+ * @param snap The snapshot previously produced by snapshot_states().
+ */
+void notification_manager::restore(const resource_notification_snapshot& snap) {
+  /* Set the state directly, WITHOUT going through set_notification_number: a
+   * re-injection must not fire on_notification_number_changed (it would echo
+   * the restored value back to the host application, e.g. a spurious DB push).
+   */
+  notification_state& st = _state(snap.host_id, snap.service_id);
+  st.number = snap.number;
+  st.current_id = snap.current_id;
+  st.last = snap.last;
+  st.next = snap.next;
+  st.initial = snap.initial;
+  for (int i = 0; i < 6; i++)
+    st.events[i] = snap.events[i]
+                       ? std::make_unique<notification>(*snap.events[i])
+                       : nullptr;
+  /* Keep the id generator ahead of any restored current_id. */
+  if (snap.current_id >= _next_notification_id)
+    _next_notification_id = snap.current_id + 1;
+}
+
+/**
  * @brief Drop the notification state attached to a resource.
  *
  * Must be called when a notifier is destroyed, otherwise its entry would leak.

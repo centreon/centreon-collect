@@ -19,12 +19,13 @@
 
 #include "com/centreon/broker/broker_notification_callbacks.hh"
 
-#include <vector>
 
 #include <ctime>
 
 #include "bbdo/internal.hh"
 #include "broker/core/config/applier/broker_state.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/notifications/contact_viability.hh"
 #include "common/notifications/notification_manager.hh"
@@ -324,6 +325,14 @@ notifications::delivery_result broker_notification_callbacks::deliver(
         interval_length;
   }
 
+  /* Mirror the (already incremented) notification number to the DB for the GUI.
+   * The manager bumps the number before calling deliver(), and the increment
+   * path does not go through on_notification_number_changed (that fires only on
+   * an explicit set, e.g. the recovery reset to 0), so this is where the normal
+   * increments reach the DB. Done regardless of whether any contact is finally
+   * notified, since the number changed in the manager either way. */
+  _publish_notification_number(host_id, service_id, notification_number);
+
   /* ISO with Engine: when the resource carries no explicit timezone, fall back
    * to the timezone the poller advertised at negotiation time (Broker cannot use
    * its own local timezone). Used to evaluate the escalation periods. */
@@ -420,9 +429,47 @@ notifications::delivery_result broker_notification_callbacks::deliver(
 }
 
 /**
- * @brief Push the new notification number of a resource to Broker.
+ * @brief Mirror a resource's notification number to the DB, the same way Engine
+ * does it in engine mode (forward_pb_host_status with STATUS_NOTIFICATION_NUMBER):
+ * publish an adaptive host/service status carrying only the number, which
+ * unified_sql turns into a targeted UPDATE of resources/hosts/services. The DB
+ * value is a downstream mirror for the GUI; the notification decision never
+ * reads it back (the manager is the source of truth, re-seeded from the broker
+ * cache after a restart).
  *
- * @note Not implemented yet: the status push to Broker still has to be wired.
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ * @param number The notification number to publish.
+ */
+void broker_notification_callbacks::_publish_notification_number(
+    uint64_t host_id,
+    uint64_t service_id,
+    uint32_t number) {
+  multiplexing::publisher pblshr;
+  if (service_id == 0) {
+    auto e = std::make_shared<neb::pb_adaptive_host_status>();
+    auto& o = e->mut_obj();
+    o.set_host_id(host_id);
+    o.set_notification_number(number);
+    pblshr.write(e);
+  } else {
+    auto e = std::make_shared<neb::pb_adaptive_service_status>();
+    auto& o = e->mut_obj();
+    o.set_host_id(host_id);
+    o.set_service_id(service_id);
+    o.set_notification_number(number);
+    pblshr.write(e);
+  }
+}
+
+/**
+ * @brief Push the new notification number of a resource to the DB.
+ *
+ * Fired by the notification_manager when the number is set explicitly (e.g.
+ * reset to 0 on recovery). The increments during a normal notification are
+ * mirrored from deliver() (the manager increments the number before calling it),
+ * so together they cover every number change in broker mode. The lib's firing is
+ * left untouched to keep engine mode behaviour identical.
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.
@@ -430,12 +477,10 @@ notifications::delivery_result broker_notification_callbacks::deliver(
 void broker_notification_callbacks::on_notification_number_changed(
     uint64_t host_id,
     uint64_t service_id) {
-  /* TODO(MON-187019): publish the updated notification number to Broker. */
-  SPDLOG_LOGGER_DEBUG(
-      _logger,
-      "notification number changed for resource ({}, {}): Broker-side status "
-      "push not implemented yet",
-      host_id, service_id);
+  _publish_notification_number(
+      host_id, service_id,
+      notifications::notification_manager::instance().notification_number(
+          host_id, service_id));
 }
 
 }  // namespace com::centreon::broker

@@ -4517,6 +4517,9 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
    * downtimes that were persisted across a Broker restart and were waiting for
    * their resource to be known (centralized mode). */
   cache.reinject_pending_downtimes();
+  /* Same for the persisted notification runtime states (number, timings,
+   * notified contacts), so the notification chain resumes after a restart. */
+  cache.reinject_pending_notification_states();
 }
 
 /**

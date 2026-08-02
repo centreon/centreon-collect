@@ -101,6 +101,39 @@ broker_state::~broker_state() {
     config::applier::state::instance().cache().set_active_downtimes(
         std::move(active));
   }
+  /* Hand the notification runtime states over to the global cache so the
+   * notification chain (number, timings, notified contacts) is persisted and can
+   * be re-injected on the next start. Same ordering constraint as downtimes:
+   * BEFORE unload() and while the cache is still alive. */
+  if (com::centreon::common::notifications::notification_manager::is_loaded()) {
+    std::vector<BrokerCache::NotificationState> states;
+    for (const auto& snap :
+         com::centreon::common::notifications::notification_manager::instance()
+             .snapshot_states()) {
+      BrokerCache::NotificationState ns;
+      ns.set_host_id(snap.host_id);
+      ns.set_service_id(snap.service_id);
+      ns.set_number(snap.number);
+      ns.set_current_id(snap.current_id);
+      ns.set_last(snap.last);
+      ns.set_next(snap.next);
+      ns.set_initial(snap.initial);
+      for (size_t i = 0; i < snap.events.size(); i++) {
+        if (!snap.events[i])
+          continue;
+        auto* e = ns.add_events();
+        e->set_category(static_cast<uint32_t>(i));
+        e->set_reason_type(static_cast<uint32_t>(snap.events[i]->type));
+        e->set_interval(
+            static_cast<uint32_t>(snap.events[i]->interval.count()));
+        for (const auto& c : snap.events[i]->notified_contacts)
+          e->add_notified_contacts(c);
+      }
+      states.push_back(std::move(ns));
+    }
+    config::applier::state::instance().cache().set_notification_states(
+        std::move(states));
+  }
   com::centreon::common::downtimes::downtime_manager::unload();
   com::centreon::common::notifications::notification_manager::unload();
 }
@@ -189,8 +222,10 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
  * known yet; re-injected later from _process_engine_state after merge).
  */
 void broker_state::_on_barrier_released() {
-  if (_notification_mode == notification_mode_broker)
+  if (_notification_mode == notification_mode_broker) {
     cache().reinject_pending_downtimes();
+    cache().reinject_pending_notification_states();
+  }
 }
 
 /**

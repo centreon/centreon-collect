@@ -675,6 +675,15 @@ class broker_cache {
    * the downtime_manager once their host/service is known to the cache. */
   std::vector<Downtime> _pending_active_downtimes ABSL_GUARDED_BY(_mutex);
 
+  /* Per-resource notification runtime state to persist with the cache (set by
+   * broker_state just before the notification_manager is unloaded). */
+  std::vector<BrokerCache::NotificationState> _notification_states_to_save
+      ABSL_GUARDED_BY(_mutex);
+  /* Notification states read back from the cache file, awaiting re-injection
+   * into the notification_manager on the next start. */
+  std::vector<BrokerCache::NotificationState> _pending_notification_states
+      ABSL_GUARDED_BY(_mutex);
+
   /* INT32_MAX/2: base of the partition reserved for Broker-originated downtime
    * comment internal_ids, disjoint from Engine's per-poller ids (which start at
    * 1). The comments.internal_id column is a signed int(11), so this stays
@@ -790,6 +799,17 @@ class broker_cache {
    * (called after _load_cache in legacy mode and after merge() — via
    * _process_engine_state — in centralized mode). */
   void reinject_pending_downtimes() ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Store the per-resource notification states to persist on the next cache
+   * save. Called by broker_state at shutdown, before the notification_manager is
+   * unloaded. */
+  void set_notification_states(
+      std::vector<BrokerCache::NotificationState> states)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Re-inject the pending notification states into the notification_manager,
+   * restoring the notification chain (number, timings, notified contacts) after
+   * a restart. Drains _pending_notification_states; a no-op if the manager is
+   * not loaded (notification_mode != broker). */
+  void reinject_pending_notification_states() ABSL_LOCKS_EXCLUDED(_mutex);
   void apply(const com::centreon::engine::configuration::DiffState& diff)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_instance(const std::shared_ptr<neb::pb_instance>& instance)

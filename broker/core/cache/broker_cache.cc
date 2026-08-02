@@ -17,7 +17,6 @@
  */
 #include <boost/preprocessor/seq/for_each.hpp>
 
-#include <array>
 #include <memory>
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
@@ -31,6 +30,7 @@
 #include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
+#include "common/notifications/notification_manager.hh"
 #include "common/timeperiods/timezone.hh"
 
 namespace com::centreon::broker::cache {
@@ -4358,6 +4358,8 @@ void broker_cache::_load_cache() {
         ack->mut_obj().CopyFrom(a);
         _acknowledgements.insert_or_assign({a.host_id(), a.service_id()}, ack);
       }
+      _pending_notification_states.assign(to_load.notification_states().begin(),
+                                          to_load.notification_states().end());
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
@@ -4447,6 +4449,10 @@ void broker_cache::_save_cache() {
      * only persists the in-memory tracking. */
     for (const auto& it : _acknowledgements)
       to_save.add_acknowledgements()->CopyFrom(it.second->obj());
+    /* Notification runtime states, persisted so the notification chain survives
+     * a Broker restart (only populated when notification_mode=broker). */
+    for (const auto& n : _notification_states_to_save)
+      to_save.add_notification_states()->CopyFrom(n);
   }
   /* Saving the BrokerCache */
   std::ofstream ofs{_cache_file, std::ios::binary | std::ios::trunc};
@@ -4472,6 +4478,68 @@ void broker_cache::_save_cache() {
 void broker_cache::set_active_downtimes(std::vector<Downtime> downtimes) {
   absl::WriterMutexLock lck{&_mutex};
   _active_downtimes_to_save = std::move(downtimes);
+}
+
+/**
+ * @brief Store the per-resource notification states to persist on the next cache
+ * save. Called by broker_state at shutdown, before the notification_manager is
+ * unloaded.
+ */
+void broker_cache::set_notification_states(
+    std::vector<BrokerCache::NotificationState> states) {
+  absl::WriterMutexLock lck{&_mutex};
+  _notification_states_to_save = std::move(states);
+}
+
+/**
+ * @brief Re-inject the pending notification states into the notification_manager
+ * so the notification chain (number, timings and the contacts told about the
+ * ongoing problem) resumes after a restart.
+ *
+ * restore() never fires the backend callback, so this does not echo the restored
+ * numbers back to the DB. Drains _pending_notification_states; a no-op when the
+ * manager is not loaded (notification_mode != broker) or nothing is pending.
+ */
+void broker_cache::reinject_pending_notification_states() {
+  namespace notifications = com::centreon::common::notifications;
+  if (!notifications::notification_manager::is_loaded())
+    return;
+
+  std::vector<BrokerCache::NotificationState> pending;
+  {
+    absl::WriterMutexLock lck{&_mutex};
+    if (_pending_notification_states.empty())
+      return;
+    pending.swap(_pending_notification_states);
+  }
+
+  for (const auto& ns : pending) {
+    notifications::resource_notification_snapshot snap;
+    snap.host_id = ns.host_id();
+    snap.service_id = ns.service_id();
+    snap.number = ns.number();
+    snap.current_id = ns.current_id();
+    snap.last = ns.last();
+    snap.next = ns.next();
+    snap.initial = ns.initial();
+    for (const auto& e : ns.events()) {
+      uint32_t cat = e.category();
+      if (cat >= snap.events.size())
+        continue;
+      notifications::notification n;
+      n.type = static_cast<notifications::reason_type>(e.reason_type());
+      n.interval = std::chrono::seconds{e.interval()};
+      for (const auto& c : e.notified_contacts())
+        n.notified_contacts.insert(c);
+      snap.events[cat] = std::move(n);
+    }
+    notifications::notification_manager::instance().restore(snap);
+  }
+
+  SPDLOG_LOGGER_INFO(_logger,
+                     "broker_cache: re-injected {} notification state(s) into "
+                     "the notification manager",
+                     pending.size());
 }
 
 /**

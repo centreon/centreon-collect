@@ -36,6 +36,10 @@ class broker_notification_callbacks
     : public notifications::notification_callbacks {
   std::shared_ptr<spdlog::logger> _logger;
 
+  void _publish_notification_number(uint64_t host_id,
+                                    uint64_t service_id,
+                                    uint32_t number);
+
  public:
   broker_notification_callbacks();
   ~broker_notification_callbacks() override = default;
