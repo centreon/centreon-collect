@@ -56,8 +56,8 @@ class broker_downtime_callbacks
 
   /** Guards _scheduled_downtimes and the arming of _downtime_timer: these are
    *  touched both by the io_context timer thread (_on_timer/_arm_timer) and by
-   *  gRPC handler threads (schedule_downtime_check/remove_downtime_check via the
-   *  downtime_manager), so they need mutual exclusion. */
+   *  gRPC handler threads (schedule_downtime_check/remove_downtime_check via
+   * the downtime_manager), so they need mutual exclusion. */
   mutable absl::Mutex _scheduled_downtimes_m;
   /** Scheduled downtime events, keyed by fire time.
    *  A nullptr value is a sentinel for expire-downtime sweeps. */
@@ -73,6 +73,11 @@ class broker_downtime_callbacks
    * safety analysis enforce this, preventing a re-entrant deadlock. */
   void _arm_timer() ABSL_LOCKS_EXCLUDED(_scheduled_downtimes_m);
   void _on_timer() ABSL_LOCKS_EXCLUDED(_scheduled_downtimes_m);
+
+  enum class downtime_alert { started, stopped, cancelled };
+  void _publish_downtime_log(uint64_t host_id,
+                             uint64_t service_id,
+                             downtime_alert action);
 
  public:
   broker_downtime_callbacks(boost::asio::io_context& io_context);

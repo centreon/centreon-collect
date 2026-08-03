@@ -3748,6 +3748,18 @@ uint32_t broker_cache::first_active_instance_id() const {
 }
 
 /**
+ * @brief Return the name of a poller (instance) from its id.
+ *
+ * @param poller_id The poller id.
+ * @return The poller name, or an empty string if the poller is unknown.
+ */
+std::string broker_cache::instance_name(uint64_t poller_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _instances.find(poller_id);
+  return it != _instances.end() ? it->second.name : std::string{};
+}
+
+/**
  * @brief Return the service IDs of all services belonging to a given host.
  *
  * Uses the ordered by_id index on _services, which is sorted by

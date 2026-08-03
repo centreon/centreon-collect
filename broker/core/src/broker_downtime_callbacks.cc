@@ -19,6 +19,8 @@
 
 #include "com/centreon/broker/broker_downtime_callbacks.hh"
 
+#include <fmt/format.h>
+
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/downtimes/downtime_manager.hh"
@@ -125,9 +127,10 @@ broker_downtime_callbacks::get_host_and_service_names(
  * so unified_sql inserts it. The content (author, data) is the one built by the
  * shared library's subscribe(), so a Broker-scheduled downtime gets a comment
  * identical to an Engine-scheduled one. The internal_id is drawn from Broker's
- * partitioned range (>= INT32_MAX/2) so it can never collide with the per-poller
- * ids Engine mints. instance_id is the host's poller, so the row is addressable
- * and survives correctly (see the clean_comments guard in unified_sql).
+ * partitioned range (>= INT32_MAX/2) so it can never collide with the
+ * per-poller ids Engine mints. instance_id is the host's poller, so the row is
+ * addressable and survives correctly (see the clean_comments guard in
+ * unified_sql).
  *
  * @return The internal_id of the created comment (stored on the downtime).
  */
@@ -174,9 +177,10 @@ uint64_t broker_downtime_callbacks::create_downtime_comment(
  * @param host_id    The downtime's host (to resolve the instance_id).
  * @param service_id The downtime's service (0 for a host downtime).
  */
-void broker_downtime_callbacks::delete_downtime_comment(uint64_t comment_id,
-                                                        uint64_t host_id,
-                                                        uint64_t /*service_id*/) {
+void broker_downtime_callbacks::delete_downtime_comment(
+    uint64_t comment_id,
+    uint64_t host_id,
+    uint64_t /*service_id*/) {
   if (comment_id == 0)
     return;
   auto& cache = config::applier::state::instance().cache();
@@ -279,8 +283,8 @@ void broker_downtime_callbacks::_on_timer() {
  */
 void broker_downtime_callbacks::schedule_downtime_check(uint64_t downtime_id,
                                                         time_t when) {
-  auto dt = downtime_manager::instance().find_downtime(
-      downtime::any_downtime, downtime_id);
+  auto dt = downtime_manager::instance().find_downtime(downtime::any_downtime,
+                                                       downtime_id);
   if (!dt)
     return;
   bool rearm;
@@ -363,8 +367,8 @@ bool broker_downtime_callbacks::inc_pending_flex_downtime(uint64_t host_id,
  * @param depth      The new scheduled_downtime_depth value.
  */
 static void _publish_downtime_depth(uint64_t host_id,
-                                     uint64_t service_id,
-                                     int32_t depth) {
+                                    uint64_t service_id,
+                                    int32_t depth) {
   multiplexing::publisher pblshr;
   if (service_id == 0) {
     auto ev = std::make_shared<neb::pb_adaptive_host_status>();
@@ -378,6 +382,91 @@ static void _publish_downtime_depth(uint64_t host_id,
     ev->mut_obj().set_scheduled_downtime_depth(depth);
     pblshr.write(ev);
   }
+}
+
+/**
+ * @brief Publish a pb_log_entry reproducing the "DOWNTIME ALERT" line Engine
+ * writes to the storage logs table (the GUI monitoring log).
+ *
+ * In notification_mode=broker, Broker handles downtimes itself, so the Engine
+ * downtime callbacks (which produced these lines and fed them to the logs table
+ * through the Engine broker_sink) never run. This reproduces the exact same
+ * output text and stores it the same way (msg_type OTHER, resolved from the
+ * cache), so the GUI event log keeps showing downtime alerts. Called only at
+ * the in-effect boundary (depth 0<->1), like Engine.
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id; 0 designates a host.
+ * @param action     The lifecycle transition (started/stopped/cancelled).
+ */
+void broker_downtime_callbacks::_publish_downtime_log(uint64_t host_id,
+                                                      uint64_t service_id,
+                                                      downtime_alert action) {
+  auto& cache = config::applier::state::instance().cache();
+  auto h = cache.host(host_id);
+  if (!h)
+    return;
+
+  std::string output;
+  if (service_id == 0) {
+    std::string_view name = h->obj().name();
+    switch (action) {
+      case downtime_alert::started:
+        output = fmt::format(
+            "HOST DOWNTIME ALERT: {};STARTED; Host has entered a period of "
+            "scheduled downtime",
+            name);
+        break;
+      case downtime_alert::stopped:
+        output = fmt::format(
+            "HOST DOWNTIME ALERT: {};STOPPED; Host has exited from a period of "
+            "scheduled downtime",
+            name);
+        break;
+      case downtime_alert::cancelled:
+        output = fmt::format(
+            "HOST DOWNTIME ALERT: {};CANCELLED; Scheduled downtime for host "
+            "has "
+            "been cancelled.",
+            name);
+        break;
+    }
+  } else {
+    auto s = cache.service(host_id, service_id);
+    if (!s)
+      return;
+    std::string_view hn = s->obj().host_name();
+    std::string_view desc = s->obj().description();
+    switch (action) {
+      case downtime_alert::started:
+        output = fmt::format(
+            "SERVICE DOWNTIME ALERT: {};{};STARTED; Service has entered a "
+            "period of scheduled downtime",
+            hn, desc);
+        break;
+      case downtime_alert::stopped:
+        output = fmt::format(
+            "SERVICE DOWNTIME ALERT: {};{};STOPPED; Service has exited from a "
+            "period of scheduled downtime",
+            hn, desc);
+        break;
+      case downtime_alert::cancelled:
+        output = fmt::format(
+            "SERVICE DOWNTIME ALERT: {};{};CANCELLED; Scheduled downtime for "
+            "service has been cancelled.",
+            hn, desc);
+        break;
+    }
+  }
+
+  auto le = std::make_shared<neb::pb_log_entry>();
+  auto& obj = le->mut_obj();
+  obj.set_ctime(time(nullptr));
+  obj.set_instance_name(cache.instance_name(h->obj().instance_id()));
+  obj.set_output(output);
+  obj.set_msg_type(LogEntry_MsgType_OTHER);
+  multiplexing::publisher pblshr;
+  pblshr.write(le);
 }
 
 /**
@@ -397,6 +486,10 @@ void broker_downtime_callbacks::start_downtime_effect(
   int32_t depth = config::applier::state::instance().cache().add_downtime(
       host_id, service_id);
   _publish_downtime_depth(host_id, service_id, depth);
+  /* Log the alert only when the resource just entered downtime (0->1), like
+   * Engine's engine_downtime_callbacks. */
+  if (depth == 1)
+    _publish_downtime_log(host_id, service_id, downtime_alert::started);
 }
 
 /**
@@ -420,6 +513,10 @@ void broker_downtime_callbacks::end_downtime_effect(
   int32_t depth = config::applier::state::instance().cache().remove_downtime(
       host_id, service_id);
   _publish_downtime_depth(host_id, service_id, depth);
+  /* Log the alert only when the resource just left downtime (->0), like Engine.
+   */
+  if (depth == 0)
+    _publish_downtime_log(host_id, service_id, downtime_alert::stopped);
   if (!is_fixed && incremented_pending) {
     absl::WriterMutexLock l{&_pending_flex_m};
     auto it = _pending_flex_downtimes.find({host_id, service_id});
@@ -460,6 +557,10 @@ bool broker_downtime_callbacks::cancel_downtime(uint64_t host_id,
     int32_t depth = config::applier::state::instance().cache().remove_downtime(
         host_id, service_id);
     _publish_downtime_depth(host_id, service_id, depth);
+    /* Log the cancellation only when the resource just left downtime (->0),
+     * like Engine. */
+    if (depth == 0)
+      _publish_downtime_log(host_id, service_id, downtime_alert::cancelled);
   }
   return true;
 }
@@ -533,11 +634,12 @@ void broker_downtime_callbacks::notify_broker(action act,
                                    : Downtime_DowntimeType_SERVICE);
       /* A LOAD reloads a downtime that was already in effect when persisted
        * (broker_state only saves is_in_effect() downtimes, and reload() sets it
-       * in effect again), so it must be published as started: no START follows a
-       * LOAD. Publishing started=false here would make consumers (e.g. BAM KPIs,
-       * via kpi_service::service_update) see the service as not in downtime and,
-       * for a BA, cancel its inherited downtime on broker restart. An ADD is a
-       * brand-new downtime not started yet; a START event will follow. */
+       * in effect again), so it must be published as started: no START follows
+       * a LOAD. Publishing started=false here would make consumers (e.g. BAM
+       * KPIs, via kpi_service::service_update) see the service as not in
+       * downtime and, for a BA, cancel its inherited downtime on broker
+       * restart. An ADD is a brand-new downtime not started yet; a START event
+       * will follow. */
       bool loaded = (act == LOAD);
       obj.set_started(loaded);
       obj.set_cancelled(false);
@@ -555,8 +657,7 @@ void broker_downtime_callbacks::notify_broker(action act,
         pb_dt->mut_obj().set_started(true);
         pb_dt->mut_obj().set_actual_start_time(time(nullptr));
       } else if (act == STOP) {
-        pb_dt->mut_obj().set_cancelled(attr ==
-                                       attribute::ATTR_STOP_CANCELLED);
+        pb_dt->mut_obj().set_cancelled(attr == attribute::ATTR_STOP_CANCELLED);
         pb_dt->mut_obj().set_actual_end_time(time(nullptr));
         pb_dt->mut_obj().set_deletion_time(time(nullptr));
         _downtimes.erase(it);

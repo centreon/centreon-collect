@@ -915,6 +915,8 @@ class broker_cache {
       uint64_t host_id,
       uint64_t dependent_service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   uint32_t first_active_instance_id() const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::string instance_name(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<uint64_t> service_ids_for_host(uint64_t host_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   int32_t add_downtime(uint64_t host_id, uint64_t service_id)
