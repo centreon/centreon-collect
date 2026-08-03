@@ -779,6 +779,48 @@ def ctn_truncate_resource_host_service():
             cursor.execute("DELETE FROM services")
 
 
+def ctn_check_log_entry_in_db(output: str, ctime, msg_type=None, timeout: int = TIMEOUT):
+    """
+    Wait until a row appears in the storage `logs` table whose `output` column
+    equals `output` and whose `ctime` is >= the given `ctime`, optionally also
+    matching `msg_type`. Used to validate the event-log lines written to the DB
+    (the GUI monitoring log), independently of who produced them (Engine or
+    Broker).
+
+    Args:
+        output (str): the exact `output` value to look for.
+        ctime: minimum ctime (epoch seconds); older rows are ignored.
+        msg_type: optional LogEntry msg_type to also match (int), or None.
+        timeout (int): how long to wait, in seconds.
+
+    Returns:
+        True if such a row appeared within the timeout, False otherwise.
+    """
+    ct = int(float(ctime))
+    query = "SELECT COUNT(*) AS c FROM logs WHERE output=%s AND ctime>=%s"
+    params = [output, ct]
+    if msg_type is not None:
+        query += " AND msg_type=%s"
+        params.append(int(msg_type))
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+                if row is not None and row['c'] > 0:
+                    return True
+        time.sleep(1)
+    return False
+
+
 def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:

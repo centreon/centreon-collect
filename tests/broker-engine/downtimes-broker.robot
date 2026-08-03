@@ -337,6 +337,46 @@ BEBDRRD1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+DT_LOG_BROKER
+    [Documentation]    notification_mode=broker: a host+service downtime handled by Broker (via gRPC) writes the SAME DOWNTIME ALERT STARTED and CANCELLED lines to the storage logs table as Engine does (see DT_LOG_ENGINE in downtimes.robot).
+    [Tags]    broker    engine    downtime    log    broker_downtime    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Wait For Broker Downtime Manager    ${start}
+
+    ${dt_id}    Ctn Broker Schedule Host Downtime    host_1    ${3600}
+
+    ${r}    Ctn Check Log Entry In Db
+    ...    HOST DOWNTIME ALERT: host_1;STARTED; Host has entered a period of scheduled downtime    ${start}    ${5}    60
+    Should Be True    ${r}    Broker did not write the host STARTED downtime line to the logs table
+    ${r}    Ctn Check Log Entry In Db
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;STARTED; Service has entered a period of scheduled downtime    ${start}    ${5}    60
+    Should Be True    ${r}    Broker did not write the service STARTED downtime line to the logs table
+
+    Ctn Broker Delete Downtime    ${dt_id}
+
+    ${r}    Ctn Check Log Entry In Db
+    ...    HOST DOWNTIME ALERT: host_1;CANCELLED; Scheduled downtime for host has been cancelled.    ${start}    ${5}    60
+    Should Be True    ${r}    Broker did not write the host CANCELLED downtime line to the logs table
+    ${r}    Ctn Check Log Entry In Db
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;CANCELLED; Scheduled downtime for service has been cancelled.    ${start}    ${5}    60
+    Should Be True    ${r}    Broker did not write the service CANCELLED downtime line to the logs table
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 *** Keywords ***
 Ctn Wait For Broker Downtime Manager
     [Documentation]    Wait until Broker has loaded its downtime_manager

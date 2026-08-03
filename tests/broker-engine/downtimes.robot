@@ -575,6 +575,44 @@ BEDTRRD1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+DT_LOG_ENGINE
+    [Documentation]    Reference (notification_mode=engine): a host+service downtime writes the DOWNTIME ALERT STARTED and CANCELLED lines to the storage logs table (the GUI monitoring log).
+    [Tags]    broker    engine    downtime    log    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    debug
+
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
+
+    ${r}    Ctn Check Log Entry In Db
+    ...    HOST DOWNTIME ALERT: host_1;STARTED; Host has entered a period of scheduled downtime    ${start}    ${5}    60
+    Should Be True    ${r}    The host STARTED downtime line did not reach the logs table
+    ${r}    Ctn Check Log Entry In Db
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;STARTED; Service has entered a period of scheduled downtime    ${start}    ${5}    60
+    Should Be True    ${r}    The service STARTED downtime line did not reach the logs table
+
+    Ctn Delete Host Downtimes    ${0}    host_1
+
+    ${r}    Ctn Check Log Entry In Db
+    ...    HOST DOWNTIME ALERT: host_1;CANCELLED; Scheduled downtime for host has been cancelled.    ${start}    ${5}    60
+    Should Be True    ${r}    The host CANCELLED downtime line did not reach the logs table
+    ${r}    Ctn Check Log Entry In Db
+    ...    SERVICE DOWNTIME ALERT: host_1;service_1;CANCELLED; Scheduled downtime for service has been cancelled.    ${start}    ${5}    60
+    Should Be True    ${r}    The service CANCELLED downtime line did not reach the logs table
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 
 *** Keywords ***
 Ctn Clean Downtimes Before Suite
