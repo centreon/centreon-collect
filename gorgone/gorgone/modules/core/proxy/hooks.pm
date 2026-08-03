@@ -450,6 +450,8 @@ sub check {
 
     # We check synclog/ping/ping request timeout 
     foreach (keys %$synctime_nodes) {
+        next if $_ ne $synctime_nodes->{$_}->{id};
+
         if ($register_nodes->{$_}->{type} =~ /^(?:pull|wss|pullwss)$/ && $constatus_ping->{$_}->{in_progress_ping} == 1) {
             my $ping_timeout = defined($register_nodes->{$_}->{ping_timeout}) ? $register_nodes->{$_}->{ping_timeout} : 30;
             if ((time() - $constatus_ping->{$_}->{in_progress_ping_pull}) > $ping_timeout) {
@@ -744,6 +746,7 @@ sub ping_send {
     $nodes_id = [$options{node_id}] if (defined($options{node_id}));
     my $current_time = time();
     foreach my $id (@$nodes_id) {
+        next if $id ne $register_nodes->{$id}->{id};
 
         next if ($constatus_ping->{$id}->{in_progress_ping} == 1 || $current_time < $constatus_ping->{$id}->{next_ping});
 
@@ -774,6 +777,7 @@ sub full_sync_history {
     my (%options) = @_;
     
     foreach my $id (keys %{$register_nodes}) {
+        next if ($id ne $register_nodes->{$id}->{id}); # register_node contain one key per id and one per uid for each poller.
         if ($register_nodes->{$id}->{type} eq 'push_zmq') {
             routing(action => 'GETLOG', target => $id, frame => gorgone::class::frame->new(data => {}), gorgone => $options{gorgone}, dbh => $options{dbh}, logger => $options{logger});
         } elsif ($register_nodes->{$id}->{type} =~ /^(?:pull|wss|pullwss)$/) {
