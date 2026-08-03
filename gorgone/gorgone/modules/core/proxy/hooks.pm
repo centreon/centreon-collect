@@ -744,6 +744,7 @@ sub ping_send {
     $nodes_id = [$options{node_id}] if (defined($options{node_id}));
     my $current_time = time();
     foreach my $id (@$nodes_id) {
+        next if $id eq $register_nodes->{$id}->{id};
 
         next if ($constatus_ping->{$id}->{in_progress_ping} == 1 || $current_time < $constatus_ping->{$id}->{next_ping});
 
