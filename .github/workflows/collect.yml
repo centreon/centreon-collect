@@ -391,7 +391,7 @@ jobs:
 
       - name: Restore packages
         id: restore-packages
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-amd64-${{ github.head_ref || github.ref_name }}
@@ -476,14 +476,14 @@ jobs:
 
       - name: Restore amd64 packages
         id: restore-amd64
-        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
 
       - name: Restore arm64 packages
         id: restore-arm64
-        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
