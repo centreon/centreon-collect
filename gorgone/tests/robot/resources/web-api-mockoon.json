@@ -237,10 +237,10 @@
       "responses": [
         {
           "uuid": "63de4aa2-3cc2-4939-8043-cd4ad5d49c95",
-          "body": "{\n  \"name\": \"poller-1\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "body": "{\n  \"name\": \"poller-ok-expdate\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
           "latency": 0,
           "statusCode": 200,
-          "label": "poller-1",
+          "label": "poller-ok-expdate",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -250,7 +250,7 @@
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-1",
+              "value": "poller-ok-expdate",
               "invert": false,
               "operator": "equals"
             }
@@ -263,11 +263,11 @@
           "callbacks": []
         },
         {
-          "uuid": "47ad8f64-2726-4988-b211-4237cacb390d",
-          "body": "{\n  \"name\": \"poller-2\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": true,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "uuid": "1c9fe405-8cdc-44bb-8f8f-dd35664392c9",
+          "body": "{\n  \"name\": \"poller-ok-noexpdate\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": null,\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
           "latency": 0,
           "statusCode": 200,
-          "label": "poller-2",
+          "label": "poller-ok-noexpdate",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -277,7 +277,61 @@
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-2",
+              "value": "poller-ok-noexpdate",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "47ad8f64-2726-4988-b211-4237cacb390d",
+          "body": "{\n  \"name\": \"poller-revoked-expdate\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": true,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "poller-revoked-expdate",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-revoked-expdate",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "d9edc4f2-760f-401b-b523-ee46fe137372",
+          "body": "{\n  \"name\": \"poller-revoked-noexpdate\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": null,\n  \"type\": \"poller\",\n  \"is_revoked\": true,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "poller-revoked-noexpdate",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-revoked-noexpdate",
               "invert": false,
               "operator": "equals"
             }
@@ -291,10 +345,10 @@
         },
         {
           "uuid": "f5b5c6ca-166c-491d-8d49-5434e26590c8",
-          "body": "{\n  \"name\": \"poller-4\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.recent'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "body": "{\n  \"name\": \"poller-expired\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.recent'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
           "latency": 0,
           "statusCode": 200,
-          "label": "poller-3",
+          "label": "poller-expired",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -304,7 +358,7 @@
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-3",
+              "value": "poller-expired",
               "invert": false,
               "operator": "equals"
             }
@@ -318,10 +372,10 @@
         },
         {
           "uuid": "a878a73d-33b2-4818-8f8b-93c822f3ab57",
-          "body": "{\n  \"name\": \"poller-4\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{getGlobalVar 'expired'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": {{getGlobalVar 'revoked'}},\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "body": "{\n  \"name\": \"poller-config\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{getGlobalVar 'expired'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": {{getGlobalVar 'revoked'}},\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
           "latency": 0,
           "statusCode": 200,
-          "label": "poller-4",
+          "label": "poller-config",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -331,7 +385,7 @@
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-4",
+              "value": "poller-config",
               "invert": false,
               "operator": "equals"
             }
@@ -385,28 +439,42 @@
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-1",
+              "value": "poller-ok-expdate",
               "invert": true,
               "operator": "equals"
             },
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-2",
+              "value": "poller-ok-noexpdate",
               "invert": true,
               "operator": "equals"
             },
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-3",
+              "value": "poller-revoked-expdate",
               "invert": true,
               "operator": "equals"
             },
             {
               "target": "params",
               "modifier": "tokenName",
-              "value": "poller-4",
+              "value": "poller-revoked-noexpdate",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-expired",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-config",
               "invert": true,
               "operator": "equals"
             },
@@ -435,7 +503,7 @@
       "type": "http",
       "documentation": "",
       "method": "put",
-      "endpoint": "set-poller-4-is-revoked/:revoked",
+      "endpoint": "set-poller-config-is-revoked/:revoked",
       "responses": [
         {
           "uuid": "2c070a93-177c-42b7-9bfd-c8694bd2b168",
@@ -466,11 +534,11 @@
       "type": "http",
       "documentation": "",
       "method": "put",
-      "endpoint": "set-poller-4-is-expired/:expired",
+      "endpoint": "set-poller-config-is-expired/:expired",
       "responses": [
         {
           "uuid": "6b3bc02d-ad54-4154-87ff-bf87e7aee8e5",
-          "body": "{{#if (eq (urlParam 'expired') 'true')}}\n  {{setGlobalVar 'expired' (faker 'date.recent')}}\n{{else}}\n  {{setGlobalVar 'expired' (faker 'date.future')}}\n{{/if}}\n{\n  \"expired\": \"{{getGlobalVar 'expired'}}\"\n}",
+          "body": "{{#if (eq (urlParam 'expired') 'true')}}\n  {{setGlobalVar 'expired' (faker 'date.recent')}}\n{{else if (eq (urlParam 'expired') 'false')}}\n  {{setGlobalVar 'expired' (faker 'date.future')}}\n{{else}}\n  {{setGlobalVar 'expired' null}}\n{{/if}}\n{\n  \"expired\": \"{{getGlobalVar 'expired'}}\"\n}",
           "latency": 0,
           "statusCode": 200,
           "label": "",
