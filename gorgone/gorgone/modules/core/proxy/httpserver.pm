@@ -212,7 +212,9 @@ sub run {
                 if ($status != 0
                     || !defined($results->{token})
                     || $results->{is_revoked}
-                    || str2time($results->{expiration_date}) < time()) {
+                    || (defined($results->{expiration_date})
+                    && $results->{expiration_date} ne ''
+                    && str2time($results->{expiration_date}) < time())) {
                         $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token: ' . $token_name);
                         $connector->{ws_clients}->{$ws_id}->{logged} = 0;
                         $self->close_websocket(
@@ -497,7 +499,9 @@ sub is_logged_websocket {
             if ($results->{token} ne $token_value
                 || $results->{type} ne "poller"
                 || $results->{is_revoked} == 1
-                || str2time($results->{expiration_date}) < time()) {
+                || (defined($results->{expiration_date})
+                && $results->{expiration_date} ne ''
+                && str2time($results->{expiration_date}) < time())) {
                 $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token - ' . $token_name);
                 $self->close_websocket(
                     code    => 500,
