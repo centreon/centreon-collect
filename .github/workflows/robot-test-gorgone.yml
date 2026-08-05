@@ -49,6 +49,12 @@ jobs:
         with:
           distrib: ${{ inputs.distrib }}
 
+      - name: Compute Docker tag
+        id: docker-tag
+        uses: ./.github/actions/compute-docker-tag
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
       - name: Restore gorgone image from cache
         id: cache-docker
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -56,7 +62,7 @@ jobs:
         timeout-minutes: 6
         with:
           path: ./docker-image
-          key: docker-image-gorgone-testing-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
+          key: docker-image-gorgone-testing-${{ inputs.distrib }}-${{ steps.docker-tag.outputs.tag }}
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
 
@@ -64,7 +70,7 @@ jobs:
         if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
         env:
           DISTRIB: ${{ inputs.distrib }}
-          IMAGE_TAG: ${{ github.head_ref || github.ref_name }}
+          IMAGE_TAG: ${{ steps.docker-tag.outputs.tag }}
           REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
         run: |
           docker load --input "./docker-image/gorgone-testing-$DISTRIB.tar"
@@ -84,7 +90,7 @@ jobs:
 
       - name: ${{ format('Test {0}', matrix.feature) }}
         env:
-          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }}
+          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ steps.docker-tag.outputs.tag }}
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
           docker compose -f ./.github/docker/docker-compose.yml up --exit-code-from gorgone
@@ -94,7 +100,7 @@ jobs:
       - name: Get gorgone container logs
         if: failure()
         env:
-          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }}
+          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ steps.docker-tag.outputs.tag }}
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
           FEATURE_NAME_WITH_DASH: ${{ steps.feature-path.outputs.feature_name_with_dash }}
         run: |
