@@ -389,6 +389,12 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
 
+      - name: Compute Docker tag
+        id: docker-tag
+        uses: ./.github/actions/compute-docker-tag
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
       - name: Restore packages
         id: restore-packages
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -435,7 +441,7 @@ jobs:
           pull: true
           push: true
           load: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.project }}-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.project }}-${{ matrix.distrib }}:${{ steps.docker-tag.outputs.tag }}
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
