@@ -536,7 +536,6 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
-          DEVELOP_MAJOR_VERSION: ${{ steps.latest_major_version.outputs.latest_major_version }}
           CURRENT_MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
           EVENT_NAME: ${{ github.event_name }}
           PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
@@ -549,15 +548,11 @@ jobs:
             const baseRef = process.env.GITHUB_BASE_REF; // only set for pull_request
             const isNightly = process.env.IS_NIGHTLY;
 
-            const developMajorVersion = process.env.DEVELOP_MAJOR_VERSION;
             const currentMajorVersion = process.env.CURRENT_MAJOR_VERSION;
-            // if major version is higher than develop major version => it is a cloud version
             // if month number is not 10 => it is a cloud version
             // anything else => onprem
             const isCloudCandidate =
-              Number(currentMajorVersion) >= Number(developMajorVersion) ||
               !currentMajorVersion.match(/\.10$/);
-
             let releaseScope = "unknown";
 
             // in a nightly context, whatever the event_name is, the release context does not matter
