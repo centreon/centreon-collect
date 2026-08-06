@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /home/soufiane/workspace/ws99/centreon -iname \"*bam*\" -maxdepth 4 -type d 2>/dev/null | head -30)",
+      "Read(//home/soufiane/workspace/ws99/centreon/**)"
+    ]
+  }
+}

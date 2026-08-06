@@ -651,6 +651,8 @@ void parser::_parse_endpoint(const json& elem,
         module = "70-influxdb.so";
       else if (e.type == "victoria_metrics")
         module = "70-victoria_metrics.so";
+      else if (e.type == "otlp")
+        module = "70-otlp.so";
       else if (e.type == "event_script")
         module = "80-event_script.so";
       else if (e.type == "grpc")
