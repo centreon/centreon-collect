@@ -72,6 +72,82 @@ broker_cache::~broker_cache() noexcept {
 }
 
 /**
+ * @brief Swap the hostgroup stored at @a found for @a replacement.
+ *
+ * Cached hostgroups must never be modified in place: the getters hand out the
+ * stored `shared_ptr` and readers keep using it after having released the
+ * mutex, so mutating the pointee would be a data race. Callers therefore clone
+ * the group, apply their changes to the clone, and hand it over here.
+ *
+ * Two containers alias the same `pb_host_group`: `_hostgroups` owns it and
+ * `_host_hostgroups` references it for each member host. Both are rebound here,
+ * otherwise readers of the relations would keep seeing the previous version of
+ * the group.
+ *
+ * `modify()` recomputes the keys of every index, so a renaming is correctly
+ * reflected in the `by_name` index. Should the new name collide with another
+ * group, the rollback restores the previous pointer and the element stays in
+ * the container.
+ *
+ * @param found       Iterator, in the `by_id` index, of the group to replace.
+ * @param replacement The new version of the group. Its ID must be unchanged.
+ *
+ * @return True on success, false if the replacement violates a uniqueness
+ *         constraint, in which case the cache is left untouched.
+ */
+bool broker_cache::_replace_hostgroup(
+    HostgroupContainer::index<by_id>::type::iterator found,
+    const std::shared_ptr<neb::pb_host_group>& replacement) {
+  auto previous = found->first;
+  if (!_hostgroups.get<by_id>().modify(
+          found, [&replacement](auto& p) { p.first = replacement; },
+          [&previous](auto& p) { p.first = previous; }))
+    return false;
+
+  /* The hostgroup ID is unchanged, so no key of _host_hostgroups is impacted
+   * and these modify() calls cannot fail. */
+  auto& by_hg = _host_hostgroups.get<by_hostgroup>();
+  auto [lower, upper] = by_hg.equal_range(replacement->obj().hostgroup_id());
+  for (auto it = lower; it != upper; ++it)
+    by_hg.modify(it, [&replacement](indexed_host_hostgroup& hh) {
+      hh.hostgroup = replacement;
+    });
+  return true;
+}
+
+/**
+ * @brief Swap the servicegroup stored at @a found for @a replacement.
+ *
+ * Servicegroup counterpart of _replace_hostgroup(); see its documentation for
+ * the rationale. The aliasing container is `_service_servicegroups` here.
+ *
+ * @param found       Iterator, in the `by_id` index, of the group to replace.
+ * @param replacement The new version of the group. Its ID must be unchanged.
+ *
+ * @return True on success, false if the replacement violates a uniqueness
+ *         constraint, in which case the cache is left untouched.
+ */
+bool broker_cache::_replace_servicegroup(
+    ServicegroupContainer::index<by_id>::type::iterator found,
+    const std::shared_ptr<neb::pb_service_group>& replacement) {
+  auto previous = found->first;
+  if (!_servicegroups.get<by_id>().modify(
+          found, [&replacement](auto& p) { p.first = replacement; },
+          [&previous](auto& p) { p.first = previous; }))
+    return false;
+
+  /* The servicegroup ID is unchanged, so no key of _service_servicegroups is
+   * impacted and these modify() calls cannot fail. */
+  auto& by_sg = _service_servicegroups.get<by_servicegroup>();
+  auto [lower, upper] = by_sg.equal_range(replacement->obj().servicegroup_id());
+  for (auto it = lower; it != upper; ++it)
+    by_sg.modify(it, [&replacement](indexed_service_servicegroup& ssg) {
+      ssg.servicegroup = replacement;
+    });
+  return true;
+}
+
+/**
  * @brief Merge a configuration state into the cache. Used when a poller
  * established a connection to Broker (i.e. when a `pb_engine_state` event is
  * received).
@@ -150,22 +226,27 @@ void broker_cache::merge(
         std::tie(found, inserted) = hg_index.emplace(
             hostgroup, absl::flat_hash_set<uint64_t>{hg_poller_id});
       } else {
-        /* We can const_cast because keys of the multiindex are in found->first,
-         * we don't change found->first here even if the hostgroup changed. */
-        if (found->first->obj().name() != hg.hostgroup_name()) {
-          auto extracted = std::move(
-              const_cast<std::pair<std::shared_ptr<neb::pb_host_group>,
-                                   absl::flat_hash_set<uint64_t>>&>(*found));
-          hg_index.erase(found);
-          extracted.first->mut_obj().set_name(hg.hostgroup_name());
-          /* erase() invalidated found: rebind it to the reinserted node. */
-          std::tie(found, inserted) = hg_index.insert(std::move(extracted));
+        /* The stored group is shared with readers that no longer hold the
+         * mutex: clone it, change the clone, then swap. Pollers largely declare
+         * the same groups, so the clone is skipped when the cached group
+         * already carries the expected values. */
+        auto current = found->first;
+        if (current->obj().name() != hg.hostgroup_name() ||
+            current->obj().alias() != hg.alias() || !current->obj().enabled()) {
+          auto hostgroup = std::make_shared<neb::pb_host_group>(*current);
+          auto& obj = hostgroup->mut_obj();
+          obj.set_name(hg.hostgroup_name());
+          obj.set_enabled(true);
+          obj.set_alias(hg.alias());
+          if (!_replace_hostgroup(found, hostgroup))
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "Failed to rename host group {} to '{}': another host group "
+                "already uses this name",
+                hg.hostgroup_id(), hg.hostgroup_name());
         }
-        auto& obj = const_cast<HostGroup&>(found->first->mut_obj());
-        obj.set_enabled(true);
-        obj.set_alias(hg.alias());
-        /* Bound after the possible rename: a reference taken before the
-         * erase()/insert() round-trip would dangle. */
+        /* The poller set belongs to the container node and never escapes, so
+         * the mutex alone protects it. */
         absl::flat_hash_set<uint64_t>& set =
             const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
         set.insert(hg_poller_id);
@@ -219,7 +300,7 @@ void broker_cache::merge(
     for (const auto& sg : state.servicegroups()) {
       const uint64_t sg_poller_id =
           sg.poller_id() != 0 ? sg.poller_id() : state.poller_id();
-      auto found = _servicegroups.find(sg.servicegroup_id());
+      auto found = sg_index.find(sg.servicegroup_id());
       bool inserted = false;
       if (found == sg_index.end()) {
         auto servicegroup = std::make_shared<neb::pb_service_group>();
@@ -227,23 +308,27 @@ void broker_cache::merge(
         std::tie(found, inserted) = sg_index.emplace(
             servicegroup, absl::flat_hash_set<uint64_t>{sg_poller_id});
       } else {
-        /* We can const_cast because keys of the multiindex are in found->first,
-         * we don't change found->first here even if the servicegroup changed.
-         */
-        if (found->first->obj().name() != sg.servicegroup_name()) {
-          auto extracted = std::move(
-              const_cast<std::pair<std::shared_ptr<neb::pb_service_group>,
-                                   absl::flat_hash_set<uint64_t>>&>(*found));
-          sg_index.erase(found);
-          extracted.first->mut_obj().set_name(sg.servicegroup_name());
-          /* erase() invalidated found: rebind it to the reinserted node. */
-          std::tie(found, inserted) = sg_index.insert(std::move(extracted));
+        /* The stored group is shared with readers that no longer hold the
+         * mutex: clone it, change the clone, then swap. Pollers largely declare
+         * the same groups, so the clone is skipped when the cached group
+         * already carries the expected values. */
+        auto current = found->first;
+        if (current->obj().name() != sg.servicegroup_name() ||
+            current->obj().alias() != sg.alias() || !current->obj().enabled()) {
+          auto servicegroup = std::make_shared<neb::pb_service_group>(*current);
+          auto& obj = servicegroup->mut_obj();
+          obj.set_name(sg.servicegroup_name());
+          obj.set_enabled(true);
+          obj.set_alias(sg.alias());
+          if (!_replace_servicegroup(found, servicegroup))
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "Failed to rename service group {} to '{}': another service "
+                "group already uses this name",
+                sg.servicegroup_id(), sg.servicegroup_name());
         }
-        auto& obj = const_cast<ServiceGroup&>(found->first->mut_obj());
-        obj.set_enabled(true);
-        obj.set_alias(sg.alias());
-        /* Bound after the possible rename: a reference taken before the
-         * erase()/insert() round-trip would dangle. */
+        /* The poller set belongs to the container node and never escapes, so
+         * the mutex alone protects it. */
         absl::flat_hash_set<uint64_t>& set =
             const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
         set.insert(sg_poller_id);
@@ -467,13 +552,28 @@ void broker_cache::apply(
       std::tie(found, inserted) = hg_index.emplace(
           hostgroup, absl::flat_hash_set<uint64_t>{hg.poller_id()});
     } else {
-      auto extracted = hg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(hg.hostgroup_name());
-      obj.set_alias(hg.alias());
-      set.insert(hg.poller_id());
-      hg_index.insert(std::move(extracted));
+      /* The stored group is shared with readers that no longer hold the mutex:
+       * clone it, change the clone, then swap. Doing it through
+       * _replace_hostgroup() also keeps found valid, which an extract()
+       * round-trip would not. The clone is skipped when the cached group
+       * already carries the expected values, which is the common case when
+       * many pollers declare the same groups. */
+      auto current = found->first;
+      if (current->obj().name() != hg.hostgroup_name() ||
+          current->obj().alias() != hg.alias()) {
+        auto hostgroup = std::make_shared<neb::pb_host_group>(*current);
+        auto& obj = hostgroup->mut_obj();
+        obj.set_name(hg.hostgroup_name());
+        obj.set_alias(hg.alias());
+        if (!_replace_hostgroup(found, hostgroup))
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "Failed to rename host group {} to '{}': another host group "
+              "already uses this name",
+              hg.hostgroup_id(), hg.hostgroup_name());
+      }
+      const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
+          .insert(hg.poller_id());
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
@@ -664,7 +764,7 @@ void broker_cache::apply(
   /* Work on servicegroups */
   auto feed_servicegroup = [&](const engine::configuration::Servicegroup& sg,
                                bool add) ABSL_NO_THREAD_SAFETY_ANALYSIS {
-    auto& sg_index = _servicegroups;
+    auto& sg_index = _servicegroups.get<by_id>();
     auto found = sg_index.find(sg.servicegroup_id());
     if (found == sg_index.end()) {
       auto servicegroup = std::make_shared<neb::pb_service_group>();
@@ -680,13 +780,28 @@ void broker_cache::apply(
       std::tie(found, inserted) = sg_index.emplace(
           servicegroup, absl::flat_hash_set<uint64_t>{sg.poller_id()});
     } else {
-      auto extracted = sg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(sg.servicegroup_name());
-      obj.set_alias(sg.alias());
-      set.insert(sg.poller_id());
-      sg_index.insert(std::move(extracted));
+      /* The stored group is shared with readers that no longer hold the mutex:
+       * clone it, change the clone, then swap. Doing it through
+       * _replace_servicegroup() also keeps found valid, which an extract()
+       * round-trip would not. The clone is skipped when the cached group
+       * already carries the expected values, which is the common case when
+       * many pollers declare the same groups. */
+      auto current = found->first;
+      if (current->obj().name() != sg.servicegroup_name() ||
+          current->obj().alias() != sg.alias()) {
+        auto servicegroup = std::make_shared<neb::pb_service_group>(*current);
+        auto& obj = servicegroup->mut_obj();
+        obj.set_name(sg.servicegroup_name());
+        obj.set_alias(sg.alias());
+        if (!_replace_servicegroup(found, servicegroup))
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "Failed to rename service group {} to '{}': another service "
+              "group already uses this name",
+              sg.servicegroup_id(), sg.servicegroup_name());
+      }
+      const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
+          .insert(sg.poller_id());
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
@@ -1090,14 +1205,26 @@ void broker_cache::update_servicegroup(
   if (servicegroup->obj().enabled()) {
     auto& sg_index = _servicegroups.get<by_id>();
     if (auto found = sg_index.find(sg_id); found != sg_index.end()) {
-      // The element already exists, we update it
-      auto extracted = sg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(servicegroup->obj().name());
-      obj.set_alias(servicegroup->obj().alias());
-      set.insert(servicegroup->obj().poller_id());
-      sg_index.insert(std::move(extracted));
+      /* The element already exists, we update it. The stored group is shared
+       * with readers that no longer hold the mutex: clone it, change the clone,
+       * then swap. Nothing to do when the cached group already carries the
+       * expected values. */
+      auto current = found->first;
+      if (current->obj().name() != servicegroup->obj().name() ||
+          current->obj().alias() != servicegroup->obj().alias()) {
+        auto sg = std::make_shared<neb::pb_service_group>(*current);
+        auto& obj = sg->mut_obj();
+        obj.set_name(servicegroup->obj().name());
+        obj.set_alias(servicegroup->obj().alias());
+        if (!_replace_servicegroup(found, sg))
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "Failed to rename service group {} to '{}': another service "
+              "group already uses this name",
+              sg_id, servicegroup->obj().name());
+      }
+      const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
+          .insert(servicegroup->obj().poller_id());
     } else {
       // The element is missing, we create it and insert it
       auto filled_servicegroup = std::make_shared<neb::pb_service_group>();
@@ -1150,23 +1277,29 @@ void broker_cache::update_hostgroup(
           hostgroup->obj().name(), hg_id);
       auto& pollers = const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
       pollers.insert(poller_id);
-      if (found->first->obj().name() != hostgroup->obj().name()) {
-        auto extracted = std::move(
-            const_cast<std::pair<std::shared_ptr<neb::pb_host_group>,
-                                 absl::flat_hash_set<uint64_t>>&>(*found));
-        hg_index.erase(found);
-        extracted.first->mut_obj().set_name(hostgroup->obj().name());
-        bool inserted;
-        std::tie(found, inserted) = hg_index.insert(std::move(extracted));
+      /* The stored group is shared with readers that no longer hold the mutex:
+       * clone it, change the clone, then swap. Nothing to do when the cached
+       * group already carries the expected values. */
+      auto current = found->first;
+      if (current->obj().name() != hostgroup->obj().name() ||
+          current->obj().alias() != hostgroup->obj().alias() ||
+          current->obj().enabled() != hostgroup->obj().enabled() ||
+          current->obj().poller_id() != 0) {
+        auto hg = std::make_shared<neb::pb_host_group>(*current);
+        HostGroup& obj = hg->mut_obj();
+        obj.set_hostgroup_id(hostgroup->obj().hostgroup_id());
+        obj.set_name(hostgroup->obj().name());
+        obj.set_enabled(hostgroup->obj().enabled());
+        /* The poller ID is not updated because a hostgroup can be linked to
+         * several pollers, so no sense to keep it or replace it. */
+        obj.set_poller_id(0);
+        obj.set_alias(hostgroup->obj().alias());
+        if (!_replace_hostgroup(found, hg))
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "Failed to rename host group {} to '{}': another "
+                              "host group already uses this name",
+                              hg_id, hostgroup->obj().name());
       }
-      HostGroup& obj = found->first->mut_obj();
-      obj.set_hostgroup_id(hostgroup->obj().hostgroup_id());
-      obj.set_name(hostgroup->obj().name());
-      obj.set_enabled(hostgroup->obj().enabled());
-      /* The poller ID is not updated because a hostgroup can be linked to
-       * several pollers, so no sense to keep it or replace it. */
-      obj.set_poller_id(0);
-      obj.set_alias(hostgroup->obj().alias());
     } else {
       // The element is missing, we create it and insert it
       SPDLOG_LOGGER_DEBUG(
@@ -1241,22 +1374,18 @@ void broker_cache::update_hostgroup_member(
       std::tie(found, inserted) =
           _hostgroups.insert({hg, absl::flat_hash_set<uint64_t>{poller_id}});
     }
-    auto [it, inserted2] =
-        _host_hostgroups.insert({hgm_obj.host_id(), found->first});
+    _host_hostgroups.insert({hgm_obj.host_id(), found->first});
 
-    assert(it->hostgroup->obj().hostgroup_id() == hgm_obj.hostgroup_id());
-    if (it->hostgroup->obj().name() != hgm_obj.name()) {
-      auto extracted = _hostgroups.extract(found);
-      std::string old_name = extracted.value().first->mut_obj().name();
-      extracted.value().first->mut_obj().set_name(hgm_obj.name());
-      auto result = _hostgroups.get<by_id>().insert(std::move(extracted));
-      if (!result.inserted) {
+    if (found->first->obj().name() != hgm_obj.name()) {
+      /* The stored group is shared with readers that no longer hold the mutex:
+       * clone it, change the clone, then swap. If another group already uses
+       * the new name, the cache keeps the previous one. */
+      auto hg = std::make_shared<neb::pb_host_group>(*found->first);
+      hg->mut_obj().set_name(hgm_obj.name());
+      if (!_replace_hostgroup(found, hg))
         SPDLOG_LOGGER_ERROR(
             _logger, "Failed to update the name of the host group {} to '{}'",
             hgm_obj.hostgroup_id(), hgm_obj.name());
-        extracted.value().first->mut_obj().set_name(std::move(old_name));
-        _hostgroups.get<by_id>().insert(std::move(extracted));
-      }
     }
   } else {
     _host_hostgroups.erase(key);
@@ -1301,23 +1430,19 @@ void broker_cache::update_servicegroup_member(
       std::tie(found, inserted) = _servicegroups.insert(
           {sg, absl::flat_hash_set<uint64_t>{sgm_obj.poller_id()}});
     }
-    auto [it, inserted2] = _service_servicegroups.insert(
+    _service_servicegroups.insert(
         {sgm_obj.host_id(), sgm_obj.service_id(), found->first});
-    assert(it->servicegroup->obj().servicegroup_id() ==
-           sgm_obj.servicegroup_id());
-    if (it->servicegroup->obj().name() != sgm_obj.name()) {
-      auto extracted = _servicegroups.extract(found);
-      std::string old_name = extracted.value().first->mut_obj().name();
-      extracted.value().first->mut_obj().set_name(sgm_obj.name());
-      auto result = _servicegroups.get<by_id>().insert(std::move(extracted));
-      if (!result.inserted) {
+    if (found->first->obj().name() != sgm_obj.name()) {
+      /* The stored group is shared with readers that no longer hold the mutex:
+       * clone it, change the clone, then swap. If another group already uses
+       * the new name, the cache keeps the previous one. */
+      auto sg = std::make_shared<neb::pb_service_group>(*found->first);
+      sg->mut_obj().set_name(sgm_obj.name());
+      if (!_replace_servicegroup(found, sg))
         SPDLOG_LOGGER_ERROR(
             _logger,
             "Failed to update the name of the service group {} to '{}'",
             sgm_obj.servicegroup_id(), sgm_obj.name());
-        extracted.value().first->mut_obj().set_name(std::move(old_name));
-        _servicegroups.get<by_id>().insert(std::move(extracted));
-      }
     }
   } else {
     _service_servicegroups.erase(key);

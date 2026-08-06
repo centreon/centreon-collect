@@ -532,6 +532,93 @@ TEST_F(BrokerCacheTest, UpdateHostgroupMemberWithoutHostgroup) {
   ASSERT_THAT(_cache->hostgroup_members(1), ::testing::ElementsAre(1u));
 }
 
+/**
+ * @brief A hostgroup is stored once but referenced twice: by _hostgroups and by
+ * the host/hostgroup relations. A rename must be visible through both, and
+ * through the by_name index.
+ */
+TEST_F(BrokerCacheTest, UpdateHostgroupRenameSeenThroughRelations) {
+  publish_hosts(1, 1, 1);
+
+  auto hgm = std::make_shared<neb::pb_host_group_member>();
+  {
+    auto& hgm_obj = hgm->mut_obj();
+    hgm_obj.set_hostgroup_id(1);
+    hgm_obj.set_host_id(1);
+    hgm_obj.set_name("hg1");
+    hgm_obj.set_poller_id(1);
+    hgm_obj.set_enabled(true);
+  }
+  _cache->update_hostgroup_member(hgm);
+
+  ASSERT_EQ(_cache->hostgroups(1).size(), 1u);
+  ASSERT_EQ(_cache->hostgroups(1)[0]->obj().name(), "hg1");
+
+  auto hg = std::make_shared<neb::pb_host_group>();
+  {
+    auto& obj = hg->mut_obj();
+    obj.set_hostgroup_id(1);
+    obj.set_name("hg1_renamed");
+    obj.set_alias("alias renamed");
+    obj.set_enabled(true);
+    obj.set_poller_id(1);
+  }
+  _cache->update_hostgroup(hg);
+
+  ASSERT_EQ(_cache->hostgroup(1)->obj().name(), "hg1_renamed");
+  /* The relations must not keep pointing at the previous version. */
+  ASSERT_EQ(_cache->hostgroups(1).size(), 1u);
+  ASSERT_EQ(_cache->hostgroups(1)[0]->obj().name(), "hg1_renamed");
+  ASSERT_EQ(_cache->hostgroups(1)[0]->obj().alias(), "alias renamed");
+  /* And the by_name index must have been re-keyed. */
+  ASSERT_TRUE(_cache->hostgroup("hg1_renamed"));
+  ASSERT_EQ(_cache->hostgroup("hg1_renamed")->obj().hostgroup_id(), 1u);
+  ASSERT_FALSE(_cache->hostgroup("hg1"));
+}
+
+/**
+ * @brief Renaming a hostgroup to a name already used by another one must be
+ * refused, leaving both groups untouched instead of dropping one of them.
+ */
+TEST_F(BrokerCacheTest, UpdateHostgroupMemberRenameCollision) {
+  publish_hosts(1, 1, 1);
+
+  const std::pair<uint64_t, std::string> groups[] = {{1, "hg1"}, {2, "hg2"}};
+  for (const auto& [hg_id, name] : groups) {
+    auto hgm = std::make_shared<neb::pb_host_group_member>();
+    auto& hgm_obj = hgm->mut_obj();
+    hgm_obj.set_hostgroup_id(hg_id);
+    hgm_obj.set_host_id(1);
+    hgm_obj.set_name(name);
+    hgm_obj.set_poller_id(1);
+    hgm_obj.set_enabled(true);
+    _cache->update_hostgroup_member(hgm);
+  }
+
+  ASSERT_EQ(_cache->hostgroups(1).size(), 2u);
+
+  /* Group 2 claims the name of group 1: the by_name index cannot hold both. */
+  auto hgm = std::make_shared<neb::pb_host_group_member>();
+  {
+    auto& hgm_obj = hgm->mut_obj();
+    hgm_obj.set_hostgroup_id(2);
+    hgm_obj.set_host_id(1);
+    hgm_obj.set_name("hg1");
+    hgm_obj.set_poller_id(1);
+    hgm_obj.set_enabled(true);
+  }
+  _cache->update_hostgroup_member(hgm);
+
+  /* Both groups are still there, with their original names. */
+  ASSERT_TRUE(_cache->hostgroup(1));
+  ASSERT_EQ(_cache->hostgroup(1)->obj().name(), "hg1");
+  ASSERT_TRUE(_cache->hostgroup(2));
+  ASSERT_EQ(_cache->hostgroup(2)->obj().name(), "hg2");
+  ASSERT_EQ(_cache->hostgroup("hg1")->obj().hostgroup_id(), 1u);
+  ASSERT_EQ(_cache->hostgroup("hg2")->obj().hostgroup_id(), 2u);
+  ASSERT_EQ(_cache->hostgroups(1).size(), 2u);
+}
+
 TEST_F(BrokerCacheTest, UpdateServicegroup) {
   publish_hosts(1, 1, 1);
   publish_services(1, 1, 1);
