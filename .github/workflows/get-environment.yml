@@ -549,10 +549,10 @@ jobs:
             const isNightly = process.env.IS_NIGHTLY;
 
             const currentMajorVersion = process.env.CURRENT_MAJOR_VERSION;
-            // Centreon versioning: even minor (e.g. .04, .10) => on-premise, odd minor => cloud/SaaS.
-            const currentMinor = Number(currentMajorVersion.split(".")[1]);
-            const isCloudCandidate = currentMinor % 2 !== 0;
-
+            // if month number is not 10 => it is a cloud version
+            // anything else => onprem
+            const isCloudCandidate =
+              !currentMajorVersion.match(/\.10$/);
             let releaseScope = "unknown";
 
             // in a nightly context, whatever the event_name is, the release context does not matter
