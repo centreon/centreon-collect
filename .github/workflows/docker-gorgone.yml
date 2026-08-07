@@ -10,11 +10,15 @@ on:
     branches:
       - develop
       - dev-[2-9][0-9].[0-9][0-9].x
+      - "release-[2-9][0-9].[0-9][0-9]-next"
+      - "hotfix-[2-9][0-9].[0-9][0-9]-next"
     paths:
       - '.github/docker/centreon-gorgone/**'
       - 'gorgone/**'
       - 'perl-libs/**'
       - '.github/workflows/docker-gorgone.yml'
+    tags:
+      - "centreon-gorgone-*"
   pull_request:
     paths:
       - '.github/docker/centreon-gorgone/**'
@@ -48,7 +52,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set package version and paths according to distrib
         run: |
@@ -94,6 +98,7 @@ jobs:
 
   dockerize:
     needs: [get-environment, package]
+    if: needs.get-environment.outputs.stability != 'stable'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -102,12 +107,17 @@ jobs:
     name: dockerize centreon-gorgone-${{ matrix.operating_system }}
     env:
       project: centreon-gorgone
+    # Matrix job outputs come from the last completed matrix leg; safe only while
+    # operating_system has a single value (trixie). Revisit if this matrix grows.
+    outputs:
+      image_tag: ${{ steps.compute-tag.outputs.tag }}
+      additional_tag: ${{ steps.compute-tag.outputs.additional_tag }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
@@ -120,7 +130,7 @@ jobs:
           distrib: ${{ matrix.operating_system }}
 
       - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.package_extension == 'rpm' && steps.parse-distrib.outputs.distrib_family || steps.parse-distrib.outputs.distrib_name }}
@@ -132,10 +142,10 @@ jobs:
         shell: bash
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Compute Docker tag
         id: compute-tag
@@ -161,7 +171,7 @@ jobs:
         shell: bash
 
       - name: Docker build and push
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         env:
           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
           DOCKER_BUILD_SUMMARY: false
@@ -178,7 +188,204 @@ jobs:
           push: true
           tags: |
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ steps.compute-tag.outputs.tag }}
-            ${{ steps.compute-tag.outputs.additional_tag != '' && format('{0}/centreon-gorgone-{1}:{2}', vars.DOCKER_INTERNAL_REGISTRY_URL, matrix.operating_system, steps.compute-tag.outputs.additional_tag) || '' }}
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
+  docker-boot-test:
+    needs: [get-environment, dockerize]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+        platform: [linux/amd64, linux/arm64]
+    name: docker boot test centreon-gorgone-${{ matrix.operating_system }} (${{ matrix.platform }})
+    env:
+      GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Set up QEMU
+        if: ${{ matrix.platform == 'linux/arm64' }}
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - name: Replace / with - in the platform name
+        id: platform-name
+        run: echo "dashed=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Pull image for ${{ matrix.platform }}
+        run: docker pull --platform "${{ matrix.platform }}" "$GORGONE_IMAGE"
+        shell: bash
+
+      - name: Run boot test
+        env:
+          IMAGE: ${{ env.GORGONE_IMAGE }}
+          PLATFORM: ${{ matrix.platform }}
+        run: ./.github/scripts/gorgone-docker-boot-test.sh
+        shell: bash
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: centreon-gorgone-boot-test-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/gorgone-boot-test.log
+          retention-days: 1
+
+  docker-config-wiring-test:
+    needs: [get-environment, dockerize]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: docker config/wiring test centreon-gorgone-${{ matrix.operating_system }}
+    env:
+      GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Pull image
+        run: docker pull --platform linux/amd64 "$GORGONE_IMAGE"
+        shell: bash
+
+      - name: Run config/wiring test scenarios
+        env:
+          IMAGE: ${{ env.GORGONE_IMAGE }}
+        run: ./.github/scripts/gorgone-docker-config-wiring-test.sh
+        shell: bash
+
+      - name: Dump compose logs on failure
+        if: failure()
+        run: docker compose -f .github/docker/centreon-gorgone/docker-compose.config-wiring-test.yml -p gorgone-config-wiring-test logs
+        shell: bash
+
+  promote-docker-tag:
+    needs: [get-environment, dockerize, docker-boot-test, docker-config-wiring-test]
+    if: |
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      needs.dockerize.outputs.additional_tag != ''
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: promote centreon-gorgone-${{ matrix.operating_system }} floating tag
+    steps:
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Promote floating tag (manifest retag, no rebuild)
+        run: |
+          docker buildx imagetools create \
+            --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.additional_tag }}" \
+            "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.image_tag }}"
+        shell: bash
+
+  promote-docker-to-pulp:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.stability == 'stable' &&
+      github.event_name != 'workflow_dispatch' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: promote centreon-gorgone-${{ matrix.operating_system }} to Pulp stable
+    # HARBOR_TAG reconstructs the release/hotfix branch name (<release_type>-<major_version>-next)
+    # that dockerize tagged the image with while that branch was 'testing'. release_type comes
+    # from the annotated component tag's message ("release ..."/"hotfix ...", see
+    # .github/actions/release-new/action.yml), not from this event's own ref.
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve release bundle tag
+        id: resolve-bundle-tag
+        # release-new (.github/actions/release-new) tags the release bundle
+        # (release-<cloud|onprem>-<YYYYMMDD>-<major>) on the same commit as
+        # this component's stable tag, so it's always among the tags pointing
+        # at HEAD here. Soft failure: no match just means no bundle tag to add.
+        run: |
+          BUNDLE_TAG=$(git tag --points-at HEAD | grep -E '^release-(cloud|onprem)-[0-9]{8}-[0-9]{2}\.[0-9]{2}$' | head -n1) || true
+          echo "tag=$BUNDLE_TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved release bundle tag: ${BUNDLE_TAG:-<none>}"
+        shell: bash
+
+      - name: Login to Harbor registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Promote Harbor candidate to Pulp stable (best-effort, non-blocking)
+        continue-on-error: true
+        id: promote-pulp
+        env:
+          PULP_URL: https://pulp-api.apps.centreon.com
+          PULP_OIDC_AUDIENCE: https://pulp.dev.centreon.io
+          BASE_PATH: centreon/centreon-gorgone-${{ matrix.operating_system }}
+          HARBOR_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}
+          HARBOR_TAG: ${{ needs.get-environment.outputs.release_type }}-${{ needs.get-environment.outputs.major_version }}-next
+          PULP_TAGS: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }} ${{ needs.get-environment.outputs.major_version }} ${{ steps.resolve-bundle-tag.outputs.tag }}
+          MODULE: centreon-gorgone
+          OS: ${{ matrix.operating_system }}
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
+          PLATFORMS: linux/amd64,linux/arm64
+        run: bash .github/scripts/docker-push-to-pulp.sh
+        shell: bash
+
+      - name: Warn if Pulp stable delivery failed
+        if: steps.promote-pulp.outcome == 'failure'
+        run: |
+          echo "::warning::Pulp delivery failed for centreon-gorgone-${{ matrix.operating_system }} (Harbor tag ${{ needs.get-environment.outputs.release_type }}-${{ needs.get-environment.outputs.major_version }}-next). This release is available on Harbor but was NOT published to Pulp — investigate before relying on public delivery for this version."
+        shell: bash

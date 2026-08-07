@@ -144,6 +144,47 @@ void scheduler::_start() {
   _check_time_step =
       time_step(_next_send_time_point, std::chrono::milliseconds(100));
   update(_conf);
+  _start_custom_checks_watcher();
+}
+
+/**
+ * @brief if a custom checks file is configured, watch it in order to refresh
+ * commands without agent restart
+ *
+ */
+void scheduler::_start_custom_checks_watcher() {
+  const config* conf = config::instance_ptr();
+  if (!conf || conf->get_path_to_custom_checks().empty()) {
+    return;
+  }
+  _custom_checks_watcher = common::file_watcher::load(
+      _io_context, _logger, conf->get_path_to_custom_checks(),
+      [me = std::weak_ptr<scheduler>(shared_from_this())]() {
+        std::shared_ptr<scheduler> to_notify = me.lock();
+        if (to_notify) {
+          to_notify->_on_custom_checks_file_change();
+        }
+      });
+}
+
+/**
+ * @brief called (from the io_context thread) when the custom checks file has
+ * been created, modified or deleted
+ * It only refreshes the custom check commands of the global configuration:
+ * they will be used the next time check objects are built (new engine
+ * configuration)
+ * If the file can't be read or is malformed, the reload fails and the
+ * previous commands are kept
+ *
+ */
+void scheduler::_on_custom_checks_file_change() {
+  if (!_alive) {
+    return;
+  }
+  if (config::reload_custom_checks()) {
+    SPDLOG_LOGGER_INFO(
+        _logger, "custom checks file updated => refresh custom check commands");
+  }
 }
 
 /**
@@ -412,13 +453,12 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     auto group_iter = group_serv.begin();
 
     /**
-     * When we receive conf, old checks are yet running, so without the delay of
-     * 1 second above, we could have this scenario:
-     * at 12:00:00.100 an old check executes
-     * at 12:00:00.200 we receive a new configuration
-     * at 12:00:00.200 we executes the first check
-     * so if checks are fast, engine can receives two checks for the same
-     * service with the same time (rounded to 1 second)
+     * When we receive conf, old checks are yet running, so without the delay
+     * of 1 second above, we could have this scenario: at 12:00:00.100 an old
+     * check executes at 12:00:00.200 we receive a new configuration at
+     * 12:00:00.200 we executes the first check so if checks are fast, engine
+     * can receives two checks for the same service with the same time
+     * (rounded to 1 second)
      */
     time_point next =
         std::chrono::system_clock::now() + std::chrono::seconds(1);
@@ -493,8 +533,8 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
 }
 
 /**
- * @brief do a force check by moving service (if waiting in queue) to the top of
- * the queue
+ * @brief do a force check by moving service (if waiting in queue) to the top
+ * of the queue
  *
  * @param request
  */
@@ -608,6 +648,10 @@ void scheduler::stop() {
     _alive = false;
     _send_timer.cancel();
     _check_timer.cancel();
+    if (_custom_checks_watcher) {
+      _custom_checks_watcher->stop();
+      _custom_checks_watcher.reset();
+    }
   }
 }
 
@@ -711,7 +755,8 @@ void scheduler::_store_result_in_metrics_and_exemplars(
 /**
  * @brief metrics are grouped by host service
  * (one resource_metrics by host serv pair)
- * no resource_metrics for this service must exist before calling this function
+ * no resource_metrics for this service must exist before calling this
+ * function
  * @param service
  * @return a new scheduler::scope_metric_request&
  */
@@ -737,8 +782,8 @@ scheduler::scope_metric_request& scheduler::_get_scope_metrics(
 }
 
 /**
- * @brief one metric by metric name (can contains several datapoints in case of
- * multiple checks during send period )
+ * @brief one metric by metric name (can contains several datapoints in case
+ * of multiple checks during send period )
  *
  * @param scope_metric
  * @param metric_name
@@ -938,53 +983,64 @@ std::shared_ptr<check> scheduler::default_check_builder(
         args = &no_arg;
       }
 
+      std::optional<duration> custom_timeout;
+      if (args->IsObject() && args->HasMember("timeout")) {
+        auto timeout_sec = check::get_double(service.command_name(), "timeout",
+                                             (*args)["timeout"], true);
+        if (timeout_sec.has_value() && timeout_sec.value() > 0) {
+          custom_timeout =
+              std::chrono::seconds(static_cast<unsigned>(timeout_sec.value()));
+        }
+      }
+
+      std::shared_ptr<check> result;
       if (check_type == "cpu_percentage"sv) {
-        return std::make_shared<check_cpu>(io_context, logger,
-                                           first_start_expected, service, *args,
-                                           conf, std::move(handler), stat);
+        result = std::make_shared<check_cpu>(
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "health"sv) {
-        return std::make_shared<check_health>(
+        result = std::make_shared<check_health>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "custom"sv) {
-        return std::make_shared<check_custom>(
+        result = std::make_shared<check_custom>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat, credentials_decrypt);
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
-        return std::make_shared<check_uptime>(
+        result = std::make_shared<check_uptime>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "storage"sv) {
-        return std::make_shared<check_drive_size>(
+        result = std::make_shared<check_drive_size>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "memory"sv) {
-        return std::make_shared<check_memory>(
+        result = std::make_shared<check_memory>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "service"sv) {
-        return std::make_shared<check_service>(
+        result = std::make_shared<check_service>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "counter"sv) {
-        return std::make_shared<check_counter>(
+        result = std::make_shared<check_counter>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "tasksched"sv) {
-        return std::make_shared<check_sched>(
+        result = std::make_shared<check_sched>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "files"sv) {
-        return std::make_shared<check_files>(
+        result = std::make_shared<check_files>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "eventlog_nscp"sv) {
-        return check_event_log::load(io_context, logger, first_start_expected,
-                                     service, *args, conf, std::move(handler),
-                                     stat);
+        result = check_event_log::load(io_context, logger, first_start_expected,
+                                       service, *args, conf, std::move(handler),
+                                       stat);
       } else if (check_type == "process_nscp"sv) {
-        return std::make_shared<check_process>(
+        result = std::make_shared<check_process>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
 #endif
@@ -992,6 +1048,11 @@ std::shared_ptr<check> scheduler::default_check_builder(
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
                                   service.command_name(), command_line);
       }
+
+      if (custom_timeout.has_value()) {
+        result->set_custom_timeout(custom_timeout.value());
+      }
+      return result;
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,

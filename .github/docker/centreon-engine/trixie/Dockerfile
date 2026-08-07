@@ -89,50 +89,21 @@ apt-get update
 apt-get install -y --no-install-recommends gnupg wget ca-certificates
 wget -O- https://apt-key.centreon.com | gpg --dearmor \
     | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
-echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
+echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
     > /etc/apt/sources.list.d/centreon-plugins.list
 EOF
 
-# amd64: install pre-built Centreon packages.
-# arm64: build from CPAN (official Debian arm64 packages exist but at version 0.8,
-#        below the >= 1.1 requirement of centreon-plugin-*); create equivs shims so
-#        APT dependency resolution passes when the plugin is installed later.
-# TODO: remove arm64 workaround once perl-cpan-libraries delivers trixie-arm64
-#       packages to apt-plugins-stable (tracked in MON-198411 / centreon-plugins).
+# apt-plugins-stable now publishes arm64 .deb packages for libnet-curl-perl,
+# libcrypt-openssl-aes-perl and libssh-session-perl, so the CPAN compilation
+# fallback (and the build-essential/dev headers it required) is no longer needed.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    --mount=type=cache,target=/root/.cpanm \
     bash -e <<'EOF'
 apt-get update
-ARCH=$(dpkg --print-architecture)
-if [ "$ARCH" = "amd64" ]; then
-    apt-get install -y --no-install-recommends \
-        libnet-curl-perl \
-        libcrypt-openssl-aes-perl \
-        libssh-session-perl
-else
-    apt-get install -y --no-install-recommends \
-        cpanminus equivs build-essential \
-        libcurl4-openssl-dev libssl-dev libssh-dev pkg-config
-    cpanm --notest Net::Curl Crypt::OpenSSL::AES Libssh::Session
-    cat > /tmp/centreon-arm64-perl-shims <<'CTRL'
-Section: perl
-Priority: optional
-Standards-Version: 3.9.2
-
-Package: centreon-arm64-perl-shims
-Version: 1.1-1
-Provides: libnet-curl-perl (= 1.1), libcrypt-openssl-aes-perl (= 1.1), libssh-session-perl (= 1.1)
-Description: APT shims for Centreon Perl deps installed via cpanm
-CTRL
-    cd /tmp && equivs-build centreon-arm64-perl-shims
-    dpkg -i /tmp/centreon-arm64-perl-shims*.deb
-    apt-get remove -y --purge cpanminus equivs build-essential \
-        libcurl4-openssl-dev libssl-dev libssh-dev pkg-config
-    apt-get autoremove -y
-    rm -rf /tmp/centreon-arm64-perl-shims*
-fi
 apt-get install -y --no-install-recommends \
+    libnet-curl-perl \
+    libcrypt-openssl-aes-perl \
+    libssh-session-perl \
     python3 \
     libmariadb3 \
     libgnutls30t64 \
@@ -166,13 +137,15 @@ mkdir -p /etc/centreon-engine \
          /usr/share/centreon/lib/centreon-broker \
          /usr/lib64/centreon-engine \
          /usr/lib/nagios/plugins \
+         /usr/lib/nagios/plugins/custom \
          /usr/lib64/nagios
 ln -s /usr/lib/nagios/plugins /usr/lib64/nagios/plugins
 chown -R centreon-engine:centreon-engine \
          /etc/centreon-engine \
          /var/lib/centreon-engine \
          /var/log/centreon-engine \
-         /var/lib/centreon/centplugins
+         /var/lib/centreon/centplugins \
+         /usr/lib/nagios/plugins/custom
 chown -R centreon-broker:centreon-broker \
           /etc/centreon-broker
 chmod 775 /etc/centreon-engine \
@@ -200,6 +173,10 @@ COPY --from=extractor --link --chmod=755 /extracted/usr/sbin/centengine /usr/sbi
 # Core library
 COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_clib.so /usr/lib/libcentreon_clib.so
 
+# Protobuf shared libraries (centreon-protobuf-lib package)
+COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_engine_conf.so /usr/lib/libcentreon_engine_conf.so
+COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_pb_bbdo.so /usr/lib/libcentreon_pb_bbdo.so
+
 # Broker module (cbmod.so) - engine loads this
 COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/cbmod.so /usr/lib/cbmod.so
 
@@ -226,6 +203,8 @@ COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d
 RUN echo "=== Verification ===" && \
     ls -lah /usr/sbin/centengine && \
     ls -lah /usr/lib/libcentreon_clib.so && \
+    ls -lah /usr/lib/libcentreon_engine_conf.so && \
+    ls -lah /usr/lib/libcentreon_pb_bbdo.so && \
     ls -lah /usr/lib/cbmod.so && \
     ls -lah /usr/lib64/centreon-engine/*.so && \
     ls -lah /usr/lib64/centreon-connector/ && \
@@ -239,6 +218,11 @@ EXPOSE 50155
 WORKDIR /var/lib/centreon-engine
 
 USER centreon-engine
+
+# /tmp/docker.ready is touched by 99-logs.sh once every container.d/*.sh
+# entrypoint script has run, right before centengine itself is exec'd.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD test -f /tmp/docker.ready
 
 ENTRYPOINT ["/var/lib/centreon-engine/container.sh"]
 

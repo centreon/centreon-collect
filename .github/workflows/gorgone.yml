@@ -117,10 +117,10 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: centreon/centreon
           path: centreon
@@ -167,7 +167,7 @@ jobs:
 
       - name: Upload logs as artifacts if tests failed
         if: failure()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: centreon-collect-perl-unit-tests-${{ matrix.operating_system }}
           path: ./lastlog.jsonl
@@ -200,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Parse distrib name
         id: parse-distrib
@@ -274,10 +274,10 @@ jobs:
       project: gorgone-testing
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
@@ -289,14 +289,26 @@ jobs:
         with:
           distrib: ${{ matrix.operating_system }}
 
+      - name: Compute Docker tag
+        id: docker-tag
+        uses: ./.github/actions/compute-docker-tag
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Compute base ref Docker tag
+        id: base-docker-tag
+        uses: ./.github/actions/compute-docker-tag
+        with:
+          ref: ${{ github.base_ref || github.ref_name }}
+
       - name: Get FROM image tag
         id: from_image_version
         env:
           MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
           REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          GH_HEAD_REF: ${{ github.head_ref || github.ref_name }}
-          GH_BASE_REF: ${{ github.base_ref || github.ref_name }}
+          GH_HEAD_REF: ${{ steps.docker-tag.outputs.tag }}
+          GH_BASE_REF: ${{ steps.base-docker-tag.outputs.tag }}
           PROJECT: ${{ env.project }}
         run: |
           FROM_IMAGE_VERSION="$MAJOR_VERSION"
@@ -317,7 +329,7 @@ jobs:
         shell: bash
 
       - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.repo_distrib_name }}
@@ -347,7 +359,7 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: centreon/centreon
           path: centreon
@@ -356,10 +368,10 @@ jobs:
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
 
-      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Docker build and push
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         env:
           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
           DOCKER_BUILD_SUMMARY: false
@@ -373,13 +385,13 @@ jobs:
           pull: true
           push: true
           load: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ steps.docker-tag.outputs.tag }}
 
       - name: Store image in local archive
         env:
           REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
-          GH_REF: ${{ github.head_ref || github.ref_name }}
+          GH_REF: ${{ steps.docker-tag.outputs.tag }}
         run: |
           docker tag "$REGISTRY_URL/gorgone-testing-$OPERATING_SYSTEM:$GH_REF" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
           mkdir -p docker-image
@@ -390,7 +402,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
-          GH_REF: ${{ github.head_ref || github.ref_name }}
+          GH_REF: ${{ steps.docker-tag.outputs.tag }}
         run: |
           curl \
             -X DELETE \
@@ -400,10 +412,10 @@ jobs:
         shell: bash
 
       - name: Store docker image in cache
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./docker-image
-          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
+          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ steps.docker-tag.outputs.tag }}
 
   robot-test:
     needs: [get-environment, changes, dockerize]
@@ -440,7 +452,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Deliver sources
         uses: ./.github/actions/release-sources
@@ -471,7 +483,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Delivery
         uses: ./.github/actions/rpm-delivery
@@ -486,6 +498,56 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+
+  deliver-rpm-pulp:
+    continue-on-error: true
+    runs-on: centreon-ubuntu-22.04
+    needs: [get-environment, unit-test-perl, robot-test, changes]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [el9, el10]
+
+    name: deliver ${{ matrix.distrib }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_rpm_pulp
+        uses: ./.github/actions/package-delivery-pulp
+        continue-on-error: true
+        with:
+          module_name: gorgone
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+      - name: Warn if the Pulp delivery failed
+        if: steps.deliver_rpm_pulp.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   deliver-deb:
     runs-on: ubuntu-24.04
@@ -506,7 +568,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Delivery
         uses: ./.github/actions/deb-delivery
@@ -520,11 +582,60 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+  deliver-deb-pulp:
+    continue-on-error: true
+    runs-on: centreon-ubuntu-22.04
+    needs: [get-environment, unit-test-perl, robot-test, changes]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [trixie]  # No ubuntu in 24.10, 24.11 or later for now
+
+    name: deliver ${{ matrix.distrib }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_deb_pulp
+        uses: ./.github/actions/package-delivery-pulp
+        continue-on-error: true
+        with:
+          module_name: gorgone
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+      - name: Warn if the Pulp delivery failed
+        if: steps.deliver_deb_pulp.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
+
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -538,7 +649,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -552,6 +663,51 @@ jobs:
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  promote-pulp:
+    continue-on-error: true
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [el9, el10, trixie]
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Promote ${{ matrix.distrib }} to stable on Pulp
+        id: promote_pulp
+        uses: ./.github/actions/promote-to-stable-pulp
+        continue-on-error: true
+        with:
+          module_name: gorgone
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+      - name: Warn if the Pulp promotion failed
+        if: steps.promote_pulp.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
 
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, promote]

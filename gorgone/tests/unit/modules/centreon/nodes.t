@@ -91,10 +91,10 @@ sub test_centreonnodessync {
     $action_expected->{REGISTERNODESFROMDB}->{nodes} = [ ];; # expecting no nodes now.
     $check_action_ran = {};
     $action_expected->{UNREGISTERNODES} = { nodes => [
-            { id => 11 },
-            { id => 12 },
-            { id => 13 },
-            { id => 14 },
+            { id => 11, 'uid' => '' },
+            { id => 12, 'uid' => '' },
+            { id => 13, 'uid' => 3999456 },
+            { id => 14, 'uid' => 499456456 },
         ]
     };
     $self->action_centreonnodessync();

@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <future>
 #include "check.hh"
 #include "check_exec.hh"
 #include "common/crypto/aes256.hh"
@@ -804,6 +805,135 @@ TEST_F(scheduler_test, can_decrypt) {
   EXPECT_EQ(check_created->get_process_args()->get_args()[0], "*.*");
 }
 
+/**
+ * @brief build a native check from a json command line by calling
+ * scheduler::default_check_builder directly. The returned check holds a
+ * reference to conf's first service, so conf must outlive the returned check.
+ */
+static std::shared_ptr<check> build_native_check(
+    const std::shared_ptr<com::centreon::agent::MessageToAgent>& conf,
+    const std::string& command_line) {
+  auto cnf = conf->mutable_config();
+  auto serv = cnf->add_services();
+  serv->set_service_description("serv");
+  serv->set_command_name("command");
+  serv->set_command_line(command_line);
+  serv->set_check_interval(10);
+  return scheduler::default_check_builder(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      cnf->services(cnf->services_size() - 1), conf,
+      [](const std::shared_ptr<check>&, int,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {},
+      std::make_shared<checks_statistics>(), nullptr);
+}
+
+/**
+ * @brief a numeric "timeout" arg in a native check command is parsed and stored
+ * as the check's per-command custom timeout (here 60s), independent of the
+ * global check_timeout.
+ */
+TEST_F(scheduler_test, custom_timeout_from_args_number) {
+  auto conf = std::make_shared<com::centreon::agent::MessageToAgent>();
+  conf->mutable_config()->set_check_timeout(120);
+  auto chk = build_native_check(
+      conf, R"({"check":"cpu_percentage","args":{"timeout":60}})");
+  ASSERT_TRUE(chk);
+  ASSERT_TRUE(chk->get_custom_timeout().has_value());
+  EXPECT_EQ(*chk->get_custom_timeout(), std::chrono::seconds(60));
+}
+
+/**
+ * @brief the "timeout" arg may be given as a numeric string ("45"), as Centreon
+ * often emits string values; it is parsed to the same 45s custom timeout.
+ */
+TEST_F(scheduler_test, custom_timeout_from_args_string) {
+  auto conf = std::make_shared<com::centreon::agent::MessageToAgent>();
+  conf->mutable_config()->set_check_timeout(120);
+  auto chk = build_native_check(
+      conf, R"({"check":"cpu_percentage","args":{"timeout":"45"}})");
+  ASSERT_TRUE(chk);
+  ASSERT_TRUE(chk->get_custom_timeout().has_value());
+  EXPECT_EQ(*chk->get_custom_timeout(), std::chrono::seconds(45));
+}
+
+/**
+ * @brief when no "timeout" arg is present, the check holds no custom timeout
+ * (get_custom_timeout() == nullopt), so the global check_timeout keeps
+ * applying.
+ */
+TEST_F(scheduler_test, no_custom_timeout_keeps_global) {
+  auto conf = std::make_shared<com::centreon::agent::MessageToAgent>();
+  conf->mutable_config()->set_check_timeout(120);
+  auto chk =
+      build_native_check(conf, R"({"check":"cpu_percentage","args":{}})");
+  ASSERT_TRUE(chk);
+  EXPECT_FALSE(chk->get_custom_timeout().has_value());
+}
+
+/**
+ * @brief a non-numeric "timeout" arg is rejected during parsing: the builder
+ * falls back to a check_dummy carrying the error instead of a real check.
+ */
+TEST_F(scheduler_test, invalid_custom_timeout_yields_dummy) {
+  auto conf = std::make_shared<com::centreon::agent::MessageToAgent>();
+  conf->mutable_config()->set_check_timeout(120);
+  auto chk = build_native_check(
+      conf, R"({"check":"cpu_percentage","args":{"timeout":"not_a_number"}})");
+  auto dummy = std::dynamic_pointer_cast<check_dummy>(chk);
+  ASSERT_TRUE(dummy);
+}
+
+/**
+ * @brief a per-command timeout (1s) must take precedence over a high global
+ * check_timeout (10s): the timeout handler fires at ~1s, before the check would
+ * complete at 3s, yielding an UNKNOWN(3) status.
+ */
+TEST_F(scheduler_test, custom_timeout_overrides_global) {
+  auto conf = create_conf(1, 1, 1, 1, 10 /* global check_timeout */);
+
+  std::mutex m;
+  std::condition_variable cond;
+  bool done = false;
+  int captured_status = -1;
+  std::list<std::string> captured_outputs;
+
+  auto chk = std::make_shared<tempo_check>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      conf->config().services(0), conf, 0, std::chrono::milliseconds(3000),
+      [&](const std::shared_ptr<check>&, int status,
+          const std::list<com::centreon::common::perfdata>&,
+          const std::list<std::string>& outputs) {
+        {
+          std::lock_guard l(m);
+          captured_status = status;
+          captured_outputs = outputs;
+          done = true;
+        }
+        cond.notify_all();
+      },
+      std::make_shared<checks_statistics>());
+
+  chk->set_custom_timeout(std::chrono::seconds(1));
+
+  time_point start = std::chrono::system_clock::now();
+  asio::post(*g_io_context,
+             [chk]() { chk->start_check(std::chrono::seconds(10)); });
+
+  std::unique_lock l(m);
+  ASSERT_TRUE(
+      cond.wait_for(l, std::chrono::seconds(2), [&]() { return done; }));
+  auto elapsed = std::chrono::system_clock::now() - start;
+  EXPECT_EQ(captured_status, 3);  // UNKNOWN
+  EXPECT_LT(elapsed, std::chrono::milliseconds(2000));
+  // the completion must be the timeout path (output set by
+  // check::_timeout_timer_handler), not the normal "Command OK" result.
+  ASSERT_FALSE(captured_outputs.empty());
+  EXPECT_NE(captured_outputs.front().find("Timeout at execution of"),
+            std::string::npos)
+      << "unexpected output: " << captured_outputs.front();
+}
+
 /*
  * struct to store data about a check execution
  * used by scripted_check to store data about each check execution
@@ -1156,3 +1286,122 @@ TEST_F(scheduler_test, multiple_services_intervals_are_respected) {
     }
   }
 }
+#ifndef _WIN32
+// on Windows, config is loaded from the registry, so this file based test is
+// linux only
+
+#include <filesystem>
+#include <fstream>
+
+#include "config.hh"
+
+/**
+ * @brief counts check builds, checks built are tempo_check
+ */
+class build_counter_check_builder {
+  std::shared_ptr<std::atomic<unsigned>> _build_count;
+
+ public:
+  build_counter_check_builder(
+      const std::shared_ptr<std::atomic<unsigned>>& build_count)
+      : _build_count(build_count) {}
+
+  std::shared_ptr<check> operator()(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point start_expected,
+      const Service& service,
+      const engine_to_agent_request_ptr& engine_to_agent_request,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<com::centreon::common::crypto::aes256>&) const {
+    ++*_build_count;
+    return std::make_shared<tempo_check>(io_context, logger, start_expected,
+                                         service, engine_to_agent_request, 0,
+                                         std::chrono::milliseconds(50),
+                                         std::move(handler), stat);
+  }
+};
+
+/**
+ * @brief when the custom checks file is modified, the scheduler must refresh
+ * the custom check commands of the global configuration, without rebuilding
+ * checks nor touching the engine configuration
+ */
+TEST_F(scheduler_test, custom_checks_file_update_reloads_commands) {
+  namespace fs = std::filesystem;
+  const fs::path ini_path =
+      fs::temp_directory_path() / "scheduler_test_custom_check.ini";
+  const fs::path json_path =
+      fs::temp_directory_path() / "scheduler_test_custom_check.json";
+  {
+    std::ofstream ini_f(ini_path);
+    ini_f << "check_echo=/usr/bin/echo one\n";
+  }
+  {
+    std::ofstream json_f(json_path);
+    json_f << R"({"host":"127.0.0.1","endpoint":"host1.domain2:4317",)"
+           << R"("custom_check_file":")" << ini_path.string() << R"("})";
+  }
+  config::load(json_path.string());
+
+  auto build_count = std::make_shared<std::atomic<unsigned>>(0);
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host",
+      create_conf(2, 10, 1, 50, 1),
+      [](const std::shared_ptr<MessageFromAgent>&) {},
+      build_counter_check_builder(build_count));
+
+  scheduler_closer closer(sched);
+
+  // initial build of the two services
+  ASSERT_EQ(*build_count, 2);
+
+  // the configuration is reloaded in the io_context thread, so we also read
+  // it from there to avoid data races
+  auto read_check_echo_command = []() {
+    std::promise<std::string> read_promise;
+    asio::post(*g_io_context, [&read_promise]() {
+      const auto& custom_checks = config::instance().get_custom_checks();
+      auto found = custom_checks.find("check_echo");
+      read_promise.set_value(found == custom_checks.end() ? ""
+                                                          : found->second);
+    });
+    return read_promise.get_future().get();
+  };
+
+  ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo one");
+
+  // let the watcher be established on the io_context thread
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+  {
+    std::ofstream ini_f(ini_path);
+    ini_f << "check_echo=/usr/bin/echo two\n";
+  }
+
+  // the new command must be loaded in the global configuration
+  auto limit = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (read_check_echo_command() != "/usr/bin/echo two" &&
+         std::chrono::steady_clock::now() < limit) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo two");
+  // only the commands map is refreshed, checks are not rebuilt
+  ASSERT_EQ(*build_count, 2);
+
+  // a malformed file must not lose the commands
+  {
+    std::ofstream ini_f(ini_path);
+    ini_f << "this is not an assignment\n";
+  }
+  // let the change be detected and (unsuccessfully) reloaded
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  ASSERT_EQ(read_check_echo_command(), "/usr/bin/echo two");
+  ASSERT_EQ(*build_count, 2);
+
+  config::load(false);
+  fs::remove(ini_path);
+  fs::remove(json_path);
+}
+#endif

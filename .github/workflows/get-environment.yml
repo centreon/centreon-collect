@@ -122,7 +122,7 @@ jobs:
     steps:
       - name: Check if PR has skip label
         id: has_skip_label
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IS_PR: ${{ contains(fromJSON('["pull_request"]') , github.event_name) }}
           WORKFLOW_NAME: ${{ github.workflow }}
@@ -163,13 +163,13 @@ jobs:
             return hasSkipLabel;
 
       - name: Checkout sources (current branch)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: ${{ steps.has_skip_label.outputs.result == 'true' && 100 || 1 }}
 
       # get latest major version to detect cloud / on-prem versions
       - name: Checkout sources (develop branch)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: develop
           path: centreon-develop
@@ -178,7 +178,7 @@ jobs:
       - if: ${{ steps.has_skip_label.outputs.result == 'true' }}
         name: Get workflow triggered paths
         id: get_workflow_triggered_paths
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           WORKFLOW_REF: ${{ github.workflow_ref }}
           GH_REPOSITORY: ${{ github.repository }}
@@ -233,7 +233,7 @@ jobs:
       - if: ${{ steps.has_skip_label.outputs.result == 'true' }}
         name: Get push changes
         id: get_push_changes
-        uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323 # v47.0.5
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
         with:
           since_last_remote_commit: true
           json: true
@@ -243,7 +243,7 @@ jobs:
 
       - name: Check if current workflow should be skipped
         id: skip_workflow
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GH_REF: ${{ github.head_ref || github.ref_name }}
           HAS_SKIP_LABEL: ${{ steps.has_skip_label.outputs.result }}
@@ -289,7 +289,7 @@ jobs:
       - if: ${{ github.event_name == 'pull_request' }}
         name: Get nested pull request path
         id: pr_path
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GH_HEAD_REF: ${{ github.head_ref }}
           GH_BASE_REF: ${{ github.base_ref }}
@@ -319,7 +319,7 @@ jobs:
 
       - name: Get stability
         id: get_stability
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IS_PR: ${{ contains(fromJSON('["pull_request"]') , github.event_name) }}
           PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
@@ -511,7 +511,7 @@ jobs:
         shell: bash
 
       - name: Detect nightly status
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: get_nightly_status
         env:
           NIGHTLY_MANUAL_TRIGGER: ${{ inputs.nightly_manual_trigger }}
@@ -533,10 +533,9 @@ jobs:
 
       - name: "Detect cloud version"
         id: detect_cloud_version
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
-          DEVELOP_MAJOR_VERSION: ${{ steps.latest_major_version.outputs.latest_major_version }}
           CURRENT_MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
           EVENT_NAME: ${{ github.event_name }}
           PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
@@ -549,15 +548,11 @@ jobs:
             const baseRef = process.env.GITHUB_BASE_REF; // only set for pull_request
             const isNightly = process.env.IS_NIGHTLY;
 
-            const developMajorVersion = process.env.DEVELOP_MAJOR_VERSION;
             const currentMajorVersion = process.env.CURRENT_MAJOR_VERSION;
-            // if major version is higher than develop major version => it is a cloud version
             // if month number is not 10 => it is a cloud version
             // anything else => onprem
             const isCloudCandidate =
-              Number(currentMajorVersion) >= Number(developMajorVersion) ||
               !currentMajorVersion.match(/\.10$/);
-
             let releaseScope = "unknown";
 
             // in a nightly context, whatever the event_name is, the release context does not matter
@@ -679,7 +674,7 @@ jobs:
 
       - name: "Detect delivery type"
         id: detect_delivery_type
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           HAS_DELIVERY_FEATURE_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'delivery-feature') }}
         with:
@@ -693,7 +688,7 @@ jobs:
 
       - name: Detect linked dev and stable branches
         id: linked_branches
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
           MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
@@ -714,7 +709,7 @@ jobs:
           IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
           STABILITY: ${{ steps.get_stability.outputs.stability }}
           MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             if (process.env.STABILITY !== 'testing' && process.env.STABILITY !== 'stable') {
@@ -762,7 +757,7 @@ jobs:
             core.setOutput('previous_release_bundle_tag', previousStableBundleTag);
 
       - name: Detect operating systems and databases to test
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: get_os_database_matrix
         env:
           IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
@@ -906,7 +901,7 @@ jobs:
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
 
       - name: Display info in job summary
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           LATEST_MAJOR_VERSION: ${{ steps.latest_major_version.outputs.latest_major_version }}
           IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}

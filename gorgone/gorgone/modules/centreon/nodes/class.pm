@@ -162,9 +162,9 @@ sub action_centreonnodessync {
             unshift @{$register_subnodes->{$node->{remote_id}}}, { id => $node->{id}, pathscore => 1 };
             next;
         }
-        $self->{register_nodes}->{$node->{id}} = 1;
-        $register_temp->{$node->{id}} = 1;
-        if ($node->{gorgone_communication_type} == 2) {
+        $self->{register_nodes}->{$node->{id}} = {uid => $node->{uid}};
+        $register_temp->{$node->{id}} = $node->{uid};
+        if ($node->{gorgone_communication_type} == COMM_PUSH_SSH) {
             push @$register_nodes, {
                 id => $node->{id},
                 type => 'push_ssh',
@@ -173,7 +173,7 @@ sub action_centreonnodessync {
                 ssh_username => $self->{config}->{ssh_username},
                 uid => $node->{uid},
             };
-        } elsif($node->{gorgone_communication_type} == 3) {
+        } elsif($node->{gorgone_communication_type} == COMM_PULL ) {
             push @$register_nodes, {
                 id => $node->{id},
                 type => 'pull', # this is ZMQ where node is initiating connection.
@@ -182,7 +182,7 @@ sub action_centreonnodessync {
                 port => $node->{gorgone_port},
                 uid => $node->{uid},
             };
-        } elsif($node->{gorgone_communication_type} == 4) {
+        } elsif($node->{gorgone_communication_type} == COMM_PULLWSS) {
             push @$register_nodes, {
                 id    => $node->{id},
                 type  => 'pullwss',
@@ -201,10 +201,10 @@ sub action_centreonnodessync {
         }
     }
 
-    my $unregister_nodes = [];    
+    my $unregister_nodes = [];
     foreach (keys %{$self->{register_nodes}}) {
         if (!defined($register_temp->{$_})) {
-            push @$unregister_nodes, { id => $_ };
+            push @$unregister_nodes, { id => $_, uid => $self->{register_nodes}->{$_}->{uid} };
             delete $self->{register_nodes}->{$_};
         }
     }
@@ -231,7 +231,12 @@ sub action_centreonnodessync {
         }
         $self->{logger}->writeLogInfo("[nodes] updating node " . $file_node->{id} . " info from database with register configuration");
         if (!defined($db_node)) {
-            $db_node = {};
+            $self->{logger}->writeLogDebug("[nodes] node " . $file_node->{id} . " does not exist in database, using register file configuration.");
+
+            $db_node = { "id" => $file_node->{id},
+                "uid" => $file_node->{uid} // $file_node->{id},
+                "type" => $file_node->{type} // "pullwss"};
+
             push @$register_nodes, $db_node;
         }
         for my $key ("type", "address", "port", "server_pubkey", "client_pubkey", "client_privkey", "cipher", "vector", "nodes") {

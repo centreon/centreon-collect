@@ -89,6 +89,13 @@ apt-get install -y \
   libxml-simple-perl \
   libzmq-ffi-perl
 
+# centreon-engine-daemon (ships /usr/sbin/centenginestats, needed by
+# centreon/statistics.robot) used to be pulled in transitively via
+# centreon-gorgone-centreon-config -> centreon-common -> centreon-engine-daemon.
+# That link was removed to fix a packaging layer inversion (centreon-common no
+# longer depends on centreon-engine-daemon), so it must be installed explicitly here.
+apt-get install -y centreon-engine-daemon
+
 echo -e '[mysqld]\nskip_ssl\n[client]\nssl=false' > /etc/mysql/mariadb.conf.d/99-disable-ssl.cnf
 
 apt-get clean

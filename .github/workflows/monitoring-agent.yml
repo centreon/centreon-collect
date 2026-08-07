@@ -88,7 +88,7 @@ jobs:
       version_file: .version.centreon-monitoring-agent
       cmake_file: CMakeLists.txt
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check ${{ env.version_file }}
         uses: ./.github/actions/check-version-consistency
@@ -158,7 +158,7 @@ jobs:
         run: git config --system core.autocrlf false
 
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Install Inno Setup (ISCC) and expose its path
       # To remove later when innosetup version will be stable on runners
@@ -188,7 +188,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1.2.0
+        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -215,7 +215,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16 # v1.2.0
+        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -241,7 +241,7 @@ jobs:
         shell: powershell
 
       - name: Cache monitoring agent
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
@@ -256,7 +256,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled'))
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: packages-centreon-monitoring-agent-windows
           path: |
@@ -300,7 +300,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install sccache
         run: |
@@ -332,7 +332,7 @@ jobs:
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
-                  -DCMAKE_BUILD_TYPE=Debug \
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DWITH_PREFIX=/usr \
                   -DWITH_PREFIX_BIN=/usr/sbin \
                   -DWITH_USER_BROKER=centreon-broker \
@@ -376,7 +376,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: unit-test-${{ matrix.operating_system }}-reports
           path: "build/ut_*"
@@ -496,7 +496,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Publish RPM packages
         uses: ./.github/actions/rpm-delivery
@@ -511,6 +511,62 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+
+  deliver-rpm-pulp:
+    continue-on-error: true
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    needs: [get-environment, build-and-test-agent-windows, robot-test]
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: el8
+            arch: amd64
+          - distrib: el9
+            arch: amd64
+          - distrib: el10
+            arch: amd64
+
+    name: deliver ${{ matrix.distrib }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_rpm_pulp
+        uses: ./.github/actions/package-delivery-pulp
+        continue-on-error: true
+        with:
+          module_name: monitoring-agent
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+      - name: Warn if the Pulp delivery failed
+        if: steps.deliver_rpm_pulp.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   deliver-deb:
     if: |
@@ -554,7 +610,7 @@ jobs:
     steps:
       - name: Checkout sources
         if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Publish DEB packages
         if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
@@ -568,6 +624,77 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  deliver-deb-pulp:
+    continue-on-error: true
+    if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: bullseye
+            arch: amd64
+          - distrib: bullseye
+            arch: arm64
+          - distrib: bookworm
+            arch: amd64
+          - distrib: bookworm
+            arch: arm64
+          - distrib: trixie
+            arch: amd64
+          - distrib: trixie
+            arch: arm64
+          - distrib: jammy
+            arch: amd64
+          - distrib: jammy
+            arch: arm64
+          - distrib: noble
+            arch: amd64
+          - distrib: noble
+            arch: arm64
+
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_deb_pulp
+        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
+        uses: ./.github/actions/package-delivery-pulp
+        continue-on-error: true
+        with:
+          module_name: monitoring-agent
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+      - name: Warn if the Pulp delivery failed
+        if: steps.deliver_deb_pulp.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   deliver-windows:
     if: |
@@ -583,13 +710,13 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: jfrog/setup-jfrog-cli@1641575d87647fb969c0545f0b6a76873e328b7c # v5.0.0
+      - uses: jfrog/setup-jfrog-cli@deda456d982fc5e9a7a020b63eb0d2968aedd33e # v5.1.0
         env:
           JF_URL: https://packages.centreon.com
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Restore cache monitoring agent
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
@@ -620,7 +747,7 @@ jobs:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -635,7 +762,7 @@ jobs:
     steps:
       - name: Checkout sources
         if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
@@ -666,6 +793,53 @@ jobs:
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
+  promote-linux-pulp:
+    continue-on-error: true
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Promote ${{ matrix.distrib }} to stable on Pulp
+        id: promote_pulp
+        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
+        uses: ./.github/actions/promote-to-stable-pulp
+        continue-on-error: true
+        with:
+          module_name: monitoring-agent
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+      - name: Warn if the Pulp promotion failed
+        if: steps.promote_pulp.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
+
   promote-windows:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -680,9 +854,9 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: jfrog/setup-jfrog-cli@1641575d87647fb969c0545f0b6a76873e328b7c # v5.0.0
+      - uses: jfrog/setup-jfrog-cli@deda456d982fc5e9a7a020b63eb0d2968aedd33e # v5.1.0
         env:
           JF_URL: https://packages.centreon.com
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}

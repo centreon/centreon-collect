@@ -107,10 +107,11 @@ void check_health::start_check(const duration& timeout) {
   if (!_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
   duration wait_beforecompute =
       std::min(get_raw_start_expected().get_step() / 2,
-               timeout - std::chrono::milliseconds(100));
+               effective_timeout - std::chrono::milliseconds(100));
   // we wait a little in order to have statistics check_interval/2
   _measure_timer.expires_after(wait_beforecompute);
   _measure_timer.async_wait(

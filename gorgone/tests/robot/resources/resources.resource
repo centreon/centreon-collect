@@ -27,6 +27,10 @@ ${DBNAME_STORAGE}           centreon-storage
 ${DBUSER}                   centreon
 ${DBPASSWORD}               password
 
+# centarl gorgone rest api port. there can be remote server in some tests, but the central gorgone rest api is always present.
+${Capi_port}                8085
+${Rapi_port}                8095
+
 *** Keywords ***
 Start Gorgone
     [Arguments]    ${SEVERITY}    ${ALIAS}
@@ -231,7 +235,7 @@ Setup Remote And Poller And Central Instances
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
     ELSE IF    '${communication_mode}' == 'pullwss_uid'
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
-        ${poller_id}=    Set Variable    42992345
+        ${poller_id}=    Set Variable    299123456
 
     ELSE IF   '${communication_mode}' == 'pull'
         ${C_port}    Set Variable    5556
@@ -265,9 +269,8 @@ Setup Remote And Poller And Central Instances
     Log To Console    poller was started and seem connected to ${R_port}...
 
 Setup Two Gorgone Instances
-    [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
+    [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2    ${check_connection}=True
     ${start_time}   Get Time    str=epoch
-
 
     Ctn Init Tests
     # This change to the schema should be integrated by php team, for now we will check everything work with a temporary fix
@@ -291,8 +294,33 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=5556    expected_nb=2
-        Check Poller Communicate     2
+        IF    ${check_connection}
+            Check Poller Is Connected    port=5556    expected_nb=2
+            Check Poller Communicate     2
+        END
+
+    ELSE IF    '${communication_mode}' == 'push_zmq_uid'
+        @{central_push_config}=    Copy List    ${central_config}
+        Append To List    ${central_push_config}    ${push_central_config}    ${gorgone_core_config}
+
+        @{poller_push_config}=    Copy List    ${poller_config}
+        Append To List    ${poller_push_config}    ${push_poller_config}
+
+        ${poller_id}=    Set Variable    299123456
+
+        Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_push_poller.sql
+        Setup Gorgone Config    ${poller_push_config}     gorgone_name=${poller_name}    replace_from=${{['@POLLERID@']}}    replace_to=${{['${poller_id}']}}
+
+
+        Start Gorgone    debug    ${poller_name}
+        Wait Until Port Is Bind    5556
+        Start Gorgone    debug    ${central_name}
+        # wait until gorgone http server bind the http api port.
+        Wait Until Port Is Bind    8085
+        IF    ${check_connection}
+            Check Poller Is Connected    port=5556    expected_nb=2
+            Check Poller Communicate     2
+        END
 
     ELSE IF    '${communication_mode}' == 'pullwss'
 
@@ -310,8 +338,10 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=8086    expected_nb=2
-        Check Poller Communicate     2
+        IF    ${check_connection}
+            Check Poller Is Connected    port=8086    expected_nb=2
+            Check Poller Communicate     2
+        END
     ELSE IF    '${communication_mode}' == 'pullwss_uid'
 
         @{central_pullwss_config}=    Copy List    ${central_config}
@@ -320,7 +350,7 @@ Setup Two Gorgone Instances
         @{poller_pullwss_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
 
-        ${poller_id}=    Set Variable    2
+        ${poller_id}=    Set Variable    299123456
 
         Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
         Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${{['@POLLERID@']}}    replace_to=${{['${poller_id}']}}
@@ -330,8 +360,10 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=8086    expected_nb=2
-        Check Poller Communicate     2
+        IF    ${check_connection}
+            Check Poller Is Connected    port=8086    expected_nb=2
+            Check Poller Communicate     2
+        END
     ELSE IF    '${communication_mode}' == 'pull'
         @{central_pull_config}=    Copy List    ${central_config}
         Append To List    ${central_pull_config}    ${pull_central_config}    ${gorgone_core_config}
@@ -344,13 +376,37 @@ Setup Two Gorgone Instances
 
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
+        Sleep    10s
         Start Gorgone    debug    ${poller_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=5556    expected_nb=2
-        Check Poller Communicate     2    max_failed_attempt=1
+        IF    ${check_connection}
+            Check Poller Is Connected    port=5556    expected_nb=2
+            Check Poller Communicate     2    max_failed_attempt=1
+        END
+    ELSE IF    '${communication_mode}' == 'pull_uid'
+        @{central_pull_config}=    Copy List    ${central_config}
+        Append To List    ${central_pull_config}    ${pull_central_config}    ${gorgone_core_config}
+
+        @{poller_pull_config}=    Copy List    ${poller_config}
+        Append To List    ${poller_pull_config}    ${pull_poller_config}    ${gorgone_core_config}
+
+        ${poller_id}=    Set Variable    299123456
+
+        Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pull_poller.sql
+        Setup Gorgone Config    ${poller_pull_config}     gorgone_name=${poller_name}    replace_from=${{['@POLLERID@']}}    replace_to=${{['${poller_id}']}}
+
+        Start Gorgone    debug    ${central_name}
+        Wait Until Port Is Bind    5556
+        Start Gorgone    debug    ${poller_name}
+        # wait until gorgone http server bind the http api port.
+        Wait Until Port Is Bind    8085
+        IF    ${check_connection}
+            Check Poller Is Connected    port=5556    expected_nb=2
+            Check Poller Communicate     2    max_failed_attempt=1
+        END
     ELSE
-        Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: push_zmq, pullwss, pull.
+        Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: push_zmq, push_zmq_uid, pullwss, pullwss_uid, pull.
     END
     ${end_time}   Get Time    str=epoch
     ${duration}=    Evaluate    ${end_time} - ${start_time}

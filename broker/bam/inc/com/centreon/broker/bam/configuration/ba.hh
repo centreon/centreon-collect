@@ -56,6 +56,9 @@ class ba {
   double _critical_level;
   bam::pb_ba_event _event;
   downtime_behaviour _dt_behaviour;
+  uint32_t _icon_id;
+  std::string _icon_image;
+  std::string _icon_image_alt;
 
  public:
   ba(uint32_t id = 0,
@@ -64,7 +67,10 @@ class ba {
      ba::state_source source = state_source_impact,
      double warning_level = 0.0,
      double critical_level = 0.0,
-     downtime_behaviour dt_behaviour = dt_ignore);
+     downtime_behaviour dt_behaviour = dt_ignore,
+     uint32_t icon_id = 0,
+     const std::string_view& icon_image = "",
+     const std::string_view& icon_image_alt = "");
 
   bool operator==(ba const& right) const;
   bool operator!=(ba const& right) const;
@@ -81,6 +87,9 @@ class ba {
   uint32_t get_default_timeperiod() const;
   std::vector<uint32_t> const& get_timeperiods() const;
   downtime_behaviour get_downtime_behaviour() const;
+  uint32_t get_icon_id() const { return _icon_id; }
+  const std::string& get_icon_image() const { return _icon_image; }
+  const std::string& get_icon_image_alt() const { return _icon_image_alt; }
 
   void set_host_id(uint32_t host_id);
   void set_service_id(uint32_t service_id);
@@ -93,6 +102,13 @@ class ba {
   void set_critical_level(double critical_level);
   void set_opened_event(bam::pb_ba_event const& e);
   void set_downtime_behaviour(downtime_behaviour value);
+  void set_icon_id(uint32_t icon_id) { _icon_id = icon_id; }
+  void set_icon_image(const std::string_view& icon_image) {
+    _icon_image = icon_image;
+  }
+  void set_icon_image_alt(const std::string_view& icon_image_alt) {
+    _icon_image_alt = icon_image_alt;
+  }
 };
 }  // namespace configuration
 }  // namespace bam

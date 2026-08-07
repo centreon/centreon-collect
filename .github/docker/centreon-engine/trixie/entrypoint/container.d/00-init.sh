@@ -2,8 +2,8 @@
 
 rm -f /tmp/docker.ready
 
-# log_v2_logger=stdout is set by 05-engine-config.sh, so centengine logs go to
-# Docker stdout directly — no log file used. Clear it anyway for clean restarts.
+# centengine logs to this file (log_v2_logger=file); 10-log-tail_background.sh
+# streams it to stdout. Clear it so tail -F starts clean on restart.
 > /var/log/centreon-engine/centengine.log 2>/dev/null || true
 rm -rf /var/log/centreon-engine/archives/* 2>/dev/null || true
 

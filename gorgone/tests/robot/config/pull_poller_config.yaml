@@ -2,7 +2,7 @@ name:  distant-server
 description: Configuration for distant server
 gorgone:
   gorgonecore:
-    id: 2
+    id: @POLLERID@
     privkey: "/var/lib/centreon-gorgone/.keys/rsakey.priv.pem"
     pubkey: "/var/lib/centreon-gorgone/.keys/rsakey.pub.pem"
 

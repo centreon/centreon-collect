@@ -104,7 +104,7 @@ sub cache_refresh {
     # get pollers config
     $self->{pollers} = undef;
     my ($status, $datas) = $self->{class_object_centreon}->custom_execute(
-        request => 'SELECT nagios_server_id, command_file, cfg_dir, centreonbroker_cfg_path, snmp_trapd_path_conf, ' .
+        request => 'SELECT nagios_server_id, uid, command_file, cfg_dir, centreonbroker_cfg_path, snmp_trapd_path_conf, ' .
             'engine_start_command, engine_stop_command, engine_restart_command, engine_reload_command, ' .
             'broker_reload_command, init_script_centreontrapd ' .
             'FROM cfg_nagios, nagios_server ' .
@@ -118,6 +118,11 @@ sub cache_refresh {
     }
 
     $self->{pollers} = $datas;
+    # both uid and id are used as key, but they contain the same pointer to the same data as value. This allow to reach a poller by both it's id and uid.
+    for my $key (keys(%{$self->{pollers}})){
+        my $uid = $self->{pollers}->{$key}->{uid};
+        $self->{pollers}->{$uid} = $self->{pollers}->{$key};
+    }
 
     # check illegal characters
     ($status, $datas) = $self->{class_object_centreon}->custom_execute(
@@ -364,22 +369,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERESTART') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
@@ -399,22 +388,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RESTART') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
@@ -435,22 +408,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERELOAD') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         my $cmd = $self->{pollers}->{ $options{target} }->{engine_reload_command};
         $self->send_internal_action({
             action => 'ACTIONENGINE',
@@ -469,22 +426,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RELOAD') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         my $cmd = $self->{pollers}->{$options{target}}->{engine_reload_command};
         $self->send_internal_action({
             action => 'COMMAND',
@@ -633,8 +574,22 @@ sub execute_cmd {
                 ]
             }
         });
+    }
+    elsif ($options{cmd} eq 'VMWARERESTART') {
+
+        $self->send_internal_action({
+            action => 'ACTIONENGINE',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    command => 'sudo systemctl restart centreon_vmware.service',
+                }
+            }
+        });
     } else{
-        $self->{logger}->writeLogError('[legacycmd] Cannot process message type ' . $options{cmd} . "throwing it away.");
+        $self->{logger}->writeLogWarning('[legacycmd] Cannot process message type ' . $options{cmd} . "throwing it away.");
     }
 
     return 0;

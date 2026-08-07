@@ -1,0 +1,56 @@
+# Service definitions for the config-contract and central-endpoint-wiring
+# test scenarios on the centreon-gorgone product image.
+# Each scenario is driven individually via `docker compose run`/`up --no-deps` by
+# .github/scripts/gorgone-docker-config-wiring-test.sh — this file only declares the services.
+services:
+  poller-missing-secrets:
+    image: ${GORGONE_IMAGE}
+    environment:
+      TYPE: poller
+
+  # In a real deployment, /etc/centreon-engine is shared with a centengine container
+  # whose image ships it group-writable (775, centreon-engine group) with an existing
+  # engine-context.json (see container.d/11-engine-secrets.sh comments). This service
+  # reproduces that minimal precondition on the shared volume, since there is no real
+  # centengine container in this test.
+  engine-context-init:
+    image: ${GORGONE_IMAGE}
+    user: root
+    entrypoint: ["sh", "-c"]
+    command:
+      - "mkdir -p /etc/centreon-engine && chown centreon-engine:centreon-engine /etc/centreon-engine && chmod 775 /etc/centreon-engine"
+    volumes:
+      - engine-context:/etc/centreon-engine
+
+  poller-with-secrets:
+    image: ${GORGONE_IMAGE}
+    environment:
+      TYPE: poller
+      APP_SECRET: runtime-test-app-secret
+      SALT: runtime-test-salt
+    volumes:
+      - engine-context:/etc/centreon-engine
+
+  poller-env-override:
+    image: ${GORGONE_IMAGE}
+    environment:
+      GORGONE__GORGONE__GORGONECORE__ID: "42"
+
+  central-stub:
+    image: alpine:3.20
+    command:
+      - sh
+      - -c
+      - "apk add --no-cache socat >/dev/null 2>&1 && exec socat -d -d TCP-LISTEN:9000,fork,reuseaddr SYSTEM:'cat > /dev/null'"
+
+  poller-central-contract:
+    image: ${GORGONE_IMAGE}
+    environment:
+      CENTRAL_HOST: central-stub
+      CENTRAL_PORT: "9000"
+      GORGONE_TOKEN: runtime-test-token
+    depends_on:
+      - central-stub
+
+volumes:
+  engine-context:

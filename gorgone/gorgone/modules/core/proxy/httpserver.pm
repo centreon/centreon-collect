@@ -27,6 +27,7 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
 use gorgone::standard::misc;
+use gorgone::class::tpapi::centreonv2;
 use Mojolicious::Lite;
 use Mojo::Server::Daemon;
 use IO::Socket::SSL;
@@ -35,6 +36,7 @@ use JSON::XS;
 use IO::Poll qw(POLLIN POLLPRI);
 use EV;
 use HTML::Entities;
+use Date::Parse;
 
 my %handlers = (TERM => {}, HUP => {});
 my ($connector);
@@ -123,15 +125,28 @@ sub run {
     my ($self, %options) = @_;
 
     my $listen = 'reuse=1';
+
+    # Initialize Centreon API connection
+    $self->{tpapi_centreonv2_name} = defined($options{config}->{tpapi_centreonv2}) && $options{config}->{tpapi_centreonv2} ne '' ?
+        $options{config}->{tpapi_centreonv2} : 'centreonv2';
+    $self->{tpapi_centreonv2} = gorgone::class::tpapi::centreonv2->new();
+    my ($status) = $self->{tpapi_centreonv2}->set_configuration(
+        config => $self->{tpapi}->get_configuration(name => $self->{tpapi_centreonv2_name}),
+        logger => $self->{logger}
+    );
+    if ($status) {
+        $self->{logger}->writeLogError('[PROXY] -is_logged_websocket - configure api centreonv2 - ' . $self->{tpapi_centreonv2}->error());
+    }
+
     if ($self->{config}->{httpserver}->{ssl} eq 'true') {
         if (!defined($self->{config}->{httpserver}->{ssl_cert_file}) || $self->{config}->{httpserver}->{ssl_cert_file} eq '' ||
             ! -r "$self->{config}->{httpserver}->{ssl_cert_file}") {
-            $connector->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-cert-file");
+            $self->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-cert-file");
             exit(1);
         }
         if (!defined($self->{config}->{httpserver}->{ssl_key_file}) || $self->{config}->{httpserver}->{ssl_key_file} eq '' ||
             ! -r "$self->{config}->{httpserver}->{ssl_key_file}") {
-            $connector->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-key-file");
+            $self->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-key-file");
             exit(1);
         }
         $listen .= '&cert=' . $self->{config}->{httpserver}->{ssl_cert_file} . '&key=' . $self->{config}->{httpserver}->{ssl_key_file};
@@ -184,6 +199,33 @@ sub run {
     #    $connector->read_zmq_events();
     #});
     #Mojo::IOLoop->singleton->reactor->watch($socket, 1, 0);
+
+    Mojo::IOLoop->singleton->recurring(5 => sub {
+        $connector->{logger}->writeLogDebug('[proxy-httpserver] recurring token revocation check');
+        foreach my $ws_id (keys %{$connector->{ws_clients}}) {
+            if (defined($connector->{ws_clients}->{$ws_id}->{token_name})
+                && $connector->{ws_clients}->{$ws_id}->{logged} == 1) {
+                my $token_name = $connector->{ws_clients}->{$ws_id}->{token_name};
+                my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
+                    token_name => $token_name
+                );
+                if ($status != 0
+                    || !defined($results->{token})
+                    || $results->{is_revoked}
+                    || (defined($results->{expiration_date})
+                    && $results->{expiration_date} ne ''
+                    && str2time($results->{expiration_date}) < time())) {
+                        $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token: ' . $token_name);
+                        $connector->{ws_clients}->{$ws_id}->{logged} = 0;
+                        $self->close_websocket(
+                            code    => 500,
+                            message => 'invalid token',
+                            ws_id   => $ws_id
+                        );
+                }
+            }
+        }
+    });
 
     Mojo::IOLoop->singleton->recurring(60 => sub {
         $connector->{logger}->writeLogDebug('[proxy-httpserver] recurring timeout loop');
@@ -422,7 +464,7 @@ sub is_empty {
     }
     return 0;
 }
-=head3 $self->is_token_ok(ws_id => $ws_id, data => $data)
+=head3 $self->is_logged_websocket(ws_id => $ws_id, data => $data)
 
 validate a client sent the correct token/node Id couple to authenticate.
 Authentication id done only once when websocket client send the first message, then the websocket session is considered authenticated.
@@ -440,11 +482,45 @@ sub is_logged_websocket {
 
     return 1 if ($self->{ws_clients}->{ $options{ws_id} }->{logged} == 1);
 
-    if (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) ||
-        $self->{ws_clients}->{ $options{ws_id} }->{authorization} !~ /^\s*Bearer\s+$self->{config}->{httpserver}->{token}\s*$/) {
+    my $token = $self->{ws_clients}->{ $options{ws_id} }->{authorization};
+    if ($token =~ /^\s*Bearer\s+(\S*)\s*$/) {
+        $token = $1;
+    }
+
+    my $check_conf_token = 1;
+    my ($token_name, $token_value) = split(/:/, $token, 2);
+    if (defined $token_name && defined $token_value) {
+        my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
+            token_name => $token_name
+        );
+        if ($status == 0 && defined($results->{token})) {
+            $check_conf_token = 0;
+            $self->{ws_clients}->{ $options{ws_id} }->{token_name} = $token_name;
+            if ($results->{token} ne $token_value
+                || $results->{type} ne "poller"
+                || $results->{is_revoked} == 1
+                || (defined($results->{expiration_date})
+                && $results->{expiration_date} ne ''
+                && str2time($results->{expiration_date}) < time())) {
+                $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token - ' . $token_name);
+                $self->close_websocket(
+                    code    => 500,
+                    message => 'invalid token',
+                    ws_id   => $options{ws_id}
+                );
+                return 0;
+            }
+        } else {
+            $self->{logger}->writeLogInfo('[proxy-httpserver] cannot get token ' . $token_name . ' - ' . $self->{tpapi_centreonv2}->error());
+        }
+    }
+
+    if ($check_conf_token == 1
+        && ($self->{config}->{httpserver}->{token} eq ""
+        || $self->{config}->{httpserver}->{token} ne $token)) {
         $self->close_websocket(
             code    => 500,
-            message => 'token authorization unallowed',
+            message => 'invalid token',
             ws_id   => $options{ws_id}
         );
         return 0;
@@ -471,7 +547,7 @@ sub is_logged_websocket {
         );
         return 0;
     }
-    if (!defined($content->{nodes}->[0]->{id}) or !defined($self->{nodes}->{$content->{nodes}->[0]->{id}})){
+    if (!defined($content->{nodes}->[0]->{id}) || !defined($self->{nodes}->{$content->{nodes}->[0]->{id}})){
         $self->{logger}->writeLogDebug("[proxy-httpserver] client connection for unknown poller id/uid : " . $content->{nodes}->[0]->{id});
        $self->close_websocket(
             code    => 500,

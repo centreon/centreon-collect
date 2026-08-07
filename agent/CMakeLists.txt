@@ -242,6 +242,7 @@ else()
     centreon_grpc
     centreon_process
     centreon_hexdump
+    centreon_file_system
     ctncrypto
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits

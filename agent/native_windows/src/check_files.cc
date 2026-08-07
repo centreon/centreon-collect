@@ -352,7 +352,12 @@ void ::check_files_detail::filter::find_files() {
 
   fs::path search_path(_root_path);
 
+  // rebuild the map on each scan
+  absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>
+      new_files_metadata;
+
   if (!fs::exists(search_path) || !fs::is_directory(search_path)) {
+    _files_metadata = std::move(new_files_metadata);
     return;
   }
 
@@ -378,7 +383,13 @@ void ::check_files_detail::filter::find_files() {
             if (_file_filter && !_file_filter->check(*metadata)) {
               continue;  // skip to next if the data don't match the filter
             }
-            _files_metadata[std::move(path_str)] = std::move(metadata);
+            new_files_metadata[std::move(path_str)] = std::move(metadata);
+          } else {
+            // File unchanged since the previous scan: reuse.
+            auto previous = _files_metadata.find(path_str);
+            if (previous != _files_metadata.end()) {
+              new_files_metadata[path_str] = std::move(previous->second);
+            }
           }
         }
       }
@@ -386,6 +397,8 @@ void ::check_files_detail::filter::find_files() {
       continue;  // Skip files that cannot be accessed or processed
     }
   }
+
+  _files_metadata = std::move(new_files_metadata);
 }
 /*********************************************************************************************
  *                                          check_files_thread
@@ -1117,6 +1130,8 @@ void check_files::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
+
   if (!_worker_thread_files_check) {
     _worker_files_check =
         std::make_shared<check_files_detail::check_files_thread>(_io_context,
@@ -1126,7 +1141,7 @@ void check_files::start_check(const duration& timeout) {
   }
   unsigned running_check_index = _get_running_check_index();
   _worker_files_check->async_get_files(
-      _filter, std::chrono::system_clock::now() + timeout,
+      _filter, std::chrono::system_clock::now() + effective_timeout,
       [me = shared_from_this(), running_check_index](
           const absl::flat_hash_map<std::string,
                                     std::unique_ptr<file_metadata>>& result,
