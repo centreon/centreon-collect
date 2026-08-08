@@ -6,6 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 ESS1
@@ -61,25 +62,27 @@ ESSCTO
     ...    Given the Engine is configured as usual without the Perl connector
     ...    When the Engine executes its service commands
     ...    Then the commands take too long and reach the timeout
-    ...    And the Engine starts and stops two times as a result
+    ...    And the Engine starts and stops four times as a result
     [Tags]    engine    start-stop    MON-167816
     Ctn Config Engine    ${1}
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
     Ctn Engine Command Remove Connector    ${0}    *
     Ctn Config Broker    module
-    Repeat Keyword    4 times    Ctn Start Stop Instances    20s
+    Ctn Clear Retention
+    Repeat Keyword    4 times    Ctn Start Stop Instances    20s    wait_ready=${True}
 
 ESSCTOWC
     [Documentation]    Scenario: Engine services timeout due to missing Perl connector
     ...    Given the Engine is configured as usual with some command using the Perl connector
     ...    When the Engine executes its service commands
     ...    Then the commands take too long and reach the timeout
-    ...    And the Engine starts and stops two times as a result
+    ...    And the Engine starts and stops four times as a result
     [Tags]    engine    start-stop
     Ctn Config Engine    ${1}
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
     Ctn Config Broker    module
-    Repeat Keyword    4 times    Ctn Start Stop Instances    20s
+    Ctn Clear Retention
+    Repeat Keyword    4 times    Ctn Start Stop Instances    20s    wait_ready=${True}
 
 ESS_STATS
     [Documentation]    Scenario: Reading the stats file after Engine has started
@@ -124,7 +127,12 @@ ESSOCWNV
 
 *** Keywords ***
 Ctn Start Stop Instances
-    [Arguments]    ${interval}
+    [Arguments]    ${interval}    ${wait_ready}=${False}
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    IF    ${wait_ready}
+        ${count}    Ctn Get Engines Count
+        Ctn Wait For Engine To Be Ready    ${start}    ${count}
+    END
     Sleep    ${interval}
     Ctn Stop Engine

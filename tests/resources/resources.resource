@@ -428,13 +428,19 @@ Ctn Stop Engine
             Send Signal To Process    SIGKILL    e${idx}
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
+            ${stderr_tail}    Set Variable    ${EMPTY}
             IF    ${result.rc} != 0 and ${result.rc} != -15
                 # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
                 Ctn Coredump Info    e${idx}    /usr/sbin/centengine    e${idx}
+                # When centengine aborts, the reason is only in its stderr, and
+                # that file is overwritten by the next Ctn Start Engine. Grab it
+                # now so that it lands in the failure message.
+                ${stderr_tail}    Ctn Engine Stderr Tail    ${idx}
+                Log To Console    centengine config${idx} stderr:\n${stderr_tail}
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
-            ...    Engine badly stopped with ${count} instances - code returned ${result.rc}.
+            ...    Engine badly stopped with ${count} instances - code returned ${result.rc}.\ncentengine config${idx} stderr:\n${stderr_tail}
         END
     END
 
@@ -535,12 +541,18 @@ Ctn Dump Process
         ...    stdout=${gdb_output}
         ...    stderr=${gdb_output}
         Log To Console    Done...
-	Run Process    chmod    -R    666    ${failDir}
+        Run Process    chmod    -R    a+rwX    ${failDir}
     END
 
 Ctn Coredump Info
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
+    ${core}    Ctn Find Core File    ${pid}
+    IF    "${core}" == "${EMPTY}"
+        Log To Console
+        ...    No core file found for pid ${pid}: core dumps are probably disabled in this environment (check 'ulimit -c' and /proc/sys/kernel/core_pattern, see robot.sh). No backtrace available.
+        RETURN
+    END
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
     ${output}    Catenate    SEPARATOR=    ${failDir}    /coreinfo-    ${name}    -${pid}    .txt
@@ -551,10 +563,10 @@ Ctn Coredump Info
     ...    -ex
     ...    thread apply all bt 30
     ...    ${binary_path}
-    ...    /tmp/core.${pid}
+    ...    ${core}
     ...    stdout=${output}
     ...    stderr=${output}
-    Run Process    chmod    -R    666    ${failDir}
+    Run Process    chmod    -R    a+rwX    ${failDir}
 
 Ctn Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
@@ -564,7 +576,7 @@ Ctn Copy Coredump In Failed Dir
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
         Copy File    /tmp/core.${pid}    ${failDir}
-	Run Process    chmod    -R    666    ${failDir}
+        Run Process    chmod    -R    a+rwX    ${failDir}
     END
 
 Ctn Wait Or Dump And Kill Process

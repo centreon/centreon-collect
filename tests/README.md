@@ -116,7 +116,7 @@ them. Each section is introduced by its number of tests.
 - [Benchmarks](#benchmarks) (1 test)
 - [Broker](#broker) (92 tests)
 - [Broker/database](#brokerdatabase) (15 tests)
-- [Broker/engine](#brokerengine) (392 tests)
+- [Broker/engine](#brokerengine) (397 tests)
 - [Ccc](#ccc) (8 tests)
 - [Centralized/configuration](#centralizedconfiguration) (65 tests)
 - [Connector perl](#connector-perl) (4 tests)
@@ -774,7 +774,7 @@ This chapter contains 15 tests.
 
 ### Broker/engine
 
-This chapter contains 392 tests.
+This chapter contains 397 tests.
 
 1. **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity saved in retention
 2. **ANO_DT1**: downtime on dependent service is inherited by ano
@@ -1577,21 +1577,23 @@ This chapter contains 392 tests.
 289. **CBD_RELOAD_AND_FILTERS**: We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
 290. **CBD_RELOAD_AND_FILTERS_WITH_OPR**: We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
 291. **DTIM**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.1
-292. **EBBM1**: A service status contains metrics that do not fit in a float number.
-293. **EBBPS1**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
-294. **EBBPS2**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
-295. **EBDP1**: Four new pollers are started and then we remove Poller3.
-296. **EBDP2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
-297. **EBDP3**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
-298. **EBDP4**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by Broker.
-299. **EBDP5**: Four new pollers are started and then we remove Poller3.
-300. **EBDP6**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
-301. **EBDP7**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
-302. **EBDP8**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
-303. **EBDP_GRPC2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
-304. **EBMSSM**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
-305. **EBMSSMDBD**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. While metrics are written in the database, we stop the database and then restart it. Broker must recover its connection to the database and continue to write metrics.
-306. **EBMSSMPART**:
+292. **DT_LOG_BROKER**: notification_mode=broker: a host+service downtime handled by Broker (via gRPC) writes the SAME DOWNTIME ALERT STARTED and CANCELLED lines to the storage logs table as Engine does (see DT_LOG_ENGINE in downtimes.robot).
+293. **DT_LOG_ENGINE**: Reference (notification_mode=engine): a host+service downtime writes the DOWNTIME ALERT STARTED and CANCELLED lines to the storage logs table (the GUI monitoring log).
+294. **EBBM1**: A service status contains metrics that do not fit in a float number.
+295. **EBBPS1**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
+296. **EBBPS2**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
+297. **EBDP1**: Four new pollers are started and then we remove Poller3.
+298. **EBDP2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+299. **EBDP3**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
+300. **EBDP4**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by Broker.
+301. **EBDP5**: Four new pollers are started and then we remove Poller3.
+302. **EBDP6**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+303. **EBDP7**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
+304. **EBDP8**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
+305. **EBDP_GRPC2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+306. **EBMSSM**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
+307. **EBMSSMDBD**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. While metrics are written in the database, we stop the database and then restart it. Broker must recover its connection to the database and continue to write metrics.
+308. **EBMSSMPART**:
      * **SCENARIO:** Broker continues writing metrics after partition recreation
      * **GIVEN** 1000 services are configured with 100 metrics each
      * **AND** the rrd output is removed from the broker configuration
@@ -1605,220 +1607,238 @@ This chapter contains 392 tests.
      * **AND** it must continue writing metrics
      * **WHEN** a last service check is forced
      * **THEN** its metrics must be written in the database
-307. **EBPN0**: Verify if child is in queue when parent is down.
-308. **EBPN1**: verify relation parent child when delete parent.
-309. **EBPN2**: verify relation parent child when delete child.
-310. **EBPS2**: 1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
-311. **EBSAU2**: New services with action_url with more than 2000 characters
-312. **EBSN3**: New services with notes with more than 500 characters
-313. **EBSN4**: New hosts with No Alias / Alias and have A Template
-314. **EBSNU1**: New services with notes_url with more than 2000 characters
-315. **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
-316. **FILTER_ON_LUA_EVENT**: stream connector with a bad configured filter generate a log error message
-317. **FIRST_NOTIF_DELAY_EQUAL_RETRY_INTERVAL**:
+309. **EBPN0**: Verify if child is in queue when parent is down.
+310. **EBPN1**: verify relation parent child when delete parent.
+311. **EBPN2**: verify relation parent child when delete child.
+312. **EBPS2**: 1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
+313. **EBSAU2**: New services with action_url with more than 2000 characters
+314. **EBSN3**: New services with notes with more than 500 characters
+315. **EBSN4**: New hosts with No Alias / Alias and have A Template
+316. **EBSNU1**: New services with notes_url with more than 2000 characters
+317. **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
+318. **FILTER_ON_LUA_EVENT**: stream connector with a bad configured filter generate a log error message
+319. **FIRST_NOTIF_DELAY_EQUAL_RETRY_INTERVAL**:
      * **SCENARIO:** first notification delay equal to the retry interval
      * **GIVEN** a service whose first_notification_delay equals its retry interval
      * **WHEN** the service enters a CRITICAL HARD state
      * **THEN** the CRITICAL notification is sent after the delay
-318. **FIRST_NOTIF_DELAY_GT_RETRY_INTERVAL**:
+320. **FIRST_NOTIF_DELAY_GT_RETRY_INTERVAL**:
      * **SCENARIO:** first notification delay greater than the retry interval
      * **GIVEN** a service whose first_notification_delay is greater than its retry interval
      * **WHEN** the service enters a CRITICAL HARD state
      * **THEN** the CRITICAL notification is sent after the delay
-319. **FIRST_NOTIF_DELAY_LT_RETRY_INTERVAL**:
+321. **FIRST_NOTIF_DELAY_LT_RETRY_INTERVAL**:
      * **SCENARIO:** first notification delay smaller than the retry interval
      * **GIVEN** a service whose first_notification_delay is smaller than its retry interval
      * **WHEN** the service enters a CRITICAL HARD state
      * **THEN** the CRITICAL notification is sent after the delay
-320. **FLAPPING_NOTIF**:
+322. **FLAPPING_NOTIF**:
      * **SCENARIO:** a flapping service triggers a FLAPPINGSTART notification
      * **GIVEN** a service with flap detection and flapping notifications enabled
      * **WHEN** the service state oscillates enough to start flapping
      * **THEN** a FLAPPINGSTART notification is sent
-321. **FORCED_NOTIF**:
+323. **FORCED_NOTIF**:
      * **SCENARIO:** a forced custom notification bypasses the notification-enabled check
      * **GIVEN** a host with notifications disabled
      * **WHEN** a forced custom notification is sent for the host
      * **THEN** the notification is sent despite notifications being disabled
-322. **GRPC_CLOUD_FAILURE**: simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok
-323. **GRPC_RECONNECT**: We restart broker and engine must reconnect to it and send data
-324. **HOSTGRP_NOTIF_DEPENDENCY**:
+324. **GRPC_CLOUD_FAILURE**: simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok
+325. **GRPC_RECONNECT**: We restart broker and engine must reconnect to it and send data
+326. **HOSTGRP_NOTIF_DEPENDENCY**:
      * **SCENARIO:** host notifications are suppressed by a hostgroup dependency
      * **GIVEN** a hostgroup depending on another hostgroup that has already been notified
      * **WHEN** a host of the dependent hostgroup enters a DOWN state
      * **THEN** it sends no notification because its dependency already notified
-325. **HOST_DOWN_ALERT**:
+327. **HOST_DOWN_ALERT**:
      * **SCENARIO:** a host going down raises a host alert
      * **GIVEN** a host configured with notifications
      * **WHEN** the host enters a DOWN HARD state
      * **THEN** a HOST ALERT is logged
-326. **HOST_DOWN_NOTIF**:
+328. **HOST_DOWN_NOTIF**:
      * **SCENARIO:** a host going down triggers a DOWN notification
      * **GIVEN** a host configured with notifications
      * **WHEN** the host enters a DOWN HARD state
      * **THEN** a DOWN notification is sent to its contact
-327. **HOST_NOTIF_DEPENDENCY**:
+329. **HOST_DOWN_NOTIF_BROKER**:
+     * **SCENARIO:** in notification_mode=broker, Broker decides a HOST notification and dispatches its execution to the poller
+     * **GIVEN** a host with a contact, in notification_mode=broker (BBDO3)
+     * **WHEN** the host enters a DOWN HARD state
+     * **THEN** Broker dispatches the host notification execution to the supervising poller
+     * **AND** the poller runs the contact notification command (no local Engine decision)
+330. **HOST_NOTIF_DEPENDENCY**:
      * **SCENARIO:** a host notification is suppressed by a host dependency
      * **GIVEN** a host depending on another host that has already been notified
      * **WHEN** the dependent host enters a DOWN state
      * **THEN** it sends no notification because its dependency already notified
-328. **HOST_REC_NOTIF**:
+331. **HOST_REC_NOTIF**:
      * **SCENARIO:** a host recovery triggers a recovery notification
      * **GIVEN** a host that sent a DOWN notification
      * **WHEN** the host returns to an UP HARD state
      * **THEN** a RECOVERY notification is sent
-329. **HOST_REC_NOTIF_WITH_DT**:
+332. **HOST_REC_NOTIF_WITH_DT**:
      * **SCENARIO:** host notifications across a downtime episode until recovery
      * **GIVEN** a DOWN host for which a downtime is scheduled
      * **WHEN** the downtime suppresses notifications, then is removed while the host is still DOWN, and the host later returns to UP
      * **THEN** no notification is sent during the downtime, a DOWN notification is sent once it is removed, and a RECOVERY notification is sent on recovery
-330. **LCDNU**: the lua cache updates correctly service cache.
-331. **LCDNUH**: the lua cache updates correctly host cache
-332. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
-333. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
-334. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
-335. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
-336. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
-337. **LUA_CACHE_SAVE_BBDO3**:
+333. **LCDNU**: the lua cache updates correctly service cache.
+334. **LCDNUH**: the lua cache updates correctly host cache
+335. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
+336. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
+337. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
+338. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
+339. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
+340. **LUA_CACHE_SAVE_BBDO3**:
      * **GIVEN** a engine broker configured in bbdo2, we check that services and hosts are stored in bbdo3 format in cache
      To do that we compare host and service event with lua cache
-338. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**:
+341. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**:
      * **SCENARIO:** Moving hosts between pollers without losing hostgroup tag
      * **GIVEN** two pollers each with two hosts
      * **AND** all hosts belong to the same hostgroup
      * **WHEN** I move two hosts from one poller to the other
      * **THEN** the hostgroup tag of the moved hosts is not erased
-339. **NON_TLS_CONNECTION_WARNING**:
+342. **NON_TLS_CONNECTION_WARNING**:
      * **GIVEN** an agent starts a non-TLS connection,
      we expect to get a warning message.
-340. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**:
+343. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**:
      * **GIVEN** agent with encrypted connection, we expect no warning message.
-341. **NON_TLS_CONNECTION_WARNING_FULL**:
+344. **NON_TLS_CONNECTION_WARNING_FULL**:
      * **GIVEN** an agent starts a non-TLS connection,
      we expect to get a warning message.
      After 1 hour, we expect to get a warning message about the connection time expired
      * **AND** the connection killed.
-342. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**:
+345. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**:
      * **GIVEN** an agent starts a non-TLS connection reverse,
      we expect to get a warning message.
      After 1 hour, we expect to get a warning message about the connection time expired
      * **AND** the connection killed.
-343. **NON_TLS_CONNECTION_WARNING_REVERSED**:
+346. **NON_TLS_CONNECTION_WARNING_REVERSED**:
      * **GIVEN** an agent starts a non-TLS connection reversed,
      we expect to get a warning message.
-344. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**:
+347. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**:
      * **GIVEN** agent with encrypted reversed connection, we expect no warning message.
-345. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
-346. **REC_NOTIF_OUTSIDE_TP_NOT_SENT**:
+348. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
+349. **REC_NOTIF_OUTSIDE_TP_NOT_SENT**:
      * **SCENARIO:** a recovery is not sent outside the notification period when the flag is off
      * **GIVEN** a CRITICAL service inside its notification period
      * **WHEN** the service recovers outside its notification period and send_recovery_notifications_anyway is off
      * **THEN** the CRITICAL notification is sent but no RECOVERY notification is sent
-347. **REC_NOTIF_OUTSIDE_TP_SENT_WHEN_ENABLED**:
+350. **REC_NOTIF_OUTSIDE_TP_SENT_WHEN_ENABLED**:
      * **SCENARIO:** a recovery is sent outside the notification period when the flag is on
      * **GIVEN** a CRITICAL service inside its notification period
      * **WHEN** the service recovers outside its notification period and send_recovery_notifications_anyway is on
      * **THEN** both the CRITICAL and the RECOVERY notifications are sent
-348. **RENAME_PARENT**:
+351. **RENAME_PARENT**:
      * **GIVEN** an host with a parent host. We rename the parent host and check if the child host is still linked to the parent.
      Engine mustn't crash and log an error on reload.
-349. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
-350. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
-351. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
-352. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
-353. **SRVGRP_NOTIF_DEPENDENCY**:
+352. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
+353. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
+354. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
+355. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
+356. **SRVGRP_NOTIF_DEPENDENCY**:
      * **SCENARIO:** service notifications are suppressed by a servicegroup dependency
      * **GIVEN** a servicegroup depending on another servicegroup that has already been notified
      * **WHEN** a service of the dependent servicegroup enters a CRITICAL state
      * **THEN** it sends no notification because its dependency already notified
-354. **SRV_CRIT_NOTIF**:
+357. **SRV_CRIT_NOTIF**:
      * **SCENARIO:** a critical service triggers a notification
      * **GIVEN** a service configured with notifications enabled
      * **WHEN** the service enters a non-OK HARD state
      * **THEN** a CRITICAL notification is sent to its contact
-355. **SRV_CRIT_NOTIF_BROKER**:
+358. **SRV_CRIT_NOTIF_BROKER**:
      * **SCENARIO:** in notification_mode=broker, Broker decides the notification and dispatches its execution to the poller
      * **GIVEN** a service with a contact, in notification_mode=broker (BBDO3)
      * **WHEN** the service enters a CRITICAL HARD state
      * **THEN** Broker dispatches the notification execution to the supervising poller
      * **AND** the poller runs the contact notification command (no local Engine decision)
-356. **SRV_NOTIF_ALLOWED_BY_WLIST**:
+359. **SRV_NOTIF_ALLOWED_BY_WLIST**:
      * **SCENARIO:** a service notification command allowed by the whitelist is executed
      * **GIVEN** a service in a non-OK HARD state and a whitelist allowing its notification command
      * **WHEN** the notification is triggered
      * **THEN** the notification command is executed
-357. **SRV_NOTIF_BLOCKED_BY_WLIST**:
+360. **SRV_NOTIF_BLOCKED_BY_WLIST**:
      * **SCENARIO:** a service notification command blocked by the whitelist is not executed
      * **GIVEN** a service in a non-OK HARD state and a whitelist not allowing its notification command
      * **WHEN** the notification is triggered
      * **THEN** the notification command is rejected by the whitelist
-358. **SRV_NOTIF_DEPENDENCY**:
+361. **SRV_NOTIF_BROKER_RESTART**:
+     * **SCENARIO:** in notification_mode=broker, the notification chain survives a Broker restart
+     * **GIVEN** a service that sent a CRITICAL notification decided by Broker
+     * **WHEN** Broker is gracefully restarted (persisting and re-injecting its notification state)
+     * **THEN** on the service recovery Broker still dispatches a RECOVERY notification to the very contact told about the problem
+     proving the notification number and notified-contact set were persisted across the restart
+362. **SRV_NOTIF_DEPENDENCY**:
      * **SCENARIO:** a service notification is suppressed by a service dependency
      * **GIVEN** a service depending on another service that has already been notified
      * **WHEN** the dependent service enters a CRITICAL state
      * **THEN** it sends no notification because its dependency already notified
-359. **SRV_NOTIF_ESCALATIONS**:
+363. **SRV_NOTIF_ESCALATIONS**:
      * **SCENARIO:** service notifications follow the configured escalations
      * **GIVEN** services with notification escalations to different contact groups
      * **WHEN** the services stay CRITICAL across successive notifications
      * **THEN** each escalation level notifies its configured contact group in turn
-360. **SRV_NOTIF_MULTIPLE_COMMANDS**:
+364. **SRV_NOTIF_ESCALATIONS_BROKER**:
+     * **SCENARIO:** in notification_mode=broker, Broker resolves the escalations and dispatches the right contact group at each level
+     * **GIVEN** services with notification escalations to different contact groups, in notification_mode=broker (BBDO3)
+     * **WHEN** the services stay CRITICAL across successive notifications
+     * **THEN** Broker (not Engine) picks the escalation contact group for each notification number
+     * **AND** the poller runs the notification command for the contacts Broker selected
+365. **SRV_NOTIF_MULTIPLE_COMMANDS**:
      * **SCENARIO:** a contact with several notification commands runs them all
      * **GIVEN** a contact configured with two service notification commands
      * **WHEN** a service enters a CRITICAL HARD state
      * **THEN** a notification is sent through each configured command
-361. **SRV_NOTIF_ROUTED_TO_CORRECT_CTCT**:
+366. **SRV_NOTIF_ROUTED_TO_CORRECT_CTCT**:
      * **SCENARIO:** each service notification is routed to its own contact
      * **GIVEN** two services each assigned to a different contact
      * **WHEN** both services enter a CRITICAL HARD state
      * **THEN** each contact receives the notification for its own service
-362. **SRV_NOTIF_SUPPR_BY_EMPTY_TP**:
+367. **SRV_NOTIF_SUPPR_BY_EMPTY_TP**:
      * **SCENARIO:** an empty notification period suppresses notifications
      * **GIVEN** a CRITICAL service whose notification period is then set to none
      * **WHEN** the service state changes
      * **THEN** no notification is sent because the notifier is out of its notification period
-363. **SRV_NOTIF_SUPPR_DURING_DT**:
+368. **SRV_NOTIF_SUPPR_DURING_DT**:
      * **SCENARIO:** notifications are suppressed while a service is in downtime
      * **GIVEN** a service with a scheduled downtime
      * **WHEN** the service enters a CRITICAL state during the downtime
      * **THEN** no notification is sent during the downtime
      * **AND** once the downtime is removed the CRITICAL and then RECOVERY notifications are sent
-364. **SRV_NOTIF_SUPPR_DURING_DT_BROKER**:
+369. **SRV_NOTIF_SUPPR_DURING_DT_BROKER**:
      * **SCENARIO:** in notification_mode=broker, notifications are suppressed while a service is in downtime
      * **GIVEN** a service with a contact, in notification_mode=broker (BBDO3)
      * **AND** a scheduled downtime set on the service via Broker gRPC
      * **WHEN** the service enters a CRITICAL HARD state during the downtime
      * **THEN** Broker does not dispatch any notification execution
      * **AND** once the downtime is removed Broker dispatches the CRITICAL then RECOVERY notifications
-365. **SRV_NOTIF_THEN_RM_AND_RELOAD**:
+370. **SRV_NOTIF_THEN_RM_AND_RELOAD**:
      * **SCENARIO:** removing a notified service that is in downtime and reloading does not crash Engine
      * **GIVEN** a service in a non-OK HARD state that has sent a notification and is under a scheduled downtime
      * **WHEN** the service is removed from the configuration and Engine and Broker are reloaded
      * **THEN** Engine keeps running without crashing
-366. **SRV_REC_NOTIF**:
+371. **SRV_REC_NOTIF**:
      * **SCENARIO:** a service recovery triggers a recovery notification
      * **GIVEN** a service that sent a CRITICAL notification
      * **WHEN** the service returns to an OK HARD state
      * **THEN** a RECOVERY notification is sent
-367. **SRV_REC_NOTIF_AFTER_ACK**:
+372. **SRV_REC_NOTIF_AFTER_ACK**:
      * **SCENARIO:** a recovery notification is sent after an acknowledged problem recovers
      * **GIVEN** a CRITICAL service that has been acknowledged
      * **WHEN** the service returns to an OK HARD state
      * **THEN** a RECOVERY notification is sent
-368. **SRV_REC_NOTIF_AFTER_ACK_BROKER**:
+373. **SRV_REC_NOTIF_AFTER_ACK_BROKER**:
      * **SCENARIO:** in notification_mode=broker, a recovery notification is sent after an acknowledged problem recovers
      * **GIVEN** a service with a contact, in notification_mode=broker (BBDO3)
      * **WHEN** the service enters CRITICAL HARD, is acknowledged, then a new CRITICAL check occurs
      * **THEN** Broker suppresses the notification because of the acknowledgement
      * **AND WHEN** the service returns to OK HARD Broker dispatches the RECOVERY notification
-369. **SRV_STATE_ALERTS_SOFT_AND_HARD**:
+374. **SRV_STATE_ALERTS_SOFT_AND_HARD**:
      * **SCENARIO:** successive state changes raise SOFT then HARD service alerts
      * **GIVEN** a service configured with several check attempts
      * **WHEN** the service stays CRITICAL over successive checks
      * **THEN** SOFT 1, SOFT 2 and HARD 3 service alerts are logged
-370. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
-371. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
-372. **Service_increased_huge_check_interval**:
+375. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
+376. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
+377. **Service_increased_huge_check_interval**:
      * **SCENARIO:** New services with huge check interval at creation time.
      * **GIVEN** Engine and Broker are configured with 1 poller and 10 hosts
      * **WHEN** Engine is started
@@ -1834,16 +1854,16 @@ This chapter contains 392 tests.
      * **THEN** metrics should be created and sent to rrd Broker
      * **WHEN** new service metrics are analyzed
      * **THEN** metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
-373. **Services_and_bulks_1**: One service is configured with one metric with a name of 150 to 1021 characters.
-374. **Services_and_bulks_2**: One service is configured with one metric with a name of 150 to 1021 characters.
-375. **Start_Stop_Broker_Engine_1**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-376. **Start_Stop_Broker_Engine_2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-377. **Start_Stop_Engine_Broker_1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-378. **Start_Stop_Engine_Broker_2**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-379. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
-380. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
-381. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
-382. **VICT_ONE_CHECK_STATUS**:
+378. **Services_and_bulks_1**: One service is configured with one metric with a name of 150 to 1021 characters.
+379. **Services_and_bulks_2**: One service is configured with one metric with a name of 150 to 1021 characters.
+380. **Start_Stop_Broker_Engine_1**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+381. **Start_Stop_Broker_Engine_2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+382. **Start_Stop_Engine_Broker_1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+383. **Start_Stop_Engine_Broker_2**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+384. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
+385. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
+386. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
+387. **VICT_ONE_CHECK_STATUS**:
      * **SCENARIO:** Victoria metrics status output
      * **GIVEN** Broker is configured with a unified_sql output and a victoria_metrics output
      * **AND** a mock HTTP server listening for the victoria_metrics requests
@@ -1853,18 +1873,18 @@ This chapter contains 392 tests.
      * **THEN** the mock server receives a status request with value 75
      * **WHEN** Engine processes a CRITICAL hard service result for service_314
      * **THEN** the mock server receives a status request with value 0
-383. **Whitelist_Directory_NotReadable**:
+388. **Whitelist_Directory_NotReadable**:
      * **GIVEN** a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
-384. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
-385. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
-386. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
-387. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
-388. **Whitelist_NotReadable**:
+389. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
+390. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
+391. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
+392. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
+393. **Whitelist_NotReadable**:
      * **GIVEN** a centengine started by centreon-engine user, whitelist files are not readable and centengine must log an error
-389. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
-390. **Whitelist_Service**: test allowed and forbidden commands for services
-391. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
-392. **metric_mapping**: Check if metric name exists using a stream connector
+394. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
+395. **Whitelist_Service**: test allowed and forbidden commands for services
+396. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
+397. **metric_mapping**: Check if metric name exists using a stream connector
 
 ### Ccc
 
@@ -2877,13 +2897,13 @@ This chapter contains 150 tests.
      * **GIVEN** the Engine is configured as usual without the Perl connector
      * **WHEN** the Engine executes its service commands
      * **THEN** the commands take too long and reach the timeout
-     * **AND** the Engine starts and stops two times as a result
+     * **AND** the Engine starts and stops four times as a result
 140. **ESSCTOWC**:
      * **SCENARIO:** Engine services timeout due to missing Perl connector
      * **GIVEN** the Engine is configured as usual with some command using the Perl connector
      * **WHEN** the Engine executes its service commands
      * **THEN** the commands take too long and reach the timeout
-     * **AND** the Engine starts and stops two times as a result
+     * **AND** the Engine starts and stops four times as a result
 141. **ESSOCWNV**:
      * **SCENARIO:** Engine is started with a valid old configuration (concerning cbmod)
      * **GIVEN** the Engine is configured with a valid old configuration
@@ -3197,4 +3217,4 @@ This chapter contains 22 tests.
      * **THEN** broker logs an error about the bad base64 encoding
 
 
-860 tests currently implemented.
+865 tests currently implemented.

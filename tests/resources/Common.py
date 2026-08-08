@@ -3101,3 +3101,74 @@ def ctn_check_resource_ids(typ: str, logfile: str):
         retval = False
     return retval
 
+
+def ctn_find_core_file(pid: int):
+    """
+    Look for the core file left by a process. The name depends on
+    kernel.core_pattern, which is global to the machine and not always the one
+    robot.sh tries to set, so several layouts are accepted: core.<pid>,
+    core-<exe>.<pid>.<host>.<time>, ... and, as a last resort, a plain 'core'
+    written in the current directory.
+
+    Args:
+        pid: process id of the dead process.
+
+    Returns: the path of the most recent matching core file, or an empty string
+    when no core can be found.
+    """
+    candidates = []
+    plain_cores = []
+    for directory in ("/tmp", os.getcwd()):
+        try:
+            entries = os.listdir(directory)
+        except OSError:
+            continue
+        for entry in entries:
+            if not entry.startswith("core"):
+                continue
+            path = os.path.join(directory, entry)
+            if not os.path.isfile(path):
+                continue
+            if entry == "core":
+                plain_cores.append(path)
+                continue
+            # The pid must be a whole field of the name, otherwise 331 would
+            # match core.331499.
+            if str(pid) in re.split(r"[.\-_]", entry):
+                candidates.append(path)
+
+    # A plain 'core' carries no pid, so only fall back to it when nothing else
+    # matched, and only when it is fresh enough to belong to the process we are
+    # looking at. Analysing a stale core would produce a backtrace pointing at
+    # the wrong crash, which is worse than no backtrace at all.
+    if not candidates:
+        now = time.time()
+        candidates = [c for c in plain_cores if now - os.path.getmtime(c) < 120]
+    if not candidates:
+        return ""
+    return max(candidates, key=os.path.getmtime)
+
+
+def ctn_engine_stderr_tail(idx: int, nb_lines: int = 20):
+    """
+    Return the last lines of the centengine standard error output. When
+    centengine dies on an abort, the reason (uncaught exception, failed
+    assertion, ...) is written there and nowhere else.
+
+    Args:
+        idx: index of the engine configuration.
+        nb_lines: number of lines to return.
+
+    Returns: the last lines as a string, or a message telling why nothing
+    could be read.
+    """
+    stderr = f"{VAR_ROOT}/log/centreon-engine/config{idx}/centengine-stderr.log"
+    try:
+        with open(stderr, "r") as f:
+            lines = f.readlines()
+    except OSError as e:
+        return f"<unable to read {stderr}: {e}>"
+    if not lines:
+        return f"<{stderr} is empty>"
+    return "".join(lines[-nb_lines:])
+

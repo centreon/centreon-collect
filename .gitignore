@@ -157,3 +157,7 @@ tests/resources/opentelemetry
 
 compile_commands.json
 .unprocessed
+
+# Core dumps left by crashing tests when kernel.core_pattern writes to the cwd
+core
+core.[0-9]*
