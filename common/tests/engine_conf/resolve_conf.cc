@@ -17,6 +17,7 @@
  *
  */
 
+#include <absl/algorithm/container.h>
 #include <gtest/gtest.h>
 
 #include "common/engine_conf/state.pb.h"
@@ -138,7 +139,17 @@ class Pb_Resolve : public ::testing::Test {
     Host* h = s.add_hosts();
     h->set_host_name(name);
     h->set_check_period("24x7");
+    /* A real id: an anomaly detection carries the id of its host and Engine
+     * refuses the pair when the two disagree. */
+    h->set_host_id(s.hosts_size());
     return h;
+  }
+
+  // The id of an already added host, 0 when it is not defined.
+  static uint64_t host_id_of(const State& s, const std::string& name) {
+    auto it = absl::c_find_if(
+        s.hosts(), [&name](const Host& h) { return h.host_name() == name; });
+    return it == s.hosts().end() ? 0 : it->host_id();
   }
 
   // Add a service on a host, with a defined check period (see
@@ -150,16 +161,28 @@ class Pb_Resolve : public ::testing::Test {
     svc->set_host_name(host);
     svc->set_service_description(desc);
     svc->set_check_period("24x7");
+    // A real id: an anomaly detection designates its dependent service by id.
+    svc->set_service_id(s.services_size());
     return svc;
   }
 
-  // Add an anomaly detection on a host. It has no check command/period fields.
+  /* Add an anomaly detection on a host, computed from the service
+   * @a dependent_service_id of that same host. It has no check command/period
+   * fields. The ids and the scheduling values are set because Engine refuses an
+   * anomaly detection carrying a null one. */
   static Anomalydetection* add_anomalydetection(State& s,
                                                 const std::string& host,
-                                                const std::string& desc) {
+                                                const std::string& desc,
+                                                uint64_t dependent_service_id) {
     Anomalydetection* ad = s.add_anomalydetections();
     ad->set_host_name(host);
     ad->set_service_description(desc);
+    ad->set_host_id(host_id_of(s, host));
+    ad->set_service_id(s.services_size() + s.anomalydetections_size());
+    ad->set_internal_id(s.anomalydetections_size());
+    ad->set_dependent_service_id(dependent_service_id);
+    ad->set_max_check_attempts(3);
+    ad->set_retry_interval(1);
     return ad;
   }
 
@@ -899,7 +922,9 @@ TEST_F(Pb_Resolve, ServiceNonExistingCheckCommand) {
 TEST_F(Pb_Resolve, AnomalydetectionValid) {
   State s = base_state();
   add_notifier_host(s, "host_1");
-  add_anomalydetection(s, "host_1", "ad_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
 
   state_helper hlp(&s);
   error_cnt err;
@@ -914,8 +939,123 @@ TEST_F(Pb_Resolve, AnomalydetectionValid) {
 TEST_F(Pb_Resolve, AnomalydetectionNonExistingContactgroup) {
   State s = base_state();
   add_notifier_host(s, "host_1");
-  Anomalydetection* ad = add_anomalydetection(s, "host_1", "ad_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
   ad->mutable_contactgroups()->add_data("ghost_cg");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+/* The checks below each mirror a `return nullptr` of Engine's
+ * add_anomalydetection(): the applier turns that null into a throw which, on a
+ * first load, takes centengine down. They must be caught on the State. */
+
+// An anomaly detection whose dependent service does not exist is one error.
+TEST_F(Pb_Resolve, AnomalydetectionNonExistingDependentService) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  add_anomalydetection(s, "host_1", "ad_1", 42);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// An anomaly detection comes from the database: a null service id is an error.
+TEST_F(Pb_Resolve, AnomalydetectionNullServiceId) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_service_id(0);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// The internal id ties the anomaly detection to the database: it is mandatory.
+TEST_F(Pb_Resolve, AnomalydetectionNullInternalId) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_internal_id(0);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+/* An anomaly detection carrying a host id that is not the one of the host it
+ * names is an error. It is two of them: the dependent service is looked up with
+ * that same wrong host id, so it cannot be found either. */
+TEST_F(Pb_Resolve, AnomalydetectionHostIdMismatch) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_host_id(ad->host_id() + 41);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 2u);
+}
+
+// A null retry interval is a scheduling value Engine refuses.
+TEST_F(Pb_Resolve, AnomalydetectionNullRetryInterval) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_retry_interval(0);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// Two anomaly detections sharing the same {host_id, service_id} is one error.
+TEST_F(Pb_Resolve, AnomalydetectionDuplicateId) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  Anomalydetection* dup =
+      add_anomalydetection(s, "host_1", "ad_2", svc->service_id());
+  dup->set_service_id(ad->service_id());
 
   state_helper hlp(&s);
   error_cnt err;

@@ -294,8 +294,18 @@ bool anomalydetection_helper::insert_customvariable(std::string_view key,
  * dependent service at wiring time). It only accumulates warnings/errors into
  * @a err (it never throws) and performs no runtime wiring.
  *
+ * Every check here mirrors a `return nullptr` of Engine's
+ * `add_anomalydetection()`: the applier turns that null into a throw, which on
+ * a first load takes centengine down (`apply_diff` rethrows when there is no
+ * previous configuration to restore). Catching them on the `State` is what
+ * keeps an ill-formed configuration from reaching a poller at all.
+ *
  * @param ad The anomaly detection to validate.
- * @param hosts Index of every defined host name.
+ * @param host_ids Index of every defined host name to its host id.
+ * @param services_by_id Index of every defined service and anomaly detection,
+ * keyed by {host_id, service_id}. Anomaly detections are part of it because
+ * Engine registers them in `service::services_by_id` too, so one may legally be
+ * the dependent service of another.
  * @param contacts Index of every defined contact name.
  * @param contactgroups Index of every defined contact group name.
  * @param commands Index of every defined command name.
@@ -306,7 +316,8 @@ bool anomalydetection_helper::insert_customvariable(std::string_view key,
  */
 void anomalydetection_helper::resolve(
     const Anomalydetection& ad,
-    const absl::flat_hash_map<std::string_view, bool>& hosts,
+    const absl::flat_hash_map<std::string_view, uint64_t>& host_ids,
+    const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& services_by_id,
     const absl::flat_hash_set<std::string_view>& contacts,
     const absl::flat_hash_set<std::string_view>& contactgroups,
     const absl::flat_hash_set<std::string_view>& commands,
@@ -320,12 +331,61 @@ void anomalydetection_helper::resolve(
   notifier_resolve(ad, contacts, contactgroups, commands, timeperiods, err,
                    log);
 
-  // The host carrying the anomaly detection must be defined.
-  if (!hosts.contains(ad.host_name())) {
+  /* An anomaly detection always comes from the database, so it must carry its
+   * own service id. */
+  if (ad.service_id() == 0) {
+    err.config_errors++;
+    log->error(
+        "Error: The anomaly detection '{}' on host '{}' comes from a database, "
+        "therefore its service id must not be null",
+        ad.service_description(), ad.host_name());
+  }
+
+  /* The host carrying the anomaly detection must be defined, and the host id
+   * the anomaly detection carries must be the one of that host. */
+  if (auto it = host_ids.find(ad.host_name()); it == host_ids.end()) {
     err.config_errors++;
     log->error(
         "Error: Host '{}' specified in service '{}' not defined anywhere!",
         ad.host_name(), ad.service_description());
+  } else if (it->second != ad.host_id()) {
+    err.config_errors++;
+    log->error(
+        "Error: Host id ({}) of host '{}' of the anomaly detection '{}' does "
+        "not match the host id ({}) of its configuration",
+        it->second, ad.host_name(), ad.service_description(), ad.host_id());
+  }
+
+  // The internal id is what ties the anomaly detection back to the database.
+  if (ad.internal_id() == 0) {
+    err.config_errors++;
+    log->error(
+        "Error: The internal_id of the anomaly detection '{}' on host '{}' is "
+        "mandatory",
+        ad.service_description(), ad.host_name());
+  }
+
+  /* The service the anomaly detection is computed from must be defined. Engine
+   * looks it up in `service::services_by_id` with the anomaly detection's own
+   * host_id (anomalydetection.cc), so the dependent service always lives on the
+   * same host. */
+  if (!services_by_id.contains({ad.host_id(), ad.dependent_service_id()})) {
+    err.config_errors++;
+    log->error(
+        "Error: Dependent service {} of the anomaly detection '{}' on host "
+        "'{}' is not defined anywhere!",
+        ad.dependent_service_id(), ad.service_description(), ad.host_name());
+  }
+
+  /* Scheduling values Engine refuses. The message carries them as uint32, so
+   * only the null cases of the Engine check can happen (a negative interval
+   * cannot be represented). */
+  if (ad.max_check_attempts() == 0 || ad.retry_interval() == 0) {
+    err.config_errors++;
+    log->error(
+        "Error: Invalid max_check_attempts or retry_interval value for the "
+        "anomaly detection '{}' on host '{}'",
+        ad.service_description(), ad.host_name());
   }
 
   // Sane recovery notification options.

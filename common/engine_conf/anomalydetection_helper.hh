@@ -49,7 +49,8 @@ class anomalydetection_helper : public message_helper {
                              std::string_view value) override;
   static void resolve(
       const Anomalydetection& ad,
-      const absl::flat_hash_map<std::string_view, bool>& hosts,
+      const absl::flat_hash_map<std::string_view, uint64_t>& host_ids,
+      const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& services_by_id,
       const absl::flat_hash_set<std::string_view>& contacts,
       const absl::flat_hash_set<std::string_view>& contactgroups,
       const absl::flat_hash_set<std::string_view>& commands,
