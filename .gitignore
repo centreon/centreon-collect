@@ -174,3 +174,7 @@ CLAUDE.local.md
 #AI
 CLAUDE.local.md
 .unprocessed
+
+# Core dumps left by crashing tests when kernel.core_pattern writes to the cwd
+core
+core.[0-9]*
