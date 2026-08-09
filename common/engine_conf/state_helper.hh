@@ -43,7 +43,8 @@ class state_helper : public message_helper {
   void expand(configuration::error_cnt& err,
               const std::shared_ptr<spdlog::logger>& logger = nullptr);
   void resolve(configuration::error_cnt& err,
-               const std::shared_ptr<spdlog::logger>& logger = nullptr);
+               const std::shared_ptr<spdlog::logger>& logger = nullptr,
+               const foreign_objects& elsewhere = foreign_objects());
 };
 }  // namespace com::centreon::engine::configuration
 

@@ -19,6 +19,8 @@
 
 #include <absl/algorithm/container.h>
 #include <gtest/gtest.h>
+#include <spdlog/details/null_mutex.h>
+#include <spdlog/sinks/base_sink.h>
 
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/state_helper.hh"
@@ -40,6 +42,37 @@ class Pb_Resolve : public ::testing::Test {
   static void TearDownTestSuite() { log_v2::unload(); }
 
  protected:
+  /* Keeps the diagnostics in memory: the cross-poller checks only change the
+   * wording of an error that is already counted, so asserting on the counters
+   * alone would not tell whether the right message came out. Single-threaded,
+   * hence the null mutex. */
+  class capturing_sink
+      : public spdlog::sinks::base_sink<spdlog::details::null_mutex> {
+   public:
+    std::vector<std::string> messages;
+
+    // True when one of the captured diagnostics contains @a needle.
+    bool has(std::string_view needle) const {
+      return absl::c_any_of(messages, [needle](const std::string& m) {
+        return m.find(needle) != std::string::npos;
+      });
+    }
+
+   protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override {
+      messages.emplace_back(msg.payload.data(), msg.payload.size());
+    }
+    void flush_() override {}
+  };
+
+  // A logger writing into @a sink and nowhere else.
+  static std::shared_ptr<spdlog::logger> capturing_logger(
+      const std::shared_ptr<capturing_sink>& sink) {
+    auto log = std::make_shared<spdlog::logger>("resolve-capture", sink);
+    log->set_level(spdlog::level::warn);
+    return log;
+  }
+
   // Add a defined command to the State.
   static void add_command(State& s, const std::string& name) {
     Command* c = s.add_commands();
@@ -561,6 +594,104 @@ TEST_F(Pb_Resolve, HostdependencyNonExistingMasterHost) {
   hlp.resolve(err);
   ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
+}
+
+/* A dependency cannot reach an object of another poller. Without a global view
+ * the missing object is only "not defined anywhere"; with one, the diagnostic
+ * names the poller that owns it and states why that kind of dependency is
+ * refused. The error count does not change — the configuration is invalid
+ * either way — so these tests assert on the message. */
+
+// The master host of a notification host dependency lives on another poller.
+TEST_F(Pb_Resolve, HostdependencyNotificationMasterHostOnAnotherPoller) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_hostdependency(s, "host_1", "host_on_poller_3");
+
+  foreign_objects elsewhere;
+  elsewhere.hosts.emplace("host_on_poller_3", 3);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink), elsewhere);
+  ASSERT_EQ(err.config_errors, 1u);
+  ASSERT_TRUE(sink->has("belongs to poller 3"));
+  ASSERT_TRUE(
+      sink->has("notification dependency across pollers is not "
+                "supported"));
+  ASSERT_FALSE(sink->has("is not defined anywhere"));
+}
+
+/* Same, for an execution dependency: it is refused for a different reason, the
+ * poller evaluating it itself. */
+TEST_F(Pb_Resolve, HostdependencyExecutionMasterHostOnAnotherPoller) {
+  State s = base_state();
+  add_host(s, "host_1");
+  Hostdependency* hd = add_hostdependency(s, "host_1", "host_on_poller_3");
+  hd->set_dependency_type(DependencyKind::execution_dependency);
+
+  foreign_objects elsewhere;
+  elsewhere.hosts.emplace("host_on_poller_3", 3);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink), elsewhere);
+  ASSERT_EQ(err.config_errors, 1u);
+  ASSERT_TRUE(sink->has("belongs to poller 3"));
+  ASSERT_TRUE(
+      sink->has("execution dependency is evaluated by the poller "
+                "itself"));
+  ASSERT_FALSE(sink->has("is not defined anywhere"));
+}
+
+// The same configuration, resolved without a global view, keeps the old
+// wording.
+TEST_F(Pb_Resolve, HostdependencyMasterHostUnknownWithoutGlobalView) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_hostdependency(s, "host_1", "host_on_poller_3");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink));
+  ASSERT_EQ(err.config_errors, 1u);
+  ASSERT_TRUE(sink->has("is not defined anywhere"));
+  ASSERT_FALSE(sink->has("belongs to poller"));
+}
+
+/* The master service of a service dependency lives on another poller. The
+ * fixture leaves the dependency type unknown, so expand() decomposes it into
+ * its notification and execution variants: the issue is reported twice, once
+ * with each reason. */
+TEST_F(Pb_Resolve, ServicedependencyMasterServiceOnAnotherPoller) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  add_servicedependency(s, "host_1", "svc_1", "host_on_poller_3", "svc_9");
+
+  foreign_objects elsewhere;
+  elsewhere.services[{"host_on_poller_3", "svc_9"}] = 3;
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink), elsewhere);
+  ASSERT_EQ(err.config_errors, 2u);
+  ASSERT_TRUE(sink->has("belongs to poller 3"));
+  ASSERT_TRUE(
+      sink->has("notification dependency across pollers is not "
+                "supported"));
+  ASSERT_TRUE(
+      sink->has("execution dependency is evaluated by the poller "
+                "itself"));
+  ASSERT_FALSE(sink->has("is not defined anywhere"));
 }
 
 // A host dependency of a host on itself is a single error (circular).
