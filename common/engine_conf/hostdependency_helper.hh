@@ -46,6 +46,7 @@ class hostdependency_helper : public message_helper {
           m_hostgroups);
   static void resolve(const Hostdependency& hd,
                       const absl::flat_hash_map<std::string_view, bool>& hosts,
+                      const foreign_objects& elsewhere,
                       const absl::flat_hash_set<std::string_view>& timeperiods,
                       error_cnt& err,
                       const std::shared_ptr<spdlog::logger>& logger);

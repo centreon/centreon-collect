@@ -711,7 +711,7 @@ Validation content to port, per object:
 | escalation | escalation_period exists; contactgroups exist |
 | hostescalation / serviceescalation | host / service exists (+ escalation) |
 | hostdependency / servicedependency | dependent & master host/service exist; not circular; dependency_period exists |
-| anomalydetection | (= service) + parent service exists |
+| anomalydetection | (= service) + parent service exists; non-null service_id & internal_id; host_id consistent with the host's; non-null max_check_attempts & retry_interval; {host_id, service_id} not already taken |
 
 On the State side, the ported validator first builds name→object indexes
 (commands, timeperiods, contacts, contactgroups, hosts, services) plus a
@@ -4017,10 +4017,48 @@ algorithm described below.
 
 Before any distribution, Broker identifies **co-location blocks**: sets of hosts that must
 reside on the same poller. Blocks are computed as the transitive closure of the following
-constraints:
+constraint:
 
-- `hostdependencies` / `servicedependencies`: linked hosts must be on the same poller
-- `anomalydetection`: must be on the same poller as its associated service
+- `hostdependencies` / `servicedependencies` **of the execution kind only**: linked hosts must
+  be on the same poller
+
+Restricting this to the execution kind is essential. `expand()` already decomposes every
+dependency into two distinct objects, one `execution_dependency` and one
+`notification_dependency` (`hostdependency_helper::expand`), and only the former constrains
+anything:
+
+- a **notification dependency** is evaluated by Broker from its global cache (like escalation
+  rules), so it may cross pollers with no consequence;
+- an **execution dependency** (`execution_failure_options`) is evaluated locally by the poller
+  at scheduling time — it suppresses the *check* itself, not merely the notification. Moving it
+  to the centre would mean a round trip to Broker on every check, which is nothing like
+  notifications, which are rare and asynchronous. It therefore stays local, and it does impose
+  co-location.
+
+Taking dependencies without distinguishing their kind would produce needlessly large blocks,
+hence a needlessly coarse distribution.
+
+> **Current state — restricting this to the execution kind is the target, not the
+> implementation.** As long as a cross-poller notification dependency is refused at validation
+> time, it constrains placement too: distributing two hosts linked by such a dependency onto
+> different pollers would produce a configuration our own validation rejects. For now, blocks
+> must therefore be computed over **both kinds**.
+>
+> What is missing to reach the target is not the evaluation — `broker_cache` already resolves
+> both ends of a notification dependency through its global by-name index and stores them by id
+> (`_insert_host_notif_dep`), so a cross-poller one would fit as is. What is missing is a **home**
+> for the object: a dependency exists today only inside the Engine configuration of one poller,
+> and neither poller knows the host on the other side. Two further points would need handling in
+> the cache: ingestion resolves names when a poller's state arrives and drops the dependency with
+> a mere `warn` if the other poller has not been ingested yet, with no later re-resolution; and
+> the per-owner purge (`_host_notif_deps.get<by_instance>().erase(poller_id)`) has no defined
+> semantics for a dependency that belongs to no poller in particular.
+
+`anomalydetection` **does not appear** in this transitive closure: Engine looks its parent
+service up with the anomaly detection's own `host_id`
+(`service::services_by_id.find({host_id, dependent_service_id})`), so the parent always lives on
+the **same host**. Since a host and all its services are distributed together, the constraint is
+automatically satisfied and never creates an edge between two hosts.
 
 A block is the atomic unit of distribution — its members cannot be split across different
 pollers. The weight of a block is the total number of services across all its hosts.

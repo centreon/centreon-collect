@@ -35,6 +35,61 @@ struct error_cnt {
   uint32_t config_errors = 0;
 };
 
+/**
+ * @brief What the *other* pollers define, as the central Broker knows it from
+ * its per-poller configuration store.
+ *
+ * It is empty whenever the validation runs without a global view — Engine
+ * checking its own configuration at startup, or Broker checking a single
+ * directory in isolation — and the validators then behave exactly as before.
+ *
+ * It never makes a configuration valid or invalid: an object missing from the
+ * poller under validation is an error either way. It only lets a validator name
+ * the poller that owns the object, which turns an unactionable "not defined
+ * anywhere" into a diagnostic an administrator can do something about.
+ */
+struct foreign_objects {
+  /* Host name to the id of the poller defining it. */
+  absl::flat_hash_map<std::string_view, uint64_t> hosts;
+  /* {host name, service description} to the id of the poller defining it. */
+  absl::flat_hash_map<std::pair<std::string_view, std::string_view>, uint64_t>
+      services;
+
+  /* The id of the poller defining @a host, 0 when no other poller does. */
+  uint64_t poller_of_host(std::string_view host) const {
+    auto it = hosts.find(host);
+    return it == hosts.end() ? 0 : it->second;
+  }
+
+  /* The id of the poller defining the service, 0 when no other poller does. */
+  uint64_t poller_of_service(std::string_view host,
+                             std::string_view description) const {
+    auto it = services.find({host, description});
+    return it == services.end() ? 0 : it->second;
+  }
+};
+
+/**
+ * @brief Why a dependency reaching over to another poller is refused, worded
+ * after its kind. Both kinds are errors, but not for the same reason and the
+ * distinction matters to whoever reads the diagnostic.
+ *
+ * An execution dependency suppresses the check itself and is evaluated by the
+ * poller at scheduling time: it could never span two pollers. A notification
+ * dependency is evaluated by Broker from its global cache, which resolves both
+ * ends by id and would hold it happily — what it lacks is a home, since a
+ * dependency object only exists inside the Engine configuration of one poller.
+ * Hence "not supported" rather than "impossible".
+ *
+ * @param kind The kind of the dependency, always set after expand().
+ */
+inline std::string_view cross_poller_reason(DependencyKind kind) {
+  return kind == DependencyKind::execution_dependency
+             ? "an execution dependency is evaluated by the poller itself and "
+               "cannot span two pollers"
+             : "a notification dependency across pollers is not supported";
+}
+
 /* Forward declarations */
 class command_helper;
 class connector_helper;

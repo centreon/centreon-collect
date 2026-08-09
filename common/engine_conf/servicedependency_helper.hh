@@ -56,6 +56,7 @@ class servicedependency_helper : public message_helper {
       const Servicedependency& sd,
       const absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
           services,
+      const foreign_objects& elsewhere,
       const absl::flat_hash_set<std::string_view>& timeperiods,
       error_cnt& err,
       const std::shared_ptr<spdlog::logger>& logger);

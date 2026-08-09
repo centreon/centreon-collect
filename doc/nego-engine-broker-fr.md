@@ -917,7 +917,7 @@ Contenu de validation à porter, par objet :
 | escalation | escalation_period existe ; contactgroups existent |
 | hostescalation / serviceescalation | host / service existe (+ escalation) |
 | hostdependency / servicedependency | host/service dépendant & maître existent ; non circulaire ; dependency_period existe |
-| anomalydetection | (= service) + service parent existe |
+| anomalydetection | (= service) + service parent existe ; service_id & internal_id non nuls ; host_id cohérent avec celui du host ; max_check_attempts & retry_interval non nuls ; {host_id, service_id} non déjà pris |
 
 Côté State, le validateur porté construit d'abord des index nom→objet (commands,
 timeperiods, contacts, contactgroups, hosts, services) plus un index
@@ -4436,10 +4436,48 @@ de *sticky rebalancing* décrit ci-dessous.
 
 Avant toute distribution, Broker identifie les **blocs de co-localisation** : ensembles de hosts
 qui doivent obligatoirement résider sur le même poller. Ces blocs sont calculés par fermeture
-transitive des contraintes suivantes :
+transitive de la contrainte suivante :
 
-- `hostdependencies` / `servicedependencies` : les hosts liés doivent être sur le même poller
-- `anomalydetection` : doit être sur le même poller que son service associé
+- `hostdependencies` / `servicedependencies` **de type exécution uniquement** : les hosts liés
+  doivent être sur le même poller
+
+La restriction au type exécution est essentielle. `expand()` décompose déjà chaque dépendance
+en deux objets distincts, l'un `execution_dependency` et l'autre `notification_dependency`
+(`hostdependency_helper::expand`), et seul le premier impose quoi que ce soit :
+
+- une **dépendance de notification** est évaluée par Broker depuis son cache global
+  (comme les règles d'escalade), donc elle peut franchir les pollers sans conséquence ;
+- une **dépendance d'exécution** (`execution_failure_options`) est évaluée localement par le
+  poller au moment du scheduling — elle inhibe le *check* lui-même, pas seulement la
+  notification. La déporter au centre imposerait un aller-retour vers Broker à chaque check,
+  sans commune mesure avec les notifications qui sont rares et asynchrones. Elle reste donc
+  locale, et impose la co-localisation.
+
+Prendre les dépendances sans distinguer leur type produirait des blocs inutilement gros, donc
+une distribution inutilement grossière.
+
+> **État actuel — la restriction au type exécution est la cible, pas l'implémentation.** Tant
+> qu'une dépendance de notification inter-pollers est refusée à la validation, elle contraint
+> elle aussi le placement : distribuer deux hosts liés par une telle dépendance sur des pollers
+> différents produirait une configuration que notre propre validation rejette. Les blocs doivent
+> donc, pour l'instant, être calculés sur **les deux types**.
+>
+> Ce qui manque pour tenir la cible n'est pas l'évaluation — `broker_cache` résout déjà les deux
+> extrémités d'une dépendance de notification via son index global par nom et les stocke par id
+> (`_insert_host_notif_dep`), donc une dépendance inter-pollers y tiendrait telle quelle. Ce qui
+> manque est un **domicile** pour l'objet : une dépendance n'existe aujourd'hui que dans la
+> configuration Engine d'un poller, or aucun des deux pollers ne connaît le host d'en face.
+> S'ajoutent deux points à traiter dans le cache : l'ingestion résout les noms au moment où
+> l'état d'un poller arrive et abandonne la dépendance avec un simple `warn` si l'autre poller
+> n'est pas encore ingéré, sans re-résolution ultérieure ; et la purge par poller propriétaire
+> (`_host_notif_deps.get<by_instance>().erase(poller_id)`) n'a pas de sémantique définie pour
+> une dépendance qui n'appartient à aucun poller en particulier.
+
+L'`anomalydetection` **n'apparaît pas** dans cette fermeture transitive : Engine recherche son
+service parent avec le `host_id` de l'anomaly detection elle-même
+(`service::services_by_id.find({host_id, dependent_service_id})`), le parent est donc toujours
+sur le **même host**. Comme un host et tous ses services sont distribués ensemble, la contrainte
+est automatiquement satisfaite et ne crée jamais d'arête entre deux hosts.
 
 Un bloc est l'unité atomique de distribution — on ne peut pas en séparer les membres sur des
 pollers différents. Le poids d'un bloc est la somme des services de tous ses hosts.

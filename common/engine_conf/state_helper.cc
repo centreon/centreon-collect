@@ -884,7 +884,8 @@ void check_circular_paths(const State& s,
 }  // namespace
 
 void state_helper::resolve(error_cnt& err,
-                           const std::shared_ptr<spdlog::logger>& logger) {
+                           const std::shared_ptr<spdlog::logger>& logger,
+                           const foreign_objects& elsewhere) {
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
   auto log = logger ? logger : log_v2::instance().get(log_v2::CONFIG);
 
@@ -989,10 +990,11 @@ void state_helper::resolve(error_cnt& err,
     servicegroup_helper::resolve(sg, service, illegal_chars, err, log);
 
   for (auto& hd : pb_config.hostdependencies())
-    hostdependency_helper::resolve(hd, host, timeperiod, err, log);
+    hostdependency_helper::resolve(hd, host, elsewhere, timeperiod, err, log);
 
   for (auto& sd : pb_config.servicedependencies())
-    servicedependency_helper::resolve(sd, service, timeperiod, err, log);
+    servicedependency_helper::resolve(sd, service, elsewhere, timeperiod, err,
+                                      log);
 
   for (auto& he : pb_config.hostescalations())
     hostescalation_helper::resolve(he, host, contactgroup, timeperiod, err,

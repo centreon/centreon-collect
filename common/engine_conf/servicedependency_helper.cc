@@ -355,12 +355,21 @@ void servicedependency_helper::_expand_services(
  * Counterpart of the former Engine runtime `servicedependency::resolve()`: it
  * only accumulates warnings/errors into @a err (it never throws) and performs
  * no runtime wiring. After expand(), each surviving service dependency
- * references exactly one (host, service) pair on each side (host groups, service
- * groups and multi-service forms have already been decomposed), so `.data(0)` is
- * safe here.
+ * references exactly one (host, service) pair on each side (host groups,
+ * service groups and multi-service forms have already been decomposed), so
+ * `.data(0)` is safe here.
+ *
+ * A service dependency cannot reach a service of another poller, for the same
+ * reason a host dependency cannot (see hostdependency_helper::resolve): the
+ * poller silently ignores a master it does not know. When @a elsewhere tells
+ * the missing service belongs to another poller, the diagnostic names that
+ * poller instead of claiming the service is undefined, and
+ * cross_poller_reason() words why the two kinds are refused, which is not for
+ * the same reason.
  *
  * @param sd The service dependency to validate.
  * @param services Index of every defined (host, service description) pair.
+ * @param elsewhere What the other pollers define, empty without a global view.
  * @param timeperiods Index of every defined timeperiod name.
  * @param err Warning/error counters, incremented in place.
  * @param log Logger for the diagnostics.
@@ -369,6 +378,7 @@ void servicedependency_helper::resolve(
     const Servicedependency& sd,
     const absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
         services,
+    const foreign_objects& elsewhere,
     const absl::flat_hash_set<std::string_view>& timeperiods,
     error_cnt& err,
     const std::shared_ptr<spdlog::logger>& log) {
@@ -380,19 +390,35 @@ void servicedependency_helper::resolve(
   // Find the dependent service.
   if (!services.contains(dependent)) {
     err.config_errors++;
-    log->error(
-        "Error: Dependent service '{}' on host '{}' specified in service "
-        "dependency is not defined anywhere!",
-        dependent.second, dependent.first);
+    if (uint64_t poller =
+            elsewhere.poller_of_service(dependent.first, dependent.second))
+      log->error(
+          "Error: Dependent service '{}' on host '{}' specified in service "
+          "dependency belongs to poller {}: {}",
+          dependent.second, dependent.first, poller,
+          cross_poller_reason(sd.dependency_type()));
+    else
+      log->error(
+          "Error: Dependent service '{}' on host '{}' specified in service "
+          "dependency is not defined anywhere!",
+          dependent.second, dependent.first);
   }
 
   // Find the service we're depending on.
   if (!services.contains(master)) {
     err.config_errors++;
-    log->error(
-        "Error: Service '{}' on host '{}' specified in service dependency for "
-        "service '{}' on host '{}' is not defined anywhere!",
-        master.second, master.first, dependent.second, dependent.first);
+    if (uint64_t poller =
+            elsewhere.poller_of_service(master.first, master.second))
+      log->error(
+          "Error: Service '{}' on host '{}' specified in service dependency "
+          "for service '{}' on host '{}' belongs to poller {}: {}",
+          master.second, master.first, dependent.second, dependent.first,
+          poller, cross_poller_reason(sd.dependency_type()));
+    else
+      log->error(
+          "Error: Service '{}' on host '{}' specified in service dependency "
+          "for service '{}' on host '{}' is not defined anywhere!",
+          master.second, master.first, dependent.second, dependent.first);
   }
 
   // Make sure they're not the same service.

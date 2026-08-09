@@ -253,8 +253,17 @@ void hostdependency_helper::expand(
  * exactly one host and one dependent host (hostgroups and multi-host forms have
  * already been decomposed), so `.data(0)` is safe here.
  *
+ * A host dependency cannot reach a host of another poller, whatever its kind: a
+ * master host this poller does not know leaves `master_host_ptr` null, which
+ * the runtime silently reads as "dependency satisfied". When @a elsewhere tells
+ * the missing host belongs to another poller, the diagnostic says so instead of
+ * claiming the host is undefined — the administrator is then looking for a
+ * distribution problem, not for a typo — and cross_poller_reason() words why
+ * the two kinds are refused, which is not for the same reason.
+ *
  * @param hd The host dependency to validate.
  * @param hosts Index of every defined host name.
+ * @param elsewhere What the other pollers define, empty without a global view.
  * @param timeperiods Index of every defined timeperiod name.
  * @param err Warning/error counters, incremented in place.
  * @param log Logger for the diagnostics.
@@ -262,25 +271,41 @@ void hostdependency_helper::expand(
 void hostdependency_helper::resolve(
     const Hostdependency& hd,
     const absl::flat_hash_map<std::string_view, bool>& hosts,
+    const foreign_objects& elsewhere,
     const absl::flat_hash_set<std::string_view>& timeperiods,
     error_cnt& err,
     const std::shared_ptr<spdlog::logger>& log) {
   // Find the dependent host.
   if (!hosts.contains(hd.dependent_hosts().data(0))) {
     err.config_errors++;
-    log->error(
-        "Error: Dependent host specified in host dependency for "
-        "host '{}' is not defined anywhere!",
-        hd.dependent_hosts().data(0));
+    if (uint64_t poller =
+            elsewhere.poller_of_host(hd.dependent_hosts().data(0)))
+      log->error(
+          "Error: Dependent host '{}' specified in host dependency for host "
+          "'{}' belongs to poller {}: {}",
+          hd.dependent_hosts().data(0), hd.hosts().data(0), poller,
+          cross_poller_reason(hd.dependency_type()));
+    else
+      log->error(
+          "Error: Dependent host specified in host dependency for "
+          "host '{}' is not defined anywhere!",
+          hd.dependent_hosts().data(0));
   }
 
   // Find the host we're depending on.
   if (!hosts.contains(hd.hosts().data(0))) {
     err.config_errors++;
-    log->error(
-        "Error: Host '{}' specified in host dependency for host '{}' is not "
-        "defined anywhere!",
-        hd.hosts().data(0), hd.dependent_hosts().data(0));
+    if (uint64_t poller = elsewhere.poller_of_host(hd.hosts().data(0)))
+      log->error(
+          "Error: Host '{}' specified in host dependency for host '{}' belongs "
+          "to poller {}: {}",
+          hd.hosts().data(0), hd.dependent_hosts().data(0), poller,
+          cross_poller_reason(hd.dependency_type()));
+    else
+      log->error(
+          "Error: Host '{}' specified in host dependency for host '{}' is not "
+          "defined anywhere!",
+          hd.hosts().data(0), hd.dependent_hosts().data(0));
   }
 
   // Make sure they're not the same host.
