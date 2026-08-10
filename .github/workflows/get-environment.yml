@@ -789,7 +789,6 @@ jobs:
             const alma10_mariadb_10_11   = cfg('alma10',   'mariadb:10.11');
             const alma9_mysql_8_0        = cfg('alma9',    'mysql:8.0');
             const alma8_mariadb_10_11    = cfg('alma8',    'mariadb:10.11');
-            const bullseye_mariadb_10_11 = cfg('bullseye', 'mariadb:10.11');
             const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
             const trixie_mariadb_11_8    = cfg('trixie',   'mariadb:11.8');
             const trixie_mysql_8_4       = cfg('trixie',   'mysql:8.4');
@@ -800,7 +799,7 @@ jobs:
             const configs = [alma9_mysql_8_0, alma10_mariadb_10_11, trixie_mariadb_11_8];
             const cmaConfigs = [
               alma10_mariadb_10_11, alma9_mysql_8_0, alma8_mariadb_10_11,
-              bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
+              bookworm_mariadb_10_11, trixie_mariadb_11_8,
               jammy_mariadb_10_11, noble_mariadb_10_11
             ];
             const cloud = alma9_mysql_8_0;
@@ -831,15 +830,13 @@ jobs:
               const uniqueOsConfigs = [...new Map(configs.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
               matrix = { ...matrix, operating_systems: uniqueOsConfigs };
               collectMatrix = configs;
-              cmaMatrix = isCloud
-                ? cmaConfigs.filter(c => c.operating_system !== 'bullseye')
-                : cmaConfigs;
+              cmaMatrix = cmaConfigs;
             }
 
             console.log('matrix', matrix);
 
             // --- Expand arm64 for Debian-based distros ---
-            const ARM64_DISTROS = ['bullseye', 'bookworm', 'trixie', 'jammy', 'noble'];
+            const ARM64_DISTROS = ['bookworm', 'trixie', 'jammy', 'noble'];
             const withArch = (configs) => configs.flatMap(c =>
               ARM64_DISTROS.includes(c.operating_system)
                 ? [{...c, arch: 'amd64'}, {...c, arch: 'arm64'}]

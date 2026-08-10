@@ -83,12 +83,6 @@ jobs:
             distrib: trixie
             database: mariadb
           - runner: centreon-collect
-            distrib: bullseye
-            database: mariadb
-          - runner: centreon-collect-arm64
-            distrib: bullseye
-            database: mariadb
-          - runner: centreon-collect
             distrib: jammy
             database: mariadb
           - runner: centreon-collect-arm64
