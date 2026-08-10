@@ -584,10 +584,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: bookworm
@@ -609,11 +605,9 @@ jobs:
 
     steps:
       - name: Checkout sources
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Publish DEB packages
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: ./.github/actions/deb-delivery
         with:
           module_name: monitoring-agent
@@ -642,10 +636,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: bookworm
@@ -670,12 +660,10 @@ jobs:
 
     steps:
       - name: Checkout sources
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Deliver packages on Pulp
         id: deliver_deb_pulp
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: ./.github/actions/package-delivery-pulp
         continue-on-error: true
         with:
@@ -757,15 +745,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
+        distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
 
     steps:
       - name: Checkout sources
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Promote ${{ matrix.distrib }} to stable
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: ./.github/actions/promote-to-stable
         with:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -779,7 +765,6 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
       - name: Parse distrib name
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         id: parse-distrib
         uses: ./.github/actions/parse-distrib
         with:
@@ -808,19 +793,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
+        distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
     permissions:
       contents: read
       id-token: write
 
     steps:
       - name: Checkout sources
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Promote ${{ matrix.distrib }} to stable on Pulp
         id: promote_pulp
-        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: ./.github/actions/promote-to-stable-pulp
         continue-on-error: true
         with:
