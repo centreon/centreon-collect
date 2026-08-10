@@ -92,6 +92,71 @@ uint32_t host_options_to_flags(uint32_t opts) {
                                          : notifications::none);
 }
 
+/**
+ * @brief Copy-on-write handle on a cached entry, to be used with _mutex held
+ * for writing.
+ *
+ * Cached objects are handed out as `shared_ptr` by the getters and readers keep
+ * using them after having released the mutex, so mutating a pointee that is
+ * still seen elsewhere would be a data race. But readers can only take a
+ * reference under the mutex: while the write lock is held, nobody can acquire a
+ * new one, so a `use_count()` of 1 means the container is the sole owner and
+ * the entry can safely be modified in place. A concurrent release by a reader
+ * can only decrease the count, which makes the test conservative (an
+ * unnecessary clone), never wrong.
+ *
+ * The in-place path skips `index.replace()`. This is only valid as long as the
+ * modified fields take no part in any index key of the container: today the
+ * host keys are host_id / instance_id / severity_id / name and the service keys
+ * are (host_id, service_id) / severity_id / (host_name, description), none of
+ * which is written by a status or an adaptive event. Adding an index on a
+ * status field would require revisiting every mutable_entry user.
+ */
+template <typename T>
+class mutable_entry {
+  /* Set only when the entry had to be cloned; drives commit(). */
+  std::shared_ptr<T> _clone;
+  T* _entry;
+
+ public:
+  /**
+   * @brief Constructor.
+   *
+   * @param stored The entry as stored in the container. It must be passed by
+   * reference straight from the container: copying it into a local variable
+   * first would bump the use count and always force the clone path.
+   */
+  explicit mutable_entry(const std::shared_ptr<T>& stored)
+      : _entry{stored.get()} {
+    if (stored.use_count() != 1) {
+      _clone = std::make_shared<T>(*stored);
+      _entry = _clone.get();
+    }
+  }
+
+  /**
+   * @brief Access the object to modify, be it the cached one or the clone.
+   *
+   * @return A pointer to the object to modify.
+   */
+  T* operator->() const { return _entry; }
+
+  /**
+   * @brief Publish the modifications to the container.
+   *
+   * A no-op when the entry was modified in place, since the container already
+   * holds the modified object.
+   *
+   * @param index The index @a it belongs to.
+   * @param it An iterator to the entry this handle was built from.
+   */
+  template <typename Index, typename Iterator>
+  void commit(Index& index, Iterator it) {
+    if (_clone)
+      index.replace(it, _clone);
+  }
+};
+
 }  // namespace
 
 /**
@@ -2206,10 +2271,10 @@ void broker_cache::update_host(
     auto& index = _hosts.get<by_id>();
     auto found = index.find(host_id);
     if (found != index.end()) {
-      /* The cached host is shared with readers that no longer hold the mutex:
-       * clone it, change the clone, then swap. */
-      auto h = std::make_shared<neb::pb_host>(*found->get());
-      auto& hst = h->mut_obj();
+      /* Modified in place when the cache is the sole owner of the host,
+       * otherwise cloned then swapped. */
+      mutable_entry<neb::pb_host> entry{*found};
+      auto& hst = entry->mut_obj();
       hst.set_checked(hs.checked());
       hst.set_check_type(static_cast<Host_CheckType>(hs.check_type()));
       hst.set_state(static_cast<Host_State>(hs.state()));
@@ -2240,7 +2305,7 @@ void broker_cache::update_host(
        * overwrite it. */
       if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
         hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
-      index.replace(found, h);
+      entry.commit(index, found);
       updated = true;
 
       /* Acknowledgement event: decide under the lock, publish after release. */
@@ -2285,10 +2350,10 @@ void broker_cache::update_host(
   auto& index = _hosts.get<by_id>();
   auto found = index.find(ah.host_id());
   if (found != index.end()) {
-    /* The cached host is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto hp = std::make_shared<neb::pb_host>(*found->get());
-    auto& h = hp->mut_obj();
+    /* Modified in place when the cache is the sole owner of the host, otherwise
+     * cloned then swapped. */
+    mutable_entry<neb::pb_host> entry{*found};
+    auto& h = entry->mut_obj();
     SPDLOG_LOGGER_DEBUG(_logger,
                         "Updating adaptive host for host '{}' in Broker cache.",
                         ah.host_id());
@@ -2322,7 +2387,7 @@ void broker_cache::update_host(
       h.set_check_period(ah.check_period());
     if (ah.has_notification_period())
       h.set_notification_period(ah.notification_period());
-    index.replace(found, hp);
+    entry.commit(index, found);
   } else
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -2347,8 +2412,10 @@ void broker_cache::update_host(
     auto& index = _hosts.get<by_id>();
     auto found = index.find(hs.host_id());
     if (found != index.end()) {
-      auto h = std::make_shared<neb::pb_host>(*found->get());
-      auto& hst = h->mut_obj();
+      /* Modified in place when the cache is the sole owner of the host,
+       * otherwise cloned then swapped. */
+      mutable_entry<neb::pb_host> entry{*found};
+      auto& hst = entry->mut_obj();
       SPDLOG_LOGGER_DEBUG(
           _logger,
           "Updating adaptive host status for host '{}' in Broker cache.",
@@ -2364,7 +2431,7 @@ void broker_cache::update_host(
       ack_to_close = _take_expired_acknowledgement(
           hs.host_id(), 0u, hst.acknowledgement_type(),
           static_cast<uint16_t>(hst.state()));
-      index.replace(found, h);
+      entry.commit(index, found);
     } else {
       SPDLOG_LOGGER_WARN(
           _logger,
@@ -2434,10 +2501,10 @@ void broker_cache::update_service(
       return;
     }
 
-    /* The cached service is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto s = std::make_shared<neb::pb_service>(*it->get());
-    auto& svc = s->mut_obj();
+    /* Modified in place when the cache is the sole owner of the service,
+     * otherwise cloned then swapped. */
+    mutable_entry<neb::pb_service> entry{*it};
+    auto& svc = entry->mut_obj();
 
     svc.set_checked(obj.checked());
     svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
@@ -2470,7 +2537,7 @@ void broker_cache::update_service(
      * Engine must not overwrite it. */
     if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
       svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-    index.replace(it, s);
+    entry.commit(index, it);
 
     /* Acknowledgement event: decide under the lock, publish after release. */
     ack_to_close = _take_expired_acknowledgement(
@@ -2595,10 +2662,10 @@ void broker_cache::update_service(
   auto& index = _services.get<by_id>();
   auto it = index.find(std::make_pair(as.host_id(), as.service_id()));
   if (it != _services.end()) {
-    /* The cached service is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto sp = std::make_shared<neb::pb_service>(*it->get());
-    auto& s = sp->mut_obj();
+    /* Modified in place when the cache is the sole owner of the service,
+     * otherwise cloned then swapped. */
+    mutable_entry<neb::pb_service> entry{*it};
+    auto& s = entry->mut_obj();
     if (as.has_notify())
       s.set_notify(as.notify());
     if (as.has_active_checks())
@@ -2629,7 +2696,7 @@ void broker_cache::update_service(
       s.set_check_period(as.check_period());
     if (as.has_notification_period())
       s.set_notification_period(as.notification_period());
-    index.replace(it, sp);
+    entry.commit(index, it);
   } else {
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -2669,17 +2736,17 @@ void broker_cache::update_service(
       return;
     }
 
-    /* The cached service is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto s = std::make_shared<neb::pb_service>(*it->get());
-    auto& svc = s->mut_obj();
+    /* Modified in place when the cache is the sole owner of the service,
+     * otherwise cloned then swapped. */
+    mutable_entry<neb::pb_service> entry{*it};
+    auto& svc = entry->mut_obj();
     if (obj.has_acknowledgement_type())
       svc.set_acknowledgement_type(obj.acknowledgement_type());
     if (obj.has_scheduled_downtime_depth())
       svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
     if (obj.has_notification_number())
       svc.set_notification_number(obj.notification_number());
-    index.replace(it, s);
+    entry.commit(index, it);
 
     /* Acknowledgement event: decide under the lock, publish after release. */
     ack_to_close = _take_expired_acknowledgement(

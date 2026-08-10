@@ -1104,3 +1104,94 @@ TEST_F(BrokerCacheTest, NotificationSectionGating) {
       local_cache.in_notification_period("never", "", std::time(nullptr)));
   ASSERT_TRUE(local_cache.host_notif_dependencies(2).empty());
 }
+
+/**
+ * @brief When nobody but the cache holds a reference on the cached host, a
+ * status update must be applied in place, without cloning the host.
+ */
+TEST_F(BrokerCacheTest, UpdateHostStatusInPlaceWhenUnshared) {
+  publish_hosts(1, 1);
+
+  /* The returned shared_ptr is released right away: the cache is left as the
+   * sole owner of the host. The address is only used as an identity token, the
+   * host itself stays alive in the cache. */
+  const neb::pb_host* before = _cache->host(1u).get();
+  ASSERT_TRUE(before != nullptr);
+
+  auto status = std::make_shared<neb::pb_host_status>();
+  auto& s_obj = status->mut_obj();
+  s_obj.set_host_id(1);
+  s_obj.set_output("in place");
+  _cache->publish(status);
+
+  auto after = _cache->host(1u);
+  ASSERT_EQ(after.get(), before);
+  ASSERT_EQ(after->obj().output(), "in place");
+}
+
+/**
+ * @brief When a reader still holds a reference on the cached host, a status
+ * update must clone it so that the reader keeps seeing an untouched object.
+ */
+TEST_F(BrokerCacheTest, UpdateHostStatusClonesWhenShared) {
+  publish_hosts(1, 1);
+
+  auto held = _cache->host(1u);
+  ASSERT_TRUE(held != nullptr);
+
+  auto status = std::make_shared<neb::pb_host_status>();
+  auto& s_obj = status->mut_obj();
+  s_obj.set_host_id(1);
+  s_obj.set_output("cloned");
+  _cache->publish(status);
+
+  auto after = _cache->host(1u);
+  ASSERT_NE(after.get(), held.get());
+  ASSERT_EQ(after->obj().output(), "cloned");
+  ASSERT_TRUE(held->obj().output().empty());
+}
+
+/**
+ * @brief Same as UpdateHostStatusInPlaceWhenUnshared, for services.
+ */
+TEST_F(BrokerCacheTest, UpdateServiceStatusInPlaceWhenUnshared) {
+  publish_hosts(1, 1);
+  publish_services(1, 1, 1);
+
+  const neb::pb_service* before = _cache->service(1u, 1u).get();
+  ASSERT_TRUE(before != nullptr);
+
+  auto status = std::make_shared<neb::pb_service_status>();
+  auto& s_obj = status->mut_obj();
+  s_obj.set_host_id(1);
+  s_obj.set_service_id(1);
+  s_obj.set_output("in place");
+  _cache->publish(status);
+
+  auto after = _cache->service(1u, 1u);
+  ASSERT_EQ(after.get(), before);
+  ASSERT_EQ(after->obj().output(), "in place");
+}
+
+/**
+ * @brief Same as UpdateHostStatusClonesWhenShared, for services.
+ */
+TEST_F(BrokerCacheTest, UpdateServiceStatusClonesWhenShared) {
+  publish_hosts(1, 1);
+  publish_services(1, 1, 1);
+
+  auto held = _cache->service(1u, 1u);
+  ASSERT_TRUE(held != nullptr);
+
+  auto status = std::make_shared<neb::pb_service_status>();
+  auto& s_obj = status->mut_obj();
+  s_obj.set_host_id(1);
+  s_obj.set_service_id(1);
+  s_obj.set_output("cloned");
+  _cache->publish(status);
+
+  auto after = _cache->service(1u, 1u);
+  ASSERT_NE(after.get(), held.get());
+  ASSERT_EQ(after->obj().output(), "cloned");
+  ASSERT_TRUE(held->obj().output().empty());
+}
