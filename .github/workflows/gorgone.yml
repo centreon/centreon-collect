@@ -499,15 +499,16 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
+  # TEMP TEST HACK (MON-206701): trigger_packaging/trigger_delivery gating
+  # bypassed to live-validate deliver-pulp on a workflow_dispatch run of this
+  # branch (stability is "canary" here, not a real Pulp tier). MUST be
+  # reverted before merge.
   deliver-rpm-pulp:
     continue-on-error: true
     runs-on: centreon-ubuntu-22.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -535,8 +536,14 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
+          # TEMP TEST HACK (MON-206701): hardcoded instead of
+          # needs.get-environment.outputs.stability ("canary" on this branch,
+          # which is not a real Pulp tier). release_type is forced to
+          # "release" too: create-repos.sh only ever provisions
+          # testing-release/testing-hotfix for cloud/onprem repos, never a
+          # bare "testing". MUST be reverted before merge.
+          stability: "testing"
+          release_type: "release"
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           pulp_url: ${{ vars.PULP_API_URL }}
@@ -582,18 +589,17 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+  # TEMP TEST HACK (MON-206701): trigger_delivery/stability/is_cloud gating
+  # bypassed, see deliver-rpm-pulp above. MUST be reverted before merge.
   deliver-deb-pulp:
     continue-on-error: true
     runs-on: centreon-ubuntu-22.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      ! contains(needs.*.result, 'cancelled')
 
     strategy:
       fail-fast: false
@@ -618,8 +624,10 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
+          # TEMP TEST HACK (MON-206701): hardcoded, see deliver-rpm-pulp
+          # above. MUST be reverted before merge.
+          stability: "testing"
+          release_type: "release"
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
