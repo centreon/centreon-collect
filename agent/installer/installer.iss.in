@@ -77,7 +77,7 @@ Source: {#InfoIcon}; Flags: dontcopy
 Source: {#WarningIcon}; Flags: dontcopy
 
 [Run]
-Filename: "sc.exe"; Parameters: "create CentreonMonitoringAgent binPath= ""{app}\CentreonMonitoringAgent\{#AppExeName}"" start= auto DisplayName= ""Centreon Monitoring Agent""";Flags : runhidden; Components: agent
+Filename: "sc.exe"; Parameters: "{code:GetScCreateParams}";Flags : runhidden; Components: agent
 Filename: "sc.exe"; Parameters: "description CentreonMonitoringAgent ""Centreon agent used for monitoring and metric collection""";Flags: runhidden; Components: agent
 Filename: "sc.exe"; Parameters: "start CentreonMonitoringAgent"; Flags: runhidden ; Components: agent
 
@@ -363,6 +363,21 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+
+// Build the 'sc create' parameters for the agent service.
+// The binary path is wrapped in literal quotes so the ImagePath stored in the
+// registry stays quoted: an unquoted path containing spaces (the default
+// The \" sequences survive sc.exe own command line parsing and reach the registry,
+// whereas plain quotes would be consumed as argument delimiters.
+// Resulting parameters:
+// create CentreonMonitoringAgent binPath= "\"C:\Program Files\Centreon\CentreonMonitoringAgent\centagent.exe\"" start= auto DisplayName= "Centreon Monitoring Agent"
+function GetScCreateParams(Param: string): string;
+begin
+  Result :=
+    'create CentreonMonitoringAgent binPath= "\"' +
+    ExpandConstant('{app}\CentreonMonitoringAgent\{#AppExeName}') +
+    '\"" start= auto DisplayName= "Centreon Monitoring Agent"';
+end;
 
 // Logs a message with a timestamp to 'installer_output.log' in the source executable's directory.
 procedure LogToStdOutFile(Msg: String);
