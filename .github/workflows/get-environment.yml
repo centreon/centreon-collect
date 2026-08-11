@@ -796,7 +796,7 @@ jobs:
             const configs = [alma10_mysql_8_4, alma9_mysql_8_0, alma10_mariadb_11_8, trixie_mariadb_11_8];
             const cmaConfigs = [
               alma10_mariadb_11_8, alma9_mysql_8_0, alma8_mariadb_10_11,
-              bookworm_mariadb_10_11, trixie_mariadb_8_4,
+              bookworm_mariadb_10_11, trixie_mysql_8_4,
               jammy_mariadb_10_11, noble_mariadb_10_11
             ];
             const cloud = alma10_mysql_8_4;
