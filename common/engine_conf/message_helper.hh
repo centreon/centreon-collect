@@ -54,18 +54,25 @@ struct foreign_objects {
   /* {host name, service description} to the id of the poller defining it. */
   absl::flat_hash_map<std::pair<std::string_view, std::string_view>, uint64_t>
       services;
+  /* The poller being validated. The index is built once over every stored
+   * configuration, without knowing which validation will use it, so the
+   * configuration of that poller is in there too and has to be filtered out.
+   * It also covers a subtler case: an object present in the poller's previously
+   * stored configuration but dropped from the one being validated must read as
+   * undefined, not as living on that same poller. */
+  uint64_t self = 0;
 
   /* The id of the poller defining @a host, 0 when no other poller does. */
   uint64_t poller_of_host(std::string_view host) const {
     auto it = hosts.find(host);
-    return it == hosts.end() ? 0 : it->second;
+    return it == hosts.end() || it->second == self ? 0 : it->second;
   }
 
   /* The id of the poller defining the service, 0 when no other poller does. */
   uint64_t poller_of_service(std::string_view host,
                              std::string_view description) const {
     auto it = services.find({host, description});
-    return it == services.end() ? 0 : it->second;
+    return it == services.end() || it->second == self ? 0 : it->second;
   }
 };
 

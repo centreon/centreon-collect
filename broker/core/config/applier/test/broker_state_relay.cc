@@ -16,11 +16,16 @@
  * For more information : contact@centreon.com
  */
 
-#include "broker/core/config/applier/broker_state.hh"
+#include <fmt/format.h>
 #include <gtest/gtest.h>
+#include <unistd.h>
+#include <filesystem>
+#include <fstream>
+#include "broker/core/config/applier/broker_state.hh"
 
 using namespace com::centreon::broker;
 using com::centreon::broker::config::applier::broker_state;
+namespace cfg = com::centreon::engine::configuration;
 
 namespace cccommon = com::centreon::common;
 
@@ -30,6 +35,121 @@ class BrokerStateRelayTest : public ::testing::Test {
 
   void SetUp() override { _logger = spdlog::default_logger(); }
 };
+
+/* Tests of load_foreign_objects(), which reads the configurations Broker stores
+ * for the other pollers so a per-poller validation can tell "undefined" from
+ * "defined on another poller". They need a real directory of .prot files. */
+class BrokerStateForeignTest : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+  std::filesystem::path _dir;
+
+  void SetUp() override {
+    _logger = spdlog::default_logger();
+    /* One directory per test, so a leftover of a previous run or of another
+     * test can never be read as a poller configuration. */
+    _dir = std::filesystem::temp_directory_path() /
+           fmt::format(
+               "broker_state_foreign_{}_{}", getpid(),
+               ::testing::UnitTest::GetInstance()->current_test_info()->name());
+    std::filesystem::remove_all(_dir);
+    std::filesystem::create_directories(_dir);
+  }
+
+  void TearDown() override { std::filesystem::remove_all(_dir); }
+
+  /* Write a serialized State holding one host and one of its services under
+   * @a file_name, the way Broker stores a poller configuration. */
+  void write_state(const std::string& file_name,
+                   const std::string& host_name,
+                   const std::string& service_description) {
+    cfg::State s;
+    auto* h = s.add_hosts();
+    h->set_host_name(host_name);
+    auto* svc = s.add_services();
+    svc->set_host_name(host_name);
+    svc->set_service_description(service_description);
+    std::ofstream f(_dir / file_name, std::ios::binary);
+    ASSERT_TRUE(s.SerializeToOstream(&f));
+  }
+};
+
+/* The work files of a push in progress are not stored configurations and must
+ * not be read as such. The store itself is read whole; it is `self` that keeps
+ * the validated poller out of the answers, so the same load serves a whole
+ * batch. */
+TEST_F(BrokerStateForeignTest, SkipsWorkFilesAndFiltersOnSelf) {
+  broker_state state(_logger);
+  state.set_pollers_config_dir(_dir);
+  write_state("1.prot", "host_of_1", "svc_of_1");
+  write_state("3.prot", "host_of_3", "svc_of_3");
+  write_state("new-4.prot", "host_of_4", "svc_of_4");
+  write_state("diff-5.prot", "host_of_5", "svc_of_5");
+
+  auto foreign = state.load_foreign_objects();
+  foreign.objects.self = 1;
+
+  EXPECT_EQ(foreign.objects.poller_of_host("host_of_3"), 3u);
+  EXPECT_EQ(foreign.objects.poller_of_host("host_of_1"), 0u);
+  EXPECT_EQ(foreign.objects.poller_of_host("host_of_4"), 0u);
+  EXPECT_EQ(foreign.objects.poller_of_host("host_of_5"), 0u);
+  EXPECT_EQ(foreign.objects.hosts.size(), 2u);
+
+  /* Same load, next poller of the batch: only `self` moves. */
+  foreign.objects.self = 3;
+  EXPECT_EQ(foreign.objects.poller_of_host("host_of_1"), 1u);
+  EXPECT_EQ(foreign.objects.poller_of_host("host_of_3"), 0u);
+}
+
+/* Services are indexed by {host name, service description}. Reading them after
+ * load_foreign_objects() has returned also proves the borrowed strings survive
+ * the return: the messages live behind unique_ptr, so moving the result never
+ * moves them. */
+TEST_F(BrokerStateForeignTest, IndexesServicesByHostAndDescription) {
+  broker_state state(_logger);
+  state.set_pollers_config_dir(_dir);
+  write_state("2.prot", "host_of_2", "svc_of_2");
+  write_state("7.prot", "host_of_7", "svc_of_7");
+
+  auto foreign = state.load_foreign_objects();
+  foreign.objects.self = 2;
+
+  EXPECT_EQ(foreign.objects.poller_of_service("host_of_7", "svc_of_7"), 7u);
+  EXPECT_EQ(foreign.objects.poller_of_service("host_of_7", "ghost"), 0u);
+  EXPECT_EQ(foreign.objects.poller_of_service("host_of_2", "svc_of_2"), 0u);
+  EXPECT_EQ(foreign.objects.services.size(), 2u);
+}
+
+/* No pollers configuration directory (a relay, or a fresh central) yields an
+ * empty index, and the validation then behaves as if it had no global view. */
+TEST_F(BrokerStateForeignTest, EmptyWithoutPollersConfigDir) {
+  broker_state state(_logger);
+
+  auto foreign = state.load_foreign_objects();
+
+  EXPECT_TRUE(foreign.objects.hosts.empty());
+  EXPECT_TRUE(foreign.objects.services.empty());
+  EXPECT_TRUE(foreign.states.empty());
+}
+
+/* An unreadable configuration costs the precision of the diagnostics about that
+ * poller, nothing more: the others are still indexed. */
+TEST_F(BrokerStateForeignTest, SkipsUnreadableConfiguration) {
+  broker_state state(_logger);
+  state.set_pollers_config_dir(_dir);
+  write_state("8.prot", "host_of_8", "svc_of_8");
+  {
+    /* Wire type 7 does not exist, so protobuf is guaranteed to reject this —
+     * unlike arbitrary text, which it may happen to parse. */
+    std::ofstream f(_dir / "9.prot", std::ios::binary);
+    f.put(static_cast<char>(0x0f));
+  }
+
+  auto foreign = state.load_foreign_objects();
+
+  EXPECT_EQ(foreign.objects.poller_of_host("host_of_8"), 8u);
+  EXPECT_EQ(foreign.states.size(), 1u);
+}
 
 /* is_relay() returns true when pollers_config_dir is not set (default). */
 TEST_F(BrokerStateRelayTest, IsRelayWhenPollersDirEmpty) {

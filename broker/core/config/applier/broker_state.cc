@@ -335,6 +335,89 @@ void broker_state::load_topology_cache() {
   _logger->info("Topology cache loaded: {} hints", cache.entries_size());
 }
 
+namespace {
+/**
+ * @brief The poller id a stored configuration file name carries.
+ *
+ * Only `<id>.prot` is a stored configuration. `new-<id>.prot` and
+ * `diff-<id>.prot` are work files of the push in progress and must not be read
+ * as the configuration of a poller.
+ *
+ * @param p The path of a file of the pollers configuration directory.
+ *
+ * @return The poller id, or 0 for anything that is not a stored configuration.
+ */
+uint64_t stored_poller_config_id(const std::filesystem::path& p) {
+  if (p.extension() != ".prot")
+    return 0;
+  uint64_t retval = 0;
+  return absl::SimpleAtoi(p.stem().string(), &retval) ? retval : 0;
+}
+}  // namespace
+
+/**
+ * @brief Read every poller configuration Broker stores, and index their hosts
+ * and services by poller.
+ *
+ * This is what gives a per-poller validation a global view: an object missing
+ * from the configuration under validation can then be reported as living on
+ * another poller instead of as undefined.
+ *
+ * The result is deliberately not tied to one poller, so that validating several
+ * pollers in a row parses the store once instead of once per poller. Which
+ * poller a given validation is about is told through `foreign_objects::self`,
+ * and that is what keeps its own objects out of the answers.
+ *
+ * The index mirrors the intra-poller one built by `state_helper::resolve`,
+ * hence services only: anomaly detections are not part of the by-name service
+ * index there either.
+ *
+ * @return The states read, and the index borrowing their strings. Both must
+ * outlive the validation that uses the index.
+ */
+broker_state::foreign_states broker_state::load_foreign_objects() const {
+  foreign_states retval;
+  if (pollers_config_dir().empty() ||
+      !std::filesystem::exists(pollers_config_dir()))
+    return retval;
+
+  std::error_code ec;
+  for (const auto& entry :
+       std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
+    uint64_t id = stored_poller_config_id(entry.path());
+    if (id == 0)
+      continue;
+
+    auto state = std::make_unique<engine::configuration::State>();
+    std::ifstream f(entry.path(), std::ios::binary);
+    if (!f || !state->ParseFromIstream(&f)) {
+      /* A configuration we cannot read only costs us the precision of the
+       * diagnostics about that poller, so it is not worth failing the whole
+       * validation. */
+      _logger->warn(
+          "Cannot read the stored configuration '{}' of poller {}: the "
+          "validation of the other pollers will not be able to report objects "
+          "living on it",
+          entry.path().string(), id);
+      continue;
+    }
+    for (const auto& h : state->hosts())
+      retval.objects.hosts.emplace(h.host_name(), id);
+    for (const auto& s : state->services())
+      retval.objects.services.emplace(
+          std::pair<std::string_view, std::string_view>(
+              s.host_name(), s.service_description()),
+          id);
+    /* Moving the unique_ptr does not move the message, so every view inserted
+     * above stays valid. */
+    retval.states.push_back(std::move(state));
+  }
+  if (ec)
+    _logger->warn("Cannot browse the pollers configuration directory '{}': {}",
+                  pollers_config_dir().string(), ec.message());
+  return retval;
+}
+
 /**
  * @brief Create the <ID>.prot file for a poller with the given configuration.
  * This file will be used by broker to fill the cache and prepare the storage
@@ -869,7 +952,16 @@ void broker_state::_check_last_engine_conf() {
   }
 
   std::error_code ec;
+  /* Read once for the whole batch: on a deploy-all, pollers_set holds every
+   * poller and re-reading the store for each of them would parse it as many
+   * times as it has entries. Each iteration only points `self` at the poller it
+   * validates. Nothing pending means nothing to validate, and this runs on a
+   * timer, so the store is not read at all in that case. */
+  foreign_states foreign;
+  if (!pollers_set.empty())
+    foreign = load_foreign_objects();
   for (uint32_t poller_id : pollers_set) {
+    foreign.objects.self = poller_id;
     _logger->debug(
         "Checking if there is a new Engine configuration for poller {}",
         poller_id);
@@ -915,10 +1007,16 @@ void broker_state::_check_last_engine_conf() {
         state->set_config_version(version);
         state->set_poller_id(poller_id);
         state_hlp.expand(err);
-        // We do not trust the pushed configuration: validate it before storing
-        // and delivering it. If it is invalid, refuse to push it (the throw is
-        // caught below, so the .prot is not written and no diff is prepared).
-        state_hlp.resolve(err, _logger);
+        /* We do not trust the pushed configuration: validate it before storing
+         * and delivering it. If it is invalid, refuse to push it (the throw is
+         * caught below, so the .prot is not written and no diff is prepared).
+         *
+         * Being the central, we can do better than a poller alone: the
+         * configurations stored for the other pollers tell whether an object
+         * this one references is genuinely undefined or merely lives elsewhere.
+         * `foreign` is loaded above the loop and owns the strings its index
+         * borrows, so it outlives every resolve of the batch. */
+        state_hlp.resolve(err, _logger, foreign.objects);
         if (err.config_errors)
           throw com::centreon::exceptions::msg_fmt(
               "configuration for poller {} (version '{}') has {} error(s); "

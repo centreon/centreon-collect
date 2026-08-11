@@ -158,6 +158,9 @@ tests/resources/opentelemetry
 compile_commands.json
 .unprocessed
 
-# Core dumps left by crashing tests when kernel.core_pattern writes to the cwd
+# Core dumps left by crashing tests when kernel.core_pattern writes to the cwd.
+# "core" matches at any depth, so "!core/" keeps source directories such as
+# broker/core/ and gorgone/gorgone/modules/core/ visible to git and grep tools.
 core
+!core/
 core.[0-9]*

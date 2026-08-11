@@ -251,6 +251,23 @@ class broker_state : public state {
   void create_prot_file(
       const com::centreon::engine::configuration::State& conf);
 
+  /**
+   * @brief The configurations of the other pollers, and the index built over
+   * them.
+   *
+   * The two travel together on purpose: `objects` holds non-owning
+   * `std::string_view` pointing into `states`, so the caller must keep the
+   * whole thing alive for as long as it uses the index. The states are held
+   * behind `unique_ptr` so that moving or returning this structure never moves
+   * the messages themselves, which would dangle every view.
+   */
+  struct foreign_states {
+    std::vector<std::unique_ptr<com::centreon::engine::configuration::State>>
+        states;
+    com::centreon::engine::configuration::foreign_objects objects;
+  };
+  foreign_states load_foreign_objects() const;
+
   enum class relay_config_response { unknown, up_to_date, diff_ready };
   void register_engine_peer_via_relay(uint64_t engine_id,
                                       const std::string& engine_name,
