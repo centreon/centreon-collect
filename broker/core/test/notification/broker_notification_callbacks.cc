@@ -28,6 +28,7 @@
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/init.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
 
@@ -642,7 +643,8 @@ class BrokerNotificationDeliverTest : public ::testing::Test {
  protected:
   cache::broker_cache* _cache = nullptr;
   config::applier::broker_state* _state = nullptr;
-  std::unique_ptr<broker_notification_callbacks> _cb;
+  /* Owned by the notification_manager, see SetUp(). */
+  broker_notification_callbacks* _cb = nullptr;
 
  public:
   void SetUp() override {
@@ -653,11 +655,19 @@ class BrokerNotificationDeliverTest : public ::testing::Test {
     _cache = &st.cache();
     _cache->enable_section(cache::broker_cache::CACHE_ALL);
     _state = &static_cast<config::applier::broker_state&>(st);
-    _cb = std::make_unique<broker_notification_callbacks>();
+    /* deliver() is a notification_manager callback: production never reaches it
+     * outside a loaded manager, and it reads the resource's ongoing problem
+     * from it. Load it so the test exercises the same wiring — the manager
+     * takes ownership, hence the raw pointer kept to drive deliver() here. */
+    auto cb = std::make_unique<broker_notification_callbacks>();
+    _cb = cb.get();
+    com::centreon::common::notifications::notification_manager::load(
+        std::move(cb));
   }
 
   void TearDown() override {
-    _cb.reset();
+    com::centreon::common::notifications::notification_manager::unload();
+    _cb = nullptr;
     config::applier::deinit();
   }
 

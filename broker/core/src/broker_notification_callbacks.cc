@@ -356,10 +356,17 @@ notifications::delivery_result broker_notification_callbacks::deliver(
   } else
     candidates = cache.notification_contact_names(host_id, service_id);
 
+  /* Constant over the loop below: the normal notification records who was told
+   * about the ongoing problem, which is what a recovery is restricted to. */
+  const notifications::notification* ongoing_problem =
+      notifications::notification_manager::instance().current_notification(
+          host_id, service_id, notifications::cat_normal);
+
   /* Select the contacts to notify among the candidates (escalation members or
    * the resource's direct contacts), each filtered by the shared
    * should_notify_contact viability (enable flag, contact notification period
-   * in the contact's timezone, notify_on bitmask). */
+   * in the contact's timezone, notify_on bitmask, and for a recovery the
+   * audience of the ongoing problem). */
   absl::btree_set<std::string> notified;
   for (const std::string& name : candidates) {
     auto c = cache.contact_config(name);
@@ -369,18 +376,9 @@ notifications::delivery_result broker_notification_callbacks::deliver(
         is_host ? c->host_notification_period : c->service_notification_period;
     const bool in_period =
         cache.in_notification_period(period, c->timezone, now);
-    /* Recovery goes to the contacts told about the ongoing problem; the
-     * notification_manager keeps that set. */
-    bool already_notified = false;
-    if (cat == notifications::cat_recovery) {
-      const notifications::notification* prev =
-          notifications::notification_manager::instance().current_notification(
-              host_id, service_id, notifications::cat_normal);
-      already_notified = prev && prev->sent_to(name);
-    }
     if (notifications::should_notify_contact(*c, is_host, cat, type,
                                              current_state, in_period,
-                                             already_notified))
+                                             ongoing_problem))
       notified.insert(name);
   }
 

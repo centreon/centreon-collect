@@ -49,6 +49,15 @@ contact all_on() {
                                    flappingdisabled | downtime;
   return c;
 }
+
+/* The normal notification a recovery is restricted to: it told "c", the contact
+ * all_on() builds. A nullptr stands for a resource that never notified. */
+notification told_c() {
+  notification n;
+  n.type = reason_normal;
+  n.add_contacts({"c"});
+  return n;
+}
 }  // namespace
 
 /* The host/service notification-enable flag gates everything. */
@@ -58,15 +67,15 @@ TEST_F(ContactViability, EnableFlag) {
   c.service_notifications_enabled = false;
   EXPECT_FALSE(should_notify_contact(c, /*is_host=*/false, cat_acknowledgement,
                                      reason_acknowledgement, 0,
-                                     /*in_period=*/true, false));
+                                     /*in_period=*/true, nullptr));
   /* The host flag is independent: a host notification still goes through. */
   EXPECT_TRUE(should_notify_contact(c, /*is_host=*/true, cat_acknowledgement,
-                                    reason_acknowledgement, 0, true, false));
+                                    reason_acknowledgement, 0, true, nullptr));
 
   c = all_on();
   c.host_notifications_enabled = false;
   EXPECT_FALSE(should_notify_contact(c, true, cat_acknowledgement,
-                                     reason_acknowledgement, 0, true, false));
+                                     reason_acknowledgement, 0, true, nullptr));
 }
 
 /* An out-of-period contact is never notified. */
@@ -74,7 +83,7 @@ TEST_F(ContactViability, OutOfPeriod) {
   contact c = all_on();
   EXPECT_FALSE(should_notify_contact(c, false, cat_acknowledgement,
                                      reason_acknowledgement, 0,
-                                     /*in_period=*/false, false));
+                                     /*in_period=*/false, nullptr));
 }
 
 /* Normal notification: the current state must map to a bit set in the mask. */
@@ -84,13 +93,13 @@ TEST_F(ContactViability, NormalStateToBitService) {
   c.service_notification_options = critical;
 
   EXPECT_TRUE(should_notify_contact(c, false, cat_normal, reason_normal,
-                                    /*state=*/2, true, false));
+                                    /*state=*/2, true, nullptr));
   /* WARNING (state 1) is not in the mask. */
   EXPECT_FALSE(should_notify_contact(c, false, cat_normal, reason_normal, 1,
-                                     true, false));
+                                     true, nullptr));
   /* OK (state 0) is not in the mask either. */
   EXPECT_FALSE(should_notify_contact(c, false, cat_normal, reason_normal, 0,
-                                     true, false));
+                                     true, nullptr));
 }
 
 TEST_F(ContactViability, NormalStateToBitHost) {
@@ -98,27 +107,33 @@ TEST_F(ContactViability, NormalStateToBitHost) {
   c.host_notification_options = down;  // accept only DOWN (host state 1)
 
   EXPECT_TRUE(should_notify_contact(c, true, cat_normal, reason_normal,
-                                    /*state=*/1, true, false));
+                                    /*state=*/1, true, nullptr));
   EXPECT_FALSE(should_notify_contact(c, true, cat_normal, reason_normal,
-                                     /*unreachable=*/2, true, false));
+                                     /*unreachable=*/2, true, nullptr));
 }
 
 /* Recovery: needs the ok/up bit AND the contact to have been notified of the
  * problem. */
 TEST_F(ContactViability, Recovery) {
   contact c = all_on();
+  const notification told = told_c();
 
-  /* accepts recovery + already notified -> true */
+  /* accepts recovery + was told about the problem -> true */
   EXPECT_TRUE(should_notify_contact(c, false, cat_recovery, reason_recovery, 0,
-                                    true, /*already_notified=*/true));
-  /* accepts recovery but was NOT notified of the problem -> false */
+                                    true, &told));
+  /* the resource never notified anybody -> false */
   EXPECT_FALSE(should_notify_contact(c, false, cat_recovery, reason_recovery, 0,
-                                     true, /*already_notified=*/false));
+                                     true, nullptr));
+  /* it notified, but somebody else -> false */
+  contact other = all_on();
+  other.name = "other";
+  EXPECT_FALSE(should_notify_contact(other, false, cat_recovery,
+                                     reason_recovery, 0, true, &told));
 
-  /* does not accept the ok/up bit -> false even if already notified */
+  /* does not accept the ok/up bit -> false even when told about the problem */
   c.service_notification_options = critical;  // no ok bit
   EXPECT_FALSE(should_notify_contact(c, false, cat_recovery, reason_recovery, 0,
-                                     true, true));
+                                     true, &told));
 }
 
 /* Flapping: the flag depends on the reason. */
@@ -127,18 +142,18 @@ TEST_F(ContactViability, Flapping) {
   c.service_notification_options = flappingstart;  // only accept start
 
   EXPECT_TRUE(should_notify_contact(
-      c, false, cat_flapping, reason_flappingstart, 0, true, false));
+      c, false, cat_flapping, reason_flappingstart, 0, true, nullptr));
   EXPECT_FALSE(should_notify_contact(
-      c, false, cat_flapping, reason_flappingstop, 0, true, false));
+      c, false, cat_flapping, reason_flappingstop, 0, true, nullptr));
 }
 
 TEST_F(ContactViability, Downtime) {
   contact c = all_on();
   EXPECT_TRUE(should_notify_contact(
-      c, false, cat_downtime, reason_downtimestart, 0, true, false));
+      c, false, cat_downtime, reason_downtimestart, 0, true, nullptr));
   c.service_notification_options = critical;  // no downtime bit
   EXPECT_FALSE(should_notify_contact(
-      c, false, cat_downtime, reason_downtimestart, 0, true, false));
+      c, false, cat_downtime, reason_downtimestart, 0, true, nullptr));
 }
 
 /* Acknowledgement and custom are unconditional (once enabled and in period). */
@@ -147,7 +162,36 @@ TEST_F(ContactViability, AcknowledgementAndCustomUnconditional) {
   c.service_notification_options = none;  // even with an empty mask
 
   EXPECT_TRUE(should_notify_contact(c, false, cat_acknowledgement,
-                                    reason_acknowledgement, 0, true, false));
+                                    reason_acknowledgement, 0, true, nullptr));
   EXPECT_TRUE(should_notify_contact(c, false, cat_custom, reason_custom, 0,
-                                    true, false));
+                                    true, nullptr));
+}
+
+/* Only a recovery consults the notification history. That invariant is what
+ * lets the callers hand the notification over unconditionally instead of
+ * repeating the category test on each side, so it is worth pinning: a contact
+ * left out of the problem audience is still notified by every other category. */
+TEST_F(ContactViability, ProblemAudienceOnlyRestrictsRecovery) {
+  contact c = all_on();
+  notification told_somebody_else;
+  told_somebody_else.type = reason_normal;
+  told_somebody_else.add_contacts({"other"});
+
+  EXPECT_FALSE(should_notify_contact(c, false, cat_recovery, reason_recovery, 0,
+                                     true, &told_somebody_else));
+
+  EXPECT_TRUE(should_notify_contact(c, false, cat_normal, reason_normal,
+                                    2 /* critical */, true,
+                                    &told_somebody_else));
+  EXPECT_TRUE(should_notify_contact(c, false, cat_acknowledgement,
+                                    reason_acknowledgement, 0, true,
+                                    &told_somebody_else));
+  EXPECT_TRUE(should_notify_contact(c, false, cat_flapping,
+                                    reason_flappingstart, 0, true,
+                                    &told_somebody_else));
+  EXPECT_TRUE(should_notify_contact(c, false, cat_downtime,
+                                    reason_downtimestart, 0, true,
+                                    &told_somebody_else));
+  EXPECT_TRUE(should_notify_contact(c, false, cat_custom, reason_custom, 0,
+                                    true, &told_somebody_else));
 }
