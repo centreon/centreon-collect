@@ -210,6 +210,31 @@ sub routing {
             }
         } elsif (defined($data->{httpserver})) {
             $httpserver->{ready} = 1;
+            # The proxy-httpserver child may start after the nodes module already
+            # broadcast its resync, and its own startup CENTREONNODESSYNC request can be
+            # lost -> it then stays with an empty node table and refuses every pullwss
+            # poller ("unknown poller id/uid") until the next periodic resync. The parent
+            # already holds the authoritative node list, so replay it now that the child
+            # is ready (mirrors the pool-child re-push above).
+            my $httpserver_nodes = [];
+            my %httpserver_seen;
+            foreach my $hk (keys %$register_nodes) {
+                my $hn = $register_nodes->{$hk};
+                next if (!defined($hn->{id}) || $hk ne $hn->{id});
+                next if (defined($httpserver_seen{$hn->{id}}));
+                $httpserver_seen{$hn->{id}} = 1;
+                push @$httpserver_nodes, $hn;
+            }
+            if (scalar(@$httpserver_nodes) > 0) {
+                $options{logger}->writeLogInfo("[proxy] httpserver ready: re-pushing " . scalar(@$httpserver_nodes) . " node(s) to proxy-httpserver");
+                $options{gorgone}->send_internal_message(
+                    identity    => "gorgone-proxy-httpserver",
+                    action      => "PROXYADDNODE",
+                    json_encode => 1,
+                    data        => $httpserver_nodes,
+                    token       => $options{token}
+                );
+            }
         } elsif (defined($data->{node_id}) && defined($synctime_nodes->{ $data->{node_id} })) {
             $synctime_nodes->{ $data->{node_id} }->{channel_ready} = 1;
             $synctime_nodes->{ $data->{node_uid} }->{channel_ready} = 1;
