@@ -193,16 +193,15 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
   std::time_t now;
   std::time(&now);
 
-  /* Per-candidate viability. We resolve the two environment-dependent inputs
-   * the shared should_notify_contact cannot compute itself — the contact's
-   * notification period evaluated in its own timezone, and (for a recovery)
-   * whether the contact was told about the ongoing problem — then delegate to
-   * the shared function on a contact snapshot. is_host, current_state and the
-   * previous normal notification are constant over this call, so hoist them. */
+  /* Per-candidate viability. We resolve the one input the shared
+   * should_notify_contact cannot compute itself — the contact's notification
+   * period evaluated in its own timezone — then delegate to the shared function
+   * on a contact snapshot. is_host, current_state and the previous normal
+   * notification are constant over this call, so hoist them. */
   const notifications::notifier_type nt = get_notifier_type();
   const bool is_host = nt == notifications::host_notification;
   const int current_state = get_current_state_int();
-  const notifications::notification* normal_notif =
+  const notifications::notification* ongoing_problem =
       get_current_notifications()[notifications::cat_normal];
   auto should_notify = [&](const std::shared_ptr<contact>& c) {
     auto* tp = is_host ? c->get_host_notification_period_ptr()
@@ -210,10 +209,6 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     const bool in_period =
         !tp || tp->check_time_against_period_for_notif(
                    now, string_to_timezone(c->get_timezone()));
-    bool already_notified = false;
-    if (cat == notifications::cat_recovery)
-      already_notified = normal_notif && normal_notif->sent_to(c->get_name());
-
     notifications::contact snapshot;
     snapshot.name = c->get_name();
     snapshot.host_notifications_enabled = c->get_host_notifications_enabled();
@@ -225,7 +220,7 @@ absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
         c->notify_on(notifications::service_notification);
     return notifications::should_notify_contact(snapshot, is_host, cat, type,
                                                 current_state, in_period,
-                                                already_notified);
+                                                ongoing_problem);
   };
 
   std::vector<notifications::escalation> snap;

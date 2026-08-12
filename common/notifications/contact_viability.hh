@@ -30,7 +30,7 @@ bool should_notify_contact(const contact& c,
                            reason_type type,
                            int current_state,
                            bool in_period,
-                           bool already_notified);
+                           const notification* ongoing_problem);
 
 }  // namespace com::centreon::common::notifications
 

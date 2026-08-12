@@ -41,16 +41,13 @@ std::shared_ptr<spdlog::logger> notifications_logger() {
 }  // namespace
 
 /**
- * @brief Decide whether a contact must be notified, applying the historical
- * Engine per-contact viability on a pure value snapshot (shared by Engine's
- * notifier::get_contacts_to_notify and Broker's deliver()).
+ * @brief Decide whether a contact must be notified.
  *
- * The two environment-dependent inputs are resolved by the caller so the
- * function stays free of any timeperiod / notification-history dependency:
- * @p in_period is the contact's notification period evaluated in the contact's
- * own timezone (an empty or unknown period must be passed as true), and
- * @p already_notified tells whether the contact was among those told about the
- * ongoing problem (only consulted for a recovery).
+ * @p in_period is resolved by the caller because it cannot be computed here:
+ * it needs the runtime timeperiod and the contact's timezone, which Engine and
+ * Broker hold in different forms. The notification history, on the contrary, is
+ * a shared type both sides read from the same notification_manager, so it is
+ * passed as is and interpreted below.
  *
  * @param c The contact snapshot.
  * @param is_host true when the notified resource is a host (service_id == 0).
@@ -59,9 +56,12 @@ std::shared_ptr<spdlog::logger> notifications_logger() {
  * @param current_state The resource's current state as an int (host_state
  *        up/down/unreachable or service_state ok/warning/critical/unknown),
  *        used for a normal notification.
- * @param in_period Whether the contact's notification period is currently open.
- * @param already_notified Whether the contact was notified of the problem
- *        (recovery routing).
+ * @param in_period Whether the contact's notification period is currently open
+ *        (an empty or unknown period must be passed as true).
+ * @param ongoing_problem The resource's last normal notification, as kept
+ *        by the manager, or nullptr when it never notified anybody. Only
+ *        consulted for a recovery, to restrict it to the contacts that heard
+ *        about the incident.
  *
  * @return true when the contact must be notified.
  */
@@ -71,7 +71,7 @@ bool should_notify_contact(const contact& c,
                            reason_type type,
                            int current_state,
                            bool in_period,
-                           bool already_notified) {
+                           const notification* ongoing_problem) {
   /* 1. The contact's resource notification-enable flag. */
   if (is_host ? !c.host_notifications_enabled
               : !c.service_notifications_enabled) {
@@ -125,7 +125,7 @@ bool should_notify_contact(const contact& c,
                            c.name, is_host ? "host" : "service");
         return false;
       }
-      if (!already_notified) {
+      if (!ongoing_problem || !ongoing_problem->sent_to(c.name)) {
         SPDLOG_LOGGER_INFO(notifications_logger(),
                            "contact '{}' shouldn't be notified about a {} "
                            "recovery: not notified about the incident",
@@ -135,27 +135,38 @@ bool should_notify_contact(const contact& c,
       return true;
     case cat_flapping: {
       uint32_t flag = 0;
-      if (type == reason_flappingstart)
-        flag = flappingstart;
-      else if (type == reason_flappingstop)
-        flag = flappingstop;
-      else if (type == reason_flappingdisabled)
-        flag = flappingdisabled;
+      switch (type) {
+        case reason_flappingstart:
+          flag = flappingstart;
+          break;
+        case reason_flappingstop:
+          flag = flappingstop;
+          break;
+        case reason_flappingdisabled:
+          flag = flappingdisabled;
+          break;
+        default:
+          /* This case should not appear */
+          SPDLOG_LOGGER_INFO(notifications_logger(),
+                             "contact '{}' shouldn't be notified about "
+                             "flapping events: unknown reason type {}",
+                             c.name, static_cast<int>(type));
+          return false;
+      }
+
       if ((mask & flag) == 0) {
-        SPDLOG_LOGGER_INFO(notifications_logger(),
-                           "contact '{}' shouldn't be notified about flapping "
-                           "events",
-                           c.name);
+        SPDLOG_LOGGER_INFO(
+            notifications_logger(),
+            "contact '{}' shouldn't be notified about flapping events", c.name);
         return false;
       }
       return true;
     }
     case cat_downtime:
       if ((mask & downtime) == 0) {
-        SPDLOG_LOGGER_INFO(notifications_logger(),
-                           "contact '{}' shouldn't be notified about downtime "
-                           "events",
-                           c.name);
+        SPDLOG_LOGGER_INFO(
+            notifications_logger(),
+            "contact '{}' shouldn't be notified about downtime events", c.name);
         return false;
       }
       return true;
