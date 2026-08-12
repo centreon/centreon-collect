@@ -1,0 +1,65 @@
+# Grafana stack for watching the Broker 'otlp' output live.
+#
+#   cbd (on the host) --OTLP/gRPC--> otel-collector:4317
+#                                          | remote write
+#                                          v
+#                                    prometheus:9090
+#                                          v
+#                                     grafana:3000
+#
+# Broker runs on the host, not in this network, so 4317 is published on the
+# host and the broker endpoint stays 127.0.0.1:4317.
+#
+#   docker compose -f compose.yml up -d
+#   cd .. && robot -v OTLP_PORT:4317 -v EXTERNAL_COLLECTOR:True \
+#                  -t BEOTLPSOAK broker-engine/otlp-output-soak.robot
+#   xdg-open http://localhost:3000        # anonymous admin, no login
+#
+# Tags are floating on purpose: this is a throwaway dev stack, and a pinned tag
+# that no longer exists is worse than a version bump. Pin them if you need the
+# stack to be reproducible.
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: centreon-otel-collector
+    command: ["--config=/etc/otel/config.yml"]
+    volumes:
+      - ./otel-collector.yml:/etc/otel/config.yml:ro
+    ports:
+      # What the broker otlp output connects to.
+      - "4317:4317"
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: centreon-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      # Mandatory: the collector pushes, it is not scraped.
+      - --web.enable-remote-write-receiver
+      - --storage.tsdb.retention.time=24h
+      # The out of order window lives in prometheus.yml, there is no command
+      # line flag for it.
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: centreon-grafana
+    environment:
+      # A local throwaway stack: skip the login screen entirely.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus

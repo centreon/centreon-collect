@@ -1,0 +1,44 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        # Explicit 0.0.0.0: since collector 0.104 the OTLP receiver defaults to
+        # localhost, which inside a container refuses everything from outside.
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+
+exporters:
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+    # Copy the OTLP resource attributes (host.name, centreon.host.id, ...) onto
+    # every series as labels. Without this they only land in target_info and the
+    # dashboard cannot filter by host.
+    resource_to_telemetry_conversion:
+      enabled: true
+    # Keep the metric names exactly as Broker emits them, dots turned into
+    # underscores: centreon_metric, centreon_metric_threshold,
+    # centreon_check_state, centreon_host_state. With suffixes on, the unit gets
+    # appended and the names become unpredictable per metric.
+    # On collectors older than 0.146 this setting is spelled
+    # 'add_metric_suffixes: false'.
+    translation_strategy: UnderscoreEscapingWithoutSuffixes
+
+  # Replaces the JSON dump of the Robot suite: docker compose logs -f
+  # otel-collector shows every datapoint with all its attributes.
+  debug:
+    verbosity: detailed
+    sampling_initial: 2
+    sampling_thereafter: 500
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheusremotewrite, debug]

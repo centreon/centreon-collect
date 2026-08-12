@@ -355,6 +355,7 @@ mapping map_metric(std::string_view perfdata_name,
         m.attributes.emplace_back(row.attr_key, row.attr_value);
       if (inst_key)
         m.attributes.emplace_back(inst_key, std::string(parts.instance));
+      m.description = metric_description(m.name);
       return m;
     }
   }
@@ -367,12 +368,60 @@ mapping map_metric(std::string_view perfdata_name,
                 : instrument::gauge;
   m.scale = 1.0;
   m.is_fallback = true;
+  m.description =
+      "Centreon perfdata metric with no OpenTelemetry semantic convention "
+      "equivalent";
   /* The instance is still identifying information even without a convention
    * to name it. */
   if (!parts.instance.empty())
     m.attributes.emplace_back("centreon.metric.instance",
                               std::string(parts.instance));
   return m;
+}
+
+std::string_view metric_description(std::string_view emitted_name) {
+  /* Keyed by emitted name, so the 48 mapping rows collapse to the 26 metrics
+   * they produce. Plain factual one-liners: these are not verbatim copies of
+   * the semantic convention texts. */
+  static const auto* table =
+      new absl::flat_hash_map<std::string_view, std::string_view>{
+          // ---- semantic conventions -----------------------------------------
+          {"system.cpu.utilization",
+           "Fraction of CPU time spent, per mode when the mode is known"},
+          {"system.memory.usage", "Memory used, by state"},
+          {"system.memory.utilization", "Fraction of memory used"},
+          {"system.memory.limit", "Total physical memory"},
+          {"system.paging.usage", "Swap used, by state"},
+          {"system.paging.utilization", "Fraction of swap used"},
+          {"system.filesystem.usage", "Filesystem space used, by state"},
+          {"system.filesystem.utilization",
+           "Fraction of filesystem space used"},
+          {"system.filesystem.limit", "Total filesystem space"},
+          {"system.disk.io", "Bytes transferred to and from a disk"},
+          {"system.network.errors", "Network errors, by direction"},
+          {"system.network.packet.count", "Network packets, by direction"},
+          {"system.network.packet.dropped",
+           "Network packets dropped, by direction"},
+          {"system.process.count", "Number of processes"},
+          {"system.uptime", "Time since the host booted"},
+          {"system.linux.cpu.load_1m", "One minute load average"},
+          {"system.linux.cpu.load_5m", "Five minute load average"},
+          {"system.linux.cpu.load_15m", "Fifteen minute load average"},
+          // ---- Centreon namespace -------------------------------------------
+          {"centreon.filesystem.inode.utilization",
+           "Fraction of filesystem inodes used"},
+          {"centreon.disk.io.rate",
+           "Disk throughput as reported by the check, in bytes per second"},
+          {"centreon.network.throughput",
+           "Network throughput as reported by the check, in bytes per second"},
+          {"centreon.icmp.rtt", "ICMP round trip time"},
+          {"centreon.icmp.rtt.min", "Minimum ICMP round trip time"},
+          {"centreon.icmp.rtt.max", "Maximum ICMP round trip time"},
+          {"centreon.icmp.packet_loss", "Fraction of ICMP packets lost"},
+          {"centreon.check.duration", "Time the check took to run"},
+      };
+  auto found = table->find(emitted_name);
+  return found == table->end() ? std::string_view{} : found->second;
 }
 
 std::string threshold_metric_name(std::string_view emitted_name) {

@@ -19,6 +19,8 @@
 #ifndef CCB_OTLP_REQUEST_BUILDER_HH
 #define CCB_OTLP_REQUEST_BUILDER_HH
 
+#include <functional>
+
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/otlp/otlp_config.hh"
 #include "com/centreon/broker/otlp/resource_enricher.hh"
@@ -59,14 +61,31 @@ class request_builder {
   uint64_t _nb_data = 0;
   uint64_t _dropped_no_host_name = 0;
 
+  /* Start of the window over which cumulative sums accumulate, as far as this
+   * exporter can know it. Fixed for the lifetime of the builder: it must not
+   * move from batch to batch or every export would look like a counter reset.
+   */
+  const uint64_t _start_time_unix_nano;
+
   ScopeMetrics* _scope_for_host(uint64_t host_id,
                                 const std::string& host_name);
   Metric* _metric_for(uint64_t host_id,
                       const std::string& host_name,
                       const std::string& name,
                       const std::string& unit,
+                      std::string_view description,
                       instrument instr);
   NumberDataPoint* _new_point(Metric* m, instrument instr);
+  /* Emits the state, in whichever encoding the configuration asks for, plus
+   * the companion state_type metric. Shared by services and hosts, which
+   * differ only in metric names and state vocabulary. */
+  void _add_state(uint64_t host_id,
+                  const std::string& host_name,
+                  uint64_t ts,
+                  int state,
+                  bool hard,
+                  bool is_host,
+                  const std::function<void(NumberDataPoint*)>& tag_identity);
 
  public:
   request_builder(const otlp_config::pointer& conf,
@@ -89,6 +108,8 @@ class request_builder {
   uint64_t nb_data() const { return _nb_data; }
   uint64_t dropped_no_host_name() const { return _dropped_no_host_name; }
   bool empty() const { return _nb_data == 0; }
+  /* The value stamped on every cumulative sum datapoint. */
+  uint64_t start_time_unix_nano() const { return _start_time_unix_nano; }
 
   /**
    * @brief Hand over the accumulated request and start a fresh one.

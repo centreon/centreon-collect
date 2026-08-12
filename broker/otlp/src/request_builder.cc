@@ -33,6 +33,30 @@ constexpr const char* k_scope_name = "com.centreon.broker.otlp";
 constexpr const char* k_service_name = "centreon-broker";
 constexpr const char* k_service_namespace = "centreon";
 
+/* Semantic convention version the mapping table targets. Consumers use it to
+ * migrate attribute names automatically across semconv releases, so it must be
+ * bumped whenever the table adopts conventions from a newer one. */
+constexpr const char* k_schema_url = "https://opentelemetry.io/schemas/1.27.0";
+
+/* State vocabularies for the one_hot encoding, indexed by the enum value.
+ *
+ * Both include "pending": engine reports 4 for a check that has never run
+ * (engine/src/broker.cc, `has_been_checked() ? get_current_state() : 4`).
+ * HostStatus::State does not even declare 4, but engine casts it in anyway and
+ * proto3 open enums let it through, so a consumer must handle it. Index 3 is
+ * unused for hosts, hence the empty slot. */
+constexpr const char* k_service_states[] = {"ok", "warning", "critical",
+                                            "unknown", "pending"};
+constexpr const char* k_host_states[] = {"up", "down", "unreachable", "",
+                                         "pending"};
+constexpr int k_nb_states = 5;
+
+const char* state_name(int state, bool is_host) {
+  if (state < 0 || state >= k_nb_states)
+    return "";
+  return is_host ? k_host_states[state] : k_service_states[state];
+}
+
 void set_attribute(otel_common::KeyValue* kv,
                    std::string_view key,
                    std::string_view value) {
@@ -58,7 +82,13 @@ request_builder::request_builder(
     const otlp_config::pointer& conf,
     const std::shared_ptr<resource_enricher>& enricher,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _conf(conf), _enricher(enricher), _logger(logger) {}
+    : _conf(conf),
+      _enricher(enricher),
+      _logger(logger),
+      /* The plugin never tells us when its counter started, so the honest
+       * answer is "when this exporter started observing". That is what lets a
+       * consumer distinguish a counter reset from a first observation. */
+      _start_time_unix_nano(to_unix_nano(std::time(nullptr))) {}
 
 request_builder::ScopeMetrics* request_builder::_scope_for_host(
     uint64_t host_id,
@@ -83,9 +113,12 @@ request_builder::ScopeMetrics* request_builder::_scope_for_host(
   set_attribute(resource->add_attributes(), "centreon.host.id",
                 static_cast<int64_t>(host_id));
 
+  rm->set_schema_url(k_schema_url);
+
   ScopeMetrics* sm = rm->add_scope_metrics();
   sm->mutable_scope()->set_name(k_scope_name);
   sm->mutable_scope()->set_version(CENTREON_BROKER_VERSION);
+  sm->set_schema_url(k_schema_url);
 
   _scope_by_host.emplace(host_id, sm);
   return sm;
@@ -96,6 +129,7 @@ request_builder::Metric* request_builder::_metric_for(
     const std::string& host_name,
     const std::string& name,
     const std::string& unit,
+    std::string_view description,
     instrument instr) {
   auto key = std::make_pair(host_id, name);
   auto found = _metric_index.find(key);
@@ -106,6 +140,8 @@ request_builder::Metric* request_builder::_metric_for(
   Metric* m = sm->add_metrics();
   m->set_name(name);
   m->set_unit(unit);
+  if (!description.empty())
+    m->set_description(std::string(description));
   switch (instr) {
     case instrument::sum_monotonic:
       m->mutable_sum()->set_is_monotonic(true);
@@ -136,7 +172,12 @@ request_builder::NumberDataPoint* request_builder::_new_point(
    * observation legitimately fixes it. */
   if (m->has_gauge())
     return m->mutable_gauge()->add_data_points();
-  return m->mutable_sum()->add_data_points();
+
+  /* Cumulative sums carry a start time so a consumer can tell a counter reset
+   * from a fresh series. Gauges have no aggregation window and must not. */
+  NumberDataPoint* dp = m->mutable_sum()->add_data_points();
+  dp->set_start_time_unix_nano(_start_time_unix_nano);
+  return dp;
 }
 
 bool request_builder::add_service_status(const ServiceStatus& status) {
@@ -181,7 +222,7 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
         map_metric(pd.name(), pd.unit(), pd.value_type());
 
     Metric* m = _metric_for(status.host_id(), *host_name, map.name, map.unit,
-                            map.instr);
+                            map.description, map.instr);
     NumberDataPoint* dp = _new_point(m, map.instr);
     dp->set_time_unix_nano(ts);
     dp->set_as_double(pd.value() * map.scale);
@@ -206,6 +247,8 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
            * would mix bytes, ratios and seconds into one series name. */
           tm = _metric_for(status.host_id(), *host_name,
                            threshold_metric_name(map.name), map.unit,
+                           absl::StrCat("Warning and critical bounds of ",
+                                        map.name),
                            instrument::gauge);
         NumberDataPoint* tdp = _new_point(tm, instrument::gauge);
         tdp->set_time_unix_nano(ts);
@@ -222,9 +265,14 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
         ++_nb_data;
       };
       add_threshold(pd.warning(), "warning", "upper");
-      add_threshold(pd.warning_low(), "warning", "lower");
       add_threshold(pd.critical(), "critical", "upper");
-      add_threshold(pd.critical_low(), "critical", "lower");
+      /* The lower bound of a bare "warn=500" is a constant zero, so it doubles
+       * the threshold series for no information on the many checks that only
+       * ever set an upper limit. */
+      if (_conf->threshold_bounds == threshold_bound_mode::all) {
+        add_threshold(pd.warning_low(), "warning", "lower");
+        add_threshold(pd.critical_low(), "critical", "lower");
+      }
     }
 
     if (_conf->send_min_max) {
@@ -233,9 +281,10 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
         if (!std::isfinite(bound))
           return;
         if (!bm)
-          bm = _metric_for(status.host_id(), *host_name,
-                           bound_metric_name(map.name), map.unit,
-                           instrument::gauge);
+          bm = _metric_for(
+              status.host_id(), *host_name, bound_metric_name(map.name),
+              map.unit, absl::StrCat("Minimum and maximum of ", map.name),
+              instrument::gauge);
         NumberDataPoint* bdp = _new_point(bm, instrument::gauge);
         bdp->set_time_unix_nano(ts);
         bdp->set_as_double(bound * map.scale);
@@ -252,22 +301,70 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
     }
   }
 
-  if (_conf->send_status) {
-    /* One unitless enum for every check, so unlike thresholds a single metric
-     * name is correct here. */
-    Metric* sm = _metric_for(status.host_id(), *host_name,
-                             "centreon.check.state", "1", instrument::gauge);
-    NumberDataPoint* sdp = _new_point(sm, instrument::gauge);
-    sdp->set_time_unix_nano(ts);
-    sdp->set_as_double(static_cast<double>(status.state()));
-    tag_identity(sdp);
-    set_attribute(sdp->add_attributes(), "centreon.state.type",
-                  status.state_type() == ServiceStatus::HARD ? "hard"
-                                                             : "soft");
+  if (_conf->send_status)
+    _add_state(status.host_id(), *host_name, ts, status.state(),
+               status.state_type() == ServiceStatus::HARD, false, tag_identity);
+
+  return true;
+}
+
+void request_builder::_add_state(
+    uint64_t host_id,
+    const std::string& host_name,
+    uint64_t ts,
+    int state,
+    bool hard,
+    bool is_host,
+    const std::function<void(NumberDataPoint*)>& tag_identity) {
+  const char* const metric = is_host ? "centreon.host.state"
+                                     : "centreon.check.state";
+  const char* const type_metric = is_host ? "centreon.host.state_type"
+                                          : "centreon.check.state_type";
+  const std::string_view desc =
+      is_host ? "Host check state" : "Service check state";
+
+  /* One unitless enum for every check, so unlike thresholds a single metric
+   * name is correct here. */
+  Metric* sm = _metric_for(host_id, host_name, metric, "1", desc,
+                           instrument::gauge);
+
+  if (_conf->state_encoding == state_encoding_mode::one_hot) {
+    /* One datapoint per state, 1 for the current one and 0 for the others, so
+     * that counting criticals is a sum rather than an equality test. Costs one
+     * series per state instead of one per check. */
+    for (int s = 0; s < k_nb_states; ++s) {
+      const char* name = state_name(s, is_host);
+      if (!*name)  // 3 is not a host state
+        continue;
+      NumberDataPoint* dp = _new_point(sm, instrument::gauge);
+      dp->set_time_unix_nano(ts);
+      dp->set_as_double(s == state ? 1.0 : 0.0);
+      tag_identity(dp);
+      set_attribute(dp->add_attributes(), "centreon.state", name);
+      ++_nb_data;
+    }
+  } else {
+    NumberDataPoint* dp = _new_point(sm, instrument::gauge);
+    dp->set_time_unix_nano(ts);
+    dp->set_as_double(static_cast<double>(state));
+    tag_identity(dp);
     ++_nb_data;
   }
 
-  return true;
+  /* hard/soft is its own metric, never an attribute of the state above: it
+   * flips on every soft to hard transition, and an attribute that changes ends
+   * one series and starts another, leaving the state timeline full of holes. */
+  if (_conf->send_state_type) {
+    Metric* tm = _metric_for(
+        host_id, host_name, type_metric, "1",
+        "Check state type, 1 when the state is hard and 0 when it is soft",
+        instrument::gauge);
+    NumberDataPoint* tdp = _new_point(tm, instrument::gauge);
+    tdp->set_time_unix_nano(ts);
+    tdp->set_as_double(hard ? 1.0 : 0.0);
+    tag_identity(tdp);
+    ++_nb_data;
+  }
 }
 
 bool request_builder::add_host_status(const HostStatus& status) {
@@ -281,14 +378,11 @@ bool request_builder::add_host_status(const HostStatus& status) {
     return false;
   }
 
-  Metric* m = _metric_for(status.host_id(), *host_name,
-                          "centreon.host.state", "1", instrument::gauge);
-  NumberDataPoint* dp = _new_point(m, instrument::gauge);
-  dp->set_time_unix_nano(to_unix_nano(status.last_check()));
-  dp->set_as_double(static_cast<double>(status.state()));
-  set_attribute(dp->add_attributes(), "centreon.state.type",
-                status.state_type() == HostStatus::HARD ? "hard" : "soft");
-  ++_nb_data;
+  /* A host datapoint is identified by its resource alone, so there is no
+   * service identity to tag on. */
+  _add_state(status.host_id(), *host_name, to_unix_nano(status.last_check()),
+             status.state(), status.state_type() == HostStatus::HARD, true,
+             [](NumberDataPoint*) {});
   return true;
 }
 

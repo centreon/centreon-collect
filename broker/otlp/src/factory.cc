@@ -64,6 +64,28 @@ bool get_bool(const config::endpoint& cfg,
   return out;
 }
 
+threshold_bound_mode get_threshold_bounds(const config::endpoint& cfg) {
+  const std::string v = get_string(cfg, "threshold_bounds", "all");
+  if (absl::EqualsIgnoreCase(v, "all"))
+    return threshold_bound_mode::all;
+  if (absl::EqualsIgnoreCase(v, "upper"))
+    return threshold_bound_mode::upper_only;
+  throw msg_fmt(
+      "otlp: 'threshold_bounds' must be 'all' or 'upper' for endpoint '{}'",
+      cfg.name);
+}
+
+state_encoding_mode get_state_encoding(const config::endpoint& cfg) {
+  const std::string v = get_string(cfg, "state_encoding", "numeric");
+  if (absl::EqualsIgnoreCase(v, "numeric"))
+    return state_encoding_mode::numeric;
+  if (absl::EqualsIgnoreCase(v, "one_hot"))
+    return state_encoding_mode::one_hot;
+  throw msg_fmt(
+      "otlp: 'state_encoding' must be 'numeric' or 'one_hot' for endpoint '{}'",
+      cfg.name);
+}
+
 }  // namespace
 
 bool factory::has_endpoint(const config::endpoint& cfg,
@@ -99,6 +121,9 @@ otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
   conf->send_thresholds = get_bool(cfg, "send_thresholds", true);
   conf->send_status = get_bool(cfg, "send_status", true);
   conf->send_min_max = get_bool(cfg, "send_min_max", true);
+  conf->send_state_type = get_bool(cfg, "send_state_type", true);
+  conf->threshold_bounds = get_threshold_bounds(cfg);
+  conf->state_encoding = get_state_encoding(cfg);
 
   if (conf->max_datapoints_per_batch == 0)
     throw msg_fmt("otlp: 'max_datapoints_per_batch' must be > 0 for '{}'",

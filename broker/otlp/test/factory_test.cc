@@ -78,6 +78,39 @@ TEST(otlp_factory, annotation_streams_can_be_turned_off) {
   EXPECT_FALSE(conf->send_min_max);
 }
 
+/* The defaults must stay the self-describing shape: every bound, and the
+ * numeric encoding a Grafana state timeline expects. */
+TEST(otlp_factory, encoding_defaults) {
+  auto conf = factory::parse_config(make_cfg());
+  EXPECT_TRUE(conf->send_state_type);
+  EXPECT_EQ(conf->threshold_bounds, threshold_bound_mode::all);
+  EXPECT_EQ(conf->state_encoding, state_encoding_mode::numeric);
+}
+
+TEST(otlp_factory, threshold_bounds_upper_is_accepted) {
+  auto conf = factory::parse_config(make_cfg({{"threshold_bounds", "upper"}}));
+  EXPECT_EQ(conf->threshold_bounds, threshold_bound_mode::upper_only);
+}
+
+TEST(otlp_factory, state_encoding_one_hot_is_accepted) {
+  auto conf = factory::parse_config(make_cfg({{"state_encoding", "one_hot"}}));
+  EXPECT_EQ(conf->state_encoding, state_encoding_mode::one_hot);
+}
+
+TEST(otlp_factory, state_type_can_be_turned_off) {
+  auto conf = factory::parse_config(make_cfg({{"send_state_type", "false"}}));
+  EXPECT_FALSE(conf->send_state_type);
+}
+
+/* A typo must not silently fall back to a default: the operator would get a
+ * different metric shape than the one they configured. */
+TEST(otlp_factory, rejects_unknown_encoding_values) {
+  EXPECT_THROW(factory::parse_config(make_cfg({{"threshold_bounds", "lower"}})),
+               msg_fmt);
+  EXPECT_THROW(factory::parse_config(make_cfg({{"state_encoding", "onehot"}})),
+               msg_fmt);
+}
+
 TEST(otlp_factory, batching_defaults) {
   auto conf = factory::parse_config(make_cfg());
   EXPECT_EQ(conf->max_datapoints_per_batch, 5000u);

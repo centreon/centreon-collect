@@ -36,6 +36,17 @@ void otlp_exporter::export_async(ExportRequest&& request,
   call->ctx.set_deadline(std::chrono::system_clock::now() +
                          std::chrono::seconds(_conf->export_timeout));
 
+  if (_conf->grpc->is_compressed()) {
+    /* Override the channel default, which grpc_client_base derives from
+     * grpc_compression_algorithm_for_level() and which resolves to deflate.
+     * Deflate is fine between two Centreon peers, both being C++ gRPC, but the
+     * OpenTelemetry Collector is written in Go and Go's gRPC only registers a
+     * gzip compressor, so it answers "Decompressor is not installed for
+     * grpc-encoding deflate" and every export fails. gzip is the one algorithm
+     * every OTLP implementation supports. */
+    call->ctx.set_compression_algorithm(GRPC_COMPRESS_GZIP);
+  }
+
   auto logger = get_logger();
   _stub->async()->Export(
       &call->ctx, &call->request, &call->response,

@@ -1,0 +1,670 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["centreon", "otlp", "broker"],
+  "templating": {
+    "list": [
+      {
+        "name": "host",
+        "label": "host",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+        "definition": "label_values(centreon_check_state, host_name)",
+        "query": {
+          "query": "label_values(centreon_check_state, host_name)",
+          "refId": "host"
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "sort": 1,
+        "current": { "text": ["All"], "value": ["$__all"] }
+      },
+      {
+        "name": "service",
+        "label": "service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+        "definition": "label_values(centreon_check_state{host_name=~\"$host\"}, centreon_service_description)",
+        "query": {
+          "query": "label_values(centreon_check_state{host_name=~\"$host\"}, centreon_service_description)",
+          "refId": "service"
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "sort": 1,
+        "current": { "text": ["All"], "value": ["$__all"] }
+      }
+    ]
+  },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Centreon Broker OTLP output",
+  "uid": "centreon-otlp",
+  "version": 1,
+  "weekStart": "",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "hosts reporting",
+      "description": "Distinct host.name resource attributes seen in centreon.host.state. If this is lower than the number of hosts in the poller, the otlp stream is dropping statuses whose host name is not in the global cache yet.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "text" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "count(count by (host_name) (centreon_host_state))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "services reporting",
+      "description": "Distinct (host, service) pairs seen in centreon.check.state.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "text" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "count(count by (host_name, centreon_service_description) (centreon_check_state))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "perfdata points/s",
+      "description": "Rate of centreon.metric datapoints landing in Prometheus over the last minute. This is the throughput of the whole chain: engine check, muxer, otlp stream, collector, remote write.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "text" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "sum(count_over_time(centreon_metric[1m])) / 60",
+          "range": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "newest check age",
+      "description": "Age of the most recent datapoint. Broker timestamps with last_check, so this stays around one check interval. If it climbs without bound the export has stalled.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 120 },
+              { "color": "red", "value": 300 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "time() - max(timestamp(centreon_check_state))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "centreon.metric — perfdata values",
+      "description": "One series per (host, service, metric). The raw Centreon metric name is kept in the centreon.metric.name attribute even when semconv mapping renamed the metric.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "min", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "centreon_metric{host_name=~\"$host\", centreon_service_description=~\"$service\"}",
+          "legendFormat": "{{host_name}} · {{centreon_service_description}} · {{centreon_metric_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "state-timeline",
+      "title": "centreon.check.state — service states",
+      "description": "The check state exported by send_status. The centreon.state.type attribute distinguishes hard from soft.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 4,
+          "custom": { "fillOpacity": 70, "lineWidth": 0, "spanNulls": true },
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 2 },
+              { "color": "purple", "value": 3 },
+              { "color": "text", "value": 4 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "OK", "index": 0 },
+                "1": { "text": "WARNING", "index": 1 },
+                "2": { "text": "CRITICAL", "index": 2 },
+                "3": { "text": "UNKNOWN", "index": 3 },
+                "4": { "text": "PENDING", "index": 4 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "alignValue": "left",
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "never",
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\"}",
+          "legendFormat": "{{host_name}} · {{centreon_service_description}}",
+          "range": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "value against its thresholds",
+      "description": "centreon.metric next to centreon.metric.threshold. Thresholds are dashed. This is the panel that proves send_thresholds works: the warning and critical bounds travel with the value, which is why the module consumes pb_service_status and not the metric events unified_sql produces.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 24 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": ".*(warning|critical).*" },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": { "fill": "dash", "dash": [10, 10] }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "centreon_metric{host_name=~\"$host\", centreon_service_description=~\"$service\"}",
+          "legendFormat": "{{host_name}} · {{centreon_service_description}} · {{centreon_metric_name}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "centreon_metric_threshold{host_name=~\"$host\", centreon_service_description=~\"$service\"}",
+          "legendFormat": "{{host_name}} · {{centreon_service_description}} · {{centreon_metric_name}} {{centreon_threshold_level}} {{centreon_threshold_bound}}",
+          "range": true,
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "state-timeline",
+      "title": "centreon.host.state — host states",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 4,
+          "custom": { "fillOpacity": 70, "lineWidth": 0, "spanNulls": true },
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 },
+              { "color": "purple", "value": 2 },
+              { "color": "text", "value": 4 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "UP", "index": 0 },
+                "1": { "text": "DOWN", "index": 1 },
+                "2": { "text": "UNREACHABLE", "index": 2 },
+                "4": { "text": "PENDING", "index": 3 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "alignValue": "left",
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "never",
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "centreon_host_state{host_name=~\"$host\"}",
+          "legendFormat": "{{host_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "current state per service",
+      "description": "Instant query, so this is what the last export said. centreon.host.id and centreon.service.id come straight from the BBDO event; host.name and the description come from the global cache enrichment.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "OK", "color": "green", "index": 0 },
+                "1": { "text": "WARNING", "color": "orange", "index": 1 },
+                "2": { "text": "CRITICAL", "color": "red", "index": 2 },
+                "3": { "text": "UNKNOWN", "color": "purple", "index": 3 }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [
+              { "id": "displayName", "value": "state" },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": false, "reducer": ["sum"], "countRows": false, "fields": "" },
+        "sortBy": [{ "displayName": "state", "desc": true }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "service_name": true,
+              "service_namespace": true,
+              "service_version": true,
+              "otel_scope_name": true,
+              "otel_scope_version": true,
+              "otel_scope_schema_url": true
+            },
+            "indexByName": {
+              "host_name": 0,
+              "centreon_service_description": 1,
+              "Value": 2,
+              "centreon_host_id": 3,
+              "centreon_service_id": 4
+            },
+            "renameByName": {
+              "host_name": "host",
+              "centreon_service_description": "service",
+              "centreon_host_id": "host id",
+              "centreon_service_id": "service id"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "share of time per state",
+      "description": "Fraction of the dashboard time range spent in each state, for the selected hosts and services. Requires the default state_encoding of 'numeric': == bool turns \"is the state N\" into 1/0 while keeping every sample, so the average over the range is the fraction of samples in that state. If you switch the output to state_encoding: one_hot, use the panel next to this one instead — these queries would then be averaging one-hot flags and would report nonsense.",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 42 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "color": { "mode": "palette-classic" },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "OK" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "WARNING" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "CRITICAL" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "UNKNOWN" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "PENDING" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "text" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": ["percent"],
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value"]
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "100 * avg(avg_over_time((centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\"} == bool 0)[$__range:$__interval]))",
+          "legendFormat": "OK",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "100 * avg(avg_over_time((centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\"} == bool 1)[$__range:$__interval]))",
+          "legendFormat": "WARNING",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "100 * avg(avg_over_time((centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\"} == bool 2)[$__range:$__interval]))",
+          "legendFormat": "CRITICAL",
+          "instant": true,
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "100 * avg(avg_over_time((centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\"} == bool 3)[$__range:$__interval]))",
+          "legendFormat": "UNKNOWN",
+          "instant": true,
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "100 * avg(avg_over_time((centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\"} == bool 4)[$__range:$__interval]))",
+          "legendFormat": "PENDING",
+          "instant": true,
+          "range": false,
+          "refId": "E"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "piechart",
+      "title": "share of time per state (one_hot)",
+      "description": "The same thing when the output runs with state_encoding: one_hot. The value is already a 0/1 flag per state, so one query covers every state, no subquery is needed and no sample is skipped — the numeric panel next to this one samples at $__interval and therefore only estimates. Empty until the endpoint is configured with \"state_encoding\": \"one_hot\".",
+      "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 42 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "color": { "mode": "palette-classic" },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ok" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "warning" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "critical" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "unknown" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pending" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "text" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": ["percent"],
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value"]
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "centreon-otlp-prom" },
+          "editorMode": "code",
+          "expr": "100 * avg by (centreon_state) (avg_over_time(centreon_check_state{host_name=~\"$host\", centreon_service_description=~\"$service\", centreon_state!=\"\"}[$__range]))",
+          "legendFormat": "{{centreon_state}}",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

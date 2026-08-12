@@ -141,15 +141,17 @@ TEST_F(StreamTest, unresolvable_host_is_still_acknowledged) {
 }
 
 TEST_F(StreamTest, batch_is_sent_when_full) {
-  conf->max_datapoints_per_batch = 3;
+  conf->max_datapoints_per_batch = 4;
   auto s = make_stream();
 
-  /* Each status yields a value plus a state datapoint. */
+  /* With the default configuration each status yields three datapoints: the
+   * value, the state, and the state type. No threshold here, the perfdata
+   * carries none. */
   s->write(service_event(1, 1, "rta=250ms"));
-  EXPECT_TRUE(exporter->calls.empty()) << "2 datapoints is below the limit";
+  EXPECT_TRUE(exporter->calls.empty()) << "3 datapoints is below the limit";
 
   s->write(service_event(1, 2, "rta=250ms"));
-  EXPECT_EQ(exporter->calls.size(), 1u) << "4 datapoints crosses the limit";
+  EXPECT_EQ(exporter->calls.size(), 1u) << "6 datapoints crosses the limit";
 }
 
 TEST_F(StreamTest, stop_flushes_the_pending_batch) {

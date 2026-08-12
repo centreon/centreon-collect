@@ -231,8 +231,9 @@ TEST_F(RequestBuilderTest, absent_thresholds_emit_nothing) {
   /* No warn/crit in the perfdata: nothing to annotate. */
   ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
   const auto* t = find_metric(b.peek(), "centreon.icmp.rtt.threshold");
-  if (t)
+  if (t) {
     EXPECT_EQ(t->gauge().data_points_size(), 0);
+  }
 }
 
 TEST_F(RequestBuilderTest, state_is_emitted_by_default) {
@@ -244,7 +245,219 @@ TEST_F(RequestBuilderTest, state_is_emitted_by_default) {
   ASSERT_EQ(s->gauge().data_points_size(), 1);
   EXPECT_DOUBLE_EQ(s->gauge().data_points(0).as_double(),
                    static_cast<double>(ServiceStatus::WARNING));
-  EXPECT_EQ(attr(s->gauge().data_points(0), "centreon.state.type"), "hard");
+}
+
+/* hard/soft must not be an attribute of the state: it changes on every soft to
+ * hard transition, which would end that state series and start a new one. */
+TEST_F(RequestBuilderTest, state_type_is_a_metric_not_an_attribute) {
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto* s = find_metric(b.peek(), "centreon.check.state");
+  ASSERT_NE(s, nullptr);
+  EXPECT_EQ(attr(s->gauge().data_points(0), "centreon.state.type"), "")
+      << "the state series identity must not carry hard/soft";
+
+  const auto* t = find_metric(b.peek(), "centreon.check.state_type");
+  ASSERT_NE(t, nullptr);
+  ASSERT_EQ(t->gauge().data_points_size(), 1);
+  EXPECT_DOUBLE_EQ(t->gauge().data_points(0).as_double(), 1.0) << "HARD is 1";
+  /* Same identity as the state, so a query can join them. */
+  EXPECT_EQ(attr(t->gauge().data_points(0), "centreon.service.description"),
+            "Disk-/var");
+}
+
+TEST_F(RequestBuilderTest, soft_state_type_is_zero) {
+  request_builder b(conf, enricher, logger);
+  ServiceStatus soft = make_status("rta=250ms");
+  soft.set_state_type(ServiceStatus::SOFT);
+  ASSERT_TRUE(b.add_service_status(soft));
+
+  const auto* t = find_metric(b.peek(), "centreon.check.state_type");
+  ASSERT_NE(t, nullptr);
+  EXPECT_DOUBLE_EQ(t->gauge().data_points(0).as_double(), 0.0);
+}
+
+TEST_F(RequestBuilderTest, state_type_can_be_disabled) {
+  conf->send_state_type = false;
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  EXPECT_EQ(find_metric(b.peek(), "centreon.check.state_type"), nullptr);
+  EXPECT_NE(find_metric(b.peek(), "centreon.check.state"), nullptr);
+}
+
+/* Engine reports 4 for a check that has never run, and PENDING is a declared
+ * ServiceStatus::State. It must reach the wire like any other state. */
+TEST_F(RequestBuilderTest, pending_state_is_exported) {
+  request_builder b(conf, enricher, logger);
+  ServiceStatus pending = make_status("rta=250ms");
+  pending.set_state(static_cast<ServiceStatus::State>(4));
+  ASSERT_TRUE(b.add_service_status(pending));
+
+  const auto* s = find_metric(b.peek(), "centreon.check.state");
+  ASSERT_NE(s, nullptr);
+  EXPECT_DOUBLE_EQ(s->gauge().data_points(0).as_double(), 4.0);
+}
+
+TEST_F(RequestBuilderTest, one_hot_encoding_emits_one_point_per_state) {
+  conf->state_encoding = state_encoding_mode::one_hot;
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto* s = find_metric(b.peek(), "centreon.check.state");
+  ASSERT_NE(s, nullptr);
+  /* ok, warning, critical, unknown, pending. */
+  ASSERT_EQ(s->gauge().data_points_size(), 5);
+
+  absl::flat_hash_map<std::string, double> by_state;
+  for (const auto& dp : s->gauge().data_points())
+    by_state[attr(dp, "centreon.state")] = dp.as_double();
+
+  EXPECT_DOUBLE_EQ(by_state["warning"], 1.0) << "the status is WARNING";
+  EXPECT_DOUBLE_EQ(by_state["ok"], 0.0);
+  EXPECT_DOUBLE_EQ(by_state["critical"], 0.0);
+  EXPECT_DOUBLE_EQ(by_state["unknown"], 0.0);
+  EXPECT_DOUBLE_EQ(by_state["pending"], 0.0);
+}
+
+/* HostStatus::State has no value 3, so one_hot must not invent a state for it
+ * while still covering the pending value engine can send. */
+TEST_F(RequestBuilderTest, one_hot_host_states_skip_the_undefined_slot) {
+  conf->state_encoding = state_encoding_mode::one_hot;
+  request_builder b(conf, enricher, logger);
+
+  HostStatus hs;
+  hs.set_host_id(42);
+  hs.set_last_check(1700000000);
+  hs.set_state(HostStatus::DOWN);
+  hs.set_state_type(HostStatus::HARD);
+  ASSERT_TRUE(b.add_host_status(hs));
+
+  const auto* s = find_metric(b.peek(), "centreon.host.state");
+  ASSERT_NE(s, nullptr);
+  /* up, down, unreachable, pending. */
+  ASSERT_EQ(s->gauge().data_points_size(), 4);
+
+  absl::flat_hash_map<std::string, double> by_state;
+  for (const auto& dp : s->gauge().data_points())
+    by_state[attr(dp, "centreon.state")] = dp.as_double();
+  EXPECT_DOUBLE_EQ(by_state["down"], 1.0);
+  EXPECT_DOUBLE_EQ(by_state["up"], 0.0);
+  EXPECT_DOUBLE_EQ(by_state["unreachable"], 0.0);
+  EXPECT_DOUBLE_EQ(by_state["pending"], 0.0);
+  EXPECT_EQ(by_state.count(""), 0u) << "no datapoint for the undefined slot";
+}
+
+TEST_F(RequestBuilderTest, host_state_carries_no_service_identity) {
+  request_builder b(conf, enricher, logger);
+  HostStatus hs;
+  hs.set_host_id(42);
+  hs.set_last_check(1700000000);
+  hs.set_state(HostStatus::UP);
+  hs.set_state_type(HostStatus::HARD);
+  ASSERT_TRUE(b.add_host_status(hs));
+
+  const auto* s = find_metric(b.peek(), "centreon.host.state");
+  ASSERT_NE(s, nullptr);
+  EXPECT_EQ(attr(s->gauge().data_points(0), "centreon.service.description"),
+            "");
+  EXPECT_NE(find_metric(b.peek(), "centreon.host.state_type"), nullptr);
+}
+
+/* ------------------------------------------------------------------ */
+/* Threshold bound modes                                               */
+/* ------------------------------------------------------------------ */
+
+TEST_F(RequestBuilderTest, upper_only_drops_the_constant_lower_bounds) {
+  conf->threshold_bounds = threshold_bound_mode::upper_only;
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms;500;1000")));
+
+  const auto* t = find_metric(b.peek(), "centreon.icmp.rtt.threshold");
+  ASSERT_NE(t, nullptr);
+  ASSERT_EQ(t->gauge().data_points_size(), 2) << "warning and critical uppers";
+  for (const auto& dp : t->gauge().data_points())
+    EXPECT_EQ(attr(dp, "centreon.threshold.bound"), "upper");
+}
+
+/* ------------------------------------------------------------------ */
+/* OTLP conformance                                                    */
+/* ------------------------------------------------------------------ */
+
+TEST_F(RequestBuilderTest, schema_url_is_set_on_resource_and_scope) {
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_FALSE(rm.schema_url().empty());
+  ASSERT_GT(rm.scope_metrics_size(), 0);
+  EXPECT_EQ(rm.scope_metrics(0).schema_url(), rm.schema_url());
+}
+
+TEST_F(RequestBuilderTest, emitted_metrics_carry_a_description) {
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms;500;1000")));
+
+  for (const char* name : {"centreon.icmp.rtt", "centreon.icmp.rtt.threshold",
+                           "centreon.check.state",
+                           "centreon.check.state_type"}) {
+    const auto* m = find_metric(b.peek(), name);
+    ASSERT_NE(m, nullptr) << name;
+    /* Prometheus turns the description into the metric's HELP text. */
+    EXPECT_FALSE(m->description().empty()) << name;
+  }
+}
+
+TEST_F(RequestBuilderTest, fallback_metric_still_has_a_description) {
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("custom_thing=5")));
+  const auto* m = find_metric(b.peek(), "centreon.custom_thing");
+  ASSERT_NE(m, nullptr);
+  EXPECT_FALSE(m->description().empty());
+}
+
+/* A cumulative sum without a start time gives a consumer no way to tell a
+ * counter reset from a first observation. */
+TEST_F(RequestBuilderTest, cumulative_sums_carry_a_start_time) {
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("c[bytes_in]=1024")));
+
+  const auto* m = find_metric(b.peek(), "centreon.bytes_in");
+  ASSERT_NE(m, nullptr);
+  ASSERT_TRUE(m->has_sum());
+  EXPECT_EQ(m->sum().aggregation_temporality(),
+            ::opentelemetry::proto::metrics::v1::
+                AGGREGATION_TEMPORALITY_CUMULATIVE);
+  ASSERT_EQ(m->sum().data_points_size(), 1);
+  EXPECT_EQ(m->sum().data_points(0).start_time_unix_nano(),
+            b.start_time_unix_nano());
+  EXPECT_GT(b.start_time_unix_nano(), 0u);
+}
+
+/* It must not move between batches, or every export would look like a reset. */
+TEST_F(RequestBuilderTest, start_time_is_stable_across_batches) {
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("c[bytes_in]=1024")));
+  const uint64_t first = b.start_time_unix_nano();
+  b.take();
+  ASSERT_TRUE(b.add_service_status(make_status("c[bytes_in]=2048")));
+
+  EXPECT_EQ(b.start_time_unix_nano(), first);
+  const auto* m = find_metric(b.peek(), "centreon.bytes_in");
+  ASSERT_NE(m, nullptr);
+  EXPECT_EQ(m->sum().data_points(0).start_time_unix_nano(), first);
+}
+
+/* A gauge has no aggregation window, so a start time on it is meaningless. */
+TEST_F(RequestBuilderTest, gauges_carry_no_start_time) {
+  request_builder b(conf, enricher, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto* m = find_metric(b.peek(), "centreon.icmp.rtt");
+  ASSERT_NE(m, nullptr);
+  ASSERT_TRUE(m->has_gauge());
+  EXPECT_EQ(m->gauge().data_points(0).start_time_unix_nano(), 0u);
 }
 
 TEST_F(RequestBuilderTest, state_can_be_disabled) {
@@ -310,10 +523,12 @@ TEST_F(RequestBuilderTest, take_resets_the_builder) {
 TEST_F(RequestBuilderTest, conflicting_instrument_does_not_discard_datapoints) {
   request_builder b(conf, enricher, logger);
 
-  /* Unknown name, so the instrument comes from the perfdata value type: 'c'
-   * makes it a counter, plain makes it a gauge. */
+  /* Unknown name, so the instrument comes from the perfdata value type. That
+   * type is carried by a label prefix, not by the unit: 'c[x]' is a counter and
+   * so becomes a sum, a plain label becomes a gauge. Both reach the same
+   * metric name, since the prefix is stripped from it. */
   ASSERT_TRUE(b.add_service_status(make_status("custom_thing=5")));
-  ServiceStatus as_counter = make_status("custom_thing=9c");
+  ServiceStatus as_counter = make_status("c[custom_thing]=9");
   as_counter.set_service_id(8);
   ASSERT_TRUE(b.add_service_status(as_counter));
 

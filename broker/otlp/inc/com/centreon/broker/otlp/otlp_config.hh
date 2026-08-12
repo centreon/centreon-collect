@@ -24,6 +24,33 @@
 namespace com::centreon::broker::otlp {
 
 /**
+ * @brief Which threshold bounds to emit.
+ *
+ * Nagios denotes "warn=500" as the range 0..500, so the perfdata parser always
+ * yields a lower bound alongside the upper one. For the many checks that only
+ * ever set an upper limit that lower bound is a constant zero, so upper_only
+ * halves the threshold series without losing information.
+ */
+enum class threshold_bound_mode {
+  all,         // warning and critical, lower and upper
+  upper_only,  // only the upper bound of each level
+};
+
+/**
+ * @brief How a check state is encoded.
+ *
+ * numeric is compact, one series per check, and reads well in a Grafana state
+ * timeline. one_hot costs one series per state but lets a backend answer "how
+ * many services are critical" with a plain sum, which is the question alerting
+ * actually asks. Neither is an OpenTelemetry convention: there is none for
+ * check states.
+ */
+enum class state_encoding_mode {
+  numeric,  // value = the state enum, 0..4
+  one_hot,  // one datapoint per state, value = 1 for the current one else 0
+};
+
+/**
  * @brief Endpoint configuration of the OTLP output.
  *
  * The mapping from Centreon metrics to semantic conventions is deliberately
@@ -50,6 +77,15 @@ struct otlp_config {
   bool send_thresholds = true;
   bool send_status = true;
   bool send_min_max = true;
+
+  /* Emit the hard/soft flag as its own centreon.*.state_type metric. It is a
+   * separate metric and not an attribute of the state because it changes on
+   * every soft/hard transition: as an attribute it would end the state series
+   * and start a new one each time. */
+  bool send_state_type = true;
+
+  threshold_bound_mode threshold_bounds = threshold_bound_mode::all;
+  state_encoding_mode state_encoding = state_encoding_mode::numeric;
 };
 
 }  // namespace com::centreon::broker::otlp

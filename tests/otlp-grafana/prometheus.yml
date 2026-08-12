@@ -1,0 +1,18 @@
+# Everything arrives by remote write from the collector, so there is nothing to
+# scrape except Prometheus itself (handy to confirm the stack is alive).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+storage:
+  tsdb:
+    # Broker timestamps datapoints with last_check, not with export time, so
+    # samples routinely arrive older than the head block. Without this window
+    # Prometheus answers 400 "too old" and nothing is stored.
+    # This is a config setting, NOT a command line flag.
+    out_of_order_time_window: 30m
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

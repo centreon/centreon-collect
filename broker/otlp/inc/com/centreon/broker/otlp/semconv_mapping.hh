@@ -76,6 +76,10 @@ struct mapping {
   /* True when the metric kept its Centreon identity because no semantic
    * convention applies, or because a required instance attribute was absent. */
   bool is_fallback = false;
+  /* Metric.description. A property of the emitted name, never of the perfdata
+   * label: several labels map to one OTel metric, so a description naming the
+   * source label would be whichever one happened to arrive first. */
+  std::string_view description;
 };
 
 /**
@@ -101,6 +105,15 @@ decomposed_name decompose(std::string_view perfdata_name);
 mapping map_metric(std::string_view perfdata_name,
                    std::string_view unit,
                    com::centreon::common::perfdata::data_type value_type);
+
+/**
+ * @brief Metric.description for an emitted metric name.
+ *
+ * Keyed by the emitted name rather than by the perfdata label, because that is
+ * the granularity a Metric message has. Returns an empty view for a name with
+ * no entry, which protobuf then simply omits.
+ */
+std::string_view metric_description(std::string_view emitted_name);
 
 /**
  * @brief Name of the companion metric carrying this metric's thresholds.
