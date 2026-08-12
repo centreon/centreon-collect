@@ -156,14 +156,26 @@ jobs:
         with:
           distrib: ${{ matrix.operating_system }}
 
+      - name: Compute Docker tag
+        id: docker-tag
+        uses: ./.github/actions/compute-docker-tag
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Compute base ref Docker tag
+        id: base-docker-tag
+        uses: ./.github/actions/compute-docker-tag
+        with:
+          ref: ${{ github.base_ref || github.ref_name }}
+
       - name: Get FROM image tag
         id: from_image_version
         env:
           MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
           REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          GH_HEAD_REF: ${{ github.head_ref || github.ref_name }}
-          GH_BASE_REF: ${{ github.base_ref || github.ref_name }}
+          GH_HEAD_REF: ${{ steps.docker-tag.outputs.tag }}
+          GH_BASE_REF: ${{ steps.base-docker-tag.outputs.tag }}
           PROJECT: ${{ env.project }}
         run: |
           FROM_IMAGE_VERSION="$MAJOR_VERSION"
@@ -240,13 +252,13 @@ jobs:
           pull: true
           push: true
           load: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ steps.docker-tag.outputs.tag }}
 
       - name: Store image in local archive
         env:
           REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
-          GH_REF: ${{ github.head_ref || github.ref_name }}
+          GH_REF: ${{ steps.docker-tag.outputs.tag }}
         run: |
           docker tag "$REGISTRY_URL/gorgone-testing-$OPERATING_SYSTEM:$GH_REF" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
           mkdir -p docker-image
@@ -257,7 +269,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
-          GH_REF: ${{ github.head_ref || github.ref_name }}
+          GH_REF: ${{ steps.docker-tag.outputs.tag }}
         run: |
           curl \
             -X DELETE \
@@ -270,7 +282,7 @@ jobs:
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./docker-image
-          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
+          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ steps.docker-tag.outputs.tag }}
 
   robot-test:
     needs: [get-environment, dockerize]
