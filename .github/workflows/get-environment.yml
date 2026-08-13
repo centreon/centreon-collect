@@ -785,6 +785,7 @@ jobs:
 
             const alma10_mysql_8_4       = cfg('alma10',   'mysql:8.4');
             const alma10_mariadb_11_8    = cfg('alma10',   'mariadb:11.8');
+            const alma9_mariadb_11_8     = cfg('alma9',    'mariadb:11.8')
             const alma9_mysql_8_0        = cfg('alma9',    'mysql:8.0');
             const alma8_mariadb_10_11    = cfg('alma8',    'mariadb:10.11');
             const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
@@ -793,29 +794,33 @@ jobs:
             const jammy_mariadb_10_11    = cfg('jammy',    'mariadb:10.11');
             const noble_mariadb_10_11    = cfg('noble',    'mariadb:10.11');
 
-            const configs = [alma10_mysql_8_4, alma9_mysql_8_0, alma10_mariadb_11_8, trixie_mariadb_11_8];
+            // Fixed weekday -> preferred configuration (0=sunday, 1=monday, ..., 6=saturday)
+            const dailyConfigByDayOfWeek = {
+              1: alma10_mysql_8_4,    // Monday
+              2: trixie_mariadb_11_8, // Tuesday
+              3: alma10_mysql_8_4,    // Wednesday
+              4: alma9_mariadb_11_8,  // Thursday
+              5: alma10_mysql_8_4,    // Friday
+            };
+
+            const getDailyConfig = (configs) => {
+              const dayOfWeek = new Date().getDay();
+              const preferred = dailyConfigByDayOfWeek[dayOfWeek];
+
+              // Fall back to the first available configuration on weekends,
+              // or if the preferred one isn't part of the package matrix
+              return preferred && configs.includes(preferred) ? preferred : configs[0];
+            };
+
+            const configs = [alma10_mysql_8_4, alma9_mariadb_11_8, trixie_mariadb_11_8]
             const cmaConfigs = [
               alma10_mariadb_11_8, alma9_mysql_8_0, alma8_mariadb_10_11,
               bookworm_mariadb_10_11, trixie_mysql_8_4,
               jammy_mariadb_10_11, noble_mariadb_10_11
             ];
             const cloud = alma10_mysql_8_4;
+            let main = isCloud ? cloud : alma10_mariadb_11_8;
 
-            const getDailyConfig = (configs) => {
-              const today = new Date();
-              const dayOfWeek = today.getDay();
-              if (dayOfWeek === 0 || dayOfWeek === 6) return configs[0]; // weekend → default
-              let workingDays = 0;
-
-              const d = new Date('2025-01-01');
-              while (d < today) {
-                if (d.getDay() >= 1 && d.getDay() <= 5) workingDays++;
-                d.setDate(d.getDate() + 1);
-              }
-              return configs[workingDays % configs.length];
-            };
-
-            const main = isCloud ? cloud : alma10_mariadb_11_8;
             const activeConfig = isNightly ? getDailyConfig(configs) : main;
 
             let matrix = { cloud: [cloud], main: [activeConfig], operating_systems: [activeConfig] };
