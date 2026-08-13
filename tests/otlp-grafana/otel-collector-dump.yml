@@ -1,0 +1,21 @@
+# Overlay config: snapshot every ExportMetricsServiceRequest to a JSON file.
+#
+# otelcol merges several --config files, so this is passed *after*
+# otel-collector.yml and only adds the file exporter to the metrics pipeline.
+# The pipeline list is replaced wholesale on merge, hence the full list here.
+#
+# The output is newline-delimited OTLP JSON — the same encoding
+# OtlpCollector.py writes with MessageToDict(request): camelCase keys,
+# resourceMetrics / scopeMetrics / timeUnixNano.
+#
+#   DUMP_DIR=/tmp/otlp-dump ./podman-stack.sh
+#   jq . /tmp/otlp-dump/otlp.json | less
+
+exporters:
+  file:
+    path: /dump/otlp.json
+
+service:
+  pipelines:
+    metrics:
+      exporters: [prometheusremotewrite, debug, file]

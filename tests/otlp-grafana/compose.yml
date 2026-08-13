@@ -28,7 +28,7 @@ services:
       - ./otel-collector.yml:/etc/otel/config.yml:ro
     ports:
       # What the broker otlp output connects to.
-      - "4317:4317"
+      - "54317:4317"
     depends_on:
       - prometheus
 
