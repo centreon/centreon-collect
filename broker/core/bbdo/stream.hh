@@ -76,7 +76,8 @@ class stream : public basic_stream {
    * handshake with the peer's Welcome so a subclass can extract negotiation
    * parameters the peer advertised (e.g. Engine learning that Broker owns the
    * notification decision). Default: nothing to extract. */
-  virtual void specific_negotiate_received(const Welcome& peer) {}
+  virtual void specific_negotiate_received(const Welcome& peer
+                                           [[maybe_unused]]) {}
   void set_negotiate(bool negotiate);
 };
 }  // namespace com::centreon::broker::bbdo

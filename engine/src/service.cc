@@ -800,15 +800,12 @@ void service::check_for_expired_acknowledgement() {
   if (problem_has_been_acknowledged()) {
     if (acknowledgement_timeout() > 0) {
       time_t now = time(nullptr);
-      if (last_acknowledgement() + acknowledgement_timeout() >= now) {
+      if (last_acknowledgement() + acknowledgement_timeout() <= now) {
         SPDLOG_LOGGER_INFO(
             events_logger,
             "Acknowledgement of service '{}' on host '{}' just expired",
             description(), this->get_host_ptr()->name());
         set_acknowledgement(AckType::NONE);
-        // FIXME DBO: could be improved with something smaller.
-        // We will see later, I don't know if there are many events concerning
-        // acks.
         update_status(STATUS_ACKNOWLEDGEMENT);
       }
     }
