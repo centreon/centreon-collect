@@ -39,6 +39,7 @@ enum status_attribute {
   STATUS_ACKNOWLEDGEMENT = 1 << 2,
   NEXT_CHECK = 1 << 3,
   SHOULD_BE_SCHEDULED = 1 << 4,
+  STATUS_FLAPPING = 1 << 5,
   STATUS_ALL = ~0u,
 };
 

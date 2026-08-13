@@ -185,6 +185,7 @@ message AdaptiveServiceStatus {
   optional int32 notification_number = 7;
   optional int64 next_check = 8;
   optional bool should_be_scheduled = 9;
+  optional bool flapping = 10;
 }
 
 /**
@@ -455,6 +456,7 @@ message AdaptiveHostStatus {
   optional int32 notification_number = 4;
   optional int64 next_check = 5;
   optional bool should_be_scheduled = 6;
+  optional bool flapping = 7;
 }
 /**
  * @brief Message used to send adaptive host configuration. When only one

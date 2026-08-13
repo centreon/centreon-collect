@@ -2698,6 +2698,9 @@ static void forward_pb_host_status(const host* hst,
           common::notifications::SHOULD_BE_SCHEDULED) {
         host.set_should_be_scheduled(hst->get_should_be_scheduled());
       }
+      if (attributes & common::notifications::STATUS_FLAPPING) {
+        host.set_flapping(hst->get_is_flapping());
+      }
       cbm->write(h);
     }
   } else {
@@ -4654,6 +4657,9 @@ static void forward_pb_service_status(const engine::service* svc,
       if (attributes &
           common::notifications::SHOULD_BE_SCHEDULED) {
         asscr.set_should_be_scheduled(svc->get_should_be_scheduled());
+      }
+      if (attributes & common::notifications::STATUS_FLAPPING) {
+        asscr.set_flapping(svc->get_is_flapping());
       }
       cbm->write(as);
     }

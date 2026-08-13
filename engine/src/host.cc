@@ -2505,9 +2505,7 @@ void host::enable_flap_detection() {
   /* check for flapping */
   check_for_flapping(false, false, true);
 
-  /* update host status */
-  /* FIXME DBO: seems not necessary */
-  // update_status();
+  update_status(STATUS_FLAPPING);
 }
 
 /*
