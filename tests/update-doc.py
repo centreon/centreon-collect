@@ -340,7 +340,8 @@ uv pip install -U robotframework \\
         robotframework-requests psutil \\
         robotframework-httpctrl boto3 \\
         GitPython unqlite py-cpuinfo pyjwt \\
-        grpcio grpcio_tools
+        grpcio grpcio_tools \\
+        autopep8 robotframework-tidy
 ```
 
 When you want to enable the virtual environment, you just have to execute the following command:
