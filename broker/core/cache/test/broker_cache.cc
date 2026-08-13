@@ -1195,3 +1195,66 @@ TEST_F(BrokerCacheTest, UpdateServiceStatusClonesWhenShared) {
   ASSERT_EQ(after->obj().output(), "cloned");
   ASSERT_TRUE(held->obj().output().empty());
 }
+
+/**
+ * @brief An adaptive host status carrying the flapping flag applies it to the
+ * cached host, and one that does not carry it leaves the cached value alone —
+ * that is the whole point of the field being optional: each adaptive status
+ * writes only the attributes it announces.
+ */
+TEST_F(BrokerCacheTest, AdaptiveHostStatusFlapping) {
+  publish_hosts(1, 1);
+  ASSERT_FALSE(_cache->host(1u)->obj().flapping());
+
+  auto start = std::make_shared<neb::pb_adaptive_host_status>();
+  start->mut_obj().set_host_id(1);
+  start->mut_obj().set_flapping(true);
+  _cache->publish(start);
+  ASSERT_TRUE(_cache->host(1u)->obj().flapping());
+
+  /* An adaptive status about something else must not reset the flapping flag.
+   */
+  auto other = std::make_shared<neb::pb_adaptive_host_status>();
+  other->mut_obj().set_host_id(1);
+  other->mut_obj().set_notification_number(3);
+  _cache->publish(other);
+  ASSERT_TRUE(_cache->host(1u)->obj().flapping());
+  ASSERT_EQ(_cache->host(1u)->obj().notification_number(), 3);
+
+  auto stop = std::make_shared<neb::pb_adaptive_host_status>();
+  stop->mut_obj().set_host_id(1);
+  stop->mut_obj().set_flapping(false);
+  _cache->publish(stop);
+  ASSERT_FALSE(_cache->host(1u)->obj().flapping());
+}
+
+/**
+ * @brief Same as AdaptiveHostStatusFlapping, on the service side.
+ */
+TEST_F(BrokerCacheTest, AdaptiveServiceStatusFlapping) {
+  publish_hosts(1, 1);
+  publish_services(1, 1, 1);
+  ASSERT_FALSE(_cache->service(1u, 1u)->obj().flapping());
+
+  auto start = std::make_shared<neb::pb_adaptive_service_status>();
+  start->mut_obj().set_host_id(1);
+  start->mut_obj().set_service_id(1);
+  start->mut_obj().set_flapping(true);
+  _cache->publish(start);
+  ASSERT_TRUE(_cache->service(1u, 1u)->obj().flapping());
+
+  auto other = std::make_shared<neb::pb_adaptive_service_status>();
+  other->mut_obj().set_host_id(1);
+  other->mut_obj().set_service_id(1);
+  other->mut_obj().set_notification_number(7);
+  _cache->publish(other);
+  ASSERT_TRUE(_cache->service(1u, 1u)->obj().flapping());
+  ASSERT_EQ(_cache->service(1u, 1u)->obj().notification_number(), 7);
+
+  auto stop = std::make_shared<neb::pb_adaptive_service_status>();
+  stop->mut_obj().set_host_id(1);
+  stop->mut_obj().set_service_id(1);
+  stop->mut_obj().set_flapping(false);
+  _cache->publish(stop);
+  ASSERT_FALSE(_cache->service(1u, 1u)->obj().flapping());
+}

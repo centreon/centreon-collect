@@ -2376,12 +2376,13 @@ void stream::_process_pb_adaptive_host_status(
   auto& hscr = h->obj();
 
   SPDLOG_LOGGER_DEBUG(
-      _logger_sql, "unified_sql: pb adaptive host {} status -{}{}{}",
+      _logger_sql, "unified_sql: pb adaptive host {} status -{}{}{}{}",
       hscr.host_id(),
       hscr.has_acknowledgement_type() ? " with acknowledgement type" : "",
       hscr.has_notification_number() ? " with notification number" : "",
       hscr.has_scheduled_downtime_depth() ? " with scheduled downtime depth"
-                                          : "");
+                                          : "",
+      hscr.has_flapping() ? " with flapping" : "");
 
   if (!_host_instance_known(hscr.host_id())) {
     SPDLOG_LOGGER_WARN(_logger_sql,
@@ -2411,6 +2412,8 @@ void stream::_process_pb_adaptive_host_status(
     if (hscr.has_scheduled_downtime_depth())
       query += fmt::format("scheduled_downtime_depth={},",
                            hscr.scheduled_downtime_depth());
+    if (hscr.has_flapping())
+      query += fmt::format("flapping={},", hscr.flapping() ? 1 : 0);
     if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
       query += fmt::format(" WHERE host_id={}", hscr.host_id());
@@ -2432,6 +2435,8 @@ void stream::_process_pb_adaptive_host_status(
     if (hscr.has_scheduled_downtime_depth())
       res_query +=
           fmt::format("in_downtime={},", hscr.scheduled_downtime_depth() > 0);
+    if (hscr.has_flapping())
+      res_query += fmt::format("flapping={},", hscr.flapping() ? 1 : 0);
     if (res_query.size() > res_buf.size()) {
       res_query.resize(res_query.size() - 1);
       res_query += fmt::format(" WHERE parent_id=0 AND id={}", hscr.host_id());
@@ -4174,12 +4179,13 @@ void stream::_process_pb_adaptive_service_status(
   SPDLOG_LOGGER_DEBUG(
       _logger_sql,
       "unified_sql: processing pb adaptive service status of ({}, {}) "
-      "-{}{}{}",
+      "-{}{}{}{}",
       sscr.host_id(), sscr.service_id(),
       sscr.has_acknowledgement_type() ? "with acknowledge type" : "",
       sscr.has_notification_number() ? "with notification number" : "",
       sscr.has_scheduled_downtime_depth() ? "with scheduled downtime depth"
-                                          : "");
+                                          : "",
+      sscr.has_flapping() ? "with flapping" : "");
 
   if (!_host_instance_known(sscr.host_id())) {
     SPDLOG_LOGGER_WARN(
@@ -4213,6 +4219,8 @@ void stream::_process_pb_adaptive_service_status(
     if (sscr.has_scheduled_downtime_depth())
       buf_query += fmt::format("scheduled_downtime_depth={},",
                                sscr.scheduled_downtime_depth());
+    if (sscr.has_flapping())
+      buf_query += fmt::format("flapping={},", sscr.flapping() ? 1 : 0);
     if (buf_query.size() > query.size()) {
       buf_query.resize(buf_query.size() - 1);
       buf_query += fmt::format(" WHERE host_id={} AND service_id={}",
@@ -4239,6 +4247,8 @@ void stream::_process_pb_adaptive_service_status(
     if (sscr.has_scheduled_downtime_depth())
       buf_res_query +=
           fmt::format("in_downtime={},", sscr.scheduled_downtime_depth() > 0);
+    if (sscr.has_flapping())
+      buf_res_query += fmt::format("flapping={},", sscr.flapping() ? 1 : 0);
     if (buf_res_query.size() > res_query.size()) {
       buf_res_query.resize(buf_res_query.size() - 1);
       buf_res_query += fmt::format(" WHERE parent_id={} AND id={}",

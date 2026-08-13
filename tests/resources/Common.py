@@ -2691,6 +2691,92 @@ def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected:
     return False
 
 
+def ctn_check_host_flapping_value(host: str, expected: int, timeout: int = 30):
+    """
+    Wait until the flapping flag of a host reaches an expected value in both the
+    hosts and resources tables. Unlike ctn_check_host_flapping(), which asserts
+    the host IS flapping and checks percent_state_change, this one accepts any
+    expected value, so it can also assert the flag has been cleared.
+
+    Args:
+        host (str): The hostname to check.
+        expected (int): The expected flapping value (0 or 1).
+        timeout (int): How long to wait for the value to show up, in seconds.
+
+    Returns:
+        True if both tables carry the expected value before the timeout.
+    """
+    limit = time.time() + timeout
+
+    h_query = f"""SELECT flapping FROM hosts WHERE name='{host}'"""
+    r_query = f"""SELECT flapping FROM resources WHERE name='{host}' AND parent_id=0"""
+
+    result = None
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(h_query)
+                result = cursor.fetchall()
+                if len(result) == 1 and result[0]['flapping'] == expected:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result) == 1 and result[0]['flapping'] == expected:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
+def ctn_check_service_flapping_value(host: str, serv: str, expected: int, timeout: int = 30):
+    """
+    Wait until the flapping flag of a service reaches an expected value in both
+    the services and resources tables. Unlike ctn_check_service_flapping(),
+    which asserts the service IS flapping and checks percent_state_change, this
+    one accepts any expected value, so it can also assert the flag has been
+    cleared.
+
+    Args:
+        host (str): The hostname of the service to check.
+        serv (str): The service description to check.
+        expected (int): The expected flapping value (0 or 1).
+        timeout (int): How long to wait for the value to show up, in seconds.
+
+    Returns:
+        True if both tables carry the expected value before the timeout.
+    """
+    limit = time.time() + timeout
+
+    s_query = f"""SELECT s.flapping FROM services s JOIN hosts h ON s.host_id = h.host_id WHERE h.name='{host}' AND s.description='{serv}'"""
+    r_query = f"""SELECT flapping FROM resources WHERE parent_name='{host}' AND name='{serv}'"""
+
+    result = None
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(s_query)
+                result = cursor.fetchall()
+                if len(result) == 1 and result[0]['flapping'] == expected:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result) == 1 and result[0]['flapping'] == expected:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
 def ctn_get_process_limit(pid: int, limit: str):
     """
     ctn_get_process_limit

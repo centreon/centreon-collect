@@ -2684,6 +2684,10 @@ static void forward_pb_host_status(const host* hst,
       host.set_host_id(hst->host_id());
       host.set_acknowledgement_type(hst->get_acknowledgement());
     }
+    if (attributes & common::notifications::STATUS_FLAPPING) {
+      host.set_host_id(hst->host_id());
+      host.set_flapping(hst->get_is_flapping());
+    }
     cbm->write(h);
   } else {
     auto h{std::make_shared<neb::pb_host_status>()};
@@ -4609,6 +4613,11 @@ static void forward_pb_service_status(const engine::service* svc,
       asscr.set_host_id(svc->host_id());
       asscr.set_service_id(svc->service_id());
       asscr.set_acknowledgement_type(svc->get_acknowledgement());
+    }
+    if (attributes & common::notifications::STATUS_FLAPPING) {
+      asscr.set_host_id(svc->host_id());
+      asscr.set_service_id(svc->service_id());
+      asscr.set_flapping(svc->get_is_flapping());
     }
     cbm->write(as);
   } else {

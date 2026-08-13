@@ -789,7 +789,8 @@ void stream::_update_metrics() {
  *
  * Regular host/service statuses are accumulated in bulk binds and normally sent
  * by the periodic _check_queues() once a bind is ready(). Adaptive statuses
- * (scheduled_downtime_depth, acknowledgement, notification number) are, on the
+ * (scheduled_downtime_depth, acknowledgement, notification number, flapping)
+ * are, on the
  * other hand, applied immediately through a direct query. Both write the same
  * columns of the same row and both target connection 0, so if a regular status
  * carrying an older value is still buffered when an adaptive update runs, the

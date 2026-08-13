@@ -2426,6 +2426,8 @@ void broker_cache::update_host(
         hst.set_acknowledgement_type(hs.acknowledgement_type());
       if (hs.has_notification_number())
         hst.set_notification_number(hs.notification_number());
+      if (hs.has_flapping())
+        hst.set_flapping(hs.flapping());
 
       /* Acknowledgement event: decide under the lock, publish after release. */
       ack_to_close = _take_expired_acknowledgement(
@@ -2746,6 +2748,8 @@ void broker_cache::update_service(
       svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
     if (obj.has_notification_number())
       svc.set_notification_number(obj.notification_number());
+    if (obj.has_flapping())
+      svc.set_flapping(obj.flapping());
     entry.commit(index, it);
 
     /* Acknowledgement event: decide under the lock, publish after release. */

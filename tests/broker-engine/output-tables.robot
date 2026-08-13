@@ -364,3 +364,144 @@ BE_FLAPPING_HOST_RESOURCE
     Should Be True    ${result}    The host or resource host_1 is not flapping as expected
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+BE_FLAPPING_HOST_ADAPTIVE
+    [Documentation]    Re-enabling flap detection on a flapping host updates the flapping flag in DB right away, through an adaptive host status, without waiting for the next check.
+    [Tags]    broker    engine    protobuf
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    0    enable_flap_detection    1
+    Ctn Set Hosts Passive    ${0}    host_1
+    Ctn Engine Config Set Value In Hosts    0    host_1    flap_detection_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    low_flap_threshold    10
+    Ctn Engine Config Set Value In Hosts    0    host_1    high_flap_threshold    20
+    Ctn Engine Config Set Value In Hosts    0    host_1    flap_detection_options    all
+    Ctn Broker Config Log    central    sql    trace
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    DELETE FROM services
+    Execute SQL String    DELETE FROM resources
+    Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
+
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # generate flapping
+    FOR    ${index}    IN RANGE    21
+        Ctn Process Host Result Hard    host_1    2    flapping
+        Ctn Process Host Check Result    host_1    0    flapping
+        Sleep    1s
+    END
+
+    ${result}    Ctn Check Host Flapping    host_1    30    5    50
+    Should Be True    ${result}    The host or resource host_1 is not flapping as expected
+
+    # check_for_flapping() only (re)starts flapping on a non-UP state, and the loop
+    # above ends on a UP result. Put host_1 back to DOWN before playing with flap
+    # detection, otherwise re-enabling it below cannot flap the host again.
+    # Waiting for the state in DB also acts as a barrier: passive results are
+    # applied by the reaper, asynchronously from the external command processing,
+    # so without it the DOWN could land after the DISABLE below.
+    Ctn Process Host Result Hard    host_1    2    flapping
+    ${result}    Ctn Check Host Status    host_1    ${1}    ${1}    ${True}
+    Should Be True    ${result}    host_1 should be DOWN/HARD before toggling flap detection
+
+    # Disabling flap detection clears the flag. This path already republished the
+    # whole status before this test existed, so it only sets up the next step.
+    Ctn Disable Host Flap Detection    ${0}    host_1
+    ${result}    Ctn Check Host Flapping Value    host_1    ${0}    ${30}
+    Should Be True    ${result}    The flapping flag of host_1 has not been cleared
+
+    # Re-enabling it makes check_for_flapping() flap the host again. The host is
+    # passive and no check result is sent from here on, so an adaptive host
+    # status carrying the flapping flag is the only way the DB can learn about
+    # it: without it the flag would stay at 0 until the next check.
+    Ctn Enable Host Flap Detection    ${0}    host_1
+    ${result}    Ctn Check Host Flapping Value    host_1    ${1}    ${30}
+    Should Be True    ${result}    The flapping flag of host_1 has not been set back through the adaptive host status
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+BE_FLAPPING_SERVICE_ADAPTIVE
+    [Documentation]    Re-enabling flap detection on a flapping service updates the flapping flag in DB right away, through an adaptive service status, without waiting for the next check.
+    [Tags]    broker    engine    protobuf
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    0    enable_flap_detection    1
+    Ctn Set Services Passive    ${0}    service_1
+    Ctn Engine Config Set Value In Services    0    service_1    flap_detection_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    low_flap_threshold    10
+    Ctn Engine Config Set Value In Services    0    service_1    high_flap_threshold    20
+    Ctn Engine Config Set Value In Services    0    service_1    flap_detection_options    all
+    Ctn Broker Config Log    central    sql    trace
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    DELETE FROM services
+    Execute SQL String    DELETE FROM resources
+    Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
+
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # generate flapping
+    FOR    ${index}    IN RANGE    21
+        Ctn Process Service Result Hard    host_1    service_1    2    flapping
+        Ctn Process Service Check Result    host_1    service_1    0    flapping
+        Sleep    1s
+    END
+
+    ${result}    Ctn Check Service Flapping    host_1    service_1    30    5    50
+    Should Be True    ${result}    The service or resource (host_1,service_1) is not flapping as expected
+
+    # check_for_flapping() only (re)starts flapping on a non-OK state, and the loop
+    # above ends on an OK result. Put service_1 back to CRITICAL before playing with
+    # flap detection, otherwise re-enabling it below cannot flap the service again.
+    # Waiting for the state in DB also acts as a barrier: passive results are
+    # applied by the reaper, asynchronously from the external command processing,
+    # so without it the CRITICAL could land after the DISABLE below.
+    Ctn Process Service Result Hard    host_1    service_1    2    flapping
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    ${30}    HARD
+    Should Be True    ${result}    (host_1,service_1) should be CRITICAL/HARD before toggling flap detection
+
+    # Disabling flap detection clears the flag through a full service status, so
+    # this step only sets up the next one.
+    Ctn Disable Service Flap Detection    ${0}    host_1    service_1
+    ${result}    Ctn Check Service Flapping Value    host_1    service_1    ${0}    ${30}
+    Should Be True    ${result}    The flapping flag of (host_1,service_1) has not been cleared
+
+    # Re-enabling it makes check_for_flapping() flap the service again. The service
+    # is passive and no check result is sent from here on, so an adaptive service
+    # status carrying the flapping flag is the only way the DB can learn about it:
+    # this path used to republish the whole status, it is now restricted to the
+    # flapping attribute alone.
+    Ctn Enable Service Flap Detection    ${0}    host_1    service_1
+    ${result}    Ctn Check Service Flapping Value    host_1    service_1    ${1}    ${30}
+    Should Be True    ${result}    The flapping flag of (host_1,service_1) has not been set back through the adaptive service status
+
+    # no_rrd_test=True: disabling flap detection republishes the whole service status
+    # with an unchanged last_check (the service is passive, no check happens in
+    # between), so the RRD gets a second status update for that very second and
+    # rejects it. Nothing to fix on the test side: the pb_status time IS last_check,
+    # so no amount of waiting changes it. Note the adaptive status of the last step
+    # does NOT cause this, it never reaches the RRD.
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    no_rrd_test=True

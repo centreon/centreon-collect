@@ -182,6 +182,7 @@ message AdaptiveServiceStatus {
   optional int32 scheduled_downtime_depth = 5;
   optional AckType acknowledgement_type = 6;
   optional int32 notification_number = 7;
+  optional bool flapping = 8;
 }
 
 /**
@@ -450,6 +451,7 @@ message AdaptiveHostStatus {
   optional int32 scheduled_downtime_depth = 2;
   optional AckType acknowledgement_type = 3;
   optional int32 notification_number = 4;
+  optional bool flapping = 5;
 }
 /**
  * @brief Message used to send adaptive host configuration. When only one

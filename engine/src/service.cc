@@ -2809,10 +2809,9 @@ void service::enable_flap_detection() {
   /* check for flapping */
   check_for_flapping(false, true);
 
-  /* update service status */
-  // FIXME DBO: Since we are just talking about flapping,
-  // we could improve this message.
-  update_status();
+  /* update service status: check_for_flapping() above may have toggled the
+   * flapping state, which is the only status attribute this path changes. */
+  update_status(STATUS_FLAPPING);
 }
 
 /* disables flap detection for a specific service */

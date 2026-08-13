@@ -2840,6 +2840,38 @@ def ctn_enable_host_flap_detection(use_grpc: int, hst: str):
             f.write(cmd)
 
 
+def ctn_disable_service_flap_detection(use_grpc: int, hst: str, svc: str):
+    """
+    Disable the flap detection on a service.
+
+    Args:
+        use_grpc (int): If not zero by gRPC, otherwise with legacy commands.
+        hst (str): host name of the concerned service.
+        svc (str): description of the concerned service.
+    """
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = f"[{now}] DISABLE_SVC_FLAP_DETECTION;{hst};{svc}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
+
+
+def ctn_enable_service_flap_detection(use_grpc: int, hst: str, svc: str):
+    """
+    Enable the flap detection on a service.
+
+    Args:
+        use_grpc (int): If not zero by gRPC, otherwise with legacy commands.
+        hst (str): host name of the concerned service.
+        svc (str): description of the concerned service.
+    """
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = f"[{now}] ENABLE_SVC_FLAP_DETECTION;{hst};{svc}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
+
+
 def ctn_disable_host_notifications(use_grpc: int, hst: str):
     """
     Disable the notifications on a host.
