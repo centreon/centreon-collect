@@ -10,9 +10,7 @@ COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
-    --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
-    bash -e <<EOF
+RUN bash -e <<EOF
 
 echo '
 Acquire::Retries "10";
@@ -53,23 +51,18 @@ VERSION_CODENAME=\$(
   echo \$VERSION_CODENAME
 )
 
+# pulp-served repositories; apt metadata is not signed yet, hence [trusted=yes]
 if [[ "${IS_CLOUD}" == "true" ]]; then
-  APT_AUTH_CONF_FILE="/etc/apt/auth.conf.d/centreon-${VERSION}-internal.conf"
-  echo "deb https://packages.centreon.com/apt-standard-internal/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
-  echo "machine packages.centreon.com" > \$APT_AUTH_CONF_FILE
-  echo "login $(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME)" >> \$APT_AUTH_CONF_FILE
-  echo "password $(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)" >> \$APT_AUTH_CONF_FILE
-  chmod 600 \$APT_AUTH_CONF_FILE
+  echo "deb [trusted=yes] https://packages.apps.centreon.com/standard/apt-standard-internal/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
 else
-  echo "deb https://packages.centreon.com/apt-standard/ \$VERSION_CODENAME-${VERSION}-stable main" | tee -a /etc/apt/sources.list.d/centreon-stable.list
-  echo "deb https://packages.centreon.com/apt-standard/ \$VERSION_CODENAME-${VERSION}-testing-hotfix main" | tee -a /etc/apt/sources.list.d/centreon-testing-hotfix.list
-  echo "deb https://packages.centreon.com/apt-standard/ \$VERSION_CODENAME-${VERSION}-testing-release main" | tee -a /etc/apt/sources.list.d/centreon-testing-release.list
-  echo "deb https://packages.centreon.com/apt-standard/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
+  echo "deb [trusted=yes] https://packages.apps.centreon.com/standard-stable/apt-standard/ \$VERSION_CODENAME-${VERSION} main" | tee -a /etc/apt/sources.list.d/centreon-stable.list
+  echo "deb [trusted=yes] https://packages.apps.centreon.com/standard/apt-standard/ \$VERSION_CODENAME-${VERSION}-testing-hotfix main" | tee -a /etc/apt/sources.list.d/centreon-testing-hotfix.list
+  echo "deb [trusted=yes] https://packages.apps.centreon.com/standard/apt-standard/ \$VERSION_CODENAME-${VERSION}-testing-release main" | tee -a /etc/apt/sources.list.d/centreon-testing-release.list
+  echo "deb [trusted=yes] https://packages.apps.centreon.com/standard/apt-standard/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
 fi
-echo "deb https://packages.centreon.com/apt-plugins-stable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-stable.list
-echo "deb https://packages.centreon.com/apt-plugins-testing/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list
-echo "deb https://packages.centreon.com/apt-plugins-unstable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-unstable.list
-wget -O- https://packages.centreon.com/api/security/keypair/APT-GPG-KEY/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+echo "deb [trusted=yes] https://packages.apps.centreon.com/plugins-stable/apt-plugins-stable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-stable.list
+echo "deb [trusted=yes] https://packages.apps.centreon.com/plugins/apt-plugins/ \$VERSION_CODENAME-testing main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list
+echo "deb [trusted=yes] https://packages.apps.centreon.com/plugins/apt-plugins/ \$VERSION_CODENAME-unstable main" | tee -a /etc/apt/sources.list.d/centreon-plugins-unstable.list
 
 apt-get update
 
