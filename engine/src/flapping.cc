@@ -22,8 +22,10 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
+#include "common/notifications/notification_types.hh"
 
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 /******************************************************************/
 /***************** FLAP DETECTION STATUS FUNCTIONS ****************/
@@ -49,15 +51,22 @@ void enable_flap_detection_routines() {
   /* update program status */
   update_program_status(false);
 
-  /* check for flapping */
-  for (host_map::iterator it(com::centreon::engine::host::hosts.begin()),
-       end(com::centreon::engine::host::hosts.end());
-       it != end; ++it)
-    it->second->check_for_flapping(false, false, true);
-  for (service_map::iterator it(service::services.begin()),
-       end(service::services.end());
-       it != end; ++it)
-    it->second->check_for_flapping(false, true);
+  /* check for flapping. check_for_flapping() may start the flapping of an
+   * object, and nothing else publishes that flag on this path, so each object
+   * that just toggled has to send an adaptive status. Objects that did not
+   * toggle publish nothing, which is the general case. */
+  for (auto& [_, hst] : com::centreon::engine::host::hosts) {
+    bool was_flapping = hst->get_is_flapping();
+    hst->check_for_flapping(false, false, true);
+    if (hst->get_is_flapping() != was_flapping)
+      hst->update_status(notifications::STATUS_FLAPPING);
+  }
+  for (auto& [_, svc] : service::services) {
+    bool was_flapping = svc->get_is_flapping();
+    svc->check_for_flapping(false, true);
+    if (svc->get_is_flapping() != was_flapping)
+      svc->update_status(notifications::STATUS_FLAPPING);
+  }
 }
 
 /* disables flap detection on a program wide basis */
