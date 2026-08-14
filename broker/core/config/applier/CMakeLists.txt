@@ -23,6 +23,8 @@ include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/core)
 # singleton) beside Engine's one.
 add_library(broker_applier_state STATIC
   ${PROJECT_SOURCE_DIR}/core/src/broker_downtime_callbacks.cc
+  broker_notification_callbacks.cc
+  broker_notification_callbacks.hh
   broker_state.cc
   broker_state.hh
   endpoint.cc

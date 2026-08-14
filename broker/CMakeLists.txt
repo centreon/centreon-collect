@@ -126,7 +126,7 @@ set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
 # Modules directories.
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
-set(PREFIX_CBMOD "${LIBDIR}")
+set(PREFIX_CBMOD "${CMAKE_INSTALL_FULL_LIBDIR}")
 
 # User.
 if(WITH_USER_BROKER)
@@ -320,6 +320,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/time.cc
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/modules/handle.cc
+    ${SRC_DIR}/broker_notification_dispatcher.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -348,6 +349,7 @@ target_link_libraries(
   sql
   broker_cache
   bbdo_bbdo
+  notifications
   timeperiods
   pb_broker_lib
   ctncrypto
@@ -543,6 +545,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/misc/misc.cc
     ${TEST_DIR}/misc/string.cc
     ${TEST_DIR}/modules/module.cc
+    ${TEST_DIR}/notification/broker_notification_callbacks.cc
     ${TEST_DIR}/mysql/mysql_column.cc
     ${TEST_DIR}/mysql/mysql_tls_probe.cc
     ${TEST_DIR}/processing/acceptor.cc

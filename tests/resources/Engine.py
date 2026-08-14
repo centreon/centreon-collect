@@ -724,9 +724,8 @@ define command {{
     """
             ff.write(content)
 
-    @staticmethod
-    def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependencies_file(self, poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = f"""define servicedependency {{
     ;dependency_name               HD_test
@@ -742,9 +741,8 @@ define command {{
     """
             ff.write(content)
 
-    @staticmethod
-    def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependenciesgrp_file(self, poller: int, dependentservicegroup: str, servicegroup: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define servicedependency {{
     ;dependency_name               MSD_test
@@ -758,9 +756,8 @@ define command {{
     """.format(dependentservicegroup, servicegroup)
             ff.write(content)
 
-    @staticmethod
-    def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependencieshst_file(self, poller: int, dependenthost: str, host: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
     ;dependency_name               HD_test2
@@ -774,9 +771,8 @@ define command {{
     """.format(dependenthost, host)
             ff.write(content)
 
-    @staticmethod
-    def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
-        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+    def create_dependencieshstgrp_file(self, poller: int, dependenthostgrp: str, hostgrp: str):
+        config_file = f"{self.get_config_dir(poller)}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
     ;dependency_name               HD_test2
@@ -1173,7 +1169,9 @@ def ctn_prepare_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, 
 
 def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
     """
-    Configure all the necessary files for num instances of centengine.
+    Configure all the necessary files for num instances of centengine. This is for a legacy
+    configuration. If you want to configure a centralized centengine configuration, you must
+    use ctn_config_centralized_engine instead.
 
     Args:
         num (int): How many engine configurations to start
@@ -1563,7 +1561,7 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
     _ctn_engine_set_command_line(idx, rf"command_{command_index}", new_command)
 
 
-def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str, ranges: dict = None):
+def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str = None, ranges: dict = None, exclude: str = None):
     """
     Append a timeperiod definition to timeperiods.cfg for the Engine config idx.
 
@@ -1574,17 +1572,21 @@ def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str, ranges: di
         ranges (dict, optional): Day-name → time-range string, e.g.
             {"monday": "00:00-24:00", "tuesday": "00:00-24:00"}.
             Omit or pass None for a period that is never active.
+        exclude (str, optional): a value for the `exclude` directive (a
+            timeperiod name, possibly non-existent to make the config invalid).
     """
     lines = f"""define timeperiod {{
     name                           {name}
     timeperiod_name                {name}
-    alias                          {alias}
+    alias                          {alias or name}
 """
     if ranges:
         for day, time_range in ranges.items():
             lines += f"    {day:<30} {time_range}\n"
+    if exclude is not None:
+        lines += f"    exclude                        {exclude}\n"
     lines += "}\n"
-    with open(f"{CONF_DIR}/config{idx}/timeperiods.cfg", "a") as f:
+    with open(f"{engine.get_config_dir(idx)}/timeperiods.cfg", "a") as f:
         f.write(lines)
 
 
@@ -2174,32 +2176,6 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
     conf_dir = engine.get_config_dir(index)
     with open(f"{conf_dir}/hostgroups.cfg", "a+") as f:
         f.write(engine.create_host_group(id_host_group, mbs))
-
-
-def ctn_engine_config_add_timeperiod(index: int, name: str, alias: str = None, exclude: str = None):
-    """
-    Append a timeperiod definition to the timeperiods.cfg of the engine
-    configuration `index`. Handy to inject an invalid timeperiod (e.g. one whose
-    `exclude` points at a non-existent timeperiod) to exercise configuration
-    checking.
-
-    Args:
-        index (int): index of the configuration (from 0).
-        name (str): the timeperiod_name of the block to add.
-        alias (str, optional): the alias; defaults to `name`.
-        exclude (str, optional): a value for the `exclude` directive (a
-            timeperiod name, possibly non-existent to make the config invalid).
-    """
-    conf_dir = engine.get_config_dir(index)
-    block = "define timeperiod {\n"
-    block += f"    name                           {name}\n"
-    block += f"    timeperiod_name                {name}\n"
-    block += f"    alias                          {alias or name}\n"
-    if exclude is not None:
-        block += f"    exclude                        {exclude}\n"
-    block += "}\n"
-    with open(f"{conf_dir}/timeperiods.cfg", "a+") as f:
-        f.write(block)
 
 
 def ctn_remove_host_group(index: int, id_host_group: int):
@@ -3313,6 +3289,38 @@ def ctn_enable_host_flap_detection(use_grpc: int, hst: str):
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
             now, hst)
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
+
+
+def ctn_disable_service_flap_detection(use_grpc: int, hst: str, svc: str):
+    """
+    Disable the flap detection on a service.
+
+    Args:
+        use_grpc (int): If not zero by gRPC, otherwise with legacy commands.
+        hst (str): host name of the concerned service.
+        svc (str): description of the concerned service.
+    """
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = f"[{now}] DISABLE_SVC_FLAP_DETECTION;{hst};{svc}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
+
+
+def ctn_enable_service_flap_detection(use_grpc: int, hst: str, svc: str):
+    """
+    Enable the flap detection on a service.
+
+    Args:
+        use_grpc (int): If not zero by gRPC, otherwise with legacy commands.
+        hst (str): host name of the concerned service.
+        svc (str): description of the concerned service.
+    """
+    if use_grpc == 0:
+        now = int(time.time())
+        cmd = f"[{now}] ENABLE_SVC_FLAP_DETECTION;{hst};{svc}\n"
         with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
             f.write(cmd)
 

@@ -953,7 +953,7 @@ message DiffState {
   DiffServiceescalation serviceescalations = 16;
 
   /* ID of the poller this diff is for. It is mandatory */
-  uint32 poller_id = 17;
+  uint64 poller_id = 17;
   /* All the remaining fields of the configuration, they are set as optional
    * fields, so only filled when needed. */
   optional string cfg_main = 18;

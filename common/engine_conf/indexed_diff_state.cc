@@ -328,6 +328,8 @@ void indexed_diff_state::add_state(
       [](Serviceescalation* obj) { return serviceescalation_key(*obj); });
 
   _full_conf_poller_id.push_back(state.poller_id());
+
+  merge_scalars(state, _scalar_diff);
 }
 
 /**

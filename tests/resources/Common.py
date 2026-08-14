@@ -799,6 +799,48 @@ def ctn_truncate_resource_host_service():
             cursor.execute("DELETE FROM services")
 
 
+def ctn_check_log_entry_in_db(output: str, ctime, msg_type=None, timeout: int = TIMEOUT):
+    """
+    Wait until a row appears in the storage `logs` table whose `output` column
+    equals `output` and whose `ctime` is >= the given `ctime`, optionally also
+    matching `msg_type`. Used to validate the event-log lines written to the DB
+    (the GUI monitoring log), independently of who produced them (Engine or
+    Broker).
+
+    Args:
+        output (str): the exact `output` value to look for.
+        ctime: minimum ctime (epoch seconds); older rows are ignored.
+        msg_type: optional LogEntry msg_type to also match (int), or None.
+        timeout (int): how long to wait, in seconds.
+
+    Returns:
+        True if such a row appeared within the timeout, False otherwise.
+    """
+    ct = int(float(ctime))
+    query = "SELECT COUNT(*) AS c FROM logs WHERE output=%s AND ctime>=%s"
+    params = [output, ct]
+    if msg_type is not None:
+        query += " AND msg_type=%s"
+        params.append(int(msg_type))
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+                if row is not None and row['c'] > 0:
+                    return True
+        time.sleep(1)
+    return False
+
+
 def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2943,6 +2985,92 @@ def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected:
     return False
 
 
+def ctn_check_host_flapping_value(host: str, expected: int, timeout: int = 30):
+    """
+    Wait until the flapping flag of a host reaches an expected value in both the
+    hosts and resources tables. Unlike ctn_check_host_flapping(), which asserts
+    the host IS flapping and checks percent_state_change, this one accepts any
+    expected value, so it can also assert the flag has been cleared.
+
+    Args:
+        host (str): The hostname to check.
+        expected (int): The expected flapping value (0 or 1).
+        timeout (int): How long to wait for the value to show up, in seconds.
+
+    Returns:
+        True if both tables carry the expected value before the timeout.
+    """
+    limit = time.time() + timeout
+
+    h_query = f"""SELECT flapping FROM hosts WHERE name='{host}'"""
+    r_query = f"""SELECT flapping FROM resources WHERE name='{host}' AND parent_id=0"""
+
+    result = None
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(h_query)
+                result = cursor.fetchall()
+                if len(result) == 1 and result[0]['flapping'] == expected:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result) == 1 and result[0]['flapping'] == expected:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
+def ctn_check_service_flapping_value(host: str, serv: str, expected: int, timeout: int = 30):
+    """
+    Wait until the flapping flag of a service reaches an expected value in both
+    the services and resources tables. Unlike ctn_check_service_flapping(),
+    which asserts the service IS flapping and checks percent_state_change, this
+    one accepts any expected value, so it can also assert the flag has been
+    cleared.
+
+    Args:
+        host (str): The hostname of the service to check.
+        serv (str): The service description to check.
+        expected (int): The expected flapping value (0 or 1).
+        timeout (int): How long to wait for the value to show up, in seconds.
+
+    Returns:
+        True if both tables carry the expected value before the timeout.
+    """
+    limit = time.time() + timeout
+
+    s_query = f"""SELECT s.flapping FROM services s JOIN hosts h ON s.host_id = h.host_id WHERE h.name='{host}' AND s.description='{serv}'"""
+    r_query = f"""SELECT flapping FROM resources WHERE parent_name='{host}' AND name='{serv}'"""
+
+    result = None
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(s_query)
+                result = cursor.fetchall()
+                if len(result) == 1 and result[0]['flapping'] == expected:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result) == 1 and result[0]['flapping'] == expected:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
 def ctn_get_process_limit(pid: int, limit: str):
     """
     ctn_get_process_limit
@@ -3460,4 +3588,75 @@ def ctn_check_resource_ids(typ: str, logfile: str):
         logger.console(f"Resources in DB: {result}")
         retval = False
     return retval
+
+
+def ctn_find_core_file(pid: int):
+    """
+    Look for the core file left by a process. The name depends on
+    kernel.core_pattern, which is global to the machine and not always the one
+    robot.sh tries to set, so several layouts are accepted: core.<pid>,
+    core-<exe>.<pid>.<host>.<time>, ... and, as a last resort, a plain 'core'
+    written in the current directory.
+
+    Args:
+        pid: process id of the dead process.
+
+    Returns: the path of the most recent matching core file, or an empty string
+    when no core can be found.
+    """
+    candidates = []
+    plain_cores = []
+    for directory in ("/tmp", os.getcwd()):
+        try:
+            entries = os.listdir(directory)
+        except OSError:
+            continue
+        for entry in entries:
+            if not entry.startswith("core"):
+                continue
+            path = os.path.join(directory, entry)
+            if not os.path.isfile(path):
+                continue
+            if entry == "core":
+                plain_cores.append(path)
+                continue
+            # The pid must be a whole field of the name, otherwise 331 would
+            # match core.331499.
+            if str(pid) in re.split(r"[.\-_]", entry):
+                candidates.append(path)
+
+    # A plain 'core' carries no pid, so only fall back to it when nothing else
+    # matched, and only when it is fresh enough to belong to the process we are
+    # looking at. Analysing a stale core would produce a backtrace pointing at
+    # the wrong crash, which is worse than no backtrace at all.
+    if not candidates:
+        now = time.time()
+        candidates = [c for c in plain_cores if now - os.path.getmtime(c) < 120]
+    if not candidates:
+        return ""
+    return max(candidates, key=os.path.getmtime)
+
+
+def ctn_engine_stderr_tail(idx: int, nb_lines: int = 20):
+    """
+    Return the last lines of the centengine standard error output. When
+    centengine dies on an abort, the reason (uncaught exception, failed
+    assertion, ...) is written there and nowhere else.
+
+    Args:
+        idx: index of the engine configuration.
+        nb_lines: number of lines to return.
+
+    Returns: the last lines as a string, or a message telling why nothing
+    could be read.
+    """
+    stderr = f"{VAR_ROOT}/log/centreon-engine/config{idx}/centengine-stderr.log"
+    try:
+        with open(stderr, "r") as f:
+            lines = f.readlines()
+    except OSError as e:
+        return f"<unable to read {stderr}: {e}>"
+    if not lines:
+        return f"<{stderr} is empty>"
+    return "".join(lines[-nb_lines:])
 

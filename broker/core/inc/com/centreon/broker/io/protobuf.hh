@@ -129,12 +129,30 @@ class protobuf : public protobuf_base {
     destination_id = dest_id;
   }
 
+  /**
+   * @brief Copy constructor of a protobuf object.
+   *
+   * obj() is virtual: a grpc::detail::received_protobuf keeps its message in
+   * the received CentreonEvent, not in _obj
+   *
+   * @param to_clone The message to clone.
+   */
   protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
-    _obj.CopyFrom(to_clone._obj);
+    _obj.CopyFrom(to_clone.obj());
   }
 
+  /**
+   * @brief Assignment operator of protobuf objects.
+   *
+   * obj() is virtual: a grpc::detail::received_protobuf keeps its message in
+   * the received CentreonEvent, not in _obj
+   *
+   * @param to_clone The message to clone.
+   *
+   * @return A reference to the copy.
+   */
   protobuf& operator=(const protobuf& to_clone) {
-    _obj.CopyFrom(to_clone._obj);
+    mut_obj().CopyFrom(to_clone.obj());
     return *this;
   }
 

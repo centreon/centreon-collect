@@ -17,7 +17,10 @@
  *
  */
 
+#include <absl/algorithm/container.h>
 #include <gtest/gtest.h>
+#include <spdlog/details/null_mutex.h>
+#include <spdlog/sinks/base_sink.h>
 
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/state_helper.hh"
@@ -39,6 +42,37 @@ class Pb_Resolve : public ::testing::Test {
   static void TearDownTestSuite() { log_v2::unload(); }
 
  protected:
+  /* Keeps the diagnostics in memory: the cross-poller checks only change the
+   * wording of an error that is already counted, so asserting on the counters
+   * alone would not tell whether the right message came out. Single-threaded,
+   * hence the null mutex. */
+  class capturing_sink
+      : public spdlog::sinks::base_sink<spdlog::details::null_mutex> {
+   public:
+    std::vector<std::string> messages;
+
+    // True when one of the captured diagnostics contains @a needle.
+    bool has(std::string_view needle) const {
+      return absl::c_any_of(messages, [needle](const std::string& m) {
+        return m.find(needle) != std::string::npos;
+      });
+    }
+
+   protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override {
+      messages.emplace_back(msg.payload.data(), msg.payload.size());
+    }
+    void flush_() override {}
+  };
+
+  // A logger writing into @a sink and nowhere else.
+  static std::shared_ptr<spdlog::logger> capturing_logger(
+      const std::shared_ptr<capturing_sink>& sink) {
+    auto log = std::make_shared<spdlog::logger>("resolve-capture", sink);
+    log->set_level(spdlog::level::warn);
+    return log;
+  }
+
   // Add a defined command to the State.
   static void add_command(State& s, const std::string& name) {
     Command* c = s.add_commands();
@@ -138,7 +172,17 @@ class Pb_Resolve : public ::testing::Test {
     Host* h = s.add_hosts();
     h->set_host_name(name);
     h->set_check_period("24x7");
+    /* A real id: an anomaly detection carries the id of its host and Engine
+     * refuses the pair when the two disagree. */
+    h->set_host_id(s.hosts_size());
     return h;
+  }
+
+  // The id of an already added host, 0 when it is not defined.
+  static uint64_t host_id_of(const State& s, const std::string& name) {
+    auto it = absl::c_find_if(
+        s.hosts(), [&name](const Host& h) { return h.host_name() == name; });
+    return it == s.hosts().end() ? 0 : it->host_id();
   }
 
   // Add a service on a host, with a defined check period (see
@@ -150,16 +194,28 @@ class Pb_Resolve : public ::testing::Test {
     svc->set_host_name(host);
     svc->set_service_description(desc);
     svc->set_check_period("24x7");
+    // A real id: an anomaly detection designates its dependent service by id.
+    svc->set_service_id(s.services_size());
     return svc;
   }
 
-  // Add an anomaly detection on a host. It has no check command/period fields.
+  /* Add an anomaly detection on a host, computed from the service
+   * @a dependent_service_id of that same host. It has no check command/period
+   * fields. The ids and the scheduling values are set because Engine refuses an
+   * anomaly detection carrying a null one. */
   static Anomalydetection* add_anomalydetection(State& s,
                                                 const std::string& host,
-                                                const std::string& desc) {
+                                                const std::string& desc,
+                                                uint64_t dependent_service_id) {
     Anomalydetection* ad = s.add_anomalydetections();
     ad->set_host_name(host);
     ad->set_service_description(desc);
+    ad->set_host_id(host_id_of(s, host));
+    ad->set_service_id(s.services_size() + s.anomalydetections_size());
+    ad->set_internal_id(s.anomalydetections_size());
+    ad->set_dependent_service_id(dependent_service_id);
+    ad->set_max_check_attempts(3);
+    ad->set_retry_interval(1);
     return ad;
   }
 
@@ -540,6 +596,104 @@ TEST_F(Pb_Resolve, HostdependencyNonExistingMasterHost) {
   ASSERT_EQ(err.config_errors, 1u);
 }
 
+/* A dependency cannot reach an object of another poller. Without a global view
+ * the missing object is only "not defined anywhere"; with one, the diagnostic
+ * names the poller that owns it and states why that kind of dependency is
+ * refused. The error count does not change — the configuration is invalid
+ * either way — so these tests assert on the message. */
+
+// The master host of a notification host dependency lives on another poller.
+TEST_F(Pb_Resolve, HostdependencyNotificationMasterHostOnAnotherPoller) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_hostdependency(s, "host_1", "host_on_poller_3");
+
+  foreign_objects elsewhere;
+  elsewhere.hosts.emplace("host_on_poller_3", 3);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink), elsewhere);
+  ASSERT_EQ(err.config_errors, 1u);
+  ASSERT_TRUE(sink->has("belongs to poller 3"));
+  ASSERT_TRUE(
+      sink->has("notification dependency across pollers is not "
+                "supported"));
+  ASSERT_FALSE(sink->has("is not defined anywhere"));
+}
+
+/* Same, for an execution dependency: it is refused for a different reason, the
+ * poller evaluating it itself. */
+TEST_F(Pb_Resolve, HostdependencyExecutionMasterHostOnAnotherPoller) {
+  State s = base_state();
+  add_host(s, "host_1");
+  Hostdependency* hd = add_hostdependency(s, "host_1", "host_on_poller_3");
+  hd->set_dependency_type(DependencyKind::execution_dependency);
+
+  foreign_objects elsewhere;
+  elsewhere.hosts.emplace("host_on_poller_3", 3);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink), elsewhere);
+  ASSERT_EQ(err.config_errors, 1u);
+  ASSERT_TRUE(sink->has("belongs to poller 3"));
+  ASSERT_TRUE(
+      sink->has("execution dependency is evaluated by the poller "
+                "itself"));
+  ASSERT_FALSE(sink->has("is not defined anywhere"));
+}
+
+// The same configuration, resolved without a global view, keeps the old
+// wording.
+TEST_F(Pb_Resolve, HostdependencyMasterHostUnknownWithoutGlobalView) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_hostdependency(s, "host_1", "host_on_poller_3");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink));
+  ASSERT_EQ(err.config_errors, 1u);
+  ASSERT_TRUE(sink->has("is not defined anywhere"));
+  ASSERT_FALSE(sink->has("belongs to poller"));
+}
+
+/* The master service of a service dependency lives on another poller. The
+ * fixture leaves the dependency type unknown, so expand() decomposes it into
+ * its notification and execution variants: the issue is reported twice, once
+ * with each reason. */
+TEST_F(Pb_Resolve, ServicedependencyMasterServiceOnAnotherPoller) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  add_servicedependency(s, "host_1", "svc_1", "host_on_poller_3", "svc_9");
+
+  foreign_objects elsewhere;
+  elsewhere.services[{"host_on_poller_3", "svc_9"}] = 3;
+
+  state_helper hlp(&s);
+  error_cnt err;
+  auto sink = std::make_shared<capturing_sink>();
+  hlp.expand(err);
+  hlp.resolve(err, capturing_logger(sink), elsewhere);
+  ASSERT_EQ(err.config_errors, 2u);
+  ASSERT_TRUE(sink->has("belongs to poller 3"));
+  ASSERT_TRUE(
+      sink->has("notification dependency across pollers is not "
+                "supported"));
+  ASSERT_TRUE(
+      sink->has("execution dependency is evaluated by the poller "
+                "itself"));
+  ASSERT_FALSE(sink->has("is not defined anywhere"));
+}
+
 // A host dependency of a host on itself is a single error (circular).
 TEST_F(Pb_Resolve, HostdependencyCircular) {
   State s = base_state();
@@ -899,7 +1053,9 @@ TEST_F(Pb_Resolve, ServiceNonExistingCheckCommand) {
 TEST_F(Pb_Resolve, AnomalydetectionValid) {
   State s = base_state();
   add_notifier_host(s, "host_1");
-  add_anomalydetection(s, "host_1", "ad_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
 
   state_helper hlp(&s);
   error_cnt err;
@@ -914,8 +1070,123 @@ TEST_F(Pb_Resolve, AnomalydetectionValid) {
 TEST_F(Pb_Resolve, AnomalydetectionNonExistingContactgroup) {
   State s = base_state();
   add_notifier_host(s, "host_1");
-  Anomalydetection* ad = add_anomalydetection(s, "host_1", "ad_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
   ad->mutable_contactgroups()->add_data("ghost_cg");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+/* The checks below each mirror a `return nullptr` of Engine's
+ * add_anomalydetection(): the applier turns that null into a throw which, on a
+ * first load, takes centengine down. They must be caught on the State. */
+
+// An anomaly detection whose dependent service does not exist is one error.
+TEST_F(Pb_Resolve, AnomalydetectionNonExistingDependentService) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  add_anomalydetection(s, "host_1", "ad_1", 42);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// An anomaly detection comes from the database: a null service id is an error.
+TEST_F(Pb_Resolve, AnomalydetectionNullServiceId) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_service_id(0);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// The internal id ties the anomaly detection to the database: it is mandatory.
+TEST_F(Pb_Resolve, AnomalydetectionNullInternalId) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_internal_id(0);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+/* An anomaly detection carrying a host id that is not the one of the host it
+ * names is an error. It is two of them: the dependent service is looked up with
+ * that same wrong host id, so it cannot be found either. */
+TEST_F(Pb_Resolve, AnomalydetectionHostIdMismatch) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_host_id(ad->host_id() + 41);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 2u);
+}
+
+// A null retry interval is a scheduling value Engine refuses.
+TEST_F(Pb_Resolve, AnomalydetectionNullRetryInterval) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  ad->set_retry_interval(0);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// Two anomaly detections sharing the same {host_id, service_id} is one error.
+TEST_F(Pb_Resolve, AnomalydetectionDuplicateId) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+  Anomalydetection* ad =
+      add_anomalydetection(s, "host_1", "ad_1", svc->service_id());
+  Anomalydetection* dup =
+      add_anomalydetection(s, "host_1", "ad_2", svc->service_id());
+  dup->set_service_id(ad->service_id());
 
   state_helper hlp(&s);
   error_cnt err;

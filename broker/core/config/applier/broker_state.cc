@@ -26,6 +26,8 @@
 #include "bbdo/bbdo.pb.h"
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/broker_downtime_callbacks.hh"
+#include "broker/core/config/applier/broker_notification_callbacks.hh"
+#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/pool.hh"
@@ -33,6 +35,9 @@
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
+#include "common/notifications/notification_manager.hh"
+
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::config::applier {
 
@@ -40,6 +45,12 @@ namespace com::centreon::broker::config::applier {
  * @brief Destructor of the state class.
  */
 broker_state::~broker_state() {
+  /* Unregister the notification sink so the engine stops referencing the
+   * dispatcher before it is destroyed. In the normal shutdown order the engine
+   * is already unloaded (deinit() unloads it before state::unload()), so this
+   * is defensive; instance_ptr() is null then. */
+  if (auto engine = multiplexing::engine::instance_ptr())
+    engine->set_notification_sink(nullptr);
   if (_watch_engine_conf_timer) {
     _watch_engine_conf_stopped.store(true);
     _watch_engine_conf_timer->cancel();
@@ -90,7 +101,41 @@ broker_state::~broker_state() {
     config::applier::state::instance().cache().set_active_downtimes(
         std::move(active));
   }
+  /* Hand the notification runtime states over to the global cache so the
+   * notification chain (number, timings, notified contacts) is persisted and can
+   * be re-injected on the next start. Same ordering constraint as downtimes:
+   * BEFORE unload() and while the cache is still alive. */
+  if (com::centreon::common::notifications::notification_manager::is_loaded()) {
+    std::vector<BrokerCache::NotificationState> states;
+    for (const auto& snap :
+         com::centreon::common::notifications::notification_manager::instance()
+             .snapshot_states()) {
+      BrokerCache::NotificationState ns;
+      ns.set_host_id(snap.host_id);
+      ns.set_service_id(snap.service_id);
+      ns.set_number(snap.number);
+      ns.set_current_id(snap.current_id);
+      ns.set_last(snap.last);
+      ns.set_next(snap.next);
+      ns.set_initial(snap.initial);
+      for (size_t i = 0; i < snap.events.size(); i++) {
+        if (!snap.events[i])
+          continue;
+        auto* e = ns.add_events();
+        e->set_category(static_cast<uint32_t>(i));
+        e->set_reason_type(static_cast<uint32_t>(snap.events[i]->type));
+        e->set_interval(
+            static_cast<uint32_t>(snap.events[i]->interval.count()));
+        for (const auto& c : snap.events[i]->notified_contacts)
+          e->add_notified_contacts(c);
+      }
+      states.push_back(std::move(ns));
+    }
+    config::applier::state::instance().cache().set_notification_states(
+        std::move(states));
+  }
   com::centreon::common::downtimes::downtime_manager::unload();
+  com::centreon::common::notifications::notification_manager::unload();
 }
 
 /**
@@ -101,6 +146,7 @@ broker_state::~broker_state() {
  */
 void broker_state::apply(const com::centreon::broker::config::state& s,
                          bool run_mux) {
+  auto logger = log_v2::instance().get(log_v2::CORE);
   /* Load the downtime_manager BEFORE state::apply(): the latter initializes
    * (and, in legacy mode, loads from disk) the global cache, and the cache
    * load re-injects the persisted active downtimes into the manager — so the
@@ -119,11 +165,27 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
      * that the gRPC ScheduleDowntime/DeleteDowntime endpoints are usable. It
      * goes to the CORE logger (enabled at info by default) rather than the
      * CONFIG logger (error by default) so it is reliably observable. */
-    com::centreon::common::log_v2::log_v2::instance()
-        .get(com::centreon::common::log_v2::log_v2::CORE)
-        ->info(
-            "notification_mode=broker: downtime management enabled, downtime "
-            "manager loaded");
+    logger->info(
+        "notification_mode=broker: downtime management enabled, downtime "
+        "manager loaded");
+
+    /* Broker owns the notification decision: inject the Broker backend into the
+     * notification library. The execution is dispatched to the pollers via
+     * pb_notification_execute. In engine mode the manager is never loaded here.
+     */
+    com::centreon::common::notifications::notification_manager::load(
+        std::make_unique<broker_notification_callbacks>());
+    logger->info(
+        "notification_mode=broker: notification decision enabled, "
+        "notification manager loaded");
+
+    /* Register the notification trigger as an event_sink on the multiplexing
+     * engine: it drives the notification_manager on each host/service status
+     * batch. */
+    _notification_dispatcher =
+        std::make_unique<broker_notification_dispatcher>();
+    multiplexing::engine::instance_ptr()->set_notification_sink(
+        _notification_dispatcher.get());
   }
 
   state::apply(s, run_mux);
@@ -166,8 +228,10 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
  * known yet; re-injected later from _process_engine_state after merge).
  */
 void broker_state::_on_barrier_released() {
-  if (_notification_mode == notification_mode_broker)
+  if (_notification_mode == notification_mode_broker) {
     cache().reinject_pending_downtimes();
+    cache().reinject_pending_notification_states();
+  }
 }
 
 /**
@@ -277,6 +341,89 @@ void broker_state::load_topology_cache() {
   _logger->info("Topology cache loaded: {} hints", cache.entries_size());
 }
 
+namespace {
+/**
+ * @brief The poller id a stored configuration file name carries.
+ *
+ * Only `<id>.prot` is a stored configuration. `new-<id>.prot` and
+ * `diff-<id>.prot` are work files of the push in progress and must not be read
+ * as the configuration of a poller.
+ *
+ * @param p The path of a file of the pollers configuration directory.
+ *
+ * @return The poller id, or 0 for anything that is not a stored configuration.
+ */
+uint64_t stored_poller_config_id(const std::filesystem::path& p) {
+  if (p.extension() != ".prot")
+    return 0;
+  uint64_t retval = 0;
+  return absl::SimpleAtoi(p.stem().string(), &retval) ? retval : 0;
+}
+}  // namespace
+
+/**
+ * @brief Read every poller configuration Broker stores, and index their hosts
+ * and services by poller.
+ *
+ * This is what gives a per-poller validation a global view: an object missing
+ * from the configuration under validation can then be reported as living on
+ * another poller instead of as undefined.
+ *
+ * The result is deliberately not tied to one poller, so that validating several
+ * pollers in a row parses the store once instead of once per poller. Which
+ * poller a given validation is about is told through `foreign_objects::self`,
+ * and that is what keeps its own objects out of the answers.
+ *
+ * The index mirrors the intra-poller one built by `state_helper::resolve`,
+ * hence services only: anomaly detections are not part of the by-name service
+ * index there either.
+ *
+ * @return The states read, and the index borrowing their strings. Both must
+ * outlive the validation that uses the index.
+ */
+broker_state::foreign_states broker_state::load_foreign_objects() const {
+  foreign_states retval;
+  if (pollers_config_dir().empty() ||
+      !std::filesystem::exists(pollers_config_dir()))
+    return retval;
+
+  std::error_code ec;
+  for (const auto& entry :
+       std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
+    uint64_t id = stored_poller_config_id(entry.path());
+    if (id == 0)
+      continue;
+
+    auto state = std::make_unique<engine::configuration::State>();
+    std::ifstream f(entry.path(), std::ios::binary);
+    if (!f || !state->ParseFromIstream(&f)) {
+      /* A configuration we cannot read only costs us the precision of the
+       * diagnostics about that poller, so it is not worth failing the whole
+       * validation. */
+      _logger->warn(
+          "Cannot read the stored configuration '{}' of poller {}: the "
+          "validation of the other pollers will not be able to report objects "
+          "living on it",
+          entry.path().string(), id);
+      continue;
+    }
+    for (const auto& h : state->hosts())
+      retval.objects.hosts.emplace(h.host_name(), id);
+    for (const auto& s : state->services())
+      retval.objects.services.emplace(
+          std::pair<std::string_view, std::string_view>(
+              s.host_name(), s.service_description()),
+          id);
+    /* Moving the unique_ptr does not move the message, so every view inserted
+     * above stays valid. */
+    retval.states.push_back(std::move(state));
+  }
+  if (ec)
+    _logger->warn("Cannot browse the pollers configuration directory '{}': {}",
+                  pollers_config_dir().string(), ec.message());
+  return retval;
+}
+
 /**
  * @brief Create the <ID>.prot file for a poller with the given configuration.
  * This file will be used by broker to fill the cache and prepare the storage
@@ -360,7 +507,8 @@ void broker_state::add_peer(uint64_t poller_id,
                             const std::string& broker_name,
                             common::PeerType peer_type,
                             bool extended_negotiation,
-                            const std::string& engine_conf) {
+                            const std::string& engine_conf,
+                            const std::string& timezone) {
   assert(poller_id && !broker_name.empty());
   {
     absl::WriterMutexLock lck(_connected_peers_m);
@@ -415,6 +563,7 @@ void broker_state::add_peer(uint64_t poller_id,
                                                true,
                                                false,
                                                0u};
+        _engine_peers[poller_id].timezone = timezone;
         if (is_relay() && extended_negotiation)
           _pending_config_requests[poller_id] = {poller_name,
                                                  effective_engine_conf};
@@ -512,6 +661,22 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
 bool broker_state::_is_engine_peer_connected(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(_connected_peers_m);
   return _engine_peers.contains(poller_id);
+}
+
+/**
+ * @brief Get the local timezone advertised by an Engine peer at negotiation
+ * time.
+ *
+ * @param poller_id The poller ID.
+ * @return The poller machine's timezone (IANA name), or an empty string when
+ * the poller is unknown or sent no timezone.
+ */
+std::string broker_state::poller_timezone(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto found = _engine_peers.find(poller_id);
+  if (found == _engine_peers.end())
+    return {};
+  return found->second.timezone;
 }
 
 /**
@@ -688,7 +853,8 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
                       .peer_type = common::ENGINE,
                       .available_conf = ep.available_conf,
                       .engine_conf = ep.engine_conf,
-                      .via_remote = ep.via_remote});
+                      .via_remote = ep.via_remote,
+                      .timezone = ep.timezone});
   }
   for (const auto& [_, up] : _unknown_peers) {
     retval.push_back({.poller_id = up.poller_id,
@@ -792,7 +958,16 @@ void broker_state::_check_last_engine_conf() {
   }
 
   std::error_code ec;
+  /* Read once for the whole batch: on a deploy-all, pollers_set holds every
+   * poller and re-reading the store for each of them would parse it as many
+   * times as it has entries. Each iteration only points `self` at the poller it
+   * validates. Nothing pending means nothing to validate, and this runs on a
+   * timer, so the store is not read at all in that case. */
+  foreign_states foreign;
+  if (!pollers_set.empty())
+    foreign = load_foreign_objects();
   for (uint32_t poller_id : pollers_set) {
+    foreign.objects.self = poller_id;
     _logger->debug(
         "Checking if there is a new Engine configuration for poller {}",
         poller_id);
@@ -838,10 +1013,16 @@ void broker_state::_check_last_engine_conf() {
         state->set_config_version(version);
         state->set_poller_id(poller_id);
         state_hlp.expand(err);
-        // We do not trust the pushed configuration: validate it before storing
-        // and delivering it. If it is invalid, refuse to push it (the throw is
-        // caught below, so the .prot is not written and no diff is prepared).
-        state_hlp.resolve(err, _logger);
+        /* We do not trust the pushed configuration: validate it before storing
+         * and delivering it. If it is invalid, refuse to push it (the throw is
+         * caught below, so the .prot is not written and no diff is prepared).
+         *
+         * Being the central, we can do better than a poller alone: the
+         * configurations stored for the other pollers tell whether an object
+         * this one references is genuinely undefined or merely lives elsewhere.
+         * `foreign` is loaded above the loop and owns the strings its index
+         * borrows, so it outlives every resolve of the batch. */
+        state_hlp.resolve(err, _logger, foreign.objects);
         if (err.config_errors)
           throw com::centreon::exceptions::msg_fmt(
               "configuration for poller {} (version '{}') has {} error(s); "
@@ -897,10 +1078,10 @@ void broker_state::_check_last_engine_conf() {
       } catch (const std::exception& e) {
         _logger->error("rejecting invalid configuration for poller {}: {}",
                        poller_id, e.what());
-        /* The pushed configuration is structurally invalid (parse/expand/resolve
-         * error): it will never become valid on its own, so consume its .lck
-         * unconditionally instead of retrying it forever. PHP creates a fresh
-         * .lck when it pushes a corrected configuration. */
+        /* The pushed configuration is structurally invalid
+         * (parse/expand/resolve error): it will never become valid on its own,
+         * so consume its .lck unconditionally instead of retrying it forever.
+         * PHP creates a fresh .lck when it pushes a corrected configuration. */
         std::filesystem::path lck_file =
             cache_config_dir() / fmt::format("{}.lck", poller_id);
         std::error_code lck_ec;
@@ -1194,6 +1375,43 @@ broker_state::pop_pending_diff_state_acks() {
   absl::WriterMutexLock lck(_connected_peers_m);
   std::vector<std::shared_ptr<io::data>> result;
   std::swap(result, _pending_diff_state_acks);
+  return result;
+}
+
+/**
+ * @brief Queue a pb_notification_execute for delivery to the poller supervising
+ * the resource (notification_mode=broker). Called from the notification
+ * dispatcher on the multiplexing thread; the event is drained later by that
+ * poller's ENGINE-connected stream in read().
+ *
+ * @param poller_id The id of the poller that must run the notification.
+ * @param evt The pb_notification_execute event to deliver.
+ */
+void broker_state::push_pending_notification_execute(
+    uint64_t poller_id,
+    std::shared_ptr<io::data> evt) {
+  absl::WriterMutexLock lck(&_pending_notif_m);
+  _pending_notification_executes[poller_id].push_back(std::move(evt));
+}
+
+/**
+ * @brief Drain and return the notification executes queued for a poller
+ * (notification_mode=broker). Called from that poller's ENGINE-connected
+ * stream read().
+ *
+ * @param poller_id The id of the poller whose queue must be drained.
+ *
+ * @return The queued events in arrival order, or an empty vector if the poller
+ * has nothing pending.
+ */
+std::vector<std::shared_ptr<io::data>>
+broker_state::pop_pending_notification_executes(uint64_t poller_id) {
+  absl::WriterMutexLock lck(&_pending_notif_m);
+  auto it = _pending_notification_executes.find(poller_id);
+  if (it == _pending_notification_executes.end())
+    return {};
+  auto result = std::move(it->second);
+  _pending_notification_executes.erase(it);
   return result;
 }
 

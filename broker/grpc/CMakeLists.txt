@@ -104,7 +104,7 @@ add_custom_command(
 if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc ${TEST_DIR}/stream_test.cc
-      ${TEST_DIR}/factory_test.cc
+      ${TEST_DIR}/factory_test.cc ${TEST_DIR}/bridge_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${GRPC}

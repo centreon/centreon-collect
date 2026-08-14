@@ -41,8 +41,8 @@ class cbmod_test : public com::centreon::broker::neb::cbmod {
     if (record)
       written.push_back(d);
   }
-  uint64_t poller_id() const { return 1; }
-  const std::string& poller_name() const { return _poller_name; }
+  uint64_t poller_id() const override { return 1; }
+  const std::string& poller_name() const override { return _poller_name; }
 };
 }  // namespace com::centreon::broker::neb
 

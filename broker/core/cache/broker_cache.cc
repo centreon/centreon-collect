@@ -30,7 +30,10 @@
 #include "com/centreon/common/pool.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
+#include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
+#include "common/engine_conf/serviceescalation_helper.hh"
+#include "common/notifications/notification_manager.hh"
 #include "common/timeperiods/timezone.hh"
 
 namespace com::centreon::broker::cache {
@@ -46,6 +49,130 @@ struct broker_cache::periodic_save {
   explicit periodic_save(broker_cache* c)
       : cache{c}, timer{com::centreon::common::pool::io_context()} {}
 };
+
+namespace {
+namespace notifications = com::centreon::common::notifications;
+
+/* The three library flapping reasons a single Engine "flapping" option maps to:
+ * the proto keeps one flag, the notification library distinguishes
+ * start/stop/disabled. */
+constexpr uint32_t all_flapping_flags = notifications::flappingstart |
+                                        notifications::flappingstop |
+                                        notifications::flappingdisabled;
+
+/**
+ * @brief Convert an Engine ActionServiceOn option bitmask into the
+ * notification_flag bitmask the notification library reasons on.
+ *
+ * The two encodings differ (e.g. critical is 1<<3 in the proto but 1<<5 in the
+ * library) and the proto keeps host and service states on the same bits, so a
+ * proto value must never be handed to the library as-is. This is the single
+ * place the service option mapping lives; every cache insertion routes through
+ * it so no site can forget the conversion.
+ *
+ * @param opts A raw ActionServiceOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t service_options_to_flags(uint32_t opts) {
+  namespace ec = com::centreon::engine::configuration;
+  return (opts & ec::action_svc_ok ? notifications::ok : notifications::none) |
+         (opts & ec::action_svc_warning ? notifications::warning
+                                        : notifications::none) |
+         (opts & ec::action_svc_unknown ? notifications::unknown
+                                        : notifications::none) |
+         (opts & ec::action_svc_critical ? notifications::critical
+                                         : notifications::none) |
+         (opts & ec::action_svc_flapping ? all_flapping_flags
+                                         : notifications::none) |
+         (opts & ec::action_svc_downtime ? notifications::downtime
+                                         : notifications::none);
+}
+
+/**
+ * @brief ActionHostOn counterpart of service_options_to_flags().
+ *
+ * @param opts A raw ActionHostOn bitmask.
+ * @return The equivalent notification_flag bitmask.
+ */
+uint32_t host_options_to_flags(uint32_t opts) {
+  namespace ec = com::centreon::engine::configuration;
+  return (opts & ec::action_hst_up ? notifications::up : notifications::none) |
+         (opts & ec::action_hst_down ? notifications::down
+                                     : notifications::none) |
+         (opts & ec::action_hst_unreachable ? notifications::unreachable
+                                            : notifications::none) |
+         (opts & ec::action_hst_flapping ? all_flapping_flags
+                                         : notifications::none) |
+         (opts & ec::action_hst_downtime ? notifications::downtime
+                                         : notifications::none);
+}
+
+/**
+ * @brief Copy-on-write handle on a cached entry, to be used with _mutex held
+ * for writing.
+ *
+ * Cached objects are handed out as `shared_ptr` by the getters and readers keep
+ * using them after having released the mutex, so mutating a pointee that is
+ * still seen elsewhere would be a data race. But readers can only take a
+ * reference under the mutex: while the write lock is held, nobody can acquire a
+ * new one, so a `use_count()` of 1 means the container is the sole owner and
+ * the entry can safely be modified in place. A concurrent release by a reader
+ * can only decrease the count, which makes the test conservative (an
+ * unnecessary clone), never wrong.
+ *
+ * The in-place path skips `index.replace()`. This is only valid as long as the
+ * modified fields take no part in any index key of the container: today the
+ * host keys are host_id / instance_id / severity_id / name and the service keys
+ * are (host_id, service_id) / severity_id / (host_name, description), none of
+ * which is written by a status or an adaptive event. Adding an index on a
+ * status field would require revisiting every mutable_entry user.
+ */
+template <typename T>
+class mutable_entry {
+  /* Set only when the entry had to be cloned; drives commit(). */
+  std::shared_ptr<T> _clone;
+  T* _entry;
+
+ public:
+  /**
+   * @brief Constructor.
+   *
+   * @param stored The entry as stored in the container. It must be passed by
+   * reference straight from the container: copying it into a local variable
+   * first would bump the use count and always force the clone path.
+   */
+  explicit mutable_entry(const std::shared_ptr<T>& stored)
+      : _entry{stored.get()} {
+    if (stored.use_count() != 1) {
+      _clone = std::make_shared<T>(*stored);
+      _entry = _clone.get();
+    }
+  }
+
+  /**
+   * @brief Access the object to modify, be it the cached one or the clone.
+   *
+   * @return A pointer to the object to modify.
+   */
+  T* operator->() const { return _entry; }
+
+  /**
+   * @brief Publish the modifications to the container.
+   *
+   * A no-op when the entry was modified in place, since the container already
+   * holds the modified object.
+   *
+   * @param index The index @a it belongs to.
+   * @param it An iterator to the entry this handle was built from.
+   */
+  template <typename Index, typename Iterator>
+  void commit(Index& index, Iterator it) {
+    if (_clone)
+      index.replace(it, _clone);
+  }
+};
+
+}  // namespace
 
 /**
  * @brief Constructor
@@ -246,6 +373,20 @@ void broker_cache::merge(
     _resolve_timeperiods();
   }
 
+  /* Work on notification contacts and contactgroups. Reference-counted per
+   * poller like the timeperiods above. A full state rebuilds this poller's
+   * contribution: drop it first, then re-insert, so contacts/contactgroups
+   * removed from the poller's configuration do not linger. Names are stored
+   * as-is; contactgroups are expanded to contacts lazily at notification time
+   * (see contactgroup_members()), so no resolution is done here. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    _remove_poller_from_contacts(state.poller_id());
+    for (const engine::configuration::Contact& c : state.contacts())
+      _insert_contact(c, state.poller_id());
+    for (const engine::configuration::Contactgroup& cg : state.contactgroups())
+      _insert_contactgroup(cg, state.poller_id());
+  }
+
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
     for (const engine::configuration::Severity& sev : state.severities()) {
@@ -275,6 +416,9 @@ void broker_cache::merge(
         index.replace(it, h);
       if (section_enabled(CACHE_OTEL))
         _set_otel_service_from_conf(host);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(host.host_id(), 0, host.contacts(),
+                                  host.contactgroups(), state.poller_id());
     }
   }
 
@@ -348,6 +492,10 @@ void broker_cache::merge(
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted)
         index_svc.replace(it, s);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(svc.host_id(), svc.service_id(),
+                                  svc.contacts(), svc.contactgroups(),
+                                  state.poller_id());
     }
 
     /* Work on anomaly detections */
@@ -462,6 +610,14 @@ void broker_cache::merge(
     for (const engine::configuration::Servicedependency& dep :
          state.servicedependencies())
       _insert_service_notif_dep(dep, state.poller_id());
+    _host_escalations.get<by_instance>().erase(state.poller_id());
+    for (const engine::configuration::Hostescalation& esc :
+         state.hostescalations())
+      _insert_host_escalation(esc, state.poller_id());
+    _service_escalations.get<by_instance>().erase(state.poller_id());
+    for (const engine::configuration::Serviceescalation& esc :
+         state.serviceescalations())
+      _insert_service_escalation(esc, state.poller_id());
   }
 }
 
@@ -516,8 +672,9 @@ void broker_cache::_insert_service_notif_dep(
     return;
 
   const auto& by_name_idx = _services.get<by_name>();
-  auto dependent = by_name_idx.find(std::make_pair(
-      dep.dependent_hosts().data(0), dep.dependent_service_description().data(0)));
+  auto dependent = by_name_idx.find(
+      std::make_pair(dep.dependent_hosts().data(0),
+                     dep.dependent_service_description().data(0)));
   auto master = by_name_idx.find(
       std::make_pair(dep.hosts().data(0), dep.service_description().data(0)));
   if (dependent == by_name_idx.end() || master == by_name_idx.end()) {
@@ -534,6 +691,224 @@ void broker_cache::_insert_service_notif_dep(
       (*master)->obj().host_id(), (*master)->obj().service_id(), poller_id,
       dep.dependency_period(), dep.inherits_parent(),
       dep.notification_failure_options(), servicedependency_key(dep)});
+}
+
+/**
+ * @brief Resolve a host escalation to a host id and store it.
+ *
+ * The escalation is post-expand: it references exactly one host by name,
+ * resolved to its id through the by_name index. The config escalation_options
+ * bitmask is converted to the notification_flag bitmask used at evaluation time
+ * (iso hostescalation::matches). A host name that cannot be resolved (validated
+ * intra-poller beforehand) is logged and skipped.
+ *
+ * @param esc A post-expand Hostescalation.
+ * @param poller_id The poller owning this escalation.
+ */
+void broker_cache::_insert_host_escalation(
+    const engine::configuration::Hostescalation& esc,
+    uint64_t poller_id) {
+  const auto& by_name_idx = _hosts.get<by_name>();
+  auto host = by_name_idx.find(esc.hosts().data(0));
+  if (host == by_name_idx.end()) {
+    _logger->warn(
+        "broker_cache: cannot store escalation for host '{}' on poller {}: "
+        "host not found in cache",
+        esc.hosts().data(0), poller_id);
+    return;
+  }
+  const uint32_t escalate_on =
+      com::centreon::engine::configuration::host_escalation_options_to_flags(
+          esc.escalation_options());
+  host_escalation e;
+  e.host_id = (*host)->obj().host_id();
+  e.poller_id = poller_id;
+  e.first_notification = esc.first_notification();
+  e.last_notification = esc.last_notification();
+  e.notification_interval = esc.notification_interval();
+  e.escalation_period = esc.escalation_period();
+  e.escalate_on = escalate_on;
+  e.contactgroups.assign(esc.contactgroups().data().begin(),
+                         esc.contactgroups().data().end());
+  e.key = hostescalation_key(esc);
+  _host_escalations.insert(std::move(e));
+}
+
+/**
+ * @brief Resolve a service escalation to a {host id, service id} pair and store
+ * it.
+ *
+ * Same contract as _insert_host_escalation, but the escalation references a
+ * single service by its {host_name, service_description} pair (iso
+ * serviceescalation::matches for the escalation_options conversion).
+ *
+ * @param esc A post-expand Serviceescalation.
+ * @param poller_id The poller owning this escalation.
+ */
+void broker_cache::_insert_service_escalation(
+    const engine::configuration::Serviceescalation& esc,
+    uint64_t poller_id) {
+  const auto& by_name_idx = _services.get<by_name>();
+  auto svc = by_name_idx.find(
+      std::make_pair(esc.hosts().data(0), esc.service_description().data(0)));
+  if (svc == by_name_idx.end()) {
+    _logger->warn(
+        "broker_cache: cannot store escalation for service '{}/{}' on poller "
+        "{}: service not found in cache",
+        esc.hosts().data(0), esc.service_description().data(0), poller_id);
+    return;
+  }
+  const uint32_t escalate_on =
+      com::centreon::engine::configuration::service_escalation_options_to_flags(
+          esc.escalation_options());
+  service_escalation e;
+  e.host_id = (*svc)->obj().host_id();
+  e.service_id = (*svc)->obj().service_id();
+  e.poller_id = poller_id;
+  e.first_notification = esc.first_notification();
+  e.last_notification = esc.last_notification();
+  e.notification_interval = esc.notification_interval();
+  e.escalation_period = esc.escalation_period();
+  e.escalate_on = escalate_on;
+  e.contactgroups.assign(esc.contactgroups().data().begin(),
+                         esc.contactgroups().data().end());
+  e.key = serviceescalation_key(esc);
+  _service_escalations.insert(std::move(e));
+}
+
+/**
+ * @brief Store (or replace) a notification contact and register @p poller_id as
+ * one of its referencing pollers.
+ *
+ * The contact is stored by name; only the fields the notification decision
+ * needs are kept. The Engine option bitmasks are converted to the
+ * notification_flag bitmask should_notify_contact reasons on through the shared
+ * {host,service}_options_to_flags helpers (the two encodings differ, so the raw
+ * proto value must never be stored as-is). Resolution of the contactgroups the
+ * contact belongs to is not done here (it happens at notification time).
+ *
+ * @param c A configuration Contact (post-expand).
+ * @param poller_id The poller referencing this contact.
+ */
+void broker_cache::_insert_contact(const engine::configuration::Contact& c,
+                                   uint64_t poller_id) {
+  const std::string& name = c.contact_name();
+  auto& value = _contacts[name];
+  contact& entry = value.first;
+  entry.name = name;
+  entry.host_notifications_enabled = c.host_notifications_enabled();
+  entry.service_notifications_enabled = c.service_notifications_enabled();
+  entry.host_notification_period = c.host_notification_period();
+  entry.service_notification_period = c.service_notification_period();
+  entry.host_notification_options =
+      host_options_to_flags(c.host_notification_options());
+  entry.service_notification_options =
+      service_options_to_flags(c.service_notification_options());
+  entry.timezone = c.timezone();
+  value.second.insert(poller_id);
+}
+
+/**
+ * @brief Store (or replace) a notification contactgroup and register
+ * @p poller_id as one of its referencing pollers.
+ *
+ * The Engine flattens nested contactgroups into `members` before the
+ * configuration reaches Broker, so `members` holds only concrete contact names.
+ *
+ * @param cg A configuration Contactgroup (post-expand).
+ * @param poller_id The poller referencing this contactgroup.
+ */
+void broker_cache::_insert_contactgroup(
+    const engine::configuration::Contactgroup& cg,
+    uint64_t poller_id) {
+  const std::string& name = cg.contactgroup_name();
+  auto& value = _contactgroups[name];
+  contactgroup& entry = value.first;
+  entry.name = name;
+  entry.members.clear();
+  for (const std::string& member : cg.members().data())
+    entry.members.insert(member);
+  value.second.insert(poller_id);
+}
+
+/**
+ * @brief Store (or erase) the direct contacts/contactgroups of a resource.
+ *
+ * The names are resolved to non-owning pointers into _contacts / _contactgroups
+ * (which own the objects once); those maps are node_hash_maps, so the pointers
+ * stay valid across later insertions. Feeding is ordered (contacts and
+ * contactgroups are inserted before the hosts/services in both merge() and
+ * apply()), so the referenced entries already exist here; a name that is not
+ * found is skipped. The two lists are kept separate (as done by Engine). When
+ * the resource references neither a contact nor a contactgroup the entry is
+ * erased rather than stored empty, so a modification clearing the contacts
+ * drops the stale entry.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ * @param contacts The resource's direct contact names.
+ * @param contactgroups The resource's contactgroup names.
+ * @param poller_id The poller owning the resource (for per-poller purge).
+ */
+void broker_cache::_insert_resource_contacts(
+    uint64_t host_id,
+    uint64_t service_id,
+    const engine::configuration::StringSet& contacts,
+    const engine::configuration::StringSet& contactgroups,
+    uint64_t poller_id) {
+  auto key = std::make_pair(host_id, service_id);
+  if (contacts.data().empty() && contactgroups.data().empty()) {
+    _resource_contacts.erase(key);
+    return;
+  }
+  resource_contacts& rc = _resource_contacts[key];
+  rc.contacts.clear();
+  rc.contactgroups.clear();
+  rc.poller_id = poller_id;
+  for (const std::string& c : contacts.data()) {
+    auto it = _contacts.find(c);
+    if (it != _contacts.end())
+      rc.contacts.push_back(&it->second.first);
+  }
+  for (const std::string& g : contactgroups.data()) {
+    auto it = _contactgroups.find(g);
+    if (it != _contactgroups.end())
+      rc.contactgroups.push_back(&it->second.first);
+  }
+}
+
+/**
+ * @brief Drop @p poller_id from every contact and contactgroup reference set
+ * and from the per-resource contacts, erasing the entries no poller references
+ * anymore.
+ *
+ * Used both on a full re-merge (to rebuild the poller's contribution from
+ * scratch) and on poller removal.
+ *
+ * @param poller_id The poller to drop.
+ */
+void broker_cache::_remove_poller_from_contacts(uint64_t poller_id) {
+  std::vector<std::string> orphaned;
+  for (auto& [name, value] : _contacts) {
+    value.second.erase(poller_id);
+    if (value.second.empty())
+      orphaned.push_back(name);
+  }
+  for (const std::string& name : orphaned)
+    _contacts.erase(name);
+
+  orphaned.clear();
+  for (auto& [name, value] : _contactgroups) {
+    value.second.erase(poller_id);
+    if (value.second.empty())
+      orphaned.push_back(name);
+  }
+  for (const std::string& name : orphaned)
+    _contactgroups.erase(name);
+
+  absl::erase_if(_resource_contacts, [poller_id](const auto& entry) {
+    return entry.second.poller_id == poller_id;
+  });
 }
 
 /**
@@ -615,6 +990,39 @@ void broker_cache::apply(
         }
       }
       _resolve_timeperiods();
+    }
+  }
+
+  /* Work on notification contacts and contactgroups. Same reference-counted
+   * per-poller model as the timeperiods above; a DiffContact/DiffContactgroup
+   * carries added, modified and removed (by name) entries. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    const engine::configuration::DiffContact& dc = diff.contacts();
+    for (const engine::configuration::Contact& c : dc.added())
+      _insert_contact(c, diff.poller_id());
+    for (const engine::configuration::Contact& c : dc.modified())
+      _insert_contact(c, diff.poller_id());
+    for (const std::string& name : dc.removed()) {
+      auto it = _contacts.find(name);
+      if (it != _contacts.end()) {
+        it->second.second.erase(diff.poller_id());
+        if (it->second.second.empty())
+          _contacts.erase(it);
+      }
+    }
+
+    const engine::configuration::DiffContactgroup& dcg = diff.contactgroups();
+    for (const engine::configuration::Contactgroup& cg : dcg.added())
+      _insert_contactgroup(cg, diff.poller_id());
+    for (const engine::configuration::Contactgroup& cg : dcg.modified())
+      _insert_contactgroup(cg, diff.poller_id());
+    for (const std::string& name : dcg.removed()) {
+      auto it = _contactgroups.find(name);
+      if (it != _contactgroups.end()) {
+        it->second.second.erase(diff.poller_id());
+        if (it->second.second.empty())
+          _contactgroups.erase(it);
+      }
     }
   }
 
@@ -736,6 +1144,9 @@ void broker_cache::apply(
         hosts_by_id.replace(it, h);
       if (section_enabled(CACHE_OTEL))
         _set_otel_service_from_conf(host);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(host.host_id(), 0, host.contacts(),
+                                  host.contactgroups(), diff.poller_id());
     }
 
     /* Modifying hosts */
@@ -747,6 +1158,9 @@ void broker_cache::apply(
         hosts_by_id.replace(it, h);
       if (section_enabled(CACHE_OTEL))
         _set_otel_service_from_conf(host);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(host.host_id(), 0, host.contacts(),
+                                  host.contactgroups(), diff.poller_id());
     }
   }
 
@@ -907,6 +1321,10 @@ void broker_cache::apply(
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(svc.host_id(), svc.service_id(),
+                                  svc.contacts(), svc.contactgroups(),
+                                  diff.poller_id());
     }
 
     /* Modifying services */
@@ -917,6 +1335,10 @@ void broker_cache::apply(
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _insert_resource_contacts(svc.host_id(), svc.service_id(),
+                                  svc.contacts(), svc.contactgroups(),
+                                  diff.poller_id());
     }
 
     /* Removing services */
@@ -930,6 +1352,9 @@ void broker_cache::apply(
           removed_service_severity_ids.insert(severity_id);
         s_index.erase(svc_it);
       }
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _resource_contacts.erase(
+            std::make_pair(key.host_id(), key.service_id()));
     }
 
     /* Work on anomaly detections */
@@ -1118,6 +1543,8 @@ void broker_cache::apply(
 
         hosts_by_id.erase(host_it);
       }
+      if (section_enabled(CACHE_NOTIFICATIONS))
+        _resource_contacts.erase(std::make_pair(host_id, 0));
     }
 
     auto& index_by_severity = _hosts.get<by_severity>();
@@ -1233,6 +1660,55 @@ void broker_cache::apply(
       for (const engine::configuration::Servicedependency& dep : dsd.modified())
         _insert_service_notif_dep(dep, diff.poller_id());
     }
+
+    /* Notification escalations (incremental), same key-based add/remove/replace
+     * scheme as the dependencies above. */
+    const engine::configuration::DiffHostescalation& dhe =
+        diff.hostescalations();
+    if (dhe.added_size() || dhe.modified_size() || dhe.removed_size()) {
+      absl::flat_hash_set<size_t> to_erase;
+      for (uint64_t k : dhe.removed())
+        to_erase.insert(k);
+      for (const engine::configuration::Hostescalation& esc : dhe.modified())
+        to_erase.insert(hostescalation_key(esc));
+      if (!to_erase.empty()) {
+        auto& by_inst = _host_escalations.get<by_instance>();
+        auto range = by_inst.equal_range(diff.poller_id());
+        for (auto it = range.first; it != range.second;) {
+          if (to_erase.contains(it->key))
+            it = by_inst.erase(it);
+          else
+            ++it;
+        }
+      }
+      for (const engine::configuration::Hostescalation& esc : dhe.added())
+        _insert_host_escalation(esc, diff.poller_id());
+      for (const engine::configuration::Hostescalation& esc : dhe.modified())
+        _insert_host_escalation(esc, diff.poller_id());
+    }
+    const engine::configuration::DiffServiceescalation& dse =
+        diff.serviceescalations();
+    if (dse.added_size() || dse.modified_size() || dse.removed_size()) {
+      absl::flat_hash_set<size_t> to_erase;
+      for (uint64_t k : dse.removed())
+        to_erase.insert(k);
+      for (const engine::configuration::Serviceescalation& esc : dse.modified())
+        to_erase.insert(serviceescalation_key(esc));
+      if (!to_erase.empty()) {
+        auto& by_inst = _service_escalations.get<by_instance>();
+        auto range = by_inst.equal_range(diff.poller_id());
+        for (auto it = range.first; it != range.second;) {
+          if (to_erase.contains(it->key))
+            it = by_inst.erase(it);
+          else
+            ++it;
+        }
+      }
+      for (const engine::configuration::Serviceescalation& esc : dse.added())
+        _insert_service_escalation(esc, diff.poller_id());
+      for (const engine::configuration::Serviceescalation& esc : dse.modified())
+        _insert_service_escalation(esc, diff.poller_id());
+    }
   }
 }
 
@@ -1323,6 +1799,13 @@ void broker_cache::_fill_host(Host* obj,
     t->set_id(tag.first());
     t->set_type(static_cast<TagType>(tag.second()));
   }
+  /* The neb `notify` flag is the notifications-enabled switch the notification
+   * decision reads (get_config). It is a runtime field an adaptive event may
+   * later toggle, but it must be seeded from the configured value here:
+   * otherwise a merge()/apply() that rebuilds this object drops it to false
+   * and, in notification_mode=broker, the resource would look
+   * notification-disabled. */
+  obj->set_notify(cfg.notifications_enabled());
   obj->set_instance_id(pid);
 }
 
@@ -1389,6 +1872,9 @@ void broker_cache::_fill_service_common(Service* obj, const ConfigType& cfg) {
     t->set_id(tag.first());
     t->set_type(static_cast<TagType>(tag.second()));
   }
+  /* Seed the notifications-enabled switch read by the notification decision
+   * (get_config); see the same call in _fill_host for the rationale. */
+  obj->set_notify(cfg.notifications_enabled());
   obj->set_description(cfg.service_description());
 }
 
@@ -1501,6 +1987,11 @@ void broker_cache::remove_instance(uint64_t instance_id) {
 
     _host_notif_deps.get<by_instance>().erase(instance_id);
     _service_notif_deps.get<by_instance>().erase(instance_id);
+    _host_escalations.get<by_instance>().erase(instance_id);
+    _service_escalations.get<by_instance>().erase(instance_id);
+
+    /* Contacts/contactgroups are reference-counted per poller too. */
+    _remove_poller_from_contacts(instance_id);
   }
 
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
@@ -1955,10 +2446,10 @@ void broker_cache::update_host(
     auto& index = _hosts.get<by_id>();
     auto found = index.find(host_id);
     if (found != index.end()) {
-      /* The cached host is shared with readers that no longer hold the mutex:
-       * clone it, change the clone, then swap. */
-      auto h = std::make_shared<neb::pb_host>(*found->get());
-      auto& hst = h->mut_obj();
+      /* Modified in place when the cache is the sole owner of the host,
+       * otherwise cloned then swapped. */
+      mutable_entry<neb::pb_host> entry{*found};
+      auto& hst = entry->mut_obj();
       hst.set_checked(hs.checked());
       hst.set_check_type(static_cast<Host_CheckType>(hs.check_type()));
       hst.set_state(static_cast<Host_State>(hs.state()));
@@ -1989,7 +2480,7 @@ void broker_cache::update_host(
        * overwrite it. */
       if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
         hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
-      index.replace(found, h);
+      entry.commit(index, found);
       updated = true;
 
       /* Acknowledgement event: decide under the lock, publish after release. */
@@ -2035,10 +2526,10 @@ void broker_cache::update_host(
   auto& index = _hosts.get<by_id>();
   auto found = index.find(ah.host_id());
   if (found != index.end()) {
-    /* The cached host is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto hp = std::make_shared<neb::pb_host>(*found->get());
-    auto& h = hp->mut_obj();
+    /* Modified in place when the cache is the sole owner of the host, otherwise
+     * cloned then swapped. */
+    mutable_entry<neb::pb_host> entry{*found};
+    auto& h = entry->mut_obj();
     SPDLOG_LOGGER_DEBUG(_logger,
                         "Updating adaptive host for host '{}' in Broker cache.",
                         ah.host_id());
@@ -2072,7 +2563,7 @@ void broker_cache::update_host(
       h.set_check_period(ah.check_period());
     if (ah.has_notification_period())
       h.set_notification_period(ah.notification_period());
-    index.replace(found, hp);
+    entry.commit(index, found);
   } else
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -2097,8 +2588,10 @@ void broker_cache::update_host(
     auto& index = _hosts.get<by_id>();
     auto found = index.find(hs.host_id());
     if (found != index.end()) {
-      auto h = std::make_shared<neb::pb_host>(*found->get());
-      auto& hst = h->mut_obj();
+      /* Modified in place when the cache is the sole owner of the host,
+       * otherwise cloned then swapped. */
+      mutable_entry<neb::pb_host> entry{*found};
+      auto& hst = entry->mut_obj();
       SPDLOG_LOGGER_DEBUG(
           _logger,
           "Updating adaptive host status for host '{}' in Broker cache.",
@@ -2109,12 +2602,14 @@ void broker_cache::update_host(
         hst.set_acknowledgement_type(hs.acknowledgement_type());
       if (hs.has_notification_number())
         hst.set_notification_number(hs.notification_number());
+      if (hs.has_flapping())
+        hst.set_flapping(hs.flapping());
 
       /* Acknowledgement event: decide under the lock, publish after release. */
       ack_to_close = _take_expired_acknowledgement(
           hs.host_id(), 0u, hst.acknowledgement_type(),
           static_cast<uint16_t>(hst.state()));
-      index.replace(found, h);
+      entry.commit(index, found);
     } else {
       SPDLOG_LOGGER_WARN(
           _logger,
@@ -2197,10 +2692,10 @@ void broker_cache::update_service(
       return;
     }
 
-    /* The cached service is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto s = std::make_shared<neb::pb_service>(*it->get());
-    auto& svc = s->mut_obj();
+    /* Modified in place when the cache is the sole owner of the service,
+     * otherwise cloned then swapped. */
+    mutable_entry<neb::pb_service> entry{*it};
+    auto& svc = entry->mut_obj();
 
     svc.set_checked(obj.checked());
     svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
@@ -2233,7 +2728,7 @@ void broker_cache::update_service(
      * Engine must not overwrite it. */
     if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
       svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-    index.replace(it, s);
+    entry.commit(index, it);
 
     /* Acknowledgement event: decide under the lock, publish after release. */
     ack_to_close = _take_expired_acknowledgement(
@@ -2359,10 +2854,10 @@ void broker_cache::update_service(
   auto& index = _services.get<by_id>();
   auto it = index.find(std::make_pair(as.host_id(), as.service_id()));
   if (it != _services.end()) {
-    /* The cached service is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto sp = std::make_shared<neb::pb_service>(*it->get());
-    auto& s = sp->mut_obj();
+    /* Modified in place when the cache is the sole owner of the service,
+     * otherwise cloned then swapped. */
+    mutable_entry<neb::pb_service> entry{*it};
+    auto& s = entry->mut_obj();
     if (as.has_notify())
       s.set_notify(as.notify());
     if (as.has_active_checks())
@@ -2393,7 +2888,7 @@ void broker_cache::update_service(
       s.set_check_period(as.check_period());
     if (as.has_notification_period())
       s.set_notification_period(as.notification_period());
-    index.replace(it, sp);
+    entry.commit(index, it);
   } else {
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -2433,17 +2928,19 @@ void broker_cache::update_service(
       return;
     }
 
-    /* The cached service is shared with readers that no longer hold the mutex:
-     * clone it, change the clone, then swap. */
-    auto s = std::make_shared<neb::pb_service>(*it->get());
-    auto& svc = s->mut_obj();
+    /* Modified in place when the cache is the sole owner of the service,
+     * otherwise cloned then swapped. */
+    mutable_entry<neb::pb_service> entry{*it};
+    auto& svc = entry->mut_obj();
     if (obj.has_acknowledgement_type())
       svc.set_acknowledgement_type(obj.acknowledgement_type());
     if (obj.has_scheduled_downtime_depth())
       svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
     if (obj.has_notification_number())
       svc.set_notification_number(obj.notification_number());
-    index.replace(it, s);
+    if (obj.has_flapping())
+      svc.set_flapping(obj.flapping());
+    entry.commit(index, it);
 
     /* Acknowledgement event: decide under the lock, publish after release. */
     ack_to_close = _take_expired_acknowledgement(
@@ -2959,6 +3456,339 @@ std::vector<service_notif_dep> broker_cache::service_notif_dependencies(
 }
 
 /**
+ * @brief Look up a cached notification contact by name.
+ *
+ * @param name The contact name.
+ *
+ * @return The cached contact, or std::nullopt when no contact of that name is
+ * known to the cache.
+ */
+std::optional<broker_cache::contact> broker_cache::contact_config(
+    const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _contacts.find(name);
+  if (it == _contacts.end())
+    return std::nullopt;
+  return it->second.first;
+}
+
+/**
+ * @brief Expand a contactgroup to the names of its member contacts.
+ *
+ * This is the contactgroup->contacts resolution done at notification time: the
+ * group members are read straight from the cache instead of being flattened
+ * onto the resources or contacts at configuration time.
+ *
+ * @param name The contactgroup name.
+ *
+ * @return The member contact names; empty when the group is unknown or has no
+ * member.
+ */
+std::vector<std::string> broker_cache::contactgroup_members(
+    const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::vector<std::string> result;
+  auto it = _contactgroups.find(name);
+  if (it == _contactgroups.end())
+    return result;
+  const auto& members = it->second.first.members;
+  result.reserve(members.size());
+  for (const std::string& member : members)
+    result.push_back(member);
+  return result;
+}
+
+/**
+ * @brief Resolve the notification contacts of a resource.
+ *
+ * Returns the union of the resource's direct contacts and the members of each
+ * of its contactgroups, deduplicated. This is the query-time
+ * contactgroup->contacts expansion (iso Engine): the resource holds non-owning
+ * pointers to the contact and contactgroup objects, read directly here (no map
+ * lookup). Per-contact runtime filtering (should_notify_contact) is left to the
+ * caller.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ *
+ * @return The set of contact names; empty when the resource is unknown or
+ * references no contact.
+ */
+absl::flat_hash_set<std::string> broker_cache::notification_contact_names(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _resource_contacts.find(std::make_pair(host_id, service_id));
+  if (it == _resource_contacts.end())
+    return {};
+
+  absl::flat_hash_set<std::string> names;
+  for (const contact* c : it->second.contacts)
+    names.insert(c->name);
+  for (const contactgroup* group : it->second.contactgroups)
+    names.insert(group->members.begin(), group->members.end());
+  return names;
+}
+
+/**
+ * @brief Evaluate the notification dependencies of a resource.
+ *
+ * Broker counterpart of Engine's host/service::authorized_by_dependencies for
+ * dependency::notification. Takes the read lock once and dispatches to the
+ * recursive per-type helpers (which require the lock held: absl reader locks
+ * are not reentrant, so the inherits_parent recursion must not re-lock).
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ *
+ * @return false when a master resource fails the dependency test; true
+ * otherwise (including for a resource unknown to the cache).
+ */
+bool broker_cache::notification_authorized_by_dependencies(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::time_t now = std::time(nullptr);
+  return service_id
+             ? _service_notification_authorized_by_dependencies(host_id,
+                                                                service_id, now)
+             : _host_notification_authorized_by_dependencies(host_id, now);
+}
+
+/**
+ * @brief Evaluate the escalations of a resource: an escalation is viable when
+ * now is inside its escalation period, its [first,last] notification range
+ * covers the current notification number and its escalate_on bitmask covers the
+ * current state. The result aggregates every viable escalation (union of
+ * contacts, smallest interval); when none is viable the caller falls back to
+ * the direct contacts.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ * @param state The resource current state (neb enum: host up/down/unreachable,
+ * service ok/warning/critical/unknown).
+ * @param notification_number The current notification number.
+ * @param timezone The timezone used to evaluate the escalation periods (already
+ * resolved by the caller, with the poller fallback).
+ * @param now The reference time.
+ */
+broker_cache::escalation_result broker_cache::notification_escalation(
+    uint64_t host_id,
+    uint64_t service_id,
+    int state,
+    uint32_t notification_number,
+    const std::string& timezone,
+    std::time_t now) const {
+  namespace notifications = com::centreon::common::notifications;
+  absl::ReaderMutexLock l{&_mutex};
+  escalation_result retval;
+  const absl::TimeZone tz = common::timeperiods::string_to_timezone(timezone);
+
+  auto in_period = [&](const std::string& period) {
+    if (period.empty())
+      return true;
+    auto tp = _timeperiods.find(period);
+    return tp == _timeperiods.end() ||
+           tp->second->check_time_against_period(now, tz);
+  };
+
+  /* Materialize the resource escalations as value snapshots and let the shared
+   * library evaluate their viability and aggregate them. */
+  std::vector<notifications::escalation> snap;
+  auto to_snapshot = [&](const auto& esc) {
+    notifications::escalation s;
+    s.first_notification = esc.first_notification;
+    s.last_notification = esc.last_notification;
+    s.notification_interval = esc.notification_interval;
+    s.escalate_on = esc.escalate_on;
+    s.in_period = in_period(esc.escalation_period);
+    s.contactgroups = esc.contactgroups;
+    snap.push_back(std::move(s));
+  };
+
+  if (service_id == 0) {
+    const auto& idx = _host_escalations.get<by_id>();
+    for (auto [it, end] = idx.equal_range(host_id); it != end; ++it)
+      to_snapshot(*it);
+  } else {
+    const auto& idx = _service_escalations.get<by_id>();
+    for (auto [it, end] = idx.equal_range(std::make_pair(host_id, service_id));
+         it != end; ++it)
+      to_snapshot(*it);
+  }
+
+  const notifications::notifier_type type =
+      service_id == 0 ? notifications::host_notification
+                      : notifications::service_notification;
+  auto ev = notifications::evaluate_escalations(snap, type, state,
+                                                notification_number);
+  retval.escalated = ev.escalated;
+  retval.notification_interval = ev.notification_interval;
+  /* Resolve the viable escalations' contactgroups to their member contacts. */
+  for (const std::string& g : ev.contactgroups) {
+    auto cg = _contactgroups.find(g);
+    if (cg != _contactgroups.end())
+      retval.contact_names.insert(cg->second.first.members.begin(),
+                                  cg->second.first.members.end());
+  }
+  return retval;
+}
+
+/**
+ * @brief Notification-dependency evaluation for a host (see
+ * notification_authorized_by_dependencies). The lock must be held by the
+ * caller.
+ *
+ * @param host_id The dependent host id.
+ * @param now The reference time for the dependency-period checks.
+ *
+ * @return Whether the host's notification dependencies authorize a
+ * notification.
+ */
+bool broker_cache::_host_notification_authorized_by_dependencies(
+    uint64_t host_id,
+    std::time_t now) const {
+  const auto& hosts_by_id = _hosts.get<by_id>();
+  auto dependent = hosts_by_id.find(host_id);
+  if (dependent == hosts_by_id.end())
+    return true;
+
+  const absl::TimeZone tz =
+      common::timeperiods::string_to_timezone((*dependent)->obj().timezone());
+
+  /* action_hd_* bits are aligned with the neb host state enum
+   * (UP=0, DOWN=1, UNREACHABLE=2). */
+  static constexpr std::array<uint32_t, 3> fail_bit{
+      engine::configuration::action_hd_up,
+      engine::configuration::action_hd_down,
+      engine::configuration::action_hd_unreachable};
+
+  const auto& deps = _host_notif_deps.get<by_dependent>();
+  for (auto [it, end] = deps.equal_range(host_id); it != end; ++it) {
+    const host_notif_dep& dep = *it;
+    auto master = hosts_by_id.find(dep.master_host_id);
+    if (master == hosts_by_id.end())
+      continue;
+    const Host& m = (*master)->obj();
+
+    /* The dependency does not apply when now is outside its dependency
+     * period. */
+    if (!dep.dependency_period.empty()) {
+      auto tp = _timeperiods.find(dep.dependency_period);
+      if (tp != _timeperiods.end() &&
+          !tp->second->check_time_against_period(now, tz))
+        return true;
+    }
+
+    bool soft_state_dependencies = false;
+    if (auto inst = _instances.find(dep.poller_id); inst != _instances.end())
+      soft_state_dependencies = inst->second.soft_state_dependencies;
+
+    /* Use the last hard state when the master is in a soft state, unless the
+     * poller opted into soft-state dependencies. */
+    int state = (m.state_type() == Host::SOFT && !soft_state_dependencies)
+                    ? m.last_hard_state()
+                    : m.state();
+
+    if (state >= 0 && state < static_cast<int>(fail_bit.size()) &&
+        (dep.notification_failure_options & fail_bit[state]))
+      return false;
+
+    if (state == Host::UP && !m.checked() &&
+        (dep.notification_failure_options &
+         engine::configuration::action_hd_pending))
+      return false;
+
+    if (dep.inherits_parent &&
+        !_host_notification_authorized_by_dependencies(dep.master_host_id, now))
+      return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Notification-dependency evaluation for a service (see
+ * notification_authorized_by_dependencies). The lock must be held by the
+ * caller.
+ *
+ * @param host_id The dependent service's host id.
+ * @param service_id The dependent service id.
+ * @param now The reference time for the dependency-period checks.
+ *
+ * @return Whether the service's notification dependencies authorize a
+ * notification.
+ */
+bool broker_cache::_service_notification_authorized_by_dependencies(
+    uint64_t host_id,
+    uint64_t service_id,
+    std::time_t now) const {
+  const auto& svc_by_id = _services.get<by_id>();
+  auto dependent = svc_by_id.find(std::make_pair(host_id, service_id));
+  if (dependent == svc_by_id.end())
+    return true;
+
+  /* Notification timezone inheritance: an empty service timezone falls back to
+   * the host's, mirroring get_state. */
+  std::string tz_str = (*dependent)->obj().timezone();
+  if (tz_str.empty()) {
+    const auto& hosts_by_id = _hosts.get<by_id>();
+    auto h = hosts_by_id.find(host_id);
+    if (h != hosts_by_id.end())
+      tz_str = (*h)->obj().timezone();
+  }
+  const absl::TimeZone tz = common::timeperiods::string_to_timezone(tz_str);
+
+  /* action_sd_* bit order differs from the neb service state enum
+   * (OK=0, WARNING=1, CRITICAL=2, UNKNOWN=3), so map explicitly. */
+  static constexpr std::array<uint32_t, 4> fail_bit{
+      engine::configuration::action_sd_ok,
+      engine::configuration::action_sd_warning,
+      engine::configuration::action_sd_critical,
+      engine::configuration::action_sd_unknown};
+
+  const auto& deps = _service_notif_deps.get<by_dependent>();
+  for (auto [it, end] = deps.equal_range(std::make_pair(host_id, service_id));
+       it != end; ++it) {
+    const service_notif_dep& dep = *it;
+    auto master = svc_by_id.find(
+        std::make_pair(dep.master_host_id, dep.master_service_id));
+    if (master == svc_by_id.end())
+      continue;
+    const Service& m = (*master)->obj();
+
+    if (!dep.dependency_period.empty()) {
+      auto tp = _timeperiods.find(dep.dependency_period);
+      if (tp != _timeperiods.end() &&
+          !tp->second->check_time_against_period(now, tz))
+        return true;
+    }
+
+    bool soft_state_dependencies = false;
+    if (auto inst = _instances.find(dep.poller_id); inst != _instances.end())
+      soft_state_dependencies = inst->second.soft_state_dependencies;
+
+    int state = (m.state_type() == Service::SOFT && !soft_state_dependencies)
+                    ? m.last_hard_state()
+                    : m.state();
+
+    if (state >= 0 && state < static_cast<int>(fail_bit.size()) &&
+        (dep.notification_failure_options & fail_bit[state]))
+      return false;
+
+    if (state == Service::OK && !m.checked() &&
+        (dep.notification_failure_options &
+         engine::configuration::action_sd_pending))
+      return false;
+
+    if (dep.inherits_parent &&
+        !_service_notification_authorized_by_dependencies(
+            dep.master_host_id, dep.master_service_id, now))
+      return false;
+  }
+  return true;
+}
+
+/**
  * @brief Get the duration of one "interval unit" for the given poller.
  *
  * @param instance_id The poller ID.
@@ -3197,6 +4027,18 @@ uint32_t broker_cache::first_active_instance_id() const {
       return id;
   }
   return 0;
+}
+
+/**
+ * @brief Return the name of a poller (instance) from its id.
+ *
+ * @param poller_id The poller id.
+ * @return The poller name, or an empty string if the poller is unknown.
+ */
+std::string broker_cache::instance_name(uint64_t poller_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _instances.find(poller_id);
+  return it != _instances.end() ? it->second.name : std::string{};
 }
 
 /**
@@ -3861,6 +4703,8 @@ void broker_cache::_load_cache() {
         ack->mut_obj().CopyFrom(a);
         _acknowledgements.insert_or_assign({a.host_id(), a.service_id()}, ack);
       }
+      _pending_notification_states.assign(to_load.notification_states().begin(),
+                                          to_load.notification_states().end());
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
@@ -3987,6 +4831,10 @@ void broker_cache::_save_cache() {
      * only persists the in-memory tracking. */
     for (const auto& it : _acknowledgements)
       to_save.add_acknowledgements()->CopyFrom(it.second->obj());
+    /* Notification runtime states, persisted so the notification chain survives
+     * a Broker restart (only populated when notification_mode=broker). */
+    for (const auto& n : _notification_states_to_save)
+      to_save.add_notification_states()->CopyFrom(n);
   }
   const auto copied = std::chrono::steady_clock::now();
   /* Saving the BrokerCache in a temporary file, then renamed: a crash during
@@ -4035,6 +4883,68 @@ void broker_cache::_save_cache() {
 void broker_cache::set_active_downtimes(std::vector<Downtime> downtimes) {
   absl::WriterMutexLock lck{_mutex};
   _active_downtimes_to_save = std::move(downtimes);
+}
+
+/**
+ * @brief Store the per-resource notification states to persist on the next cache
+ * save. Called by broker_state at shutdown, before the notification_manager is
+ * unloaded.
+ */
+void broker_cache::set_notification_states(
+    std::vector<BrokerCache::NotificationState> states) {
+  absl::WriterMutexLock lck{&_mutex};
+  _notification_states_to_save = std::move(states);
+}
+
+/**
+ * @brief Re-inject the pending notification states into the notification_manager
+ * so the notification chain (number, timings and the contacts told about the
+ * ongoing problem) resumes after a restart.
+ *
+ * restore() never fires the backend callback, so this does not echo the restored
+ * numbers back to the DB. Drains _pending_notification_states; a no-op when the
+ * manager is not loaded (notification_mode != broker) or nothing is pending.
+ */
+void broker_cache::reinject_pending_notification_states() {
+  namespace notifications = com::centreon::common::notifications;
+  if (!notifications::notification_manager::is_loaded())
+    return;
+
+  std::vector<BrokerCache::NotificationState> pending;
+  {
+    absl::WriterMutexLock lck{&_mutex};
+    if (_pending_notification_states.empty())
+      return;
+    pending.swap(_pending_notification_states);
+  }
+
+  for (const auto& ns : pending) {
+    notifications::resource_notification_snapshot snap;
+    snap.host_id = ns.host_id();
+    snap.service_id = ns.service_id();
+    snap.number = ns.number();
+    snap.current_id = ns.current_id();
+    snap.last = ns.last();
+    snap.next = ns.next();
+    snap.initial = ns.initial();
+    for (const auto& e : ns.events()) {
+      uint32_t cat = e.category();
+      if (cat >= snap.events.size())
+        continue;
+      notifications::notification n;
+      n.type = static_cast<notifications::reason_type>(e.reason_type());
+      n.interval = std::chrono::seconds{e.interval()};
+      for (const auto& c : e.notified_contacts())
+        n.notified_contacts.insert(c);
+      snap.events[cat] = std::move(n);
+    }
+    notifications::notification_manager::instance().restore(snap);
+  }
+
+  SPDLOG_LOGGER_INFO(_logger,
+                     "broker_cache: re-injected {} notification state(s) into "
+                     "the notification manager",
+                     pending.size());
 }
 
 /**

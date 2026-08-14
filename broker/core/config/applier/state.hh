@@ -107,9 +107,16 @@ class state {
                         const std::string& broker_name,
                         common::PeerType peer_type,
                         bool extended_negotiation,
-                        const std::string& engine_conf) = 0;
+                        const std::string& engine_conf,
+                        const std::string& timezone) = 0;
   virtual bool is_peer_conf_known(uint64_t poller_id [[maybe_unused]]) const {
     return true;
+  }
+  /* Local timezone advertised by an Engine peer at negotiation time. Empty when
+   * unknown; only broker_state (which tracks connected peers) overrides it. */
+  virtual std::string poller_timezone(
+      uint64_t poller_id [[maybe_unused]]) const {
+    return {};
   }
   virtual void remove_peer(uint64_t poller_id,
                            const std::string& poller_name,

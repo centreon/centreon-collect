@@ -52,8 +52,6 @@ class command;
  */
 class contact {
  public:
-  typedef bool (contact::*to_notify)(common::notifications::reason_type,
-                                     notifier const&) const;
   contact();
   ~contact();
   contact(contact const& other) = delete;
@@ -124,9 +122,6 @@ class contact {
   get_service_notification_commands();
   contactgroup_map_unsafe const& get_parent_groups() const;
   contactgroup_map_unsafe& get_parent_groups();
-  bool should_be_notified(common::notifications::notification_category cat,
-                          common::notifications::reason_type type,
-                          notifier const& notif) const;
   map_customvar const& get_custom_variables() const;
   map_customvar& get_custom_variables();
   com::centreon::common::timeperiods::timeperiod*
@@ -141,21 +136,6 @@ class contact {
   static contact_map contacts;
 
  private:
-  static std::array<to_notify, 6> const _to_notify;
-
-  bool _to_notify_normal(common::notifications::reason_type type,
-                         notifier const& notif) const;
-  bool _to_notify_recovery(common::notifications::reason_type type,
-                           notifier const& notif) const;
-  bool _to_notify_acknowledgement(common::notifications::reason_type type,
-                                  notifier const& notif) const;
-  bool _to_notify_flapping(common::notifications::reason_type type,
-                           notifier const& notif) const;
-  bool _to_notify_downtime(common::notifications::reason_type type,
-                           notifier const& notif) const;
-  bool _to_notify_custom(common::notifications::reason_type type,
-                         notifier const& notif) const;
-
   std::vector<std::string> _addresses;
   std::string _alias;
   bool _can_submit_commands;

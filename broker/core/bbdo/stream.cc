@@ -136,6 +136,7 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   std::string peer_extensions;
   std::string peer_engine_conf;
+  std::string peer_timezone;
   _extended_negotiation = false;
 
   if (d->type() == version_response::static_type()) {
@@ -244,6 +245,11 @@ void stream::negotiate(stream::negotiation_type neg) {
       _substream->flush();
     }
     peer_engine_conf = w.engine_conf();
+    peer_timezone = w.timezone();
+    /* Let the subclass extract its specific negotiation parameters from the
+     * peer's Welcome (only the protobuf path carries them; the legacy
+     * version_response cannot). */
+    specific_negotiate_received(w);
     peer_extensions = w.extensions();
     set_poller_id(w.poller_id());
     set_poller_name(w.poller_name());
@@ -338,7 +344,7 @@ void stream::negotiate(stream::negotiation_type neg) {
                    poller_name(), broker_name(), peer_engine_conf);
     config::applier::state::instance().add_peer(
         poller_id(), poller_name(), broker_name(), peer_type(),
-        _extended_negotiation, peer_engine_conf);
+        _extended_negotiation, peer_engine_conf, peer_timezone);
     if (!config::applier::state::instance().is_peer_conf_known(poller_id())) {
       _logger->error("No known configuration for the poller {}:{}:{}",
                      poller_id(), poller_name(), broker_name());

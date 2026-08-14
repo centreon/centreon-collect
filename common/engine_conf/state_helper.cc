@@ -884,7 +884,8 @@ void check_circular_paths(const State& s,
 }  // namespace
 
 void state_helper::resolve(error_cnt& err,
-                           const std::shared_ptr<spdlog::logger>& logger) {
+                           const std::shared_ptr<spdlog::logger>& logger,
+                           const foreign_objects& elsewhere) {
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
   auto log = logger ? logger : log_v2::instance().get(log_v2::CONFIG);
 
@@ -931,17 +932,46 @@ void state_helper::resolve(error_cnt& err,
   // key set keeps its host-existence meaning for the other validators.
   absl::flat_hash_map<std::string_view, bool> host;
   host.reserve(pb_config.hosts().size());
-  for (const auto& h : pb_config.hosts())
+  /* Index of every defined host name to its id. The anomaly detections carry
+   * the id of their host and Engine refuses the pair when the two disagree, so
+   * validating that needs the name-to-id mapping and not only the name set. */
+  absl::flat_hash_map<std::string_view, uint64_t> host_id;
+  host_id.reserve(pb_config.hosts().size());
+  for (const auto& h : pb_config.hosts()) {
     host.emplace(h.host_name(), false);
+    host_id.emplace(h.host_name(), h.host_id());
+  }
 
   absl::flat_hash_set<std::pair<std::string_view, std::string_view>> service;
   service.reserve(pb_config.services().size());
+  /* Index of every service by {host_id, service_id}: the anomaly detections
+   * reference their dependent service by id, not by name. Anomaly detections
+   * belong to it because Engine registers them in `service::services_by_id`
+   * too. */
+  absl::flat_hash_set<std::pair<uint64_t, uint64_t>> service_by_id;
+  service_by_id.reserve(pb_config.services().size() +
+                        pb_config.anomalydetections().size());
   for (const auto& s : pb_config.services()) {
     service.emplace(s.host_name(), s.service_description());
+    service_by_id.emplace(s.host_id(), s.service_id());
     if (auto it = host.find(s.host_name()); it != host.end())
       it->second = true;
   }
   for (const auto& ad : pb_config.anomalydetections()) {
+    /* Engine refuses an anomaly detection whose {host_id, service_id} is
+     * already taken (is_service_exist, in add_anomalydetection). A null service
+     * id is not an identity, it is an unset field: it is reported on its own by
+     * anomalydetection_helper::resolve, and comparing it here would make every
+     * id-less object a duplicate of the next. */
+    if (!service_by_id.emplace(ad.host_id(), ad.service_id()).second &&
+        ad.service_id() != 0) {
+      log->error(
+          "Error: The anomaly detection '{}' on host '{}' has already been "
+          "defined (host id {}, service id {})",
+          ad.service_description(), ad.host_name(), ad.host_id(),
+          ad.service_id());
+      err.config_errors++;
+    }
     if (auto it = host.find(ad.host_name()); it != host.end())
       it->second = true;
   }
@@ -960,10 +990,11 @@ void state_helper::resolve(error_cnt& err,
     servicegroup_helper::resolve(sg, service, illegal_chars, err, log);
 
   for (auto& hd : pb_config.hostdependencies())
-    hostdependency_helper::resolve(hd, host, timeperiod, err, log);
+    hostdependency_helper::resolve(hd, host, elsewhere, timeperiod, err, log);
 
   for (auto& sd : pb_config.servicedependencies())
-    servicedependency_helper::resolve(sd, service, timeperiod, err, log);
+    servicedependency_helper::resolve(sd, service, elsewhere, timeperiod, err,
+                                      log);
 
   for (auto& he : pb_config.hostescalations())
     hostescalation_helper::resolve(he, host, contactgroup, timeperiod, err,
@@ -982,8 +1013,9 @@ void state_helper::resolve(error_cnt& err,
                             timeperiod, illegal_chars, err, log);
 
   for (auto& ad : pb_config.anomalydetections())
-    anomalydetection_helper::resolve(ad, host, contact, contactgroup, command,
-                                     timeperiod, illegal_chars, err, log);
+    anomalydetection_helper::resolve(ad, host_id, service_by_id, contact,
+                                     contactgroup, command, timeperiod,
+                                     illegal_chars, err, log);
 
   /* Cross-object circular-path validation (host parent/child chains and
    * notification/execution dependencies), ported from the former Engine

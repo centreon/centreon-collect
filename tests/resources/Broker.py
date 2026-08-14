@@ -3650,6 +3650,31 @@ def ctn_get_peers(port, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
+def ctn_get_pollers(port, timeout=TIMEOUT):
+    """
+    Get the list of Engine pollers connected to the broker, through the
+    GetPollers gRPC method.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        A dict representation of the PeerList message (one entry per connected
+        Engine poller), or None if the gRPC server never became ready.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetPollers(empty_pb2.Empty())
+                return MessageToDict(res)
+            except Exception:
+                logger.console("gRPC server not ready")
+
+
 def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
     """
     Check if a row exists in the logs table with msg_type=10 and ctime >= date.
@@ -4742,3 +4767,55 @@ def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: i
                 ],
             }
     return None
+
+
+def ctn_broker_notification_authorized_by_dependencies(host, service=None, expected=None, port: int = 51001, timeout: int = TIMEOUT):
+    """
+    Call the broker gRPC NotificationAuthorizedByDependencies for a host or a
+    service and return the answer as the broker cache evaluates it.
+
+    The dependent resource is designated by the ServiceIdentifier: an int is
+    sent as an id, a string as a name/description. Leaving service unset asks
+    for a host-level check.
+
+    Args:
+        host: The dependent host, by id (int) or by name (str).
+        service: The dependent service, by id (int) or by description (str);
+            None (default) for a host-level check.
+        expected: When set (a bool or "NOT_FOUND"), keep retrying until the
+            answer matches it or the timeout expires. This absorbs the latency
+            of a check result propagating from Engine to the broker cache.
+        port: The broker gRPC port (default 51001).
+        timeout: Seconds to keep retrying.
+
+    Returns:
+        The authorized boolean, the string "NOT_FOUND" when the resource is not
+        in the cache, or None if the gRPC server never answered.
+    """
+    limit = time.time() + timeout
+    answer = None
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            req = broker_pb2.ServiceIdentifier()
+            if isinstance(host, int):
+                req.host_id = host
+            else:
+                req.host_name = host
+            if service is not None:
+                if isinstance(service, int):
+                    req.service_id = service
+                else:
+                    req.description = service
+            try:
+                answer = stub.NotificationAuthorizedByDependencies(req).authorized
+            except grpc.RpcError as e:
+                if e.code() == grpc.StatusCode.NOT_FOUND:
+                    answer = "NOT_FOUND"
+                else:
+                    logger.console(f"gRPC server not ready: {e}")
+                    continue
+        if expected is None or answer == expected:
+            return answer
+    return answer

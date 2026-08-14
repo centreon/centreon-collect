@@ -17,6 +17,7 @@
  */
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/broker.hh"
+#include "common/engine_conf/serviceescalation_helper.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -96,18 +97,8 @@ bool serviceescalation::is_viable(int state,
 bool serviceescalation::matches(
     const configuration::Serviceescalation& obj) const {
   uint32_t escalate_on =
-      ((obj.escalation_options() & configuration::action_se_warning)
-           ? notifications::warning
-           : notifications::none) |
-      ((obj.escalation_options() & configuration::action_se_unknown)
-           ? notifications::unknown
-           : notifications::none) |
-      ((obj.escalation_options() & configuration::action_se_critical)
-           ? notifications::critical
-           : notifications::none) |
-      ((obj.escalation_options() & configuration::action_se_recovery)
-           ? notifications::ok
-           : notifications::none);
+      configuration::service_escalation_options_to_flags(
+          obj.escalation_options());
   if (_hostname != obj.hosts().data(0) ||
       _description != obj.service_description().data(0) ||
       get_first_notification() != obj.first_notification() ||

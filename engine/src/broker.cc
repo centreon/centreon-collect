@@ -531,7 +531,8 @@ static void forward_pb_host(int type,
     auto& host = h->mut_obj();
 
     // Set host parameters.
-    host.set_acknowledged(eh->problem_has_been_acknowledged());
+    // Host.acknowledged is deprecated (see neb.proto): the acknowledgement
+    // state is carried solely by acknowledgement_type.
     host.set_acknowledgement_type(eh->get_acknowledgement());
     if (!eh->get_action_url().empty())
       host.set_action_url(common::check_string_utf8(eh->get_action_url()));
@@ -1030,7 +1031,8 @@ static void forward_pb_service(int type,
     com::centreon::broker::Service& srv = s.get()->mut_obj();
 
     // Fill output var.
-    srv.set_acknowledged(es->problem_has_been_acknowledged());
+    // Service.acknowledged is deprecated (see neb.proto): the acknowledgement
+    // state is carried solely by acknowledgement_type.
     srv.set_acknowledgement_type(es->get_acknowledgement());
     if (!es->get_action_url().empty())
       srv.set_action_url(common::check_string_utf8(es->get_action_url()));
@@ -2695,6 +2697,9 @@ static void forward_pb_host_status(const host* hst,
       if (attributes &
           common::notifications::SHOULD_BE_SCHEDULED) {
         host.set_should_be_scheduled(hst->get_should_be_scheduled());
+      }
+      if (attributes & common::notifications::STATUS_FLAPPING) {
+        host.set_flapping(hst->get_is_flapping());
       }
       cbm->write(h);
     }
@@ -4652,6 +4657,9 @@ static void forward_pb_service_status(const engine::service* svc,
       if (attributes &
           common::notifications::SHOULD_BE_SCHEDULED) {
         asscr.set_should_be_scheduled(svc->get_should_be_scheduled());
+      }
+      if (attributes & common::notifications::STATUS_FLAPPING) {
+        asscr.set_flapping(svc->get_is_flapping());
       }
       cbm->write(as);
     }

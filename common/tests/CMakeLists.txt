@@ -28,6 +28,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     absl_flyweight_factory_test.cc
     crypto/base64.cc
     crypto/aes256.cc
+    engine_conf/escalation_options.cc
     engine_conf/expand_conf.cc
     engine_conf/resolve_conf.cc
     engine_conf/indexed_diff_state.cc
@@ -41,6 +42,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
+    notifications/contact_viability_test.cc
+    notifications/escalation_test.cc
     perfdata_test.cc
     threshold_test.cc
     process_stat_test.cc
@@ -149,6 +152,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             log_v2
             gRPC::grpc++
             protobuf::libprotobuf
+            notifications
             timeperiods
             Boost::program_options
             re2::re2

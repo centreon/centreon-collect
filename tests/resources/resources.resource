@@ -365,6 +365,38 @@ Ctn Start Engine With Extended Conf
         ...    stderr=${log}/centengine-stderr.log
     END
 
+Ctn Start Engine With Timezones
+    [Documentation]    Start the configured centengine instances the centralized
+    ...    (newGeneration) way, exactly like "Ctn Start Engine newGeneration=True",
+    ...    but each one with its own TZ environment variable so that centengine i runs
+    ...    in the timezone given by @{timezones}[i] (IANA name, e.g. Europe/Paris).
+    ...    Engine advertises its machine local timezone to Broker in the BBDO3 Welcome
+    ...    message. The caller must have configured centralized engine instances
+    ...    (Ctn Config Centralized Engine) and started Broker with newGeneration=True.
+    ...    Requires tzdata to be installed (see tests/README.md).
+    [Arguments]    @{timezones}
+    ${count}    Ctn Get Engines Count
+    Ctn Broker Config Flush    ${False}
+    FOR    ${idx}    IN RANGE    0    ${count}
+        ${tz}    Set Variable    ${timezones}[${idx}]
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${log}    Catenate    SEPARATOR=    ${ENGINE_LOG}    /config    ${idx}
+        ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
+        Create Directory    ${log}
+        Create Directory    ${lib}
+        TRY
+            Remove File    ${lib}/rw/centengine.cmd
+        EXCEPT
+            Log    can't remove ${lib}/rw/centengine.cmd don't worry
+        END
+        ${grpc_port}    Evaluate    ${idx} + 50001
+        ${free}    Ctn Wait For Port Free    ${grpc_port}
+        Should Be True
+        ...    ${free}
+        ...    gRPC port ${grpc_port} still in use: a previous centengine was not stopped.
+        Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    env:TZ=${tz}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+    END
+
 Ctn Restart Engine
     [Arguments]    ${newGeneration}=False
     Ctn Stop Engine
@@ -415,13 +447,19 @@ Ctn Stop Engine
             Send Signal To Process    SIGKILL    e${idx}
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
+            ${stderr_tail}    Set Variable    ${EMPTY}
             IF    ${result.rc} != 0 and ${result.rc} != -15
                 # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
                 Ctn Coredump Info    e${idx}    /usr/sbin/centengine    e${idx}
+                # When centengine aborts, the reason is only in its stderr, and
+                # that file is overwritten by the next Ctn Start Engine. Grab it
+                # now so that it lands in the failure message.
+                ${stderr_tail}    Ctn Engine Stderr Tail    ${idx}
+                Log To Console    centengine config${idx} stderr:\n${stderr_tail}
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
-            ...    Engine badly stopped with ${count} instances - code returned ${result.rc}.
+            ...    Engine badly stopped with ${count} instances - code returned ${result.rc}.\ncentengine config${idx} stderr:\n${stderr_tail}
         END
     END
 
@@ -530,12 +568,18 @@ Ctn Dump Process
         ...    stdout=${gdb_output}
         ...    stderr=${gdb_output}
         Log To Console    Done...
-	Run Process    chmod    -R    666    ${failDir}
+        Run Process    chmod    -R    a+rwX    ${failDir}
     END
 
 Ctn Coredump Info
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
+    ${core}    Ctn Find Core File    ${pid}
+    IF    "${core}" == "${EMPTY}"
+        Log To Console
+        ...    No core file found for pid ${pid}: core dumps are probably disabled in this environment (check 'ulimit -c' and /proc/sys/kernel/core_pattern, see robot.sh). No backtrace available.
+        RETURN
+    END
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
     ${output}    Catenate    SEPARATOR=    ${failDir}    /coreinfo-    ${name}    -${pid}    .txt
@@ -546,10 +590,10 @@ Ctn Coredump Info
     ...    -ex
     ...    thread apply all bt 30
     ...    ${binary_path}
-    ...    /tmp/core.${pid}
+    ...    ${core}
     ...    stdout=${output}
     ...    stderr=${output}
-    Run Process    chmod    -R    666    ${failDir}
+    Run Process    chmod    -R    a+rwX    ${failDir}
 
 Ctn Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
@@ -559,7 +603,7 @@ Ctn Copy Coredump In Failed Dir
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
         Copy File    /tmp/core.${pid}    ${failDir}
-	Run Process    chmod    -R    666    ${failDir}
+        Run Process    chmod    -R    a+rwX    ${failDir}
     END
 
 Ctn Wait Or Dump And Kill Process

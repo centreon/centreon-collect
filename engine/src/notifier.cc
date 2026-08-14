@@ -31,7 +31,9 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "common/notifications/notification_types.hh"
+#include "common/notifications/contact_viability.hh"
+#include "common/notifications/escalation.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -175,42 +177,85 @@ void notifier::set_notification_number(int num) {
  *
  * @return A set of contacts to notify.
  */
-std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
+absl::flat_hash_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     notifications::notification_category cat,
     notifications::reason_type type,
     uint32_t& notification_interval,
     bool& escalated) {
-  std::unordered_set<std::shared_ptr<contact>> retval;
+  absl::flat_hash_set<std::shared_ptr<contact>> retval;
   escalated = false;
   uint32_t notif_interv{_notification_interval};
 
-  /* Let's start looking at escalations */
-  for (auto* e : _escalations) {
-    if (e->is_viable(get_current_state_int(), get_notification_number())) {
-      /* Among escalations, we choose the smallest notification interval. */
-      if (escalated) {
-        if (e->get_notification_interval() < notif_interv)
-          notif_interv = e->get_notification_interval();
-      } else {
-        /* Here is the first escalation, so we take its notification_interval.
-         */
-        escalated = true;
-        notif_interv = e->get_notification_interval();
-      }
+  /* Let's start looking at escalations. We snapshot them and let the shared
+   * notification library pick the viable ones (smallest interval, contactgroup
+   * union); the member resolution and contact filtering stay here.
+   */
+  std::time_t now;
+  std::time(&now);
 
-      /* For each contact group, we also add its contacts. */
-      for (contactgroup_map::const_iterator
-               cgit = e->get_contactgroups().begin(),
-               cgend = e->get_contactgroups().end();
-           cgit != cgend; ++cgit) {
-        for (contact_map::const_iterator
-                 cit = cgit->second->get_members().begin(),
-                 cend = cgit->second->get_members().end();
-             cit != cend; ++cit) {
-          assert(cit->second);
-          if (cit->second->should_be_notified(cat, type, *this))
-            retval.insert(cit->second);
-        }
+  /* Per-candidate viability. We resolve the one input the shared
+   * should_notify_contact cannot compute itself — the contact's notification
+   * period evaluated in its own timezone — then delegate to the shared function
+   * on a contact snapshot. is_host, current_state and the previous normal
+   * notification are constant over this call, so hoist them. */
+  const notifications::notifier_type nt = get_notifier_type();
+  const bool is_host = nt == notifications::host_notification;
+  const int current_state = get_current_state_int();
+  const notifications::notification* ongoing_problem =
+      get_current_notifications()[notifications::cat_normal];
+  auto should_notify = [&](const std::shared_ptr<contact>& c) {
+    auto* tp = is_host ? c->get_host_notification_period_ptr()
+                       : c->get_service_notification_period_ptr();
+    const bool in_period =
+        !tp || tp->check_time_against_period_for_notif(
+                   now, string_to_timezone(c->get_timezone()));
+    notifications::contact snapshot;
+    snapshot.name = c->get_name();
+    snapshot.host_notifications_enabled = c->get_host_notifications_enabled();
+    snapshot.service_notifications_enabled =
+        c->get_service_notifications_enabled();
+    snapshot.host_notification_options =
+        c->notify_on(notifications::host_notification);
+    snapshot.service_notification_options =
+        c->notify_on(notifications::service_notification);
+    return notifications::should_notify_contact(snapshot, is_host, cat, type,
+                                                current_state, in_period,
+                                                ongoing_problem);
+  };
+
+  std::vector<notifications::escalation> snap;
+  snap.reserve(_escalations.size());
+  absl::flat_hash_map<std::string, contactgroup*> groups;
+  for (auto* e : _escalations) {
+    notifications::escalation s;
+    s.first_notification = e->get_first_notification();
+    s.last_notification = e->get_last_notification();
+    s.notification_interval = e->get_notification_interval();
+    s.escalate_on = e->get_escalate_on();
+    s.in_period = e->get_escalation_period().empty() ||
+                  !e->escalation_period_ptr ||
+                  e->escalation_period_ptr->check_time_against_period(now);
+    for (const auto& [gname, gptr] : e->get_contactgroups()) {
+      s.contactgroups.push_back(gname);
+      groups.emplace(gname, gptr.get());
+    }
+    snap.push_back(std::move(s));
+  }
+
+  auto ev = notifications::evaluate_escalations(snap, nt, current_state,
+                                                get_notification_number());
+  escalated = ev.escalated;
+  if (escalated) {
+    notif_interv = ev.notification_interval;
+    /* For each viable escalation contactgroup, add its notifiable members. */
+    for (const std::string& gname : ev.contactgroups) {
+      auto git = groups.find(gname);
+      if (git == groups.end())
+        continue;
+      for (const auto& [cname, cptr] : git->second->get_members()) {
+        assert(cptr);
+        if (should_notify(cptr))
+          retval.insert(cptr);
       }
     }
   }
@@ -221,7 +266,7 @@ std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     for (auto it = contacts().begin(), end = contacts().end(); it != end;
          ++it) {
       assert(it->second);
-      if (it->second->should_be_notified(cat, type, *this))
+      if (should_notify(it->second))
         retval.insert(it->second);
     }
 
@@ -233,7 +278,7 @@ std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
                                        cend = it->second->get_members().end();
            cit != cend; ++cit) {
         assert(cit->second);
-        if (cit->second->should_be_notified(cat, type, *this))
+        if (should_notify(cit->second))
           retval.insert(cit->second);
       }
     }
@@ -254,6 +299,11 @@ int notifier::notify(notifications::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
                      notifications::notification_option options) {
+  /* notification_mode=broker: Broker owns the notification decision (advertised
+   * at negotiation). Engine must not decide on its own — it only executes the
+   * notifications Broker dispatches (via execute_broker_notification). */
+  if (cbm && cbm->broker_handles_notifications())
+    return OK;
   return notifications::notification_manager::instance().notify(
       _host_id, _service_id, type, not_author, not_data, options);
 }

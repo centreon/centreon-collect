@@ -109,12 +109,19 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_adaptive_service_status,
     &stream::_process_pb_adaptive_host_status,
     &stream::_process_agent_stats,
+    nullptr,  // de_pb_unknown_host
+    nullptr,  // de_pb_agent_host_info
     &stream::_process_engine_state,
 };
 
 constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /
     sizeof(stream::neb_processing_table[0]);
+
+/* The table is indexed by the neb element: its last entry must be the last
+ * neb element, or the events after a gap land on the wrong handler. */
+static_assert(neb_processing_table_size == neb::de_pb_engine_state + 1,
+              "neb_processing_table is out of sync with neb elements");
 
 /**
  * @brief this function return a database_config equal to the parameter dbcfg

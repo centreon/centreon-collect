@@ -26,26 +26,15 @@
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/notifications/notification_types.hh"
-#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
-using com::centreon::common::timeperiods::string_to_timezone;
 namespace notifications = com::centreon::common::notifications;
 
 contact_map contact::contacts;
-
-std::array<contact::to_notify, 6> const contact::_to_notify{{
-    &contact::_to_notify_normal,
-    &contact::_to_notify_recovery,
-    &contact::_to_notify_acknowledgement,
-    &contact::_to_notify_flapping,
-    &contact::_to_notify_downtime,
-    &contact::_to_notify_custom,
-}};
 
 /**************************************
  *                                     *
@@ -811,180 +800,6 @@ contactgroup_map_unsafe const& contact::get_parent_groups() const {
 
 contactgroup_map_unsafe& contact::get_parent_groups() {
   return _contactgroups;
-}
-
-/**
- *  Returns a boolean telling if this contact should be notified by a notifier
- *  with the given properties.
- *
- * @param type A service or a host.
- * @param cat The notification category
- * @param state The notifier current state
- *
- * @return true if the contact should be notified, false otherwise.
- */
-bool contact::should_be_notified(notifications::notification_category cat,
-                                 notifications::reason_type type,
-                                 notifier const& notif) const {
-  functions_logger->trace("contact::should_be_notified()");
-  /* Are notifications enabled? */
-  switch (notif.get_notifier_type()) {
-    case notifications::service_notification: {
-      if (!_service_notifications_enabled) {
-        notifications_logger->info(
-            "This contact shouldn't be notified from services.");
-        return false;
-      }
-      // See if the contact can be notified at this time for the host.
-      if (auto* tp = get_service_notification_period_ptr();
-          tp && !tp->check_time_against_period_for_notif(
-                    std::time(nullptr), string_to_timezone(get_timezone()))) {
-        notifications_logger->info(
-            "This contact shouldn't be notified at this time.");
-        return false;
-      }
-    } break;
-    case notifications::host_notification: {
-      if (!_host_notifications_enabled) {
-        notifications_logger->info(
-            "This contact shouldn't be notified from hosts.");
-        return false;
-      }
-      // See if the contact can be notified at this time for the service.
-      if (auto* tp = get_host_notification_period_ptr();
-          tp && !tp->check_time_against_period_for_notif(
-                    std::time(nullptr), string_to_timezone(get_timezone()))) {
-        notifications_logger->info(
-            "This contact shouldn't be notified at this time.");
-        return false;
-      }
-    } break;
-  }
-  return (this->*(_to_notify[cat]))(type, notif);
-}
-
-bool contact::_to_notify_normal(notifications::reason_type type
-                                __attribute__((unused)),
-                                notifier const& notif) const {
-  functions_logger->trace("contact::_to_notify_normal()");
-  notifications::notifier_type nt{notif.get_notifier_type()};
-  int state{notif.get_current_state_int()};
-
-  /* Should the contact be notified by the notifier state? */
-  notifications::notification_flag t;
-  if (nt == notifications::service_notification) {
-    std::array<notifications::notification_flag, 4> type{
-        notifications::ok, notifications::warning, notifications::critical,
-        notifications::unknown};
-    t = type[state];
-  } else {
-    std::array<notifications::notification_flag, 3> type{
-        notifications::up, notifications::down, notifications::unreachable};
-    t = type[state];
-  }
-  if (!notify_on(nt, t)) {
-    notifications_logger->info(
-        "We shouldn't notify this contact about state {} since it is not "
-        "configured for this contact.",
-        state);
-    return false;
-  }
-
-  return true;
-}
-
-bool contact::_to_notify_recovery(notifications::reason_type type
-                                  __attribute__((unused)),
-                                  notifier const& notif) const {
-  functions_logger->trace("contact::_to_notify_recovery()");
-  notifications::notifier_type nt{notif.get_notifier_type()};
-
-  if (!notify_on(nt, notifications::ok) && !notify_on(nt, notifications::up)) {
-    notifications_logger->info(
-        "We shouldn't notify this contact about a {} recovery.",
-        (nt == notifications::service_notification ? "service" : "host"));
-    return false;
-  }
-
-  notifications::notification* normal_notif =
-      notif.get_current_notifications()[notifications::cat_normal];
-  if (!normal_notif || !normal_notif->sent_to(get_name())) {
-    notifications_logger->info(
-        "We shouldn't notify this contact about a {} recovery because he has "
-        "not been notified about the incident.",
-        (nt == notifications::service_notification ? "service" : "host"));
-    return false;
-  }
-
-  return true;
-}
-
-bool contact::_to_notify_acknowledgement(notifications::reason_type type
-                                         __attribute__((unused)),
-                                         notifier const& notif
-                                         __attribute__((unused))) const {
-  functions_logger->trace("contact::_to_notify_acknowledgement()");
-  notifications_logger->info(
-      "** Checking if contact '{}' should be notified about a acknowledgement "
-      "notification",
-      get_name());
-  return true;
-}
-
-bool contact::_to_notify_flapping(notifications::reason_type type,
-                                  notifier const& notif) const {
-  functions_logger->trace("contact::_to_notify_flapping()");
-  notifications_logger->info(
-      "** Checking if contact '{}' should be notified about a flapping "
-      "notification",
-      get_name());
-  notifications::notifier_type nt{notif.get_notifier_type()};
-
-  notifications::notification_flag what_notif;
-  if (type == notifications::reason_flappingstart)
-    what_notif = notifications::flappingstart;
-  else if (type == notifications::reason_flappingstop)
-    what_notif = notifications::flappingstop;
-  else
-    what_notif = notifications::flappingdisabled;
-
-  if (!notify_on(nt, what_notif)) {
-    notifications_logger->info(
-        "We shouldn't notify contact '{}' about {} notifier events.", _name,
-        notifications::notification_manager::tab_notification_str[type]);
-    return false;
-  }
-  return true;
-}
-
-bool contact::_to_notify_downtime(notifications::reason_type type
-                                  __attribute__((unused)),
-                                  notifier const& notif) const {
-  functions_logger->trace("contact::_to_notify_downtime()");
-  notifications_logger->info(
-      "** Checking if contact '{}' should be notified about a downtime "
-      "notification",
-      get_name());
-  notifications::notifier_type nt{notif.get_notifier_type()};
-
-  if (!notify_on(nt, notifications::downtime)) {
-    notifications_logger->info(
-        "We shouldn't notify this contact about DOWNTIME notifier events.");
-    return false;
-  }
-  return true;
-}
-
-bool contact::_to_notify_custom(notifications::reason_type type
-                                __attribute__((unused)),
-                                notifier const& notif
-                                __attribute__((unused))) const {
-  functions_logger->trace("contact::_to_notify_custom()");
-  notifications_logger->info(
-      "** Checking if contact '{}' should be notified about a custom "
-      "notification",
-      _name);
-  return true;
 }
 
 timeperiod* contact::get_host_notification_period_ptr() const {
