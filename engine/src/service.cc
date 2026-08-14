@@ -1893,6 +1893,19 @@ int service::handle_async_check_result(
   broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this, get_check_type(),
                        nullptr);
 
+  /* Check to see if the service and/or associate host is flapping. This must
+   * happen BEFORE the status is published: check_for_flapping() may toggle the
+   * flapping flag and notify(), and the status below is the only publication of
+   * this check. Doing it the other way around delays the flapping flag by one
+   * check, which is exactly what happens when flapping stops (the percentage
+   * falls under the low threshold on stable states, so without a state change).
+   * The host does it in this order too, see host::handle_async_check_result().
+   */
+  if (!flapping_check_done) {
+    check_for_flapping(true, true);
+    hst->check_for_flapping(true, false, true);
+  }
+
   if (!(reschedule_check && get_should_be_scheduled() && has_been_checked()) ||
       !active_checks_enabled()) {
     /* set the checked flag */
@@ -1902,12 +1915,6 @@ int service::handle_async_check_result(
   }
   if (need_update)
     update_status();
-
-  /* check to see if the service and/or associate host is flapping */
-  if (!flapping_check_done) {
-    check_for_flapping(true, true);
-    hst->check_for_flapping(true, false, true);
-  }
 
   /* update service performance info */
   update_service_performance_data();
@@ -2806,12 +2813,14 @@ void service::enable_flap_detection() {
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
                                this, attr);
 
-  /* check for flapping */
+  /* check for flapping. Nothing else publishes the flapping flag on this path,
+   * so it has to be sent here, but only if check_for_flapping() actually
+   * toggled it: re-enabling the detection on a service that does not flap must
+   * not write anything. */
+  bool was_flapping = get_is_flapping();
   check_for_flapping(false, true);
-
-  /* update service status: check_for_flapping() above may have toggled the
-   * flapping state, which is the only status attribute this path changes. */
-  update_status(STATUS_FLAPPING);
+  if (get_is_flapping() != was_flapping)
+    update_status(STATUS_FLAPPING);
 }
 
 /* disables flap detection for a specific service */
@@ -3267,10 +3276,15 @@ void service::handle_flap_detection_disabled() {
 
     /* should we send a recovery notification? */
     notify(reason_recovery, "", "", notification_option_none);
-  }
 
-  /* update service status */
-  update_status();
+    /* Update service status. The full status is needed here, not just the
+     * flapping attribute: the two notify() above also moved last_notification,
+     * next_notification and no_more_notifications, and no adaptive attribute
+     * carries those. This stays inside the test on purpose, a service that was
+     * not flapping has nothing to publish -- and the program-wide
+     * DISABLE_FLAP_DETECTION walks every single host and service. */
+    update_status();
+  }
 }
 
 std::list<servicegroup*> const& service::get_parent_groups() const {

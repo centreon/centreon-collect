@@ -2472,10 +2472,14 @@ void host::enable_flap_detection() {
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, this,
                             attr);
 
-  /* check for flapping */
+  /* check for flapping. Nothing else publishes the flapping flag on this path,
+   * so it has to be sent here, but only if check_for_flapping() actually
+   * toggled it: re-enabling the detection on a host that does not flap must not
+   * write anything. */
+  bool was_flapping = get_is_flapping();
   check_for_flapping(false, false, true);
-
-  update_status(STATUS_FLAPPING);
+  if (get_is_flapping() != was_flapping)
+    update_status(STATUS_FLAPPING);
 }
 
 /*
@@ -2664,10 +2668,15 @@ void host::handle_flap_detection_disabled() {
 
     /* Send a recovery notification if needed */
     notify(reason_recovery, "", "", notification_option_none);
-  }
 
-  /* update host status */
-  update_status();
+    /* Update host status. The full status is needed here, not just the flapping
+     * attribute: the two notify() above also moved last_notification,
+     * next_notification and no_more_notifications, and no adaptive attribute
+     * carries those. This stays inside the test on purpose, a host that was not
+     * flapping has nothing to publish -- and the program-wide
+     * DISABLE_FLAP_DETECTION walks every single host and service. */
+    update_status();
+  }
 }
 
 int host::perform_on_demand_check(enum host::host_state* check_return_code,
