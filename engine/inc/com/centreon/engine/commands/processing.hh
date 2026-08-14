@@ -1,24 +1,26 @@
-/*
-** Copyright 2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2022-2026 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_PROCESSING_HH
 #define CCE_PROCESSING_HH
+
+#include <absl/container/flat_hash_map.h>
 
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -147,7 +149,10 @@ class processing {
                                            time_t entry_time,
                                            char* args);
 
-  static const std::unordered_map<std::string, detail::command_info>
+  /* flat_hash_map, not unordered_map: it allows the lookup to be done with a
+   * std::string_view built straight over the command line, with no intermediate
+   * allocation. */
+  static const absl::flat_hash_map<std::string, detail::command_info>
       _lst_command;
 };
 }  // namespace commands

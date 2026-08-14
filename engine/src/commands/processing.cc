@@ -18,6 +18,13 @@
  */
 
 #include "com/centreon/engine/commands/processing.hh"
+
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/strip.h>
+
+#include <string_view>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -35,7 +42,7 @@ namespace notifications = com::centreon::common::notifications;
 // Dummy command.
 void dummy_command() {}
 
-const std::unordered_map<std::string, command_info> processing::_lst_command(
+const absl::flat_hash_map<std::string, command_info> processing::_lst_command(
     {{"ENTER_STANDBY_MODE",
       command_info(CMD_DISABLE_NOTIFICATIONS,
                    &_redirector<&disable_all_notifications>)},
@@ -785,56 +792,85 @@ void processing::_redirector_anomalydetection(int id,
   (*fptr)(ano.get(), args + name.length() + description.length() + 2);
 }
 
+namespace {
+
+/**
+ * @brief Split an external command line into its name and its arguments.
+ *
+ * The expected form is "[<entry time>] <NAME>[;<args>]", with any surrounding
+ * blank. Both returned views point into line, which must outlive them. The
+ * trailing end of line that mmap_fgets() keeps is stripped here, once, for the
+ * whole line: this is what keeps it out of the name of the argument less
+ * commands (ENABLE_NOTIFICATIONS, DISABLE_FLAP_DETECTION, ...), which used to
+ * be rejected as unrecognized because of it.
+ *
+ * @param[in]  line       The raw command line.
+ * @param[out] name       The command name, empty when the line is malformed.
+ * @param[out] args       The arguments, empty when the command takes none.
+ * @param[out] entry_time The command entry time.
+ *
+ * @return True if the line could be split.
+ */
+bool split_command_line(std::string_view line,
+                        std::string_view& name,
+                        std::string_view& args,
+                        time_t& entry_time) {
+  name = args = std::string_view();
+
+  std::string_view l = absl::StripAsciiWhitespace(line);
+  if (!absl::ConsumePrefix(&l, "["))
+    return false;
+
+  size_t close = l.find(']');
+  if (close == std::string_view::npos)
+    return false;
+
+  uint64_t ts;
+  if (!absl::SimpleAtoi(absl::StripAsciiWhitespace(l.substr(0, close)), &ts))
+    return false;
+  entry_time = static_cast<time_t>(ts);
+
+  /* A single space is expected right after the ']', as in Nagios. */
+  l.remove_prefix(close + 1);
+  if (!absl::ConsumePrefix(&l, " "))
+    return false;
+
+  size_t sep = l.find(';');
+  if (sep == std::string_view::npos)
+    name = l;
+  else {
+    name = l.substr(0, sep);
+    args = l.substr(sep + 1);
+  }
+  return true;
+}
+
+}  // namespace
+
 bool processing::execute(const std::string& cmdstr) {
   functions_logger->trace("processing external command {}", cmdstr);
 
-  char const* cmd{cmdstr.c_str()};
-  size_t len{cmdstr.size()};
-
-  // Left trim command
-  while (*cmd && isspace(*cmd))
-    ++cmd;
-  if (*cmd != '[')
+  std::string_view command_name, args_view;
+  time_t entry_time = 0;
+  if (!split_command_line(cmdstr, command_name, args_view, entry_time))
     return false;
-
-  // Right trim just by recomputing the optimal length value.
-  char const* end{cmd + len - 1};
-  while (end != cmd && isspace(*end))
-    --end;
-
-  cmd++;
-  char* tmp;
-  time_t entry_time{static_cast<time_t>(strtoul(cmd, &tmp, 10))};
-
-  while (*tmp && isspace(*tmp))
-    ++tmp;
-
-  if (*tmp != ']' || tmp[1] != ' ')
-    return false;
-
-  cmd = tmp + 2;
-  char const* a;
-  for (a = cmd; *a && *a != ';'; ++a)
-    ;
-
-  std::string command_name(cmd, a - cmd);
-  std::string args;
-  if (*a == ';') {
-    a++;
-    args = std::string(a, end - a + 1);
-  }
 
   int command_id(CMD_CUSTOM_COMMAND);
 
-  std::unordered_map<std::string, command_info>::const_iterator it =
-      _lst_command.find(command_name);
+  auto it = _lst_command.find(command_name);
   if (it != _lst_command.end())
     command_id = it->second.id;
-  else if (command_name[0] != '_') {
+  else if (command_name.empty() || command_name[0] != '_') {
     external_command_logger->warn(
         "Warning: Unrecognized external command -> {}", command_name);
     return false;
   }
+
+  /* The handlers below take a char*, so the arguments have to be materialized
+   * into a null terminated buffer. Passing a string_view all the way down would
+   * mean reworking my_strtok() and the 21 handler signatures, which is a job of
+   * its own. */
+  std::string args{args_view};
 
   // Update statistics for external commands.
   update_check_stats(EXTERNAL_COMMAND_STATS, std::time(nullptr));
@@ -879,10 +915,12 @@ bool processing::execute(const std::string& cmdstr) {
  *  @return True if command is thread-safe.
  */
 bool processing::is_thread_safe(char const* cmd) {
-  char const* ptr = cmd + strspn(cmd, "[]0123456789 ");
-  std::string short_cmd(ptr, strcspn(ptr, ";"));
-  std::unordered_map<std::string, command_info>::const_iterator it =
-      _lst_command.find(short_cmd);
+  std::string_view name, args;
+  time_t entry_time;
+  if (!split_command_line(cmd, name, args, entry_time))
+    return false;
+
+  auto it = _lst_command.find(name);
   return it != _lst_command.end() && it->second.thread_safe;
 }
 
