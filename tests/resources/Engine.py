@@ -395,7 +395,7 @@ class EngineInstance:
         retval += "}\n"
         return retval
 
-    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: str, sensitivity: float = 0.0):
         """
             Create an anomaly detection service.
             Example:
@@ -2164,7 +2164,7 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     return retval
 
 
-def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: str, sensitivity: float = 0.0):
     """
     Create an anomaly detection on the engine instance with the given index.
 
@@ -2870,6 +2870,28 @@ def ctn_enable_service_flap_detection(use_grpc: int, hst: str, svc: str):
         cmd = f"[{now}] ENABLE_SVC_FLAP_DETECTION;{hst};{svc}\n"
         with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
             f.write(cmd)
+
+
+def ctn_disable_flap_detection():
+    """
+    Disable the flap detection on a program wide basis. Unlike the per object
+    commands, this one walks every host and every service of the poller.
+    """
+    now = int(time.time())
+    cmd = f"[{now}] DISABLE_FLAP_DETECTION\n"
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
+
+
+def ctn_enable_flap_detection():
+    """
+    Enable the flap detection on a program wide basis. Unlike the per object
+    commands, this one walks every host and every service of the poller.
+    """
+    now = int(time.time())
+    cmd = f"[{now}] ENABLE_FLAP_DETECTION\n"
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def ctn_disable_host_notifications(use_grpc: int, hst: str):
@@ -4376,7 +4398,7 @@ def ctn_change_global_svc_event_handler(var_value: str):
 
 
 @ctn_external_command
-def ctn_set_svc_notification_number(host_name: string, svc_description: string, value):
+def ctn_set_svc_notification_number(host_name: str, svc_description: str, value):
     """
     Change the notification number of a service.
 
@@ -4391,7 +4413,7 @@ def ctn_set_svc_notification_number(host_name: string, svc_description: string, 
     return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
 
-def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
+def ctn_create_anomaly_threshold_file(path: str, host_id: int, service_id: int, metric_name: str, values: array):
     """
     Create an anomaly detection threshold file using version 1.
 
@@ -4431,7 +4453,7 @@ def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: in
 """)
 
 
-def ctn_create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
+def ctn_create_anomaly_threshold_file_V2(path: str, host_id: int, service_id: int, metric_name: str, sensitivity: float, values: array):
     """
     Create an anomaly threshold file using the version 2.
 

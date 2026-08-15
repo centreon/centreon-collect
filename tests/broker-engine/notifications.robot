@@ -1986,6 +1986,99 @@ SRV_NOTIF_SUPPR_DURING_DT_BROKER
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+SRV_NOTIF_SUPPR_DURING_FLAPPING_BROKER
+    [Documentation]    Scenario: in notification_mode=broker, notifications are suppressed while a service is flapping
+    ...    Given a passive service with a contact, in notification_mode=broker (BBDO3)
+    ...    And flap detection enabled on that service
+    ...    When the service flaps and then enters a CRITICAL HARD state
+    ...    Then Broker suppresses the notification because of the flapping
+    ...    And no execution is dispatched to the poller
+    ...    When flap detection is disabled on the service
+    ...    Then Broker dispatches the CRITICAL notification
+    [Tags]    broker    engine    services    notification    flapping
+    Ctn Clear Commands Status
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
+    Ctn Config Notifications
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    core    info
+    # The suppression message asserted below is logged on the notifications
+    # channel at debug level, so enable it.
+    Ctn Broker Config Log    central    notifications    debug
+    Ctn Engine Config Set Value    0    enable_flap_detection    1
+    Ctn Set Services Passive    ${0}    service_1
+    Ctn Engine Config Set Value In Services    0    service_1    flap_detection_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    low_flap_threshold    10
+    Ctn Engine Config Set Value In Services    0    service_1    high_flap_threshold    20
+    Ctn Engine Config Set Value In Services    0    service_1    flap_detection_options    all
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    ${start}    Get Current Date
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Wait until Broker has received and stored the poller's centralized config,
+    # so the contact is in its cache before the first notification decision.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
+
+    # Make the service flap. Stop as soon as the flag is set: the CRITICAL states
+    # crossed on the way do dispatch notifications, which is expected, the
+    # suppression is only asserted below once the flag is up.
+    ${flapping}    Set Variable    ${False}
+    FOR    ${index}    IN RANGE    21
+        Ctn Process Service Result Hard    host_1    service_1    ${2}    flapping
+        Ctn Process Service Check Result    host_1    service_1    ${0}    flapping
+        Sleep    1s
+        ${flapping}    Ctn Check Service Flapping Value    host_1    service_1    ${1}    ${1}
+        IF    ${flapping}    BREAK
+    END
+    Should Be True    ${flapping}    service_1 never started flapping
+
+    # From here on, Broker knows the service flaps: that flag reached its cache
+    # through the service status, and feeds resource_state::flapping.
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    This notifier is flapping, so we won't send notifications.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should have suppressed the notification because of the flapping
+
+    ${content}    Create List    dispatched notification execution for resource
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
+    Should Not Be True    ${result}    Broker must not dispatch a notification while the service is flapping
+
+    # Disabling flap detection clears the flag and republishes the status, so Broker
+    # reevaluates and dispatches the CRITICAL notification it had suppressed.
+    ${start}    Ctn Get Round Current Date
+    Ctn Disable Service Flap Detection    ${0}    host_1    service_1
+    ${result}    Ctn Check Service Flapping Value    host_1    service_1    ${0}    ${30}
+    Should Be True    ${result}    The flapping flag of (host_1,service_1) has not been cleared
+
+    ${content}    Create List    dispatched notification execution for resource
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    90
+    Should Be True    ${result}    Broker did not dispatch the CRITICAL notification once the flapping was cleared
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The poller did not run the dispatched CRITICAL notification command
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 SRV_REC_NOTIF_AFTER_ACK_BROKER
     [Documentation]    Scenario: in notification_mode=broker, a recovery notification is sent after an acknowledged problem recovers
     ...    Given a service with a contact, in notification_mode=broker (BBDO3)

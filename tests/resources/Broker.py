@@ -235,10 +235,10 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "trace",
+                "core": "info",
                 "config": "debug",
                 "sql": "debug",
-                "processing": "debug",
+                "processing": "info",
                 "perfdata": "debug",
                 "bbdo": "debug",
                 "tcp": "debug",
@@ -297,7 +297,7 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "trace",
+                "core": "info",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
