@@ -351,7 +351,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
     run_host_event_handler(mac, hst);
 
   /* send data to event broker */
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, nullptr);
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, {});
 
   return OK;
 }

@@ -18,6 +18,9 @@
 
 #include "utf8.hh"
 
+#include <cassert>
+#include <cstdint>
+
 /**
  * @brief Checks if the string given as parameter is a real UTF-8 string.
  * If it is not, it tries to convert it to UTF-8. Encodings correctly changed

@@ -22,6 +22,8 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
+#include <string_view>
+
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
@@ -368,7 +370,7 @@ void broker_downtime_data(int type,
                           unsigned long downtime_id);
 void broker_external_command(int type,
                              int command_type,
-                             char* command_args);
+                             std::string_view command_args);
 template <typename G>
 void broker_group(int type, const G* group);
 

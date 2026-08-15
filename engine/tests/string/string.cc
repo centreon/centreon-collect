@@ -115,57 +115,90 @@ TEST(string_utils, removeThresholdsMoreComplex2) {
 
 TEST(string_utils, c_strtok_test1) {
   string::c_strtok parse("toto;;titi|tata\n");
-  ASSERT_EQ(*parse.extract(';'), "toto");
-  ASSERT_EQ(*parse.extract(';'), "");
-  ASSERT_EQ(*parse.extract('|'), "titi");
-  ASSERT_EQ(*parse.extract('\n'), "tata");
-  ASSERT_EQ(*parse.extract('*'), "");
-  ASSERT_FALSE(parse.extract('*'));
+  std::string_view v;
+  ASSERT_TRUE(parse.extract(';', v));
+  ASSERT_EQ(v, "toto");
+  ASSERT_TRUE(parse.extract(';', v));
+  ASSERT_EQ(v, "");
+  ASSERT_TRUE(parse.extract('|', v));
+  ASSERT_EQ(v, "titi");
+  ASSERT_TRUE(parse.extract('\n', v));
+  ASSERT_EQ(v, "tata");
+  ASSERT_TRUE(parse.extract('*', v));
+  ASSERT_EQ(v, "");
+  ASSERT_FALSE(parse.extract('*', v));
 }
 
 TEST(string_utils, c_strtok_test2) {
   string::c_strtok parse("toto;;titi|tata\n");
-  ASSERT_EQ(*parse.extract(';'), "toto");
-  ASSERT_EQ(*parse.extract('&'), ";titi|tata\n");
-  ASSERT_FALSE(parse.extract('\n'));
+  std::string_view v;
+  ASSERT_TRUE(parse.extract(';', v));
+  ASSERT_EQ(v, "toto");
+  ASSERT_TRUE(parse.extract('&', v));
+  ASSERT_EQ(v, ";titi|tata\n");
+  ASSERT_FALSE(parse.extract('\n', v));
 }
 
 TEST(string_utils, c_strtok_test3) {
   string::c_strtok parse("|toto;;titi|tata\n");
-  ASSERT_EQ(*parse.extract('|'), "");
-  ASSERT_EQ(*parse.extract('|'), "toto;;titi");
-  ASSERT_EQ(*parse.extract('|'), "tata\n");
-  ASSERT_FALSE(parse.extract('\n'));
+  std::string_view v;
+  ASSERT_TRUE(parse.extract('|', v));
+  ASSERT_EQ(v, "");
+  ASSERT_TRUE(parse.extract('|', v));
+  ASSERT_EQ(v, "toto;;titi");
+  ASSERT_TRUE(parse.extract('|', v));
+  ASSERT_EQ(v, "tata\n");
+  ASSERT_FALSE(parse.extract('\n', v));
 }
 
 TEST(string_utils, c_strtok_test4) {
   string::c_strtok parse("toto");
-  ASSERT_EQ(*parse.extract('|'), "toto");
-  ASSERT_FALSE(parse.extract('\n'));
+  std::string_view v;
+  ASSERT_TRUE(parse.extract('|', v));
+  ASSERT_EQ(v, "toto");
+  ASSERT_FALSE(parse.extract('\n', v));
 }
 
 TEST(string_utils, c_strtok_test5) {
   string::c_strtok parse("1");
+  std::string_view v;
   int val;
   ASSERT_TRUE(parse.extract(';', val));
   ASSERT_EQ(val, 1);
-  ASSERT_FALSE(parse.extract(';'));
+  ASSERT_FALSE(parse.extract(';', v));
 }
 
 TEST(string_utils, c_strtok_test6) {
   string::c_strtok parse("toto1");
+  std::string_view v;
   int val;
   ASSERT_FALSE(parse.extract(';', val));
-  ASSERT_FALSE(parse.extract(';'));
+  ASSERT_FALSE(parse.extract(';', v));
 }
 
 TEST(string_utils, c_strtok_test7) {
   string::c_strtok parse("toto;1");
-  ASSERT_EQ(*parse.extract(';'), "toto");
+  std::string_view v;
+  ASSERT_TRUE(parse.extract(';', v));
+  ASSERT_EQ(v, "toto");
   int val;
   ASSERT_TRUE(parse.extract(';', val));
   ASSERT_EQ(val, 1);
-  ASSERT_FALSE(parse.extract(';'));
+  ASSERT_FALSE(parse.extract(';', v));
+}
+
+/**
+ * @brief The std::string flavour of extract(), used when the caller needs to
+ * keep the field beyond the lifetime of the parsed buffer.
+ */
+TEST(string_utils, c_strtok_to_string) {
+  string::c_strtok parse("toto;titi");
+  std::string s;
+  ASSERT_TRUE(parse.extract(';', s));
+  ASSERT_EQ(s, "toto");
+  ASSERT_TRUE(parse.extract(';', s));
+  ASSERT_EQ(s, "titi");
+  ASSERT_FALSE(parse.extract(';', s));
 }
 
 TEST(string_utils, unescape) {

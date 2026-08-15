@@ -27,7 +27,6 @@
 extern "C" {
 #endif  // C++
 
-char* my_strtok(char const* buffer, char const* tokens);
 void get_datetime_string(time_t const* raw_time,
                          char* buffer,
                          int buffer_length,

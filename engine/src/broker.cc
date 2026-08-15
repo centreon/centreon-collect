@@ -1841,7 +1841,7 @@ void broker_downtime_data(int type,
 
 static void forward_external_command(int type,
                                      int command_type,
-                                     char* command_args,
+                                     std::string_view command_args,
                                      const struct timeval& timestamp) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
@@ -1853,7 +1853,7 @@ static void forward_external_command(int type,
           "callbacks: generating host custom variable update event");
 
       // Split argument string.
-      if (command_args) {
+      if (!command_args.empty()) {
         std::list<std::string> l{
             absl::StrSplit(common::check_string_utf8(command_args), ';')};
         if (l.size() != 3)
@@ -1890,7 +1890,7 @@ static void forward_external_command(int type,
           "callbacks: generating service custom variable update event");
 
       // Split argument string.
-      if (command_args) {
+      if (!command_args.empty()) {
         std::list<std::string> l{
             absl::StrSplit(common::check_string_utf8(command_args), ';')};
         if (l.size() != 4)
@@ -1930,7 +1930,7 @@ static void forward_external_command(int type,
 
 static void forward_pb_external_command(int type,
                                         int command_type,
-                                        char* command_args,
+                                        std::string_view command_args,
                                         const struct timeval& timestamp) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: pb external command data");
@@ -1945,7 +1945,7 @@ static void forward_pb_external_command(int type,
           "callbacks: generating host custom variable update event");
 
       // Split argument string.
-      if (command_args) {
+      if (!command_args.empty()) {
         if (args_size != 3)
           SPDLOG_LOGGER_ERROR(
               neb_logger, "callbacks: invalid host custom variable command {}",
@@ -1979,7 +1979,7 @@ static void forward_pb_external_command(int type,
           "callbacks: generating service custom variable update event");
 
       // Split argument string.
-      if (command_args) {
+      if (!command_args.empty()) {
         if (args_size != 4)
           SPDLOG_LOGGER_ERROR(
               neb_logger,
@@ -2024,7 +2024,9 @@ static void forward_pb_external_command(int type,
  *  @param[in] command_args   Command args.
  *  @param[in] timestamp      Timestamp.
  */
-void broker_external_command(int type, int command_type, char* command_args) {
+void broker_external_command(int type,
+                             int command_type,
+                             std::string_view command_args) {
   // Config check.
   if (!cbm || !(pb_indexed_config.state().event_broker_options() &
                 BROKER_EXTERNALCOMMAND_DATA))

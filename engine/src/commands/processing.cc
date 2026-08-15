@@ -32,6 +32,7 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
+#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -565,11 +566,14 @@ const absl::flat_hash_map<std::string, command_info> processing::_lst_command(
  * redirectors
  ********************************************************************/
 template <void (*fptr)(host*)>
-void processing::_redirector_host(int id, time_t entry_time, char* args) {
+void processing::_redirector_host(int id,
+                                  time_t entry_time,
+                                  std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  char* name(my_strtok(args, ";"));
+  std::string_view name;
+  string::c_strtok(args).extract(';', name);
 
   host* hst{nullptr};
   host_map::const_iterator it(host::hosts.find(name));
@@ -583,12 +587,16 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
   (*fptr)(hst);
 }
 
-template <void (*fptr)(host*, char*)>
-void processing::_redirector_host(int id, time_t entry_time, char* args) {
+template <void (*fptr)(host*, std::string_view)>
+void processing::_redirector_host(int id,
+                                  time_t entry_time,
+                                  std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  std::string name(my_strtok(args, ";"));
+  string::c_strtok arg(args);
+  std::string_view name;
+  arg.extract(';', name);
 
   host* hst{nullptr};
   host_map::const_iterator it(host::hosts.find(name));
@@ -599,15 +607,23 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
     return;
   }
-  (*fptr)(hst, args + name.length() + 1);
+  /* Everything left on the line, ';' included, is for the handler. Asking the
+   * tokenizer rather than computing an offset keeps it safe when the line stops
+   * right after the name. */
+  std::string_view rest;
+  arg.extract('\n', rest);
+  (*fptr)(hst, rest);
 }
 
 template <void (*fptr)(host*)>
-void processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
+void processing::_redirector_hostgroup(int id,
+                                       time_t entry_time,
+                                       std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  char* group_name(my_strtok(args, ";"));
+  std::string_view group_name;
+  string::c_strtok(args).extract(';', group_name);
 
   hostgroup* group(nullptr);
   hostgroup_map::const_iterator it{hostgroup::hostgroups.find(group_name)};
@@ -627,12 +643,16 @@ void processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
 }
 
 template <void (*fptr)(service*)>
-void processing::_redirector_service(int id, time_t entry_time, char* args) {
+void processing::_redirector_service(int id,
+                                     time_t entry_time,
+                                     std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  char* name(my_strtok(args, ";"));
-  char* description(my_strtok(NULL, ";"));
+  string::c_strtok arg(args);
+  std::string name, description;
+  arg.extract(';', name);
+  arg.extract(';', description);
 
   service_map::const_iterator found(
       service::services.find({name, description}));
@@ -645,13 +665,17 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
   (*fptr)(found->second.get());
 }
 
-template <void (*fptr)(service*, char*)>
-void processing::_redirector_service(int id, time_t entry_time, char* args) {
+template <void (*fptr)(service*, std::string_view)>
+void processing::_redirector_service(int id,
+                                     time_t entry_time,
+                                     std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  std::string name{my_strtok(args, ";")};
-  std::string description{my_strtok(NULL, ";")};
+  string::c_strtok arg(args);
+  std::string name, description;
+  arg.extract(';', name);
+  arg.extract(';', description);
   service_map::const_iterator found{
       service::services.find({name, description})};
 
@@ -660,17 +684,20 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
                         description, name);
     return;
   }
-  (*fptr)(found->second.get(), args + name.length() + description.length() + 2);
+  std::string_view rest;
+  arg.extract('\n', rest);
+  (*fptr)(found->second.get(), rest);
 }
 
 template <void (*fptr)(service*)>
 void processing::_redirector_servicegroup(int id,
                                           time_t entry_time,
-                                          char* args) {
+                                          std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  char* group_name(my_strtok(args, ";"));
+  std::string_view group_name;
+  string::c_strtok(args).extract(';', group_name);
   servicegroup_map::const_iterator sg_it{
       servicegroup::servicegroups.find(group_name)};
   if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
@@ -689,11 +716,12 @@ void processing::_redirector_servicegroup(int id,
 template <void (*fptr)(host*)>
 void processing::_redirector_servicegroup(int id,
                                           time_t entry_time,
-                                          char* args) {
+                                          std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  char* group_name(my_strtok(args, ";"));
+  std::string_view group_name;
+  string::c_strtok(args).extract(';', group_name);
   servicegroup_map::const_iterator sg_it{
       servicegroup::servicegroups.find(group_name)};
   if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
@@ -719,11 +747,14 @@ void processing::_redirector_servicegroup(int id,
 }
 
 template <void (*fptr)(contact*)>
-void processing::_redirector_contact(int id, time_t entry_time, char* args) {
+void processing::_redirector_contact(int id,
+                                     time_t entry_time,
+                                     std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  char* name(my_strtok(args, ";"));
+  std::string_view name;
+  string::c_strtok(args).extract(';', name);
   contact_map::const_iterator ct_it{contact::contacts.find(name)};
   if (ct_it == contact::contacts.end()) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown contact: {}", name);
@@ -732,22 +763,24 @@ void processing::_redirector_contact(int id, time_t entry_time, char* args) {
   (*fptr)(ct_it->second.get());
 }
 
-template <void (*fptr)(char*)>
+template <void (*fptr)(std::string_view)>
 void processing::_redirector_file(int id __attribute__((unused)),
                                   time_t entry_time __attribute__((unused)),
-                                  char* args) {
-  char* filename(my_strtok(args, ";"));
+                                  std::string_view args) {
+  std::string_view filename;
+  string::c_strtok(args).extract(';', filename);
   (*fptr)(filename);
 }
 
 template <void (*fptr)(contact*)>
 void processing::_redirector_contactgroup(int id,
                                           time_t entry_time,
-                                          char* args) {
+                                          std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  char* group_name(my_strtok(args, ";"));
+  std::string_view group_name;
+  string::c_strtok(args).extract(';', group_name);
   contactgroup_map::iterator it_cg{
       contactgroup::contactgroups.find(group_name)};
   if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
@@ -763,15 +796,17 @@ void processing::_redirector_contactgroup(int id,
       (*fptr)(it->second.get());
 }
 
-template <void (*fptr)(anomalydetection*, char*)>
+template <void (*fptr)(anomalydetection*, std::string_view)>
 void processing::_redirector_anomalydetection(int id,
                                               time_t entry_time,
-                                              char* args) {
+                                              std::string_view args) {
   (void)id;
   (void)entry_time;
 
-  std::string name{my_strtok(args, ";")};
-  std::string description{my_strtok(NULL, ";")};
+  string::c_strtok arg(args);
+  std::string name, description;
+  arg.extract(';', name);
+  arg.extract(';', description);
   service_map::const_iterator found{
       service::services.find({name, description})};
 
@@ -789,7 +824,9 @@ void processing::_redirector_anomalydetection(int id,
 
   std::shared_ptr<anomalydetection> ano =
       std::static_pointer_cast<anomalydetection>(found->second);
-  (*fptr)(ano.get(), args + name.length() + description.length() + 2);
+  std::string_view rest;
+  arg.extract('\n', rest);
+  (*fptr)(ano.get(), rest);
 }
 
 namespace {
@@ -847,12 +884,12 @@ bool split_command_line(std::string_view line,
 
 }  // namespace
 
-bool processing::execute(const std::string& cmdstr) {
+bool processing::execute(std::string_view cmdstr) {
   functions_logger->trace("processing external command {}", cmdstr);
 
-  std::string_view command_name, args_view;
+  std::string_view command_name, args;
   time_t entry_time = 0;
-  if (!split_command_line(cmdstr, command_name, args_view, entry_time))
+  if (!split_command_line(cmdstr, command_name, args, entry_time))
     return false;
 
   int command_id(CMD_CUSTOM_COMMAND);
@@ -865,12 +902,6 @@ bool processing::execute(const std::string& cmdstr) {
         "Warning: Unrecognized external command -> {}", command_name);
     return false;
   }
-
-  /* The handlers below take a char*, so the arguments have to be materialized
-   * into a null terminated buffer. Passing a string_view all the way down would
-   * mean reworking my_strtok() and the 21 handler signatures, which is a job of
-   * its own. */
-  std::string args{args_view};
 
   // Update statistics for external commands.
   update_check_stats(EXTERNAL_COMMAND_STATS, std::time(nullptr));
@@ -895,15 +926,13 @@ bool processing::execute(const std::string& cmdstr) {
   SPDLOG_LOGGER_DEBUG(external_command_logger, "Command arguments: {}", args);
 
   // Send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, command_id,
-                          const_cast<char*>(args.c_str()));
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, command_id, args);
 
   if (it != _lst_command.end())
-    (*it->second.func)(command_id, entry_time, const_cast<char*>(args.c_str()));
+    (*it->second.func)(command_id, entry_time, args);
 
   // Send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, command_id,
-                          const_cast<char*>(args.c_str()));
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, command_id, args);
   return true;
 }
 
@@ -914,7 +943,7 @@ bool processing::execute(const std::string& cmdstr) {
  *
  *  @return True if command is thread-safe.
  */
-bool processing::is_thread_safe(char const* cmd) {
+bool processing::is_thread_safe(std::string_view cmd) {
   std::string_view name, args;
   time_t entry_time;
   if (!split_command_line(cmd, name, args, entry_time))
@@ -991,8 +1020,9 @@ void processing::_wrapper_enable_host_svc_checks(host* hst) {
       enable_service_checks(it->second);
 }
 
-void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
-  if (hst && args) {
+void processing::_wrapper_set_host_notification_number(host* hst,
+                                                       std::string_view args) {
+  if (hst && !args.empty()) {
     int notification_number;
     if (!absl::SimpleAtoi(args, &notification_number)) {
       SPDLOG_LOGGER_ERROR(
@@ -1006,11 +1036,13 @@ void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
   }
 }
 
-void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
-  char* buf[3] = {NULL, NULL, NULL};
+void processing::_wrapper_send_custom_host_notification(host* hst,
+                                                        std::string_view args) {
+  std::string_view buf[3];
   int option;
-  if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
-      (buf[2] = my_strtok(NULL, ";"))) {
+  string::c_strtok arg(args);
+  if (arg.extract(';', buf[0]) && arg.extract(';', buf[1]) &&
+      arg.extract(';', buf[2])) {
     if (!absl::SimpleAtoi(buf[0], &option)) {
       SPDLOG_LOGGER_ERROR(
           runtime_logger,
@@ -1018,7 +1050,8 @@ void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
           "integer between 0 and 7",
           buf[0]);
     } else if (option >= 0 && option <= 7) {
-      hst->notify(notifications::reason_custom, buf[1], buf[2],
+      hst->notify(notifications::reason_custom, std::string{buf[1]},
+                  std::string{buf[2]},
                   static_cast<notifications::notification_option>(option));
     } else {
       SPDLOG_LOGGER_ERROR(
@@ -1078,11 +1111,13 @@ void processing::_wrapper_disable_passive_service_checks(host* hst) {
       disable_passive_service_checks(it->second);
 }
 
-void processing::_wrapper_set_service_notification_number(service* svc,
-                                                          char* args) {
-  char* str(my_strtok(args, ";"));
+void processing::_wrapper_set_service_notification_number(
+    service* svc,
+    std::string_view args) {
+  std::string_view str;
+  string::c_strtok(args).extract(';', str);
   int notification_number;
-  if (svc && str) {
+  if (svc && !str.empty()) {
     if (!absl::SimpleAtoi(str, &notification_number)) {
       SPDLOG_LOGGER_ERROR(
           runtime_logger,
@@ -1095,12 +1130,14 @@ void processing::_wrapper_set_service_notification_number(service* svc,
   }
 }
 
-void processing::_wrapper_send_custom_service_notification(service* svc,
-                                                           char* args) {
-  char* buf[3] = {NULL, NULL, NULL};
+void processing::_wrapper_send_custom_service_notification(
+    service* svc,
+    std::string_view args) {
+  std::string_view buf[3];
   int notification_number;
-  if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
-      (buf[2] = my_strtok(NULL, ";"))) {
+  string::c_strtok arg(args);
+  if (arg.extract(';', buf[0]) && arg.extract(';', buf[1]) &&
+      arg.extract(';', buf[2])) {
     if (!absl::SimpleAtoi(buf[0], &notification_number)) {
       SPDLOG_LOGGER_ERROR(
           runtime_logger,
@@ -1109,7 +1146,8 @@ void processing::_wrapper_send_custom_service_notification(service* svc,
           buf[0]);
     } else if (notification_number >= 0 && notification_number <= 7) {
       svc->notify(
-          notifications::reason_custom, buf[1], buf[2],
+          notifications::reason_custom, std::string{buf[1]},
+          std::string{buf[2]},
           static_cast<notifications::notification_option>(notification_number));
     } else {
       SPDLOG_LOGGER_ERROR(
@@ -1122,7 +1160,7 @@ void processing::_wrapper_send_custom_service_notification(service* svc,
 }
 
 void processing::change_anomaly_detection_sensitivity(anomalydetection* ano,
-                                                      char* args) {
+                                                      std::string_view args) {
   double new_sensitivity;
   if (absl::SimpleAtod(args, &new_sensitivity)) {
     ano->set_sensitivity(new_sensitivity);

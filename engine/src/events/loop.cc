@@ -487,8 +487,7 @@ void loop::_dispatching() {
       // often as possible.
       if (command_check_interval == -1) {
         // Send data to event broker.
-        broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE,
-                                nullptr);
+        broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, {});
       }
 
       auto t1 = std::chrono::system_clock::now();

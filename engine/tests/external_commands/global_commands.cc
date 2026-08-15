@@ -20,6 +20,8 @@
 #include <gtest/gtest.h>
 
 #include "com/centreon/engine/commands/processing.hh"
+#include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "helper.hh"
 
@@ -110,4 +112,65 @@ TEST_F(GlobalExternalCommand, SurroundingBlanksAreAccepted) {
   ASSERT_TRUE(commands::processing::execute(
       fmt::format("  [ {} ] DISABLE_FLAP_DETECTION\n", std::time(nullptr))));
   ASSERT_FALSE(pb_indexed_config.state().enable_flap_detection());
+}
+
+/**
+ * @brief SHUTDOWN_PROGRAM takes no argument at all, and that means "now". This
+ * is the one place where the c_strtok migration had to keep an explicit guard:
+ * unlike my_strtok(), extract() reports success with an empty field there, so
+ * without it the empty argument would have been parsed as an invalid integer
+ * and the command would have done nothing.
+ */
+TEST_F(GlobalExternalCommand, ShutdownProgramWithoutArgumentIsImmediate) {
+  ASSERT_TRUE(commands::processing::execute(line("SHUTDOWN_PROGRAM")));
+
+  auto& l = events::loop::instance();
+  auto it = l.find_event(events::loop::high,
+                         timed_event::EVENT_PROGRAM_SHUTDOWN, nullptr);
+  ASSERT_NE(it, l.list_end(events::loop::high));
+  ASSERT_EQ((*it)->run_time, 0);
+  l.clear();
+}
+
+/**
+ * @brief With an argument, the shutdown is scheduled at the given time.
+ */
+TEST_F(GlobalExternalCommand, ShutdownProgramWithATimeIsScheduled) {
+  ASSERT_TRUE(commands::processing::execute(line("SHUTDOWN_PROGRAM;30000")));
+
+  auto& l = events::loop::instance();
+  auto it = l.find_event(events::loop::high,
+                         timed_event::EVENT_PROGRAM_SHUTDOWN, nullptr);
+  ASSERT_NE(it, l.list_end(events::loop::high));
+  ASSERT_EQ((*it)->run_time, 30000);
+  l.clear();
+}
+
+/**
+ * @brief DELAY_HOST_NOTIFICATION, whose delay is the last field of the line.
+ */
+TEST_F(GlobalExternalCommand, DelayHostNotification) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_srv");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  ASSERT_NO_THROW(hst_aply.add_object(hst));
+
+  ASSERT_TRUE(commands::processing::execute(
+      line("DELAY_HOST_NOTIFICATION;test_srv;40000")));
+  auto it = host::hosts.find("test_srv");
+  ASSERT_NE(it, host::hosts.end());
+  ASSERT_EQ(it->second->get_next_notification(), 40000);
+}
+
+/**
+ * @brief An unknown host is rejected, and a missing delay too.
+ */
+TEST_F(GlobalExternalCommand, DelayHostNotificationRejectsBadArguments) {
+  ASSERT_TRUE(commands::processing::execute(
+      line("DELAY_HOST_NOTIFICATION;no_such_host;40000")));
+  ASSERT_TRUE(
+      commands::processing::execute(line("DELAY_HOST_NOTIFICATION;test_srv")));
 }

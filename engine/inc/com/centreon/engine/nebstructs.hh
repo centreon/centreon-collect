@@ -55,7 +55,7 @@ typedef struct nebstruct_external_command_struct {
   int type;
   struct timeval timestamp;
   int command_type;
-  char* command_args;
+  std::string_view command_args;
 } nebstruct_external_command_data;
 
 /* Flapping data structure. */
