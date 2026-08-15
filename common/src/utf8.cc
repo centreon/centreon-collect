@@ -18,6 +18,8 @@
 
 #include "utf8.hh"
 
+#include <cassert>
+#include <cstdint>
 #ifdef _WIN32
 #include <windows.h>
 #endif

@@ -39,7 +39,6 @@ class DowntimeFinderFindMatchingAllTest : public TestEngine {
 
  public:
   void SetUp() override {
-    configuration::error_cnt err;
     _state_hlp = init_config_state();
     configuration::Contact ctc{
         new_pb_configuration_contact("admin", false, "a")};

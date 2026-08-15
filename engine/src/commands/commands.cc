@@ -145,19 +145,20 @@ void process_external_command(const char* cmd) {
 /******************************************************************/
 
 /* adds a host or service comment to the status log */
-int cmd_add_comment(int cmd, time_t entry_time, char* args) {
-  char* temp_ptr(nullptr);
+int cmd_add_comment(int cmd, time_t entry_time, std::string_view args) {
   host* temp_host(nullptr);
-  char* host_name;
-  char* svc_description(nullptr);
-  char* user(nullptr);
-  char* comment_data(nullptr);
+  std::string host_name;
+  std::string svc_description;
+  std::string user;
+  std::string comment_data;
   bool persistent{false};
   uint64_t service_id = 0;
   const char* command_name;
 
+  string::c_strtok arg(args);
+
   /* get the host name */
-  if ((host_name = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', host_name))
     return ERROR;
 
   /* if we're adding a service comment...  */
@@ -165,7 +166,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     command_name = "ADD_SVC_COMMENT";
 
     /* get the service description */
-    if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+    if (!arg.extract(';', svc_description))
       return ERROR;
 
     /* verify that the service is valid */
@@ -187,7 +188,8 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   /* get the persistent flag */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  std::string_view temp_ptr;
+  if (!arg.extract(';', temp_ptr))
     return ERROR;
 
   if (!absl::SimpleAtob(temp_ptr, &persistent)) {
@@ -198,11 +200,11 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   }
 
   /* get the name of the user who entered the comment */
-  if ((user = my_strtok(nullptr, ";")) == nullptr)
+  if (!arg.extract(';', user))
     return ERROR;
 
-  /* get the comment */
-  if ((comment_data = my_strtok(nullptr, "\n")) == nullptr)
+  /* get the comment, which is the rest of the line and may hold ';' */
+  if (!arg.extract('\n', comment_data))
     return ERROR;
 
   /* add the comment */
@@ -215,7 +217,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
 }
 
 /* removes a host or service comment from the status log */
-int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
+int cmd_delete_comment(int cmd [[maybe_unused]], std::string_view args) {
   uint64_t comment_id{0};
   /* get the comment id we should delete */
   if (!absl::SimpleAtoi(args, &comment_id)) {
@@ -231,12 +233,14 @@ int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
 }
 
 /* removes all comments associated with a host or service from the status log */
-int cmd_delete_all_comments(int cmd, char* args) {
-  char* host_name(nullptr);
-  char* svc_description(nullptr);
+int cmd_delete_all_comments(int cmd, std::string_view args) {
+  std::string host_name;
+  std::string svc_description;
+
+  string::c_strtok arg(args);
 
   /* get the host name */
-  if ((host_name = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', host_name))
     return ERROR;
 
   host* temp_host = nullptr;
@@ -244,7 +248,7 @@ int cmd_delete_all_comments(int cmd, char* args) {
   /* if we're deleting service comments...  */
   if (cmd == CMD_DEL_ALL_SVC_COMMENTS) {
     /* get the service description */
-    if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+    if (!arg.extract(';', svc_description))
       return ERROR;
 
     /* verify that the service is valid */
@@ -271,22 +275,23 @@ int cmd_delete_all_comments(int cmd, char* args) {
 }
 
 /* delays a host or service notification for given number of minutes */
-int cmd_delay_notification(int cmd, char* args) {
-  char* temp_ptr(nullptr);
+int cmd_delay_notification(int cmd, std::string_view args) {
   host* temp_host(nullptr);
-  char* host_name(nullptr);
-  char* svc_description(nullptr);
+  std::string host_name;
+  std::string svc_description;
   time_t delay_time(0);
   service_map::const_iterator found;
 
+  string::c_strtok arg(args);
+
   /* get the host name */
-  if ((host_name = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', host_name))
     return ERROR;
 
   /* if this is a service notification delay...  */
   if (cmd == CMD_DELAY_SVC_NOTIFICATION) {
     /* get the service description */
-    if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+    if (!arg.extract(';', svc_description))
       return ERROR;
 
     /* verify that the service is valid */
@@ -307,7 +312,8 @@ int cmd_delay_notification(int cmd, char* args) {
   }
 
   /* get the time that we should delay until... */
-  if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
+  std::string_view temp_ptr;
+  if (!arg.extract('\n', temp_ptr))
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
     external_command_logger->error(
@@ -327,16 +333,17 @@ int cmd_delay_notification(int cmd, char* args) {
 }
 
 /* schedules a host check at a particular time */
-int cmd_schedule_check(int cmd, char* args) {
-  char* temp_ptr(nullptr);
+int cmd_schedule_check(int cmd, std::string_view args) {
   host* temp_host(nullptr);
-  char* host_name(nullptr);
-  char* svc_description(nullptr);
+  std::string host_name;
+  std::string svc_description;
   time_t delay_time(0);
   service_map::const_iterator found;
 
+  string::c_strtok arg(args);
+
   /* get the host name */
-  if ((host_name = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', host_name))
     return ERROR;
 
   if (cmd == CMD_SCHEDULE_HOST_CHECK || cmd == CMD_SCHEDULE_FORCED_HOST_CHECK ||
@@ -351,7 +358,7 @@ int cmd_schedule_check(int cmd, char* args) {
       return ERROR;
   } else {
     /* get the service description */
-    if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+    if (!arg.extract(';', svc_description))
       return ERROR;
 
     /* verify that the service is valid */
@@ -362,7 +369,8 @@ int cmd_schedule_check(int cmd, char* args) {
   }
 
   /* get the next check time */
-  if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
+  std::string_view temp_ptr;
+  if (!arg.extract('\n', temp_ptr))
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
     external_command_logger->error(
@@ -401,16 +409,19 @@ int cmd_schedule_check(int cmd, char* args) {
 }
 
 /* schedules all service checks on a host for a particular time */
-int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
-  char* temp_ptr(nullptr);
+int cmd_schedule_host_service_checks(int cmd,
+                                     std::string_view args,
+                                     int force) {
   host* temp_host(nullptr);
-  char* host_name(nullptr);
+  std::string host_name;
   time_t delay_time(0);
 
   (void)cmd;
 
+  string::c_strtok arg(args);
+
   /* get the host name */
-  if ((host_name = my_strtok(args, ";")) == nullptr)
+  if (!arg.extract(';', host_name))
     return ERROR;
 
   /* verify that the host is valid */
@@ -422,7 +433,8 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
     return ERROR;
 
   /* get the next check time */
-  if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
+  std::string_view temp_ptr;
+  if (!arg.extract('\n', temp_ptr))
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
     external_command_logger->error(
@@ -446,12 +458,17 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
 }
 
 /* schedules a program shutdown or restart */
-void cmd_signal_process(int cmd, char* args) {
+void cmd_signal_process(int cmd, std::string_view args) {
   time_t scheduled_time(0);
-  char* temp_ptr(nullptr);
 
-  /* get the time to schedule the event */
-  if ((temp_ptr = my_strtok(args, "\n")) == nullptr)
+  string::c_strtok arg(args);
+
+  /* Get the time to schedule the event. No argument at all means now, and so
+   * does an empty one: unlike my_strtok(), c_strtok::extract() reports success
+   * with an empty field there instead of failing, and SHUTDOWN_PROGRAM is
+   * usually sent without any argument. */
+  std::string_view temp_ptr;
+  if (!arg.extract('\n', temp_ptr) || temp_ptr.empty())
     scheduled_time = 0L;
   else if (!absl::SimpleAtoi(temp_ptr, &scheduled_time)) {
     external_command_logger->error(
@@ -481,7 +498,7 @@ void cmd_signal_process(int cmd, char* args) {
  */
 int cmd_process_service_check_result(int cmd [[maybe_unused]],
                                      time_t check_time,
-                                     char* args) {
+                                     std::string_view args) {
   bool accept_passive_service_checks =
       pb_indexed_config.state().accept_passive_service_checks();
 
@@ -674,10 +691,12 @@ int process_passive_service_check(time_t check_time,
  *
  *  @return OK on success.
  */
-int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
+int cmd_process_host_check_result(int cmd,
+                                  time_t check_time,
+                                  std::string_view args) {
   (void)cmd;
 
-  if (!args)
+  if (args.empty())
     return ERROR;
 
   // Get the host name.
@@ -787,7 +806,7 @@ int process_passive_host_check(time_t check_time,
 }
 
 /* acknowledges a host or service problem */
-int cmd_acknowledge_problem(int cmd, char* args) {
+int cmd_acknowledge_problem(int cmd, std::string_view args) {
   std::string host_name;
   std::string svc_description;
   std::string ack_author;
@@ -860,7 +879,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
 }
 
 /* removes a host or service acknowledgement */
-int cmd_remove_acknowledgement(int cmd, char* args) {
+int cmd_remove_acknowledgement(int cmd, std::string_view args) {
   auto a{absl::StrSplit(args, ';')};
   auto ait = a.begin();
   if (ait == a.end())
@@ -899,7 +918,7 @@ int cmd_remove_acknowledgement(int cmd, char* args) {
 }
 
 /* schedules downtime for a specific host or service */
-int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
+int cmd_schedule_downtime(int cmd, time_t entry_time, std::string_view args) {
   host* temp_host{nullptr};
   service* temp_service{nullptr};
   host* last_host{nullptr};
@@ -1169,12 +1188,14 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
 }
 
 /* deletes scheduled host or service downtime */
-int cmd_delete_downtime(int cmd, char* args) {
+int cmd_delete_downtime(int cmd, std::string_view args) {
   uint64_t downtime_id(0);
-  char* temp_ptr(nullptr);
+
+  string::c_strtok arg(args);
 
   /* Get the id of the downtime to delete. */
-  if (nullptr == (temp_ptr = my_strtok(args, "\n")))
+  std::string_view temp_ptr;
+  if (!arg.extract('\n', temp_ptr))
     return ERROR;
 
   if (!absl::SimpleAtoi(temp_ptr, &downtime_id)) {
@@ -1197,7 +1218,7 @@ int cmd_delete_downtime(int cmd, char* args) {
  *  @param[in] cmd   Command ID.
  *  @param[in] args  Command arguments.
  */
-int cmd_delete_downtime_full(int cmd, char* args) {
+int cmd_delete_downtime_full(int cmd, std::string_view args) {
   functions_logger->trace("cmd_delete_downtime_full() args = {}", args);
   downtime_finder::criteria_set criterias;
 
@@ -1288,43 +1309,34 @@ int cmd_delete_downtime_full(int cmd, char* args) {
 ** used. Deletes scheduled host and service downtime based on hostname
 ** and optionally other filter arguments.
 */
-int cmd_delete_downtime_by_host_name(int cmd, char* args) {
-  char* temp_ptr(nullptr);
-  char* end_ptr(nullptr);
-  char* hostname(nullptr);
-  char* service_description(nullptr);
-  char* downtime_comment(nullptr);
+int cmd_delete_downtime_by_host_name(int cmd, std::string_view args) {
+  std::string hostname;
+  std::string service_description;
+  std::string downtime_comment;
   std::optional<time_t> start_time;
   int deleted(0);
 
   (void)cmd;
 
+  string::c_strtok arg(args);
+
   /* Get the host name of the downtime to delete. */
-  temp_ptr = my_strtok(args, ";");
-  if (nullptr == temp_ptr)
+  if (!arg.extract(';', hostname))
     return ERROR;
-  hostname = temp_ptr;
 
-  /* Get the optional service name. */
-  temp_ptr = my_strtok(nullptr, ";");
-  if (temp_ptr != nullptr) {
-    if (*temp_ptr != '\0')
-      service_description = temp_ptr;
+  /* Get the optional service name, then the optional start time, then the
+   * optional comment. An absent field and an empty one are equivalent here: the
+   * downtime manager takes an empty string as "no filter on that criterion". */
+  arg.extract(';', service_description);
 
-    /* Get the optional start time. */
-    temp_ptr = my_strtok(nullptr, ";");
-    if (temp_ptr != nullptr) {
-      time_t val = strtoul(temp_ptr, &end_ptr, 10);
-      if (temp_ptr != end_ptr)
-        start_time = val;
-      /* Get the optional comment. */
-      temp_ptr = my_strtok(nullptr, ";");
-      if (temp_ptr != nullptr) {
-        if (*temp_ptr != '\0')
-          downtime_comment = temp_ptr;
-      }
-    }
+  std::string_view raw_start_time;
+  if (arg.extract(';', raw_start_time)) {
+    time_t val;
+    if (absl::SimpleAtoi(raw_start_time, &val))
+      start_time = val;
   }
+
+  arg.extract(';', downtime_comment);
 
   deleted =
       downtime_manager::instance()
@@ -1337,81 +1349,50 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
 
 /* Deletes scheduled host and service downtime based on hostgroup and
  * optionally other filter arguments. */
-int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
-  char* temp_ptr(nullptr);
-  char* end_ptr(nullptr);
-  char* service_description(nullptr);
-  char* downtime_comment(nullptr);
-  char* host_name(nullptr);
+int cmd_delete_downtime_by_hostgroup_name(int cmd, std::string_view args) {
+  std::string service_description;
+  std::string downtime_comment;
+  std::string host_name;
+  std::string hostgroup_name;
   int deleted(0);
   std::optional<time_t> start_time;
 
   (void)cmd;
 
+  string::c_strtok arg(args);
+
   /* Get the host group name of the downtime to delete. */
-  temp_ptr = my_strtok(args, ";");
-  if (nullptr == temp_ptr)
+  if (!arg.extract(';', hostgroup_name))
     return ERROR;
 
-  hostgroup_map::const_iterator it{hostgroup::hostgroups.find(temp_ptr)};
+  hostgroup_map::const_iterator it{hostgroup::hostgroups.find(hostgroup_name)};
   if (it == hostgroup::hostgroups.end() || !it->second)
     return ERROR;
 
-  /* Get the optional host name. */
-  temp_ptr = my_strtok(nullptr, ";");
-  if (temp_ptr != nullptr) {
-    if (*temp_ptr != '\0')
-      host_name = temp_ptr;
+  /* Get the optional host name, service name, start time and comment. An absent
+   * field and an empty one are equivalent here, both mean "no filter on that
+   * criterion". The block reading the service name, the start time and the
+   * comment used to be duplicated, the second one silently overwriting the
+   * first with fields 6 to 8: harmless for the 5 documented fields, since the
+   * extra reads found nothing, but there is no reason to keep it. */
+  arg.extract(';', host_name);
+  arg.extract(';', service_description);
 
-    /* Get the optional service name. */
-    temp_ptr = my_strtok(nullptr, ";");
-    if (temp_ptr != nullptr) {
-      if (*temp_ptr != '\0')
-        service_description = temp_ptr;
-
-      /* Get the optional start time. */
-      temp_ptr = my_strtok(nullptr, ";");
-      if (temp_ptr != nullptr) {
-        time_t val = strtoul(temp_ptr, &end_ptr, 10);
-        if (temp_ptr != end_ptr)
-          start_time = val;
-        /* Get the optional comment. */
-        temp_ptr = my_strtok(nullptr, ";");
-        if (temp_ptr != nullptr) {
-          if (*temp_ptr != '\0')
-            downtime_comment = temp_ptr;
-        }
-      }
-    }
-
-    /* Get the optional service name. */
-    temp_ptr = my_strtok(nullptr, ";");
-    if (temp_ptr != nullptr) {
-      if (*temp_ptr != '\0')
-        service_description = temp_ptr;
-
-      /* Get the optional start time. */
-      temp_ptr = my_strtok(nullptr, ";");
-      if (temp_ptr != nullptr) {
-        time_t val = strtoul(temp_ptr, &end_ptr, 10);
-        if (temp_ptr != end_ptr)
-          start_time = val;
-        /* Get the optional comment. */
-        temp_ptr = my_strtok(nullptr, ";");
-        if (temp_ptr != nullptr) {
-          if (*temp_ptr != '\0')
-            downtime_comment = temp_ptr;
-        }
-      }
-    }
+  std::string_view raw_start_time;
+  if (arg.extract(';', raw_start_time)) {
+    time_t val;
+    if (absl::SimpleAtoi(raw_start_time, &val))
+      start_time = val;
   }
+
+  arg.extract(';', downtime_comment);
 
   for (host_map_unsafe::iterator it_h(it->second->members.begin()),
        end_h(it->second->members.end());
        it_h != end_h; ++it_h) {
     if (!it_h->second)
       continue;
-    if (host_name != nullptr && it_h->first != host_name)
+    if (!host_name.empty() && it_h->first != host_name)
       continue;
     deleted =
         downtime_manager::instance()
@@ -1426,27 +1407,25 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
 }
 
 /* Delete downtimes based on start time and/or comment. */
-int cmd_delete_downtime_by_start_time_comment(int cmd, char* args) {
-  char* downtime_comment(nullptr);
-  char* temp_ptr(nullptr);
-  char* end_ptr(nullptr);
+int cmd_delete_downtime_by_start_time_comment(int cmd, std::string_view args) {
+  std::string downtime_comment;
   int deleted(0);
   std::optional<time_t> start_time;
 
   (void)cmd;
 
+  string::c_strtok arg(args);
+
   /* Get start time if set. */
-  temp_ptr = my_strtok(args, ";");
-  if (temp_ptr != nullptr) {
-    time_t val = strtoul(temp_ptr, &end_ptr, 10);
-    if (temp_ptr != end_ptr)
+  std::string_view raw_start_time;
+  if (arg.extract(';', raw_start_time)) {
+    time_t val;
+    if (absl::SimpleAtoi(raw_start_time, &val))
       start_time = val;
   }
 
   /* Get comment - not sure if this should be also tokenised by ; */
-  temp_ptr = my_strtok(nullptr, "\n");
-  if ((temp_ptr != nullptr) && (*temp_ptr != '\0'))
-    downtime_comment = temp_ptr;
+  arg.extract('\n', downtime_comment);
 
   deleted =
       downtime_manager::instance()
@@ -1460,12 +1439,11 @@ int cmd_delete_downtime_by_start_time_comment(int cmd, char* args) {
 }
 
 /* changes a host or service (integer) variable */
-int cmd_change_object_int_var(int cmd, char* args) {
+int cmd_change_object_int_var(int cmd, std::string_view args) {
   host* temp_host(nullptr);
-  char* host_name(nullptr);
-  char* svc_description(nullptr);
-  char* contact_name(nullptr);
-  char const* temp_ptr(nullptr);
+  std::string host_name;
+  std::string svc_description;
+  std::string contact_name;
   int intval(0);
   double dval(0.0);
   double old_dval(0.0);
@@ -1478,6 +1456,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
   service_map::const_iterator found_svc;
   contact_map::iterator cnct;
 
+  string::c_strtok arg(args);
+
   switch (cmd) {
     case CMD_CHANGE_NORMAL_SVC_CHECK_INTERVAL:
     case CMD_CHANGE_RETRY_SVC_CHECK_INTERVAL:
@@ -1485,11 +1465,11 @@ int cmd_change_object_int_var(int cmd, char* args) {
     case CMD_CHANGE_SVC_MODATTR:
 
       /* get the host name */
-      if ((host_name = my_strtok(args, ";")) == nullptr)
+      if (!arg.extract(';', host_name))
         return ERROR;
 
       /* get the service name */
-      if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+      if (!arg.extract(';', svc_description))
         return ERROR;
 
       /* verify that the service is valid */
@@ -1504,7 +1484,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
     case CMD_CHANGE_MAX_HOST_CHECK_ATTEMPTS:
     case CMD_CHANGE_HOST_MODATTR:
       /* get the host name */
-      if ((host_name = my_strtok(args, ";")) == nullptr)
+      if (!arg.extract(';', host_name))
         return ERROR;
 
       /* verify that the host is valid */
@@ -1520,7 +1500,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
     case CMD_CHANGE_CONTACT_MODHATTR:
     case CMD_CHANGE_CONTACT_MODSATTR:
       /* get the contact name */
-      if ((contact_name = my_strtok(args, ";")) == nullptr)
+      if (!arg.extract(';', contact_name))
         return ERROR;
 
       cnct = contact::contacts.find(contact_name);
@@ -1536,12 +1516,13 @@ int cmd_change_object_int_var(int cmd, char* args) {
   }
 
   /* get the value */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  std::string temp_ptr;
+  if (!arg.extract(';', temp_ptr))
     return ERROR;
-  intval = (int)strtol(temp_ptr, nullptr, 0);
+  intval = (int)strtol(temp_ptr.c_str(), nullptr, 0);
   if (intval < 0 || (intval == 0 && errno == EINVAL))
     return ERROR;
-  dval = (int)strtod(temp_ptr, nullptr);
+  dval = (int)strtod(temp_ptr.c_str(), nullptr);
 
   switch (cmd) {
     case CMD_CHANGE_NORMAL_HOST_CHECK_INTERVAL:
@@ -1746,21 +1727,23 @@ int cmd_change_object_int_var(int cmd, char* args) {
 }
 
 /* changes a host or service (char) variable */
-int cmd_change_object_char_var(int cmd, char* args) {
+int cmd_change_object_char_var(int cmd, std::string_view args) {
   host* temp_host{nullptr};
   timeperiod* temp_timeperiod{nullptr};
-  char* host_name{nullptr};
-  char* svc_description{nullptr};
-  char* contact_name{nullptr};
-  char* charval{nullptr};
+  std::string host_name;
+  std::string svc_description;
+  std::string contact_name;
+  std::string charval;
   std::string temp_ptr;
-  char* temp_ptr2{nullptr};
+  std::string_view command_only;
   unsigned long attr{MODATTR_NONE};
   unsigned long hattr{MODATTR_NONE};
   unsigned long sattr{MODATTR_NONE};
   host_map::const_iterator it;
   service_map::const_iterator found_svc;
   contact_map::iterator cnct;
+
+  string::c_strtok arg(args);
 
   /* SECURITY PATCH - disable these for the time being */
   switch (cmd) {
@@ -1777,7 +1760,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
   switch (cmd) {
     case CMD_CHANGE_GLOBAL_HOST_EVENT_HANDLER:
     case CMD_CHANGE_GLOBAL_SVC_EVENT_HANDLER:
-      if ((charval = my_strtok(args, "\n")) == nullptr)
+      if (!arg.extract('\n', charval))
         return ERROR;
       break;
 
@@ -1786,7 +1769,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
     case CMD_CHANGE_HOST_CHECK_TIMEPERIOD:
     case CMD_CHANGE_HOST_NOTIFICATION_TIMEPERIOD:
       /* get the host name */
-      if ((host_name = my_strtok(args, ";")) == nullptr)
+      if (!arg.extract(';', host_name))
         return ERROR;
 
       /* verify that the host is valid */
@@ -1797,7 +1780,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
       if (temp_host == nullptr)
         return ERROR;
 
-      if ((charval = my_strtok(nullptr, "\n")) == nullptr)
+      if (!arg.extract('\n', charval))
         return ERROR;
       break;
 
@@ -1806,11 +1789,11 @@ int cmd_change_object_char_var(int cmd, char* args) {
     case CMD_CHANGE_SVC_CHECK_TIMEPERIOD:
     case CMD_CHANGE_SVC_NOTIFICATION_TIMEPERIOD:
       /* get the host name */
-      if ((host_name = my_strtok(args, ";")) == nullptr)
+      if (!arg.extract(';', host_name))
         return ERROR;
 
       /* get the service name */
-      if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+      if (!arg.extract(';', svc_description))
         return ERROR;
 
       /* verify that the service is valid */
@@ -1819,14 +1802,14 @@ int cmd_change_object_char_var(int cmd, char* args) {
       if (found_svc == service::services.end() || !found_svc->second)
         return ERROR;
 
-      if ((charval = my_strtok(nullptr, "\n")) == nullptr)
+      if (!arg.extract('\n', charval))
         return ERROR;
       break;
 
     case CMD_CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD:
     case CMD_CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD:
       /* get the contact name */
-      if ((contact_name = my_strtok(args, ";")) == nullptr)
+      if (!arg.extract(';', contact_name))
         return ERROR;
 
       /* verify that the contact is valid */
@@ -1834,7 +1817,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
       if (cnct == contact::contacts.end() || !cnct->second)
         return ERROR;
 
-      if ((charval = my_strtok(nullptr, "\n")) == nullptr)
+      if (!arg.extract('\n', charval))
         return ERROR;
       break;
 
@@ -1876,9 +1859,11 @@ int cmd_change_object_char_var(int cmd, char* args) {
     case CMD_CHANGE_SVC_EVENT_HANDLER:
     case CMD_CHANGE_HOST_CHECK_COMMAND:
     case CMD_CHANGE_SVC_CHECK_COMMAND:
-      /* make sure the command exists */
-      temp_ptr2 = my_strtok(temp_ptr.c_str(), "!");
-      cmd_found = commands::command::commands.find(temp_ptr2);
+      /* make sure the command exists. Only the command name is looked up, the
+       * '!' separated arguments are left aside. */
+      command_only = temp_ptr;
+      string::c_strtok(temp_ptr).extract('!', command_only);
+      cmd_found = commands::command::commands.find(command_only);
       if (cmd_found == commands::command::commands.end() ||
           !cmd_found->second) {
         return ERROR;
@@ -2029,36 +2014,29 @@ int cmd_change_object_char_var(int cmd, char* args) {
 }
 
 /* changes a custom host or service variable */
-int cmd_change_object_custom_var(int cmd, char* args) {
+int cmd_change_object_custom_var(int cmd, std::string_view args) {
+  string::c_strtok arg(args);
+
   /* get the host or contact name */
-  char* temp_ptr(index(args, ';'));
-  if (!temp_ptr)
+  std::string name1;
+  if (!arg.extract(';', name1))
     return ERROR;
-  int pos(temp_ptr - args);
-  std::string name1(args, pos);
-  args += pos + 1;
 
   /* get the service name */
   std::string name2;
   if (cmd == CMD_CHANGE_CUSTOM_SVC_VAR) {
-    temp_ptr = index(args, ';');
-    if (!temp_ptr)
+    if (!arg.extract(';', name2))
       return ERROR;
-    pos = temp_ptr - args;
-    name2 = std::string(args, pos);
-    args += pos + 1;
   }
 
   /* get the custom variable name */
-  temp_ptr = index(args, ';');
-  if (!temp_ptr)
+  std::string varname;
+  if (!arg.extract(';', varname))
     return ERROR;
-  pos = temp_ptr - args;
-  std::string varname(args, pos);
-  args += pos + 1;
 
-  /* get the custom variable value */
-  std::string varvalue{args};
+  /* get the custom variable value, which is the rest of the line */
+  std::string varvalue;
+  arg.extract('\n', varvalue);
 
   std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
 
@@ -2116,7 +2094,7 @@ int cmd_change_object_custom_var(int cmd, char* args) {
 }
 
 /* processes an external host command */
-int cmd_process_external_commands_from_file(int, char* args) {
+int cmd_process_external_commands_from_file(int, std::string_view args) {
   std::string fname;
   int delete_file;
 
@@ -2187,7 +2165,8 @@ void enable_service_checks(service* svc) {
   time(&preferred_time);
   if (svc->check_period_ptr &&
       !svc->check_period_ptr->check_time_against_period(preferred_time)) {
-    next_valid_time = svc->check_period_ptr->get_next_valid_time(preferred_time);
+    next_valid_time =
+        svc->check_period_ptr->get_next_valid_time(preferred_time);
     svc->set_next_check(next_valid_time);
   } else
     svc->set_next_check(preferred_time);
@@ -3005,7 +2984,8 @@ void enable_host_checks(host* hst) {
   time(&preferred_time);
   if (hst->check_period_ptr &&
       !hst->check_period_ptr->check_time_against_period(preferred_time)) {
-    next_valid_time = hst->check_period_ptr->get_next_valid_time(preferred_time);
+    next_valid_time =
+        hst->check_period_ptr->get_next_valid_time(preferred_time);
     hst->set_next_check(next_valid_time);
   } else
     hst->set_next_check(preferred_time);
@@ -3302,6 +3282,9 @@ void stop_obsessing_over_host(host* hst) {
                             attr);
 }
 
-void new_thresholds_file(char* filename) {
-  anomalydetection::update_thresholds(filename);
+void new_thresholds_file(std::string_view filename) {
+  /* update_thresholds() hands the name over to the JSON file loader, which
+   * needs a std::string. NEW_THRESHOLDS_FILE is a rare command, so the copy is
+   * materialized here rather than propagating string_view down to rapidjson. */
+  anomalydetection::update_thresholds(std::string{filename});
 }
