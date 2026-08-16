@@ -2492,7 +2492,7 @@ int service::run_async_check_local(int check_options,
 
   // Send event broker.
   broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
-                       checkable::check_active, processed_cmd.c_str());
+                       checkable::check_active, processed_cmd);
 
   // Restore latency.
   set_latency(old_latency);

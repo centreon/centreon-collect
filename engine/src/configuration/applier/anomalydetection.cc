@@ -17,6 +17,7 @@
  *
  */
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
@@ -49,15 +50,25 @@ void applier::anomalydetection::add_object(
                       "Creating new anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 
+  /* Converted once here, like in applier::service::add_object: configuration
+   * copy, runtime object and service::services key all hold the same strings. */
+  std::string host_name = common::check_string_utf8(obj.host_name());
+  std::string service_description =
+      common::check_string_utf8(obj.service_description());
+  std::string display_name = common::check_string_utf8(obj.display_name());
+
   // Add anomalydetection to the global configuration set.
+  auto conf_ad = std::make_unique<Anomalydetection>(obj);
+  conf_ad->set_host_name(host_name);
+  conf_ad->set_service_description(service_description);
+  conf_ad->set_display_name(display_name);
   pb_indexed_config.mut_anomalydetections().emplace(
-      std::make_pair(obj.host_id(), obj.service_id()),
-      std::make_unique<Anomalydetection>(obj));
+      std::make_pair(obj.host_id(), obj.service_id()), std::move(conf_ad));
 
   // Create anomalydetection.
   engine::anomalydetection* ad{add_anomalydetection(
-      obj.host_id(), obj.service_id(), obj.host_name(),
-      obj.service_description(), obj.display_name(), obj.internal_id(),
+      obj.host_id(), obj.service_id(), host_name,
+      service_description, display_name, obj.internal_id(),
       obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
       obj.status_change(), obj.max_check_attempts(), obj.check_interval(),
       obj.retry_interval(), obj.notification_interval(),
@@ -150,18 +161,26 @@ void applier::anomalydetection::modify_object(
   std::shared_ptr<engine::anomalydetection> s =
       std::static_pointer_cast<engine::anomalydetection>(it_obj->second);
 
+  /* Converted once, like in applier::service::modify_object: the comparison,
+   * the service::services key and the object must all hold the same strings. */
+  std::string new_host_name = common::check_string_utf8(new_obj.host_name());
+  std::string new_description =
+      common::check_string_utf8(new_obj.service_description());
+  std::string new_display_name =
+      common::check_string_utf8(new_obj.display_name());
+
   // Modify properties.
-  if (it_obj->second->get_hostname() != new_obj.host_name() ||
-      it_obj->second->description() != new_obj.service_description()) {
+  if (it_obj->second->get_hostname() != new_host_name ||
+      it_obj->second->description() != new_description) {
     engine::service::services.erase(
         {it_obj->second->get_hostname(), it_obj->second->description()});
     engine::service::services.insert(
-        {{new_obj.host_name(), new_obj.service_description()}, it_obj->second});
+        {{new_host_name, new_description}, it_obj->second});
   }
 
-  s->set_hostname(new_obj.host_name());
-  s->set_description(new_obj.service_description());
-  s->set_display_name(new_obj.display_name());
+  s->set_hostname(new_host_name);
+  s->set_description(new_description);
+  s->set_display_name(std::move(new_display_name));
   s->set_metric_name(new_obj.metric_name());
   s->set_thresholds_file(new_obj.thresholds_file());
   s->set_event_handler(new_obj.event_handler());

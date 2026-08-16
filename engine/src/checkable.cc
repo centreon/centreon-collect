@@ -127,8 +127,28 @@ const std::string& checkable::get_display_name() const {
   return _display_name;
 }
 
+/**
+ * @brief Set the display name of the checkable. If the display name is empty,
+ * it will be set to the name of the checkable. The caller is expected to hand
+ * over a UTF-8 encoded string, the configuration applier converts it.
+ *
+ * @param display_name The display name of the checkable.
+ */
 void checkable::set_display_name(const std::string& display_name) {
   _display_name = display_name.empty() ? _name : display_name;
+}
+
+/**
+ * @brief Set the display name of the checkable, moving the string in. If the
+ * display name is empty, it is set to the name of the checkable.
+ *
+ * @param display_name The display name of the checkable.
+ */
+void checkable::set_display_name(std::string&& display_name) {
+  if (display_name.empty())
+    _display_name = _name;
+  else
+    _display_name = std::move(display_name);
 }
 
 const std::string& checkable::check_command() const {
@@ -549,7 +569,8 @@ checkable::get_state_history() const {
   return _state_history;
 }
 
-std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES>& checkable::get_state_history() {
+std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES>&
+checkable::get_state_history() {
   return _state_history;
 }
 
@@ -611,6 +632,14 @@ const std::string& checkable::name() const {
   return _name;
 }
 
+/**
+ * @brief Set the name of the checkable. The caller is expected to hand over a
+ * UTF-8 encoded string: the configuration applier converts it, so that the name
+ * stored here and the one used as the host::hosts / service::services key are
+ * the very same string.
+ *
+ * @param name The name of the checkable.
+ */
 void checkable::set_name(const std::string& name) {
   _name = name;
 }
