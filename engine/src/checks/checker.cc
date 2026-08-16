@@ -276,7 +276,7 @@ void checker::run_sync(host* hst,
 
   // Send broker event.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, hst, checkable::check_active,
-                    nullptr);
+                    "");
 
   // Execute command synchronously.
   host::host_state host_result(_execute_sync(hst));
@@ -294,7 +294,7 @@ void checker::run_sync(host* hst,
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, hst, checkable::check_active,
-                    nullptr);
+                    "");
 }
 
 /**************************************
@@ -405,7 +405,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   timeval start_time{0, 0};
   timeval end_time{0, 0};
   int ret(broker_host_check(NEBTYPE_HOSTCHECK_SYNC_PRECHECK, hst,
-                            checkable::check_active, nullptr));
+                            checkable::check_active, ""));
 
   // Host sync check was cancelled or overriden by NEB module.
   if ((NEBERROR_CALLBACKCANCEL == ret) || (NEBERROR_CALLBACKOVERRIDE == ret))
@@ -427,11 +427,10 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   // Get command object.
   commands::command::pointer cmd = hst->get_check_command_ptr();
   std::string processed_cmd(cmd->process_cmd(macros));
-  const char* tmp_processed_cmd = processed_cmd.c_str();
 
   // Send broker event.
   broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, hst, checkable::check_active,
-                    processed_cmd.c_str());
+                    processed_cmd);
 
   // Debug messages.
   SPDLOG_LOGGER_TRACE(commands_logger, "Raw host check command: {}",
@@ -559,7 +558,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Send broker event.
   broker_host_check(NEBTYPE_HOSTCHECK_RAW_END, hst, checkable::check_active,
-                    tmp_processed_cmd);
+                    processed_cmd);
 
   // Termination.
   SPDLOG_LOGGER_TRACE(checks_logger, "** Sync host check done: state={}",

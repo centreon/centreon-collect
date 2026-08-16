@@ -267,7 +267,7 @@ void engine_downtime_callbacks::notify_broker(action act,
   broker_downtime_data(
       engine_action, engine_attr,
       service_id == 0 ? downtime::host_downtime : downtime::service_downtime,
-      host_id, service_id, entry_time, author.c_str(), comment.c_str(),
+      host_id, service_id, entry_time, author, comment,
       start_time, end_time, fixed, triggered_by, duration, downtime_id);
 }
 

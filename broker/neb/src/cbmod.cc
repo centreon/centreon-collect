@@ -194,8 +194,8 @@ static std::shared_ptr<neb::downtime> translate_to_legacy_downtime(
 void cbmod::add_downtime(uint64_t downtime_id,
                          uint64_t host_id,
                          uint64_t service_id,
-                         const char* author_name,
-                         const char* comment_data,
+                         std::string_view author_name,
+                         std::string_view comment_data,
                          int downtime_type,
                          time_t entry_time,
                          time_t start_time,
@@ -209,9 +209,9 @@ void cbmod::add_downtime(uint64_t downtime_id,
   obj.set_instance_id(poller_id());
   obj.set_host_id(host_id);
   obj.set_service_id(service_id);
-  if (author_name)
+  if (!author_name.empty())
     obj.set_author(common::check_string_utf8(author_name));
-  if (comment_data)
+  if (!comment_data.empty())
     obj.set_comment_data(common::check_string_utf8(comment_data));
   obj.set_type(
       static_cast<com::centreon::broker::Downtime_DowntimeType>(downtime_type));

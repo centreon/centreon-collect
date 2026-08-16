@@ -1770,8 +1770,8 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->set_last_acknowledgement(current_time);
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(temp_host.get(), request->ack_author().c_str(),
-                                request->ack_data().c_str(), request->type(),
+    broker_acknowledgement_data(temp_host.get(), request->ack_author(),
+                                request->ack_data(), request->type(),
                                 request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
@@ -1835,9 +1835,8 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->set_last_acknowledgement(current_time);
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(temp_service.get(),
-                                request->ack_author().c_str(),
-                                request->ack_data().c_str(), request->type(),
+    broker_acknowledgement_data(temp_service.get(), request->ack_author(),
+                                request->ack_data(), request->type(),
                                 request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())

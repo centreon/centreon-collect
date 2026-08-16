@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/configuration/applier/host.hh"
 
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
@@ -46,15 +47,25 @@ void applier::host::add_object(const configuration::Host& obj) {
   // Logging.
   config_logger->debug("Creating new host '{}'.", obj.host_name());
 
+  /* The applier owns the UTF-8 invariant: names are converted once, here, and
+   * the very same strings are stored in the configuration copy, given to the
+   * runtime object and used as the host::hosts key. Converting them further
+   * down would leave the configuration holding a raw variant of what the
+   * runtime holds, and the two would no longer compare equal. */
+  std::string host_name = common::check_string_utf8(obj.host_name());
+  std::string display_name = common::check_string_utf8(obj.display_name());
+
   // Add host to the global configuration set.
   auto new_host_config = std::make_unique<Host>();
   new_host_config->CopyFrom(obj);
+  new_host_config->set_host_name(host_name);
+  new_host_config->set_display_name(display_name);
   pb_indexed_config.mut_hosts().emplace(obj.host_id(),
                                         std::move(new_host_config));
 
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
-      obj.host_id(), obj.host_name(), obj.display_name(), obj.alias(),
+      obj.host_id(), host_name, display_name, obj.alias(),
       obj.address(), obj.check_period(), obj.check_interval(),
       obj.retry_interval(), obj.max_check_attempts(),
       static_cast<bool>(obj.notification_options() & action_hst_up),
@@ -170,14 +181,22 @@ void applier::host::modify_object(configuration::Host* old_obj,
         new_obj.host_name(), new_obj.host_id());
   std::shared_ptr<engine::host> h = it_obj->second;
 
+  /* Converted once, like in add_object: the comparison, the host::hosts key and
+   * the runtime object must all hold the very same string. Comparing the stored
+   * name with the raw configuration one would never match for a name needing a
+   * conversion, and would erase a key other than the inserted one. */
+  std::string new_name = common::check_string_utf8(new_obj.host_name());
+  std::string new_display_name =
+      common::check_string_utf8(new_obj.display_name());
+
   // Modify properties.
-  if (h->name() != new_obj.host_name()) {
+  if (h->name() != new_name) {
     engine::host::hosts.erase(h->name());
-    engine::host::hosts.insert({new_obj.host_name(), h});
+    engine::host::hosts.insert({new_name, h});
   }
 
-  h->set_name(new_obj.host_name());
-  h->set_display_name(new_obj.display_name());
+  h->set_name(new_name);
+  h->set_display_name(std::move(new_display_name));
   if (!new_obj.alias().empty())
     h->set_alias(new_obj.alias());
   else

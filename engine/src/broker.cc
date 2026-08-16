@@ -53,8 +53,8 @@ using namespace com::centreon::engine;
 using namespace com::centreon;
 
 template <typename R>
-static void forward_acknowledgement(const char* author_name,
-                                    const char* comment_data,
+static void forward_acknowledgement(std::string_view author_name,
+                                    std::string_view comment_data,
                                     int subtype,
                                     bool notify_contacts,
                                     bool persistent_comment,
@@ -75,9 +75,9 @@ static void forward_acknowledgement(const char* author_name,
     }
     assert(resource->host_id());
     ack->host_id = resource->host_id();
-    if (author_name)
+    if (!author_name.empty())
       ack->author = common::check_string_utf8(author_name);
-    if (comment_data)
+    if (!comment_data.empty())
       ack->comment = common::check_string_utf8(comment_data);
     ack->entry_time = time(nullptr);
     ack->poller_id = cbm->poller_id();
@@ -113,8 +113,8 @@ static void forward_acknowledgement(const char* author_name,
  *  @return 0 on success.
  */
 template <typename R>
-static void forward_pb_acknowledgement(const char* author_name,
-                                       const char* comment_data,
+static void forward_pb_acknowledgement(std::string_view author_name,
+                                       std::string_view comment_data,
                                        int subtype,
                                        bool notify_contacts,
                                        bool persistent_comment,
@@ -137,9 +137,9 @@ static void forward_pb_acknowledgement(const char* author_name,
   assert(resource->host_id());
   ack_obj.set_host_id(resource->host_id());
   // Fill output var.
-  if (author_name)
+  if (!author_name.empty())
     ack_obj.set_author(common::check_string_utf8(author_name));
-  if (comment_data)
+  if (!comment_data.empty())
     ack_obj.set_comment_data(common::check_string_utf8(comment_data));
   ack_obj.set_entry_time(time(nullptr));
   ack_obj.set_instance_id(cbm->poller_id());
@@ -165,8 +165,8 @@ static void forward_pb_acknowledgement(const char* author_name,
  */
 template <typename R>
 void broker_acknowledgement_data(R* data,
-                                 const char* ack_author,
-                                 const char* ack_data,
+                                 std::string_view ack_author,
+                                 std::string_view ack_data,
                                  int subtype,
                                  bool notify_contacts,
                                  bool persistent_comment) {
@@ -185,16 +185,16 @@ void broker_acknowledgement_data(R* data,
 
 template void broker_acknowledgement_data<com::centreon::engine::service>(
     com::centreon::engine::service* data,
-    const char* ack_author,
-    const char* ack_data,
+    std::string_view ack_author,
+    std::string_view ack_data,
     int subtype,
     bool notify_contacts,
     bool persistent_comment);
 
 template void broker_acknowledgement_data<com::centreon::engine::host>(
     com::centreon::engine::host* data,
-    const char* ack_author,
-    const char* ack_data,
+    std::string_view ack_author,
+    std::string_view ack_data,
     int subtype,
     bool notify_contacts,
     bool persistent_comment);
@@ -358,7 +358,7 @@ static void forward_host(int type,
   my_host->default_passive_checks_enabled = h->passive_checks_enabled();
   my_host->downtime_depth = h->get_scheduled_downtime_depth();
   if (!h->get_display_name().empty())
-    my_host->display_name = common::check_string_utf8(h->get_display_name());
+    my_host->display_name = h->get_display_name();
   my_host->enabled = (type != NEBTYPE_HOST_DELETE);
   if (!h->event_handler().empty())
     my_host->event_handler = common::check_string_utf8(h->event_handler());
@@ -377,7 +377,7 @@ static void forward_host(int type,
   my_host->has_been_checked = h->has_been_checked();
   my_host->high_flap_threshold = h->get_high_flap_threshold();
   if (!h->name().empty())
-    my_host->host_name = common::check_string_utf8(h->name());
+    my_host->host_name = h->name();
   if (!h->get_icon_image().empty())
     my_host->icon_image = common::check_string_utf8(h->get_icon_image());
   if (!h->get_icon_image_alt().empty())
@@ -558,7 +558,7 @@ static void forward_pb_host(int type,
     host.set_default_passive_checks(eh->passive_checks_enabled());
     host.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
     if (!eh->get_display_name().empty())
-      host.set_display_name(common::check_string_utf8(eh->get_display_name()));
+      host.set_display_name(eh->get_display_name());
     host.set_enabled(type != NEBTYPE_HOST_DELETE);
     if (!eh->event_handler().empty())
       host.set_event_handler(common::check_string_utf8(eh->event_handler()));
@@ -578,7 +578,7 @@ static void forward_pb_host(int type,
     host.set_checked(eh->has_been_checked());
     host.set_high_flap_threshold(eh->get_high_flap_threshold());
     if (!eh->name().empty())
-      host.set_name(common::check_string_utf8(eh->name()));
+      host.set_name(eh->name());
     if (!eh->get_icon_image().empty())
       host.set_icon_image(common::check_string_utf8(eh->get_icon_image()));
     if (!eh->get_icon_image_alt().empty())
@@ -745,8 +745,7 @@ static void forward_service(int type,
     my_service->default_passive_checks_enabled = s->passive_checks_enabled();
     my_service->downtime_depth = s->get_scheduled_downtime_depth();
     if (!s->get_display_name().empty())
-      my_service->display_name =
-          common::check_string_utf8(s->get_display_name());
+      my_service->display_name = s->get_display_name();
     my_service->enabled = type != NEBTYPE_SERVICE_DELETE;
     if (!s->event_handler().empty())
       my_service->event_handler = common::check_string_utf8(s->event_handler());
@@ -767,7 +766,7 @@ static void forward_service(int type,
     my_service->has_been_checked = s->has_been_checked();
     my_service->high_flap_threshold = s->get_high_flap_threshold();
     if (!s->get_hostname().empty())
-      my_service->host_name = common::check_string_utf8(s->get_hostname());
+      my_service->host_name = s->get_hostname();
     if (!s->get_icon_image().empty())
       my_service->icon_image = common::check_string_utf8(s->get_icon_image());
     if (!s->get_icon_image_alt().empty())
@@ -828,8 +827,7 @@ static void forward_service(int type,
     my_service->retain_status_information = s->get_retain_status_information();
     my_service->retry_interval = s->retry_interval();
     if (!s->description().empty())
-      my_service->service_description =
-          common::check_string_utf8(s->description());
+      my_service->service_description = s->description();
     my_service->should_be_scheduled = s->get_should_be_scheduled();
     my_service->stalk_on_critical =
         s->get_stalk_on(common::notifications::critical);
@@ -1053,7 +1051,7 @@ static void forward_pb_service(int type,
     srv.set_default_passive_checks(es->passive_checks_enabled());
     srv.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
     if (!es->get_display_name().empty())
-      srv.set_display_name(common::check_string_utf8(es->get_display_name()));
+      srv.set_display_name(es->get_display_name());
     srv.set_enabled(type != NEBTYPE_SERVICE_DELETE);
     if (!es->event_handler().empty())
       srv.set_event_handler(common::check_string_utf8(es->event_handler()));
@@ -1076,10 +1074,9 @@ static void forward_pb_service(int type,
     srv.set_checked(es->has_been_checked());
     srv.set_high_flap_threshold(es->get_high_flap_threshold());
     if (!es->description().empty())
-      srv.set_description(common::check_string_utf8(es->description()));
+      srv.set_description(es->description());
     if (!es->get_hostname().empty()) {
-      std::string name{common::check_string_utf8(es->get_hostname())};
-      *srv.mutable_host_name() = std::move(name);
+      *srv.mutable_host_name() = es->get_hostname();
     }
     fill_service_type(srv, es);
 
@@ -1217,8 +1214,8 @@ static void forward_comment(int type,
                             uint64_t host_id,
                             uint64_t service_id,
                             time_t entry_time,
-                            const char* author_name,
-                            const char* comment_text,
+                            std::string_view author_name,
+                            std::string_view comment_text,
                             bool persistent,
                             com::centreon::engine::comment::src source,
                             bool expires,
@@ -1232,9 +1229,9 @@ static void forward_comment(int type,
     auto comment{std::make_shared<neb::comment>()};
 
     // Fill output var.
-    if (author_name)
+    if (!author_name.empty())
       comment->author = common::check_string_utf8(author_name);
-    if (comment_text)
+    if (!comment_text.empty())
       comment->data = common::check_string_utf8(comment_text);
     comment->comment_type = comment_type;
     if (NEBTYPE_COMMENT_DELETE == type)
@@ -1296,8 +1293,8 @@ static void forward_pb_comment(
     uint64_t host_id,
     uint64_t service_id,
     time_t entry_time,
-    const char* author_name,
-    const char* comment_text,
+    std::string_view author_name,
+    std::string_view comment_text,
     bool persistent,
     com::centreon::engine::comment::src source,
     bool expires,
@@ -1310,9 +1307,9 @@ static void forward_pb_comment(
   com::centreon::broker::Comment& comment = h.get()->mut_obj();
 
   // Fill output var.
-  if (author_name)
+  if (!author_name.empty())
     comment.set_author(common::check_string_utf8(author_name));
-  if (comment_text)
+  if (!comment_text.empty())
     comment.set_data(common::check_string_utf8(comment_text));
   comment.set_type(comment_type == com::centreon::engine::comment::type::host
                        ? com::centreon::broker::Comment_Type_HOST
@@ -1400,8 +1397,8 @@ void broker_comment_data(int type,
                          uint64_t host_id,
                          uint64_t service_id,
                          time_t entry_time,
-                         char const* author_name,
-                         char const* comment_data,
+                         std::string_view author_name,
+                         std::string_view comment_data,
                          int persistent,
                          com::centreon::engine::comment::src source,
                          int expires,
@@ -1721,8 +1718,8 @@ static void forward_downtime(int type,
                              uint64_t host_id,
                              uint64_t service_id,
                              time_t entry_time,
-                             const char* author_name,
-                             const char* comment_data,
+                             std::string_view author_name,
+                             std::string_view comment_data,
                              time_t start_time,
                              time_t end_time,
                              bool fixed,
@@ -1820,8 +1817,8 @@ void broker_downtime_data(int type,
                           uint64_t host_id,
                           uint64_t service_id,
                           time_t entry_time,
-                          char const* author_name,
-                          char const* comment_data,
+                          std::string_view author_name,
+                          std::string_view comment_data,
                           time_t start_time,
                           time_t end_time,
                           bool fixed,
@@ -2462,7 +2459,7 @@ template void broker_group_member(int type,
 static void forward_host_check(int type,
                                const engine::host* hst,
                                int check_type,
-                               const char* cmdline) {
+                               std::string_view cmdline) {
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
@@ -2475,7 +2472,7 @@ static void forward_host_check(int type,
   auto host_check = std::make_shared<neb::host_check>();
 
   // Fill output var.
-  if (cmdline) {
+  if (!cmdline.empty()) {
     host_check->active_checks_enabled = hst->active_checks_enabled();
     host_check->check_type = check_type;
     host_check->command_line = common::check_string_utf8(cmdline);
@@ -2502,7 +2499,7 @@ static void forward_host_check(int type,
 static void forward_pb_host_check(int type,
                                   const engine::host* hst,
                                   int check_type,
-                                  const char* cmdline) {
+                                  std::string_view cmdline) {
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
@@ -2522,7 +2519,7 @@ static void forward_pb_host_check(int type,
   auto host_check = std::make_shared<neb::pb_host_check>();
 
   // Fill output var.
-  if (cmdline) {
+  if (!cmdline.empty()) {
     auto& obj = host_check->mut_obj();
     obj.set_active_checks_enabled(hst->active_checks_enabled());
     obj.set_check_type(
@@ -2552,7 +2549,7 @@ static void forward_pb_host_check(int type,
 int broker_host_check(int type,
                       const engine::host* hst,
                       int check_type,
-                      const char* cmdline) {
+                      std::string_view cmdline) {
   // Config check.
   if (!cbm ||
       !(pb_indexed_config.state().event_broker_options() & BROKER_HOST_CHECKS))
@@ -4366,7 +4363,7 @@ void broker_relation_data(int type,
 static void forward_service_check(int type,
                                   const engine::service* svc,
                                   int check_type,
-                                  const char* cmdline) noexcept {
+                                  std::string_view cmdline) noexcept {
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
@@ -4380,7 +4377,7 @@ static void forward_service_check(int type,
     // In/Out variables.
     auto service_check = std::make_shared<neb::service_check>();
     // Fill output var.
-    if (cmdline) {
+    if (!cmdline.empty()) {
       service_check->active_checks_enabled = svc->active_checks_enabled();
       service_check->check_type = check_type;
       service_check->command_line = common::check_string_utf8(cmdline);
@@ -4409,7 +4406,7 @@ static void forward_service_check(int type,
 static void forward_pb_service_check(int type,
                                      const engine::service* svc,
                                      int check_type,
-                                     const char* cmdline) {
+                                     std::string_view cmdline) {
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
@@ -4421,8 +4418,7 @@ static void forward_pb_service_check(int type,
     SPDLOG_LOGGER_DEBUG(neb_logger,
                         "callbacks: generating service check event host {} "
                         "service {} command_line={}",
-                        svc->host_id(), svc->service_id(),
-                        cmdline ? cmdline : "");
+                        svc->host_id(), svc->service_id(), cmdline);
   } else {
     SPDLOG_LOGGER_DEBUG(neb_logger,
                         "callbacks: generating service check event");
@@ -4431,7 +4427,7 @@ static void forward_pb_service_check(int type,
   // In/Out variables.
   auto service_check = std::make_shared<neb::pb_service_check>();
   // Fill output var.
-  if (cmdline) {
+  if (!cmdline.empty()) {
     auto& obj = service_check->mut_obj();
     obj.set_active_checks_enabled(svc->active_checks_enabled());
     obj.set_check_type(
@@ -4461,7 +4457,7 @@ static void forward_pb_service_check(int type,
 int broker_service_check(int type,
                          const engine::service* svc,
                          int check_type,
-                         const char* cmdline) {
+                         std::string_view cmdline) {
   // Config check.
   if (!cbm || !(pb_indexed_config.state().event_broker_options() &
                 BROKER_SERVICE_CHECKS))
@@ -4554,9 +4550,8 @@ static void forward_service_status(const engine::service* svc,
       throw exceptions::msg_fmt("unnamed host");
     if (svc->description().empty())
       throw exceptions::msg_fmt("unnamed service");
-    service_status->host_name = common::check_string_utf8(svc->get_hostname());
-    service_status->service_description =
-        common::check_string_utf8(svc->description());
+    service_status->host_name = svc->get_hostname();
+    service_status->service_description = svc->description();
     {
       service_status->host_id = svc->host_id();
       service_status->service_id = svc->service_id();

@@ -318,8 +318,8 @@
 
 template <typename R>
 void broker_acknowledgement_data(R* data,
-                                 const char* ack_author,
-                                 const char* ack_data,
+                                 std::string_view ack_author,
+                                 std::string_view ack_data,
                                  int subtype,
                                  bool notify_contacts,
                                  bool persistent_comment);
@@ -341,8 +341,8 @@ void broker_comment_data(int type,
                          uint64_t host_id,
                          uint64_t service_id,
                          time_t entry_time,
-                         char const* author_name,
-                         char const* comment_data,
+                         std::string_view author_name,
+                         std::string_view comment_data,
                          int persistent,
                          com::centreon::engine::comment::src source,
                          int expires,
@@ -360,8 +360,8 @@ void broker_downtime_data(int type,
                           uint64_t host_id,
                           uint64_t service_id,
                           time_t entry_time,
-                          char const* author_name,
-                          char const* comment_data,
+                          std::string_view author_name,
+                          std::string_view comment_data,
                           time_t start_time,
                           time_t end_time,
                           bool fixed,
@@ -380,7 +380,7 @@ void broker_group_member(int type, const R* object, const G* group);
 int broker_host_check(int type,
                       const com::centreon::engine::host* hst,
                       int check_type,
-                      const char* cmdline);
+                      std::string_view cmdline);
 void broker_host_status(const com::centreon::engine::host* hst,
                         uint32_t attributes);
 void broker_log_data_legacy(std::string_view data, time_t entry_time);
@@ -395,7 +395,7 @@ void broker_relation_data(int type,
 int broker_service_check(int type,
                          const com::centreon::engine::service* svc,
                          int check_type,
-                         const char* cmdline);
+                         std::string_view cmdline);
 void broker_service_status(const com::centreon::engine::service* svc,
                            uint32_t attributes);
 struct timeval get_broker_timestamp(struct timeval const* timestamp);

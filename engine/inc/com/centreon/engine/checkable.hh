@@ -173,6 +173,9 @@ class checkable {
 
   std::string const& get_display_name() const;
   void set_display_name(std::string const& name);
+  /* Rvalue overload: the configuration applier normalizes the display name into
+   * a local it drops right after, so it is moved in rather than copied. */
+  void set_display_name(std::string&& name);
   const std::string& name() const;
   virtual void set_name(const std::string& name);
   std::string const& check_command() const;

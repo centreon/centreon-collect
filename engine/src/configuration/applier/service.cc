@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/applier/service.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
@@ -59,16 +60,29 @@ void applier::service::add_object(const configuration::Service& obj) {
   config_logger->debug("Creating new service '{}' of host '{}'.",
                        obj.service_description(), obj.host_name());
 
+  /* The applier owns the UTF-8 invariant: names are converted once, here, and
+   * the very same strings are stored in the configuration copy, given to the
+   * runtime object and used to build the service::services key. Both parts of
+   * that key matter, the host name included: it has to match the name the host
+   * is registered under in host::hosts, which the host applier converts too. */
+  std::string host_name = common::check_string_utf8(obj.host_name());
+  std::string service_description =
+      common::check_string_utf8(obj.service_description());
+  std::string display_name = common::check_string_utf8(obj.display_name());
+
   // Add service to the global configuration set.
   auto& conf_svc =
       pb_indexed_config.mut_services()[{obj.host_id(), obj.service_id()}];
   conf_svc.reset(new configuration::Service);
   conf_svc->CopyFrom(obj);
+  conf_svc->set_host_name(host_name);
+  conf_svc->set_service_description(service_description);
+  conf_svc->set_display_name(display_name);
 
   // Create service.
   engine::service* svc{add_service(
-      obj.host_id(), obj.service_id(), obj.host_name(),
-      obj.service_description(), obj.display_name(), obj.check_period(),
+      obj.host_id(), obj.service_id(), host_name,
+      service_description, display_name, obj.check_period(),
       obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
       obj.notification_interval(), obj.first_notification_delay(),
       obj.recovery_notification_delay(), obj.notification_period(),
@@ -189,18 +203,28 @@ void applier::service::modify_object(configuration::Service* old_obj,
         service_description, host_name);
   std::shared_ptr<engine::service> s = it_obj->second;
 
+  /* Converted once, like in add_object: the comparison, the service::services
+   * key and the runtime object must all hold the very same strings. Otherwise a
+   * name needing a conversion would never compare equal, and the erased key
+   * would not be the inserted one. */
+  std::string new_host_name = common::check_string_utf8(new_obj.host_name());
+  std::string new_description =
+      common::check_string_utf8(new_obj.service_description());
+  std::string new_display_name =
+      common::check_string_utf8(new_obj.display_name());
+
   // Modify properties.
-  if (it_obj->second->get_hostname() != new_obj.host_name() ||
-      it_obj->second->description() != new_obj.service_description()) {
+  if (it_obj->second->get_hostname() != new_host_name ||
+      it_obj->second->description() != new_description) {
     engine::service::services.erase(
         {it_obj->second->get_hostname(), it_obj->second->description()});
     engine::service::services.insert(
-        {{new_obj.host_name(), new_obj.service_description()}, it_obj->second});
+        {{new_host_name, new_description}, it_obj->second});
   }
 
-  s->set_hostname(new_obj.host_name());
-  s->set_description(new_obj.service_description());
-  s->set_display_name(new_obj.display_name());
+  s->set_hostname(new_host_name);
+  s->set_description(new_description);
+  s->set_display_name(std::move(new_display_name));
   s->set_check_command(new_obj.check_command());
   s->set_event_handler(new_obj.event_handler());
   s->set_event_handler_enabled(new_obj.event_handler_enabled());

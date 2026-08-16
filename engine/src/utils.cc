@@ -239,7 +239,10 @@ void parse_check_output(std::string const& buffer,
   bool perfdata_already_filled{false};
 
   bool eof{false};
-  std::string line;
+  /* A view on buffer: the line and the pieces cut out of it are never modified,
+   * only appended to the output strings, so nothing has to be copied here. */
+  const std::string_view buf{buffer};
+  std::string_view line;
   /* pos_line is used to cut a line
    * start_line is the position of the line begin
    * end_line is the position of the line end. */
@@ -258,7 +261,7 @@ void parse_check_output(std::string const& buffer,
       end_line = buffer.size();
       eof = true;
     }
-    line = buffer.substr(start_line, end_line - start_line);
+    line = buf.substr(start_line, end_line - start_line);
     size_t pipe;
     if (!long_pipe)
       pipe = line.find_last_of('|');
@@ -295,7 +298,7 @@ void parse_check_output(std::string const& buffer,
       end_line = line.size();
       while (end_line > 1 && std::isspace(line[end_line - 1]))
         end_line--;
-      line.erase(end_line);
+      line.remove_suffix(line.size() - end_line);
       if (line_number == 1)
         short_buffer.append(line);
       else {

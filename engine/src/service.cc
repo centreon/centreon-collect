@@ -1890,7 +1890,7 @@ int service::handle_async_check_result(
 
   /* send data to event broker */
   broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this, get_check_type(),
-                       nullptr);
+                       "");
 
   /* Check to see if the service and/or associate host is flapping. This must
    * happen BEFORE the status is published: check_for_flapping() may toggle the
@@ -2420,7 +2420,7 @@ int service::run_async_check_local(int check_options,
   // Send broker event.
   timeval start_time = {0, 0};
   int res = broker_service_check(NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, this,
-                                 checkable::check_active, nullptr);
+                                 checkable::check_active, "");
 
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -2475,7 +2475,7 @@ int service::run_async_check_local(int check_options,
 
   // Send event broker.
   res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
-                             checkable::check_active, processed_cmd.c_str());
+                             checkable::check_active, processed_cmd);
 
   // Restore latency.
   set_latency(old_latency);
