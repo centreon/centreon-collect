@@ -243,6 +243,15 @@ void checkable::set_plugin_output(const std::string& plugin_output) {
   _plugin_output = plugin_output;
 }
 
+/**
+ * @brief Set the plugin output, moving the string in.
+ *
+ * @param plugin_output The new plugin output.
+ */
+void checkable::set_plugin_output(std::string&& plugin_output) {
+  _plugin_output = std::move(plugin_output);
+}
+
 const std::string& checkable::get_long_plugin_output() const {
   return _long_plugin_output;
 }
@@ -251,12 +260,30 @@ void checkable::set_long_plugin_output(const std::string& long_plugin_output) {
   _long_plugin_output = long_plugin_output;
 }
 
+/**
+ * @brief Set the long plugin output, moving the string in.
+ *
+ * @param long_plugin_output The new long plugin output.
+ */
+void checkable::set_long_plugin_output(std::string&& long_plugin_output) {
+  _long_plugin_output = std::move(long_plugin_output);
+}
+
 const std::string& checkable::get_perf_data() const {
   return _perf_data;
 }
 
 void checkable::set_perf_data(const std::string& perf_data) {
   _perf_data = perf_data;
+}
+
+/**
+ * @brief Set the performance data, moving the string in.
+ *
+ * @param perf_data The new performance data.
+ */
+void checkable::set_perf_data(std::string&& perf_data) {
+  _perf_data = std::move(perf_data);
 }
 
 bool checkable::flap_detection_enabled() const {

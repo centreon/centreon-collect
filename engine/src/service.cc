@@ -1206,26 +1206,25 @@ int service::handle_async_check_result(
      * parse check output to get: (1) short output, (2) long output,
      * (3) perf data
      */
-    std::string output{queued_check_result.get_output()};
     std::string plugin_output;
     std::string long_plugin_output;
     std::string perf_data;
-    parse_check_output(output, plugin_output, long_plugin_output, perf_data,
-                       true, false);
+    parse_check_output(queued_check_result.get_output(), plugin_output,
+                       long_plugin_output, perf_data, true, false);
 
-    set_long_plugin_output(long_plugin_output);
-    set_perf_data(perf_data);
+    /* These three are local and dropped right after, so they are moved in. */
+    set_long_plugin_output(std::move(long_plugin_output));
+    set_perf_data(std::move(perf_data));
     /* make sure the plugin output isn't null */
     if (plugin_output.empty())
       set_plugin_output("(No output returned from plugin)");
     else {
-      std::replace(plugin_output.begin(), plugin_output.end(), ';', ':');
-
       /*
        * replace semicolons in plugin output (but not performance data) with
        * colons
        */
-      set_plugin_output(plugin_output);
+      std::replace(plugin_output.begin(), plugin_output.end(), ';', ':');
+      set_plugin_output(std::move(plugin_output));
     }
 
     SPDLOG_LOGGER_DEBUG(

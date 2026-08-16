@@ -1268,26 +1268,25 @@ int host::handle_async_check_result_3x(
   /* parse check output to get: (1) short output, (2) long output, (3) perf data
    */
 
-  std::string output{queued_check_result.get_output()};
   std::string plugin_output;
   std::string long_plugin_output;
   std::string perf_data;
-  parse_check_output(output, plugin_output, long_plugin_output, perf_data, true,
-                     false);
-  set_plugin_output(plugin_output);
-  set_long_plugin_output(long_plugin_output);
-  set_perf_data(perf_data);
+  parse_check_output(queued_check_result.get_output(), plugin_output,
+                     long_plugin_output, perf_data, true, false);
+
+  /* These three are local and dropped right after, so they are moved in. */
+  set_long_plugin_output(std::move(long_plugin_output));
+  set_perf_data(std::move(perf_data));
 
   /* make sure we have some data */
-  if (get_plugin_output().empty()) {
+  if (plugin_output.empty())
     set_plugin_output("(No output returned from host check)");
+  else {
+    /* replace semicolons in plugin output (but not performance data) with
+     * colons. */
+    std::replace(plugin_output.begin(), plugin_output.end(), ';', ':');
+    set_plugin_output(std::move(plugin_output));
   }
-
-  /* replace semicolons in plugin output (but not performance data) with colons
-   */
-  std::string temp_str(get_plugin_output());
-  std::replace(temp_str.begin(), temp_str.end(), ';', ':');
-  set_plugin_output(temp_str);
 
   SPDLOG_LOGGER_DEBUG(
       checks_logger,
