@@ -3614,7 +3614,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
  *
  *  @return 0 on success.
  */
-static void forward_log(const char* data, time_t entry_time) {
+static void forward_log(std::string_view data, time_t entry_time) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating log event");
 
@@ -3625,7 +3625,7 @@ static void forward_log(const char* data, time_t entry_time) {
     // Fill output var.
     le->c_time = entry_time;
     le->poller_name = cbm->poller_name();
-    if (data) {
+    if (!data.empty()) {
       le->output = common::check_string_utf8(data);
       set_log_data(*le, le->output.c_str());
     }
@@ -3649,7 +3649,7 @@ static void forward_log(const char* data, time_t entry_time) {
  *
  *  @return 0 on success.
  */
-static void forward_pb_log(const char* data, time_t entry_time) {
+static void forward_pb_log(std::string_view data, time_t entry_time) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
 
@@ -3660,7 +3660,7 @@ static void forward_pb_log(const char* data, time_t entry_time) {
 
     le_obj.set_ctime(entry_time);
     le_obj.set_instance_name(cbm->poller_name());
-    if (data) {
+    if (!data.empty()) {
       std::string output = common::check_string_utf8(data);
       le_obj.set_output(output);
       set_pb_log_data(*le, output);
@@ -3679,7 +3679,7 @@ static void forward_pb_log(const char* data, time_t entry_time) {
  *  @param[in] data       Log entry.
  *  @param[in] entry_time Entry time.
  */
-void broker_log_data_legacy(const char* data, time_t entry_time) {
+void broker_log_data_legacy(std::string_view data, time_t entry_time) {
   // Config check.
   if (!(pb_indexed_config.state().event_broker_options() &
         BROKER_LOGGED_DATA) ||
@@ -3699,7 +3699,7 @@ void broker_log_data_legacy(const char* data, time_t entry_time) {
  *  @param[in] data       Log entry.
  *  @param[in] entry_time Entry time.
  */
-void broker_log_data(const char* data, time_t entry_time) {
+void broker_log_data(std::string_view data, time_t entry_time) {
   // Config check.
   if (!(pb_indexed_config.state().event_broker_options() &
         BROKER_LOGGED_DATA) ||

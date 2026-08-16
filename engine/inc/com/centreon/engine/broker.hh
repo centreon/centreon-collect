@@ -383,8 +383,8 @@ int broker_host_check(int type,
                       const char* cmdline);
 void broker_host_status(const com::centreon::engine::host* hst,
                         uint32_t attributes);
-void broker_log_data_legacy(const char* data, time_t entry_time);
-void broker_log_data(const char* data, time_t entry_time);
+void broker_log_data_legacy(std::string_view data, time_t entry_time);
+void broker_log_data(std::string_view data, time_t entry_time);
 void broker_program_state(int type, int flags);
 void broker_program_status();
 void broker_relation_data(int type,
