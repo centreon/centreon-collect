@@ -451,6 +451,7 @@ jobs:
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(needs.get-environment.outputs.collect_matrix, 'trixie') &&
       needs.get-environment.outputs.stability != 'stable' &&
       (
         needs.get-environment.outputs.is_nightly == 'true' ||

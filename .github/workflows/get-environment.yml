@@ -767,7 +767,6 @@ jobs:
           HAS_SYSTEM_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'system') }}
         with:
           script: |
-            // --- Conditions (evaluated once from GHA context) ---
             const isCloud     = process.env.IS_CLOUD === 'true';
             const isNightly   = process.env.IS_NIGHTLY === 'true';
             const stability   = process.env.STABILITY;
@@ -782,11 +781,11 @@ jobs:
                              || ['unstable', 'testing', 'stable'].includes(stability);
             const wantsDockerCollect = ${{ contains(steps.has_skip_label.outputs.labels, 'build-docker-collect') && 'true' || 'false' }};
 
-            // --- OS/database combinations ---
             const cfg = (operating_system, database) => ({ operating_system, database, arch: 'amd64' });
 
             const alma10_mysql_8_4       = cfg('alma10',   'mysql:8.4');
-            const alma10_mariadb_10_11   = cfg('alma10',   'mariadb:10.11');
+            const alma10_mariadb_11_8    = cfg('alma10',   'mariadb:11.8');
+            const alma9_mariadb_11_8     = cfg('alma9',    'mariadb:11.8')
             const alma9_mysql_8_0        = cfg('alma9',    'mysql:8.0');
             const alma8_mariadb_10_11    = cfg('alma8',    'mariadb:10.11');
             const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
@@ -795,31 +794,33 @@ jobs:
             const jammy_mariadb_10_11    = cfg('jammy',    'mariadb:10.11');
             const noble_mariadb_10_11    = cfg('noble',    'mariadb:10.11');
 
-            // --- Config sets ---
-            const configs = [alma9_mysql_8_0, alma10_mariadb_10_11, trixie_mariadb_11_8];
-            const cmaConfigs = [
-              alma10_mariadb_10_11, alma9_mysql_8_0, alma8_mariadb_10_11,
-              bookworm_mariadb_10_11, trixie_mariadb_11_8,
-              jammy_mariadb_10_11, noble_mariadb_10_11
-            ];
-            const cloud = alma9_mysql_8_0;
-
-            // --- Nightly rotation (cycles through configs on working days) ---
-            const getDailyConfig = (configs) => {
-              const today = new Date();
-              const dayOfWeek = today.getDay();
-              if (dayOfWeek === 0 || dayOfWeek === 6) return configs[0]; // weekend → default
-              let workingDays = 0;
-              const d = new Date('2025-01-01');
-              while (d < today) {
-                if (d.getDay() >= 1 && d.getDay() <= 5) workingDays++;
-                d.setDate(d.getDate() + 1);
-              }
-              return configs[workingDays % configs.length];
+            // Fixed weekday -> preferred configuration (0=sunday, 1=monday, ..., 6=saturday)
+            const dailyConfigByDayOfWeek = {
+              1: alma10_mysql_8_4,    // Monday
+              2: trixie_mariadb_11_8, // Tuesday
+              3: alma10_mysql_8_4,    // Wednesday
+              4: alma9_mariadb_11_8,  // Thursday
+              5: alma10_mysql_8_4,    // Friday
             };
 
-            // --- Build base matrix ---
-            const main = isCloud ? cloud : alma10_mariadb_10_11;
+            const getDailyConfig = (configs) => {
+              const dayOfWeek = new Date().getDay();
+              const preferred = dailyConfigByDayOfWeek[dayOfWeek];
+
+              // Fall back to the first available configuration on weekends,
+              // or if the preferred one isn't part of the package matrix
+              return preferred && configs.includes(preferred) ? preferred : configs[0];
+            };
+
+            const configs = [alma10_mysql_8_4, alma9_mariadb_11_8, trixie_mariadb_11_8]
+            const cmaConfigs = [
+              alma10_mariadb_11_8, alma9_mysql_8_0, alma8_mariadb_10_11,
+              bookworm_mariadb_10_11, trixie_mysql_8_4,
+              jammy_mariadb_10_11, noble_mariadb_10_11
+            ];
+            const cloud = alma10_mysql_8_4;
+            let main = isCloud ? cloud : alma10_mariadb_11_8;
+
             const activeConfig = isNightly ? getDailyConfig(configs) : main;
 
             let matrix = { cloud: [cloud], main: [activeConfig], operating_systems: [activeConfig] };
@@ -832,8 +833,6 @@ jobs:
               collectMatrix = configs;
               cmaMatrix = cmaConfigs;
             }
-
-            console.log('matrix', matrix);
 
             // --- Expand arm64 for Debian-based distros ---
             const ARM64_DISTROS = ['bookworm', 'trixie', 'jammy', 'noble'];
@@ -864,18 +863,16 @@ jobs:
             core.setOutput('cma_matrix', cmaMatrix);
             console.log('cmaMatrix', cmaMatrix);
 
-            // --- Robot test matrices ---
             const setTestConfigs = (configs) => {
               let hasGrpcConfig = false;
               let hasMysqlConfig = false;
               return configs.flatMap(c => {
-                const entries = [{...c, database_type: 'mariadb', tests_params: '{}'}];
+                const entries = [{...c, database_type: c.operating_system === 'alma10' ? 'mysql' : 'mariadb', tests_params: '{}'}];
                 if (c.arch === 'amd64' && !hasGrpcConfig) {
-                  entries.push({...c, database_type: 'mariadb', tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'});
-                  hasGrpcConfig = true;
+                  entries.push({...c, database_type: c.operating_system === 'alma10' ? 'mysql' : 'mariadb', tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'});
                 }
-                if (['alma8', 'alma9'].includes(c.operating_system) && !hasMysqlConfig && c.arch === 'amd64' && isDbRun) {
-                  entries.push({...c, database_type: 'mysql', tests_params: '{}'});
+                if (['alma8', 'alma9', 'alma10'].includes(c.operating_system) && !hasMysqlConfig && c.arch === 'amd64' && isDbRun) {
+                  c.operating_system === 'alma10' ? entries.push({...c, database_type: 'mariadb', tests_params: '{}'}) : entries.push({...c, database_type: 'mysql', tests_params: '{}'});
                   hasMysqlConfig = true;
                 }
                 return entries;
@@ -924,6 +921,8 @@ jobs:
           IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
           PACKAGING_IMG_VERSION: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
           TEST_IMG_VERSION: ${{ steps.get_docker_images_version.outputs.test_img_version }}
+          COLLECT_ROBOT_MATRIX: ${{ steps.get_os_database_matrix.outputs.collect_robot_matrix }}
+          CMA_ROBOT_MATRIX: ${{ steps.get_os_database_matrix.outputs.cma_robot_matrix }}
           SKIP_WORKFLOW: ${{ steps.skip_workflow.outputs.result }}
           LABELS: ${{ steps.has_skip_label.outputs.labels }}
           TARGET_STABILITY: ${{ steps.get_stability.outputs.target_stability }}
@@ -950,6 +949,8 @@ jobs:
               ['is_nightly', process.env.IS_NIGHTLY],
               ['packaging_img_version', process.env.PACKAGING_IMG_VERSION],
               ['test_img_version', process.env.TEST_IMG_VERSION],
+              ['collect_robot_matrix', process.env.COLLECT_ROBOT_MATRIX],
+              ['cma_robot_matrix', process.env.CMA_ROBOT_MATRIX],
               ['skip_workflow', process.env.SKIP_WORKFLOW],
               ['labels', process.env.LABELS],
             ];
