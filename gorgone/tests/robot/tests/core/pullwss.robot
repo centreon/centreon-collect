@@ -29,7 +29,7 @@ check one poller can connect to a central multiples times in a row
         ...    pullwss
         ...    pullwss_uid
 
-check a remote server can hold a poller connection
+check a remote server can hold two poller connection
     [Tags]    remote
     [Teardown]    Stop Gorgone And Remove Gorgone Config
     ...    @{process_list}
@@ -42,6 +42,13 @@ check a remote server can hold a poller connection
     Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
 
     Restart Poller And Check Connection    ${mode}_gorgone_poller_2_simple    conn_number=2    api_port=${Rapi_port}
+    
+    Setup New Poller    ${mode}_gorgone_poller_4_simple    comm_port=${Rcom_port}    api_port=${Rapi_port}
+
+    Restart Poller And Check Connection    ${mode}_gorgone_poller_4_simple    conn_number=4    api_port=${Rapi_port}    com_port=${Rcom_port}
+
+    Restart Poller And Check Connection    ${mode}_gorgone_poller_2_simple    conn_number=4    api_port=${Rapi_port}    com_port=${Rcom_port}
+
 
     Examples:    mode   --
         ...    pullwss
@@ -190,12 +197,12 @@ check poller token revocation
 
 *** Keywords ***
 Restart Poller And Check Connection
-    [Arguments]    ${poller_name}    ${conn_number}=2    ${api_port}=${Capi_port}
+    [Arguments]    ${poller_name}    ${conn_number}=2    ${api_port}=${Capi_port}    ${com_port}=8086
     Stop Gorgone And Remove Gorgone Config
     ...    ${poller_name}
 
     Start Gorgone    debug    ${poller_name}
-    Check Poller Is Connected    port=8086    expected_nb=${conn_number}
+    Check Poller Is Connected    port=${com_port}    expected_nb=${conn_number}
     Check Poller Communicate     ${conn_number}    api_port=${api_port}
 
 Setup New Poller
