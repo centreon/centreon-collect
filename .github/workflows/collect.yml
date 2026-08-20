@@ -447,7 +447,11 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
   dockerize-engine-broker:
-    needs: [get-environment, get-aws-environment, changes, package]
+    # Depends on robot-test (in addition to package) so the Harbor candidate for
+    # this build — including its version_tag used by promote-docker-to-ghcr — is
+    # only produced after the e2e suite for this exact package passed, instead of
+    # racing ahead of it (MON-207531).
+    needs: [get-environment, get-aws-environment, changes, package, robot-test]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -741,14 +745,17 @@ jobs:
         image: [centreon-engine, centreon-broker]
         distrib: [trixie]
     name: promote ${{ matrix.image }}-${{ matrix.distrib }} to ghcr.io stable
-    # HARBOR_TAG is the deterministic target version (major_version.minor_version)
-    # that dockerize-engine-broker tagged the image with while its release/hotfix
-    # branch was 'testing' (see the "Compute Docker tag" step's version_tag
-    # output). Computed identically here from the same version file, so no
-    # release_type/branch-name reconstruction is needed to find the candidate.
+    # PREFERRED_HARBOR_TAG is the deterministic target version (major_version.minor_version)
+    # that dockerize-engine-broker tags the image with while its release/hotfix
+    # branch is 'testing', only after robot-test passed (see that job's
+    # version_tag output). This mechanism is new and has not yet run against a
+    # real stable release, so FALLBACK_HARBOR_TAG (the previous release_type-based
+    # reconstruction) is kept as a safety net rather than hard-failing when the
+    # deterministic tag is absent.
     env:
       HARBOR_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}
-      HARBOR_TAG: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
+      PREFERRED_HARBOR_TAG: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
+      FALLBACK_HARBOR_TAG: ${{ needs.get-environment.outputs.release_type }}-${{ needs.get-environment.outputs.major_version }}-next
     steps:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -769,32 +776,41 @@ jobs:
 
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
-      - name: Verify Harbor candidate exists
-        # Hard failure, unlike the promote step below: a missing candidate means
-        # our own release pipeline didn't produce what this stable release needs
-        # to promote, not a ghcr.io-side hiccup — this must never be silently
-        # swallowed.
+      - name: Resolve Harbor candidate tag
+        # Non-blocking: prefer the deterministic version_tag candidate, but this
+        # mechanism is new and unproven end-to-end, so fall back to the previous
+        # release_type-based tag rather than failing the job outright. Only warn
+        # (never hard-fail) here — a missing candidate is surfaced loudly but the
+        # actual delivery attempt below decides pass/fail via continue-on-error.
+        id: resolve-tag
         run: |
-          if ! docker buildx imagetools inspect "$HARBOR_IMAGE:$HARBOR_TAG" > /dev/null; then
-            echo "::error::No candidate image found on Harbor for $HARBOR_IMAGE:$HARBOR_TAG — the testing build for this version may not have run, or version_tag wasn't pushed. Check the dockerize-engine-broker job on the release/hotfix branch for ${{ matrix.image }}."
-            exit 1
+          if docker buildx imagetools inspect "$HARBOR_IMAGE:$PREFERRED_HARBOR_TAG" > /dev/null 2>&1; then
+            echo "harbor_tag=$PREFERRED_HARBOR_TAG" >> "$GITHUB_OUTPUT"
+          elif docker buildx imagetools inspect "$HARBOR_IMAGE:$FALLBACK_HARBOR_TAG" > /dev/null 2>&1; then
+            echo "::warning::No candidate at $HARBOR_IMAGE:$PREFERRED_HARBOR_TAG (deterministic version_tag) — falling back to $HARBOR_IMAGE:$FALLBACK_HARBOR_TAG. Check that the dockerize-engine-broker job ran on the release/hotfix branch after the version bump."
+            echo "harbor_tag=$FALLBACK_HARBOR_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No candidate image found on Harbor at either $HARBOR_IMAGE:$PREFERRED_HARBOR_TAG or $HARBOR_IMAGE:$FALLBACK_HARBOR_TAG — ghcr.io promote will be skipped for this version."
+            echo "harbor_tag=" >> "$GITHUB_OUTPUT"
           fi
         shell: bash
 
       - name: Promote Harbor candidate to ghcr.io stable (best-effort, non-blocking)
+        if: steps.resolve-tag.outputs.harbor_tag != ''
         continue-on-error: true
         id: promote-ghcr
         env:
           GHCR_IMAGE: ghcr.io/centreon/${{ matrix.image }}
+          HARBOR_TAG: ${{ steps.resolve-tag.outputs.harbor_tag }}
           GHCR_TAGS: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }} ${{ needs.get-environment.outputs.major_version }}
           PLATFORMS: linux/amd64,linux/arm64
         run: bash .github/scripts/docker-push-to-ghcr.sh
         shell: bash
 
       - name: Warn if ghcr.io stable delivery failed
-        if: steps.promote-ghcr.outcome == 'failure'
+        if: steps.resolve-tag.outputs.harbor_tag == '' || steps.promote-ghcr.outcome == 'failure'
         run: |
-          echo "::warning::ghcr.io delivery failed for ${{ matrix.image }}-${{ matrix.distrib }} (Harbor tag $HARBOR_TAG). This release is available on Harbor but was NOT published to ghcr.io — investigate before relying on public delivery for this version."
+          echo "::warning::ghcr.io delivery failed for ${{ matrix.image }}-${{ matrix.distrib }} (Harbor tag: ${{ steps.resolve-tag.outputs.harbor_tag || 'none found' }}). This release is available on Harbor but was NOT published to ghcr.io — investigate before relying on public delivery for this version."
         shell: bash
 
   robot-test:

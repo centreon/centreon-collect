@@ -61,6 +61,7 @@ jobs:
         ".version.centreon-gorgone"
         "gorgone/**"
         "perl-libs/**"
+        ".github/docker/centreon-gorgone/**"
         "!gorgone/tests/**"
       unit_test_paths: |
         "gorgone/tests/unit/**"
@@ -439,6 +440,252 @@ jobs:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
+  # The centreon-gorgone-trixie product image (MON-207531): folded into this
+  # workflow, rather than kept in a standalone docker-gorgone.yml, so it
+  # inherits the same trigger paths (a version bump alone is enough to produce
+  # a fresh candidate, same as deliver-rpm/deliver-deb below) and the same
+  # robot-test gate — it only builds/pushes once the e2e suite for this exact
+  # package has passed, instead of racing ahead of it as the old standalone
+  # workflow did. Named "dockerize-image" (not "dockerize") to avoid colliding
+  # with the internal gorgone-testing-* dependency image job above.
+  dockerize-image:
+    needs: [get-environment, changes, package, robot-test]
+    if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: dockerize centreon-gorgone-${{ matrix.operating_system }}
+    # Matrix job outputs come from the last completed matrix leg; safe only while
+    # operating_system has a single value (trixie). Revisit if this matrix grows.
+    outputs:
+      image_tag: ${{ steps.compute-tag.outputs.tag }}
+      additional_tag: ${{ steps.compute-tag.outputs.additional_tag }}
+      version_tag: ${{ steps.compute-tag.outputs.version_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - name: get cached gorgone and perl-libs package
+        # Reuses the trixie/deb artifact already produced and cached by this
+        # workflow's own "package" job above (same nfpm_file_pattern/module_name,
+        # same cache key shape) — no separate/duplicate package build needed.
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ./*.deb
+          key: ${{ github.sha }}-${{ github.run_id }}-deb-trixie
+          fail-on-cache-miss: true
+
+      - run: |
+          mkdir packages-centreon
+          mv *.deb packages-centreon/
+        shell: bash
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Compute Docker tag
+        id: compute-tag
+        env:
+          RAW_REF: ${{ github.head_ref || github.ref_name }}
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          MINOR_VERSION: ${{ needs.get-environment.outputs.minor_version }}
+        run: |
+          if [[ "$RAW_REF" == "develop" ]]; then
+            echo "tag=develop-${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=develop" >> "$GITHUB_OUTPUT"
+          elif [[ "$RAW_REF" =~ ^dev-[0-9]+\.[0-9]+\.x$ ]]; then
+            echo "tag=${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=" >> "$GITHUB_OUTPUT"
+          else
+            docker_tag=$(printf '%s' "$RAW_REF" | sed -E 's#[^[:alnum:]_.-]+#-#g; s#^[.-]+##; s#-+#-#g' | cut -c1-128)
+            if [[ -z "$docker_tag" ]]; then
+              echo "::error::Unable to derive a valid Docker tag from ref '$RAW_REF'"
+              exit 1
+            fi
+            echo "tag=${docker_tag}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+          # On a release/hotfix branch (stability 'testing'), also tag with the
+          # deterministic target version (e.g. 26.10.5). promote-docker-to-ghcr
+          # pulls this exact tag on the eventual stable event — computed the same
+          # way from the same version file, so no release_type reconstruction is
+          # needed to find the candidate to promote. This job only runs after
+          # robot-test succeeds, so this candidate is e2e-tested before it can
+          # ever be promoted to ghcr.io stable.
+          if [[ "$RAW_REF" =~ ^(release|hotfix)-[0-9]+\.[0-9]+-next$ ]]; then
+            echo "version_tag=${MAJOR_VERSION}.${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version_tag=" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Docker build and push
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        env:
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .
+          file: .github/docker/centreon-gorgone/${{ matrix.operating_system }}/Dockerfile
+          build-args: |
+            "VERSION=${{ needs.get-environment.outputs.major_version }}"
+            "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
+            "STABILITY=${{ needs.get-environment.outputs.stability }}"
+          platforms: linux/amd64,linux/arm64
+          pull: true
+          push: true
+          tags: |
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ steps.compute-tag.outputs.tag }}
+            ${{ steps.compute-tag.outputs.version_tag && format('{0}/centreon-gorgone-{1}:{2}', vars.DOCKER_INTERNAL_REGISTRY_URL, matrix.operating_system, steps.compute-tag.outputs.version_tag) }}
+          secrets: |
+            "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
+            "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
+  docker-boot-test:
+    needs: [get-environment, dockerize-image]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-image.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+        platform: [linux/amd64, linux/arm64]
+    name: docker boot test centreon-gorgone-${{ matrix.operating_system }} (${{ matrix.platform }})
+    env:
+      GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Set up QEMU
+        if: ${{ matrix.platform == 'linux/arm64' }}
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - name: Replace / with - in the platform name
+        id: platform-name
+        run: echo "dashed=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Pull image for ${{ matrix.platform }}
+        run: docker pull --platform "${{ matrix.platform }}" "$GORGONE_IMAGE"
+        shell: bash
+
+      - name: Run boot test
+        env:
+          IMAGE: ${{ env.GORGONE_IMAGE }}
+          PLATFORM: ${{ matrix.platform }}
+        run: ./.github/scripts/gorgone-docker-boot-test.sh
+        shell: bash
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: centreon-gorgone-boot-test-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/gorgone-boot-test.log
+          retention-days: 1
+
+  docker-config-wiring-test:
+    needs: [get-environment, dockerize-image]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-image.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: docker config/wiring test centreon-gorgone-${{ matrix.operating_system }}
+    env:
+      GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Pull image
+        run: docker pull --platform linux/amd64 "$GORGONE_IMAGE"
+        shell: bash
+
+      - name: Run config/wiring test scenarios
+        env:
+          IMAGE: ${{ env.GORGONE_IMAGE }}
+        run: ./.github/scripts/gorgone-docker-config-wiring-test.sh
+        shell: bash
+
+      - name: Dump compose logs on failure
+        if: failure()
+        run: docker compose -f .github/docker/centreon-gorgone/docker-compose.config-wiring-test.yml -p gorgone-config-wiring-test logs
+        shell: bash
+
+  promote-docker-tag:
+    needs: [get-environment, dockerize-image, docker-boot-test, docker-config-wiring-test]
+    if: |
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      needs.dockerize-image.outputs.additional_tag != ''
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: promote centreon-gorgone-${{ matrix.operating_system }} floating tag
+    steps:
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Promote floating tag (manifest retag, no rebuild)
+        run: |
+          docker buildx imagetools create \
+            --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.additional_tag }}" \
+            "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.image_tag }}"
+        shell: bash
+
   deliver-sources:
     runs-on: centreon-common
     needs: [get-environment, package]
@@ -708,6 +955,92 @@ jobs:
         shell: bash
         run: |
           echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
+
+  promote-docker-to-ghcr:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.stability == 'stable' &&
+      github.event_name != 'workflow_dispatch' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: promote centreon-gorgone-${{ matrix.operating_system }} to ghcr.io stable
+    # PREFERRED_HARBOR_TAG is the deterministic target version (major_version.minor_version)
+    # that dockerize-image tags the image with while its release/hotfix branch is
+    # 'testing', only after robot-test passed (see that job's version_tag output).
+    # This mechanism is new and has not yet run against a real stable release, so
+    # FALLBACK_HARBOR_TAG (the previous release_type-based reconstruction) is kept
+    # as a safety net rather than hard-failing when the deterministic tag is absent.
+    env:
+      HARBOR_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}
+      PREFERRED_HARBOR_TAG: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
+      FALLBACK_HARBOR_TAG: ${{ needs.get-environment.outputs.release_type }}-${{ needs.get-environment.outputs.major_version }}-next
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to Harbor registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Resolve Harbor candidate tag
+        # Non-blocking: prefer the deterministic version_tag candidate, but this
+        # mechanism is new and unproven end-to-end, so fall back to the previous
+        # release_type-based tag rather than failing the job outright. Only warn
+        # (never hard-fail) here — a missing candidate is surfaced loudly but the
+        # actual delivery attempt below decides pass/fail via continue-on-error.
+        id: resolve-tag
+        run: |
+          if docker buildx imagetools inspect "$HARBOR_IMAGE:$PREFERRED_HARBOR_TAG" > /dev/null 2>&1; then
+            echo "harbor_tag=$PREFERRED_HARBOR_TAG" >> "$GITHUB_OUTPUT"
+          elif docker buildx imagetools inspect "$HARBOR_IMAGE:$FALLBACK_HARBOR_TAG" > /dev/null 2>&1; then
+            echo "::warning::No candidate at $HARBOR_IMAGE:$PREFERRED_HARBOR_TAG (deterministic version_tag) — falling back to $HARBOR_IMAGE:$FALLBACK_HARBOR_TAG. Check that the dockerize-image job ran on the release/hotfix branch after the version bump."
+            echo "harbor_tag=$FALLBACK_HARBOR_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No candidate image found on Harbor at either $HARBOR_IMAGE:$PREFERRED_HARBOR_TAG or $HARBOR_IMAGE:$FALLBACK_HARBOR_TAG — ghcr.io promote will be skipped for this version."
+            echo "harbor_tag=" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Promote Harbor candidate to ghcr.io stable (best-effort, non-blocking)
+        if: steps.resolve-tag.outputs.harbor_tag != ''
+        continue-on-error: true
+        id: promote-ghcr
+        env:
+          GHCR_IMAGE: ghcr.io/centreon/centreon-gorgone
+          HARBOR_TAG: ${{ steps.resolve-tag.outputs.harbor_tag }}
+          GHCR_TAGS: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }} ${{ needs.get-environment.outputs.major_version }}
+          PLATFORMS: linux/amd64,linux/arm64
+        run: bash .github/scripts/docker-push-to-ghcr.sh
+        shell: bash
+
+      - name: Warn if ghcr.io stable delivery failed
+        if: steps.resolve-tag.outputs.harbor_tag == '' || steps.promote-ghcr.outcome == 'failure'
+        run: |
+          echo "::warning::ghcr.io delivery failed for centreon-gorgone-${{ matrix.operating_system }} (Harbor tag: ${{ steps.resolve-tag.outputs.harbor_tag || 'none found' }}). This release is available on Harbor but was NOT published to ghcr.io — investigate before relying on public delivery for this version."
+        shell: bash
 
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, promote]
