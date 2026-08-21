@@ -991,15 +991,11 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.stability == 'stable' &&
-      (github.event_name != 'workflow_dispatch' || (github.head_ref || github.ref_name) == 'MON-207531-publish-poller-docker-images-to-ghcr-io') &&
+      github.event_name != 'workflow_dispatch' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    # TEMP TEST HACK (MON-207531) — remove the branch-name alternative above
-    # before merging PR #3640. promote/promote-pulp/deliver-sources already
-    # exclude workflow_dispatch unconditionally and need no change: they stay
-    # skipped throughout this stage-2 ghcr.io test.
     runs-on: centreon-ubuntu-22.04
     permissions:
       contents: read
