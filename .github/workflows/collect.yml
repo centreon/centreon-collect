@@ -584,9 +584,13 @@ jobs:
             "STABILITY=${{ needs.get-environment.outputs.stability }}"
           pull: true
           push: true
+          # version_tag is deliberately NOT pushed here: it's only applied by
+          # promote-docker-version-tag below, once docker-boot-test/
+          # docker-config-wiring-test have validated this exact image. Pushing
+          # it here (before those tests run) would let promote-docker-to-ghcr
+          # pick up an unvalidated candidate on a later, separate stable run.
           tags: |
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ steps.compute-tag.outputs.tag }}
-            ${{ steps.compute-tag.outputs.version_tag && format('{0}/{1}-{2}:{3}', vars.DOCKER_INTERNAL_REGISTRY_URL, matrix.image, matrix.distrib, steps.compute-tag.outputs.version_tag) }}
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
@@ -722,6 +726,47 @@ jobs:
         run: |
           docker buildx imagetools create \
             --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.additional_tag }}" \
+            "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}"
+        shell: bash
+
+  promote-docker-version-tag:
+    needs:
+      [
+        get-environment,
+        dockerize-engine-broker,
+        docker-boot-test,
+        docker-config-wiring-test,
+      ]
+    if: |
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      needs.dockerize-engine-broker.outputs.version_tag != ''
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+    name: tag ${{ matrix.image }}-${{ matrix.distrib }} with validated version
+    steps:
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Tag validated candidate with deterministic version (manifest retag, no rebuild)
+        # Only applied here, after docker-boot-test/docker-config-wiring-test
+        # have passed for this exact image — promote-docker-to-ghcr looks up
+        # this tag on the eventual stable release (a separate, later run), so
+        # it must never point at an image whose own container e2e tests failed.
+        run: |
+          docker buildx imagetools create \
+            --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.version_tag }}" \
             "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}"
         shell: bash
 
