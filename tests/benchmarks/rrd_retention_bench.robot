@@ -28,6 +28,7 @@ Documentation       RRD retention buffer benchmark.
 
 Resource    ../resources/import.resource
 Library     ../resources/bbdo_injector.py
+Library     robot_bench.py
 
 Suite Setup    Ctn Clean Before Suite
 Suite Teardown    Ctn Clean After Suite
@@ -54,6 +55,9 @@ ${BROKER_PORT}      5670
 ${SETUP_TIMEOUT}    120
 # Max seconds to wait for all merges to complete after injection.
 ${MERGE_TIMEOUT}    120
+# Campaign the result is filed under. Empty means the current git branch, which is what
+# ./bench.py does when it is not given a --label either.
+${label}            ${EMPTY}
 
 
 *** Test Cases ***
@@ -162,3 +166,27 @@ BENCH_RRD_METRIC_RETENTION
     Log To Console    Total latency\ \ \ \ \ : ${total_s} s
     Log To Console    Merge throughput\ \ : ${merge_tp} points/s
     Log To Console    ===============================================
+
+    # Console output does not survive the terminal, and comparing two versions six months
+    # apart is the whole point of a benchmark, so the same figures go to results/bench.db
+    # like every other benchmark of this directory. The sizes go into the parameters and
+    # not into the metrics: they are what identifies the measured point, and what pairs
+    # two runs when ./bench.py compare puts two campaigns side by side.
+    ${campaign}    Set Variable If    "${label}" == "${EMPTY}"    ${None}    ${label}
+    IF    $campaign is None
+        ${campaign}    Ctn Bench Git Branch
+    END
+    ${figures}    Create Dictionary
+    ...    injection_events=${n_injected}
+    ...    injection_s=${inject_s}
+    ...    injection_events_per_s=${ev_per_s}
+    ...    merge_latency_s=${total_s}
+    ...    merge_points_per_s=${merge_tp}
+    ...    buffered_points=${total_points}
+    ${params}    Create Dictionary
+    ...    metrics=${N_METRICS}
+    ...    old_points=${N_OLD_POINTS}
+    ...    step=${STEP}
+    ${run}    Ctn Bench Record Run    ${campaign}    rrd-retention    merge
+    ...    ${figures}    ${params}
+    Log To Console    Filed as run ${run} of campaign '${campaign}'
