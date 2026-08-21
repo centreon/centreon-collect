@@ -114,7 +114,7 @@ them. Each section is introduced by its number of tests.
 ## Table of contents
 
 - [Bam](#bam) (76 tests)
-- [Benchmarks](#benchmarks) (1 test)
+- [Benchmarks](#benchmarks) (9 tests)
 - [Broker](#broker) (92 tests)
 - [Broker/database](#brokerdatabase) (15 tests)
 - [Broker/engine](#brokerengine) (402 tests)
@@ -431,9 +431,72 @@ This chapter contains 76 tests.
 
 ### Benchmarks
 
-This chapter contains 1 test.
+This chapter contains 9 tests.
 
-1. **BENCH_RRD_METRIC_RETENTION**: Benchmark: inject 12 h of back-fill data through the retention buffer and measure merge latency.  Injects ${N_OLD_POINTS} old-timestamped pb_metric events per metric (${N_METRICS} metrics) via BBDO v3 directly to the central broker, then one current-time event per metric to trigger the junction merge. Reports injection throughput and end-to-end merge latency.
+1. **BENCH_LOAD_ACTIVE**:
+     * **SCENARIO:** measure what a nominal poller costs its machine
+     * **GIVEN** an engine with ${nb_hosts} hosts and their services, actively checked
+     * **AND** the two cbd running in BBDO3 with unified_sql
+     * **WHEN** the collect daemons are measured for ${duration}s after a ${warmup}s warm-up
+     * **THEN** the CPU, the memory and the cost per check are filed in the store
+     * **AND** the run is rejected if no check was actually running
+2. **BENCH_LOAD_PASSIVE**:
+     * **SCENARIO:** measure what processing one check result costs
+     * **GIVEN** an engine whose services are all passive, so no plugin is ever forked
+     * **AND** ${passive_rate} results submitted every second, at a steady rate
+     * **WHEN** the collect daemons are measured for ${duration}s after a ${warmup}s warm-up
+     * **THEN** the cost of the chain is filed with the exact number of results submitted
+     * **AND** the run is rejected if the results never reached the database
+3. **BENCH_RRD_METRIC_RETENTION**: Benchmark: inject 12 h of back-fill data through the retention buffer and measure merge latency.  Injects ${N_OLD_POINTS} old-timestamped pb_metric events per metric (${N_METRICS} metrics) via BBDO v3 directly to the central broker, then one current-time event per metric to trigger the junction merge. Reports injection throughput and end-to-end merge latency.
+4. **BENCH_START_CENTRALIZED_COLD**:
+     * **SCENARIO:** measure a startup where Broker owns the configuration
+     * **GIVEN** a poller whose configuration lives on the broker side
+     * **AND** no state.prot on the engine side, so nothing local to start from
+     * **WHEN** broker and engine are started in new generation
+     * **THEN** the cost of receiving and applying the whole configuration is filed
+5. **BENCH_START_LEGACY**:
+     * **SCENARIO:** measure a startup that parses the text configuration
+     * **GIVEN** an engine configured with ${nb_hosts} hosts and their services as .cfg files
+     * **AND** no state.prot, so the text files are what gets read
+     * **WHEN** engine is started and reaches its event loop
+     * **THEN** the duration of every startup phase is filed in the store
+6. **BENCH_START_PROTO**:
+     * **SCENARIO:** measure a startup that reads a serialized configuration
+     * **GIVEN** a poller that has already received its configuration from the broker once
+     * **AND** therefore left a state.prot behind
+     * **WHEN** engine is started again, the broker still running
+     * **THEN** the configuration is deserialized instead of parsed, and expand and resolve are skipped
+     The first start has to go through the centralized path: a plain BBDO3 engine
+     configured from .cfg files never writes a state.prot, so a legacy first start
+     would leave nothing to measure and the test would time out waiting for it.
+7. **EALLOC1**:
+     * **SCENARIO:** count the heap allocations done while processing check results
+     * **GIVEN** an engine with 50 hosts and 1000 services, all of them passive
+     * **AND** heaptrack attached to the running centengine
+     * **THEN** ${nb_checks} check results carrying a realistic output are processed
+     * **AND** the trace is complete once heaptrack has been detached
+8. **EALLOC2**:
+     * **SCENARIO:** count the heap allocations of the nominal, active check profile
+     * **GIVEN** an engine with 50 hosts and 1000 services, all actively checked once a second
+     * **AND** heaptrack attached to the running centengine
+     * **THEN** checks run for ${duration} and the allocations are attributed per stack
+     * **AND** the count per check is derived from the parse_check_output ratio
+9. **EALLOC3**:
+     * **SCENARIO:** same as EALLOC2, with a command line the length of a real check
+     * **GIVEN** an engine with 50 hosts and 1000 services, all actively checked once a second
+     * **AND** every check command carrying ten arguments instead of none
+     * **AND** heaptrack attached to the running centengine
+     * **THEN** checks run for ${duration} and the allocations are attributed per stack
+     * **AND** the cost of parsing an argument vector can be read against EALLOC2
+     EALLOC2 runs a bare plugin path, which is not what production looks like: an
+     expanded check command carries ten or so arguments, and misc::command_line
+     rebuilds its std::vector<char*> from an empty capacity at every exec. Measuring
+     the fork path on EALLOC2 alone therefore understates it. Run both against the
+     same binary and the difference is the price of the argument vector.
+     Careful when reading the difference: a longer command line also makes macro
+     expansion produce a longer string, so the two runs differ in more than argv.
+     Attribution per stack separates them — misc::command_line::parse on one side,
+     the macro functions on the other — a comparison of totals would not.
 
 ### Broker
 
@@ -3258,4 +3321,4 @@ This chapter contains 22 tests.
      * **THEN** broker logs an error about the bad base64 encoding
 
 
-870 tests currently implemented.
+878 tests currently implemented.
