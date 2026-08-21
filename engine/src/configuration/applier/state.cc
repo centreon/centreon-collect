@@ -1164,10 +1164,10 @@ void applier::state::_apply(configuration::State& new_cfg,
 
 void applier::state::_apply_diff_conf(
     DiffState& diff,
-    absl::FixedArray<std::chrono::system_clock::time_point, 5>* tv,
+    absl::FixedArray<std::chrono::steady_clock::time_point, 6>* tv,
     error_cnt& err) {
   // Timing.
-  tv->at(1) = std::chrono::system_clock::now();
+  tv->at(1) = std::chrono::steady_clock::now();
 
 #define APPLY_DIFF(field) \
   if (diff.has_##field()) \
@@ -1383,7 +1383,7 @@ void applier::state::_apply_diff_conf(
   applier::macros::instance().apply(pb_indexed_config.mut_state());
 
   // Timing.
-  tv->at(2) = std::chrono::system_clock::now();
+  tv->at(2) = std::chrono::steady_clock::now();
 
   if (!has_already_been_loaded && !verify_config && !test_scheduling) {
     // This must be logged after we read config data,
@@ -1574,6 +1574,13 @@ void applier::state::_apply_diff_conf(
 #undef APPLY_DIFF
 #undef APPLY_REPEATED_DIFF
 
+  /* Timing. Measured here, at the very end, and not at tv[2] two hundred lines
+   * above: tv[2] sits right after the globals and the macros, before a single
+   * object has been applied. Reporting it as the cost of applying the objects
+   * showed 0 ms for fifty thousand services, while the real cost was being
+   * charged to the scheduler phase that follows. */
+  tv->at(5) = std::chrono::steady_clock::now();
+
 #ifdef DEBUG_CONFIG
   std::cout << "WARNING!! You are using a version of Centreon Engine for "
                "developers!!! This is not a production version.";
@@ -1597,8 +1604,13 @@ void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
   // Timing.
-  absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{
-      {}, {}, {}, {}, {}};
+  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{
+      {}, {}, {}, {}, {}, {}};
+
+  /* Read before the flag is set below: this function serves both the startup and
+   * a full reload at runtime, and the durations it prints must not claim to
+   * describe a startup when they describe a reload. */
+  const bool starting = !has_already_been_loaded;
 
   // Call prelauch broker event the first time to run applier state.
   if (!has_already_been_loaded)
@@ -1607,7 +1619,7 @@ void applier::state::_processing(configuration::State& new_cfg,
   //
   // Expand all objects.
   //
-  tv[0] = std::chrono::system_clock::now();
+  tv[0] = std::chrono::steady_clock::now();
 
   //
   //  Build difference for all objects.
@@ -1671,7 +1683,23 @@ void applier::state::_processing(configuration::State& new_cfg,
     }
 
     // Timing.
-    tv[3] = std::chrono::system_clock::now();
+    tv[3] = std::chrono::steady_clock::now();
+
+    /* These three were measured and never printed. Same wording as the phases
+     * main.cc emits, so that one regular expression covers the whole startup and
+     * a slow start can be attributed to a phase instead of guessing. Each is
+     * emitted once, at info, on a path that runs once. */
+    const char* what = starting ? "Startup timing" : "Reload timing";
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    config_logger->info("{}: diff = {} ms", what,
+                        duration_cast<milliseconds>(tv[1] - tv[0]).count());
+    config_logger->info("{}: globals = {} ms", what,
+                        duration_cast<milliseconds>(tv[2] - tv[1]).count());
+    config_logger->info("{}: objects = {} ms", what,
+                        duration_cast<milliseconds>(tv[5] - tv[2]).count());
+    config_logger->info("{}: scheduler = {} ms", what,
+                        duration_cast<milliseconds>(tv[3] - tv[5]).count());
 
     // Circular paths (host parent/child chains and notification/execution
     // dependencies) are now validated upstream by state_helper::resolve.
@@ -1703,7 +1731,7 @@ void applier::state::_processing(configuration::State& new_cfg,
     }
 
     // Timing.
-    tv[4] = std::chrono::system_clock::now();
+    tv[4] = std::chrono::steady_clock::now();
     if (test_scheduling) {
       absl::FixedArray<double, 5> runtimes{0, 0, 0, 0, 0};
       for (uint32_t i = 0; i < runtimes.size() - 1; i++) {
@@ -1765,8 +1793,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     config_logger->info("Processing differential configuration.");
 
   // Timing.
-  absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{
-      {}, {}, {}, {}, {}};
+  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{
+      {}, {}, {}, {}, {}, {}};
 
   // Call prelaunch broker event the first time to run applier state.
   if (!has_already_been_loaded)
@@ -1775,23 +1803,32 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
   //
   // Expand all objects.
   //
-  tv[0] = std::chrono::system_clock::now();
+  tv[0] = std::chrono::steady_clock::now();
 
   try {
     std::lock_guard<std::mutex> lock(_apply_lock);
     _apply_diff_conf(diff_conf, &tv, err);
 
-    config_logger->debug("Duration to apply the diff state configuration {}",
-                         tv[2] - tv[1]);
+    /* Same wording as the startup phases, but left at debug: unlike them this
+     * runs on every configuration change, and one burst of info lines per diff
+     * would be noise. The startup benchmark raises this logger when it wants
+     * them. */
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    config_logger->debug("Diff timing: globals = {} ms",
+                         duration_cast<milliseconds>(tv[2] - tv[1]).count());
+    config_logger->debug("Diff timing: objects = {} ms",
+                         duration_cast<milliseconds>(tv[5] - tv[2]).count());
     // Apply scheduler
     applier::scheduler::instance().apply(pb_indexed_config.mut_state(),
                                          diff_conf);
     whitelist::reload();
 
     // Timing.
-    tv[3] = std::chrono::system_clock::now();
+    tv[3] = std::chrono::steady_clock::now();
 
-    config_logger->debug("Duration to reload the whitelist {}", tv[3] - tv[2]);
+    config_logger->debug("Diff timing: scheduler = {} ms",
+                         duration_cast<milliseconds>(tv[3] - tv[5]).count());
     // Circular paths (host parent/child chains and notification/execution
     // dependencies) are now validated upstream by state_helper::resolve.
 
@@ -1820,9 +1857,9 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     }
 
     // Timing.
-    tv[4] = std::chrono::system_clock::now();
-    config_logger->debug("Duration to apply resources change {}",
-                         tv[4] - tv[3]);
+    tv[4] = std::chrono::steady_clock::now();
+    config_logger->debug("Diff timing: initial-states = {} ms",
+                         duration_cast<milliseconds>(tv[4] - tv[3]).count());
   } catch (...) {
     _processing_state = state_error;
     throw;

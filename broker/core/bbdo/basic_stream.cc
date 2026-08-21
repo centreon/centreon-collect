@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2015,2017, 2021-2025 Centreon
+ * Copyright 2013,2015,2017, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -62,8 +61,8 @@ static uint32_t set_double(io::data& t,
   uint32_t len(strlen(str));
   if (len >= size)
     throw msg_fmt(
-        "cannot extract double value: "
-        "not terminating '\\0' in remaining {} bytes of packet",
+        "cannot extract double value: not terminating '\\0' in remaining {} "
+        "bytes of packet",
         size);
   member.set_double(t, strtod(str, nullptr));
   return len + 1;
@@ -77,10 +76,8 @@ static uint32_t set_integer(io::data& t,
                             void const* data,
                             uint32_t size) {
   if (size < sizeof(uint32_t))
-    throw msg_fmt(
-        "BBDO: cannot extract integer value: {}"
-        " bytes left in packet",
-        size);
+    throw msg_fmt("BBDO: cannot extract integer value: {} bytes left in packet",
+                  size);
   member.set_int(t, ntohl(*static_cast<uint32_t const*>(data)));
   return sizeof(uint32_t);
 }
@@ -93,10 +90,8 @@ static uint32_t set_short(io::data& t,
                           void const* data,
                           uint32_t size) {
   if (size < sizeof(uint16_t))
-    throw msg_fmt(
-        "BBDO: cannot extract short value: {}"
-        " bytes left in packet",
-        size);
+    throw msg_fmt("BBDO: cannot extract short value: {} bytes left in packet",
+                  size);
   member.set_short(t, ntohs(*static_cast<uint16_t const*>(data)));
   return sizeof(uint16_t);
 }
@@ -112,8 +107,8 @@ static uint32_t set_string(io::data& t,
   uint32_t len(strlen(str));
   if (len >= size)
     throw msg_fmt(
-        "BBDO: cannot extract string value: "
-        "no terminating '\\0' in remaining {} bytes of packet",
+        "BBDO: cannot extract string value: no terminating '\\0' in remaining "
+        "{} bytes of packet",
         size);
   member.set_string(t, str);
   return len + 1;
@@ -389,6 +384,22 @@ static void get_ulong(io::data const& t,
 }
 
 /**
+ *  Write a BBDO packet header in place.
+ *
+ *  @param[out] header  Start of the BBDO_HEADER_SIZE bytes to fill.
+ *  @param[in]  size    Size of the payload that follows.
+ *  @param[in]  e       Event the packet carries.
+ */
+static void _fill_header(char* header, uint16_t size, const io::data& e) {
+  *(reinterpret_cast<uint16_t*>(header + 2)) = htons(size);
+  *(reinterpret_cast<uint32_t*>(header + 4)) = htonl(e.type());
+  *(reinterpret_cast<uint32_t*>(header + 8)) = htonl(e.source_id);
+  *(reinterpret_cast<uint32_t*>(header + 12)) = htonl(e.destination_id);
+  *(reinterpret_cast<uint16_t*>(header)) =
+      htons(misc::crc16_ccitt(header + 2, BBDO_HEADER_SIZE - 2));
+}
+
+/**
  *  Serialize an event in the BBDO protocol.
  *
  *  @param[in] e  Event to serialize.
@@ -396,10 +407,51 @@ static void get_ulong(io::data const& t,
  *  @return Serialized event.
  */
 io::raw* basic_stream::serialize(const io::data& e) {
-  std::deque<std::vector<char>> queue;
-
   // Get event info (mapping).
   const io::event_info* info = io::events::instance().get_event_info(e.type());
+
+  /* The protobuf events, which is what the monitoring flow is made of. The
+   * buffer is allocated once and protobuf encodes straight into it, right
+   * behind the header: 2 allocations and the single unavoidable copy
+   *
+   * Handled before the deque below, so that its map and its first node are not
+   * paid either. */
+  if (info && !info->get_mapping()) {
+    auto buffer = std::make_unique<io::raw>();
+    std::vector<char>& data(buffer->get_buffer());
+    /* One allocation for the whole packet: serialize() sizes the buffer to the
+     * header plus the payload and writes the payload behind the header. */
+    const size_t size =
+        info->get_operations().serialize(e, data, BBDO_HEADER_SIZE);
+
+    if (size < 0xffff) {
+      _fill_header(data.data(), size, e);
+      return buffer.release();
+    }
+
+    /* A payload spanning several packets. Rare — configuration, big metrics —
+     * and reframed here from the bytes already encoded above rather than
+     * serialized a second time.
+     */
+    std::vector<char> framed;
+    framed.reserve(data.size() + (size / 0xffff) * BBDO_HEADER_SIZE);
+    const char* payload = data.data() + BBDO_HEADER_SIZE;
+    size_t left = size;
+    do {
+      const size_t chunk = left < 0xffff ? left : 0xffff;
+      const size_t header = framed.size();
+      framed.resize(header + BBDO_HEADER_SIZE);
+      framed.insert(framed.end(), payload, payload + chunk);
+      _fill_header(framed.data() + header, chunk, e);
+      payload += chunk;
+      left -= chunk;
+    } while (left > 0);
+    data = std::move(framed);
+    return buffer.release();
+  }
+
+  std::deque<std::vector<char>> queue;
+
   if (info) {
     // Serialize properties of the object.
     const mapping::entry* current_entry = info->get_mapping();
@@ -485,45 +537,9 @@ io::raw* basic_stream::serialize(const io::data& e) {
 
       *(reinterpret_cast<uint16_t*>(header->data())) =
           htons(misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
-
-    } else {
-      /* Here is the protobuf case: no mapping */
-      std::string r{info->get_operations().serialize(e)};
-      size_t size = r.size();
-      auto it = r.begin();
-      do {
-        // Serialization buffer.
-        queue.emplace_back(std::vector<char>());
-        auto* content = &queue.back();
-        content->resize(BBDO_HEADER_SIZE);
-        if (size < 0xffff) {
-          content->insert(content->end(), it, r.end());
-          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = htons(size);
-          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
-          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
-              htonl(e.source_id);
-          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
-              htonl(e.destination_id);
-
-          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
-              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
-          break;
-        } else {
-          content->insert(content->end(), it, it + 0xffff);
-          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = 0xffff;
-          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
-          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
-              htonl(e.source_id);
-          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
-              htonl(e.destination_id);
-
-          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
-              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
-          size -= 0xffff;
-          it += 0xffff;
-        }
-      } while (size > 0);
     }
+    /* No else: an event without a mapping is a protobuf one, and those return
+     * from the block at the top of this function. */
 
     // Finalization: concatenation of all the vectors in the queue.
     size_t size = 0;

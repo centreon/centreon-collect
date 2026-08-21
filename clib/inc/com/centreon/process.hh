@@ -1,20 +1,20 @@
 /*
-** Copyright 2012-2013,2019-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2012-2013,2019-2026 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CC_PROCESS_POSIX_HH
 #define CC_PROCESS_POSIX_HH
@@ -25,7 +25,7 @@
 #include <condition_variable>
 #include <csignal>
 #include <mutex>
-#include <string>
+#include "com/centreon/misc/command_line.hh"
 #include "com/centreon/timestamp.hh"
 
 namespace com::centreon {
@@ -87,6 +87,13 @@ class process {
   mutable std::mutex _lock_process;
   timestamp _start_time;
 
+  /* Argument vector of the command being run, kept here rather than being a
+   * local of exec() so that a pooled process — which is what commands::raw
+   * hands out — reparses without allocating. It holds the char* array that
+   * posix_spawnp is given, so it must outlive that call; being a member, it
+   * does. Only exec() touches it, under _lock_process. */
+  misc::command_line _cmdline;
+
   static void _close(int& fd) noexcept;
   static pid_t _create_process_with_setpgid(char* const* args, char** env);
   static pid_t _create_process_without_setpgid(char* const* args, char** env);
@@ -110,8 +117,7 @@ class process {
   process& operator=(const process&) = delete;
   // void enable_stream(stream s, bool enable);
   timestamp const& end_time() const noexcept;
-  void exec(char const* cmd, char** env = nullptr, uint32_t timeout = 0);
-  void exec(std::string const& cmd, uint32_t timeout = 0);
+  void exec(std::string_view cmd, char** env = nullptr, uint32_t timeout = 0);
   int exit_code() const noexcept;
   status exit_status() const noexcept;
   void kill(int sig = SIGKILL);

@@ -71,12 +71,13 @@ void engine::unload() {
       /* Here we wait for all the subscriber muxers to be stopped and removed
        * from the muxers array. Even if they execute asynchronous functions,
        * they have finished after that. */
-      auto muxers_empty = [&m = instance->_muxers,
-                           logger = instance->_logger]()
-          ABSL_NO_THREAD_SAFETY_ANALYSIS {
-        logger->debug("Still {} muxers configured in Broker engine", m.size());
-        return m.empty();
-      };
+      auto muxers_empty =
+          [&m = instance->_muxers, logger = instance->_logger]()
+              ABSL_NO_THREAD_SAFETY_ANALYSIS {
+                logger->debug("Still {} muxers configured in Broker engine",
+                              m.size());
+                return m.empty();
+              };
       instance->_logger->info("Waiting for the destruction of subscribers");
       instance->_kiew_m.Await(absl::Condition(&muxers_empty));
     }
@@ -106,61 +107,68 @@ void engine::unload() {
  *  @param[in] e  Event to publish.
  */
 void engine::publish(const std::shared_ptr<io::data>& e) {
-  bool have_to_send = false;
-  {
-    absl::MutexLock lck(&_kiew_m);
-    switch (_state) {
-      case stopped:
-        SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to file");
-        _cache_file->add(e);
-        _unprocessed_events++;
-        break;
-      case not_started:
-        SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to queue");
-        _kiew.push_back(e);
-        break;
-      default:
-        SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to queue_");
-        _kiew.push_back(e);
-        have_to_send = true;
-        break;
-    }
-  }
-  if (have_to_send) {
-    _send_to_subscribers(nullptr);
-  }
+  /* A one-past-the-end pointer on the caller's own shared_ptr: the single event
+   * path stays free of any container. */
+  if (_enqueue(&e, &e + 1))
+    _drain();
 }
 
+/**
+ *  Send several events to all subscribers.
+ *
+ *  @param[in] to_publish  Events to publish.
+ */
 void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
-  bool have_to_send = false;
-  {
-    absl::MutexLock lck(&_kiew_m);
-    switch (_state) {
-      case stopped:
-        SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to file",
-                            to_publish.size());
-        for (auto& e : to_publish) {
-          _cache_file->add(e);
-          _unprocessed_events++;
-        }
-        break;
-      case not_started:
-        SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to queue",
-                            to_publish.size());
-        for (auto& e : to_publish)
-          _kiew.push_back(e);
-        break;
-      default:
-        SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to queue_",
-                            to_publish.size());
-        for (auto& e : to_publish)
-          _kiew.push_back(e);
-        have_to_send = true;
-        break;
-    }
-  }
-  if (have_to_send) {
-    _send_to_subscribers(nullptr);
+  if (_enqueue(to_publish.begin(), to_publish.end()))
+    _drain();
+}
+
+/**
+ * @brief Queue events, and say whether the caller now owns the drain loop.
+ *
+ * The body the two publish() overloads share. Templated on the iterator rather
+ * than on a container so that publishing one event does not have to build a
+ * deque to carry it.
+ *
+ * @param first  Beginning of the events to queue.
+ * @param last   End of the events to queue.
+ *
+ * @return true if the caller has to run the drain loop. False when a drain is
+ * already running, which is just as good: that loop re-reads _kiew under
+ * _kiew_m before giving up, so it cannot leave these events behind.
+ */
+template <typename It>
+bool engine::_enqueue(It first, It last) {
+  absl::MutexLock lck(&_kiew_m);
+  switch (_state) {
+    case stopped:
+      SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event(s) to file",
+                          std::distance(first, last));
+      /* Null when stop() could not open the file, and when the engine was
+       * stopped without ever having started — that path has no file to write
+       * to. Dropping is all that is left; the failure was reported where it
+       * happened. */
+      if (_cache_file)
+        for (It it = first; it != last; ++it)
+          _cache_file->add(*it);
+      else
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "multiplexing: no cache file, {} event(s) lost",
+                            std::distance(first, last));
+      return false;
+    case not_started:
+      SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event(s) to queue",
+                          std::distance(first, last));
+      _kiew.insert(_kiew.end(), first, last);
+      return false;
+    default:
+      SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event(s) to queue",
+                          std::distance(first, last));
+      _kiew.insert(_kiew.end(), first, last);
+      if (_draining || _muxers.empty())
+        return false;
+      _draining = true;
+      return true;
   }
 }
 /**
@@ -208,9 +216,8 @@ void engine::start() {
     }
   }
   if (have_to_send) {
-    std::promise<void> promise;
-    if (_send_to_subscribers([&promise]() { promise.set_value(); }))
-      promise.get_future().get();
+    _wake_drainer();
+    _wait_drained();
   }
 
   SPDLOG_LOGGER_INFO(_logger, "multiplexing: engine started");
@@ -230,26 +237,15 @@ void engine::stop() {
   }
 
   if (_state != stopped) {
-    // Set writing method.
-    _state = stopped;
-    _center->update(&EngineStats::set_mode, _stats, EngineStats::STOPPED);
-    lck.Release();
-    // Notify hooks of multiplexing loop end.
-    SPDLOG_LOGGER_INFO(_logger, "multiplexing: stopping engine");
-
-    std::promise<void> promise;
-    if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-      _logger->trace("stop: waiting for sending to subscribers to end in stop");
-      promise.get_future().get();
-    }  // nothing to send or no muxer
-
-    _logger->trace("stop: all events sent to subscribers");
-    absl::MutexLock l(&_kiew_m);
-
-    // Open the cache file and start the transaction.
-    // The cache file is used to cache all the events produced
-    // while the engine is stopped. It will be replayed next time
-    // the engine is started.
+    /* Opened before _state flips, and that order is the whole point: from the
+     * moment the state is stopped, publish() writes to this file. It used to be
+     * created only after the drain below, with _kiew_m released in between, so
+     * a publish landing in that window dereferenced a null unique_ptr — and on
+     * a first stop the pointer is always null, nothing else ever sets it.
+     *
+     * The cache file holds what is produced while the engine is stopped; it is
+     * replayed at the next start. Opening it can still fail, which is why
+     * publish() checks the pointer as well. */
     try {
       _cache_file =
           std::make_unique<persistent_cache>(_cache_file_path(), _logger);
@@ -258,6 +254,19 @@ void engine::stop() {
       _logger->error("multiplexing: could not open cache file: {}", e.what());
       _cache_file.reset();
     }
+
+    // Set writing method.
+    _state = stopped;
+    _center->update(&EngineStats::set_mode, _stats, EngineStats::STOPPED);
+    lck.Release();
+    // Notify hooks of multiplexing loop end.
+    SPDLOG_LOGGER_INFO(_logger, "multiplexing: stopping engine");
+
+    _logger->trace("stop: waiting for sending to subscribers to end in stop");
+    _wake_drainer();
+    _wait_drained();
+
+    _logger->trace("stop: all events sent to subscribers");
 
     SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine stopped");
   }
@@ -272,11 +281,33 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
   _logger->debug("engine: muxer {} subscribes to engine", subscriber->name());
   absl::MutexLock lck(&_kiew_m);
   for (auto& m : _muxers)
-    if (m.lock() == subscriber) {
+    if (m.mux.lock() == subscriber) {
       _logger->debug("engine: muxer {} already subscribed", subscriber->name());
+      /* muxer::create sets the filters of a reused muxer before subscribing it
+       * again, so an already known subscriber may carry a new one. */
+      m.filter = subscriber->write_filter();
       return;
     }
-  _muxers.push_back(subscriber);
+  _muxers.push_back(
+      {subscriber, subscriber->write_filter(), subscriber->name()});
+}
+
+/**
+ *  Take note of a muxer's new write filter.
+ *
+ *  @param[in] subscriber  The muxer whose filter changed.
+ *  @param[in] filter      Its new write filter.
+ */
+void engine::update_write_filter(const muxer* subscriber,
+                                 const muxer_filter& filter) {
+  absl::MutexLock lck(&_kiew_m);
+  for (auto& m : _muxers) {
+    auto w = m.mux.lock();
+    if (w && w.get() == subscriber) {
+      m.filter = filter;
+      return;
+    }
+  }
 }
 
 /**
@@ -285,27 +316,39 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
  *  @param[in] subscriber  Subscriber.
  */
 void engine::unsubscribe_muxer(const muxer* subscriber) {
-  std::promise<void> promise;
-
-  if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-    _logger->trace(
-        "unsubscribe_muxer: waiting for sending to subscribers to end");
-    promise.get_future().wait();
-  }
-
+  /* No waiting for a batch in flight here, on purpose. A batch already being
+   * distributed holds its targets in _hold, so it keeps serving this muxer to
+   * the end whatever we do to the subscriber list — the safety comes from
+   * there, not from waiting. And waiting would be a trap: ~muxer unsubscribes
+   * itself, so when the drainer releases the last reference to a muxer, this
+   * runs in the drainer's own thread and would wait for the drain it is itself
+   * performing. */
   _logger->trace("unsubscribe_muxer: removing muxer {:p} from engine",
                  static_cast<const void*>(subscriber));
   absl::MutexLock lck(&_kiew_m);
 
   auto logger = log_v2::instance().get(log_v2::CONFIG);
-  for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
-    auto w = it->lock();
-    if (!w || w.get() == subscriber) {
+  /* The whole list is walked, and expired entries are dropped along the way
+   * rather than being mistaken for the caller. Stopping at the first `!w` used
+   * to erase some *other*, already dead muxer and return, leaving `subscriber`
+   * subscribed — and a feeder that unsubscribes still holds its muxer alive
+   * (feeder::_stop_no_lock), so it went on receiving the very events it had
+   * just asked not to receive.
+   *
+   * Erasing here can drop no muxer: the entries hold weak_ptr, so no ~muxer
+   * runs under _kiew_m. */
+  for (auto it = _muxers.begin(); it != _muxers.end();) {
+    auto w = it->mux.lock();
+    if (!w) {
+      it = _muxers.erase(it);
+    } else if (w.get() == subscriber) {
+      /* Our own copy of the name, not subscriber->name(): the caller is very
+       * often a muxer running its own destructor. */
       logger->debug("multiplexing: muxer {} unsubscribed from Engine",
-                    subscriber->name());
-
-      _muxers.erase(it);
-      return;
+                    it->name);
+      it = _muxers.erase(it);
+    } else {
+      ++it;
     }
   }
 }
@@ -315,10 +358,8 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
  */
 engine::engine(const std::shared_ptr<spdlog::logger>& logger)
     : _state{not_started},
-      _unprocessed_events{0u},
       _center{config::applier::state::instance().center()},
       _stats{_center->register_engine()},
-      _sending_to_subscribers{false},
       _logger{logger} {
   _center->update(&EngineStats::set_mode, _stats, EngineStats::NOT_STARTED);
   absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
@@ -343,136 +384,184 @@ std::string engine::_cache_file_path() const {
   return retval;
 }
 
-namespace com::centreon::broker::multiplexing::detail {
-
 /**
- * @brief The goal of this class is to do the completion job once all muxer
- * has been fed a shared_ptr of one instance of this class is passed to
- * worker. So when all workers have finished, destructor is called and do the
- * job
+ * @brief Start a drain loop, unless one is already running.
  *
+ * Nothing is returned and nothing is waited for: a drain already in progress is
+ * as good as one we started, since it re-reads the queue before giving up.
  */
-class callback_caller {
-  engine::send_to_mux_callback_type _callback;
-  std::shared_ptr<engine> _parent;
-
- public:
-  callback_caller(engine::send_to_mux_callback_type&& callback,
-                  const std::shared_ptr<engine>& parent)
-      : _callback(callback), _parent(parent) {}
-
-  /**
-   * @brief Destroy the callback caller object and do the completion job
-   *
-   */
-  ~callback_caller() {
-    // job is done
-    bool expected = true;
-    if (_parent->_sending_to_subscribers.compare_exchange_strong(expected,
-                                                                 false)) {
-      if (_callback) {
-        _callback();
-      }
-      /* Events may have been pushed into _kiew while this publish was in
-       * flight. Such events were not sent because _sending_to_subscribers was
-       * still true (engine::publish's _send_to_subscribers call returned
-       * false). Now that the flag is reset, flush them, otherwise they would
-       * stay stuck in the queue until the next publish is triggered. */
-      bool pending;
-      {
-        absl::MutexLock lck(&_parent->_kiew_m);
-        pending = !_parent->_muxers.empty() && !_parent->_kiew.empty();
-      }
-      if (pending) {
-        _parent->_send_to_subscribers(nullptr);
-      }
-    }
-  }
-};
-
-}  // namespace com::centreon::broker::multiplexing::detail
-
-/**
- * @brief
- *  Send queued events to subscribers. Since events are queued, we use a
- * strand to keep their order. But there are several muxers, so we parallelize
- * the sending of data to each. callback is called only if _kiew is not empty
- * @param callback
- * @return true data sent
- * @return false nothing to send or currently sending.
- */
-bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
-  // is _send_to_subscriber working? (_sending_to_subscribers=false)
-  bool expected = false;
-  if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
-    return false;
-  }
-  // Now we continue and _sending_to_subscribers is true.
-
-  // Process all queued events.
-  std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
-  std::shared_ptr<detail::callback_caller> cb;
-  bool retval = false;
+void engine::_wake_drainer() {
+  bool mine = false;
   {
     absl::MutexLock lck(&_kiew_m);
-    if (_muxers.empty() || _kiew.empty()) {
-      // nothing to do true => _sending_to_subscribers
-      bool expected = true;
-      _sending_to_subscribers.compare_exchange_strong(expected, false);
-      return false;
-    }
-
-    SPDLOG_LOGGER_TRACE(
-        _logger, "engine::_send_to_subscribers send {} events to {} muxers",
-        _kiew.size(), _muxers.size());
-
-    kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
-    std::swap(_kiew, *kiew);
-    // completion object
-    // it will be destroyed at the end of the scope of this function and at
-    // the end of lambdas posted
-    cb = std::make_shared<detail::callback_caller>(std::move(callback),
-                                                   _instance);
-
-    // we use all asio threads and current thread to publish event
-    // the first not null muxer is used by main thread whereas
-    // followed threads use io::context::post to do the job
-    // when the last muxer had done his job, cb is destroyed and
-    // _sending_to_subscribers is refreshed
-    for (auto& mux : _muxers) {
-      std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
-      if (mux_to_publish_in_asio) {
-        retval = true;
-        asio::post(com::centreon::common::pool::io_context(),
-                   [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
-                     try {
-                       mux_to_publish_in_asio->publish(*kiew);
-                     }  // pool threads protection
-                     catch (const std::exception& ex) {
-                       SPDLOG_LOGGER_ERROR(
-                           logger, "publish caught exception: {}", ex.what());
-                     } catch (...) {
-                       SPDLOG_LOGGER_ERROR(logger,
-                                           "publish caught unknown exception");
-                     }
-                   });
-      }
+    if (!_draining && !_kiew.empty() && !_muxers.empty()) {
+      _draining = true;
+      mine = true;
     }
   }
-  auto& cache = config::applier::state::instance().cache();
-  _center->update(&EngineStats::set_processed_events, _stats,
-                  static_cast<uint32_t>(kiew->size()));
-  cache.publish(*kiew);
+  if (mine)
+    _drain();
+}
 
-  /* Notification driver (notification_mode=broker only): posted AFTER
-   * cache.publish so the sink sees a cache already up to date with this batch,
-   * and capturing cb so the next batch waits for it (serialization). nullptr in
-   * engine mode → nothing posted. */
-  if (_notification_sink)
-    asio::post(com::centreon::common::pool::io_context(),
-               [kiew, cb, sink = _notification_sink] { sink->on_events(*kiew); });
+/**
+ * @brief Block until the queue is empty and no batch is in flight.
+ *
+ * Replaces the promise/future dance of start(), stop() and unsubscribe_muxer().
+ * Those used to wait only when _send_to_subscribers returned true, and that
+ * return value did not distinguish "nothing to send" from "a batch is already
+ * in flight" — so they could carry on while events were still being
+ * distributed. Waiting on the state itself has no such hole.
+ *
+ * Muxer-less is a terminal state too: with no subscriber nobody will ever drain
+ * the queue, and waiting for it would hang.
+ */
+void engine::_wait_drained() {
+  absl::MutexLock lck(&_kiew_m);
+  auto drained = [this]() ABSL_NO_THREAD_SAFETY_ANALYSIS {
+    return !_draining && (_kiew.empty() || _muxers.empty());
+  };
+  _kiew_m.Await(absl::Condition(&drained));
+}
 
-  return retval;
+/**
+ * @brief Give up one share of the batch in flight.
+ *
+ * @return true if the caller was the last consumer, and therefore now owns the
+ * drain loop.
+ */
+bool engine::_one_done() {
+  return _pending.fetch_sub(1, std::memory_order_acq_rel) == 1;
+}
+
+/**
+ * @brief Hand batch after batch to the subscribed muxers, until the queue is
+ * dry.
+ *
+ * Runs in the publishing thread on its first turn, then in whichever worker
+ * finished last. Only one instance of this loop exists at any time — that is
+ * what _draining guarantees — and it takes a new batch only once the previous
+ * one has been fully consumed, which is what lets _batch, _hold and _targets be
+ * reused members rather than a fresh deque per batch.
+ *
+ * Muxers are all posted, none published from here: a muxer whose in-memory
+ * queue is full writes to its retention file, and that must never land in the
+ * thread of whoever published the event — Engine's check loop, typically.
+ */
+void engine::_drain() {
+  /* The posted lambdas outlive this call. Holding the instance keeps the
+   * engine, and the mutexes they touch, alive — the role callback_caller's
+   * shared_ptr used to play. */
+  std::shared_ptr<engine> keep_alive = _instance;
+
+  for (;;) {
+    /* Released outside _kiew_m, and deliberately so: _hold may carry the last
+     * reference to a muxer, and ~muxer unsubscribes itself, which takes
+     * _kiew_m. absl::Mutex is not recursive, so clearing this under the lock
+     * would deadlock the moment a feeder disappears while its batch is in
+     * flight. Safe here: the previous batch is fully consumed by now. */
+    _batch.clear();
+    _hold.clear();
+    _targets.clear();
+
+    {
+      absl::MutexLock lck(&_kiew_m);
+      if (_kiew.empty() || _muxers.empty()) {
+        _draining = false;
+        return;
+      }
+
+      SPDLOG_LOGGER_TRACE(_logger, "engine::_drain send {} events to {} muxers",
+                          _kiew.size(), _muxers.size());
+
+      std::swap(_kiew, _batch);
+
+      /* One mask for the whole batch, so each muxer is settled with a single
+       * test. This is what keeps a cbd serving 100 pollers from posting to 100
+       * muxers when 2 of them want the events: the others used to be posted
+       * anyway, walk the batch, and reject all of it. */
+      muxer_filter wanted({});
+      for (const auto& e : _batch)
+        wanted.insert(e->type());
+
+      /* Skipping a muxer is where its write filter now rejects events, so this
+       * is where the rejections have to be journalled: muxer::publish, which
+       * used to do it, is never reached for a batch nobody wants. Guarded
+       * rather than left to the macro, because what costs here is the walk, not
+       * the formatting — the point of the mask test above is not to walk the
+       * batch once per muxer. */
+      const bool log_rejects = _logger->should_log(spdlog::level::trace);
+
+      /* _hold and _targets are emptied in the head of the loop, outside the
+       * lock, and must not be emptied again here: dropping the last reference
+       * to a muxer runs ~muxer, which unsubscribes, which takes _kiew_m —
+       * deadlock on a non-recursive mutex. */
+      for (const auto& s : _muxers) {
+        if (!s.filter.contains_some_of(wanted)) {
+          if (log_rejects)
+            for (const auto& e : _batch)
+              SPDLOG_LOGGER_TRACE(
+                  _logger,
+                  "muxer {} event of type {:x} rejected by write filter",
+                  s.name, e->type());
+          continue;
+        }
+        if (auto m = s.mux.lock()) {
+          _hold.push_back(std::move(m));
+          _targets.push_back(_hold.back().get());
+        }
+      }
+    }
+
+    /* Read once and reused below: _notification_sink is a bare pointer cleared
+     * at teardown, and counting a consumer we then fail to post would leave
+     * _pending stuck above zero — that is, a drain that never ends and an
+     * engine that never publishes again. */
+    event_sink* sink = _notification_sink;
+
+    /* Armed before anything is posted, or a quick worker could reach zero while
+     * we are still posting and a second loop would start. The extra share is
+     * the drainer's own, held while it reads _batch below. */
+    _pending.store(_targets.size() + (sink ? 1 : 0) + 1,
+                   std::memory_order_release);
+
+    for (muxer* m : _targets)
+      asio::post(
+          com::centreon::common::pool::io_context(), [this, keep_alive, m] {
+            try {
+              m->publish(_batch);
+            }  // pool threads protection
+            catch (const std::exception& ex) {
+              SPDLOG_LOGGER_ERROR(_logger, "publish caught exception: {}",
+                                  ex.what());
+            } catch (...) {
+              SPDLOG_LOGGER_ERROR(_logger, "publish caught unknown exception");
+            }
+            if (_one_done())
+              _drain();
+          });
+
+    _center->update(&EngineStats::set_processed_events, _stats,
+                    static_cast<uint32_t>(_batch.size()));
+    config::applier::state::instance().cache().publish(_batch);
+
+    /* Notification driver (notification_mode=broker only): posted AFTER
+     * cache.publish so the sink sees a cache already up to date with this
+     * batch, and counted in _pending so the next batch waits for it
+     * (serialization). nullptr in engine mode → nothing posted. */
+    if (sink)
+      asio::post(com::centreon::common::pool::io_context(),
+                 [this, keep_alive, sink] {
+                   sink->on_events(_batch);
+                   if (_one_done())
+                     _drain();
+                 });
+
+    /* Released last, so nobody can clear _batch while we were still reading it.
+     * If everyone else is already done, we carry on with the next batch here
+     * rather than handing the loop over. */
+    if (!_one_done())
+      return;
+  }
 }
 
 /**

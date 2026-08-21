@@ -1,4 +1,5 @@
 add_executable(broker_bench
+    engine_dispatch.cc
     int64_map.cc
     #    old_muxer_queue.cc
     muxer_queue.cc)
@@ -10,4 +11,7 @@ target_link_libraries(broker_bench
     benchmark::benchmark_main
     absl::flat_hash_map
     absl::btree
-    Boost::container)
+    absl::synchronization
+    Boost::asio
+    Boost::container
+    pthread)

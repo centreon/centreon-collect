@@ -104,7 +104,7 @@ uint64_t raw::run(std::string const& processed_cmd,
 
   try {
     // Start process.
-    p->exec(processed_cmd.c_str(), env.data(), timeout);
+    p->exec(processed_cmd, env.data(), timeout);
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process success: id={}", command_id);
   } catch (...) {
@@ -147,7 +147,7 @@ void raw::run(std::string const& processed_cmd,
 
   // Start process.
   try {
-    p.exec(processed_cmd.c_str(), env.data(), timeout);
+    p.exec(processed_cmd, env.data(), timeout);
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw::run: start process success: id={}", command_id);
   } catch (...) {

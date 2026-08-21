@@ -28,7 +28,6 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/common/time.hh"
-#include "common/log_v2/log_v2.hh"
 
 namespace asio = boost::asio;
 
@@ -369,8 +368,17 @@ void muxer::_execute_reader_if_needed() {
                   _name);
               clear_action_on_new_data();
             }
-            _reader_running.store(false);
           }
+          /* Outside the `if` above, and that is the whole point: a task that
+           * runs before set_action_on_new_data() finds no handler and has
+           * nothing to do, but it must still give the flag back. Leaving it
+           * armed made the compare_exchange above fail for ever, so no reader
+           * was ever posted for this muxer again — a feeder that never
+           * delivered anything, surviving reconnection and reload since
+           * muxer::create() reuses muxers by name. A muxer subscribes in
+           * muxer::create() and only gets its handler in feeder::init(), so
+           * anything published in between opened that window. */
+          _reader_running.store(false);
         });
   }
 }
@@ -885,6 +893,22 @@ void muxer::set_write_filter(const muxer_filter& w_filter) {
   _logger->trace("multiplexing: '{}' set write filter...", _name);
   _write_filter = w_filter;
   _write_filters_str = misc::dump_filters(w_filter);
+  /* The engine keeps a copy, to decide without locking this muxer whether it
+   * wants a batch. It has to hear about the change; the call is a no-op while
+   * we are not subscribed yet, which is the case when muxer::create sets the
+   * filters of a brand new muxer. */
+  if (_engine)
+    _engine->update_write_filter(this, w_filter);
+}
+
+/**
+ * @brief Accessor to the write filter, that is which events this muxer accepts
+ * to carry towards its stream.
+ *
+ * @return The write filter.
+ */
+const muxer_filter& muxer::write_filter() const {
+  return _write_filter;
 }
 
 /**
@@ -895,10 +919,27 @@ void muxer::unsubscribe() {
   _engine->unsubscribe_muxer(this);
 }
 
+/**
+ * @brief Set the handler to call when this muxer has data for its stream.
+ *
+ * @param handler The handler, or nullptr to detach the current one.
+ */
 void muxer::set_action_on_new_data(
     const std::shared_ptr<data_handler>& handler) {
-  absl::MutexLock lck(&_events_m);
-  _data_handler = handler;
+  bool pending;
+  {
+    absl::MutexLock lck(&_events_m);
+    _data_handler = handler;
+    pending = _has_events_to_read();
+  }
+  /* Only publish() ever wakes the reader, so a handler arriving after the
+   * events would wait for the next publish to be given them — and for a feeder
+   * towards a poller, whose muxer only accepts configuration and commands, that
+   * can be a long wait. Waking it here is what makes the queue a feeder
+   * inherits at startup, or at reload since muxer::create() reuses muxers by
+   * name, leave straight away. */
+  if (handler && pending)
+    _execute_reader_if_needed();
 }
 
 void muxer::clear_action_on_new_data() {

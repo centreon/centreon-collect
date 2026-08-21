@@ -116,6 +116,13 @@ connectors/ssh/test/connector/binary.hh
 **/doc/devel-doc
 **/doc/_build
 
+# benchmarks
+# The result store and the generated configurations stay local to the machine
+# that measured them: figures are only comparable between runs on one machine,
+# so there is nothing to share through git. Use ./bench.py export for a figure
+# worth keeping.
+tests/benchmarks/results/
+
 # engine
 engine/benchmark/lib/*
 engine/benchmark/log/*

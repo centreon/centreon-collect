@@ -39,6 +39,7 @@ if(WITH_TESTING)
       ${TESTS_SOURCES}
       ${TESTS_DIR}/engine/start_stop.cc
       ${TESTS_DIR}/muxer/read.cc
+      ${TESTS_DIR}/muxer/reader_running.cc
       ${TESTS_DIR}/publisher/read.cc
       ${TESTS_DIR}/publisher/write.cc
       PARENT_SCOPE)

@@ -20,7 +20,11 @@
  */
 
 #include <unistd.h>
+#include <chrono>
 #include <random>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -76,6 +80,65 @@ namespace downtimes = com::centreon::common::downtimes;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
+
+namespace {
+
+/* Durations are measured on the monotonic clock and not on the system one: an
+ * NTP step during a startup would otherwise turn a phase into a negative or
+ * absurd duration, and a slow start is precisely the moment when a machine is
+ * likely to be resynchronizing. */
+using startup_clock = std::chrono::steady_clock;
+
+/* The first phases are measured before the configuration has been read, so
+ * before anyone knows where the log file is: until apply_log_config() runs,
+ * config_logger writes to the console only. They are therefore kept here and
+ * emitted again once the real destination is known -- otherwise the log of a
+ * customer whose Engine takes minutes to start would show every phase but the
+ * ones that explain it. */
+std::vector<std::pair<std::string, int64_t>> pending_startup_phases;
+bool startup_log_ready = false;
+
+/**
+ * @brief Log how long one phase of the startup took.
+ *
+ * The wording is fixed on purpose. A single regular expression --
+ * "Startup timing: (\S+) = (\d+) ms" -- has to catch every phase, because the
+ * startup benchmark reads these lines to attribute a slow start to a phase, and
+ * an operator answering "why does centengine take four minutes to start?" reads
+ * the very same lines in a customer log.
+ *
+ * @param phase Name of the phase, without space.
+ * @param begin When it started.
+ * @param end When it ended.
+ *
+ * @return end, so that phases can be chained without a second clock read.
+ */
+startup_clock::time_point log_startup_phase(const char* phase,
+                                           startup_clock::time_point begin,
+                                           startup_clock::time_point end) {
+  const int64_t ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+  config_logger->info("Startup timing: {} = {} ms", phase, ms);
+  if (!startup_log_ready)
+    pending_startup_phases.emplace_back(phase, ms);
+  return end;
+}
+
+/**
+ * @brief Re-emit the phases measured before the log file was known.
+ *
+ * Called right after apply_log_config(), so that the whole breakdown ends up in
+ * one place whatever the logger configuration. Console output keeps them twice,
+ * which is a small price for a complete log file.
+ */
+void flush_startup_phases() {
+  startup_log_ready = true;
+  for (const auto& [phase, ms] : pending_startup_phases)
+    config_logger->info("Startup timing: {} = {} ms", phase, ms);
+  pending_startup_phases.clear();
+}
+
+}  // namespace
 
 /**
  *  Centreon Engine entry point.
@@ -240,15 +303,29 @@ int main(int argc, char* argv[]) {
           cbm = std::make_unique<cbmod>(proto_conf);
           auto pb_cfg = std::make_unique<configuration::State>();
           configuration::state_helper state_hlp(pb_cfg.get());
+          /* Timed with the same wording as a real startup: --verify-config runs
+           * the very same configuration path, and being able to break it down
+           * without starting a daemon is what makes it measurable in a few
+           * seconds instead of a few minutes. */
+          startup_clock::time_point verify_begin = startup_clock::now();
+          startup_clock::time_point phase_begin = verify_begin;
           {
             configuration::parser p;
             p.parse(config_file, pb_cfg.get(), err);
+            phase_begin = log_startup_phase("config-read", phase_begin,
+                                            startup_clock::now());
             if (broker_config.empty())
               broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
+            phase_begin =
+                log_startup_phase("expand", phase_begin, startup_clock::now());
             state_hlp.resolve(err);
+            phase_begin =
+                log_startup_phase("resolve", phase_begin, startup_clock::now());
           }
           configuration::applier::state::instance().apply(*pb_cfg, err);
+          log_startup_phase("apply", phase_begin, startup_clock::now());
+          log_startup_phase("total", verify_begin, startup_clock::now());
           std::cout << "\n Checked " << commands::command::commands.size()
                     << " commands.\n Checked "
                     << commands::connector::connectors.size()
@@ -356,6 +433,8 @@ int main(int argc, char* argv[]) {
         try {
           // Parse configuration.
           configuration::error_cnt err;
+          startup_clock::time_point startup_begin = startup_clock::now();
+          startup_clock::time_point phase_begin = startup_begin;
           auto new_conf = std::make_unique<configuration::State>();
           bool proto_valid = false;
           if (!proto_conf.empty()) {
@@ -365,6 +444,15 @@ int main(int argc, char* argv[]) {
               new_conf->ParseFromIstream(&ifs);
               ifs.close();
               proto_valid = true;
+              /* Where the configuration came from matters as much as how long it
+               * took: reading a serialized State and parsing text files are two
+               * different pieces of work, and two runs that look alike may not
+               * have read the same thing at all. */
+              config_logger->info(
+                  "Startup: configuration read from {} ({} bytes)",
+                  proto_conf_file.string(), new_conf->ByteSizeLong());
+              phase_begin = log_startup_phase("config-read", phase_begin,
+                                             startup_clock::now());
             }
           }
           if (!proto_valid) {
@@ -373,9 +461,17 @@ int main(int argc, char* argv[]) {
              * Broker (CheckPollerConfig) and is trusted as-is. */
             configuration::state_helper state_hlp(new_conf.get());
             configuration::parser p;
+            config_logger->info("Startup: configuration parsed from {}",
+                                config_file);
             p.parse(config_file, new_conf.get(), err);
+            phase_begin = log_startup_phase("config-read", phase_begin,
+                                            startup_clock::now());
             state_hlp.expand(err);
+            phase_begin =
+                log_startup_phase("expand", phase_begin, startup_clock::now());
             state_hlp.resolve(err);
+            phase_begin =
+                log_startup_phase("resolve", phase_begin, startup_clock::now());
             if (err.config_errors)
               throw engine_error() << fmt::format(
                   "Cannot start: the configuration has {} error(s)",
@@ -385,6 +481,8 @@ int main(int argc, char* argv[]) {
                                                  extended_conf_file.end());
 
           configuration::extended_conf::update_state(new_conf.get());
+          phase_begin = log_startup_phase("extended-conf", phase_begin,
+                                          startup_clock::now());
           if (broker_config.empty())
             broker_config = new_conf->broker_module_cfg_file();
           uint16_t port = new_conf->grpc_port();
@@ -401,6 +499,12 @@ int main(int argc, char* argv[]) {
           const std::string& listen_address = new_conf->rpc_listen_address();
 
           update_rpc_server(listen_address, port);
+          /* Measured apart from the retention parse that follows: the two were
+           * timed together at first, and the phase was named after the parse,
+           * which made a gRPC server taking a few milliseconds to come up look
+           * like a suspiciously expensive retention file. */
+          phase_begin = log_startup_phase("rpc-server", phase_begin,
+                                          startup_clock::now());
 
           // Parse retention.
           retention::state state;
@@ -412,6 +516,8 @@ int main(int argc, char* argv[]) {
               config_logger->error("{}", e.what());
             }
           }
+          phase_begin =
+              log_startup_phase("retention", phase_begin, startup_clock::now());
 
           // Get program (re)start time and save as macro. Needs to be
           // done after we read config files, as user may have overridden
@@ -427,6 +533,9 @@ int main(int argc, char* argv[]) {
             new_conf->set_log_file(vm["log-file"].as<std::string>());
 
           configuration::applier::state::instance().apply_log_config(*new_conf);
+          /* Now that the log file of the configuration is in use, the phases
+           * measured before it was known can reach it. */
+          flush_startup_phases();
 
           neb_init_callback_list();
 
@@ -437,8 +546,14 @@ int main(int argc, char* argv[]) {
           }
 
           // Apply configuration.
+          phase_begin = startup_clock::now();
           configuration::applier::state::instance().apply(*new_conf, err,
                                                           &state);
+          /* Only the total of apply() is timed here; applier::state breaks it
+           * down further into diff, objects and scheduler with the same
+           * wording. */
+          phase_begin =
+              log_startup_phase("apply", phase_begin, startup_clock::now());
 
           // Initialize status data.
           initialize_status_data();
@@ -474,6 +589,12 @@ int main(int argc, char* argv[]) {
           event_start = time(NULL);
           mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
+          /* Everything from the first configuration read to here, which is what
+           * an operator waiting for the poller to come back actually feels. It
+           * is more than the sum of the phases above: loading the broker
+           * modules, initializing the status data and the downtimes all happen
+           * in between. */
+          log_startup_phase("total", startup_begin, startup_clock::now());
           config_logger->info("Event loop start at {}",
                               string::ctime(event_start));
           // Start monitoring all services (doesn't return until a
