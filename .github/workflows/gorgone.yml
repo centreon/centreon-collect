@@ -61,12 +61,12 @@ jobs:
         ".version.centreon-gorgone"
         "gorgone/**"
         "perl-libs/**"
-        ".github/docker/centreon-gorgone/**"
         "!gorgone/tests/**"
       unit_test_paths: |
         "gorgone/tests/unit/**"
       e2e_test_paths: |
         "gorgone/tests/robot/**"
+        ".github/docker/centreon-gorgone/**"
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
       labels: ${{ needs.get-environment.outputs.labels }}
