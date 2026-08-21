@@ -382,8 +382,8 @@ jobs:
             // and github.workflow so collect.yml/web.yml runs on this same
             // branch are unaffected.
             if (ref === 'MON-207531-publish-poller-docker-images-to-ghcr-io' && process.env.GITHUB_WORKFLOW === 'gorgone') {
-              console.log('TEMP TEST HACK (MON-207531): forcing stability=testing');
-              stability = 'testing';
+              console.log('TEMP TEST HACK (MON-207531): forcing stability=stable (stage 2 - ghcr.io promote test)');
+              stability = 'stable';
             }
 
             console.log(`Final stability: ${stability}`);
