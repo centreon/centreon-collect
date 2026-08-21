@@ -444,10 +444,13 @@ jobs:
   # workflow, rather than kept in a standalone docker-gorgone.yml, so it
   # inherits the same trigger paths (a version bump alone is enough to produce
   # a fresh candidate, same as deliver-rpm/deliver-deb below) and the same
-  # robot-test gate — it only builds/pushes once the e2e suite for this exact
-  # package has passed, instead of racing ahead of it as the old standalone
-  # workflow did. Named "dockerize-image" (not "dockerize") to avoid colliding
-  # with the internal gorgone-testing-* dependency image job above.
+  # robot-test gate — it only runs once robot-test has passed or was skipped
+  # (no e2e-relevant changes), never after a real failure, instead of racing
+  # ahead of it as the old standalone workflow did. Named "dockerize-image"
+  # (not "dockerize") to avoid colliding with the internal gorgone-testing-*
+  # dependency image job above. This job alone doesn't guarantee the resulting
+  # image is validated: docker-boot-test/docker-config-wiring-test below are
+  # what actually gate version_tag and promote-docker-tag/promote-docker-to-ghcr.
   dockerize-image:
     needs: [get-environment, changes, package, robot-test]
     if: |
@@ -458,6 +461,8 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -675,6 +680,8 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       (needs.dockerize-image.outputs.additional_tag != '' || needs.dockerize-image.outputs.version_tag != '')
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -693,11 +700,13 @@ jobs:
 
       - name: Promote validated tag (manifest retag, no rebuild)
         env:
+          IMAGE_BASE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}
+          SOURCE_TAG: ${{ needs.dockerize-image.outputs.image_tag }}
           TARGET_TAG: ${{ needs.dockerize-image.outputs.additional_tag || needs.dockerize-image.outputs.version_tag }}
         run: |
           docker buildx imagetools create \
-            --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:$TARGET_TAG" \
-            "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.image_tag }}"
+            --tag "$IMAGE_BASE:$TARGET_TAG" \
+            "$IMAGE_BASE:$SOURCE_TAG"
         shell: bash
 
   deliver-sources:
@@ -1010,19 +1019,20 @@ jobs:
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Promote to ghcr.io stable (best-effort, non-blocking)
-        # Fails hard if no Harbor candidate is found (under either the
-        # deterministic version_tag from dockerize-image, only produced after
-        # robot-test passed, or the legacy release_type-based tag) or if the
-        # ghcr.io push itself fails — continue-on-error swallows that into a
-        # warning below, mirroring how promote-to-stable-pulp is called.
+        # Fails hard if no Harbor candidate is found under the deterministic
+        # version_tag from dockerize-image (only produced after robot-test
+        # passed) or if the ghcr.io push itself fails — continue-on-error
+        # swallows that into a warning below, mirroring how
+        # promote-to-stable-pulp is called. Deliberately no fallback to the
+        # legacy release_type-based tag: that tag is written at build time,
+        # before container e2e tests run, so it's never a validated candidate.
         continue-on-error: true
         id: promote-ghcr
         uses: ./.github/actions/promote-docker-to-ghcr
         with:
           ghcr_image: ghcr.io/centreon/centreon-gorgone
           harbor_image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}
-          preferred_harbor_tag: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
-          fallback_harbor_tag: ${{ needs.get-environment.outputs.release_type }}-${{ needs.get-environment.outputs.major_version }}-next
+          harbor_tag: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
           ghcr_tags: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }} ${{ needs.get-environment.outputs.major_version }}
           platforms: linux/amd64,linux/arm64
 
