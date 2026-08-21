@@ -660,18 +660,26 @@ jobs:
         shell: bash
 
   promote-docker-tag:
+    # Handles both mutually-exclusive cases produced by "Compute Docker tag":
+    # the develop floating tag (additional_tag) and the deterministic
+    # release/hotfix version tag (version_tag) — one job, one mechanism,
+    # instead of two near-identical jobs. Only reached after
+    # docker-boot-test/docker-config-wiring-test have both passed for this
+    # exact image — promote-docker-to-ghcr looks up version_tag on the
+    # eventual stable release (a separate, later run), so it must never point
+    # at an image whose own container e2e tests failed.
     needs: [get-environment, dockerize-image, docker-boot-test, docker-config-wiring-test]
     if: |
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      needs.dockerize-image.outputs.additional_tag != ''
+      (needs.dockerize-image.outputs.additional_tag != '' || needs.dockerize-image.outputs.version_tag != '')
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         operating_system: [trixie]
-    name: promote centreon-gorgone-${{ matrix.operating_system }} floating tag
+    name: promote centreon-gorgone-${{ matrix.operating_system }} validated tag
     steps:
       - name: Login to registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -683,45 +691,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
-      - name: Promote floating tag (manifest retag, no rebuild)
+      - name: Promote validated tag (manifest retag, no rebuild)
+        env:
+          TARGET_TAG: ${{ needs.dockerize-image.outputs.additional_tag || needs.dockerize-image.outputs.version_tag }}
         run: |
           docker buildx imagetools create \
-            --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.additional_tag }}" \
-            "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.image_tag }}"
-        shell: bash
-
-  promote-docker-version-tag:
-    needs: [get-environment, dockerize-image, docker-boot-test, docker-config-wiring-test]
-    if: |
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      needs.dockerize-image.outputs.version_tag != ''
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        operating_system: [trixie]
-    name: tag centreon-gorgone-${{ matrix.operating_system }} with validated version
-    steps:
-      - name: Login to registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
-          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
-
-      - name: Tag validated candidate with deterministic version (manifest retag, no rebuild)
-        # Only applied here, after docker-boot-test/docker-config-wiring-test
-        # have passed for this exact image — promote-docker-to-ghcr looks up
-        # this tag on the eventual stable release (a separate, later run), so
-        # it must never point at an image whose own container e2e tests failed.
-        run: |
-          docker buildx imagetools create \
-            --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.version_tag }}" \
+            --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:$TARGET_TAG" \
             "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.image_tag }}"
         shell: bash
 
