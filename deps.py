@@ -46,6 +46,8 @@ parser.add_argument('--explain', '-e', action='store_true', default=False,
                     help='Explain what header to remove from the file.')
 parser.add_argument('--fix', '-f', action='store_true', default=False,
                     help='Removed headers that seems not needed (this action is dangerous).')
+parser.add_argument('--comment', '-C', action='store_true', default=False,
+                    help='Comment the removed lines instead of directly removing them.')
 args = parser.parse_args()
 
 
@@ -246,7 +248,7 @@ def build_recursive_headers_explain(parent, includes, headers, precomp_headers, 
                 pair, includes, new_headers, [], level, output)
 
 
-def remove_header_from_file(header, filename):
+def remove_header_from_file(header, filename, comment: bool):
     print(f"  * {YELLOW}{header}{RESET} removed from {CYAN}{filename}{RESET}.")
     r = re.compile(r"^#include\s*[\"<](.*)[\">]")
     with open(filename, "r") as f:
@@ -257,6 +259,8 @@ def remove_header_from_file(header, filename):
             if l.startswith("#include"):
                 m = r.match(ls)
                 if m and header.endswith(m.group(1)):
+                    if comment:
+                        f.write(f"// {l}")
                     continue
             f.write(l)
 
@@ -340,7 +344,7 @@ else:
                 if result:
                     if args.fix:
                         for (source, destination), paths in result.items():
-                            remove_header_from_file(destination, source)
+                            remove_header_from_file(destination, source, args.comment)
                     else:
                         print(f"{GREEN}{full_name[0]}{RESET}:")
                         for (source, destination), paths in result.items():
