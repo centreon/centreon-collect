@@ -18,7 +18,6 @@
 
 #include "com/centreon/misc/command_line.hh"
 #include <cctype>
-#include <cstring>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::misc;
@@ -31,47 +30,29 @@ using com::centreon::exceptions::msg_fmt;
  **************************************/
 
 /**
- *  Default constructor.
- */
-command_line::command_line() : _buffer(nullptr), _size(0) {}
-
-/**
- *  Parse command line.
- *
- *  @param[in] cmdline  The command line to parse.
- *  @param[in] size     The command line size, if size equal 0 parse
- *                      calculate the command line size.
- */
-command_line::command_line(char const* cmdline, unsigned int size)
-    : _buffer(nullptr), _size(0) {
-  parse(cmdline, size);
-}
-
-/**
  *  Parse command line.
  *
  *  @param[in] cmdline  The command line to parse.
  */
-command_line::command_line(std::string const& cmdline)
-    : _buffer(nullptr), _size(0) {
+command_line::command_line(std::string_view cmdline) {
   parse(cmdline);
 }
 
 /**
  *  Copy constructor.
  *
+ *  The buffer is copied in the initializer list and only the argument array is
+ *  rebuilt: it holds pointers into the other object's buffer, so it cannot be
+ *  copied as is. Construction and assignment used to share one helper, which
+ *  made this path test for self-assignment and release members that had just
+ *  been constructed empty -- harmless, but it read as if the object could
+ *  already own something.
+ *
  *  @param[in] right  The object to copy.
  */
-command_line::command_line(command_line const& right)
-    : _buffer(nullptr), _size(0) {
-  _internal_copy(right);
-}
-
-/**
- *  Destructor.
- */
-command_line::~command_line() throw() {
-  _release();
+command_line::command_line(const command_line& right)
+    : _buffer(right._buffer) {
+  _rebase_argv(right);
 }
 
 /**
@@ -81,31 +62,13 @@ command_line::~command_line() throw() {
  *
  *  @return This object.
  */
-command_line& command_line::operator=(command_line const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Equal operator.
- *
- *  @param[in] right  The object to compare.
- *
- *  @return True if objects are equal, otherwise false.
- */
-bool command_line::operator==(command_line const& right) const throw() {
-  return (_size == right._size && !memcmp(_buffer, right._buffer, _size));
-}
-
-/**
- *  Not equal operator.
- *
- *  @param[in] right  The object to compare.
- *
- *  @return True if objects are not equal, otherwise false.
- */
-bool command_line::operator!=(command_line const& right) const throw() {
-  return (!operator==(right));
+command_line& command_line::operator=(const command_line& right) {
+  if (this != &right) {
+    _buffer = right._buffer;
+    _argv.clear();
+    _rebase_argv(right);
+  }
+  return *this;
 }
 
 /**
@@ -130,30 +93,51 @@ char* const* command_line::get_argv() const noexcept {
  *  Parse command line and store arguments.
  *
  *  @param[in] cmdline  The command line to parse.
- *  @param[in] size     The command line size, if size equal 0 parse
- *                      calculate the command line size.
  */
-void command_line::parse(char const* cmdline, unsigned int size) {
-  // Cleanup.
-  _release();
-
-  if (!cmdline)
+void command_line::parse(std::string_view cmdline) {
+  /* A default-constructed view, which is what a caller with nothing to parse
+   * passes. Distinct from an empty but existing command line, which yields an
+   * argument array holding just its terminating nullptr — that difference is
+   * observable through get_argv() and predates the view. */
+  if (!cmdline.data()) {
+    _release();
     return;
+  }
 
-  if (!size)
-    size = strlen(cmdline);
+  const size_t size = cmdline.size();
 
-  // Allocate buffer.
-  _size = size + 1;
-  _buffer = new char[_size];
-  memset(_buffer, 0, _size);
+  /* Sized once, and zeroed: the last token is not explicitly terminated, it
+   * relies on those zeroes, and a reused buffer still holds the previous
+   * command line. One char more than the input, since a token is at most as
+   * long as what produced it and still needs its terminator.
+   *
+   * Neither this buffer nor the vector's capacity is handed back — assign()
+   * keeps the capacity it has. An object parsing again therefore allocates
+   * nothing at all, and process::exec parses one per check. */
+  _argv.clear();
+  _buffer.assign(size + 1, '\0');
+
+  /* One char* per token plus the trailing nullptr, reserved in one go. The
+   * number of maximal non-blank runs is a safe upper bound on the token count:
+   * a token can only end on whitespace or at the end of the input, so quotes
+   * and escapes may merge several runs into one token but can never split one.
+   *
+   * Without this the vector grows from an empty capacity at every call, and
+   * this one is called once per check: measured under heaptrack, an eleven
+   * token check command cost 5 reallocations, against 1 here. */
+  size_t tokens = 0;
+  for (size_t i = 0; i < size; ++i)
+    if (!isspace(static_cast<unsigned char>(cmdline[i])) &&
+        (i == 0 || isspace(static_cast<unsigned char>(cmdline[i - 1]))))
+      ++tokens;
+  _argv.reserve(tokens + 1);
 
   // Status variables.
   bool escap(false);
   char quote(0);
 
   char* begin = nullptr;
-  char* write = _buffer;
+  char* write = _buffer.data();
 
   enum e_state { e_waiting_begin, e_decoding_field, e_decoding_in_quote };
   e_state state = e_waiting_begin;
@@ -188,11 +172,7 @@ void command_line::parse(char const* cmdline, unsigned int size) {
     escap = false;
   };
 
-  for (const char *current = cmdline, *end = cmdline + size; current < end;
-       ++current) {
-    // Current processed char.
-    char c(*current);
-
+  for (char c : cmdline) {
     switch (state) {
       case e_waiting_begin:
         if (escap) {
@@ -259,15 +239,6 @@ void command_line::parse(char const* cmdline, unsigned int size) {
   _argv.push_back(nullptr);
 }
 
-/**
- *  Parse command line and store arguments.
- *
- *  @param[in] cmdline  The command line to parse.
- */
-void command_line::parse(std::string const& cmdline) {
-  parse(cmdline.c_str(), cmdline.size());
-}
-
 /**************************************
  *                                     *
  *           Private Methods           *
@@ -275,24 +246,30 @@ void command_line::parse(std::string const& cmdline) {
  **************************************/
 
 /**
- *  Internal copy.
+ *  Rebuild the argument array so that it points into our own buffer.
  *
- *  @param[in] right  The object to copy.
+ *  Called once _buffer already holds a copy of the other object's, and expects
+ *  _argv to be empty. Offsets are translated rather than the pointers copied:
+ *  those point into the other object's buffer, and taking them as is would make
+ *  both argument arrays share -- then outlive -- a single buffer.
+ *
+ *  @param[in] right  The object whose argument array is being translated.
  */
-void command_line::_internal_copy(command_line const& right) {
-  if (this != &right) {
-    _release();
-    _size = right._size;
-    if (right._buffer) {
-      _buffer = new char[_size];
-      memcpy(_buffer, right._buffer, _size);
-      for (const char* right_token : right._argv) {
-        if (right_token)
-          _argv.push_back(_buffer + (right_token - right._buffer));
-        else
-          _argv.push_back(nullptr);
-      }
-    }
+void command_line::_rebase_argv(const command_line& right) {
+  if (right._argv.empty())
+    return;
+  _argv.reserve(right._argv.size());
+  const char* right_base = right._buffer.data();
+  char* base = _buffer.data();
+  for (const char* right_token : right._argv) {
+    /* The trailing nullptr is one of them, and it is not an offset. An empty
+     * but existing command line has nothing else, and get_argv() tells that
+     * apart from a default-constructed object -- so the distinction has to
+     * survive a copy. */
+    if (right_token)
+      _argv.push_back(base + (right_token - right_base));
+    else
+      _argv.push_back(nullptr);
   }
 }
 
@@ -301,7 +278,5 @@ void command_line::_internal_copy(command_line const& right) {
  */
 void command_line::_release() {
   _argv.clear();
-  delete[] _buffer;
-  _buffer = nullptr;
-  _size = 0;
+  _buffer.clear();
 }

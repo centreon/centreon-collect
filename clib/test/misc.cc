@@ -323,11 +323,50 @@ TEST(ClibMisc, CommandLineCopy) {
   ASSERT_TRUE(compare(ref, cmd2));
 }
 
-TEST(ClibMisc, CommandLineEqual) {
-  std::string cmdline(" 1 2 3 4 5 6 7 8 9 0 ");
-  command_line cmd1(cmdline);
-  command_line cmd2(cmdline);
-  ASSERT_TRUE((cmd1 == cmd2));
+// Given a command_line copied from another one
+// When the original is destroyed
+// Then the copy still gives its arguments
+//
+// compare() alone would not catch a copy sharing the original's buffer: it
+// reads through strcmp, and shared bytes read the same. Only outliving the
+// original does. The short command line is deliberate — under 16 bytes the
+// characters live inside the object itself, so a copy that kept the original's
+// pointers would point into a destroyed object rather than into freed heap.
+TEST(ClibMisc, CommandLineCopyOutlivesOriginal) {
+  command_line cmd;
+  {
+    command_line ref(std::string("1 2 3"));
+    cmd = ref;
+  }
+  ASSERT_EQ(cmd.get_argc(), 3);
+  ASSERT_STREQ(cmd.get_argv()[0], "1");
+  ASSERT_STREQ(cmd.get_argv()[1], "2");
+  ASSERT_STREQ(cmd.get_argv()[2], "3");
+  ASSERT_EQ(cmd.get_argv()[3], nullptr);
+}
+
+// Given a command_line already parsed
+// When it parses another command line, longer then shorter
+// Then it gives the arguments of the last one only
+//
+// parse() reuses the buffer and the vector instead of handing them back, so
+// what a previous call left behind has to be invisible: a longer line has to
+// grow the buffer, and a shorter one must not leave the tail of the previous
+// one readable as an extra token.
+TEST(ClibMisc, CommandLineReparse) {
+  command_line cmd(std::string("a b"));
+  ASSERT_EQ(cmd.get_argc(), 2);
+
+  cmd.parse(std::string("first second third fourth"));
+  ASSERT_EQ(cmd.get_argc(), 4);
+  ASSERT_STREQ(cmd.get_argv()[0], "first");
+  ASSERT_STREQ(cmd.get_argv()[3], "fourth");
+  ASSERT_EQ(cmd.get_argv()[4], nullptr);
+
+  cmd.parse(std::string("x"));
+  ASSERT_EQ(cmd.get_argc(), 1);
+  ASSERT_STREQ(cmd.get_argv()[0], "x");
+  ASSERT_EQ(cmd.get_argv()[1], nullptr);
 }
 
 TEST(ClibMisc, CommandLineGetArgc) {
@@ -347,11 +386,18 @@ TEST(ClibMisc, CommandLineGetArgv) {
   ASSERT_EQ(cmd.get_argv()[0], cmdline);
 }
 
-TEST(ClibMisc, CommandLineNotEqual) {
+// The two tests this replaces were named Equal and NotEqual and both parsed the
+// same string into two objects: one asserted cmd1 == cmd2, the other
+// ASSERT_EQ(cmd1, cmd2) -- which also goes through operator==, so nothing ever
+// exercised operator!=. Both operators are gone, and what is worth asserting is
+// what they were standing in for: parsing the same input twice yields the same
+// arguments. compare() checks that through argc and argv, the observable
+// interface, rather than through the parsed buffer they compared.
+TEST(ClibMisc, CommandLineParseIsDeterministic) {
   std::string cmdline(" 1 2 3 4 5 6 7 8 9 0 ");
   command_line cmd1(cmdline);
   command_line cmd2(cmdline);
-  ASSERT_EQ(cmd1, cmd2);
+  ASSERT_TRUE(compare(cmd1, cmd2));
 }
 
 TEST(ClibMisc, CommandLineParse) {
