@@ -3426,9 +3426,9 @@ rien n'est instancié.
 
 Broker observe les changements d'état via les `pb_host_status`/`pb_service_status`
 qui remontent des pollers. Le point d'observation naturel est le cœur de
-`multiplexing::engine`, dont la boucle d'envoi traite déjà chaque **lot**
-d'événements (obtenu en échangeant la file principale `_kiew` avec une file
-locale) selon deux traitements parallèles : l'envoi aux muxers/streams
+`multiplexing::engine`, dont la boucle de drainage (`_drain()`) traite déjà chaque
+**lot** d'événements (obtenu en échangeant la file principale `_kiew` avec le lot
+`_batch`) selon deux traitements parallèles : l'envoi aux muxers/streams
 (`unified_sql`, `rrd`, …) et la mise à jour du **cache global**. On ajoute un
 **troisième traitement**, actif uniquement en mode broker : un consommateur qui,
 pour chaque `*_status`, appelle `notify()` sur le `notification_manager`.
@@ -3442,28 +3442,34 @@ sequenceDiagram
     participant NOTIF as canal notification<br/>(mode broker uniquement)
     IN->>E: publish(event)
     Note over E: empile dans _kiew
-    E->>E: _send_to_subscribers()<br/>swap _kiew → kiew locale
-    par envoi aux muxers
-        E-)MUX: asio::post mux->publish(kiew)
+    E->>E: _drain() : swap _kiew → _batch<br/>puis sélection des muxers par masque
+    par envoi aux muxers retenus
+        E-)MUX: asio::post mux->publish(_batch)
     and mise à jour du cache
-        E->>CACHE: cache.publish(kiew)
+        E->>CACHE: cache.publish(_batch)
     and notification (broker uniquement)
-        E-)NOTIF: asio::post on_events(kiew)
+        E-)NOTIF: asio::post on_events(_batch)
         NOTIF->>NOTIF: notify() sur les *_status
         NOTIF-)E: publish(pb_notification_execute)
     end
-    Note over E: cb relâché par tous les consommateurs<br/>→ lot suivant si _kiew s'est regarni
+    Note over E: _pending retombe à 0<br/>→ lot suivant si _kiew s'est regarni
 ```
 
 Points clés :
 
 - Le canal notification n'existe **qu'en mode broker** : en mode engine, aucune
   tâche n'est créée (coût nul, un simple test de pointeur dans la boucle).
-- Comme les muxers, il est traité par le pool asio et **capture le même objet de
-  complétion** (`callback_caller`) : le lot suivant n'est dispatché qu'une fois
-  **tous** les consommateurs — notification comprise — terminés. Cette
-  sérialisation par lot suffit à garantir qu'un seul `notify()` s'exécute à la
-  fois (le `notification_manager` n'est pas thread-safe), **sans strand**.
+- Comme les muxers, il est traité par le pool asio et **compte pour un
+  consommateur du lot** dans `_pending` : le lot suivant n'est dispatché qu'une
+  fois **tous** les consommateurs — notification comprise — terminés, celui qui
+  ramène le compteur à zéro reprenant la boucle. Cette sérialisation par lot
+  suffit à garantir qu'un seul `notify()` s'exécute à la fois (le
+  `notification_manager` n'est pas thread-safe), **sans strand**.
+- Les muxers ne sont **pas tous** postés : `_drain()` calcule le masque des types
+  présents dans le lot et ne retient que les muxers dont le filtre d'écriture
+  l'intersecte. Un cbd servant 100 pollers poste ainsi aux 2 muxers qui veulent le
+  flux de supervision, non aux 100. Les rejets restent journalisés (trace), mais
+  côté engine et non plus dans `muxer::publish`.
 - L'**ordre** avec le cache / `unified_sql` est sans importance : en conf
   centralisée, la config du cache vient des `State`/`diff_state`, pas des status ;
   un `*_status` ne porte qu'un changement d'état runtime. Le consommateur tire

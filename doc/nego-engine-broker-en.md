@@ -3050,12 +3050,12 @@ instantiated.
 
 Broker observes state changes through the `pb_host_status`/`pb_service_status`
 events coming up from the pollers. The natural observation point is the core of
-`multiplexing::engine`, whose send loop already processes each **batch** of
-events (obtained by swapping the main `_kiew` queue with a local one) through two
-parallel treatments: sending to the muxers/streams (`unified_sql`, `rrd`, …) and
-updating the **global cache**. We add a **third treatment**, active only in broker
-mode: a consumer that, for each `*_status`, calls `notify()` on the
-`notification_manager`.
+`multiplexing::engine`, whose drain loop (`_drain()`) already processes each
+**batch** of events (obtained by swapping the main `_kiew` queue with the `_batch`
+one) through two parallel treatments: sending to the muxers/streams
+(`unified_sql`, `rrd`, …) and updating the **global cache**. We add a **third
+treatment**, active only in broker mode: a consumer that, for each `*_status`,
+calls `notify()` on the `notification_manager`.
 
 ```mermaid
 sequenceDiagram
@@ -3066,28 +3066,34 @@ sequenceDiagram
     participant NOTIF as notification channel<br/>(broker mode only)
     IN->>E: publish(event)
     Note over E: push into _kiew
-    E->>E: _send_to_subscribers()<br/>swap _kiew → local kiew
-    par send to muxers
-        E-)MUX: asio::post mux->publish(kiew)
+    E->>E: _drain(): swap _kiew → _batch<br/>then select muxers by mask
+    par send to the selected muxers
+        E-)MUX: asio::post mux->publish(_batch)
     and update the cache
-        E->>CACHE: cache.publish(kiew)
+        E->>CACHE: cache.publish(_batch)
     and notification (broker only)
-        E-)NOTIF: asio::post on_events(kiew)
+        E-)NOTIF: asio::post on_events(_batch)
         NOTIF->>NOTIF: notify() on the *_status
         NOTIF-)E: publish(pb_notification_execute)
     end
-    Note over E: cb released by every consumer<br/>→ next batch if _kiew refilled
+    Note over E: _pending falls back to 0<br/>→ next batch if _kiew refilled
 ```
 
 Key points:
 
 - The notification channel exists **only in broker mode**: in engine mode no task
   is created (zero cost, a mere pointer check in the loop).
-- Like the muxers, it runs on the asio pool and **captures the same completion
-  object** (`callback_caller`): the next batch is only dispatched once **all**
-  consumers — notification included — are done. This per-batch serialization is
-  enough to guarantee a single `notify()` runs at a time (the
-  `notification_manager` is not thread-safe), **without a strand**.
+- Like the muxers, it runs on the asio pool and **counts as one consumer of the
+  batch** in `_pending`: the next batch is only dispatched once **all** consumers
+  — notification included — are done, whoever brings the counter down to zero
+  carrying the loop on. This per-batch serialization is enough to guarantee a
+  single `notify()` runs at a time (the `notification_manager` is not
+  thread-safe), **without a strand**.
+- The muxers are **not all** posted to: `_drain()` computes the mask of the types
+  the batch holds and only keeps the muxers whose write filter intersects it. A
+  cbd serving 100 pollers therefore posts to the 2 muxers that want the monitoring
+  flow, not to all 100. Rejections are still logged (trace), but on the engine
+  side rather than inside `muxer::publish`.
 - **Ordering** relative to the cache / `unified_sql` does not matter: in
   centralized config the cache configuration comes from `State`/`diff_state`, not
   from the status events; a `*_status` only carries a runtime state change. The
