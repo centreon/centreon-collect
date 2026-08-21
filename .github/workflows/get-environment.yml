@@ -373,19 +373,6 @@ jobs:
               stability = getStability(ref);
             }
 
-            // TEMP TEST HACK (MON-207531) — remove before merging PR #3640.
-            // Forces this exact PR branch, only when run via the gorgone
-            // workflow, to be treated as 'testing' stability so the ghcr.io
-            // promote path (dockerize-image -> e2e -> promote-docker-tag ->
-            // promote-docker-to-ghcr) can be exercised end-to-end without a
-            // real release/hotfix-next branch. Scoped to both the branch name
-            // and github.workflow so collect.yml/web.yml runs on this same
-            // branch are unaffected.
-            if (ref === 'MON-207531-publish-poller-docker-images-to-ghcr-io' && process.env.GITHUB_WORKFLOW === 'gorgone') {
-              console.log('TEMP TEST HACK (MON-207531): forcing stability=testing');
-              stability = 'testing';
-            }
-
             console.log(`Final stability: ${stability}`);
             core.setOutput('stability', stability);
 
