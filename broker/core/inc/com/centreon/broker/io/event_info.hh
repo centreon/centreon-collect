@@ -20,6 +20,7 @@
 #define CCB_IO_EVENT_INFO_HH
 
 #include <cstddef>
+#include <vector>
 
 namespace com::centreon::broker {
 
@@ -44,7 +45,29 @@ class event_info {
  public:
   struct event_operations {
     io::data* (*constructor)();
-    std::string (*serialize)(const io::data& e);
+
+    /**
+     * @brief Serialize an event into a caller-owned buffer.
+     *
+     * @param e The event to serialize.
+     * @param out Resized to offset + the payload size, and written at offset.
+     * @param offset Where the payload goes, leaving room for whatever header
+     *               the caller means to put in front of it.
+     *
+     * @return The number of bytes written.
+     *
+     * Writing into the caller's buffer rather than returning a std::string is
+     * what lets bbdo::basic_stream encode straight into the packet it will hand
+     * out.
+     *
+     * Null for the events serialized through a mapping::entry table, which is
+     * every BBDO2 one: they are built field by field instead. A caller has to
+     * test get_mapping() first.
+     */
+    size_t (*serialize)(const io::data& e,
+                        std::vector<char>& out,
+                        size_t offset);
+
     io::data* (*unserialize)(const char* buffer, size_t size);
   };
 
@@ -63,8 +86,10 @@ class event_info {
    *  @param[in] entries   Event property mapping.
    *  @param[in] table_v2  SQL table of event in version 2.x (if any).
    */
-  event_info(std::string const& name, event_operations const* ops,
-             mapping::entry const* entries, std::string const& table_v2)
+  event_info(std::string const& name,
+             event_operations const* ops,
+             mapping::entry const* entries,
+             std::string const& table_v2)
       : _mapping(entries), _name(name), _ops(ops), _table_v2(table_v2) {}
   /**
    *  Copy constructor.
