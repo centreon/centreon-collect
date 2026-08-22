@@ -35,6 +35,36 @@ target_link_libraries(common_timeperiod_calc_bench
     spdlog::spdlog
     fmt::fmt)
 
+# Stripping blanks off a view: the perfdata parser's own two-loop trim, or
+# absl::StripAsciiWhitespace? Same character set, same work on paper.
+add_executable(common_ascii_trim_bench ascii_trim.cc)
+target_compile_features(common_ascii_trim_bench PRIVATE cxx_std_17)
+target_compile_options(common_ascii_trim_bench PRIVATE -O2)
+target_link_libraries(common_ascii_trim_bench
+    PRIVATE
+    benchmark::benchmark
+    absl::strings)
+
+# Does parse_perfdata() cost more than linearly in the number of metrics? The
+# source is compiled in rather than linked from centreon_common, which would
+# drag protobuf and log_v2 in for one function; the library's precompiled header
+# is reused because perfdata.hh includes nothing of its own and relies on it.
+add_executable(common_perfdata_bench perfdata.cc ../src/perfdata.cc)
+target_compile_features(common_perfdata_bench PRIVATE cxx_std_17)
+target_compile_options(common_perfdata_bench PRIVATE -O2)
+target_include_directories(common_perfdata_bench PRIVATE
+    ${CMAKE_SOURCE_DIR}/common/inc
+    ${CMAKE_SOURCE_DIR}/common/inc/com/centreon/common)
+target_precompile_headers(common_perfdata_bench PRIVATE
+    ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
+target_link_libraries(common_perfdata_bench
+    PRIVATE
+    benchmark::benchmark
+    absl::flat_hash_set
+    absl::strings
+    spdlog::spdlog
+    fmt::fmt)
+
 # Micro-benchmark: month-name lookup, linear array scan vs absl::flat_hash_map.
 add_executable(common_month_id_bench month_id.cc)
 target_compile_features(common_month_id_bench PRIVATE cxx_std_17)

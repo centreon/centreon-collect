@@ -139,7 +139,7 @@ void stream::_unified_sql_process_pb_service_status(
 
       /* Parse perfdata. */
       std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
-          ss.host_id(), ss.service_id(), ss.perfdata().c_str(), _logger_sto)};
+          ss.host_id(), ss.service_id(), ss.perfdata(), _logger_sto)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
@@ -513,7 +513,7 @@ void stream::_unified_sql_process_service_status(
 
       /* Parse perfdata. */
       std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
-          ss.host_id, ss.service_id, ss.perf_data.c_str(), _logger_sto)};
+          ss.host_id, ss.service_id, ss.perf_data, _logger_sto)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {

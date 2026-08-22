@@ -19,6 +19,11 @@
 #ifndef CENTREON_COMMON_PERFDATA_HH
 #define CENTREON_COMMON_PERFDATA_HH
 
+#include <list>
+#include <memory>
+#include <string>
+#include <string_view>
+
 namespace com::centreon::common {
 class perfdata {
  public:
@@ -39,10 +44,14 @@ class perfdata {
   bool _warning_mode;
 
  public:
+  /* std::string_view and not const char*: every caller holds a std::string, and
+   * a view carries its length, so nothing here has to look for a NUL to know
+   * where the output ends. The parser used to search for the decimal comma with
+   * an unbounded strchr, which read to that NUL seven times per metric. */
   static std::list<perfdata> parse_perfdata(
       uint32_t host_id,
       uint32_t service_id,
-      const char* str,
+      std::string_view str,
       const std::shared_ptr<spdlog::logger>& logger);
 
   perfdata();

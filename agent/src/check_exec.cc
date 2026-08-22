@@ -177,7 +177,7 @@ void check_exec::on_completion(unsigned running_index,
       std::string perfdatas = outputs.begin()->substr(pipe_pos + 1);
       boost::trim(perfdatas);
       perfs = com::centreon::common::perfdata::parse_perfdata(
-          0, 0, perfdatas.c_str(), _logger);
+          0, 0, perfdatas, _logger);
     }
   }
 

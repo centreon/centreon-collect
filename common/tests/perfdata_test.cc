@@ -638,3 +638,76 @@ TEST_F(PerfdataParser, ExtractPerfdataBrackets) {
   ASSERT_NE(it, lst.end());
   ASSERT_EQ(it->name(), "aa a]");
 }
+
+// The type prefixes are lowercase, and only when the name ends with ']'. This
+// is deliberate rather than an oversight: widening it to uppercase would rename
+// every metric a plugin emits as "C[foo]" from "C[foo]" to "foo", which is a
+// grammar change and not a bug fix. The test exists so that the decision is not
+// undone by accident.
+TEST_F(PerfdataParser, TypePrefixIsCaseSensitive) {
+  /* Four distinct labels on purpose: two metrics ending up with the same name
+   * would trip the duplicate detection and one of them would be dropped, which
+   * is not what this test is about. */
+  auto lst{common::perfdata::parse_perfdata(
+      0, 0, "g[one]=1 G[two]=2 c[three]=3 C[four]=4", _logger)};
+  ASSERT_EQ(lst.size(), 4u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->name(), "one");
+  ASSERT_EQ(it->value_type(), common::perfdata::gauge);
+  ++it;
+  ASSERT_EQ(it->name(), "G[two]");
+  ASSERT_EQ(it->value_type(), common::perfdata::gauge);
+  ++it;
+  ASSERT_EQ(it->name(), "three");
+  ASSERT_EQ(it->value_type(), common::perfdata::counter);
+  ++it;
+  ASSERT_EQ(it->name(), "C[four]");
+  ASSERT_EQ(it->value_type(), common::perfdata::gauge);
+}
+
+// A type prefix with nothing inside leaves no name at all, and a metric without
+// a name is dropped. The one that follows is still read.
+TEST_F(PerfdataParser, TypePrefixWithEmptyLabel) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "g[]=1 kept=2", _logger)};
+  ASSERT_EQ(lst.size(), 1u);
+  ASSERT_EQ(lst.back().name(), "kept");
+  ASSERT_EQ(lst.back().value(), 2);
+}
+
+// Six fields is all the grammar defines. Anything after the sixth is ignored
+// rather than read as the beginning of another metric.
+TEST_F(PerfdataParser, MoreFieldsThanTheGrammarDefines) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "a=1;2;3;4;5;6;7 b=8",
+                                            _logger)};
+  ASSERT_EQ(lst.size(), 2u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->name(), "a");
+  ASSERT_EQ(it->value(), 1);
+  ASSERT_EQ(it->warning(), 2);
+  ASSERT_EQ(it->critical(), 3);
+  ASSERT_EQ(it->min(), 4);
+  ASSERT_EQ(it->max(), 5);
+  ++it;
+  ASSERT_EQ(it->name(), "b");
+  ASSERT_EQ(it->value(), 8);
+}
+
+// An exponent belongs to the number when it is complete, and is the unit when
+// it is not: "12e" is twelve, in a unit called "e".
+TEST_F(PerfdataParser, Exponent) {
+  auto lst{common::perfdata::parse_perfdata(
+      0, 0, "full=12e5 negative=3E-2 truncated=12e signed=1.5e+3", _logger)};
+  ASSERT_EQ(lst.size(), 4u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->value(), 1200000);
+  ASSERT_EQ(it->unit(), "");
+  ++it;
+  ASSERT_FLOAT_EQ(it->value(), 0.03);
+  ASSERT_EQ(it->unit(), "");
+  ++it;
+  ASSERT_EQ(it->value(), 12);
+  ASSERT_EQ(it->unit(), "e");
+  ++it;
+  ASSERT_FLOAT_EQ(it->value(), 1500);
+  ASSERT_EQ(it->unit(), "");
+}
