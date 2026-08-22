@@ -175,7 +175,7 @@ void check_exec::on_completion(unsigned running_index,
   if (!perf_data.empty()) {
     boost::trim(perf_data);
     perfs = com::centreon::common::perfdata::parse_perfdata(
-        0, 0, perf_data.c_str(), _logger);
+        0, 0, perf_data, _logger);
   }
 
   check::on_completion(running_index, exit_code, perfs, outputs);
