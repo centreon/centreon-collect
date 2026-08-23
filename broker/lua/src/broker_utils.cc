@@ -650,7 +650,7 @@ static int l_broker_parse_perfdata(lua_State* L) {
   char const* perf_data(lua_tostring(L, 1));
   int full(lua_toboolean(L, 2));
   auto logger = log_v2::instance().get(log_v2::LUA);
-  std::list<com::centreon::common::perfdata> pds{
+  std::vector<com::centreon::common::perfdata> pds{
       com::centreon::common::perfdata::parse_perfdata(0, 0, perf_data, logger)};
   lua_createtable(L, 0, pds.size());
   for (auto& pd : pds) {

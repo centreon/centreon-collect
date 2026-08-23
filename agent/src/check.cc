@@ -173,7 +173,7 @@ bool check::_start_check(const duration& timeout) {
     asio::post(*_io_context,
                [me = shared_from_this(), to_call = _completion_handler]() {
                  to_call(me, e_status::unknown,
-                         std::list<com::centreon::common::perfdata>(),
+                         std::vector<com::centreon::common::perfdata>(),
                          {"a check is already running"});
                });
     return false;
@@ -223,7 +223,7 @@ void check::_timeout_timer_handler(const boost::system::error_code& err,
                         _service, _command_name);
     this->_on_timeout();
     on_completion(start_check_index, 3 /*unknown*/,
-                  std::list<com::centreon::common::perfdata>(),
+                  std::vector<com::centreon::common::perfdata>(),
                   {"Timeout at execution of " + _command_line});
   }
 }
@@ -241,7 +241,7 @@ void check::_timeout_timer_handler(const boost::system::error_code& err,
 void check::on_completion(
     unsigned start_check_index,
     unsigned status,
-    const std::list<com::centreon::common::perfdata>& perfdata,
+    const std::vector<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
   if (start_check_index == _running_check_index) {
     SPDLOG_LOGGER_TRACE(_logger,

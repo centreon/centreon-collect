@@ -106,7 +106,7 @@ class check_counter : public check {
   void start_check(const duration& timeout) override;
 
   e_status compute(std::string* output,
-                   std::list<com::centreon::common::perfdata>* perf);
+                   std::vector<com::centreon::common::perfdata>* perf);
 
   bool pdh_snapshot(bool first_measure);
 

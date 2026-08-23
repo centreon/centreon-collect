@@ -85,7 +85,7 @@ class check_event_log : public check {
 
   e_status compute(event_log::event_container& data,
                    std::string* output,
-                   std::list<common::perfdata>* perfs);
+                   std::vector<common::perfdata>* perfs);
 };
 
 }  // namespace com::centreon::agent

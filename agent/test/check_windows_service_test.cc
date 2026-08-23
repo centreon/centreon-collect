@@ -133,14 +133,14 @@ TEST(check_service, service_no_threshold_all_running) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::ok);
@@ -202,14 +202,14 @@ TEST(check_service, service_no_threshold_one_by_state) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::ok);
@@ -268,14 +268,14 @@ TEST(check_service, service_filter_exclude_all_service) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::critical);
@@ -332,14 +332,14 @@ TEST(check_service, service_filter_allow_some_service) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::ok);
@@ -402,14 +402,14 @@ TEST(check_service, service_filter_exclude_some_service) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::ok);
@@ -474,14 +474,14 @@ TEST(check_service, service_filter_allow_some_service_warning_running) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::warning);
@@ -546,14 +546,14 @@ TEST(check_service, service_filter_allow_some_service_warning_stopped) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::warning);
@@ -617,14 +617,14 @@ TEST(check_service, service_filter_allow_some_service_critical_state) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::critical);
@@ -688,14 +688,14 @@ TEST(check_service, service_filter_start_auto_true) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::ok);
@@ -758,14 +758,14 @@ TEST(check_service, service_filter_start_auto_false) {
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::ok);
@@ -830,14 +830,14 @@ TEST(check_service,
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::vector<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = test_check.compute(*snap, &output, &perfs);
 
   EXPECT_EQ(status, e_status::warning);

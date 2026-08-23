@@ -73,7 +73,7 @@ TEST(native_check_cpu_windows, output_no_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   rapidjson::Document check_args;
 
@@ -82,7 +82,7 @@ TEST(native_check_cpu_windows, output_no_threshold) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -134,7 +134,7 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -145,7 +145,7 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -230,7 +230,7 @@ TEST(native_check_cpu_windows, output_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -241,7 +241,7 @@ TEST(native_check_cpu_windows, output_threshold) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -304,7 +304,7 @@ TEST(native_check_cpu_windows, output_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -315,7 +315,7 @@ TEST(native_check_cpu_windows, output_threshold_detailed) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -466,7 +466,7 @@ TEST(native_check_cpu_windows, compare_kernel_dph) {
       "cmd_line"s, nt_check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -479,7 +479,7 @@ TEST(native_check_cpu_windows, compare_kernel_dph) {
       "cmd_line"s, pdh_check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());

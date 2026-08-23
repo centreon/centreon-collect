@@ -246,7 +246,7 @@ void check_event_log::start_check([[maybe_unused]] const duration& timeout) {
     return;
   }
   std::string output;
-  std::list<common::perfdata> perf;
+  std::vector<common::perfdata> perf;
   e_status status = compute(*_data, &output, &perf);
 
   asio::post(
@@ -313,7 +313,7 @@ std::string check_event_log::print_event_detail(
 e_status check_event_log::compute(
     event_log::event_container& data,
     std::string* output,
-    std::list<com::centreon::common::perfdata>* perf) {
+    std::vector<com::centreon::common::perfdata>* perf) {
   std::lock_guard l(data);
 
   const std::string* out_format = &_output_syntax;

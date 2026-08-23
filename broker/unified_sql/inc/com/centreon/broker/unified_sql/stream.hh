@@ -205,6 +205,10 @@ class stream : public io::stream {
   bool _store_in_hosts_services;
   uint32_t _rrd_len = 0u;
   uint32_t _interval_length = 0u;
+  /* How many metrics one check output may yield, 0 for no limit. Not to be
+   * confused with _max_perfdata_queries just below, which sizes a bulk
+   * statement: this one caps what a single output is allowed to produce. */
+  uint32_t _max_perfdata = 0u;
   uint32_t _max_perfdata_queries = 0u;
   uint32_t _max_metrics_queries = 0u;
   uint32_t _max_cv_queries = 0u;
@@ -488,7 +492,8 @@ class stream : public io::stream {
          uint32_t instance_timeout,
          bool store_in_data_bin,
          bool store_in_resources,
-         bool store_in_hosts_services);
+         bool store_in_hosts_services,
+         uint32_t max_perfdata = 0);
   stream() = delete;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

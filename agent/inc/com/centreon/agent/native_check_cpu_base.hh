@@ -209,7 +209,7 @@ class native_check_cpu : public check {
       const std::string_view summary_labels[],
       const std::string_view perfdata_labels[],
       std::string* output,
-      std::list<common::perfdata>* perfs);
+      std::vector<common::perfdata>* perfs);
 
  public:
   native_check_cpu(const std::shared_ptr<asio::io_context>& io_context,
@@ -240,7 +240,7 @@ class native_check_cpu : public check {
       const check_cpu_detail::cpu_time_snapshot<nb_metric>& first_measure,
       const check_cpu_detail::cpu_time_snapshot<nb_metric>& second_measure,
       std::string* output,
-      std::list<common::perfdata>* perfs) = 0;
+      std::vector<common::perfdata>* perfs) = 0;
 };
 }  // namespace com::centreon::agent
 

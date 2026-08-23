@@ -150,7 +150,7 @@ class native_check_base : public check {
 
   e_status compute(const native_check_detail::snapshot<nb_metric>& data,
                    std::string* output,
-                   std::list<common::perfdata>* perfs) const;
+                   std::vector<common::perfdata>* perfs) const;
 
   virtual const std::vector<native_check_detail::metric_definition>&
   get_metric_definitions() const = 0;

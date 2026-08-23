@@ -147,7 +147,7 @@ class check : public std::enable_shared_from_this<check> {
   using completion_handler = std::function<void(
       const std::shared_ptr<check>& caller,
       int status,
-      const std::list<com::centreon::common::perfdata>& perfdata,
+      const std::vector<com::centreon::common::perfdata>& perfdata,
       const std::list<std::string>& outputs)>;
 
  private:
@@ -243,7 +243,7 @@ class check : public std::enable_shared_from_this<check> {
 
   void on_completion(unsigned start_check_index,
                      unsigned status,
-                     const std::list<com::centreon::common::perfdata>& perfdata,
+                     const std::vector<com::centreon::common::perfdata>& perfdata,
                      const std::list<std::string>& outputs);
 
   virtual void start_check(const duration& timeout) = 0;

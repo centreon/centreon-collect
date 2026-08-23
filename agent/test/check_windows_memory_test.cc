@@ -49,7 +49,7 @@ class test_check : public check_memory {
             nullptr,
             [](const std::shared_ptr<check>& caller,
                int status,
-               const std::list<com::centreon::common::perfdata>& perfdata,
+               const std::vector<com::centreon::common::perfdata>& perfdata,
                const std::list<std::string>& outputs) {},
             std::make_shared<checks_statistics>()) {}
 
@@ -101,7 +101,7 @@ const uint64_t _used_swap = (test_check::perf_mock.CommitTotal +
 const uint64_t _total_virtual = test_check::mock.ullTotalPageFile;
 const uint64_t _available_virtual = test_check::mock.ullAvailPageFile;
 
-static void test_perfs(std::list<com::centreon::common::perfdata> perfs) {
+static void test_perfs(std::vector<com::centreon::common::perfdata> perfs) {
   ASSERT_EQ(perfs.size(), 9);
   for (const auto& perf : perfs) {
     ASSERT_EQ(perf.min(), 0);
@@ -154,7 +154,7 @@ TEST(native_check_memory_windows, output_no_threshold) {
   rapidjson::Document check_args = R"({"swap": ""})"_json;
   test_check to_check(check_args);
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   com::centreon::agent::e_status status =
       to_check.compute(*to_check.measure(), &output, &perfs);
@@ -170,7 +170,7 @@ TEST(native_check_memory_windows, output_no_threshold2) {
   rapidjson::Document check_args = R"({ "swap": true})"_json;
   test_check to_check(check_args);
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   com::centreon::agent::e_status status =
       to_check.compute(*to_check.measure(), &output, &perfs);
@@ -187,7 +187,7 @@ TEST(native_check_memory_windows, output_no_threshold3) {
   rapidjson::Document check_args = R"({ "swap": true, "virtual": "true"})"_json;
   test_check to_check(check_args);
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   com::centreon::agent::e_status status =
       to_check.compute(*to_check.measure(), &output, &perfs);
@@ -206,7 +206,7 @@ TEST(native_check_memory_windows, output_threshold) {
       R"({ "warning-usage-free": "8388609", "critical-usage-prct": 99.99, "warning-virtual": "20000000000", "critical-virtual": 50000000000 })"_json;
   test_check to_check(check_args);
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   com::centreon::agent::e_status status =
       to_check.compute(*to_check.measure(), &output, &perfs);
@@ -238,7 +238,7 @@ TEST(native_check_memory_windows, output_threshold_2) {
       R"({ "warning-usage-prct": "1", "critical-usage-prct": "99.5",  "warning-usage-free": "" })"_json;
   test_check to_check(check_args);
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   com::centreon::agent::e_status status =
       to_check.compute(*to_check.measure(), &output, &perfs);

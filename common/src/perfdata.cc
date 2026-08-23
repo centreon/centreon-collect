@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/algorithm/container.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/ascii.h>
 #include <absl/strings/match.h>
@@ -445,15 +446,32 @@ std::string_view excerpt(std::string_view v, size_t count = 10) {
  * @param service_id The service id of the service with this perfdata
  * @param str The perfdata string to parse
  * @param logger The logger to complain to
+ * @param max_metrics At most that many metrics, 0 for no limit. Past it the
+ * remaining fields are left unread.
  *
- * @return A list of perfdata
+ * @return The metrics that were read, in the order the plugin wrote them, at
+ * most max_metrics of them.
+ *
  */
-std::list<perfdata> perfdata::parse_perfdata(
+std::vector<perfdata> perfdata::parse_perfdata(
     uint32_t host_id,
     uint32_t service_id,
     std::string_view str,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  std::list<perfdata> retval;
+    const std::shared_ptr<spdlog::logger>& logger,
+    uint32_t max_metrics) {
+  std::vector<perfdata> retval;
+  /* Every metric carries exactly one '=', so counting them gives the exact
+   * number of metrics on a well-formed output and one allocation for the whole
+   * collection. A stray '=' inside a quoted label only makes the reservation
+   * generous, never short: over-reserving wastes a few bytes, growing from zero
+   * would reallocate log2(N) times and move every element already in. The scan
+   * is one pass of memchr over a string the parser is about to read anyway. */
+  const size_t announced = absl::c_count(str, '=');
+  /* Capped, and not only the loop below: reserving on what a 50 000 metric
+   * output announces would hand out the very allocation the cap exists to
+   * prevent. */
+  retval.reserve(max_metrics ? std::min<size_t>(announced, max_metrics)
+                             : announced);
   /* The names seen so far, as views into str: the caller's buffer outlives this
    * call, and nothing here copies a name twice. */
   absl::flat_hash_set<std::string_view> seen_names;
@@ -575,6 +593,18 @@ std::list<perfdata> perfdata::parse_perfdata(
 
     seen_names.insert(name);
     retval.push_back(std::move(p));
+
+    if (max_metrics && retval.size() >= max_metrics) {
+      /* Warned once per output and not once per dropped metric, and with the
+       * announced count rather than the real one: knowing how far past the cap
+       * the output went is what tells a misconfigured cap from a broken plugin,
+       * and the '=' already counted for the reservation gives it for free. */
+      logger->warn(
+          "storage{}: perfdata truncated to {} metrics, the output announces "
+          "about {}",
+          id(), max_metrics, announced);
+      break;
+    }
 
     remaining = trim(remaining);
   }

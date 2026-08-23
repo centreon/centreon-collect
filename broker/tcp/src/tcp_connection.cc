@@ -253,8 +253,12 @@ void tcp_connection::start_reading() {
 
 void tcp_connection::handle_read(const boost::system::error_code& ec,
                                  size_t read_bytes) {
-  _logger->trace("Incoming data: {} bytes: {}", read_bytes,
-                 debug_buf(&_read_buffer[0], read_bytes));
+  /* Guarded, because debug_buf() is a call and not a formatting argument: it
+   * builds its hexadecimal string before the logger is given a chance to decide
+   * it will write nothing, once per incoming packet. */
+  if (_logger->should_log(spdlog::level::trace))
+    _logger->trace("Incoming data: {} bytes: {}", read_bytes,
+                   debug_buf(&_read_buffer[0], read_bytes));
   if (read_bytes > 0) {
     std::lock_guard<std::mutex> lock(_read_queue_m);
     _read_queue.emplace(_read_buffer.begin(),

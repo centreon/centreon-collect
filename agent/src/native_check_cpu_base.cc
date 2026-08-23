@@ -320,7 +320,7 @@ void native_check_cpu<nb_metric>::_measure_timer_handler(
   }
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> new_measure =
       get_cpu_time_snapshot(false);
@@ -347,7 +347,7 @@ e_status native_check_cpu<nb_metric>::_compute(
     const std::string_view summary_labels[],
     const std::string_view perfdata_labels[],
     std::string* output,
-    std::list<com::centreon::common::perfdata>* perfs) {
+    std::vector<com::centreon::common::perfdata>* perfs) {
   index_to_cpu<nb_metric> delta = second_measure.subtract(first_measure);
 
   // we need to know per cpu status to provide no ok cpu details

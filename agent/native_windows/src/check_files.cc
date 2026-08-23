@@ -957,7 +957,7 @@ void check_files::_completion_handler(
   auto result_size = result.size();
   e_status ret = e_status::ok;
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   if (!msg_err.empty()) {
     SPDLOG_LOGGER_ERROR(_logger, "check_files error: {}", msg_err);

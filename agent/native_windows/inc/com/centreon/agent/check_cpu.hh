@@ -144,7 +144,7 @@ class check_cpu
       const check_cpu_detail::cpu_time_snapshot<
           check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
       std::string* output,
-      std::list<common::perfdata>* perfs) override;
+      std::vector<common::perfdata>* perfs) override;
 };
 
 }  // namespace com::centreon::agent

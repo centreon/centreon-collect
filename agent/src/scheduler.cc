@@ -282,7 +282,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
             serv.command_line(), conf,
             [me = shared_from_this()](
                 const std::shared_ptr<check>& check, unsigned status,
-                const std::list<com::centreon::common::perfdata>& perfdata,
+                const std::vector<com::centreon::common::perfdata>& perfdata,
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
             },
@@ -346,7 +346,7 @@ void scheduler::_start_check(const check::pointer& check) {
 void scheduler::_check_handler(
     const check::pointer& check,
     unsigned status,
-    const std::list<com::centreon::common::perfdata>& perfdata,
+    const std::vector<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
   SPDLOG_LOGGER_DEBUG(_logger, "end check for service {} command {}",
                       check->get_service(), check->get_command_line());
@@ -405,7 +405,7 @@ void scheduler::stop() {
 void scheduler::_store_result_in_metrics(
     [[maybe_unused]] const check::pointer& check,
     [[maybe_unused]] unsigned status,
-    [[maybe_unused]] const std::list<com::centreon::common::perfdata>& perfdata,
+    [[maybe_unused]] const std::vector<com::centreon::common::perfdata>& perfdata,
     [[maybe_unused]] const std::list<std::string>& outputs) {
   // auto scope_metrics =
   //     get_scope_metrics(check->get_host(), check->get_service());
@@ -440,7 +440,7 @@ void scheduler::_store_result_in_metrics(
 void scheduler::_store_result_in_metrics_and_exemplars(
     const check::pointer& check,
     unsigned status,
-    const std::list<com::centreon::common::perfdata>& perfdata,
+    const std::vector<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
   // we don't want to erase existing previous metrics, so we send right now
   auto exist = _serv_to_scope_metrics.find(check->get_service());

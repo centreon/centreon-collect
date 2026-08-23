@@ -85,7 +85,7 @@ class failover : public endpoint {
 
  private:
   void _launch_failover();
-  void _update_status(std::string const& status);
+  void _update_status(std::string_view status);
 
   // Data that doesn't require locking.
   volatile time_t _buffering_timeout;

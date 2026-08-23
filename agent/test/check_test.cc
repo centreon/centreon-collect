@@ -65,7 +65,7 @@ class dummy_check : public check {
         return;
       }
       on_completion(running_index, 1,
-                    std::list<com::centreon::common::perfdata>(),
+                    std::vector<com::centreon::common::perfdata>(),
                     {"output dummy_check of " + get_command_line()});
     });
   }
@@ -105,7 +105,7 @@ TEST(check_test, timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(500),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
@@ -143,7 +143,7 @@ TEST(check_test, no_timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(100),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;

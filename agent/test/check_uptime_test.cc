@@ -37,7 +37,7 @@ TEST(native_check_uptime, ok) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -68,7 +68,7 @@ TEST(native_check_uptime, ok_m) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -99,7 +99,7 @@ TEST(native_check_uptime, ok_h) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -130,7 +130,7 @@ TEST(native_check_uptime, ok_d) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -161,7 +161,7 @@ TEST(native_check_uptime, ok_w) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -192,7 +192,7 @@ TEST(native_check_uptime, warning) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -223,7 +223,7 @@ TEST(native_check_uptime, warning_bis) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -254,7 +254,7 @@ TEST(native_check_uptime, critical) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -284,7 +284,7 @@ TEST(native_check_uptime, critical_bis) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());

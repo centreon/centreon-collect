@@ -127,7 +127,7 @@ void native_check_base<nb_metric>::start_check(const duration& timeout) {
                               metrics = mem_metrics]() mutable {
       std::string output;
       output.reserve(1024);
-      std::list<com::centreon::common::perfdata> perfs;
+      std::vector<com::centreon::common::perfdata> perfs;
       e_status status = me->compute(*metrics, &output, &perfs);
       me->on_completion(start_check_index, status, perfs, {output});
     });
@@ -155,7 +155,7 @@ template <unsigned nb_metric>
 e_status native_check_base<nb_metric>::compute(
     const native_check_detail::snapshot<nb_metric>& data,
     std::string* output,
-    std::list<com::centreon::common::perfdata>* perfs) const {
+    std::vector<com::centreon::common::perfdata>* perfs) const {
   e_status status = e_status::ok;
 
   for (const auto& mem_status : _measure_to_status) {

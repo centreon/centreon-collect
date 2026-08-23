@@ -2268,7 +2268,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
  *
  *  @param[in] status New status.
  */
-void reporting_stream::_update_status(std::string const& status) {
+void reporting_stream::_update_status(std::string_view status) {
   std::lock_guard<std::mutex> lock(_statusm);
   _status = status;
 }

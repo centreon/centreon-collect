@@ -52,7 +52,7 @@ TEST(check_exec_test, echo) {
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
           int statuss,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& output) {
         {
@@ -83,7 +83,7 @@ TEST(check_exec_test, timeout) {
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
           int statuss,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& output) {
         status = statuss;
@@ -130,7 +130,7 @@ TEST(check_exec_test, bad_command) {
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
           int statuss,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& output) {
         {
@@ -167,7 +167,7 @@ TEST(check_exec_test, recurse_not_lock) {
       g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
       [&](const std::shared_ptr<com::centreon::agent::check>& caller, int,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& output) {
         if (!cpt) {

@@ -124,7 +124,7 @@ void check_health::_measure_timer_handler(const boost::system::error_code& err,
     return;
   }
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   e_status status = compute(&output, &perf);
 
   on_completion(start_check_index, status, perf, {output});
@@ -145,7 +145,7 @@ auto my_format_to =
  */
 e_status check_health::compute(
     std::string* output,
-    std::list<com::centreon::common::perfdata>* perf) {
+    std::vector<com::centreon::common::perfdata>* perf) {
   e_status ret = e_status::ok;
 
   const checks_statistics& stats = get_stats();

@@ -120,7 +120,7 @@ class check_sched : public check {
   void start_check(const duration& timeout) override;
 
   e_status compute(std::string* output,
-                   std::list<com::centreon::common::perfdata>* perfs);
+                   std::vector<com::centreon::common::perfdata>* perfs);
 
   // for testing purposes
   absl::flat_hash_map<std::string, tasksched_data>& get_mutable_tasks() {

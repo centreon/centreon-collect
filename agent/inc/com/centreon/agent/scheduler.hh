@@ -114,17 +114,17 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   void _check_handler(
       const check::pointer& check,
       unsigned status,
-      const std::list<com::centreon::common::perfdata>& perfdata,
+      const std::vector<com::centreon::common::perfdata>& perfdata,
       const std::list<std::string>& outputs);
   void _store_result_in_metrics(
       const check::pointer& check,
       unsigned status,
-      const std::list<com::centreon::common::perfdata>& perfdata,
+      const std::vector<com::centreon::common::perfdata>& perfdata,
       const std::list<std::string>& outputs);
   void _store_result_in_metrics_and_exemplars(
       const check::pointer& check,
       unsigned status,
-      const std::list<com::centreon::common::perfdata>& perfdata,
+      const std::vector<com::centreon::common::perfdata>& perfdata,
       const std::list<std::string>& outputs);
 
   scope_metric_request& _get_scope_metrics(const std::string& service);

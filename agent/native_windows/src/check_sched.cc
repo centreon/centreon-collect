@@ -146,7 +146,7 @@ void check_sched::start_check(const duration& timeout) {
   }
 
   std::string output;
-  std::list<common::perfdata> perfs;
+  std::vector<common::perfdata> perfs;
 
   // Get all scheduled tasks
   _enumerate_tasks(_root_folder_ptr);
@@ -170,7 +170,7 @@ void check_sched::start_check(const duration& timeout) {
  */
 e_status check_sched::compute(
     std::string* output,
-    std::list<com::centreon::common::perfdata>* perfs) {
+    std::vector<com::centreon::common::perfdata>* perfs) {
   e_status ret = e_status::ok;
   output->clear();
 

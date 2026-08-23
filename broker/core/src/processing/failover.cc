@@ -599,7 +599,8 @@ void failover::_launch_failover() {
  *
  *  @param[in] status New status.
  */
-void failover::_update_status(const std::string& status) {
+void failover::_update_status(std::string_view status) {
+  /* A view and not a const std::string&: every caller passes a literal */
   std::lock_guard<std::mutex> lock(_status_m);
   _status = status;
 }

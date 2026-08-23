@@ -505,7 +505,7 @@ void check_drive_size::_completion_handler(
   e_status status = e_status::ok;
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   for (const auto& fs : result) {
     e_status fs_status = (this->*_fs_test)(fs);

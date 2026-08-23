@@ -38,6 +38,8 @@ connector::connector()
  *  @param[in] interval_length         Length of a time unit.
  *  @param[in] store_in_data_bin       True to store performance data in
  *                                     the data_bin table.
+ *  @param[in] max_perfdata            At most that many metrics per check
+ *                                     output, 0 for no limit.
  */
 void connector::connect_to(const database_config& dbcfg,
                            uint32_t rrd_len,
@@ -46,7 +48,8 @@ void connector::connect_to(const database_config& dbcfg,
                            uint32_t instance_timeout,
                            bool store_in_data_bin,
                            bool store_in_resources,
-                           bool store_in_hosts_services) {
+                           bool store_in_hosts_services,
+                           uint32_t max_perfdata) {
   _dbcfg = dbcfg;
   _rrd_len = rrd_len;
   _interval_length = interval_length;
@@ -55,6 +58,7 @@ void connector::connect_to(const database_config& dbcfg,
   _store_in_data_bin = store_in_data_bin;
   _store_in_resources = store_in_resources;
   _store_in_hosts_services = store_in_hosts_services;
+  _max_perfdata = max_perfdata;
 }
 
 /**
@@ -65,5 +69,6 @@ void connector::connect_to(const database_config& dbcfg,
 std::shared_ptr<io::stream> connector::open() {
   return std::make_unique<stream>(
       _dbcfg, _rrd_len, _interval_length, _loop_timeout, _instance_timeout,
-      _store_in_data_bin, _store_in_resources, _store_in_hosts_services);
+      _store_in_data_bin, _store_in_resources, _store_in_hosts_services,
+      _max_perfdata);
 }

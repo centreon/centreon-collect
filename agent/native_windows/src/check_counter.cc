@@ -315,7 +315,7 @@ bool check_counter::pdh_snapshot(bool first_measure) {
  */
 e_status check_counter::compute(
     std::string* output,
-    std::list<com::centreon::common::perfdata>* perfs) {
+    std::vector<com::centreon::common::perfdata>* perfs) {
   e_status ret = e_status::ok;
 
   if (_data_counter._map.empty()) {
@@ -444,7 +444,7 @@ void check_counter::start_check(const duration& timeout) {
   }
 
   std::string output;
-  std::list<common::perfdata> perf;
+  std::vector<common::perfdata> perf;
   try {
     // take the first snapshot of the counter
     bool info_stored = pdh_snapshot(true);
@@ -495,7 +495,7 @@ void check_counter::_measure_timer_handler(const boost::system::error_code& err,
   try {
     pdh_snapshot(false);
     std::string output;
-    std::list<com::centreon::common::perfdata> perfs;
+    std::vector<com::centreon::common::perfdata> perfs;
 
     e_status status = compute(&output, &perfs);
     on_completion(start_check_index, status, perfs, {output});

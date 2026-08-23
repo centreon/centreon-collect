@@ -55,7 +55,7 @@ class check_health : public check {
 
   void start_check(const duration& timeout) override;
 
-  e_status compute(std::string* output, std::list<common::perfdata>* perfs);
+  e_status compute(std::string* output, std::vector<common::perfdata>* perfs);
 };
 
 }  // namespace com::centreon::agent

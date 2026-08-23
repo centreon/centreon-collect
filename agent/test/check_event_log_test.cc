@@ -44,7 +44,7 @@ TEST(check_event_log, empty) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -53,7 +53,7 @@ TEST(check_event_log, empty) {
       "System", "level in ('info', 'error', 'warning')", "level == 'warning'",
       "level == 'error'", std::chrono::days(4), true, spdlog::default_logger());
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::ok);
@@ -80,7 +80,7 @@ TEST(check_event_log, warning) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -98,7 +98,7 @@ TEST(check_event_log, warning) {
 
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::warning);
@@ -138,7 +138,7 @@ TEST(check_event_log, critical) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -162,7 +162,7 @@ TEST(check_event_log, critical) {
 
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::critical);
@@ -212,7 +212,7 @@ TEST(check_event_log, critical_verbose) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -237,7 +237,7 @@ TEST(check_event_log, critical_verbose) {
   raw_data.set_time_created(1);
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::critical);
@@ -274,7 +274,7 @@ TEST(check_event_log, critical_to_warning) {
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -293,7 +293,7 @@ TEST(check_event_log, critical_to_warning) {
 
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::critical);
