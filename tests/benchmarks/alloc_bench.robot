@@ -1,6 +1,9 @@
 *** Settings ***
-Documentation       Engine heap allocation benchmark, in three profiles, all of them making
-...                 the check path the dominant code path of centengine. EALLOC1 submits a
+Documentation       Heap allocation benchmark, in four profiles, all of them making the
+...                 check path the dominant code path of the daemon being traced. The first
+...                 three trace centengine, EALLOC4 traces the central cbd instead --
+...                 whatever touches the perf data parser only shows in that one, since
+...                 centengine never parses a perf data string. EALLOC1 submits a
 ...                 large number of passive results, so no plugin is ever forked. EALLOC2 runs
 ...                 active checks on a bare plugin path, EALLOC3 the same with a command line
 ...                 the length of a real one — their difference isolates what forking costs
@@ -13,9 +16,9 @@ Documentation       Engine heap allocation benchmark, in three profiles, all of 
 ...                 heaptrack by itself; by hand, the console still prints the two commands to
 ...                 type. The protocol is four files under /tmp:
 ...
-...                 | bench-alloc.ready | robot | centengine is warm, and here is its pid |
+...                 | bench-alloc.ready | robot | the daemon is warm, and here is its pid |
 ...                 | bench-alloc.go | driver | heaptrack is attached, run the workload |
-...                 | bench-alloc.done | robot | the workload is over, centengine is stopping |
+...                 | bench-alloc.done | robot | the workload is over, the daemon is stopping |
 ...                 | bench-alloc.go removed | driver | the trace has been read, the test may end |
 ...
 ...                 The unstable tag keeps all three out of the default selection
@@ -31,30 +34,30 @@ Test Teardown       Ctn Alloc Bench Teardown
 
 
 *** Variables ***
-${nb_checks}        100000
+${nb_checks}            100000
 
 # The output has to be long enough to defeat the libstdc++ small string optimization
 # (15 bytes): with a shorter one, copying a std::string allocates nothing at all and
 # the measure would show no difference between the two binaries. Semicolons are safe
 # here, the external command parser splits its arguments with MaxSplits(';', 3), so
 # everything after the state is kept as the output.
-${check_output}     OK - CPU usage is 12 percent | cpu=12%;80;90;0;100 mem=45%;70;85;0;100
+${check_output}         OK - CPU usage is 12 percent | cpu=12%;80;90;0;100 mem=45%;70;85;0;100
 
 # The sentinels synchronising the test with whoever drives heaptrack. They live in /tmp
 # rather than under ${VarRoot}, which the suite setup and Ctn Config Engine wipe.
-${ready_file}       /tmp/bench-alloc.ready
-${go_file}          /tmp/bench-alloc.go
-${done_file}        /tmp/bench-alloc.done
+${ready_file}           /tmp/bench-alloc.ready
+${go_file}              /tmp/bench-alloc.go
+${done_file}            /tmp/bench-alloc.done
 
 # How long the driver is given to attach, and then to detach. Generous on purpose: the
 # manual mode has a human in the loop, and heaptrack takes a while to flush a large
 # trace before it lets go.
-${attach_timeout}   10 minutes
+${attach_timeout}       10 minutes
 
 # EALLOC2 and EALLOC3 only: how long the active checks are left running under
 # heaptrack, and the throw-away plugin they run.
-${duration}         120s
-${bench_plugin}     ${VarRoot}/lib/centreon-engine/bench-check.sh
+${duration}             120s
+${bench_plugin}         ${VarRoot}/lib/centreon-engine/bench-check.sh
 
 # EALLOC3 only. Ten arguments, so eleven tokens with the plugin path, in the shape a
 # real check has once its macros are expanded. The count is the whole point of the
@@ -65,7 +68,7 @@ ${bench_plugin}     ${VarRoot}/lib/centreon-engine/bench-check.sh
 # So EALLOC3 minus EALLOC2, on the same binary, should show +3 allocations per check
 # on that one function. No pipe, no dollar and no ampersand in there: the value goes
 # through a sed replacement using | as its delimiter.
-${bench_args}       -H 127.0.0.1 -w 3000.0,80% -c 5000.0,100% -p 5 -t 30
+${bench_args}           -H 127.0.0.1 -w 3000.0,80% -c 5000.0,100% -p 5 -t 30
 
 
 *** Test Cases ***
@@ -143,12 +146,36 @@ EALLOC3
     [Tags]    broker    engine    bench    unstable
     Ctn Run Active Check Bench    ${bench_plugin} ${bench_args}
 
+EALLOC4
+    [Documentation]    Scenario: count the heap allocations of cbd while it stores results
+    ...    Given an engine with 50 hosts and 1000 services, all actively checked once a second
+    ...    And heaptrack attached to the central cbd instead of to centengine
+    ...    Then checks run for ${duration} and the allocations are attributed per stack
+    ...    And the perf data parsing path of unified_sql is the dominant one
+    ...
+    ...    The three profiles above trace centengine, which never parses a perf data string:
+    ...    common::perfdata::parse_perfdata is called by unified_sql and by the lua module,
+    ...    both of them living in cbd, and by the agent. Engine's own parse_perfdata, in
+    ...    anomalydetection.cc, is an unrelated namesake. So anything done to the perf data
+    ...    parser is invisible to EALLOC1-3 by construction, and this profile is where it
+    ...    shows: cbd stores the two metrics of every check result of every service.
+    ...
+    ...    Same workload as EALLOC2 on purpose -- same plugin, same bare command line -- so
+    ...    that the two traces answer "who allocates on this workload, Engine or Broker?"
+    [Tags]    broker    engine    bench    unstable
+    Ctn Run Active Check Bench    ${bench_plugin}    traced=broker
+
 
 *** Keywords ***
 Ctn Run Active Check Bench
     [Documentation]    Run the active check profile with the given command line, pausing
     ...    twice so that heaptrack can be attached and detached.
-    [Arguments]    ${command_line}
+    ...
+    ...    ${traced} selects which daemon heaptrack is pointed at: "engine" for centengine,
+    ...    the scheduling and forking side, or "broker" for the central cbd, the storing
+    ...    side. The workload is identical either way, which is what lets the two profiles
+    ...    be read against each other.
+    [Arguments]    ${command_line}    ${traced}=engine
 
     Ctn Clear Retention
     Ctn Clear Logs
@@ -202,23 +229,34 @@ Ctn Run Active Check Bench
     # This is just enough for the scheduler to reach its cruising rate.
     Sleep    15s
 
-    Ctn Alloc Bench Wait For Attach
+    Ctn Alloc Bench Wait For Attach    traced=${traced}
 
     Log To Console    Running active checks for ${duration}...
     Sleep    ${duration}
 
     Ctn Alloc Bench Wait For Detach    Done, ${duration} of active checks.
+    ...    traced=${traced}
 
 Ctn Alloc Bench Wait For Attach
-    [Documentation]    Publish the pid of the running centengine, then wait until heaptrack
+    [Documentation]    Publish the pid of the daemon being traced, then wait until heaptrack
     ...    has been attached to it. The pid goes into the ready sentinel and not only to the
     ...    console, which is what lets a driver do the attaching.
+    ...
+    ...    b1 is the central cbd, the one carrying unified_sql; b2 is the rrd one and parses
+    ...    nothing.
+    [Arguments]    ${traced}=engine
     # Asking robot for the pid of the process it started: "pgrep -f /usr/sbin/centengine"
     # would also match the shell robot forks to run it.
-    ${pid}    Ctn Get Engine Pid    e0
+    IF    "${traced}" == "broker"
+        ${pid}    Get Process Id    b1
+        ${what}    Set Variable    the central cbd
+    ELSE
+        ${pid}    Ctn Get Engine Pid    e0
+        ${what}    Set Variable    centengine
+    END
     Create File    ${ready_file}    ${pid}
     Log To Console    \n\n=========================================================
-    Log To Console    centengine is ready, pid ${pid}
+    Log To Console    ${what} is ready, pid ${pid}
     Log To Console    Attach heaptrack, then release the test:
     # -o has to come before -p: once heaptrack 1.5 has parsed -p it stops reading
     # the remaining options and silently writes to the current directory.
@@ -238,15 +276,24 @@ Ctn Alloc Bench Wait For Detach
     ...    heaptrack_stop() through gdb, which trips an assertion in libheaptrack and aborts
     ...    the debuggee anyway. Letting the traced process exit is the only supported way to
     ...    get a complete trace, so the test does exactly that.
-    [Arguments]    ${what_happened}
+    [Arguments]    ${what_happened}    ${traced}=engine
     Create File    ${done_file}    ${what_happened}
     Log To Console    \n\n=========================================================
     Log To Console    ${what_happened}
-    Log To Console    Stopping centengine: heaptrack will flush its trace and exit by itself.
+    Log To Console    Stopping the traced daemon: heaptrack will flush its trace and exit.
     Log To Console    Once it has, let the test end:
     Log To Console    \ \ rm ${go_file}
     Log To Console    =========================================================\n
+    # Engine goes down first in both cases. When cbd is the traced one that order also
+    # matters for the measurement: the events already in flight have to be stored while
+    # the tracer is still attached, or the tail of the workload would fall outside the
+    # trace and the two runs would not cover the same work.
     Ctn Stop Engine
+    # no_rrd_test for the same reason the suite teardown passes it: on this workload
+    # the RRD log rightfully complains about metrics sent in the past, which has
+    # nothing to do with what is measured. Without it the stop fails here, after the
+    # trace is already complete, and reports a red test on a good measurement.
+    IF    "${traced}" == "broker"    Ctn Kindly Stop Broker    no_rrd_test=True
     Wait Until Removed    ${go_file}    timeout=${attach_timeout}
 
 Ctn Alloc Bench Setup
