@@ -31,8 +31,8 @@ namespace ceof {
  */
 class ceof_visitor {
  public:
-  ceof_visitor(bool must_serialize, bool must_unserialize)
-      : _must_serialize(must_serialize), _must_unserialize(must_unserialize) {}
+  ceof_visitor(bool must_serialize, bool must_deserialize)
+      : _must_serialize(must_serialize), _must_deserialize(must_deserialize) {}
 
   virtual ~ceof_visitor() throw() {}
 
@@ -44,7 +44,7 @@ class ceof_visitor {
     (void)name;
     if (_must_serialize)
       serialize_helper(object, name, serialize_func);
-    if (_must_unserialize)
+    if (_must_deserialize)
       deserialize_helper(object, name, deserialize_fun);
   }
 
@@ -79,7 +79,7 @@ class ceof_visitor {
   ceof_visitor& operator=(ceof_visitor const&);
 
   bool _must_serialize;
-  bool _must_unserialize;
+  bool _must_deserialize;
 };
 }  // namespace ceof
 

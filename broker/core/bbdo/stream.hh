@@ -36,7 +36,7 @@ namespace com::centreon::broker::bbdo {
  * it comes from the ack message sent by the peer. So we do not have to count
  * how many events are serialized, sometimes, we get an ack message and here is
  * the value.
- *  * read() gets some buffer from the substream and unserializes it to create
+ *  * read() gets some buffer from the substream and deserializes it to create
  * an event. The internal buffer is probably not empty after a call to read
  * since buffers are not synchronous with events.
  *
