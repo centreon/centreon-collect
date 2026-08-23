@@ -165,7 +165,7 @@ class basic_stream : public io::stream {
                         uint32_t destination_id,
                         const char* buffer,
                         uint32_t size);
-  io::raw* serialize(const io::data& e);
+  std::shared_ptr<io::raw> serialize(const io::data& e);
 
  protected:
   /* bbdo logger */
