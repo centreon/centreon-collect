@@ -67,9 +67,11 @@ DEFAULT_TARGETS = (
 BENCHES = {
     "engine-config-load": "Cost of reading and applying an Engine configuration, "
     "over a range of sizes. No daemon, no database.",
-    "alloc": "Heap allocations of centengine on the check path, per profile "
-             "(EALLOC1 passive, EALLOC2 active, EALLOC3 active with a real "
-             "command line). Drives robot and heaptrack. Container only.",
+    "alloc": "Heap allocations on the check path, per profile (EALLOC1 passive, "
+             "EALLOC2 active, EALLOC3 active with a real command line, EALLOC4 "
+             "the same workload traced on cbd instead of centengine -- the only "
+             "one that sees the perf data parser). Drives robot and heaptrack. "
+             "Container only.",
 }
 
 # Benchmarks that are robot tests rather than subcommands, listed because they
@@ -92,7 +94,12 @@ ROBOT_BENCHES = {
 ALLOC_READY = "/tmp/bench-alloc.ready"
 ALLOC_GO = "/tmp/bench-alloc.go"
 ALLOC_DONE = "/tmp/bench-alloc.done"
-ALLOC_PROFILES = ("EALLOC1", "EALLOC2", "EALLOC3")
+ALLOC_PROFILES = ("EALLOC1", "EALLOC2", "EALLOC3", "EALLOC4")
+
+# The profiles tracing cbd rather than centengine. Only the notes and the console
+# differ here -- the handshake is the same, since the test publishes the pid of
+# whichever daemon it traces.
+ALLOC_BROKER_PROFILES = ("EALLOC4",)
 
 
 _MAIN_EPILOG = """\
@@ -585,6 +592,13 @@ def bench_alloc(args, db: benchdb.BenchDB, env: dict, label: str) -> int:
     status = 0
 
     for profile in profiles:
+        # What is being measured is the traced daemon, so that is what the notes
+        # have to identify: a run filed against centengine while heaptrack was
+        # attached to cbd would be unreadable a month later.
+        traced_binary = ("/usr/sbin/cbd"
+                         if profile in ALLOC_BROKER_PROFILES else engine)
+        traced_name = ("the central cbd"
+                       if profile in ALLOC_BROKER_PROFILES else "centengine")
         outdir = os.path.join(HERE, "results", label, "alloc", profile)
         os.makedirs(outdir, mode=0o775, exist_ok=True)
         prefix = os.path.join(outdir, profile)
@@ -602,14 +616,14 @@ def bench_alloc(args, db: benchdb.BenchDB, env: dict, label: str) -> int:
         run_id = db.start_run(
             label=label, bench="alloc", variant=profile,
             started_at=benchenv.now_iso(), params={"profile": profile},
-            env=env, notes=_binary_notes(engine))
+            env=env, notes=_binary_notes(traced_binary))
         tracer = None
         try:
             pid_text = _wait_for_sentinel(
                 ALLOC_READY, robot, args.ready_timeout,
-                "centengine to be warm")
+                f"{traced_name} to be warm")
             pid = int(pid_text.split()[0])
-            _log(f"   centengine is warm, pid {pid}; attaching heaptrack")
+            _log(f"   {traced_name} is warm, pid {pid}; attaching heaptrack")
             tracer = heaptrack_tools.attach(pid, prefix,
                                             timeout=args.attach_timeout)
             _log(f"   attached, tracing into {tracer.trace_path}")
@@ -622,9 +636,9 @@ def bench_alloc(args, db: benchdb.BenchDB, env: dict, label: str) -> int:
             done = _wait_for_sentinel(ALLOC_DONE, robot, args.done_timeout,
                                       "the workload to finish")
             _log(f"   workload over: {done}")
-            # The test stops centengine right after writing that sentinel, which
-            # is what makes heaptrack flush and exit: 1.5.0 cannot be detached
-            # from a live process.
+            # The test stops the traced daemon right after writing that
+            # sentinel, which is what makes heaptrack flush and exit: 1.5.0
+            # cannot be detached from a live process.
             trace = heaptrack_tools.finish(tracer, timeout=args.flush_timeout)
             size_mb = os.path.getsize(trace) / (1024 * 1024)
             _log(f"   trace closed, {size_mb:.1f}MB; reading it")
