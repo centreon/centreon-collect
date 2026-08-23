@@ -287,11 +287,20 @@ TEST_F(TcpAcceptor, MultiNominal) {
           auto& u = u_cbd[i];
           if (u) {
             std::shared_ptr<io::data> d;
-            /* The read function does not wait... */
-            u->read(d, static_cast<time_t>(0));
-            std::vector<char> vec(
-                std::static_pointer_cast<io::raw>(d)->get_buffer());
-            data[i].insert(data[i].end(), vec.begin(), vec.end());
+            /* The read function does not wait, so it comes back with nothing
+             * most of the time. Both its return value and d have to be checked:
+             * a read that finds nothing leaves d null -- io::stream::read has
+             * always been allowed to, tls does it on GNUTLS_E_AGAIN -- and this
+             * test used to dereference it blindly, which only worked as long as
+             * the tcp stream handed back an empty event nobody wanted.
+             *
+             * The completeness test below stays outside: when nothing was read,
+             * the loop still has to be told to come back. */
+            if (u->read(d, static_cast<time_t>(0)) && d) {
+              const std::vector<char>& vec =
+                  std::static_pointer_cast<io::raw>(d)->get_buffer();
+              data[i].insert(data[i].end(), vec.begin(), vec.end());
+            }
             if (data[i].size() < wanted.size()) {
               std::cout << "not finished to fill stream...\n";
               cont = true;

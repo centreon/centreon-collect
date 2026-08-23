@@ -188,12 +188,15 @@ class protobuf : public protobuf_base {
    *
    * @return a pointer to the new object.
    */
-  static io::data* unserialize(const char* buffer, size_t size) {
-    auto retval = std::make_unique<protobuf<T, Typ>>();
+  /* A shared_ptr and not a raw pointer: the caller needs one anyway, and
+   * building it from a released unique_ptr meant the object and its control
+   * block were two separate allocations. make_shared fuses them. */
+  static std::shared_ptr<io::data> deserialize(const char* buffer, size_t size) {
+    auto retval = std::make_shared<protobuf<T, Typ>>();
     if (!retval->mut_msg()->ParseFromArray(buffer, size))
       throw com::centreon::exceptions::msg_fmt(
-          "Unable to unserialize {:x} protobuf object (size {})", Typ, size);
-    return retval.release();
+          "Unable to deserialize {:x} protobuf object (size {})", Typ, size);
+    return retval;
   }
 
   virtual const T& obj() const { return _obj; }
@@ -208,14 +211,14 @@ class protobuf : public protobuf_base {
 
   /**
    * @brief An internal BBDO object used to access to the constructor,
-   * serialization and unserialization functions.
+   * serialization and deserialization functions.
    */
   const static io::event_info::event_operations operations;
 };
 
 template <typename T, uint32_t Typ>
 const io::event_info::event_operations protobuf<T, Typ>::operations{
-    &new_proto, &serialize, &unserialize};
+    &new_proto, &serialize, &deserialize};
 
 template <typename T, uint32_t Typ>
 bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {

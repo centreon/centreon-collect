@@ -184,7 +184,7 @@ static uint32_t set_ulong(io::data& t,
  *
  *  @return Event.
  */
-io::data* basic_stream::unserialize(uint32_t event_type,
+std::shared_ptr<io::data> basic_stream::deserialize(uint32_t event_type,
                                     uint32_t source_id,
                                     uint32_t destination_id,
                                     const char* buffer,
@@ -194,11 +194,14 @@ io::data* basic_stream::unserialize(uint32_t event_type,
   if (info) {
     // Create object.
     if (info->get_mapping()) {
-      std::unique_ptr<io::data> t(info->get_operations().constructor());
+      /* Two allocations here, object then control block: the constructor of the
+       * operations table still hands back a raw pointer. Only the mapping path
+       * -- BBDO2 -- goes through it, so it was left alone. */
+      std::shared_ptr<io::data> t(info->get_operations().constructor());
       if (t) {
         t->source_id = source_id;
         t->destination_id = destination_id;
-        // Browse all mapping to unserialize the object.
+        // Browse all mapping to deserialize the object.
         for (const mapping::entry* current_entry = info->get_mapping();
              !current_entry->is_null(); ++current_entry)
           // Skip entries that should not be serialized.
@@ -244,7 +247,7 @@ io::data* basic_stream::unserialize(uint32_t event_type,
             buffer += rb;
             size -= rb;
           }
-        return t.release();
+        return t;
       } else {
         SPDLOG_LOGGER_ERROR(
             _logger,
@@ -257,8 +260,8 @@ io::data* basic_stream::unserialize(uint32_t event_type,
             event_type);
       }
     } else {
-      std::unique_ptr<io::data> t(
-          info->get_operations().unserialize(buffer, size));
+      std::shared_ptr<io::data> t =
+          info->get_operations().deserialize(buffer, size);
       if (t) {
         t->source_id = source_id;
         t->destination_id = destination_id;
@@ -273,12 +276,12 @@ io::data* basic_stream::unserialize(uint32_t event_type,
             "registered",
             event_type);
       }
-      return t.release();
+      return t;
     }
   } else {
     SPDLOG_LOGGER_INFO(
         _logger,
-        "BBDO: cannot unserialize event of ID {}: event was not registered and "
+        "BBDO: cannot deserialize event of ID {}: event was not registered and "
         "will therefore be ignored",
         event_type);
   }
@@ -934,7 +937,7 @@ bool basic_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   /* If !timed_out, then we have two possibilities:
    *  * we get an event d
-   *  * an event has been returned but we could not unserialize it.
+   *  * an event has been returned but we could not deserialize it.
    */
   if (!timed_out) {
     ++_events_received_since_last_ack;
@@ -969,7 +972,8 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
     for (;;) {
       /* Maybe we have to complete the header. */
-      _read_packet(BBDO_HEADER_SIZE, deadline);
+      if (!_read_packet(BBDO_HEADER_SIZE, deadline))
+        return false;
       if (!_grpc_serialized_queue.empty()) {
         d = _grpc_serialized_queue.front();
         SPDLOG_LOGGER_TRACE(_logger, "read event: {}", *d);
@@ -1018,7 +1022,8 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
       // It is time to finish to read the packet.
 
-      _read_packet(BBDO_HEADER_SIZE + packet_size, deadline);
+      if (!_read_packet(BBDO_HEADER_SIZE + packet_size, deadline))
+        return false;
 
       // Now, _packet contains at least BBDO_HEADER_SIZE + packet_size bytes.
 
@@ -1086,10 +1091,10 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
         // Maybe it is bigger now.
         packet_size = content.size();
-        d.reset(unserialize(event_id, source_id, dest_id, pack, packet_size));
+        d = deserialize(event_id, source_id, dest_id, pack, packet_size);
         if (d) {
           SPDLOG_LOGGER_TRACE(_logger,
-                              "unserialized {} bytes for event of type {}",
+                              "deserialized {} bytes for event of type {}",
                               BBDO_HEADER_SIZE + packet_size, event_id);
         } else {
           SPDLOG_LOGGER_WARN(_logger,
@@ -1137,6 +1142,9 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       }
     }
   } catch (const exceptions::timeout& e) {
+    /* Kept even though _read_packet no longer throws: a compression substream
+     * still reports its own expired deadline this way, and that one is rare
+     * enough to leave alone. */
     return false;
   }
   return false;
@@ -1144,17 +1152,28 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
 /**
  * @brief Fill the internal _packet vector until it reaches the given size. It
- * may be bigger. The deadline is the limit time after that an exception is
- * thrown. Even if an exception is thrown the vector may begin to be fill, it
- * is just not finished, and so no data are lost. Received packets are BBDO
- * packets or maybe pieces of BBDO packets, so we keep vectors as is because
- * usually a vector should just represent a packet. In case of event
+ * may be bigger. Even when the deadline expires the vector may begin to be
+ * fill, it is just not finished, and so no data are lost. Received packets are
+ * BBDO packets or maybe pieces of BBDO packets, so we keep vectors as is
+ * because usually a vector should just represent a packet. In case of event
  * serialized only by grpc stream, we store it in _grpc_serialized_queue
+ *
+ * This used to report the expired deadline by throwing exceptions::timeout,
+ * caught one frame above to do exactly what returning false does here. Having
+ * nothing to read is the *ordinary* case on a live socket -- 5.4 times per
+ * event, 424 times per second, measured on the EALLOC4 profile -- so that put a
+ * heap allocation, a two-phase stack unwind and the lock guarding libgcc's
+ * unwind tables on the hot path, the last one being a serialisation point
+ * between the many threads of cbd.
  *
  * @param size The wanted final size
  * @param deadline A time_t.
+ *
+ * @return False if the deadline expired before the wanted size was reached,
+ * true otherwise -- including when an already deserialized event was queued,
+ * which the caller checks for right away.
  */
-void basic_stream::_read_packet(size_t size, time_t deadline) {
+bool basic_stream::_read_packet(size_t size, time_t deadline) {
   // Read as much data as requested.
   while (_packet.size() < size) {
     std::shared_ptr<io::data> d;
@@ -1173,16 +1192,17 @@ void basic_stream::_read_packet(size_t size, time_t deadline) {
         }
       } else {
         _grpc_serialized_queue.push_back(d);
-        return;
+        return true;
       }
     }
     if (timeout) {
       SPDLOG_LOGGER_TRACE(_logger,
                           "_read_packet timeout!!, size = {}, deadline = {}",
                           size, deadline);
-      throw exceptions::timeout();
+      return false;
     }
   }
+  return true;
 }
 
 /**

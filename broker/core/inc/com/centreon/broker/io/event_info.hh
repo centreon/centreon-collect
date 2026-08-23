@@ -68,7 +68,10 @@ class event_info {
                         std::vector<char>& out,
                         size_t offset);
 
-    io::data* (*unserialize)(const char* buffer, size_t size);
+    /* A shared_ptr: what builds the object is what should own it, and handing
+     * back a raw pointer forced every caller to allocate a control block of its
+     * own next to it. */
+    std::shared_ptr<io::data> (*deserialize)(const char* buffer, size_t size);
   };
 
  private:

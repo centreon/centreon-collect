@@ -139,6 +139,25 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   bool timeout = false;
   std::vector<char> buffer = _connection->read(deadline, &timeout);
+
+  /* A read that timed out empty-handed hands back no event at all, where it used
+   * to allocate an empty io::raw for nobody. That is the common case by far --
+   * 7.3 reads per event on a nominal load, so most of them find nothing -- and
+   * it was the busiest allocation site of the daemon.
+   *
+   * Both conditions are tested, not just the timeout: should a read ever come
+   * back with bytes *and* a timeout, the bytes must still be delivered. And a
+   * read that comes back empty *without* a timeout is the closing socket of
+   * tcp_connection::read, which the callers expect to see as an empty event
+   * followed by "Connection lost" -- so that path keeps allocating.
+   *
+   * d is cleared rather than left untouched: every caller resets it first, but
+   * handing a stale event back on a timeout would be a trap. */
+  if (timeout && buffer.empty()) {
+    d.reset();
+    return false;
+  }
+
   /* Taken before the move, and kept as a plain size: what stood here built a
    * second shared_ptr through static_pointer_cast, so a pair of atomic
    * refcount operations per read, only ever to feed a trace that is off. */

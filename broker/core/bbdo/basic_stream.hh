@@ -41,7 +41,7 @@ namespace com::centreon::broker::bbdo {
  * it comes from the ack message sent by the peer. So we do not have to count
  * how many events are serialized, sometimes, we get an ack message and here is
  * the value.
- *  * read() gets some buffer from the substream and unserializes it to create
+ *  * read() gets some buffer from the substream and deserializes it to create
  * an event. The internal buffer is probably not empty after a call to read
  * since buffers are not synchronous with events.
  *
@@ -127,7 +127,7 @@ class basic_stream : public io::stream {
 
   // void _buffer_must_have_unprocessed(int bytes, time_t deadline =
   // (time_t)-1);
-  void _read_packet(size_t size, time_t deadline = (time_t)-1);
+  bool _read_packet(size_t size, time_t deadline = (time_t)-1);
 
   bool _is_input;
   bool _coarse;
@@ -160,7 +160,7 @@ class basic_stream : public io::stream {
    * filled when neb::pb_instance is sent to Broker. */
   std::string _config_version;
 
-  io::data* unserialize(uint32_t event_type,
+  std::shared_ptr<io::data> deserialize(uint32_t event_type,
                         uint32_t source_id,
                         uint32_t destination_id,
                         const char* buffer,
