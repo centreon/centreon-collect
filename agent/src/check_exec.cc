@@ -126,7 +126,7 @@ void check_exec::start_check(const duration& timeout) {
                 start_check_index = _get_running_check_index(), e]() {
                  me->on_completion(
                      start_check_index, e_status::unknown,
-                     std::list<com::centreon::common::perfdata>(),
+                     std::vector<com::centreon::common::perfdata>(),
                      {fmt::format("Fail to execute {} : {}",
                                   me->get_command_line(), e.code().message())});
                });
@@ -138,7 +138,7 @@ void check_exec::start_check(const duration& timeout) {
                               start_check_index = _get_running_check_index(),
                               output]() {
       me->on_completion(start_check_index, e_status::unknown,
-                        std::list<com::centreon::common::perfdata>(), {output});
+                        std::vector<com::centreon::common::perfdata>(), {output});
     });
   }
 }
@@ -159,7 +159,7 @@ void check_exec::on_completion(unsigned running_index,
   }
 
   std::list<std::string> outputs;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   std::string short_output;
   std::string long_output;
@@ -245,7 +245,7 @@ void check_dummy::start_check(const duration& timeout) {
                             this]() {
     me->on_completion(
         start_check_index, e_status::critical,
-        std::list<com::centreon::common::perfdata>(),
+        std::vector<com::centreon::common::perfdata>(),
         {fmt::format("unable to execute native check {} , output error : {}",
                      me->get_command_line(), get_output())});
   });

@@ -295,7 +295,7 @@ TEST(config, custom_check_command_refreshed_after_reload) {
             engine_to_agent_request_ptr(),
             []([[maybe_unused]] const std::shared_ptr<check>& caller,
                [[maybe_unused]] int status,
-               [[maybe_unused]] const std::list<
+               [[maybe_unused]] const std::vector<
                    com::centreon::common::perfdata>& perfdata,
                [[maybe_unused]] const std::list<std::string>& outputs) {},
             std::make_shared<checks_statistics>(), nullptr));

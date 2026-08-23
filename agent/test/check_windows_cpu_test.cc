@@ -84,7 +84,7 @@ TEST_F(native_check_cpu_windows_test, output_no_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   rapidjson::Document check_args;
 
@@ -92,7 +92,7 @@ TEST_F(native_check_cpu_windows_test, output_no_threshold) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -144,7 +144,7 @@ TEST_F(native_check_cpu_windows_test, output_no_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -154,7 +154,7 @@ TEST_F(native_check_cpu_windows_test, output_no_threshold_detailed) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -239,7 +239,7 @@ TEST_F(native_check_cpu_windows_test, output_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -249,7 +249,7 @@ TEST_F(native_check_cpu_windows_test, output_threshold) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -312,7 +312,7 @@ TEST_F(native_check_cpu_windows_test, output_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -322,7 +322,7 @@ TEST_F(native_check_cpu_windows_test, output_threshold_detailed) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -472,7 +472,7 @@ TEST_F(native_check_cpu_windows_test, compare_kernel_dph) {
       g_io_context, spdlog::default_logger(), {}, serv, nt_check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -484,7 +484,7 @@ TEST_F(native_check_cpu_windows_test, compare_kernel_dph) {
       g_io_context, spdlog::default_logger(), {}, serv, pdh_check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());

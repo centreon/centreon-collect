@@ -54,7 +54,7 @@ TEST_F(check_event_log_test, empty) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -63,7 +63,7 @@ TEST_F(check_event_log_test, empty) {
       "System", "level in ('info', 'error', 'warning')", "level == 'warning'",
       "level == 'error'", std::chrono::days(4), true, spdlog::default_logger());
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::ok);
@@ -89,7 +89,7 @@ TEST_F(check_event_log_test, warning) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -107,7 +107,7 @@ TEST_F(check_event_log_test, warning) {
 
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::warning);
@@ -146,7 +146,7 @@ TEST_F(check_event_log_test, critical) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -170,7 +170,7 @@ TEST_F(check_event_log_test, critical) {
 
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::critical);
@@ -219,7 +219,7 @@ TEST_F(check_event_log_test, critical_verbose) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -244,7 +244,7 @@ TEST_F(check_event_log_test, critical_verbose) {
   raw_data.set_time_created(1);
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::critical);
@@ -280,7 +280,7 @@ TEST_F(check_event_log_test, critical_to_warning) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -299,7 +299,7 @@ TEST_F(check_event_log_test, critical_to_warning) {
 
   cont.on_event(raw_data, nullptr);
 
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::critical);

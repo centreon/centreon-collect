@@ -157,7 +157,7 @@ TEST_F(proc_stat_file_test, no_threshold) {
   auto delta = second_measure.subtract(first_measure);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   rapidjson::Document check_args;
 
@@ -165,7 +165,7 @@ TEST_F(proc_stat_file_test, no_threshold) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -229,7 +229,7 @@ TEST_F(proc_stat_file_test, no_threshold_detailed) {
   auto delta = second_measure.subtract(first_measure);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args = R"({"cpu-detailed":"true"})"_json;
@@ -238,7 +238,7 @@ TEST_F(proc_stat_file_test, no_threshold_detailed) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -360,7 +360,7 @@ TEST_F(proc_stat_file_test, threshold_nodetailed) {
   auto delta = second_measure.subtract(first_measure);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -370,7 +370,7 @@ TEST_F(proc_stat_file_test, threshold_nodetailed) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -441,7 +441,7 @@ TEST_F(proc_stat_file_test, threshold_nodetailed2) {
   auto delta = second_measure.subtract(first_measure);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -451,7 +451,7 @@ TEST_F(proc_stat_file_test, threshold_nodetailed2) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -500,7 +500,7 @@ TEST_F(proc_stat_file_test, threshold_detailed) {
   auto delta = second_measure.subtract(first_measure);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -510,7 +510,7 @@ TEST_F(proc_stat_file_test, threshold_detailed) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -574,7 +574,7 @@ TEST_F(proc_stat_file_test, threshold_detailed2) {
   auto delta = second_measure.subtract(first_measure);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -584,7 +584,7 @@ TEST_F(proc_stat_file_test, threshold_detailed2) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -648,7 +648,7 @@ TEST_F(proc_stat_file_test, threshold_detailed3) {
   auto delta = second_measure.subtract(first_measure);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -658,7 +658,7 @@ TEST_F(proc_stat_file_test, threshold_detailed3) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());

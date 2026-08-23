@@ -55,7 +55,7 @@ TEST_F(counter_check_windows_test, constructor) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -74,7 +74,7 @@ TEST_F(counter_check_windows_test, constructor) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args1, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -93,7 +93,7 @@ TEST_F(counter_check_windows_test, constructor) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args2, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -121,13 +121,13 @@ TEST_F(counter_check_windows_test, single_return) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
 
   checker.pdh_snapshot(true);
   ASSERT_EQ(checker.get_size_data(), 1);
@@ -161,13 +161,13 @@ TEST_F(counter_check_windows_test, multiple_return) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
 
   checker.pdh_snapshot(true);
   e_status status = checker.compute(&output, &perf);
@@ -201,13 +201,13 @@ TEST_F(counter_check_windows_test, need_two_samples) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
 
   checker.pdh_snapshot(true);
 
@@ -248,7 +248,7 @@ TEST_F(counter_check_windows_test, complex_rules) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -262,7 +262,7 @@ TEST_F(counter_check_windows_test, complex_rules) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
 
   ASSERT_EQ(output, "WARNING: _total : 150.00");
@@ -287,7 +287,7 @@ TEST_F(counter_check_windows_test, complex_rules_2) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -301,7 +301,7 @@ TEST_F(counter_check_windows_test, complex_rules_2) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
 
   ASSERT_EQ(output, "CRITICAL: _total : 150.00");
@@ -326,7 +326,7 @@ TEST_F(counter_check_windows_test, complex_rules_3) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -340,7 +340,7 @@ TEST_F(counter_check_windows_test, complex_rules_3) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
   ASSERT_EQ(output, "CRITICAL: _total : 150.00 --- ");
   ASSERT_EQ(perf.size(), 12);
@@ -364,7 +364,7 @@ TEST_F(counter_check_windows_test, complex_rules_4) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -378,7 +378,7 @@ TEST_F(counter_check_windows_test, complex_rules_4) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
   ASSERT_EQ(
       output,
@@ -408,7 +408,7 @@ TEST_F(counter_check_windows_test, complex_rules_5) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -422,7 +422,7 @@ TEST_F(counter_check_windows_test, complex_rules_5) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
   ASSERT_EQ(output, "WARNING: O:5/W:4/C:1/10 --- 5/10");
 }
@@ -447,7 +447,7 @@ TEST_F(counter_check_windows_test, complex_rules_6) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -461,7 +461,7 @@ TEST_F(counter_check_windows_test, complex_rules_6) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
   ASSERT_EQ(
       output,
@@ -487,7 +487,7 @@ TEST_F(counter_check_windows_test, complex_rules_7) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -501,7 +501,7 @@ TEST_F(counter_check_windows_test, complex_rules_7) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
   ASSERT_EQ(output, "WARNING: Warn :chrome,firefox,svchost --- crit : _total");
 }
@@ -524,7 +524,7 @@ TEST_F(counter_check_windows_test, complex_rules_8) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -538,7 +538,7 @@ TEST_F(counter_check_windows_test, complex_rules_8) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
   ASSERT_EQ(output, "CRITICAL: Warn : --- crit : svchost");
 }
@@ -561,7 +561,7 @@ TEST_F(counter_check_windows_test, threshold_greater) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -575,7 +575,7 @@ TEST_F(counter_check_windows_test, threshold_greater) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   auto status = checker.compute(&output, &perf);
   ASSERT_EQ(status, e_status::critical);
 }
@@ -598,7 +598,7 @@ TEST_F(counter_check_windows_test, threshold_range) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -612,7 +612,7 @@ TEST_F(counter_check_windows_test, threshold_range) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   auto status = checker.compute(&output, &perf);
   ASSERT_EQ(status, e_status::ok);  // ok because the critical count is 3 and it
                                     // inside the range 2:5
@@ -636,7 +636,7 @@ TEST_F(counter_check_windows_test, threshold_inside_range) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -650,7 +650,7 @@ TEST_F(counter_check_windows_test, threshold_inside_range) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   auto status = checker.compute(&output, &perf);
   ASSERT_EQ(status,
             e_status::critical);  // crit because the critical count is 3 and it
@@ -674,7 +674,7 @@ TEST_F(counter_check_windows_test, threshold_below) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       std::make_shared<checks_statistics>());
@@ -688,7 +688,7 @@ TEST_F(counter_check_windows_test, threshold_below) {
   checker.set_counter_data(data);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perf;
+  std::vector<com::centreon::common::perfdata> perf;
   auto status = checker.compute(&output, &perf);
   ASSERT_EQ(status,
             e_status::ok);  // ok because the critical count is 3 and it

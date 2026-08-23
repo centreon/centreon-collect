@@ -900,7 +900,7 @@ static std::shared_ptr<check> build_native_check(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
       cnf->services(cnf->services_size() - 1), conf,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>(), nullptr);
 }
@@ -979,7 +979,7 @@ TEST_F(scheduler_test, custom_timeout_overrides_global) {
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
       conf->config().services(0), conf, 0, std::chrono::milliseconds(3000),
       [&](const std::shared_ptr<check>&, int status,
-          const std::list<com::centreon::common::perfdata>&,
+          const std::vector<com::centreon::common::perfdata>&,
           const std::list<std::string>& outputs) {
         {
           std::lock_guard l(m);

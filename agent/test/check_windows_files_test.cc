@@ -120,7 +120,7 @@ TEST_F(check_files_test, default_behavior) {
   rapidjson::Document check_args;
   check_args.Parse(json_str.c_str());
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   bool complete = false;
 
@@ -131,7 +131,7 @@ TEST_F(check_files_test, default_behavior) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -165,7 +165,7 @@ TEST_F(check_files_test, test_filter) {
   rapidjson::Document check_args;
   check_args.Parse(json_str.c_str());
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   bool complete = false;
 
@@ -176,7 +176,7 @@ TEST_F(check_files_test, test_filter) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -237,7 +237,7 @@ TEST_F(check_files_test, warning_status) {
     check_args.Parse(json_str.c_str());
 
     absl::Mutex wait_m;
-    std::list<com::centreon::common::perfdata> perfs;
+    std::vector<com::centreon::common::perfdata> perfs;
     std::string output;
     bool complete = false;
 
@@ -248,7 +248,7 @@ TEST_F(check_files_test, warning_status) {
         std::chrono::system_clock::now(), serv, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
-            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+            [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
           absl::MutexLock lck(wait_m);
@@ -301,7 +301,7 @@ TEST_F(check_files_test, critical_status) {
     check_args.Parse(json_str.c_str());
 
     absl::Mutex wait_m;
-    std::list<com::centreon::common::perfdata> perfs;
+    std::vector<com::centreon::common::perfdata> perfs;
     std::string output;
     bool complete = false;
 
@@ -312,7 +312,7 @@ TEST_F(check_files_test, critical_status) {
         std::chrono::system_clock::now(), serv, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
-            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+            [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
           absl::MutexLock lck(wait_m);
@@ -364,7 +364,7 @@ TEST_F(check_files_test, ok_status) {
     check_args.Parse(json_str.c_str());
 
     absl::Mutex wait_m;
-    std::list<com::centreon::common::perfdata> perfs;
+    std::vector<com::centreon::common::perfdata> perfs;
     std::string output;
     bool complete = false;
 
@@ -375,7 +375,7 @@ TEST_F(check_files_test, ok_status) {
         std::chrono::system_clock::now(), serv, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
-            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+            [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
           absl::MutexLock lck(wait_m);
@@ -408,7 +408,7 @@ TEST_F(check_files_test, version) {
 })"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   bool complete = false;
 
@@ -419,7 +419,7 @@ TEST_F(check_files_test, version) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -512,7 +512,7 @@ TEST_F(check_files_test, regex_failures) {
   check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   bool complete = false;
 
@@ -523,7 +523,7 @@ TEST_F(check_files_test, regex_failures) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -567,7 +567,7 @@ TEST_F(check_files_test, pattern_matching) {
   check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   bool complete = false;
 
@@ -578,7 +578,7 @@ TEST_F(check_files_test, pattern_matching) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -635,7 +635,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
   check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   bool complete = false;
 
@@ -647,7 +647,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
         std::chrono::system_clock::now(), serv, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
-            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+            [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
           absl::MutexLock lck(wait_m);
@@ -691,7 +691,7 @@ TEST_F(check_files_test, two_checks_same_path) {
   check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   bool complete = false;
 
@@ -702,7 +702,7 @@ TEST_F(check_files_test, two_checks_same_path) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -788,7 +788,7 @@ TEST_F(check_files_test, status_updates_when_file_added_and_removed) {
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller, int st,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -867,7 +867,7 @@ TEST_F(check_files_test, non_ascii_path_pattern_and_filter) {
         g_io_context, spdlog::default_logger(),
         std::chrono::system_clock::now(), serv, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller, int st,
-            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+            [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
                 perfdata,
             const std::list<std::string>& outputs) {
           absl::MutexLock lck(wait_m);
