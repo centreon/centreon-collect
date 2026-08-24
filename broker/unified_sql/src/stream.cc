@@ -1134,48 +1134,19 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
  */
 void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
   auto& cache = config::applier::state::instance().cache();
-  for (uint64_t instance_id : ids)
+  for (uint64_t instance_id : ids) {
+    cache.visit_hosts_of_instance(instance_id, [this](const Host& host) {
+      _cache_hst_cmd.erase(host.host_id());
+      _resources_cache.erase({host.host_id(), 0});
+    });
+    cache.visit_services_of_instance(
+        instance_id, [this](const Service& service) {
+          _cache_svc_cmd.erase({service.service_id(), service.host_id()});
+          _resources_cache.erase({service.service_id(), service.host_id()});
+        });
+
     cache.remove_instance(instance_id);
-
-  // auto host_ids = cache.host_ids();
-  // for (uint64_t host_id : host_ids) {
-  //   uint64_t instance_id = cache.host(host_id)->obj().instance_id();
-  //   if (std::find(ids.begin(), ids.end(), instance_id) != ids.end()) {
-  //     _cache_hst_cmd.erase(host_id);
-  //     for (auto itt = _cache_svc_cmd.begin(); itt != _cache_svc_cmd.end();
-  //          ++itt) {
-  //       if (itt->first.first == host_id) {
-  //         uint64_t svc_id = itt->first.second;
-  //         auto ridx_it = _index_cache.find({host_id, svc_id});
-  //         uint64_t index_id = ridx_it->second.index_id;
-  //         for (auto idx_it = _index_cache.begin(); idx_it !=
-  //         _index_cache.end();
-  //              ++idx_it) {
-  //           if (idx_it->first.first == index_id)
-  //             _index_cache.erase(idx_it);
-  //           std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
-  //           for (auto metric_it = _metric_cache.begin();
-  //                metric_it != _metric_cache.end(); ++metric_it) {
-  //             if (metric_it->first.first == index_id)
-  //               _metric_cache.erase(metric_it);
-  //           }
-  //         }
-  //         _index_cache.erase(ridx_it);
-  //         _cache_svc_cmd.erase(itt);
-
-  //        // resources
-  //        auto res_it = _resources_cache.find({svc_id, host_id});
-  //        if (res_it != _resources_cache.end())
-  //          _resources_cache.erase(res_it);
-  //      }
-  //      auto res_it = _resources_cache.find({host_id, 0});
-  //      if (res_it != _resources_cache.end())
-  //        _resources_cache.erase(res_it);
-  //    }
-  //    it = _cache_host_instance.erase(it);
-  //  } else
-  //    ++it;
-  //}
+  }
 }
 
 void stream::update() {

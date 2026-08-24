@@ -17,13 +17,6 @@
  */
 #ifndef CCB_CACHE_BROKER_CACHE_HH
 #define CCB_CACHE_BROKER_CACHE_HH
-#include <absl/base/thread_annotations.h>
-#include <absl/container/btree_set.h>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index_container.hpp>
-#include <filesystem>
 
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -455,6 +448,10 @@ class broker_cache {
   std::shared_ptr<neb::pb_host> host(uint64_t host_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<uint64_t> host_ids() const ABSL_LOCKS_EXCLUDED(_mutex);
+  void visit_hosts_of_instance(
+      uint64_t instance_id,
+      const absl::FunctionRef<void(const Host&)>& visitor) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_service> service(const std::string& hostname,
                                            const std::string& description) const
       ABSL_LOCKS_EXCLUDED(_mutex);
@@ -470,6 +467,11 @@ class broker_cache {
       uint64_t metric_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<std::pair<uint64_t, uint64_t>> service_ids() const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  void visit_services_of_instance(
+      uint64_t instance_id,
+      const absl::FunctionRef<void(const Service&)>& visitor) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+
   std::shared_ptr<neb::pb_host_group> hostgroup(uint64_t hostgroup_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host_group> hostgroup(const std::string& name) const

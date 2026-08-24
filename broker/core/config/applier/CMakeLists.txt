@@ -36,7 +36,7 @@ target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp
 
 set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_dependencies(broker_applier_state process_stat)
+add_dependencies(broker_applier_state process_stat pb_bam_lib pb_neb_lib)
 
 add_library(cbmod_applier_state STATIC
   cbmod_state.cc
@@ -57,7 +57,7 @@ target_precompile_headers(cbmod_applier_state PRIVATE ../../precomp_inc/precomp.
 
 set_target_properties(cbmod_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_dependencies(cbmod_applier_state process_stat)
+add_dependencies(cbmod_applier_state process_stat pb_bam_lib pb_neb_lib)
 
 if(WITH_TESTING)
   set(TESTS_SOURCES

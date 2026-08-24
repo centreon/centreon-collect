@@ -31,7 +31,7 @@ set_target_properties(broker_cache PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 
-add_dependencies(broker_cache process_stat)
+add_dependencies(broker_cache process_stat pb_bam_lib pb_neb_lib)
 
 if(WITH_TESTING)
   set(TESTS_SOURCES

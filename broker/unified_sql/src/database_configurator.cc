@@ -2836,7 +2836,6 @@ void database_configurator::_add_hostgroups_mariadb(
   stmt = static_cast<mysql_bulk_stmt*>(_add_hostgroup_members_stmt.get());
   auto bind_members = stmt->create_bind();
   auto& hosts_cache = _stream->host_name_id_cache();
-  auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_hg : lst) {
     if (msg_hg.members().data().empty())
       continue;
@@ -2918,7 +2917,6 @@ void database_configurator::_add_hostgroups_mysql(
 
   auto& hosts_cache = _stream->host_name_id_cache();
   values.clear();
-  auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_hg : lst) {
     if (msg_hg.members().data().empty())
       continue;
@@ -3019,7 +3017,6 @@ void database_configurator::_add_servicegroups_mariadb(
   auto bind_members = stmt->create_bind();
   auto& hosts_cache = _stream->host_name_id_cache();
   auto& services_cache = _stream->service_description_id_cache();
-  auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_sg : lst) {
     if (msg_sg.members().data().empty())
       continue;
@@ -3109,7 +3106,6 @@ void database_configurator::_add_servicegroups_mysql(
   auto& hosts_cache = _stream->host_name_id_cache();
   auto& services_cache = _stream->service_description_id_cache();
   values.clear();
-  auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_sg : lst) {
     if (msg_sg.members().data().empty())
       continue;

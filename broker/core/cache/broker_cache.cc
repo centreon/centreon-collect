@@ -17,7 +17,6 @@
  */
 #include <boost/preprocessor/seq/for_each.hpp>
 
-#include <memory>
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/events.hh"
@@ -2115,6 +2114,25 @@ std::vector<uint64_t> broker_cache::host_ids() const {
 }
 
 /**
+ * @brief Call visitor on each host present in the cache
+ * for one poller instance.
+ *
+ * @param instance_id poller instance.
+ * @param visitor
+ *
+ */
+void broker_cache::visit_hosts_of_instance(
+    uint64_t instance_id,
+    const absl::FunctionRef<void(const Host&)>& visitor) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto& host_by_instance = _hosts.get<by_instance>();
+  auto range = host_by_instance.equal_range(instance_id);
+  for (; range.first != range.second; ++range.first) {
+    visitor((*range.first)->obj());
+  }
+}
+
+/**
  * @brief Get the service of the given host ID and service ID from the cache.
  *
  * @param host_id The host ID of the desired service.
@@ -2220,6 +2238,30 @@ std::vector<std::pair<uint64_t, uint64_t>> broker_cache::service_ids() const {
     retval.push_back(p);
   }
   return retval;
+}
+
+/**
+ * @brief Apply visitor on each service present in cache for this poller
+ * instance
+ *
+ * @param instance_id poller instance.
+ * @param visitor
+ */
+void broker_cache::visit_services_of_instance(
+    uint64_t instance_id,
+    const absl::FunctionRef<void(const Service&)>& visitor) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto& index_svc = _services.get<by_id>();
+  auto& host_by_instance = _hosts.get<by_instance>();
+  auto range = host_by_instance.equal_range(instance_id);
+  for (auto it = range.first; it != range.second;) {
+    uint64_t host_id = (*it)->obj().host_id();
+    for (auto svc_iter = index_svc.lower_bound(std::make_pair(host_id, 0));
+         svc_iter != index_svc.end() && (*svc_iter)->obj().host_id() == host_id;
+         ++svc_iter) {
+      visitor((*svc_iter)->obj());
+    }
+  }
 }
 
 /**
