@@ -127,6 +127,7 @@ class basic_stream : public io::stream {
 
   // void _buffer_must_have_unprocessed(int bytes, time_t deadline =
   // (time_t)-1);
+  void _drop_from_packet(size_t size);
   bool _read_packet(size_t size, time_t deadline = (time_t)-1);
 
   bool _is_input;
