@@ -14,7 +14,13 @@ Test Teardown       Ctn Test Clean
 # those overflow a float and would fill the log with SQL range errors that have
 # nothing to do with a cap. Written out rather than generated in a loop, because
 # which metrics survive the cap is the whole point and has to be readable here.
-${five_metrics}         metrics for the cap | m0=1 m1=2 m2=3 m3=4 m4=5
+#
+# The two tests use disjoint metric names on purpose. EBBM2 asserts that a metric
+# past the cap is *absent* from the metrics table, and that table is not emptied
+# between runs: sharing names with EBBM3, which stores all five of them, would
+# make EBBM2 fail on what an earlier campaign left behind.
+${capped_metrics}       metrics for the cap | cap0=1 cap1=2 cap2=3 cap3=4 cap4=5
+${uncapped_metrics}     metrics uncapped | free0=1 free1=2 free2=3 free3=4 free4=5
 
 # What parse_perfdata says when it stops early. The announced count comes from
 # the number of '=' it counted, so it is 5 here.
@@ -66,7 +72,7 @@ EBBM2
     [Tags]    broker    engine    services    unified_sql
     ${start}    Ctn Start With Metric Cap    3
 
-    Ctn Process Service Check Result    host_1    service_1    1    ${five_metrics}
+    Ctn Process Service Check Result    host_1    service_1    1    ${capped_metrics}
 
     ${content}    Create List    ${truncation_log}
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
@@ -74,13 +80,13 @@ EBBM2
 
     # The leading metrics, and those specifically: a graph fed by a capped output
     # stays continuous only if the same ones survive from a check to the next.
-    ${kept}    Create List    m0    m1    m2
+    ${kept}    Create List    cap0    cap1    cap2
     ${result}    Ctn Compare Metrics Of Service    ${1}    ${kept}    60
     Should Be True    ${result}    The service should carry m0, m1 and m2.
 
     # Asked only once the three above are in, so that what is observed is really
     # an absence and not the insertion latency.
-    ${dropped}    Create List    m4
+    ${dropped}    Create List    cap4
     ${result}    Ctn Compare Metrics Of Service    ${1}    ${dropped}    20
     Should Not Be True    ${result}    m4 is past the cap and should never have been stored.
 
@@ -98,9 +104,9 @@ EBBM3
     [Tags]    broker    engine    services    unified_sql
     ${start}    Ctn Start With Metric Cap
 
-    Ctn Process Service Check Result    host_1    service_1    1    ${five_metrics}
+    Ctn Process Service Check Result    host_1    service_1    1    ${uncapped_metrics}
 
-    ${all}    Create List    m0    m1    m2    m3    m4
+    ${all}    Create List    free0    free1    free2    free3    free4
     ${result}    Ctn Compare Metrics Of Service    ${1}    ${all}    60
     Should Be True    ${result}    Uncapped, the service should carry the five metrics.
 
