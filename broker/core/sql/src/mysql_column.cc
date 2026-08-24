@@ -160,8 +160,17 @@ void mysql_column::clear() {
   switch (_type) {
     case MYSQL_TYPE_STRING: {
       std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
+      /* free and not delete: these come from strndup, so from malloc. The
+       * destructor got it right through _free_vector(), this one did not --
+       * silently, because libstdc++ implements operator delete with free. An
+       * overridden operator delete, or AddressSanitizer, would not forgive it
+       * (alloc-dealloc-mismatch).
+       *
+       * No null check needed, and none was needed with delete either: a null
+       * entry is the ordinary way set_null_str() spells an SQL NULL, and free()
+       * accepts it as a no-op. */
       for (auto* c : *vector)
-        delete c;
+        free(c);
 
       vector->clear();
     } break;
