@@ -58,14 +58,14 @@ send many log by ${communication_mode}, expect all of them on the central
     Examples:    communication_mode   poller_id    --
         ...    push_zmq        2
         ...    push_zmq        299123456
-    #    ...    push_zmq_uid    2
-    #    ...    push_zmq_uid    299123456
-    #    ...    pull            2
-    #    ...    pull            299123456
-    #    ...    pullwss         2
-    #    ...    pullwss         299123456
-    #    ...    pullwss_uid     2
-    #    ...    pullwss_uid     299123456
+        ...    push_zmq_uid    2
+        ...    push_zmq_uid    299123456
+        ...    pull            2
+        ...    pull            299123456
+        ...    pullwss         2
+        ...    pullwss         299123456
+        ...    pullwss_uid     2
+        ...    pullwss_uid     299123456
 
 *** Keywords ***
 Get Log From Central
