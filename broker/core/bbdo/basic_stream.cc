@@ -429,7 +429,7 @@ std::shared_ptr<io::raw> basic_stream::serialize(const io::data& e) {
     auto buffer = std::make_shared<io::raw>();
     std::vector<char>& data(buffer->get_buffer());
     /* One allocation for the whole packet: serialize() sizes the buffer to the
-     * header plus the payload and writes the payload behind the header. */
+     * header plus the body and writes the body behind the header. */
     const size_t size =
         info->get_operations().serialize(e, data, BBDO_HEADER_SIZE);
 
@@ -438,21 +438,21 @@ std::shared_ptr<io::raw> basic_stream::serialize(const io::data& e) {
       return buffer;
     }
 
-    /* A payload spanning several packets. Rare — configuration, big metrics —
+    /* A body spanning several packets. Rare — configuration, big metrics —
      * and reframed here from the bytes already encoded above rather than
      * serialized a second time.
      */
     std::vector<char> framed;
     framed.reserve(data.size() + (size / 0xffff) * BBDO_HEADER_SIZE);
-    const char* payload = data.data() + BBDO_HEADER_SIZE;
+    const char* body = data.data() + BBDO_HEADER_SIZE;
     size_t left = size;
     do {
       const size_t chunk = left < 0xffff ? left : 0xffff;
       const size_t header = framed.size();
       framed.resize(header + BBDO_HEADER_SIZE);
-      framed.insert(framed.end(), payload, payload + chunk);
+      framed.insert(framed.end(), body, body + chunk);
       _fill_header(framed.data() + header, chunk, e);
-      payload += chunk;
+      body += chunk;
       left -= chunk;
     } while (left > 0);
     data = std::move(framed);
@@ -1027,47 +1027,44 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
       // Now, _packet contains at least BBDO_HEADER_SIZE + packet_size bytes.
 
+      /* Where the body is, and how many bytes of _packet this event takes
+       * with its header. */
+      const char* body = _packet.data() + BBDO_HEADER_SIZE;
+      size_t body_size = packet_size;
+      const size_t eaten = BBDO_HEADER_SIZE + packet_size;
+
+      /* The body is copied out of _packet only when it has to outlive it:
+       * a full packet, which is the first part of a long event and will wait in
+       * _buffer, or the last part of one, which is about to be concatenated
+       * with what waits there. The ordinary case -- a whole event in one packet
+       * -- is deserialized where the bytes landed, and _packet is consumed
+       * afterwards. Materialising it every time was an allocation and a copy of
+       * the whole body per event, for nothing. */
+      const auto pending = absl::c_find_if(_buffer, [&](const buffer& b) {
+        return b.matches(event_id, source_id, dest_id);
+      });
+      const bool must_copy =
+          packet_size == 0xffff || pending != _buffer.end();
+
       std::vector<char> content;
-      if (_packet.size() == BBDO_HEADER_SIZE + packet_size) {
-        SPDLOG_LOGGER_TRACE(
-            _logger, "packet matches header + content => extracting content");
-        // We remove the header from the packet: FIXME DBR this is not
-        // beautiful...
-
-        content = std::vector<char>(_packet.begin() + BBDO_HEADER_SIZE,
-                                    _packet.end());
-        _packet.clear();
-        // The size should be of only packet_size now.
-      } else {
-        /* we have _packet.size() > BBDO_HEADER_SIZE + packet_size */
-
-        size_t previous_packet_size = _packet.size();
-        // packet contains more than one BBDO packet...
-        content =
-            std::vector<char>(_packet.begin() + BBDO_HEADER_SIZE,
-                              _packet.begin() + BBDO_HEADER_SIZE + packet_size);
-        _packet.erase(_packet.begin(),
-                      _packet.begin() + BBDO_HEADER_SIZE + packet_size);
-        SPDLOG_LOGGER_TRACE(
-            _logger,
-            "packet longer than header + content => splitting the whole of "
-            "size {} to content of size {} and remaining of size {}",
-            previous_packet_size, content.size(), _packet.size());
+      if (must_copy) {
+        content.assign(body, body + packet_size);
+        body = content.data();
+        _drop_from_packet(eaten);
       }
 
       if (packet_size != 0xffff) {
         // Cool we can work with it!
 
-        // Is it the next part of an already known input buffer?
-        for (auto it = _buffer.begin(); it != _buffer.end(); ++it) {
-          auto& b = *it;
-          if (b.matches(event_id, source_id, dest_id)) {
-            // Good, we've found it.
-            b.push_back(std::move(content));
-            content = b.to_vector();
-            _buffer.erase(it);
-            break;
-          }
+        /* The last part of a long event: glue it behind the parts that were
+         * waiting. pending was looked up above, when deciding whether the
+         * body needed a copy of its own. */
+        if (pending != _buffer.end()) {
+          pending->push_back(std::move(content));
+          content = pending->to_vector();
+          _buffer.erase(pending);
+          body = content.data();
+          body_size = content.size();
         }
         /* There is no reason to have this but no one knows. */
         if (_buffer.size() > 0) {
@@ -1087,11 +1084,24 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
           }
         }
 
-        pack = content.data();
+        pack = body;
 
         // Maybe it is bigger now.
-        packet_size = content.size();
-        d = deserialize(event_id, source_id, dest_id, pack, packet_size);
+        packet_size = body_size;
+        /* _packet is consumed after the deserialisation, because the bytes
+         * being parsed may be its own -- but it has to be consumed whatever
+         * happens: deserialize() throws on a body it cannot parse, and
+         * leaving those bytes in place would have the next read pick the very
+         * same header up again, forever. */
+        try {
+          d = deserialize(event_id, source_id, dest_id, pack, packet_size);
+        } catch (...) {
+          if (!must_copy)
+            _drop_from_packet(eaten);
+          throw;
+        }
+        if (!must_copy)
+          _drop_from_packet(eaten);
         if (d) {
           SPDLOG_LOGGER_TRACE(_logger,
                               "deserialized {} bytes for event of type {}",
@@ -1148,6 +1158,31 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
     return false;
   }
   return false;
+}
+
+/**
+ * @brief Drop the first bytes of _packet, those of an event just handled.
+ *
+ * Split out because the body is now deserialized straight out of _packet in
+ * the ordinary case, so the packet cannot be consumed until after that: the two
+ * call sites sit on either side of the deserialisation.
+ *
+ * @param size How many bytes to drop, header included.
+ */
+void basic_stream::_drop_from_packet(size_t size) {
+  if (_packet.size() == size) {
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "packet matched header + content, {} bytes consumed",
+                        size);
+    _packet.clear();
+  } else {
+    /* _packet.size() > size: it carried more than one BBDO packet. */
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "packet longer than header + content: {} bytes "
+                        "consumed out of {}, {} left",
+                        size, _packet.size(), _packet.size() - size);
+    _packet.erase(_packet.begin(), _packet.begin() + size);
+  }
 }
 
 /**

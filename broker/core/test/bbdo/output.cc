@@ -20,10 +20,12 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
+#include "broker/core/bbdo/internal.hh"
 #include "broker/core/bbdo/stream.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -437,4 +439,58 @@ TEST_F(OutputTest, ServiceTooShortAndAGoodOne) {
   new_svc = std::static_pointer_cast<neb::service>(e);
   ASSERT_EQ(new_svc->output, std::string("SecondOutput"));
   ASSERT_EQ(new_svc->perf_data, std::string("metric=3.14"));
+}
+
+/* A payload the deserialiser refuses must not stay in _packet.
+ *
+ * The header checksum covers the header only, so a corrupted payload sails
+ * through it and reaches protobuf, which throws. _packet is consumed after the
+ * deserialisation -- the bytes being parsed are its own -- so that consumption
+ * has to happen on the exception path too. Otherwise the next read finds the
+ * very same header waiting and throws again, forever.
+ *
+ * The second event proves it: it can only be read if the first one was really
+ * dropped from the packet. */
+TEST_F(OutputTest, BadPayloadDoesNotWedgeTheStream) {
+  config::applier::modules modules(_logger);
+  modules.load_file("./broker/lib/10-neb.so");
+
+  auto bad{std::make_shared<neb::pb_service_status>()};
+  bad->mut_obj().set_host_id(42);
+  bad->mut_obj().set_service_id(18);
+
+  std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
+  bbdo::basic_stream stm(true);
+  stm.set_substream(memory_stream);
+  stm.set_coarse(false);
+
+  stm.write(bad);
+  std::vector<char> packets(memory_stream->get_memory().begin(),
+                            memory_stream->get_memory().end());
+  /* Field number 1 with wire type 7, which does not exist: enough to make
+   * ParseFromArray fail without touching the header or its checksum. */
+  ASSERT_GT(packets.size(), BBDO_HEADER_SIZE);
+  packets[BBDO_HEADER_SIZE] = 0x0f;
+
+  /* A sound event behind it, of a shape the other tests already read back. */
+  auto good{std::make_shared<neb::service>()};
+  good->host_id = 12345;
+  good->service_id = 18;
+  good->output = "GoodOutput";
+  good->perf_data = "value=18.0";
+  stm.write(good);
+  auto& mem = memory_stream->get_mutable_memory();
+  packets.insert(packets.end(), mem.begin(), mem.end());
+  mem = packets;
+
+  std::shared_ptr<io::data> e;
+  /* The corrupted payload is reported, not swallowed. */
+  ASSERT_THROW(stm.read(e, time(nullptr) + 1000), std::exception);
+
+  /* And the stream is not wedged: the next event comes out whole. */
+  ASSERT_TRUE(stm.read(e, time(nullptr) + 1000));
+  ASSERT_TRUE(e);
+  auto read_back = std::static_pointer_cast<neb::service>(e);
+  ASSERT_EQ(read_back->output, std::string("GoodOutput"));
+  ASSERT_EQ(read_back->perf_data, std::string("value=18.0"));
 }
