@@ -413,8 +413,6 @@ void stream::_load_caches() {
   try {
     database::mysql_result res(future_index_data.get());
 
-    multiplexing::publisher pblshr;
-
     // Loop through result set.
     while (_mysql.fetch_row(res)) {
       uint64_t index_id = res.value_as_u64(0);
