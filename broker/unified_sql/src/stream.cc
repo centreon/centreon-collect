@@ -326,9 +326,6 @@ void stream::_load_caches() {
 
   std::promise<mysql_result> promise_instance_id;
   std::promise<database::mysql_result> promise_index_data;
-  // std::promise<mysql_result> promise_hi;
-  // std::promise<mysql_result> promise_hg;
-  // std::promise<mysql_result> promise_sg;
   std::promise<mysql_result> promise_metrics;
   std::promise<mysql_result> promise_resource;
   std::promise<mysql_result> promise_severity;
@@ -336,9 +333,6 @@ void stream::_load_caches() {
   std::future<mysql_result> future_instance_id =
       promise_instance_id.get_future();
   std::future<mysql_result> future_index_data = promise_index_data.get_future();
-  // std::future<mysql_result> future_hi = promise_hi.get_future();
-  // std::future<mysql_result> future_hg = promise_hg.get_future();
-  // std::future<mysql_result> future_sg = promise_sg.get_future();
   std::future<mysql_result> future_metrics = promise_metrics.get_future();
   std::future<mysql_result> future_resource = promise_resource.get_future();
   std::future<mysql_result> future_severity = promise_severity.get_future();
@@ -356,19 +350,6 @@ void stream::_load_caches() {
       "description,"
       "special,locked FROM index_data",
       std::move(promise_index_data));
-
-  /* hosts => _cache_host_instance */
-  //_mysql.run_query_and_get_result("SELECT host_id,instance_id FROM hosts",
-  //                                std::move(promise_hi));
-
-  /* hostgroups => _hostgroups_cache */
-  //_mysql.run_query_and_get_result("SELECT hostgroup_id, name FROM hostgroups",
-  //                                std::move(promise_hg));
-
-  /* servicegroups => _servicegroups_cache */
-  //_mysql.run_query_and_get_result(
-  //    "SELECT servicegroup_id, name FROM servicegroups",
-  //    std::move(promise_sg));
 
   /* metrics => _metric_cache */
   _mysql.run_query_and_get_result(
@@ -456,74 +437,6 @@ void stream::_load_caches() {
     throw msg_fmt("unified_sql: could not fetch index list from data DB: {}",
                   e.what());
   }
-
-  /* hosts => _cache_host_instance */
-  // FIXME DBO
-  //_cache_host_instance.clear();
-  // try {
-  //  mysql_result res(future_hi.get());
-  //  while (_mysql.fetch_row(res)) {
-  //    int32_t host_id = res.value_as_i32(0);
-  //    int32_t instance_id = res.value_as_i32(1);
-  //    if (host_id > 0 && instance_id > 0)
-  //      _cache_host_instance[host_id] = instance_id;
-  //    else {
-  //      if (host_id <= 0)
-  //        SPDLOG_LOGGER_ERROR(
-  //            _logger_sql,
-  //            "unified_sql: the 'hosts' table contains rows with host_id <= 0,
-  //            " "you should remove them.");
-  //      if (instance_id <= 0)
-  //        SPDLOG_LOGGER_ERROR(
-  //            _logger_sql,
-  //            "unified_sql: the 'hosts' table contains rows with instance_id "
-  //            "<= 0, you should remove them.");
-  //    }
-  //  }
-  //} catch (std::exception const& e) {
-  //  throw msg_fmt("SQL: could not get the list of host/instance pairs: {}",
-  //                e.what());
-  //}
-
-  /* hostgroups => _hostgroups_cache */
-  //_hostgroups_cache.clear();
-  // try {
-  //  mysql_result res(future_hg.get());
-  //  while (_mysql.fetch_row(res)) {
-  //    uint32_t hg_id = res.value_as_i32(0);
-  //    std::string name = res.value_as_str(1);
-  //    if (hg_id > 0)
-  //      _hostgroups_cache.insert({hg_id, name});
-  //    else
-  //      SPDLOG_LOGGER_ERROR(
-  //          _logger_sql,
-  //          "unified_sql: the table 'hostgroups' contains rows with "
-  //          "hostgroup_id <= 0, you should remove them.");
-  //  }
-  //} catch (const std::exception& e) {
-  //  throw msg_fmt("SQL: could not get the list of hostgroups id: {}",
-  //  e.what());
-  //}
-
-  /* servicegroups => _servicegroups_cache */
-  //_servicegroups_cache.clear();
-  // try {
-  //  mysql_result res(future_sg.get());
-  //  while (_mysql.fetch_row(res)) {
-  //    uint32_t sg_id = res.value_as_i32(0);
-  //    std::string name = res.value_as_str(1);
-  //    if (sg_id > 0)
-  //      _servicegroups_cache.insert({sg_id, name});
-  //    else
-  //      SPDLOG_LOGGER_ERROR(
-  //          _logger_sql,
-  //          "unified_sql: the 'servicegroups' table contains rows with "
-  //          "servicegroup_id <= 0, you should remove them.");
-  //  }
-  //} catch (std::exception const& e) {
-  //  throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
-  //                e.what());
-  //}
 
   _cache_svc_cmd.clear();
   _cache_hst_cmd.clear();
