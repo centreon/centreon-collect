@@ -324,6 +324,15 @@ sub action_proxyaddnode {
         # this allow to transparently use both id and uid as key, without worrying about duplicate element.
         $temp_nodes->{$node->{uid}} = $temp_nodes->{$node->{id}};
 
+        # ack the node as registered, same as push mode in class.pm's action_proxyaddnode, so hooks.pm's
+        # routing() can use "channel_ready" uniformly regardless of node type to define if connection is ready.
+        $self->send_internal_action({
+            action => 'PROXYREADY',
+            data => {
+                node_id  => $node->{id},
+                node_uid => $node->{uid}
+            }
+        });
     }
     # disconnect every node that don't exist anymore.
     for my $delete_node (keys %{$self->{nodes}}){
