@@ -353,6 +353,26 @@ sub routing {
             next;
         }
 
+        # don't dispatch to a node until its PROXYADDNODE has been acked (channel_ready) by
+        # whichever backend manages it (class.pm pool worker or httpserver.pm) - otherwise a
+        # message can reach a pool worker/httpserver before it has finished registering the
+        # node
+        if ($options{action} !~ /^(?:PROXYADDNODE|PROXYDELNODE|PROXYCLOSECONNECTION)$/
+            && (!defined($synctime_nodes->{$target_parent}) || $synctime_nodes->{$target_parent}->{channel_ready} != 1)) {
+            $options{logger}->writeLogDebug(
+                "[proxy] deferring '" . $options{action} . "' for '" . $target_parent .
+                "': node not yet fully registered (no PROXYADDNODE ack)"
+            );
+            gorgone::standard::library::add_history({
+                dbh => $options{dbh},
+                code => GORGONE_ACTION_FINISH_KO,
+                token => $options{token},
+                data => { message => "proxy - node '$target_parent' not ready yet" },
+                json_encode => 1
+            });
+            next;
+        }
+
         $options{gorgone}->send_internal_message(
             identity => $identity,
             action => $action,
@@ -450,7 +470,6 @@ sub check {
 
     # We check synclog/ping/ping request timeout 
     foreach (keys %$synctime_nodes) {
-        next if $_ ne $synctime_nodes->{$_}->{id};
 
         if ($register_nodes->{$_}->{type} =~ /^(?:pull|wss|pullwss)$/ && $constatus_ping->{$_}->{in_progress_ping} == 1) {
             my $ping_timeout = defined($register_nodes->{$_}->{ping_timeout}) ? $register_nodes->{$_}->{ping_timeout} : 30;
