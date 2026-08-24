@@ -301,7 +301,7 @@ void database_configurator::_wake_up_resources_mysql(
   for (const auto& service : state.services()) {
     _wake_up_service_resources_stmt->bind_value_as_u32(0, service.host_id());
     _wake_up_service_resources_stmt->bind_value_as_u32(1, service.service_id());
-    mysql.run_statement(*_wake_up_services_stmt);
+    mysql.run_statement(*_wake_up_service_resources_stmt);
   }
 }
 
