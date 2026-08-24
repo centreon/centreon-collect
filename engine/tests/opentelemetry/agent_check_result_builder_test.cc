@@ -492,7 +492,7 @@ TEST_F(otl_agent_check_result_builder_test, test_svc_builder_quoted_label) {
 
   std::string_view perfdata(res.get_output());
   perfdata.remove_prefix(perfdata.find('|') + 1);
-  std::list<com::centreon::common::perfdata> parsed =
+  std::vector<com::centreon::common::perfdata> parsed =
       com::centreon::common::perfdata::parse_perfdata(
           0, 0, std::string(perfdata).c_str(), spdlog::default_logger());
   ASSERT_EQ(parsed.size(), 1u);

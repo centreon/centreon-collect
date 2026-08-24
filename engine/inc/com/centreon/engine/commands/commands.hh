@@ -21,6 +21,8 @@
 #ifndef CCE_COMMANDS_HH
 #define CCE_COMMANDS_HH
 
+#include <string_view>
+
 #include "com/centreon/engine/objects.hh"
 
 #ifdef __cplusplus
@@ -37,23 +39,27 @@ void process_external_command(char const* cmd);  // external command processor
 // External command implementations
 int cmd_add_comment(int cmd,
                     time_t entry_time,
-                    char* args);  // add a service or host comment
-int cmd_delete_comment(int cmd,
-                       char* args);  // delete a service or host comment
+                    std::string_view args);  // add a service or host comment
+int cmd_delete_comment(
+    int cmd,
+    std::string_view args);  // delete a service or host comment
 int cmd_delete_all_comments(
     int cmd,
-    char* args);  // delete all comments associated with a host or service
-int cmd_delay_notification(int cmd,
-                           char* args);  // delay a service or host notification
+    std::string_view
+        args);  // delete all comments associated with a host or service
+int cmd_delay_notification(
+    int cmd,
+    std::string_view args);  // delay a service or host notification
 int cmd_schedule_check(
     int cmd,
-    char* args);  // schedule an immediate or delayed host check
-void cmd_signal_process(int cmd,
-                        char* args);  // schedules a program shutdown or restart
+    std::string_view args);  // schedule an immediate or delayed host check
+void cmd_signal_process(
+    int cmd,
+    std::string_view args);  // schedules a program shutdown or restart
 int cmd_process_service_check_result(
     int cmd,
     time_t check_time,
-    char* args);  // processes a passive service check
+    std::string_view args);  // processes a passive service check
 int process_passive_service_check(time_t check_time,
                                   char const* host_name,
                                   char const* svc_description,
@@ -62,39 +68,44 @@ int process_passive_service_check(time_t check_time,
 int cmd_process_host_check_result(
     int cmd,
     time_t check_time,
-    char* args);  // processes a passive host check
+    std::string_view args);  // processes a passive host check
 int process_passive_host_check(time_t check_time,
                                char const* host_name,
                                int return_code,
                                char const* output);
 int cmd_acknowledge_problem(
     int cmd,
-    char* args);  // acknowledges a host or service problem
+    std::string_view args);  // acknowledges a host or service problem
 int cmd_remove_acknowledgement(
     int cmd,
-    char* args);  // removes a host or service acknowledgement
-int cmd_schedule_downtime(int cmd,
-                          time_t entry_time,
-                          char* args);  // schedules host or service downtime
+    std::string_view args);  // removes a host or service acknowledgement
+int cmd_schedule_downtime(
+    int cmd,
+    time_t entry_time,
+    std::string_view args);  // schedules host or service downtime
 int cmd_delete_downtime(
     int cmd,
-    char* args);  // cancels active/pending host or service scheduled downtime
+    std::string_view
+        args);  // cancels active/pending host or service scheduled downtime
 int cmd_delete_downtime_full(
     int cmd,
-    char* args);  // cancels active/pending host or service scheduled downtime
-int cmd_change_object_int_var(int cmd,
-                              char* args);  // changes host/svc (int) variable
-int cmd_change_object_char_var(int cmd,
-                               char* args);  // changes host/svc (char) variable
+    std::string_view
+        args);  // cancels active/pending host or service scheduled downtime
+int cmd_change_object_int_var(
+    int cmd,
+    std::string_view args);  // changes host/svc (int) variable
+int cmd_change_object_char_var(
+    int cmd,
+    std::string_view args);  // changes host/svc (char) variable
 int cmd_change_object_custom_var(
     int cmd,
-    char* args);  // changes host/svc custom variable
+    std::string_view args);  // changes host/svc custom variable
 int cmd_process_external_commands_from_file(
     int cmd,
-    char* args);  // process external commands from a file
-int cmd_delete_downtime_by_start_time_comment(int, char*);
-int cmd_delete_downtime_by_host_name(int, char*);
-int cmd_delete_downtime_by_hostgroup_name(int, char*);
+    std::string_view args);  // process external commands from a file
+int cmd_delete_downtime_by_start_time_comment(int, std::string_view);
+int cmd_delete_downtime_by_host_name(int, std::string_view);
+int cmd_delete_downtime_by_hostgroup_name(int, std::string_view);
 void disable_service_checks(
     com::centreon::engine::service* svc);  // disables a service check
 void enable_service_checks(
@@ -241,8 +252,8 @@ void stop_obsessing_over_host(
     com::centreon::engine::host*
         hst);  // stop obsessing about specific host check results
 void new_thresholds_file(
-    char* filename);  // Update all the anomalydetections
-                      // concerned by the new thresholds file.
+    std::string_view filename);  // Update all the anomalydetections
+                                 // concerned by the new thresholds file.
 
 #ifdef __cplusplus
 }

@@ -630,7 +630,7 @@ void check_drive_size::_completion_handler(
   e_status status = e_status::ok;
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
 
   centreon::common::perfdata& perf_count = perfs.emplace_back();
   perf_count.name("count");

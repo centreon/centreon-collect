@@ -36,10 +36,8 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
     // If needed (very likely but not mandatory), the sink formats the message
     // before sending it to its final destination:
     if (this->should_log(msg.level)) {
-      std::string message{fmt::to_string(msg.payload)};
-
-      // Make callbacks.
-      broker_log_data(message.c_str(), time(nullptr));
+      broker_log_data(std::string_view{msg.payload.data(), msg.payload.size()},
+                      time(nullptr));
     }
   }
 

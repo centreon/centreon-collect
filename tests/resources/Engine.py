@@ -50,6 +50,14 @@ import string
 import json
 import os
 
+# Every gRPC call below must carry a deadline. Without one the call blocks for
+# ever when the daemon is too busy to answer -- a saturated engine keeps its
+# port open but stops replying -- and the surrounding `while time.time() <
+# limit` loop never gets a chance to expire, so the keyword hangs instead of
+# failing. Calls owning such a budget bound their deadline by what is left of
+# it; the others use this flat value.
+GRPC_TIMEOUT = 60
+
 
 sys.path.append('.')
 
@@ -425,7 +433,7 @@ class EngineInstance:
         retval += "}\n"
         return {"config": retval, "sid": service_id}
 
-    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: str, sensitivity: float = 0.0):
         """
             Create an anomaly detection service.
             Example:
@@ -2617,7 +2625,7 @@ def ctn_remove_host(index: int, host_name: str):
         f.writelines(lines)
 
 
-def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: str, sensitivity: float = 0.0):
     """
     Create an anomaly detection on the engine instance with the given index.
 
@@ -2951,7 +2959,7 @@ def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, chec
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
+                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{};{};{}\n".format(
@@ -2973,7 +2981,7 @@ def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interva
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
+                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = f"[{now}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{hst};{check_interval}\n"
@@ -2995,7 +3003,7 @@ def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
+                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = f"[{now}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{hst};{svc};{retry_interval}\n"
@@ -3016,7 +3024,7 @@ def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
+                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = f"[{now}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}\n"
@@ -3038,7 +3046,7 @@ def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_che
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
+                host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = f"[{now}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}\n"
@@ -3059,7 +3067,7 @@ def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attemp
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
-                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
+                host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{};{}\n".format(
@@ -3081,7 +3089,7 @@ def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: 
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
+                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] CHANGE_HOST_CHECK_TIMEPERIOD;{};{}\n".format(
@@ -3103,7 +3111,7 @@ def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notificatio
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
+                host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{};{}\n".format(
@@ -3126,7 +3134,7 @@ def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_tim
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
+                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] CHANGE_SVC_CHECK_TIMEPERIOD;{};{};{}\n".format(
@@ -3149,7 +3157,7 @@ def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, no
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
-                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
+                host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{};{};{}\n".format(
@@ -3170,7 +3178,7 @@ def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.DisableHostAndChildNotifications(
-                engine_pb2.NameOrIdIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
@@ -3191,7 +3199,7 @@ def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.EnableHostAndChildNotifications(
-                engine_pb2.NameOrIdIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
@@ -3325,6 +3333,28 @@ def ctn_enable_service_flap_detection(use_grpc: int, hst: str, svc: str):
             f.write(cmd)
 
 
+def ctn_disable_flap_detection():
+    """
+    Disable the flap detection on a program wide basis. Unlike the per object
+    commands, this one walks every host and every service of the poller.
+    """
+    now = int(time.time())
+    cmd = f"[{now}] DISABLE_FLAP_DETECTION\n"
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
+
+
+def ctn_enable_flap_detection():
+    """
+    Enable the flap detection on a program wide basis. Unlike the per object
+    commands, this one walks every host and every service of the poller.
+    """
+    now = int(time.time())
+    cmd = f"[{now}] ENABLE_FLAP_DETECTION\n"
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
+
+
 def ctn_disable_host_notifications(use_grpc: int, hst: str):
     """
     Disable the notifications on a host.
@@ -3337,7 +3367,7 @@ def ctn_disable_host_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.DisableHostNotifications(
-                engine_pb2.NameOrIdIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
@@ -3358,7 +3388,7 @@ def ctn_enable_host_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.EnableHostNotifications(
-                engine_pb2.NameOrIdIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
@@ -3381,7 +3411,7 @@ def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: 
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(serv=engine_pb2.ServiceIdentifier(
-                names=engine_pb2.PairNamesIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
+                names=engine_pb2.PairNamesIdentifier(host_name=hst, service_name=serv)), dval=sensitivity), timeout=GRPC_TIMEOUT)
     else:
         now = int(time.time())
         cmd = f"[{now}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}\n"
@@ -4609,10 +4639,10 @@ def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str
                 for i in range(nb_check):
                     indexed_output = f"{output}_{i}"
                     stub.ProcessServiceCheckResult(engine_pb2.Check(
-                        host_name=hst, svc_desc=svc, check_time=ts, output=indexed_output, code=state))
+                        host_name=hst, svc_desc=svc, check_time=ts, output=indexed_output, code=state), timeout=GRPC_TIMEOUT)
             else:
                 stub.ProcessServiceCheckResult(engine_pb2.Check(
-                    host_name=hst, svc_desc=svc, check_time=ts, output=output, code=state))
+                    host_name=hst, svc_desc=svc, check_time=ts, output=output, code=state), timeout=GRPC_TIMEOUT)
 
     else:
         now = int(time.time())
@@ -4853,7 +4883,7 @@ def ctn_change_global_svc_event_handler(var_value: str):
 
 
 @ctn_external_command
-def ctn_set_svc_notification_number(host_name: string, svc_description: string, value):
+def ctn_set_svc_notification_number(host_name: str, svc_description: str, value):
     """
     Change the notification number of a service.
 
@@ -4868,7 +4898,7 @@ def ctn_set_svc_notification_number(host_name: string, svc_description: string, 
     return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
 
-def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
+def ctn_create_anomaly_threshold_file(path: str, host_id: int, service_id: int, metric_name: str, values: array):
     """
     Create an anomaly detection threshold file using version 1.
 
@@ -4908,7 +4938,7 @@ def ctn_create_anomaly_threshold_file(path: string, host_id: int, service_id: in
 """)
 
 
-def ctn_create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
+def ctn_create_anomaly_threshold_file_V2(path: str, host_id: int, service_id: int, metric_name: str, sensitivity: float, values: array):
     """
     Create an anomaly threshold file using the version 2.
 
@@ -5103,7 +5133,7 @@ def ctn_get_engine_process_stat(port, timeout=10):
             # same for engine and broker
             stub = engine_pb2_grpc.EngineStub(channel)
             try:
-                res = stub.GetProcessStats(empty_pb2.Empty())
+                res = stub.GetProcessStats(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return res
             except Exception:
                 logger.console("gRPC server not ready")
@@ -5123,7 +5153,7 @@ def ctn_send_bench(id: int, port: int):
     ts.GetCurrentTime()
     with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
-        stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
+        stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts), timeout=GRPC_TIMEOUT)
 
 
 def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
@@ -5282,7 +5312,7 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             try:
-                logs = stub.GetLogInfo(empty_pb2.Empty())
+                logs = stub.GetLogInfo(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return logs.level[log]
 
             except Exception:
@@ -5655,7 +5685,7 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
                 to_fill = request.resource_metrics.add()
                 to_fill.CopyFrom(res_metric)
 
-            return stub.Export(request)
+            return stub.Export(request, timeout=GRPC_TIMEOUT)
         except Exception:
             logger.console("gRPC server not ready")
 
@@ -5683,7 +5713,7 @@ def ctn_send_otl_to_engine_secure(target: str, resource_metrics: list, cert: str
                 to_fill = request.resource_metrics.add()
                 to_fill.CopyFrom(res_metric)
 
-            return stub.Export(request)
+            return stub.Export(request, timeout=GRPC_TIMEOUT)
         except Exception as e:
             logger.console(f"gRPC server not ready: {e}")
 
@@ -5706,7 +5736,7 @@ def ctn_get_host_info_grpc(host_id:  int):
                 stub = engine_pb2_grpc.EngineStub(channel)
                 request = engine_pb2.NameOrIdIdentifier(id=host_id)
                 try:
-                    host = stub.GetHost(request)
+                    host = stub.GetHost(request, timeout=max(1, limit - time.time()))
                     host_dict = MessageToDict(
                         host, always_print_fields_with_no_presence=True)
                     return host_dict
@@ -5735,7 +5765,12 @@ def ctn_get_service_info_grpc(id_h: int, id_s: int):
                 host_id=id_h, service_id=id_s)
             request = engine_pb2.ServiceIdentifier(ids=identifier)
             try:
-                host = stub.GetService(request)
+                # A deadline is mandatory here: without one the call blocks for
+                # ever when engine is too busy to answer, and the loop above
+                # never gets a chance to expire. Bounded by what is left of the
+                # 30s budget so that the keyword always gives back the hand.
+                host = stub.GetService(
+                    request, timeout=max(1, limit - time.time()))
                 host_dict = MessageToDict(
                     host, always_print_fields_with_no_presence=True)
                 return host_dict
@@ -5761,7 +5796,7 @@ def ctn_get_contact_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                contact = stub.GetContact(request)
+                contact = stub.GetContact(request, timeout=max(1, limit - time.time()))
                 contact_dict = MessageToDict(
                     contact, always_print_fields_with_no_presence=True)
                 return contact_dict
@@ -5787,7 +5822,7 @@ def ctn_get_hostgroup_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                hg = stub.GetHostGroup(request)
+                hg = stub.GetHostGroup(request, timeout=max(1, limit - time.time()))
                 hg_dict = MessageToDict(
                     hg, always_print_fields_with_no_presence=True)
                 return hg_dict
@@ -5813,7 +5848,7 @@ def ctn_get_servicegroup_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                sg = stub.GetServiceGroup(request)
+                sg = stub.GetServiceGroup(request, timeout=max(1, limit - time.time()))
                 sg_dict = MessageToDict(
                     sg, always_print_fields_with_no_presence=True)
                 return sg_dict
@@ -5839,7 +5874,7 @@ def ctn_get_contactgroup_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                cg = stub.GetContactGroup(request)
+                cg = stub.GetContactGroup(request, timeout=max(1, limit - time.time()))
                 cg_dict = MessageToDict(
                     cg, always_print_fields_with_no_presence=True)
                 return cg_dict
@@ -5865,7 +5900,7 @@ def ctn_get_command_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                command = stub.GetCommand(request)
+                command = stub.GetCommand(request, timeout=max(1, limit - time.time()))
                 command_dict = MessageToDict(
                     command, always_print_fields_with_no_presence=True)
                 return command_dict
@@ -5891,7 +5926,7 @@ def ctn_get_connector_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                connector = stub.GetConnector(request)
+                connector = stub.GetConnector(request, timeout=max(1, limit - time.time()))
                 connector_dict = MessageToDict(
                     connector, always_print_fields_with_no_presence=True)
                 return connector_dict
@@ -5918,7 +5953,7 @@ def ctn_get_service_escalation_info_grpc(host_name: str, service_name: str):
             identifier = engine_pb2.PairNamesIdentifier(
                 host_name=host_name, service_name=service_name)
             try:
-                ServiceEscalation = stub.GetServiceEscalation(identifier)
+                ServiceEscalation = stub.GetServiceEscalation(identifier, timeout=max(1, limit - time.time()))
                 ServiceEscalation_dict = MessageToDict(
                     ServiceEscalation, always_print_fields_with_no_presence=True)
                 return ServiceEscalation_dict
@@ -5947,7 +5982,7 @@ def ctn_get_host_escalation_info_grpc(host_name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             identifier = engine_pb2.NameIdentifier(name=host_name)
             try:
-                hostEscalation = stub.GetHostEscalation(identifier)
+                hostEscalation = stub.GetHostEscalation(identifier, timeout=max(1, limit - time.time()))
                 hostEscalation_dict = MessageToDict(
                     hostEscalation, always_print_fields_with_no_presence=True)
                 return hostEscalation_dict

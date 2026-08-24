@@ -46,7 +46,7 @@ namespace applier {
 class state {
   void _apply_diff_conf(
       DiffState& diff,
-      absl::FixedArray<std::chrono::system_clock::time_point, 5>* tv,
+      absl::FixedArray<std::chrono::steady_clock::time_point, 6>* tv,
       error_cnt& err);
 
  public:

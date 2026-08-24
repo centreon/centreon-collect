@@ -171,11 +171,26 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
+  // Maximum number of metrics one check output may yield.
+  // By default, no limit: a configuration that does not ask for one keeps the
+  // previous behaviour, however large an output gets.
+  uint32_t max_perfdata = 0;
+  {
+    auto it = cfg.params.find("max_perfdata");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &max_perfdata)) {
+      logger->error(
+          "factory: cannot parse the 'max_perfdata' value. It should be an "
+          "unsigned integer. No limit is set by default.");
+      max_perfdata = 0;
+    }
+  }
+
   // Connector.
   auto c = std::make_unique<unified_sql::connector>();
   c->connect_to(dbcfg, rrd_length, interval_length, loop_timeout,
                 instance_timeout, store_in_data_bin, store_in_resources,
-                store_in_hosts_services);
+                store_in_hosts_services, max_perfdata);
   is_acceptor = false;
   return c.release();
 }

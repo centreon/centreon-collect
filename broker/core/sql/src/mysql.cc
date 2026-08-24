@@ -34,6 +34,8 @@ mysql::mysql(database_config const& db_cfg)
     : _db_cfg(db_cfg),
       _pending_queries(0),
       _current_connection(0),
+      _support_bulk_statement(false),
+      _max_allowed_packet(default_max_allowed_packet),
       _logger{log_v2::instance().get(log_v2::SQL)} {
   mysql_manager& mgr(mysql_manager::instance());
   _connection = mgr.get_connections(db_cfg);
@@ -399,8 +401,8 @@ void mysql::_get_server_infos() {
     std::string_view server = v[3];
     if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
         absl::SimpleAtoi(v[2], &patch)) {
-      _logger->info("connected to '{}' Server, version {}.{}.{}",
-                    server, major, minor, patch);
+      _logger->info("connected to '{}' Server, version {}.{}.{}", server, major,
+                    minor, patch);
       if (server == "MariaDB" && (major > 10 || (major == 10 && minor >= 2))) {
         _logger->info("it supports column-wise binding in prepared statements");
         _support_bulk_statement = true;
@@ -409,4 +411,45 @@ void mysql::_get_server_infos() {
   } else {
     _logger->info("connected to '{}' Server", _server_version);
   }
+  _get_max_allowed_packet();
+}
+
+/**
+ * @brief Read the server max_allowed_packet. A bulk statement bigger than it
+ * makes the server drop the connection, so the bulks are sent before reaching
+ * it (see bulk_size_limit()). Under recommended_max_allowed_packet, a warning
+ * is logged, once per value for the whole process since every module opens
+ * its own mysql object. If the value cannot be read,
+ * default_max_allowed_packet is kept.
+ */
+void mysql::_get_max_allowed_packet() {
+  static std::atomic<size_t> last_warned{0};
+
+  std::promise<database::mysql_result> promise;
+  std::future<database::mysql_result> future = promise.get_future();
+  run_query_and_get_result("SELECT @@max_allowed_packet", std::move(promise),
+                           0);
+  try {
+    database::mysql_result res(future.get());
+    if (fetch_row(res)) {
+      const uint64_t value = res.value_as_u64(0);
+      if (value > 0)
+        _max_allowed_packet = value;
+    }
+  } catch (const std::exception& e) {
+    _logger->warn(
+        "unable to read the server max_allowed_packet, {} bytes assumed: {}",
+        _max_allowed_packet, e.what());
+    return;
+  }
+
+  _logger->info("server max_allowed_packet is {} bytes", _max_allowed_packet);
+  if (_max_allowed_packet < recommended_max_allowed_packet &&
+      last_warned.exchange(_max_allowed_packet) != _max_allowed_packet)
+    _logger->warn(
+        "the server max_allowed_packet is {} MiB, below the recommended {} "
+        "MiB: large bulk queries will be split to stay under it, consider "
+        "raising it in the server configuration",
+        _max_allowed_packet / (1024 * 1024),
+        recommended_max_allowed_packet / (1024 * 1024));
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2015,2017, 2021-2025 Centreon
+ * Copyright 2013,2015,2017, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -62,8 +61,8 @@ static uint32_t set_double(io::data& t,
   uint32_t len(strlen(str));
   if (len >= size)
     throw msg_fmt(
-        "cannot extract double value: "
-        "not terminating '\\0' in remaining {} bytes of packet",
+        "cannot extract double value: not terminating '\\0' in remaining {} "
+        "bytes of packet",
         size);
   member.set_double(t, strtod(str, nullptr));
   return len + 1;
@@ -77,10 +76,8 @@ static uint32_t set_integer(io::data& t,
                             void const* data,
                             uint32_t size) {
   if (size < sizeof(uint32_t))
-    throw msg_fmt(
-        "BBDO: cannot extract integer value: {}"
-        " bytes left in packet",
-        size);
+    throw msg_fmt("BBDO: cannot extract integer value: {} bytes left in packet",
+                  size);
   member.set_int(t, ntohl(*static_cast<uint32_t const*>(data)));
   return sizeof(uint32_t);
 }
@@ -93,10 +90,8 @@ static uint32_t set_short(io::data& t,
                           void const* data,
                           uint32_t size) {
   if (size < sizeof(uint16_t))
-    throw msg_fmt(
-        "BBDO: cannot extract short value: {}"
-        " bytes left in packet",
-        size);
+    throw msg_fmt("BBDO: cannot extract short value: {} bytes left in packet",
+                  size);
   member.set_short(t, ntohs(*static_cast<uint16_t const*>(data)));
   return sizeof(uint16_t);
 }
@@ -112,8 +107,8 @@ static uint32_t set_string(io::data& t,
   uint32_t len(strlen(str));
   if (len >= size)
     throw msg_fmt(
-        "BBDO: cannot extract string value: "
-        "no terminating '\\0' in remaining {} bytes of packet",
+        "BBDO: cannot extract string value: no terminating '\\0' in remaining "
+        "{} bytes of packet",
         size);
   member.set_string(t, str);
   return len + 1;
@@ -189,7 +184,7 @@ static uint32_t set_ulong(io::data& t,
  *
  *  @return Event.
  */
-io::data* basic_stream::unserialize(uint32_t event_type,
+std::shared_ptr<io::data> basic_stream::deserialize(uint32_t event_type,
                                     uint32_t source_id,
                                     uint32_t destination_id,
                                     const char* buffer,
@@ -199,11 +194,14 @@ io::data* basic_stream::unserialize(uint32_t event_type,
   if (info) {
     // Create object.
     if (info->get_mapping()) {
-      std::unique_ptr<io::data> t(info->get_operations().constructor());
+      /* Two allocations here, object then control block: the constructor of the
+       * operations table still hands back a raw pointer. Only the mapping path
+       * -- BBDO2 -- goes through it, so it was left alone. */
+      std::shared_ptr<io::data> t(info->get_operations().constructor());
       if (t) {
         t->source_id = source_id;
         t->destination_id = destination_id;
-        // Browse all mapping to unserialize the object.
+        // Browse all mapping to deserialize the object.
         for (const mapping::entry* current_entry = info->get_mapping();
              !current_entry->is_null(); ++current_entry)
           // Skip entries that should not be serialized.
@@ -249,7 +247,7 @@ io::data* basic_stream::unserialize(uint32_t event_type,
             buffer += rb;
             size -= rb;
           }
-        return t.release();
+        return t;
       } else {
         SPDLOG_LOGGER_ERROR(
             _logger,
@@ -262,8 +260,8 @@ io::data* basic_stream::unserialize(uint32_t event_type,
             event_type);
       }
     } else {
-      std::unique_ptr<io::data> t(
-          info->get_operations().unserialize(buffer, size));
+      std::shared_ptr<io::data> t =
+          info->get_operations().deserialize(buffer, size);
       if (t) {
         t->source_id = source_id;
         t->destination_id = destination_id;
@@ -278,12 +276,12 @@ io::data* basic_stream::unserialize(uint32_t event_type,
             "registered",
             event_type);
       }
-      return t.release();
+      return t;
     }
   } else {
     SPDLOG_LOGGER_INFO(
         _logger,
-        "BBDO: cannot unserialize event of ID {}: event was not registered and "
+        "BBDO: cannot deserialize event of ID {}: event was not registered and "
         "will therefore be ignored",
         event_type);
   }
@@ -389,17 +387,80 @@ static void get_ulong(io::data const& t,
 }
 
 /**
+ *  Write a BBDO packet header in place.
+ *
+ *  @param[out] header  Start of the BBDO_HEADER_SIZE bytes to fill.
+ *  @param[in]  size    Size of the payload that follows.
+ *  @param[in]  e       Event the packet carries.
+ */
+static void _fill_header(char* header, uint16_t size, const io::data& e) {
+  *(reinterpret_cast<uint16_t*>(header + 2)) = htons(size);
+  *(reinterpret_cast<uint32_t*>(header + 4)) = htonl(e.type());
+  *(reinterpret_cast<uint32_t*>(header + 8)) = htonl(e.source_id);
+  *(reinterpret_cast<uint32_t*>(header + 12)) = htonl(e.destination_id);
+  *(reinterpret_cast<uint16_t*>(header)) =
+      htons(misc::crc16_ccitt(header + 2, BBDO_HEADER_SIZE - 2));
+}
+
+/**
  *  Serialize an event in the BBDO protocol.
  *
  *  @param[in] e  Event to serialize.
  *
- *  @return Serialized event.
+ *  @return Serialized event, null if the event type is not registered.
+ *
+ *  A shared_ptr and not a raw pointer: the only caller wraps the result in one
+ *  anyway, and doing it there meant the object and its control block were two
+ *  separate allocations. make_shared fuses them -- 52 170 control blocks over a
+ *  120s load, 7.6% of everything cbd allocates, measured on EALLOC4. The two
+ *  counts were identical in the trace, which is what identified the pattern.
  */
-io::raw* basic_stream::serialize(const io::data& e) {
-  std::deque<std::vector<char>> queue;
-
+std::shared_ptr<io::raw> basic_stream::serialize(const io::data& e) {
   // Get event info (mapping).
   const io::event_info* info = io::events::instance().get_event_info(e.type());
+
+  /* The protobuf events, which is what the monitoring flow is made of. The
+   * buffer is allocated once and protobuf encodes straight into it, right
+   * behind the header: 2 allocations and the single unavoidable copy
+   *
+   * Handled before the deque below, so that its map and its first node are not
+   * paid either. */
+  if (info && !info->get_mapping()) {
+    auto buffer = std::make_shared<io::raw>();
+    std::vector<char>& data(buffer->get_buffer());
+    /* One allocation for the whole packet: serialize() sizes the buffer to the
+     * header plus the body and writes the body behind the header. */
+    const size_t size =
+        info->get_operations().serialize(e, data, BBDO_HEADER_SIZE);
+
+    if (size < 0xffff) {
+      _fill_header(data.data(), size, e);
+      return buffer;
+    }
+
+    /* A body spanning several packets. Rare — configuration, big metrics —
+     * and reframed here from the bytes already encoded above rather than
+     * serialized a second time.
+     */
+    std::vector<char> framed;
+    framed.reserve(data.size() + (size / 0xffff) * BBDO_HEADER_SIZE);
+    const char* body = data.data() + BBDO_HEADER_SIZE;
+    size_t left = size;
+    do {
+      const size_t chunk = left < 0xffff ? left : 0xffff;
+      const size_t header = framed.size();
+      framed.resize(header + BBDO_HEADER_SIZE);
+      framed.insert(framed.end(), body, body + chunk);
+      _fill_header(framed.data() + header, chunk, e);
+      body += chunk;
+      left -= chunk;
+    } while (left > 0);
+    data = std::move(framed);
+    return buffer;
+  }
+
+  std::deque<std::vector<char>> queue;
+
   if (info) {
     // Serialize properties of the object.
     const mapping::entry* current_entry = info->get_mapping();
@@ -485,45 +546,9 @@ io::raw* basic_stream::serialize(const io::data& e) {
 
       *(reinterpret_cast<uint16_t*>(header->data())) =
           htons(misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
-
-    } else {
-      /* Here is the protobuf case: no mapping */
-      std::string r{info->get_operations().serialize(e)};
-      size_t size = r.size();
-      auto it = r.begin();
-      do {
-        // Serialization buffer.
-        queue.emplace_back(std::vector<char>());
-        auto* content = &queue.back();
-        content->resize(BBDO_HEADER_SIZE);
-        if (size < 0xffff) {
-          content->insert(content->end(), it, r.end());
-          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = htons(size);
-          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
-          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
-              htonl(e.source_id);
-          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
-              htonl(e.destination_id);
-
-          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
-              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
-          break;
-        } else {
-          content->insert(content->end(), it, it + 0xffff);
-          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = 0xffff;
-          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
-          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
-              htonl(e.source_id);
-          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
-              htonl(e.destination_id);
-
-          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
-              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
-          size -= 0xffff;
-          it += 0xffff;
-        }
-      } while (size > 0);
     }
+    /* No else: an event without a mapping is a protobuf one, and those return
+     * from the block at the top of this function. */
 
     // Finalization: concatenation of all the vectors in the queue.
     size_t size = 0;
@@ -531,13 +556,13 @@ io::raw* basic_stream::serialize(const io::data& e) {
       size += v.size();
 
     // Serialization buffer.
-    std::unique_ptr<io::raw> buffer(std::make_unique<io::raw>());
+    std::shared_ptr<io::raw> buffer(std::make_shared<io::raw>());
     std::vector<char>& data(buffer->get_buffer());
     data.reserve(size);
     for (auto& v : queue)
       data.insert(data.end(), v.begin(), v.end());
 
-    return buffer.release();
+    return buffer;
   } else {
     SPDLOG_LOGGER_INFO(
         _logger,
@@ -919,7 +944,7 @@ bool basic_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   /* If !timed_out, then we have two possibilities:
    *  * we get an event d
-   *  * an event has been returned but we could not unserialize it.
+   *  * an event has been returned but we could not deserialize it.
    */
   if (!timed_out) {
     ++_events_received_since_last_ack;
@@ -954,7 +979,8 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
     for (;;) {
       /* Maybe we have to complete the header. */
-      _read_packet(BBDO_HEADER_SIZE, deadline);
+      if (!_read_packet(BBDO_HEADER_SIZE, deadline))
+        return false;
       if (!_grpc_serialized_queue.empty()) {
         d = _grpc_serialized_queue.front();
         SPDLOG_LOGGER_TRACE(_logger, "read event: {}", *d);
@@ -1003,51 +1029,49 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
       // It is time to finish to read the packet.
 
-      _read_packet(BBDO_HEADER_SIZE + packet_size, deadline);
+      if (!_read_packet(BBDO_HEADER_SIZE + packet_size, deadline))
+        return false;
 
       // Now, _packet contains at least BBDO_HEADER_SIZE + packet_size bytes.
 
+      /* Where the body is, and how many bytes of _packet this event takes
+       * with its header. */
+      const char* body = _packet.data() + BBDO_HEADER_SIZE;
+      size_t body_size = packet_size;
+      const size_t eaten = BBDO_HEADER_SIZE + packet_size;
+
+      /* The body is copied out of _packet only when it has to outlive it:
+       * a full packet, which is the first part of a long event and will wait in
+       * _buffer, or the last part of one, which is about to be concatenated
+       * with what waits there. The ordinary case -- a whole event in one packet
+       * -- is deserialized where the bytes landed, and _packet is consumed
+       * afterwards. Materialising it every time was an allocation and a copy of
+       * the whole body per event, for nothing. */
+      const auto pending = absl::c_find_if(_buffer, [&](const buffer& b) {
+        return b.matches(event_id, source_id, dest_id);
+      });
+      const bool must_copy =
+          packet_size == 0xffff || pending != _buffer.end();
+
       std::vector<char> content;
-      if (_packet.size() == BBDO_HEADER_SIZE + packet_size) {
-        SPDLOG_LOGGER_TRACE(
-            _logger, "packet matches header + content => extracting content");
-        // We remove the header from the packet: FIXME DBR this is not
-        // beautiful...
-
-        content = std::vector<char>(_packet.begin() + BBDO_HEADER_SIZE,
-                                    _packet.end());
-        _packet.clear();
-        // The size should be of only packet_size now.
-      } else {
-        /* we have _packet.size() > BBDO_HEADER_SIZE + packet_size */
-
-        size_t previous_packet_size = _packet.size();
-        // packet contains more than one BBDO packet...
-        content =
-            std::vector<char>(_packet.begin() + BBDO_HEADER_SIZE,
-                              _packet.begin() + BBDO_HEADER_SIZE + packet_size);
-        _packet.erase(_packet.begin(),
-                      _packet.begin() + BBDO_HEADER_SIZE + packet_size);
-        SPDLOG_LOGGER_TRACE(
-            _logger,
-            "packet longer than header + content => splitting the whole of "
-            "size {} to content of size {} and remaining of size {}",
-            previous_packet_size, content.size(), _packet.size());
+      if (must_copy) {
+        content.assign(body, body + packet_size);
+        body = content.data();
+        _drop_from_packet(eaten);
       }
 
       if (packet_size != 0xffff) {
         // Cool we can work with it!
 
-        // Is it the next part of an already known input buffer?
-        for (auto it = _buffer.begin(); it != _buffer.end(); ++it) {
-          auto& b = *it;
-          if (b.matches(event_id, source_id, dest_id)) {
-            // Good, we've found it.
-            b.push_back(std::move(content));
-            content = b.to_vector();
-            _buffer.erase(it);
-            break;
-          }
+        /* The last part of a long event: glue it behind the parts that were
+         * waiting. pending was looked up above, when deciding whether the
+         * body needed a copy of its own. */
+        if (pending != _buffer.end()) {
+          pending->push_back(std::move(content));
+          content = pending->to_vector();
+          _buffer.erase(pending);
+          body = content.data();
+          body_size = content.size();
         }
         /* There is no reason to have this but no one knows. */
         if (_buffer.size() > 0) {
@@ -1067,14 +1091,27 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
           }
         }
 
-        pack = content.data();
+        pack = body;
 
         // Maybe it is bigger now.
-        packet_size = content.size();
-        d.reset(unserialize(event_id, source_id, dest_id, pack, packet_size));
+        packet_size = body_size;
+        /* _packet is consumed after the deserialisation, because the bytes
+         * being parsed may be its own -- but it has to be consumed whatever
+         * happens: deserialize() throws on a body it cannot parse, and
+         * leaving those bytes in place would have the next read pick the very
+         * same header up again, forever. */
+        try {
+          d = deserialize(event_id, source_id, dest_id, pack, packet_size);
+        } catch (...) {
+          if (!must_copy)
+            _drop_from_packet(eaten);
+          throw;
+        }
+        if (!must_copy)
+          _drop_from_packet(eaten);
         if (d) {
           SPDLOG_LOGGER_TRACE(_logger,
-                              "unserialized {} bytes for event of type {}",
+                              "deserialized {} bytes for event of type {}",
                               BBDO_HEADER_SIZE + packet_size, event_id);
         } else {
           SPDLOG_LOGGER_WARN(_logger,
@@ -1122,24 +1159,63 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       }
     }
   } catch (const exceptions::timeout& e) {
+    /* Kept even though _read_packet no longer throws: a compression substream
+     * still reports its own expired deadline this way, and that one is rare
+     * enough to leave alone. */
     return false;
   }
   return false;
 }
 
 /**
+ * @brief Drop the first bytes of _packet, those of an event just handled.
+ *
+ * Split out because the body is now deserialized straight out of _packet in
+ * the ordinary case, so the packet cannot be consumed until after that: the two
+ * call sites sit on either side of the deserialisation.
+ *
+ * @param size How many bytes to drop, header included.
+ */
+void basic_stream::_drop_from_packet(size_t size) {
+  if (_packet.size() == size) {
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "packet matched header + content, {} bytes consumed",
+                        size);
+    _packet.clear();
+  } else {
+    /* _packet.size() > size: it carried more than one BBDO packet. */
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "packet longer than header + content: {} bytes "
+                        "consumed out of {}, {} left",
+                        size, _packet.size(), _packet.size() - size);
+    _packet.erase(_packet.begin(), _packet.begin() + size);
+  }
+}
+
+/**
  * @brief Fill the internal _packet vector until it reaches the given size. It
- * may be bigger. The deadline is the limit time after that an exception is
- * thrown. Even if an exception is thrown the vector may begin to be fill, it
- * is just not finished, and so no data are lost. Received packets are BBDO
- * packets or maybe pieces of BBDO packets, so we keep vectors as is because
- * usually a vector should just represent a packet. In case of event
+ * may be bigger. Even when the deadline expires the vector may begin to be
+ * fill, it is just not finished, and so no data are lost. Received packets are
+ * BBDO packets or maybe pieces of BBDO packets, so we keep vectors as is
+ * because usually a vector should just represent a packet. In case of event
  * serialized only by grpc stream, we store it in _grpc_serialized_queue
+ *
+ * This used to report the expired deadline by throwing exceptions::timeout,
+ * caught one frame above to do exactly what returning false does here. Having
+ * nothing to read is the *ordinary* case on a live socket -- 5.4 times per
+ * event, 424 times per second, measured on the EALLOC4 profile -- so that put a
+ * heap allocation, a two-phase stack unwind and the lock guarding libgcc's
+ * unwind tables on the hot path, the last one being a serialisation point
+ * between the many threads of cbd.
  *
  * @param size The wanted final size
  * @param deadline A time_t.
+ *
+ * @return False if the deadline expired before the wanted size was reached,
+ * true otherwise -- including when an already deserialized event was queued,
+ * which the caller checks for right away.
  */
-void basic_stream::_read_packet(size_t size, time_t deadline) {
+bool basic_stream::_read_packet(size_t size, time_t deadline) {
   // Read as much data as requested.
   while (_packet.size() < size) {
     std::shared_ptr<io::data> d;
@@ -1158,16 +1234,17 @@ void basic_stream::_read_packet(size_t size, time_t deadline) {
         }
       } else {
         _grpc_serialized_queue.push_back(d);
-        return;
+        return true;
       }
     }
     if (timeout) {
       SPDLOG_LOGGER_TRACE(_logger,
                           "_read_packet timeout!!, size = {}, deadline = {}",
                           size, deadline);
-      throw exceptions::timeout();
+      return false;
     }
   }
+  return true;
 }
 
 /**
@@ -1215,7 +1292,7 @@ void basic_stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
   if (!_grpc_serialized || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
-    std::shared_ptr<io::raw> serialized(serialize(*d));
+    std::shared_ptr<io::raw> serialized = serialize(*d);
     if (serialized) {
       SPDLOG_LOGGER_TRACE(_logger,
                           "BBDO: serialized event of type {:x} to {} bytes",

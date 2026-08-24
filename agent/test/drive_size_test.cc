@@ -99,7 +99,7 @@ class drive_size_test : public ::testing::Test {
   static void TearDownTestCase() { check_drive_size::thread_kill(); }
 
   static void check_storage_perfs(
-      const std::list<com::centreon::common::perfdata>& perfs,
+      const std::vector<com::centreon::common::perfdata>& perfs,
       std::string_view threshold_metric,
       std::list<com::centreon::common::perfdata>* legacy_perfs);
 };
@@ -134,7 +134,7 @@ std::list<fs_stat> drive_size_test::compute(
  * @param legacy_perfs filled with the used_ or free_ perfdata
  */
 void drive_size_test::check_storage_perfs(
-    const std::list<com::centreon::common::perfdata>& perfs,
+    const std::vector<com::centreon::common::perfdata>& perfs,
     std::string_view threshold_metric,
     std::list<com::centreon::common::perfdata>* legacy_perfs) {
   auto same_threshold = [](float left, float right) {
@@ -220,7 +220,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
         "filter-type": "^other_format$"})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -232,7 +232,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -290,7 +290,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
         "filter-type": "^other_format$"})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -302,7 +302,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -360,7 +360,7 @@ TEST_F(drive_size_test, test_fs_filter2) {
         "filter-type": "^(hrfsfat$|hrfsfat32)$"})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -372,7 +372,7 @@ TEST_F(drive_size_test, test_fs_filter2) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -418,7 +418,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
         "filter-type": "^other_format$", "filter-fs": "^tmp.*$"})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -430,7 +430,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -485,7 +485,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
         "filter-type": "^other_format$", "filter-fs": "tmpfs", "filter-mountpoint":"^/run/.*$" })"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -497,7 +497,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -546,7 +546,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
         "filter-type": "^other_format$", "filter-fs": "tmpfs", "filter-mountpoint":"^/run.*$", "exclude-mountpoint": ".*lock.*" })"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -558,7 +558,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -598,7 +598,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
   }
   // recheck to validate filter cache
   std::string output_save = output;
-  std::list<com::centreon::common::perfdata> perfs_save = perfs;
+  std::vector<com::centreon::common::perfdata> perfs_save = perfs;
 
   absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
@@ -614,7 +614,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
          "exclude-fs": "tmpfs|[A-Z]:\\\\", "exclude-mountpoint":"/dev" })"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -626,7 +626,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -677,7 +677,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
          "exclude-fs": "tmpfs|[A-Z]:\\\\", "exclude-mountpoint":"/dev" })"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -689,7 +689,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -740,7 +740,7 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
          "exclude-fs": "tmpfs|[A-Z]:\\\\", "exclude-mountpoint":"/dev" })"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -752,7 +752,7 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -803,7 +803,7 @@ TEST_F(drive_size_test, test_fs_filter_free_bytes) {
         "free": true, "filter-type": "^(hrfsfat$|hrfsfat32)$"})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = e_status::unknown;
 
@@ -814,7 +814,7 @@ TEST_F(drive_size_test, test_fs_filter_free_bytes) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           int check_status,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::vector<com::centreon::common::perfdata>& perfdata,
           const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
         status = static_cast<e_status>(check_status);
@@ -861,7 +861,7 @@ TEST_F(drive_size_test, test_fs_no_storage_found) {
         "filter-fs": "^no_such_fs$"})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
   e_status status = e_status::unknown;
 
@@ -872,7 +872,7 @@ TEST_F(drive_size_test, test_fs_no_storage_found) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           int check_status,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::vector<com::centreon::common::perfdata>& perfdata,
           const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
         status = static_cast<e_status>(check_status);
@@ -901,7 +901,7 @@ TEST_F(drive_size_test, test_fs_format_filter) {
         "filter-type": "VBoxSharedFolderFs|ntfs"})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -913,7 +913,7 @@ TEST_F(drive_size_test, test_fs_format_filter) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);
@@ -945,7 +945,7 @@ TEST_F(drive_size_test, test_fs_empty_filters) {
         "exclude-fs": "", "filter-mountpoint": "", "exclude-mountpoint": ""})"_json;
 
   absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   std::string output;
 
   auto is_complete = [&]() { return !perfs.empty(); };
@@ -955,7 +955,7 @@ TEST_F(drive_size_test, test_fs_empty_filters) {
       serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
         absl::MutexLock lck(wait_m);

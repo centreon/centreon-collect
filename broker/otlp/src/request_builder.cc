@@ -325,7 +325,7 @@ void request_builder::_add_perfdata(uint64_t host_id,
                   static_cast<int64_t>(service_id));
   };
 
-  std::list<perfdata> parsed = perfdata::parse_perfdata(
+  std::vector<perfdata> parsed = perfdata::parse_perfdata(
       host_id, service_id, perfdata_str.c_str(), _logger);
 
   /* One snapshot for the all status, so a reload in the middle cannot modifier

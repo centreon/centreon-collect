@@ -60,13 +60,13 @@ TEST_F(check_health_test, no_threshold_no_reverse) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       stats);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::ok);
   EXPECT_EQ(output, "OK: Version: " CENTREON_AGENT_VERSION
@@ -106,13 +106,13 @@ TEST_F(check_health_test, no_threshold_reverse) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       stats);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::ok);
   EXPECT_EQ(output, "OK: Version: " CENTREON_AGENT_VERSION
@@ -152,13 +152,13 @@ TEST_F(check_health_test, threshold_1) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       stats);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::critical);
   EXPECT_EQ(output,
@@ -204,13 +204,13 @@ TEST_F(check_health_test, threshold_1_1) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       stats);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::critical);
   EXPECT_EQ(output,
@@ -256,13 +256,13 @@ TEST_F(check_health_test, threshold_2) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       stats);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::critical);
   EXPECT_EQ(output,
@@ -308,13 +308,13 @@ TEST_F(check_health_test, threshold_3) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       stats);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::critical);
   EXPECT_EQ(output,
@@ -360,13 +360,13 @@ TEST_F(check_health_test, threshold_4) {
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
-         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+         [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
       stats);
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::warning);
   EXPECT_EQ(output,

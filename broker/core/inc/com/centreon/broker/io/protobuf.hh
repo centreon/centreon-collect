@@ -178,17 +178,32 @@ class protobuf : public protobuf_base {
    * @brief Serialization function of this object. Here we encapsulate a
    * protobuf message, so this method calls the protobuf mechanism.
    *
-   * @param e The object to serialize.
+   * The payload goes into the caller's buffer instead of a std::string of its
+   * own: protobuf writes into the very bytes that will be sent, so the encoding
+   * is the only copy of the payload left. The pair ByteSizeLong() /
+   * SerializeWithCachedSizesToArray() costs no more than the
+   * SerializeToString() it replaces — that one computes the size internally
+   * too, it just does not let us have it.
    *
-   * @return A string with the serialized object.
+   * Sizing the buffer here, offset included, is what keeps it to one
+   * allocation: the caller cannot reserve the room in advance, it does not know
+   * the payload size until this returns.
+   *
+   * @param e The object to serialize.
+   * @param out The buffer to write into.
+   * @param offset Where to write, leaving the caller its header room in front.
+   *
+   * @return The number of bytes written.
    */
-  static std::string serialize(const io::data& e) {
-    std::string retval;
+  static size_t serialize(const io::data& e,
+                          std::vector<char>& out,
+                          size_t offset) {
     auto r = static_cast<const protobuf<T, Typ>*>(&e);
-    if (!r->obj().SerializeToString(&retval))
-      throw com::centreon::exceptions::msg_fmt(
-          "Unable to serialize {:x} protobuf object", Typ);
-    return retval;
+    const size_t size = r->obj().ByteSizeLong();
+    out.resize(offset + size);
+    r->obj().SerializeWithCachedSizesToArray(
+        reinterpret_cast<uint8_t*>(out.data()) + offset);
+    return size;
   }
 
   /**
@@ -200,12 +215,16 @@ class protobuf : public protobuf_base {
    *
    * @return a pointer to the new object.
    */
-  static io::data* unserialize(const char* buffer, size_t size) {
-    auto retval = std::make_unique<protobuf<T, Typ>>();
+  /* A shared_ptr and not a raw pointer: the caller needs one anyway, and
+   * building it from a released unique_ptr meant the object and its control
+   * block were two separate allocations. make_shared fuses them. */
+  static std::shared_ptr<io::data> deserialize(const char* buffer,
+                                               size_t size) {
+    auto retval = std::make_shared<protobuf<T, Typ>>();
     if (!retval->mut_msg()->ParseFromArray(buffer, size))
       throw com::centreon::exceptions::msg_fmt(
-          "Unable to unserialize {:x} protobuf object (size {})", Typ, size);
-    return retval.release();
+          "Unable to deserialize {:x} protobuf object (size {})", Typ, size);
+    return retval;
   }
 
   virtual const T& obj() const { return _obj; }
@@ -218,14 +237,14 @@ class protobuf : public protobuf_base {
 
   /**
    * @brief An internal BBDO object used to access to the constructor,
-   * serialization and unserialization functions.
+   * serialization and deserialization functions.
    */
   const static io::event_info::event_operations operations;
 };
 
 template <typename T, uint32_t Typ>
 const io::event_info::event_operations protobuf<T, Typ>::operations{
-    &new_proto, &serialize, &unserialize};
+    &new_proto, &serialize, &deserialize};
 
 template <typename T, uint32_t Typ>
 bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {

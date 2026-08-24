@@ -40,6 +40,7 @@ class connector : public io::endpoint {
   bool _store_in_data_bin;
   bool _store_in_resources;
   bool _store_in_hosts_services;
+  uint32_t _max_perfdata;
 
  public:
   connector();
@@ -54,7 +55,8 @@ class connector : public io::endpoint {
                   uint32_t instance_timeout,
                   bool store_in_data_bin = true,
                   bool store_in_resources = true,
-                  bool store_in_hosts_services = true);
+                  bool store_in_hosts_services = true,
+                  uint32_t max_perfdata = 0);
   std::shared_ptr<io::stream> open() override;
 };
 }  // namespace unified_sql

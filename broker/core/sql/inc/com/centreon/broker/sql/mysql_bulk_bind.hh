@@ -22,6 +22,8 @@
 #include "com/centreon/broker/sql/mysql_bind_base.hh"
 #include "com/centreon/broker/sql/mysql_column.hh"
 
+#include <functional>
+
 namespace com::centreon::broker {
 
 // Forward declarations
@@ -32,6 +34,24 @@ class mysql_bulk_bind : public mysql_bind_base {
   size_t _current_row = 0u;
   // The buffers contained by _bind
   std::vector<database::mysql_column> _column;
+
+  /* Estimation of the bytes sent by this bind: each value and its indicator,
+   * a string with the largest length prefix. A value set twice is counted
+   * twice, the estimation can only be too big. */
+  size_t _data_size = 0u;
+  /* When _data_size reaches it, at the end of a row, _on_size_limit is called
+   * once. 0 means no limit. */
+  size_t _size_limit = 0u;
+  std::function<void()> _on_size_limit;
+  bool _size_limit_reached = false;
+
+  static constexpr size_t _wire_size(const std::string_view& value) {
+    return value.size() + 9;
+  }
+  template <typename T>
+  static constexpr size_t _wire_size(T) {
+    return sizeof(T);
+  }
 
   void _prepare_type(size_t range, enum enum_field_types type);
 
@@ -314,6 +334,16 @@ class mysql_bulk_bind : public mysql_bind_base {
   size_t current_row() const;
   void next_row();
   void reserve(size_t size);
+
+  void set_size_limit(size_t limit, std::function<void()> on_size_limit);
+  /**
+   * @brief The estimated size in bytes of the data held by this bind.
+   */
+  size_t data_size() const { return _data_size; }
+  /**
+   * @brief True once a row has made data_size() reach the size limit.
+   */
+  bool size_limit_reached() const { return _size_limit_reached; }
 };
 
 /**

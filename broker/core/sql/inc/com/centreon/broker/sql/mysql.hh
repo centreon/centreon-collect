@@ -40,6 +40,9 @@ class mysql {
   std::unordered_map<std::string, int> _connection_by_name;
   std::string _server_version;
   bool _support_bulk_statement;
+  /* The server max_allowed_packet, in bytes. A query or a bulk statement
+   * bigger than it makes the server drop the connection. */
+  size_t _max_allowed_packet;
 
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
@@ -99,10 +102,25 @@ class mysql {
 
   bool support_bulk_statement() const { return _support_bulk_statement; }
 
+  /* The lowest default of MariaDB and MySQL, used when the server value cannot
+   * be read. */
+  static constexpr size_t default_max_allowed_packet = 16 * 1024 * 1024;
+  /* Under this value, a warning is logged at connection. */
+  static constexpr size_t recommended_max_allowed_packet = 128 * 1024 * 1024;
+
+  size_t max_allowed_packet() const { return _max_allowed_packet; }
+  /**
+   * @brief The size in bytes from which a bulk statement must be sent without
+   * waiting for its timer, with a margin under max_allowed_packet for what the
+   * estimation of its size does not count.
+   */
+  size_t bulk_size_limit() const { return _max_allowed_packet / 10 * 9; }
+
  private:
   static void _initialize_mysql();
   void _check_errors();
   void _get_server_infos();
+  void _get_max_allowed_packet();
 };
 
 }  // namespace com::centreon::broker

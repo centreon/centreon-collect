@@ -64,8 +64,8 @@ comment::comment(comment::type comment_type,
   if (!comment_id) {
     _comment_id = _next_comment_id++;
     broker_comment_data(NEBTYPE_COMMENT_ADD, _comment_type, _entry_type,
-                        _host_id, _service_id, _entry_time, _author.c_str(),
-                        _comment_data.c_str(), _persistent, _source, _expires,
+                        _host_id, _service_id, _entry_time, _author,
+                        _comment_data, _persistent, _source, _expires,
                         _expire_time, _comment_id);
   }
 }
@@ -86,7 +86,7 @@ bool comment::delete_comment(uint64_t comment_id) {
     return false;
 
   broker_comment_data(NEBTYPE_COMMENT_DELETE, comment::host, comment::user, 0,
-                      0, 0, nullptr, nullptr, false, comment::internal, false,
+                      0, 0, "", "", false, comment::internal, false,
                       0, comment_id);
   return true;
 }
@@ -97,7 +97,7 @@ void comment::delete_host_comments(uint64_t host_id) {
    * for a delete-by-target rather than a delete-by-id. The full-tuple is no
    * longer needed, so no map iteration. */
   broker_comment_data(NEBTYPE_COMMENT_DELETE, comment::host, comment::user,
-                      host_id, 0, 0, nullptr, nullptr, false, comment::internal,
+                      host_id, 0, 0, "", "", false, comment::internal,
                       false, 0, 0);
 }
 
@@ -111,7 +111,7 @@ void comment::delete_service_comments(uint64_t host_id, uint64_t service_id) {
   /* Bulk deletion of every comment of this service (host_id + service_id +
    * instance_id). comment_id 0 signals a delete-by-target. */
   broker_comment_data(NEBTYPE_COMMENT_DELETE, comment::service, comment::user,
-                      host_id, service_id, 0, nullptr, nullptr, false,
+                      host_id, service_id, 0, "", "", false,
                       comment::internal, false, 0, 0);
 }
 

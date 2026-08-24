@@ -22,6 +22,8 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
+#include <string_view>
+
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
@@ -317,8 +319,8 @@
 
 template <typename R>
 void broker_acknowledgement_data(R* data,
-                                 const char* ack_author,
-                                 const char* ack_data,
+                                 std::string_view ack_author,
+                                 std::string_view ack_data,
                                  int subtype,
                                  bool notify_contacts,
                                  bool persistent_comment);
@@ -340,8 +342,8 @@ void broker_comment_data(int type,
                          uint64_t host_id,
                          uint64_t service_id,
                          time_t entry_time,
-                         char const* author_name,
-                         char const* comment_data,
+                         std::string_view author_name,
+                         std::string_view comment_data,
                          int persistent,
                          com::centreon::engine::comment::src source,
                          int expires,
@@ -359,15 +361,17 @@ void broker_downtime_data(int type,
                           uint64_t host_id,
                           uint64_t service_id,
                           time_t entry_time,
-                          char const* author_name,
-                          char const* comment_data,
+                          std::string_view author_name,
+                          std::string_view comment_data,
                           time_t start_time,
                           time_t end_time,
                           bool fixed,
                           unsigned long triggered_by,
                           unsigned long duration,
                           unsigned long downtime_id);
-void broker_external_command(int type, int command_type, char* command_args);
+void broker_external_command(int type,
+                             int command_type,
+                             std::string_view command_args);
 template <typename G>
 void broker_group(int type, const G* group);
 
@@ -377,11 +381,11 @@ void broker_group_member(int type, const R* object, const G* group);
 int broker_host_check(int type,
                       const com::centreon::engine::host* hst,
                       int check_type,
-                      const char* cmdline);
+                      std::string_view cmdline);
 void broker_host_status(const com::centreon::engine::host* hst,
                         uint32_t attributes);
-void broker_log_data_legacy(const char* data, time_t entry_time);
-void broker_log_data(const char* data, time_t entry_time);
+void broker_log_data_legacy(std::string_view data, time_t entry_time);
+void broker_log_data(std::string_view data, time_t entry_time);
 void broker_program_state(int type, int flags);
 void broker_program_status();
 void broker_relation_data(int type,
@@ -392,7 +396,7 @@ void broker_relation_data(int type,
 int broker_service_check(int type,
                          const com::centreon::engine::service* svc,
                          int check_type,
-                         const char* cmdline);
+                         std::string_view cmdline);
 void broker_service_status(const com::centreon::engine::service* svc,
                            uint32_t attributes);
 struct timeval get_broker_timestamp(struct timeval const* timestamp);

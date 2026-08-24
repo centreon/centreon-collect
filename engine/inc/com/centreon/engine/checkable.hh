@@ -174,6 +174,9 @@ class checkable {
 
   std::string const& get_display_name() const;
   void set_display_name(std::string const& name);
+  /* Rvalue overload: the configuration applier normalizes the display name into
+   * a local it drops right after, so it is moved in rather than copied. */
+  void set_display_name(std::string&& name);
   const std::string& name() const;
   virtual void set_name(const std::string& name);
   std::string const& check_command() const;
@@ -202,10 +205,16 @@ class checkable {
   void set_notes_url(std::string const& notes_url);
   std::string const& get_plugin_output() const;
   void set_plugin_output(std::string const& plugin_output);
+  /* Rvalue overloads: the check result handlers build these three strings as
+   * locals and drop them right after, so they are moved in rather than copied.
+   */
+  void set_plugin_output(std::string&& plugin_output);
   std::string const& get_long_plugin_output() const;
   void set_long_plugin_output(std::string const& long_plugin_output);
+  void set_long_plugin_output(std::string&& long_plugin_output);
   std::string const& get_perf_data() const;
   void set_perf_data(std::string const& perf_data);
+  void set_perf_data(std::string&& perf_data);
   bool flap_detection_enabled() const;
   void set_flap_detection_enabled(bool flap_detection_enabled);
   double get_low_flap_threshold() const;

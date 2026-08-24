@@ -204,12 +204,12 @@ std::shared_ptr<spdlog::logger> PerfdataParser::_logger =
 // Then perfdata are returned in a list
 TEST_F(PerfdataParser, Simple1) {
   // Parse perfdata.
-  std::list<common::perfdata> lst{common::perfdata::parse_perfdata(
+  std::vector<common::perfdata> lst{common::perfdata::parse_perfdata(
       0, 0, "time=2.45698s;2.000000;5.000000;0.000000;10.000000", _logger)};
 
   // Assertions.
   ASSERT_EQ(lst.size(), 1u);
-  std::list<perfdata>::const_iterator it(lst.begin());
+  std::vector<perfdata>::const_iterator it(lst.begin());
   perfdata expected;
   expected.name("time");
   expected.value_type(perfdata::gauge);
@@ -226,12 +226,12 @@ TEST_F(PerfdataParser, Simple1) {
 
 TEST_F(PerfdataParser, Simple2) {
   // Parse perfdata.
-  std::list<common::perfdata> list{common::perfdata::parse_perfdata(
+  std::vector<common::perfdata> list{common::perfdata::parse_perfdata(
       0, 0, "'ABCD12E'=18.00%;15:;10:;0;100", _logger)};
 
   // Assertions.
   ASSERT_EQ(list.size(), 1u);
-  std::list<perfdata>::const_iterator it(list.begin());
+  std::vector<perfdata>::const_iterator it(list.begin());
   perfdata expected;
   expected.name("ABCD12E");
   expected.value_type(perfdata::gauge);
@@ -248,12 +248,12 @@ TEST_F(PerfdataParser, Simple2) {
 
 TEST_F(PerfdataParser, SeveralIdenticalMetrics) {
   // Parse perfdata.
-  std::list<common::perfdata> list{common::perfdata::parse_perfdata(
+  std::vector<common::perfdata> list{common::perfdata::parse_perfdata(
       0, 0, "'et'=18.00%;15:;10:;0;100 other=15 et=13.00%", _logger)};
 
   // Assertions.
   ASSERT_EQ(list.size(), 2u);
-  std::list<perfdata>::const_iterator it = list.begin();
+  std::vector<perfdata>::const_iterator it = list.begin();
   perfdata expected;
   expected.name("et");
   expected.value_type(perfdata::gauge);
@@ -274,12 +274,12 @@ TEST_F(PerfdataParser, SeveralIdenticalMetrics) {
 
 TEST_F(PerfdataParser, ComplexSeveralIdenticalMetrics) {
   // Parse perfdata.
-  std::list<common::perfdata> list{common::perfdata::parse_perfdata(
+  std::vector<common::perfdata> list{common::perfdata::parse_perfdata(
       0, 0, "'d[foo]'=18.00%;15:;10:;0;100 other=15 a[foo]=13.00%", _logger)};
 
   // Assertions.
   ASSERT_EQ(list.size(), 2u);
-  std::list<perfdata>::const_iterator it = list.begin();
+  std::vector<perfdata>::const_iterator it = list.begin();
   perfdata expected;
   expected.name("foo");
   expected.value_type(perfdata::derive);
@@ -300,7 +300,7 @@ TEST_F(PerfdataParser, ComplexSeveralIdenticalMetrics) {
 
 TEST_F(PerfdataParser, Complex1) {
   // Parse perfdata.
-  std::list<perfdata> list{perfdata::parse_perfdata(
+  std::vector<perfdata> list{perfdata::parse_perfdata(
       0, 0,
       "time=2.45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "infotraffic=18x;;;; a[foo]=1234;10;11: c[bar]=1234;~:10;20:30 "
@@ -309,7 +309,7 @@ TEST_F(PerfdataParser, Complex1) {
 
   // Assertions.
   ASSERT_EQ(list.size(), 7u);
-  std::list<perfdata>::const_iterator it(list.begin());
+  std::vector<perfdata>::const_iterator it(list.begin());
   perfdata expected;
 
   // #1.
@@ -399,7 +399,7 @@ TEST_F(PerfdataParser, Complex1) {
 // Then the corresponding perfdata list is returned
 TEST_F(PerfdataParser, Loop) {
   // Objects.
-  std::list<perfdata> list;
+  std::vector<perfdata> list;
 
   // Loop.
   for (uint32_t i(0); i < 10000; ++i) {
@@ -409,7 +409,7 @@ TEST_F(PerfdataParser, Loop) {
 
     // Assertions.
     ASSERT_EQ(list.size(), 1u);
-    std::list<perfdata>::const_iterator it(list.begin());
+    std::vector<perfdata>::const_iterator it(list.begin());
     perfdata expected;
     expected.name("time");
     expected.value_type(perfdata::counter);
@@ -452,7 +452,7 @@ TEST_F(PerfdataParser, LabelWithSpaces) {
 
   // Assertions.
   ASSERT_EQ(lst.size(), 1u);
-  std::list<perfdata>::const_iterator it(lst.begin());
+  std::vector<perfdata>::const_iterator it(lst.begin());
   perfdata expected;
   expected.name("foo  bar");
   expected.value_type(perfdata::gauge);
@@ -472,7 +472,7 @@ TEST_F(PerfdataParser, LabelWithSpacesMultiline) {
 
   // Assertions.
   ASSERT_EQ(lst.size(), 1u);
-  std::list<perfdata>::const_iterator it(lst.begin());
+  std::vector<perfdata>::const_iterator it(lst.begin());
   perfdata expected;
   expected.name("foo  bar");
   expected.value_type(perfdata::gauge);
@@ -497,7 +497,7 @@ TEST_F(PerfdataParser, Complex2) {
 
   // Assertions.
   ASSERT_EQ(list.size(), 6u);
-  std::list<perfdata>::const_iterator it(list.begin());
+  std::vector<perfdata>::const_iterator it(list.begin());
   perfdata expected;
 
   // #1.
@@ -578,7 +578,7 @@ TEST_F(PerfdataParser, SimpleWithR) {
 
   // Assertions.
   ASSERT_EQ(lst.size(), 1u);
-  std::list<perfdata>::const_iterator it(lst.begin());
+  std::vector<perfdata>::const_iterator it(lst.begin());
   perfdata expected;
   expected.name("total");
   expected.value_type(perfdata::gauge);
@@ -659,4 +659,117 @@ TEST_F(PerfdataParser, QuotedLabelWithEscapedQuote) {
   ++it;
   ASSERT_EQ(it->name(), "plain");
   ASSERT_EQ(it->value(), 2);
+}
+
+// The type prefixes are lowercase, and only when the name ends with ']'. This
+// is deliberate rather than an oversight: widening it to uppercase would rename
+// every metric a plugin emits as "C[foo]" from "C[foo]" to "foo", which is a
+// grammar change and not a bug fix. The test exists so that the decision is not
+// undone by accident.
+TEST_F(PerfdataParser, TypePrefixIsCaseSensitive) {
+  /* Four distinct labels on purpose: two metrics ending up with the same name
+   * would trip the duplicate detection and one of them would be dropped, which
+   * is not what this test is about. */
+  auto lst{common::perfdata::parse_perfdata(
+      0, 0, "g[one]=1 G[two]=2 c[three]=3 C[four]=4", _logger)};
+  ASSERT_EQ(lst.size(), 4u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->name(), "one");
+  ASSERT_EQ(it->value_type(), common::perfdata::gauge);
+  ++it;
+  ASSERT_EQ(it->name(), "G[two]");
+  ASSERT_EQ(it->value_type(), common::perfdata::gauge);
+  ++it;
+  ASSERT_EQ(it->name(), "three");
+  ASSERT_EQ(it->value_type(), common::perfdata::counter);
+  ++it;
+  ASSERT_EQ(it->name(), "C[four]");
+  ASSERT_EQ(it->value_type(), common::perfdata::gauge);
+}
+
+// A type prefix with nothing inside leaves no name at all, and a metric without
+// a name is dropped. The one that follows is still read.
+TEST_F(PerfdataParser, TypePrefixWithEmptyLabel) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "g[]=1 kept=2", _logger)};
+  ASSERT_EQ(lst.size(), 1u);
+  ASSERT_EQ(lst.back().name(), "kept");
+  ASSERT_EQ(lst.back().value(), 2);
+}
+
+// The cap keeps the first metrics and leaves the rest unread. Which ones are
+// kept has to be the leading ones and not an arbitrary subset: a graph fed by a
+// capped output stays continuous only if the same metrics survive every check.
+TEST_F(PerfdataParser, CapKeepsTheLeadingMetrics) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "a=1 b=2 c=3 d=4 e=5",
+                                            _logger, 3)};
+  ASSERT_EQ(lst.size(), 3u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->name(), "a");
+  ASSERT_EQ((++it)->name(), "b");
+  ASSERT_EQ((++it)->name(), "c");
+}
+
+// Zero is not a cap of zero, it is the absence of a cap -- which is what makes
+// the parameter safe to add to a call that did not have it.
+TEST_F(PerfdataParser, CapOfZeroMeansNoCap) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "a=1 b=2 c=3 d=4 e=5",
+                                            _logger, 0)};
+  ASSERT_EQ(lst.size(), 5u);
+}
+
+// A cap wider than the output changes nothing, and in particular does not
+// truncate the last metric.
+TEST_F(PerfdataParser, CapWiderThanTheOutput) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "a=1 b=2 c=3", _logger, 10)};
+  ASSERT_EQ(lst.size(), 3u);
+  ASSERT_EQ(lst.begin()->name(), "a");
+  ASSERT_EQ(lst.rbegin()->name(), "c");
+}
+
+// A cap of one is the smallest that still yields something. The boundary is
+// worth pinning: an off-by-one in the check would either drop everything or let
+// a second metric through.
+TEST_F(PerfdataParser, CapOfOne) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "a=1 b=2 c=3", _logger, 1)};
+  ASSERT_EQ(lst.size(), 1u);
+  ASSERT_EQ(lst.begin()->name(), "a");
+  ASSERT_EQ(lst.begin()->value(), 1);
+}
+
+// Six fields is all the grammar defines. Anything after the sixth is ignored
+// rather than read as the beginning of another metric.
+TEST_F(PerfdataParser, MoreFieldsThanTheGrammarDefines) {
+  auto lst{common::perfdata::parse_perfdata(0, 0, "a=1;2;3;4;5;6;7 b=8",
+                                            _logger)};
+  ASSERT_EQ(lst.size(), 2u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->name(), "a");
+  ASSERT_EQ(it->value(), 1);
+  ASSERT_EQ(it->warning(), 2);
+  ASSERT_EQ(it->critical(), 3);
+  ASSERT_EQ(it->min(), 4);
+  ASSERT_EQ(it->max(), 5);
+  ++it;
+  ASSERT_EQ(it->name(), "b");
+  ASSERT_EQ(it->value(), 8);
+}
+
+// An exponent belongs to the number when it is complete, and is the unit when
+// it is not: "12e" is twelve, in a unit called "e".
+TEST_F(PerfdataParser, Exponent) {
+  auto lst{common::perfdata::parse_perfdata(
+      0, 0, "full=12e5 negative=3E-2 truncated=12e signed=1.5e+3", _logger)};
+  ASSERT_EQ(lst.size(), 4u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->value(), 1200000);
+  ASSERT_EQ(it->unit(), "");
+  ++it;
+  ASSERT_FLOAT_EQ(it->value(), 0.03);
+  ASSERT_EQ(it->unit(), "");
+  ++it;
+  ASSERT_EQ(it->value(), 12);
+  ASSERT_EQ(it->unit(), "e");
+  ++it;
+  ASSERT_FLOAT_EQ(it->value(), 1500);
+  ASSERT_EQ(it->unit(), "");
 }

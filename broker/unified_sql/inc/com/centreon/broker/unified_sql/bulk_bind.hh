@@ -63,6 +63,9 @@ class bulk_bind {
   std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind
       ABSL_GUARDED_BY(_queue_m);
   std::vector<std::time_t> _next_time ABSL_GUARDED_BY(_queue_m);
+  /* Given to each bind created, see mysql_bulk_bind::set_size_limit(). */
+  size_t _size_limit ABSL_GUARDED_BY(_queue_m) = 0u;
+  std::function<void()> _on_size_limit ABSL_GUARDED_BY(_queue_m);
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
@@ -81,6 +84,8 @@ class bulk_bind {
   std::time_t next_time() const ABSL_LOCKS_EXCLUDED(_queue_m);
   std::size_t connections_count() const ABSL_LOCKS_EXCLUDED(_queue_m);
   void init_from_stmt(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
+  void set_size_limit(size_t limit, std::function<void()> on_size_limit)
+      ABSL_LOCKS_EXCLUDED(_queue_m);
   void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_queue_m);
   void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
 

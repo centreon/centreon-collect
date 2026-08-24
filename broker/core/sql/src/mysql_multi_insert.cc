@@ -18,10 +18,12 @@
 
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 
+#include <algorithm>
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-constexpr unsigned max_query_total_length = 8 * 1024 * 1024;
+constexpr size_t max_query_total_length = 8 * 1024 * 1024;
 
 /**
  * @brief Construct a new mysql multi insert::mysql multi insert object
@@ -37,6 +39,19 @@ mysql_multi_insert::mysql_multi_insert(const std::string& query,
       _on_duplicate_key_part(' ' + on_duplicate_key_part),
       _max_query_begin_length(max_query_total_length -
                               on_duplicate_key_part.length()) {}
+
+/**
+ * @brief Lower the length of the queries, the default is 8 MiB: a query longer
+ * than the server max_allowed_packet makes it drop the connection. A query may
+ * exceed it by one row.
+ *
+ * @param max_length The maximum length of a whole query.
+ */
+void mysql_multi_insert::set_max_query_length(size_t max_length) {
+  max_length = std::min(max_length, max_query_total_length);
+  if (max_length > _on_duplicate_key_part.length())
+    _max_query_begin_length = max_length - _on_duplicate_key_part.length();
+}
 
 unsigned mysql_multi_insert::execute_queries(mysql& pool,
                                              my_error::code ec,
@@ -89,13 +104,43 @@ bulk_or_multi::bulk_or_multi(
     const std::chrono::system_clock::duration execute_delay_ready,
     unsigned row_count_ready)
     : _bulk_stmt(std::make_unique<mysql_bulk_stmt>(request)),
-      _bulk_bind(_bulk_stmt->create_bind()),
       _bulk_row(bulk_row),
       _row_count{0},
       _execute_delay_ready(execute_delay_ready),
       _row_count_ready(row_count_ready) {
   connexion.prepare_statement(*_bulk_stmt);
+  _new_bulk_bind();
+}
+
+/**
+ * @brief Create the bulk bind to fill, with the reserved rows and the size
+ * limit.
+ */
+void bulk_or_multi::_new_bulk_bind() {
+  _bulk_bind = _bulk_stmt->create_bind();
   _bulk_bind->reserve(_bulk_row);
+  if (_size_limit)
+    _bulk_bind->set_size_limit(_size_limit, _on_size_limit);
+}
+
+/**
+ * @brief Set the size limit given to each bulk bind, see
+ * mysql_bulk_bind::set_size_limit(). Without bulk prepared statement, it
+ * bounds the length of the queries mysql_multi_insert splits its rows into.
+ *
+ * @param limit The limit in bytes, 0 for no limit.
+ * @param on_size_limit The function called when the bind reaches it, with
+ * this bulk_or_multi locked.
+ */
+void bulk_or_multi::set_size_limit(size_t limit,
+                                   std::function<void()> on_size_limit) {
+  std::lock_guard<std::mutex> l(_protect);
+  _size_limit = limit;
+  _on_size_limit = std::move(on_size_limit);
+  if (_bulk_bind)
+    _bulk_bind->set_size_limit(_size_limit, _on_size_limit);
+  if (_mult_insert && limit)
+    _mult_insert->set_max_query_length(limit);
 }
 
 /**
@@ -135,13 +180,11 @@ void bulk_or_multi::execute(mysql& connexion,
   if (_bulk_stmt) {
     /* If the database connection is lost, we can have this issue */
     if (!_bulk_bind) {
-      _bulk_bind = _bulk_stmt->create_bind();
-      _bulk_bind->reserve(_bulk_row);
+      _new_bulk_bind();
     } else if (!_bulk_bind->empty()) {
       _bulk_stmt->set_bind(std::move(_bulk_bind));
       connexion.run_statement(*_bulk_stmt, ec, thread_id);
-      _bulk_bind = _bulk_stmt->create_bind();
-      _bulk_bind->reserve(_bulk_row);
+      _new_bulk_bind();
     }
   } else {
     _mult_insert->execute_queries(connexion, ec, thread_id);
@@ -186,7 +229,8 @@ std::chrono::seconds bulk_or_multi::get_oldest_waiting_event_delay() const {
  */
 bool bulk_or_multi::ready() const {
   return get_oldest_waiting_event_delay() >= _execute_delay_ready ||
-         _row_count >= _row_count_ready;
+         _row_count >= _row_count_ready ||
+         (_bulk_bind && _bulk_bind->size_limit_reached());
 }
 
 /**

@@ -63,6 +63,12 @@ bool bulk_bind::ready(int32_t conn) {
     return true;
   }
 
+  if (b->size_limit_reached()) {
+    _logger->debug("The bind data size {} reaches its size limit {}",
+                   b->data_size(), _size_limit);
+    return true;
+  }
+
   std::time_t now = time(nullptr);
   if (_next_time[conn] <= now) {
     _logger->trace(
@@ -146,6 +152,26 @@ void bulk_bind::apply_to_stmt(int32_t conn) {
  */
 void bulk_bind::init_from_stmt(int32_t conn) {
   _bind[conn] = _stmt.create_bind();
+  if (_size_limit)
+    _bind[conn]->set_size_limit(_size_limit, _on_size_limit);
+}
+
+/**
+ * @brief Set the size limit given to each bind created from now, see
+ * mysql_bulk_bind::set_size_limit(). The binds already created get it too.
+ *
+ * @param limit The limit in bytes, 0 for no limit.
+ * @param on_size_limit The function called when a bind reaches it, with the
+ * lock of this bulk_bind held.
+ */
+void bulk_bind::set_size_limit(size_t limit,
+                               std::function<void()> on_size_limit) {
+  absl::MutexLock lck(_queue_m);
+  _size_limit = limit;
+  _on_size_limit = std::move(on_size_limit);
+  for (auto& b : _bind)
+    if (b)
+      b->set_size_limit(_size_limit, _on_size_limit);
 }
 
 /**

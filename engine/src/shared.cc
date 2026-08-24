@@ -39,35 +39,6 @@ extern char* tzname[2];
  * core.
  */
 
-/* fix the problem with strtok() skipping empty options between tokens */
-char* my_strtok(char const* buffer, char const* tokens) {
-  char* token_position = NULL;
-  char* sequence_head = NULL;
-  static char* my_strtok_buffer = NULL;
-  static com::centreon::unique_array_ptr<char> original_my_strtok_buffer;
-
-  if (buffer != NULL) {
-    original_my_strtok_buffer.reset(string::dup(buffer));
-    my_strtok_buffer = original_my_strtok_buffer.get();
-  }
-
-  sequence_head = my_strtok_buffer;
-
-  if (!sequence_head || sequence_head[0] == '\x0')
-    return nullptr;
-
-  token_position = strchr(my_strtok_buffer, tokens[0]);
-
-  if (token_position == NULL) {
-    my_strtok_buffer = strchr(my_strtok_buffer, '\x0');
-    return sequence_head;
-  }
-
-  token_position[0] = '\x0';
-  my_strtok_buffer = token_position + 1;
-  return sequence_head;
-}
-
 /*
  * given a date/time in time_t format, produce a corresponding
  * date/time string, including timezone

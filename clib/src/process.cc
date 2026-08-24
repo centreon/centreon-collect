@@ -22,7 +22,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cerrno>
-#include <csignal>
 #include <cstdlib>
 #include <cstring>
 #ifdef HAVE_SPAWN_H
@@ -32,7 +31,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/misc/command_line.hh"
 #include "com/centreon/process_listener.hh"
 #include "com/centreon/process_manager.hh"
 
@@ -101,7 +99,7 @@ bool process::_is_running() const noexcept {
  *  @param[in] timeout Maximum time in seconds to execute process. After
  *                     this time the process will be kill.
  */
-void process::exec(char const* cmd, char** env, uint32_t timeout) {
+void process::exec(std::string_view cmd, char** env, uint32_t timeout) {
   std::unique_lock<std::mutex> lock(_lock_process);
 
   // Check if process already running.
@@ -170,8 +168,8 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
     }
 
     // Parse and get command line arguments.
-    misc::command_line cmdline(cmd);
-    char* const* args = cmdline.get_argv();
+    _cmdline.parse(cmd);
+    char* const* args = _cmdline.get_argv();
 
     // volatile prevent compiler optimization
     // that might clobber variable.
@@ -215,17 +213,6 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
     }
     throw;
   }
-}
-
-/**
- *  Run process.
- *
- *  @param[in] cmd     Command line.
- *  @param[in] timeout Maximum time in seconde to execute process. After
- *                     this time the process will be kill.
- */
-void process::exec(std::string const& cmd, unsigned int timeout) {
-  exec(cmd.c_str(), NULL, timeout);
 }
 
 /**

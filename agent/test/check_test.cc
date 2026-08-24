@@ -78,7 +78,7 @@ class dummy_check : public check {
         return;
       }
       on_completion(running_index, 1,
-                    std::list<com::centreon::common::perfdata>(),
+                    std::vector<com::centreon::common::perfdata>(),
                     {"output dummy_check of " + get_command_line()});
     });
   }
@@ -109,7 +109,7 @@ TEST_F(check_test, timeout) {
       serv, std::chrono::milliseconds(500),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
@@ -147,7 +147,7 @@ TEST_F(check_test, no_timeout) {
       serv, std::chrono::milliseconds(100),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+          [[maybe_unused]] const std::vector<com::centreon::common::perfdata>&
               perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
@@ -180,7 +180,7 @@ TEST_F(check_test, nagios_confirmation_and_retry_soft_recovery) {
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
       serv, std::chrono::milliseconds(1),
       [](const std::shared_ptr<check>&, unsigned,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {});
 
   // simulate previous non-OK soft state
@@ -210,7 +210,7 @@ TEST_F(check_test, nagios_confirmation_and_retry_hard_recovery) {
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
       serv, std::chrono::milliseconds(1),
       [](const std::shared_ptr<check>&, unsigned,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {});
 
   // simulate previous non-OK hard state
@@ -229,7 +229,7 @@ TEST_F(check_test, first_check_ok_hard) {
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
       serv, std::chrono::milliseconds(1),
       [](const std::shared_ptr<check>&, unsigned,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {});
 
   checker->calcul_status_confirmation(0);  // now OK
@@ -244,7 +244,7 @@ TEST_F(check_test, first_check_nok_hard) {
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
       serv, std::chrono::milliseconds(1),
       [](const std::shared_ptr<check>&, unsigned,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {});
 
   checker->calcul_status_confirmation(2);  // NOK
@@ -260,7 +260,7 @@ TEST_F(check_test, nagios_confirmation_and_retry_problem_state) {
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
       serv, std::chrono::milliseconds(1),
       [](const std::shared_ptr<check>&, unsigned,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {});
 
   // first problem: from initial state to non-OK

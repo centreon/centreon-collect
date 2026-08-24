@@ -273,7 +273,7 @@ void checker::run_sync(host* hst,
 
   // Send broker event.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, hst, checkable::check_active,
-                    nullptr);
+                    "");
 
   // Execute command synchronously.
   host::host_state host_result(_execute_sync(hst));

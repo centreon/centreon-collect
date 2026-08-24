@@ -282,7 +282,7 @@ bool luabinding::_parse_event(std::shared_ptr<io::data>& d) {
     // Create event
     std::unique_ptr<io::data> t(info->get_operations().constructor());
     if (t) {
-      // Browse all mapping to unserialize the object.
+      // Browse all mapping to deserialize the object.
       for (mapping::entry const* current_entry(info->get_mapping());
            !current_entry->is_null(); ++current_entry) {
         if (!current_entry->get_name_v2())
@@ -351,7 +351,7 @@ bool luabinding::_parse_event(std::shared_ptr<io::data>& d) {
           static_cast<int32_t>(get_as_uint64(map["_type"])));
   } else {
     _logger->info(
-        "simu: cannot unserialize event of ID {}: event was not registered and "
+        "simu: cannot deserialize event of ID {}: event was not registered and "
         "will therefore be ignored",
         static_cast<uint32_t>(get_as_uint64(map["_type"])));
     retval = false;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2014, 2017, 2020-2022 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2014, 2017, 2020-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -158,23 +158,6 @@ bool string::c_strtok::extract(char sep, std::string_view& extracted) {
     extracted = _src.substr(old_pos);
   }
   return true;
-}
-
-/**
- * @brief extract a part of the string_view passed in the construtor
- * it allows empty field as my_strtok
- * if sep is not found it returns part from the current position to the end
- * if current pos is yet beyond string end, it returns std::nullopt
- *
- * @param sep separator
- * @return std::string_view field extracted
- */
-std::optional<std::string_view> string::c_strtok::extract(char sep) {
-  std::string_view ret;
-  if (!extract(sep, ret)) {
-    return std::nullopt;
-  }
-  return ret;
 }
 
 /**

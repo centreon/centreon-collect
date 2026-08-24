@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2017,2023 Centreon
+ * Copyright 2009-2017,2023-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include <absl/container/flat_hash_map.h>
 
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
 namespace com::centreon::broker::multiplexing {
@@ -161,6 +160,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
       ABSL_LOCKS_EXCLUDED(_events_m);
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
+  const muxer_filter& write_filter() const;
   uint32_t get_event_queue_size() const ABSL_LOCKS_EXCLUDED(_events_m);
   void nack_events() ABSL_LOCKS_EXCLUDED(_events_m)
       ABSL_LOCKS_EXCLUDED(_events_m);

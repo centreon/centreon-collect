@@ -108,12 +108,12 @@ TEST_F(check_windows_sched, default_check_sched) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   // -------------------------------------------------------
   // case 1 - No task match the warning or critical status
   // task 1 is enabled, exit_code is 0, so it should be OK
@@ -261,7 +261,7 @@ TEST_F(check_windows_sched, filter_task1) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -291,7 +291,7 @@ TEST_F(check_windows_sched, filter_task2) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -321,7 +321,7 @@ TEST_F(check_windows_sched, filter_task3) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -352,7 +352,7 @@ TEST_F(check_windows_sched, warning_filter) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -386,7 +386,7 @@ TEST_F(check_windows_sched, exclude_tasks) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -424,7 +424,7 @@ TEST_F(check_windows_sched, output_format) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -438,7 +438,7 @@ TEST_F(check_windows_sched, output_format) {
       -2147160572;  // 0x8004EE04
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = checker.compute(&output, &perfs);
   ASSERT_EQ(output, "CRITICAL: Ok:1|Nok:2|total:3  warning:1|critical:1");
 }
@@ -454,7 +454,7 @@ TEST_F(check_windows_sched, output_format_2) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -468,7 +468,7 @@ TEST_F(check_windows_sched, output_format_2) {
       -2147160572;  // 0x8004EE04
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = checker.compute(&output, &perfs);
   std::string expected_output = "CRITICAL: \\Tasks\\One\\t1(ready): 0x0,";
   expected_output += g_data1.next_run.formatted + ",";
@@ -485,7 +485,7 @@ TEST_F(check_windows_sched, filter_by_name_and_author) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -523,7 +523,7 @@ TEST_F(check_windows_sched, filter_by_last_run) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -538,7 +538,7 @@ TEST_F(check_windows_sched, filter_by_last_run) {
   checker.apply_filter();
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = checker.compute(&output, &perfs);
   EXPECT_EQ(status, e_status::ok);
   std::string expected_output =
@@ -557,7 +557,7 @@ TEST_F(check_windows_sched, warning_last_run) {
   check_sched checker(
       g_io_context, spdlog::default_logger(), {}, serv, json_config, nullptr,
       [](const std::shared_ptr<check>&, int,
-         const std::list<com::centreon::common::perfdata>&,
+         const std::vector<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
@@ -572,7 +572,7 @@ TEST_F(check_windows_sched, warning_last_run) {
   checker.get_mutable_tasks()[g_data3.name].duration_last_run = 0;
 
   std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  std::vector<com::centreon::common::perfdata> perfs;
   e_status status = checker.compute(&output, &perfs);
   ASSERT_EQ(status, e_status::warning);
   std::string expected_output = "WARNING: \\Tasks\\Two\\t2: 0x0";
