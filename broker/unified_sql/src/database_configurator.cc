@@ -32,6 +32,55 @@ using com::centreon::engine::configuration::ActionServiceOn;
 
 namespace com::centreon::broker::unified_sql {
 
+#define APPLY_DIFF(data_base_type)                                            \
+  _logger->debug("Adding new resources");                                     \
+  /* Adding new objects */                                                    \
+  _add_severities_##data_base_type(diff.severities().added());                \
+  _add_tags_##data_base_type(diff.tags().added());                            \
+  _add_hosts_##data_base_type(diff.hosts().added());                          \
+  _add_host_resources_##data_base_type(diff.hosts().added());                 \
+  _add_services_##data_base_type(diff.services().added());                    \
+  _add_service_resources_##data_base_type(diff.services().added());           \
+  _add_anomalydetections_##data_base_type(diff.anomalydetections().added());  \
+  _add_anomalydetection_resources_##data_base_type(                           \
+      diff.anomalydetections().added());                                      \
+  _add_hostgroups_##data_base_type(diff.hostgroups().added());                \
+  _add_servicegroups_##data_base_type(diff.servicegroups().added());          \
+  _add_host_parents_##data_base_type(diff.hosts().added(), action::ADDED);    \
+                                                                              \
+  /* Modifying existing objects */                                            \
+  _logger->debug("Modifying resources");                                      \
+  _add_severities_##data_base_type(diff.severities().modified());             \
+  _add_tags_##data_base_type(diff.tags().modified());                         \
+                                                                              \
+  _add_hosts_##data_base_type(diff.hosts().modified());                       \
+  _add_host_resources_##data_base_type(diff.hosts().modified());              \
+  _add_services_##data_base_type(diff.services().modified());                 \
+  _add_service_resources_##data_base_type(diff.services().modified());        \
+  _add_anomalydetections_##data_base_type(                                    \
+      diff.anomalydetections().modified());                                   \
+  _add_anomalydetection_resources_##data_base_type(                           \
+      diff.anomalydetections().modified());                                   \
+                                                                              \
+  _add_hostgroups_##data_base_type(diff.hostgroups().modified(), true);       \
+  _add_servicegroups_##data_base_type(diff.servicegroups().modified(), true); \
+  _add_host_parents_##data_base_type(diff.hosts().modified(),                 \
+                                     action::MODIFIED);                       \
+                                                                              \
+  /* Disabling removed objects */                                             \
+  _logger->debug("Removing/disabling resources");                             \
+  _del_severities_##data_base_type(diff.severities().removed());              \
+  _del_tags_##data_base_type(diff.tags().removed());                          \
+  _disable_hosts(diff.hosts().removed());                                     \
+  _disable_services_##data_base_type(diff.services().removed());              \
+  _disable_services_##data_base_type(diff.anomalydetections().removed());     \
+  _disable_service_resources_##data_base_type(diff.services().removed());     \
+  _disable_service_resources_##data_base_type(                                \
+      diff.anomalydetections().removed());                                    \
+  _del_hostgroups(diff.hostgroups().removed());                               \
+  _del_servicegroups(diff.servicegroups().removed());                         \
+  _del_host_parents(diff.hosts().removed());
+
 /**
  * @brief Execute the configuration process.
  */
@@ -45,85 +94,9 @@ void database_configurator::process_diff(const DiffState& diff) {
   _disable_hosts_and_services(diff);
 
   if (_stream->supports_bulk_prepared_statements()) {
-    _logger->debug("Adding new resources");
-    /* Adding new objects */
-    _add_severities_mariadb(diff.severities().added());
-    _add_tags_mariadb(diff.tags().added());
-    _add_hosts_mariadb(diff.hosts().added());
-    _add_host_resources_mariadb(diff.hosts().added());
-    _add_services_mariadb(diff.services().added());
-    _add_service_resources_mariadb(diff.services().added());
-    _add_anomalydetections_mariadb(diff.anomalydetections().added());
-    _add_anomalydetection_resources_mariadb(diff.anomalydetections().added());
-    _add_hostgroups_mariadb(diff.hostgroups().added());
-    _add_servicegroups_mariadb(diff.servicegroups().added());
-    _add_host_parents_mariadb(diff.hosts().added(), action::ADDED);
-
-    /* Modifying existing objects */
-    _logger->debug("Modifying resources");
-    _add_severities_mariadb(diff.severities().modified());
-    _add_tags_mariadb(diff.tags().modified());
-
-    _add_hosts_mariadb(diff.hosts().modified());
-    _add_host_resources_mariadb(diff.hosts().modified());
-    _add_services_mariadb(diff.services().modified());
-    _add_service_resources_mariadb(diff.services().modified());
-    _add_anomalydetections_mariadb(diff.anomalydetections().modified());
-    _add_anomalydetection_resources_mariadb(
-        diff.anomalydetections().modified());
-
-    _add_hostgroups_mariadb(diff.hostgroups().modified(), true);
-    _add_servicegroups_mariadb(diff.servicegroups().modified(), true);
-    _add_host_parents_mariadb(diff.hosts().modified(), action::MODIFIED);
-
-    /* Disabling removed objects */
-    _logger->debug("Removing/disabling resources");
-    _del_severities_mariadb(diff.severities().removed());
-    _del_tags_mariadb(diff.tags().removed());
-    _disable_hosts(diff.hosts().removed());
-    _disable_services_mariadb(diff.services().removed());
-    _disable_services_mariadb(diff.anomalydetections().removed());
-    _disable_service_resources_mariadb(diff.services().removed());
-    _disable_service_resources_mariadb(diff.anomalydetections().removed());
-    _del_hostgroups(diff.hostgroups().removed());
-    _del_servicegroups(diff.servicegroups().removed());
-    _del_host_parents(diff.hosts().removed());
+    APPLY_DIFF(mariadb)
   } else {
-    /* Adding new objects */
-    _add_severities_mysql(diff.severities().added());
-    _add_tags_mysql(diff.tags().added());
-    _add_hosts_mysql(diff.hosts().added());
-    _add_host_resources_mysql(diff.hosts().added());
-    _add_services_mysql(diff.services().added());
-    _add_service_resources_mysql(diff.services().added());
-    _add_hostgroups_mysql(diff.hostgroups().added());
-    _add_servicegroups_mysql(diff.servicegroups().added());
-    _add_host_parents_mysql(diff.hosts().added(), action::ADDED);
-    _add_anomalydetections_mysql(diff.anomalydetections().added());
-    _add_anomalydetection_resources_mysql(diff.anomalydetections().added());
-
-    /* Modifying existing objects */
-    _add_severities_mysql(diff.severities().modified());
-    _add_tags_mysql(diff.tags().modified());
-    _add_hosts_mysql(diff.hosts().modified());
-    _add_host_resources_mysql(diff.hosts().modified());
-    _add_services_mysql(diff.services().modified());
-    _add_service_resources_mysql(diff.services().modified());
-    _add_anomalydetections_mysql(diff.anomalydetections().modified());
-    _add_anomalydetection_resources_mysql(diff.anomalydetections().modified());
-    _add_hostgroups_mysql(diff.hostgroups().modified(), true);
-    _add_servicegroups_mysql(diff.servicegroups().modified(), true);
-    _add_host_parents_mysql(diff.hosts().modified(), action::MODIFIED);
-
-    /* Disabling removed objects */
-    _disable_hosts(diff.hosts().removed());
-    _disable_services_mysql(diff.services().removed());
-    _disable_services_mysql(diff.anomalydetections().removed());
-    _disable_service_resources_mysql(diff.services().removed());
-    _disable_service_resources_mysql(diff.anomalydetections().removed());
-    _del_hostgroups(diff.hostgroups().removed());
-    _del_servicegroups(diff.servicegroups().removed());
-    _del_host_parents(diff.hosts().removed());
+    APPLY_DIFF(mysql)
   }
   _stream->get_mysql().commit();
 }
