@@ -29,13 +29,13 @@ check one poller can connect to a central multiples times in a row
         ...    pullwss
         ...    pullwss_uid
 
-check a remote server can hold two poller connection
+check a remote server can hold two poller connection ${mode}
     [Tags]    remote
     [Teardown]    Stop Gorgone And Remove Gorgone Config
     ...    @{process_list}
     ...    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
-    @{process_list}    Set Variable    ${mode}_gorgone_poller_2_simple    ${mode}_gorgone_central_simple    ${mode}_gorgone_remote_simple
+    @{process_list}    Set Variable    ${mode}_gorgone_poller_2_simple    ${mode}_gorgone_central_simple    ${mode}_gorgone_remote_simple    ${mode}_gorgone_poller_4_simple
     Log To Console    \nStarting the gorgone setup
 
     Setup Remote And Poller And Central Instances    central_name=${mode}_gorgone_central_simple    poller_name=${mode}_gorgone_poller_2_simple    remote_name=${mode}_gorgone_remote_simple
