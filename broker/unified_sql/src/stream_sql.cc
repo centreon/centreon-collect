@@ -971,26 +971,26 @@ void stream::_internal_process_downtime(
   }
 }
 
-bool stream::_host_instance_known(uint64_t host_id) const {
+/**
+ * @brief search an host in cache and return it if host instance_id is not null
+ *
+ * @param host_id
+ * @return std::shared_ptr<neb::pb_host>
+ */
+std::shared_ptr<neb::pb_host> stream::_host_instance_known(
+    uint64_t host_id) const {
   auto& cache = config::applier::state::instance().cache();
   const auto host = cache.host(host_id);
   _logger_sql->debug("Checking if host {} is known by any poller: {}", host_id,
                      host != nullptr);
-  if (host)
+  if (host) {
     _logger_sql->debug("Host {} instance_id: {}", host_id,
                        host->obj().instance_id());
-
-  return host && host->obj().instance_id() != 0;
-
-  //  bool retval = _cache_host_instance.find(static_cast<uint32_t>(host_id)) !=
-  //                _cache_host_instance.end();
-  //  //  FIXME DBO: with the centralized configuration, checks are executed
-  //  earlier
-  //  //  than before and it is possible that the cache is not ready when first
-  //  //  checks arrive. So we temporarily disable this assert.
-  //  //  if (retval)
-  //  //    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
-  //  return retval;
+    if (host->obj().instance_id()) {
+      return host;
+    }
+  }
+  return {};
 }
 
 /**
@@ -1253,7 +1253,8 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_host_instance_known(hgm.host_id)) {
+    const auto& host = _host_instance_known(hgm.host_id);
+    if (host) {
       auto& cache = config::applier::state::instance().cache();
       const auto hostgroup = cache.hostgroup(hgm.group_id);
       if (!hostgroup) {
@@ -1269,7 +1270,6 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         obj.set_hostgroup_id(hgm.group_id);
         obj.set_name(hgm.group_name);
         obj.set_enabled(true);
-        const auto& host = cache.host(hgm.host_id);
         obj.set_poller_id(host->obj().instance_id());
 
         _pb_host_group_insupdate << *hg;
