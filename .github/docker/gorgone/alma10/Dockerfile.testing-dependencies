@@ -8,9 +8,7 @@ ARG PNPM_VERSION=10.24.0
 
 COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /usr/local/src/
 
-RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
-    --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
-    bash -e <<EOF
+RUN bash -e <<EOF
 
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 echo 'max_parallel_downloads=10' >> /etc/dnf/dnf.conf
@@ -19,13 +17,33 @@ echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
 dnf config-manager --set-enabled crb
 
+ROOT_REPO="rpm-standard"
 if [[ "${IS_CLOUD}" == "true" ]]; then
-  dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el10/centreon-${VERSION}-internal.repo
-  sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
-else
-  dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el10/centreon-${VERSION}.repo
+  ROOT_REPO="rpm-standard-internal"
 fi
-dnf config-manager --set-enabled 'centreon*'
+
+# pulp-served repositories; packages keep their CES signature so gpgcheck stays on
+add_repo() {
+  echo "[\$1]
+name=\$1
+baseurl=\$2
+enabled=1
+gpgcheck=1
+gpgkey=https://yum-gpg.centreon.com/RPM-GPG-KEY-CES
+module_hotfixes=1
+skip_if_unavailable=1
+" >> /etc/yum.repos.d/centreon-${VERSION}.repo
+}
+for ARCH in x86_64 noarch; do
+  add_repo "centreon-${VERSION}-stable-\$ARCH" "https://packages.apps.centreon.com/standard-stable/\$ROOT_REPO/${VERSION}/el10/stable/\$ARCH/"
+  for STABILITY in testing-release testing-hotfix unstable; do
+    add_repo "centreon-${VERSION}-\$STABILITY-\$ARCH" "https://packages.apps.centreon.com/standard/\$ROOT_REPO/${VERSION}/el10/\$STABILITY/\$ARCH/"
+  done
+  add_repo "centreon-plugins-stable-\$ARCH" "https://packages.apps.centreon.com/plugins-stable/rpm-plugins/el10/stable/\$ARCH/"
+  for STABILITY in testing unstable; do
+    add_repo "centreon-plugins-\$STABILITY-\$ARCH" "https://packages.apps.centreon.com/plugins/rpm-plugins/el10/\$STABILITY/\$ARCH/"
+  done
+done
 
 dnf install -y python3.12 python3.12-pip
 pip3.12 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
