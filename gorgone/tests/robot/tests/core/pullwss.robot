@@ -41,7 +41,7 @@ check a remote server can hold two poller connection
     Setup Remote And Poller And Central Instances    central_name=${mode}_gorgone_central_simple    poller_name=${mode}_gorgone_poller_2_simple    remote_name=${mode}_gorgone_remote_simple
     Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
 
-    Restart Poller And Check Connection    ${mode}_gorgone_poller_2_simple    conn_number=2    api_port=${Rapi_port}
+    Restart Poller And Check Connection    ${mode}_gorgone_poller_2_simple    conn_number=2    api_port=${Rapi_port}    com_port=${Rcom_port}
     
     Setup New Poller    ${mode}_gorgone_poller_4_simple    comm_port=${Rcom_port}    api_port=${Rapi_port}
 
@@ -202,7 +202,7 @@ Restart Poller And Check Connection
     ...    ${poller_name}
 
     Start Gorgone    debug    ${poller_name}
-    Check Poller Is Connected    port=${com_port}    expected_nb=${conn_number}
+    Check Poller Is Connected    port=${com_port}    expected_nb=${conn_number}    api_port=${api_port}
     Check Poller Communicate     ${conn_number}    api_port=${api_port}
 
 Setup New Poller

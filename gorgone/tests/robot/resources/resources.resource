@@ -163,11 +163,11 @@ Setup Gorgone Config
     ${result2}    Run    ${CMD}
 
 Check Poller Is Connected
-    [Arguments]    ${port}=    ${expected_nb}=
+    [Arguments]    ${port}=    ${expected_nb}=    ${api_port}=8085
 
     # let's call the log api to force a gorgone GETLOG message to be sent to the poller.
     # we don't want to parse the output because we don't have any log to check.
-    ${response}=    GET  http://127.0.0.1:8085/api/nodes/2/log/initLogRobot
+    ${response}=    GET  http://127.0.0.1:${api_port}/api/nodes/2/log/initLogRobot
 
     Log To Console    checking TCP connection is established...
     FOR    ${i}    IN RANGE    40
