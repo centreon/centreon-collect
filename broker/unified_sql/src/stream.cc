@@ -746,7 +746,6 @@ uint32_t stream::stop() {
   absl::ReleasableMutexLock lck(&_check_queues_m);
   auto check_queues_is_stopped = [this]() { return _check_queues_stopped; };
 
-  _check_queues_m.Await(absl::Condition(&check_queues_is_stopped));
   if (_check_queues_m.AwaitWithTimeout(
           absl::Condition(&check_queues_is_stopped),
           absl::Seconds(queue_timer_duration))) {
