@@ -280,6 +280,7 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
   uint64_t command_id(get_uniq_id());
 
   if (!gest_call_interval(command_id, to_push_to_checker, caller)) {
+    _running = false;
     return command_id;
   }
 
@@ -313,6 +314,7 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw_v2::run: start process failed: id={}, {}: {}",
                         command_id, _name, e.what());
+    _running = false;
     throw;
   }
 
