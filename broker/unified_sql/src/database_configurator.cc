@@ -33,7 +33,7 @@ using com::centreon::engine::configuration::ActionServiceOn;
 namespace com::centreon::broker::unified_sql {
 
 #define APPLY_DIFF(data_base_type)                                            \
-  _logger->debug("Adding new resources");                                     \
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding new resources");                       \
   /* Adding new objects */                                                    \
   _add_severities_##data_base_type(diff.severities().added());                \
   _add_tags_##data_base_type(diff.tags().added());                            \
@@ -49,7 +49,7 @@ namespace com::centreon::broker::unified_sql {
   _add_host_parents_##data_base_type(diff.hosts().added(), action::ADDED);    \
                                                                               \
   /* Modifying existing objects */                                            \
-  _logger->debug("Modifying resources");                                      \
+  SPDLOG_LOGGER_DEBUG(_logger, "Modifying resources");                        \
   _add_severities_##data_base_type(diff.severities().modified());             \
   _add_tags_##data_base_type(diff.tags().modified());                         \
                                                                               \
@@ -68,7 +68,7 @@ namespace com::centreon::broker::unified_sql {
                                      action::MODIFIED);                       \
                                                                               \
   /* Disabling removed objects */                                             \
-  _logger->debug("Removing/disabling resources");                             \
+  SPDLOG_LOGGER_DEBUG(_logger, "Removing/disabling resources");               \
   _del_severities_##data_base_type(diff.severities().removed());              \
   _del_tags_##data_base_type(diff.tags().removed());                          \
   _disable_hosts(diff.hosts().removed());                                     \
@@ -103,7 +103,7 @@ void database_configurator::process_diff(const DiffState& diff) {
 
 void database_configurator::process_state(
     const engine::configuration::State& s) {
-  _logger->info("Processing state for {} hosts", s.hosts_size());
+  SPDLOG_LOGGER_INFO(_logger, "Processing state for {} hosts", s.hosts_size());
   if (_stream->supports_bulk_prepared_statements())
     _wake_up_resources_mariadb(s);
   else
@@ -132,14 +132,14 @@ void database_configurator::_wake_up_resources_mariadb(
   auto bind = stmt->create_bind();
   bind->reserve(state.hosts_size());
   for (const auto& host : state.hosts()) {
-    _logger->trace("Waking up poller {} host {} in table hosts",
-                   host.poller_id(), host.host_id());
+    SPDLOG_LOGGER_TRACE(_logger, "Waking up poller {} host {} in table hosts",
+                        host.poller_id(), host.host_id());
     bind->set_value_as_u32(0, host.host_id());
     bind->set_value_as_u32(1, host.poller_id());
     bind->next_row();
     count++;
   }
-  _logger->debug("Waking up {} hosts", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Waking up {} hosts", count);
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
 
@@ -156,8 +156,9 @@ void database_configurator::_wake_up_resources_mariadb(
   bind = stmt->create_bind();
   bind->reserve(state.hosts_size());
   for (const auto& host : state.hosts()) {
-    _logger->trace("Waking up poller {} host {} in table resources",
-                   host.poller_id(), host.host_id());
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "Waking up poller {} host {} in table resources",
+                        host.poller_id(), host.host_id());
     bind->set_value_as_u32(0, host.host_id());
     bind->set_value_as_u32(1, host.poller_id());
     bind->next_row();
@@ -180,14 +181,14 @@ void database_configurator::_wake_up_resources_mariadb(
     bind = stmt->create_bind();
     bind->reserve(state.services_size());
     for (const auto& svc : state.services()) {
-      _logger->trace("Waking up service {}:{} in table services", svc.host_id(),
-                     svc.service_id());
+      SPDLOG_LOGGER_TRACE(_logger, "Waking up service {}:{} in table services",
+                          svc.host_id(), svc.service_id());
       bind->set_value_as_u32(0, svc.host_id());
       bind->set_value_as_u32(1, svc.service_id());
       bind->next_row();
       count++;
     }
-    _logger->debug("Waking up {} services", count);
+    SPDLOG_LOGGER_DEBUG(_logger, "Waking up {} services", count);
     stmt->set_bind(std::move(bind));
     mysql.run_statement(*stmt);
 
@@ -204,8 +205,8 @@ void database_configurator::_wake_up_resources_mariadb(
     bind = stmt->create_bind();
     bind->reserve(state.services_size());
     for (const auto& service : state.services()) {
-      _logger->trace("Waking up service {}:{} in table resources",
-                     service.host_id(), service.service_id());
+      SPDLOG_LOGGER_TRACE(_logger, "Waking up service {}:{} in table resources",
+                          service.host_id(), service.service_id());
       bind->set_value_as_u32(0, service.host_id());
       bind->set_value_as_u32(1, service.service_id());
       bind->next_row();
@@ -358,13 +359,15 @@ void database_configurator::_del_severities_mariadb(
      * dropped it. If it still exists, other pollers still reference it — skip.
      */
     if (bc.has_severity(msg.id(), msg.type())) {
-      _logger->debug(
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
           "severity id={} type={} still referenced by other pollers, skipping "
           "DB deletion",
           msg.id(), msg.type());
       continue;
     }
-    _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
+    SPDLOG_LOGGER_INFO(_logger, "deleting severity id={} ; type={}", msg.id(),
+                       msg.type());
     bind->set_value_as_u64(0, msg.id());
     bind->set_value_as_u32(1, msg.type());
     bind->next_row();
@@ -373,7 +376,7 @@ void database_configurator::_del_severities_mariadb(
 
   if (count == 0)
     return;
-  _logger->debug("Removing {} severities", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Removing {} severities", count);
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
 }
@@ -402,13 +405,15 @@ void database_configurator::_del_severities_mysql(
      * dropped it. If it still exists, other pollers still reference it — skip.
      */
     if (bc.has_severity(msg.id(), msg.type())) {
-      _logger->debug(
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
           "severity id={} type={} still referenced by other pollers, skipping "
           "DB deletion",
           msg.id(), msg.type());
       continue;
     }
-    _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
+    SPDLOG_LOGGER_INFO(_logger, "deleting severity id={} ; type={}", msg.id(),
+                       msg.type());
     _del_severities_stmt->bind_value_as_u64(0, msg.id());
     _del_severities_stmt->bind_value_as_u32(1, msg.type());
     mysql.run_statement(*_del_severities_stmt);
@@ -428,7 +433,7 @@ void database_configurator::_del_tags_mariadb(
   if (keys.empty())
     return;
 
-  _logger->debug("Removing {} tags", keys.size());
+  SPDLOG_LOGGER_DEBUG(_logger, "Removing {} tags", keys.size());
   mysql& mysql = _stream->get_mysql();
   if (!_del_tags_stmt) {
     std::string query("DELETE FROM tags WHERE id=? AND type=?");
@@ -441,7 +446,8 @@ void database_configurator::_del_tags_mariadb(
   bind->reserve(keys.size());
 
   for (const auto& msg : keys) {
-    _logger->info("deleting tag id={} ; type={}", msg.id(), msg.type());
+    SPDLOG_LOGGER_INFO(_logger, "deleting tag id={} ; type={}", msg.id(),
+                       msg.type());
     bind->set_value_as_u64(0, msg.id());
     bind->set_value_as_u32(1, msg.type());
     bind->next_row();
@@ -465,7 +471,7 @@ void database_configurator::_del_tags_mysql(
   if (keys.empty())
     return;
 
-  _logger->debug("Removing {} tags", keys.size());
+  SPDLOG_LOGGER_DEBUG(_logger, "Removing {} tags", keys.size());
   mysql& mysql = _stream->get_mysql();
   if (!_del_tags_stmt) {
     std::string query("DELETE FROM tags WHERE id=? AND type=?");
@@ -474,7 +480,8 @@ void database_configurator::_del_tags_mysql(
   }
 
   for (const auto& msg : keys) {
-    _logger->info("deleting tag id={} ; type={}", msg.id(), msg.type());
+    SPDLOG_LOGGER_INFO(_logger, "deleting tag id={} ; type={}", msg.id(),
+                       msg.type());
     _del_tags_stmt->bind_value_as_u64(0, msg.id());
     _del_tags_stmt->bind_value_as_u32(1, msg.type());
     mysql.run_statement(*_del_tags_stmt);
@@ -487,7 +494,7 @@ void database_configurator::_disable_hosts(
   if (host_ids.empty())
     return;
 
-  _logger->debug("Disabling {} hosts", host_ids.size());
+  SPDLOG_LOGGER_DEBUG(_logger, "Disabling {} hosts", host_ids.size());
   std::string query(
       fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
                   fmt::join(host_ids, ",")));
@@ -549,7 +556,8 @@ void database_configurator::_add_severities_mariadb(
     auto key = std::make_pair(msg.key().id(), msg.key().type());
     keys.push_back(key);
 
-    _logger->info("Processing severity id={}, type={}", key.first, key.second);
+    SPDLOG_LOGGER_INFO(_logger, "Processing severity id={}, type={}", key.first,
+                       key.second);
     bind->set_value_as_u64(0, key.first);
     bind->set_value_as_u32(1, key.second);
     bind->set_value_as_str(
@@ -561,7 +569,7 @@ void database_configurator::_add_severities_mariadb(
     bind->next_row();
     count++;
   }
-  _logger->debug("{} severities added/modified", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "{} severities added/modified", count);
   _add_severities_stmt->set_bind(std::move(bind));
 
   try {
@@ -576,16 +584,19 @@ void database_configurator::_add_severities_mariadb(
       uint64_t existing_id = bc.get_db_id_for_severity(k.first, k.second);
       if (!existing_id) {
         bc.set_db_id_for_severity(k.first, k.second, first_id);
-        _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, first_id);
+        SPDLOG_LOGGER_TRACE(
+            _logger, "Severity with id {} and type {} has severity_id {}",
+            k.first, k.second, first_id);
         first_id++;
       } else {
-        _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, existing_id);
+        SPDLOG_LOGGER_TRACE(
+            _logger, "Severity with id {} and type {} has severity_id {}",
+            k.first, k.second, existing_id);
       }
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_severities>>: {}", e.what());
+    SPDLOG_LOGGER_ERROR(
+        _logger, "Error while executing <<_add_severities>>: {}", e.what());
   }
 }
 
@@ -625,7 +636,7 @@ void database_configurator::_add_severities_mysql(
       "name=VALUES(name),level=VALUES(level), icon_id=VALUES(icon_id)",
       fmt::join(values, ",")));
 
-  _logger->debug("{} severities added/modified", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "{} severities added/modified", count);
 
   try {
     std::promise<int> promise;
@@ -638,16 +649,19 @@ void database_configurator::_add_severities_mysql(
       uint64_t existing_id = bc.get_db_id_for_severity(k.first, k.second);
       if (!existing_id) {
         bc.set_db_id_for_severity(k.first, k.second, first_id);
-        _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, first_id);
+        SPDLOG_LOGGER_TRACE(
+            _logger, "Severity with id {} and type {} has severity_id {}",
+            k.first, k.second, first_id);
         first_id++;
       } else {
-        _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, existing_id);
+        SPDLOG_LOGGER_TRACE(
+            _logger, "Severity with id {} and type {} has severity_id {}",
+            k.first, k.second, existing_id);
       }
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_severities>>: {}", e.what());
+    SPDLOG_LOGGER_ERROR(
+        _logger, "Error while executing <<_add_severities>>: {}", e.what());
   }
 }
 
@@ -698,7 +712,8 @@ void database_configurator::_add_tags_mariadb(
     auto key = std::make_pair(msg.key().id(), msg.key().type());
     keys.push_back(key);
 
-    _logger->info("Processing tag id={}, type={}", key.first, key.second);
+    SPDLOG_LOGGER_INFO(_logger, "Processing tag id={}, type={}", key.first,
+                       key.second);
     bind->set_value_as_u64(0, key.first);
     bind->set_value_as_u32(1, key.second);
     bind->set_value_as_str(
@@ -708,7 +723,7 @@ void database_configurator::_add_tags_mariadb(
     bind->next_row();
     count++;
   }
-  _logger->debug("{} tags added/modified", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "{} tags added/modified", count);
   _add_tags_stmt->set_bind(std::move(bind));
 
   try {
@@ -721,16 +736,17 @@ void database_configurator::_add_tags_mariadb(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
-                       k.second, first_id);
+        SPDLOG_LOGGER_TRACE(_logger, "Tag with id {} and type {} has tag_id {}",
+                            k.first, k.second, first_id);
         first_id++;
       } else {
-        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
-                       k.second, inserted.first->second);
+        SPDLOG_LOGGER_TRACE(_logger, "Tag with id {} and type {} has tag_id {}",
+                            k.first, k.second, inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_tags>>: {}", e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "Error while executing <<_add_tags>>: {}",
+                        e.what());
   }
 }
 
@@ -773,16 +789,17 @@ void database_configurator::_add_tags_mysql(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
-                       k.second, first_id);
+        SPDLOG_LOGGER_TRACE(_logger, "Tag with id {} and type {} has tag_id {}",
+                            k.first, k.second, first_id);
         first_id++;
       } else {
-        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
-                       k.second, inserted.first->second);
+        SPDLOG_LOGGER_TRACE(_logger, "Tag with id {} and type {} has tag_id {}",
+                            k.first, k.second, inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_tags>>: {}", e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "Error while executing <<_add_tags>>: {}",
+                        e.what());
   }
 }
 
@@ -860,7 +877,7 @@ void database_configurator::_add_hosts_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
         lst) {
   if (lst.empty()) {
-    _logger->debug("No need to add/update hosts, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger, "No need to add/update hosts, list empty");
     return;
   }
 
@@ -924,8 +941,8 @@ void database_configurator::_add_hosts_mariadb(
 
   uint32_t count = 0;
   for (const auto& msg : lst) {
-    _logger->debug("Processing host {} (id {} - poller {})", msg.host_name(),
-                   msg.host_id(), msg.poller_id());
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing host {} (id {} - poller {})",
+                        msg.host_name(), msg.host_id(), msg.poller_id());
     bind->set_value_as_i32(0, msg.host_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.host_name(),
@@ -1037,7 +1054,7 @@ void database_configurator::_add_hosts_mariadb(
     bind->next_row();
     count++;
   }
-  _logger->debug("Adding/updating {} hosts", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding/updating {} hosts", count);
   _add_hosts_stmt->set_bind(std::move(bind));
   mysql.run_statement(*_add_hosts_stmt);
 }
@@ -1051,7 +1068,7 @@ void database_configurator::_add_hosts_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
         lst) {
   if (lst.empty()) {
-    _logger->debug("No need to add/update hosts, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger, "No need to add/update hosts, list empty");
     return;
   }
 
@@ -1237,8 +1254,9 @@ void database_configurator::_add_host_resources_mariadb(
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
     keys.push_back(key);
-    _logger->debug("Processing host resource '{}' (id {} - poller {})",
-                   msg.host_name(), msg.host_id(), msg.poller_id());
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "Processing host resource '{}' (id {} - poller {})",
+                        msg.host_name(), msg.host_id(), msg.poller_id());
     assert(msg.poller_id() != 0);
     // hosts_instances_cache.insert_or_assign(msg.host_id(), msg.poller_id());
 
@@ -1250,14 +1268,15 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_u64(5, msg.poller_id());
     if (msg.has_severity_id()) {
       uint64_t db_sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
-      _logger->trace("host {} has severity_id config={} => db_sid={}",
-                     msg.host_id(), msg.severity_id(), db_sid);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "host {} has severity_id config={} => db_sid={}",
+                          msg.host_id(), msg.severity_id(), db_sid);
       if (db_sid)
         bind->set_value_as_u64(6, db_sid);
       else
         bind->set_null_u64(6);
     } else {
-      _logger->trace("host {} has no severity_id", msg.host_id());
+      SPDLOG_LOGGER_TRACE(_logger, "host {} has no severity_id", msg.host_id());
       bind->set_null_u64(6);
     }
     bind->set_value_as_str(
@@ -1295,10 +1314,11 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_bool(18, true);
     bind->next_row();
     _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
-    _logger->debug("Adding to cache host '{}' with id {}", msg.host_name(),
-                   msg.host_id());
+    SPDLOG_LOGGER_DEBUG(_logger, "Adding to cache host '{}' with id {}",
+                        msg.host_name(), msg.host_id());
     hosts_cache.insert_or_assign(msg.host_name(), msg.host_id());
-    _logger->debug("host cache has {} items now", hosts_cache.size());
+    SPDLOG_LOGGER_DEBUG(_logger, "host cache has {} items now",
+                        hosts_cache.size());
   }
   _add_host_resources_stmt->set_bind(std::move(bind));
 
@@ -1312,17 +1332,19 @@ void database_configurator::_add_host_resources_mariadb(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace("Host resource with id {} has resource_id {}", k,
-                       first_id);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Host resource with id {} has resource_id {}", k,
+                            first_id);
         first_id++;
       } else {
-        _logger->trace("Host resource with id {} has resource_id {}", k,
-                       inserted.first->second);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Host resource with id {} has resource_id {}", k,
+                            inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_host_resources>>: {}",
-                   e.what());
+    SPDLOG_LOGGER_ERROR(
+        _logger, "Error while executing <<_add_host_resources>>: {}", e.what());
   }
 }
 
@@ -1410,16 +1432,18 @@ void database_configurator::_add_host_resources_mysql(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace("Host resource with id {} has resource_id {}", k,
-                       first_id);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Host resource with id {} has resource_id {}", k,
+                            first_id);
         first_id++;
       } else
-        _logger->trace("Host resource with id {} has resource_id {}", k,
-                       inserted.first->second);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Host resource with id {} has resource_id {}", k,
+                            inserted.first->second);
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_host_resources>>: {}",
-                   e.what());
+    SPDLOG_LOGGER_ERROR(
+        _logger, "Error while executing <<_add_host_resources>>: {}", e.what());
   }
 }
 
@@ -1432,7 +1456,7 @@ void database_configurator::_add_services_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
   if (lst.empty()) {
-    _logger->debug("No need to add/update services, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger, "No need to add/update services, list empty");
     return;
   }
 
@@ -1499,7 +1523,8 @@ void database_configurator::_add_services_mariadb(
 
   uint32_t count = 0;
   for (const auto& msg : lst) {
-    _logger->debug("Processing service {}:{}", msg.host_id(), msg.service_id());
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing service {}:{}", msg.host_id(),
+                        msg.service_id());
     bind->set_value_as_i32(0, msg.host_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.service_description(),
@@ -1608,7 +1633,7 @@ void database_configurator::_add_services_mariadb(
     bind->next_row();
     count++;
   }
-  _logger->debug("Adding/updating {} services", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding/updating {} services", count);
   _add_services_stmt->set_bind(std::move(bind));
   mysql.run_statement(*_add_services_stmt);
 }
@@ -1842,8 +1867,8 @@ void database_configurator::_disable_service_resources_mariadb(
     bind->set_value_as_i64(0, msg.host_id());
     bind->set_value_as_i64(1, msg.service_id());
     bind->next_row();
-    _logger->trace("Disabling service resource with id {}:{}", msg.host_id(),
-                   msg.service_id());
+    SPDLOG_LOGGER_TRACE(_logger, "Disabling service resource with id {}:{}",
+                        msg.host_id(), msg.service_id());
   }
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -1867,8 +1892,8 @@ void database_configurator::_disable_service_resources_mysql(
     _disable_service_resources_stmt->bind_value_as_i64(0, msg.host_id());
     _disable_service_resources_stmt->bind_value_as_i64(1, msg.service_id());
     mysql.run_statement(*_disable_service_resources_stmt);
-    _logger->trace("Disabling service resource with id {}:{}", msg.host_id(),
-                   msg.service_id());
+    SPDLOG_LOGGER_TRACE(_logger, "Disabling service resource with id {}:{}",
+                        msg.host_id(), msg.service_id());
   }
 }
 
@@ -1882,7 +1907,8 @@ void database_configurator::_add_anomalydetections_mariadb(
         engine::configuration::Anomalydetection>& lst) {
   mysql& mysql = _stream->get_mysql();
   if (lst.empty()) {
-    _logger->debug("No need to add/update anomaly detections, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "No need to add/update anomaly detections, list empty");
     return;
   }
   if (!_add_anomalydetections_stmt) {
@@ -2056,7 +2082,8 @@ void database_configurator::_add_anomalydetections_mysql(
         engine::configuration::Anomalydetection>& lst) {
   mysql& mysql = _stream->get_mysql();
   if (lst.empty()) {
-    _logger->debug("No need to add/update anomaly detections, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "No need to add/update anomaly detections, list empty");
     return;
   }
 
@@ -2214,7 +2241,7 @@ void database_configurator::_add_service_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
   if (lst.empty()) {
-    _logger->debug("No service resources to add/update");
+    SPDLOG_LOGGER_DEBUG(_logger, "No service resources to add/update");
     return;
   }
 
@@ -2312,16 +2339,19 @@ void database_configurator::_add_service_resources_mariadb(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace("Service resource with id {}:{} has resource_id {}",
-                       k.first, k.second, first_id);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Service resource with id {}:{} has resource_id {}",
+                            k.first, k.second, first_id);
         first_id++;
       } else
-        _logger->trace("Service resource with id {}:{} has resource_id {}",
-                       k.first, k.second, inserted.first->second);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Service resource with id {}:{} has resource_id {}",
+                            k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_service_resources>>: {}",
-                   e.what());
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Error while executing <<_add_service_resources>>: {}",
+                        e.what());
   }
 }
 
@@ -2334,7 +2364,7 @@ void database_configurator::_add_service_resources_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
   if (lst.empty()) {
-    _logger->debug("No service resources to add/update");
+    SPDLOG_LOGGER_DEBUG(_logger, "No service resources to add/update");
     return;
   }
 
@@ -2412,16 +2442,19 @@ void database_configurator::_add_service_resources_mysql(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace("Service resource with id {}:{} has resource_id {}",
-                       k.first, k.second, first_id);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Service resource with id {}:{} has resource_id {}",
+                            k.first, k.second, first_id);
         first_id++;
       } else
-        _logger->trace("Service resource with id {}:{} has resource_id {}",
-                       k.first, k.second, inserted.first->second);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "Service resource with id {}:{} has resource_id {}",
+                            k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
-    _logger->error("Error while executing <<_add_service_resources>>: {}",
-                   e.what());
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Error while executing <<_add_service_resources>>: {}",
+                        e.what());
   }
 }
 
@@ -2435,7 +2468,8 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Anomalydetection>& lst) {
   if (lst.empty()) {
-    _logger->debug("No anomaly detection resources to add/update");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "No anomaly detection resources to add/update");
     return;
   }
   auto& cache = _stream->resources_cache();
@@ -2530,17 +2564,20 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "Anomaly detection resource with id {}:{} has resource_id {}",
             k.first, k.second, first_id);
         first_id++;
       } else
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "Anomaly detection resource with id {}:{} has resource_id {}",
             k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
-    _logger->error(
+    SPDLOG_LOGGER_ERROR(
+        _logger,
         "Error while executing <<_add_anomalydetection_resources>>: {}",
         e.what());
   }
@@ -2625,17 +2662,20 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     for (auto& k : keys) {
       auto inserted = cache.emplace(k, first_id);
       if (inserted.second) {
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "Anomaly detection resource with id {}:{} has resource_id {}",
             k.first, k.second, first_id);
         first_id++;
       } else
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "Anomaly detection resource with id {}:{} has resource_id {}",
             k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
-    _logger->error(
+    SPDLOG_LOGGER_ERROR(
+        _logger,
         "Error while executing <<_add_anomalydetection_resources>>: {}",
         e.what());
   }
@@ -2748,7 +2788,8 @@ void database_configurator::_add_hostgroups_mariadb(
         engine::configuration::Hostgroup>& lst,
     bool is_modification) {
   if (lst.empty()) {
-    _logger->debug("No need to add/update host groups, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "No need to add/update host groups, list empty");
     return;
   }
 
@@ -2765,8 +2806,8 @@ void database_configurator::_add_hostgroups_mariadb(
 
   uint32_t count = 0;
   for (const auto& msg : lst) {
-    _logger->debug("Processing hostgroup {} (id {})", msg.hostgroup_name(),
-                   msg.hostgroup_id());
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing hostgroup {} (id {})",
+                        msg.hostgroup_name(), msg.hostgroup_id());
     bind->set_value_as_i32(0, msg.hostgroup_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.hostgroup_name(),
@@ -2775,7 +2816,7 @@ void database_configurator::_add_hostgroups_mariadb(
     bind->next_row();
     count++;
   }
-  _logger->debug("Adding/updating {} host groups", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding/updating {} host groups", count);
 
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -2791,7 +2832,8 @@ void database_configurator::_add_hostgroups_mariadb(
           "DELETE FROM hosts_hostgroups WHERE hostgroup_id = {} "
           "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
           msg_hg.hostgroup_id(), msg_hg.poller_id()));
-      _logger->debug(
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
           "Removing existing members of hostgroup {} for poller {} before "
           "re-inserting",
           msg_hg.hostgroup_id(), msg_hg.poller_id());
@@ -2816,15 +2858,17 @@ void database_configurator::_add_hostgroups_mariadb(
     for (const auto& member : msg_hg.members().data()) {
       auto found = hosts_cache.find(member);
       if (found == hosts_cache.end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Host '{}' doesn't exist, so cannot add it to hostgroup '{}'",
             member, msg_hg.hostgroup_name());
         continue;
       }
       bind_members->set_value_as_i32(0, found->second);
       bind_members->set_value_as_i32(1, msg_hg.hostgroup_id());
-      _logger->info("enabling membership of host {} to host group {}",
-                    found->second, msg_hg.hostgroup_id());
+      SPDLOG_LOGGER_INFO(_logger,
+                         "enabling membership of host {} to host group {}",
+                         found->second, msg_hg.hostgroup_id());
       bind_members->next_row();
     }
   }
@@ -2844,7 +2888,8 @@ void database_configurator::_add_hostgroups_mysql(
         engine::configuration::Hostgroup>& lst,
     bool is_modification) {
   if (lst.empty()) {
-    _logger->debug("No need to add/update host groups, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "No need to add/update host groups, list empty");
     return;
   }
 
@@ -2866,7 +2911,7 @@ void database_configurator::_add_hostgroups_mysql(
       fmt::format("INSERT INTO hostgroups VALUES {} ON DUPLICATE KEY UPDATE "
                   "name=VALUES(name)",
                   fmt::join(values, ",")));
-  _logger->debug("Adding/updating {} host groups", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding/updating {} host groups", count);
   mysql.run_query(query);
 
   // For modified hostgroups, delete existing members scoped to the poller
@@ -2880,7 +2925,8 @@ void database_configurator::_add_hostgroups_mysql(
           "DELETE FROM hosts_hostgroups WHERE hostgroup_id = {} "
           "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
           msg_hg.hostgroup_id(), msg_hg.poller_id()));
-      _logger->debug(
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
           "Removing existing members of hostgroup {} for poller {} before "
           "re-inserting",
           msg_hg.hostgroup_id(), msg_hg.poller_id());
@@ -2897,7 +2943,8 @@ void database_configurator::_add_hostgroups_mysql(
     for (const auto& member : msg_hg.members().data()) {
       auto found = hosts_cache.find(member);
       if (found == hosts_cache.end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Host '{}' doesn't exist, so cannot add it to hostgroup '{}'",
             member, msg_hg.hostgroup_name());
         continue;
@@ -2905,8 +2952,9 @@ void database_configurator::_add_hostgroups_mysql(
       std::string value(
           fmt::format("({}, {})", found->second, msg_hg.hostgroup_id()));
       values.emplace_back(value);
-      _logger->info("enabling membership of host {} to host group {}",
-                    found->second, msg_hg.hostgroup_id());
+      SPDLOG_LOGGER_INFO(_logger,
+                         "enabling membership of host {} to host group {}",
+                         found->second, msg_hg.hostgroup_id());
     }
   }
   if (!values.empty()) {
@@ -2927,7 +2975,8 @@ void database_configurator::_add_servicegroups_mariadb(
         engine::configuration::Servicegroup>& lst,
     bool is_modification) {
   if (lst.empty()) {
-    _logger->debug("No need to add/update service groups, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "No need to add/update service groups, list empty");
     return;
   }
 
@@ -2944,8 +2993,8 @@ void database_configurator::_add_servicegroups_mariadb(
 
   uint32_t count = 0;
   for (const auto& msg : lst) {
-    _logger->debug("Processing servicegroup {} (id {})",
-                   msg.servicegroup_name(), msg.servicegroup_id());
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing servicegroup {} (id {})",
+                        msg.servicegroup_name(), msg.servicegroup_id());
     bind->set_value_as_i32(0, msg.servicegroup_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.servicegroup_name(),
@@ -2954,7 +3003,7 @@ void database_configurator::_add_servicegroups_mariadb(
     bind->next_row();
     count++;
   }
-  _logger->debug("Adding/updating {} service groups", count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding/updating {} service groups", count);
 
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -2970,7 +3019,8 @@ void database_configurator::_add_servicegroups_mariadb(
           "DELETE FROM services_servicegroups WHERE servicegroup_id = {} "
           "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
           msg_sg.servicegroup_id(), msg_sg.poller_id()));
-      _logger->debug(
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
           "Removing existing members of servicegroup {} for poller {} before "
           "re-inserting",
           msg_sg.servicegroup_id(), msg_sg.poller_id());
@@ -2997,7 +3047,8 @@ void database_configurator::_add_servicegroups_mariadb(
     for (const auto& member : msg_sg.members().data()) {
       auto fnd_host = hosts_cache.find(member.first());
       if (fnd_host == hosts_cache.end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Host '{}' does not exist, so cannot add any of its services to "
             "servicegroup '{}'",
             member.first(), msg_sg.servicegroup_name());
@@ -3006,7 +3057,8 @@ void database_configurator::_add_servicegroups_mariadb(
       auto fnd_service = services_cache.find(
           std::make_pair(fnd_host->second, member.second()));
       if (fnd_service == services_cache.end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Service '{}' on host '{}' does not exist, so cannot add it to "
             "servicegroup '{}'",
             member.second(), member.first(), msg_sg.servicegroup_name());
@@ -3015,8 +3067,8 @@ void database_configurator::_add_servicegroups_mariadb(
       bind_members->set_value_as_i32(0, fnd_host->second);
       bind_members->set_value_as_i32(1, fnd_service->second);
       bind_members->set_value_as_i32(2, msg_sg.servicegroup_id());
-      _logger->info(
-          "enabling membership of service ({}:{}) to service group {}",
+      SPDLOG_LOGGER_INFO(
+          _logger, "enabling membership of service ({}:{}) to service group {}",
           fnd_host->second, fnd_service->second, msg_sg.servicegroup_id());
       bind_members->next_row();
     }
@@ -3037,7 +3089,8 @@ void database_configurator::_add_servicegroups_mysql(
         engine::configuration::Servicegroup>& lst,
     bool is_modification) {
   if (lst.empty()) {
-    _logger->debug("No need to add/update service groups, list empty");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "No need to add/update service groups, list empty");
     return;
   }
 
@@ -3068,7 +3121,8 @@ void database_configurator::_add_servicegroups_mysql(
           "DELETE FROM services_servicegroups WHERE servicegroup_id = {} "
           "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
           msg_sg.servicegroup_id(), msg_sg.poller_id()));
-      _logger->debug(
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
           "Removing existing members of servicegroup {} for poller {} before "
           "re-inserting",
           msg_sg.servicegroup_id(), msg_sg.poller_id());
@@ -3086,7 +3140,8 @@ void database_configurator::_add_servicegroups_mysql(
     for (const auto& member : msg_sg.members().data()) {
       auto fnd_host = hosts_cache.find(member.first());
       if (fnd_host == hosts_cache.end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Host '{}' does not exist, so cannot add any of its services to "
             "servicegroup '{}'",
             member.first(), msg_sg.servicegroup_name());
@@ -3095,7 +3150,8 @@ void database_configurator::_add_servicegroups_mysql(
       auto fnd_service = services_cache.find(
           std::make_pair(fnd_host->second, member.second()));
       if (fnd_service == services_cache.end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Service '{}' on host '{}' does not exist, so cannot add it to "
             "servicegroup '{}'",
             member.second(), member.first(), msg_sg.servicegroup_name());
@@ -3105,8 +3161,8 @@ void database_configurator::_add_servicegroups_mysql(
                                     fnd_service->second,
                                     msg_sg.servicegroup_id()));
       values.emplace_back(value);
-      _logger->info(
-          "enabling membership of service ({}:{}) to service group {}",
+      SPDLOG_LOGGER_INFO(
+          _logger, "enabling membership of service ({}:{}) to service group {}",
           fnd_host->second, fnd_service->second, msg_sg.servicegroup_id());
     }
   }
@@ -3133,7 +3189,7 @@ void database_configurator::_add_host_parents_mariadb(
   if (lst.empty())
     return;
 
-  _logger->debug("Adding parents to hosts");
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding parents to hosts");
   mysql& mysql = _stream->get_mysql();
   if (act == action::MODIFIED) {
     /* We remove all parents before re-adding them */
@@ -3160,7 +3216,8 @@ void database_configurator::_add_host_parents_mariadb(
     for (const std::string& h : msg.parents().data()) {
       auto found = _stream->host_name_id_cache().find(h);
       if (found == _stream->host_name_id_cache().end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Host '{}' does not exist, so cannot add it as parent of host "
             "'{}'",
             h, msg.host_name());
@@ -3168,14 +3225,14 @@ void database_configurator::_add_host_parents_mariadb(
       }
       bind->set_value_as_i32(0, msg.host_id());
       bind->set_value_as_i32(1, found->second);
-      _logger->debug("Adding host {} as parent of host {}", found->second,
-                     msg.host_id());
+      SPDLOG_LOGGER_DEBUG(_logger, "Adding host {} as parent of host {}",
+                          found->second, msg.host_id());
       bind->next_row();
       count++;
     }
   }
   if (count > 0) {
-    _logger->debug("{} host parents added", count);
+    SPDLOG_LOGGER_DEBUG(_logger, "{} host parents added", count);
     stmt->set_bind(std::move(bind));
     _stream->get_mysql().run_statement(*stmt);
   }
@@ -3195,7 +3252,7 @@ void database_configurator::_add_host_parents_mysql(
   if (lst.empty())
     return;
 
-  _logger->debug("Adding parents to hosts");
+  SPDLOG_LOGGER_DEBUG(_logger, "Adding parents to hosts");
   mysql& mysql = _stream->get_mysql();
   if (act == action::MODIFIED) {
     /* We remove all parents before re-adding them */
@@ -3221,7 +3278,8 @@ void database_configurator::_add_host_parents_mysql(
     for (const std::string& h : msg.parents().data()) {
       auto found = _stream->host_name_id_cache().find(h);
       if (found == _stream->host_name_id_cache().end()) {
-        _logger->error(
+        SPDLOG_LOGGER_ERROR(
+            _logger,
             "Host '{}' does not exist, so cannot add it as parent of host "
             "'{}'",
             h, msg.host_name());
@@ -3229,14 +3287,14 @@ void database_configurator::_add_host_parents_mysql(
       }
       _add_host_parents_stmt->bind_value_as_i32(0, msg.host_id());
       _add_host_parents_stmt->bind_value_as_i32(1, found->second);
-      _logger->debug("Adding host {} as parent of host {}", found->second,
-                     msg.host_id());
+      SPDLOG_LOGGER_DEBUG(_logger, "Adding host {} as parent of host {}",
+                          found->second, msg.host_id());
       mysql.run_statement(*_add_host_parents_stmt);
       count++;
     }
   }
   if (count > 0)
-    _logger->debug("{} host parents added", count);
+    SPDLOG_LOGGER_DEBUG(_logger, "{} host parents added", count);
 }
 
 /**
@@ -3249,7 +3307,7 @@ void database_configurator::_del_host_parents(
   if (lst.empty())
     return;
 
-  _logger->debug("Removing parents from {} hosts", lst.size());
+  SPDLOG_LOGGER_DEBUG(_logger, "Removing parents from {} hosts", lst.size());
   mysql& mysql = _stream->get_mysql();
   std::string query(
       fmt::format("DELETE FROM hosts_hosts_parents WHERE child_id IN ({0}) OR "
@@ -3269,12 +3327,12 @@ void database_configurator::_del_hostgroups(
   if (keys.empty())
     return;
 
-  _logger->debug("Removing {} hostgroups", keys.size());
+  SPDLOG_LOGGER_DEBUG(_logger, "Removing {} hostgroups", keys.size());
   mysql& mysql = _stream->get_mysql();
 
   for (const auto& msg : keys) {
-    _logger->debug("Removing poller {} hosts from hostgroup {}",
-                   msg.poller_id(), msg.group_name());
+    SPDLOG_LOGGER_DEBUG(_logger, "Removing poller {} hosts from hostgroup {}",
+                        msg.poller_id(), msg.group_name());
     std::string query(fmt::format(
         "DELETE FROM hosts_hostgroups "
         "WHERE hostgroup_id = (SELECT hostgroup_id FROM hostgroups WHERE name"
@@ -3284,7 +3342,7 @@ void database_configurator::_del_hostgroups(
                              get_centreon_storage_hostgroups_col_size(
                                  centreon_storage_hostgroups_name)),
         msg.poller_id()));
-    _logger->debug("Executing query: {}", query);
+    SPDLOG_LOGGER_DEBUG(_logger, "Executing query: {}", query);
     mysql.run_query(query);
   }
   // Little cleanup in hostgroups
@@ -3306,12 +3364,13 @@ void database_configurator::_del_servicegroups(
   if (keys.empty())
     return;
 
-  _logger->debug("Removing {} servicegroups", keys.size());
+  SPDLOG_LOGGER_DEBUG(_logger, "Removing {} servicegroups", keys.size());
   mysql& mysql = _stream->get_mysql();
 
   for (const auto& msg : keys) {
-    _logger->debug("Removing poller {} services from servicegroup {}",
-                   msg.poller_id(), msg.group_name());
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "Removing poller {} services from servicegroup {}",
+                        msg.poller_id(), msg.group_name());
     std::string query(fmt::format(
         "DELETE FROM services_servicegroups WHERE servicegroup_id = (SELECT "
         "servicegroup_id FROM servicegroups WHERE name = \'{}\') AND host_id "
