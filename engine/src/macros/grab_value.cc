@@ -914,49 +914,15 @@ int grab_macro_value_r(nagios_macros* mac,
   if (macro_name.empty() || clean_options == nullptr || free_macro == nullptr)
     return ERROR;
 
-  /* work with a copy of the original buffer */
-  auto arr = absl::StrSplit(macro_name, ':');
-  auto it = arr.begin();
-
-  // The base name
-  if (it != arr.end()) {
-    buf = *it;
-    ++it;
+  size_t buf_end = macro_name.find(':');
+  buf = macro_name.substr(0, buf_end);
+  if (buf_end != std::string_view::npos) {
+    size_t arg0_end = macro_name.find(':', buf_end + 1);
+    arg[0] = macro_name.substr(buf_end + 1, arg0_end);
+    if (arg0_end != std::string_view::npos) {
+      arg[1] = macro_name.substr(arg0_end + 1);
+    }
   }
-
-  // First argument
-  if (it != arr.end()) {
-    arg[0] = *it;
-    ++it;
-  }
-  // Second argument
-  if (it != arr.end()) {
-    arg[1] = *it;
-  }
-
-  // buf = string::dup(macro_name.c_str());
-
-  /* BY DEFAULT, TELL CALLER TO FREE MACRO BUFFER WHEN DONE */
-  *free_macro = true;
-
-  /* see if there's an argument - if so, this is most likely an on-demand macro
-   */
-  // if ((ptr = strchr(buf, ':'))) {
-  //   ptr[0] = '\x0';
-  //   ptr++;
-
-  //  /* save the first argument - host name, hostgroup name, etc. */
-  //  arg[0] = ptr;
-
-  //  /* try and find a second argument */
-  //  if ((ptr = strchr(ptr, ':'))) {
-  //    ptr[0] = '\x0';
-  //    ptr++;
-
-  //    /* save second argument - service description or delimiter */
-  //    arg[1] = ptr;
-  //  }
-  //}
 
   /***** X MACROS *****/
   /* see if this is an x macro */
