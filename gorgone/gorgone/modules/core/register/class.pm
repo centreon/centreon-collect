@@ -119,7 +119,7 @@ sub action_registerresync {
     }) if (scalar(@$register_nodes) > 0);
     
     $self->send_internal_action({
-        action => 'UNREGISTERNODES',
+        action => 'UNREGISTERNODESFROMCENTRAL',
         data => {
             nodes => $unregister_nodes
         }
