@@ -1060,26 +1060,6 @@ jobs:
           echo "::warning::Provenance/SBOM attestation failed for centreon-gorgone-${{ matrix.operating_system }}. The image WAS published to ghcr.io but is unattested — see the 'Attest provenance + SBOM on ghcr.io' step and investigate before relying on gh attestation verify for this version."
         shell: bash
 
-  # TEMP SCRATCH TEST (MON-207622) — DO NOT MERGE. Tests whether an
-  # attestation recorded with a Harbor subject-name and push-to-registry:false
-  # is still discoverable by digest via GitHub's Attestations API, independent
-  # of the ghcr.io package's registry visibility. Delete before merging.
-  mon207622-scratch-provenance-test:
-    if: |
-      github.event_name == 'workflow_dispatch' &&
-      (github.head_ref || github.ref_name) == 'MON-207622-provenance-attestation-sbom-ghcr'
-    runs-on: centreon-ubuntu-22.04
-    permissions:
-      id-token: write
-      attestations: write
-    steps:
-      - name: Attest against Harbor subject-name (no registry push)
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-name: docker.centreon.com/centreon/centreon-gorgone-trixie
-          subject-digest: sha256:f1bcffce1f88e420a7f238c177bfced2ba0b5c37f24dc3d5057e7be1c19b2e1b
-          push-to-registry: false
-
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, promote]
     if: |
