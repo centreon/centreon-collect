@@ -373,10 +373,10 @@ jobs:
               stability = getStability(ref);
             }
 
-            // TEMP TEST HACK (MON-207622) stage 1 — remove before merging PR #3647.
+            // TEMP TEST HACK (MON-207622) stage 2 — remove before merging PR #3647.
             if (ref === 'MON-207622-provenance-attestation-sbom-ghcr' && process.env.GITHUB_WORKFLOW === 'gorgone') {
-              console.log('TEMP TEST HACK (MON-207622): forcing stability=testing (stage 1 - produce Harbor candidate)');
-              stability = 'testing';
+              console.log('TEMP TEST HACK (MON-207622): forcing stability=stable (stage 2 - ghcr.io promote + attest test)');
+              stability = 'stable';
             }
 
             console.log(`Final stability: ${stability}`);
