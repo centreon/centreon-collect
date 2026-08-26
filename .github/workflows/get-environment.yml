@@ -373,12 +373,6 @@ jobs:
               stability = getStability(ref);
             }
 
-            // TEMP TEST HACK (MON-207622) — remove before merging PR #3647.
-            if (ref === 'MON-207622-provenance-attestation-sbom-ghcr' && process.env.GITHUB_WORKFLOW === 'gorgone') {
-              console.log('TEMP TEST HACK (MON-207622): forcing stability=stable');
-              stability = 'stable';
-            }
-
             console.log(`Final stability: ${stability}`);
             core.setOutput('stability', stability);
 
