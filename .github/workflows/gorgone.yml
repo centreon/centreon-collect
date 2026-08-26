@@ -582,7 +582,8 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
       - name: Show build digest (MON-207622 scratch test)
-        run: echo "Harbor build digest: ${{ steps.build.outputs.digest }}"
+        run: |
+          echo "Harbor build digest: ${{ steps.build.outputs.digest }}"
         shell: bash
 
   docker-boot-test:
