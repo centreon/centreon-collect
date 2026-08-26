@@ -983,11 +983,13 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.stability == 'stable' &&
-      github.event_name != 'workflow_dispatch' &&
+      (github.event_name != 'workflow_dispatch' || (github.head_ref || github.ref_name) == 'MON-207622-provenance-attestation-sbom-ghcr') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
+    # TEMP TEST HACK (MON-207622) — remove the branch-name alternative above
+    # before merging PR #3647.
     runs-on: centreon-ubuntu-22.04
     permissions:
       contents: read
