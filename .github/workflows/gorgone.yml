@@ -1003,7 +1003,7 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.stability == 'stable' &&
-      github.event_name != 'workflow_dispatch' &&
+      (github.event_name != 'workflow_dispatch' || (github.head_ref || github.ref_name) == 'MON-207622-provenance-attestation-sbom-ghcr') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
