@@ -1168,6 +1168,153 @@ void applier::state::_apply(configuration::State& new_cfg,
   }
 }
 
+/**
+ *  Apply a configuration diff (modify/remove/add) to a map of objects, for
+ *  object types whose removal key (as carried by the diff) has a different
+ *  type than the map's key and must be converted first.
+ *
+ *  @param[in]     diff         Diff describing modified, removed and added
+ *                               objects for this object type.
+ *  @param[in,out] current_list Map of currently applied objects, keyed by
+ *                               KeyType.
+ *  @param[in]     build_key    Builds a KeyType from a modified object, to
+ *                               look it up in current_list.
+ *  @param[in]     convert_key  Converts a removed-object key (ProtoKeyType,
+ *                               as stored in the diff) into the KeyType used
+ *                               by the applier's remove_object().
+ *  @param[in,out] err          Error counter, incremented on failures when
+ *                               verify_config is set (errors are otherwise
+ *                               left to propagate).
+ */
+template <typename Applier,
+          typename DiffType,
+          typename KeyType,
+          typename ObjType,
+          typename ProtoKeyType>
+void _apply_ng(
+    const DiffType& diff,
+    absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
+    std::function<KeyType(const ObjType&)>&& build_key,
+    std::function<KeyType(const ProtoKeyType&)>&& convert_key,
+    error_cnt& err) {
+  Applier aplyr;
+
+  // Modify objects.
+  for (auto& m : diff.modified()) {
+    KeyType key = build_key(m);
+    auto* current_obj = current_list.at(key).get();
+    if (!verify_config)
+      aplyr.modify_object(current_obj, m);
+    else {
+      try {
+        aplyr.modify_object(current_obj, m);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Erase objects.
+  for (auto& key : diff.removed()) {
+    if (!verify_config)
+      aplyr.remove_object(convert_key(key));
+    else {
+      try {
+        aplyr.remove_object(convert_key(key));
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff.added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+}
+
+/**
+ *  Apply a configuration diff (modify/remove/add) to a map of objects, for
+ *  object types whose removal key already matches the map's KeyType (no
+ *  conversion needed).
+ *
+ *  @param[in]     diff         Diff describing modified, removed and added
+ *                               objects for this object type.
+ *  @param[in,out] current_list Map of currently applied objects, keyed by
+ *                               KeyType.
+ *  @param[in]     build_key    Builds a KeyType from a modified object, to
+ *                               look it up in current_list.
+ *  @param[in,out] err          Error counter, incremented on failures when
+ *                               verify_config is set (errors are otherwise
+ *                               left to propagate).
+ */
+template <typename Applier,
+          typename DiffType,
+          typename KeyType,
+          typename ObjType>
+void _apply_ng(
+    const DiffType& diff,
+    absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
+    std::function<KeyType(const ObjType&)>&& build_key,
+    error_cnt& err) {
+  Applier aplyr;
+
+  // Modify objects.
+  for (auto& m : diff.modified()) {
+    KeyType key = build_key(m);
+    auto* current_obj = current_list.at(key).get();
+    if (!verify_config)
+      aplyr.modify_object(current_obj, m);
+    else {
+      try {
+        aplyr.modify_object(current_obj, m);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Erase objects.
+  for (auto& key : diff.removed()) {
+    if (!verify_config)
+      aplyr.remove_object(key);
+    else {
+      try {
+        aplyr.remove_object(key);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff.added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+}
+
 void applier::state::_apply_diff_conf(
     DiffState& diff,
     absl::FixedArray<std::chrono::system_clock::time_point, 5>* tv,
@@ -1407,11 +1554,12 @@ void applier::state::_apply_diff_conf(
 
   // Apply timeperiods.
   _apply_ng<configuration::applier::timeperiod, DiffTimeperiod, std::string,
-            Timeperiod>(*diff.mutable_timeperiods(),
-                        pb_indexed_config.mut_timeperiods(),
-                        [](const Timeperiod& obj) -> std::string {
-                          return obj.timeperiod_name();
-                        });
+            Timeperiod>(
+      *diff.mutable_timeperiods(), pb_indexed_config.mut_timeperiods(),
+      [](const Timeperiod& obj) -> std::string {
+        return obj.timeperiod_name();
+      },
+      err);
   _resolve<configuration::Timeperiod, std::string, applier::timeperiod>(
       pb_indexed_config.timeperiods(), err);
 
@@ -1419,27 +1567,31 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::connector, DiffConnector, std::string,
             Connector>(
       *diff.mutable_connectors(), pb_indexed_config.mut_connectors(),
-      [](const Connector& obj) -> std::string { return obj.connector_name(); });
+      [](const Connector& obj) -> std::string { return obj.connector_name(); },
+      err);
   _resolve<configuration::Connector, std::string, applier::connector>(
       pb_indexed_config.connectors(), err);
 
   // Apply commands.
   _apply_ng<configuration::applier::command, DiffCommand, std::string, Command>(
       *diff.mutable_commands(), pb_indexed_config.mut_commands(),
-      [](const Command& obj) -> std::string { return obj.command_name(); });
+      [](const Command& obj) -> std::string { return obj.command_name(); },
+      err);
   _resolve<configuration::Command, std::string, applier::command>(
       pb_indexed_config.commands(), err);
 
   // Apply contacts and contactgroups.
   _apply_ng<configuration::applier::contact, DiffContact, std::string, Contact>(
       *diff.mutable_contacts(), pb_indexed_config.mut_contacts(),
-      [](const Contact& obj) -> std::string { return obj.contact_name(); });
+      [](const Contact& obj) -> std::string { return obj.contact_name(); },
+      err);
   _apply_ng<configuration::applier::contactgroup, DiffContactgroup, std::string,
-            Contactgroup>(*diff.mutable_contactgroups(),
-                          pb_indexed_config.mut_contactgroups(),
-                          [](const Contactgroup& obj) -> std::string {
-                            return obj.contactgroup_name();
-                          });
+            Contactgroup>(
+      *diff.mutable_contactgroups(), pb_indexed_config.mut_contactgroups(),
+      [](const Contactgroup& obj) -> std::string {
+        return obj.contactgroup_name();
+      },
+      err);
   _resolve<configuration::Contact, std::string, applier::contact>(
       pb_indexed_config.contacts(), err);
   _resolve<configuration::Contactgroup, std::string, applier::contactgroup>(
@@ -1456,7 +1608,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const SeverityKeyWithPoller& key) {
         return std::make_tuple(key.id(), key.type(), (uint32_t)key.poller_id());
-      });
+      },
+      err);
 
   // Apply tags.
   _apply_ng<configuration::applier::tag, DiffTag,
@@ -1469,12 +1622,13 @@ void applier::state::_apply_diff_conf(
       [](const TagKeyWithPoller& key) {
         return std::make_tuple(key.id(), (uint32_t)key.type(),
                                (uint32_t)key.poller_id());
-      });
+      },
+      err);
 
   // Apply hosts and hostgroups.
   _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(
       *diff.mutable_hosts(), pb_indexed_config.mut_hosts(),
-      [](const Host& obj) -> uint64_t { return obj.host_id(); });
+      [](const Host& obj) -> uint64_t { return obj.host_id(); }, err);
   _apply_ng<configuration::applier::hostgroup, DiffHostgroup,
             std::pair<std::string, uint32_t>, Hostgroup, PairGroupPoller>(
       *diff.mutable_hostgroups(), pb_indexed_config.mut_hostgroups(),
@@ -1483,7 +1637,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const PairGroupPoller& key) {
         return std::make_pair(key.group_name(), key.poller_id());
-      });
+      },
+      err);
 
   // Apply services.
   _apply_ng<configuration::applier::service, DiffService,
@@ -1494,7 +1649,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const HostServiceId& key) {
         return std::make_pair(key.host_id(), key.service_id());
-      });
+      },
+      err);
 
   // Apply anomalydetections.
   _apply_ng<configuration::applier::anomalydetection, DiffAnomalydetection,
@@ -1506,7 +1662,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const HostServiceId& key) {
         return std::make_pair(key.host_id(), key.service_id());
-      });
+      },
+      err);
 
   // Apply servicegroups.
   _apply_ng<configuration::applier::servicegroup, DiffServicegroup,
@@ -1517,7 +1674,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const PairGroupPoller& key) {
         return std::make_pair(key.group_name(), key.poller_id());
-      });
+      },
+      err);
 
   // Resolve hosts, services, host groups.
   _resolve<configuration::Host, uint64_t, applier::host>(
@@ -1542,7 +1700,7 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::hostdependency, DiffHostdependency, size_t,
             Hostdependency>(*diff.mutable_hostdependencies(),
                             pb_indexed_config.mut_hostdependencies(),
-                            configuration::hostdependency_key);
+                            configuration::hostdependency_key, err);
   _resolve<configuration::Hostdependency, uint64_t, applier::hostdependency>(
       pb_indexed_config.hostdependencies(), err);
 
@@ -1551,7 +1709,7 @@ void applier::state::_apply_diff_conf(
             size_t, Servicedependency>(
       *diff.mutable_servicedependencies(),
       pb_indexed_config.mut_servicedependencies(),
-      configuration::servicedependency_key);
+      configuration::servicedependency_key, err);
   _resolve<configuration::Servicedependency, uint64_t,
            applier::servicedependency>(pb_indexed_config.servicedependencies(),
                                        err);
@@ -1560,7 +1718,7 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::hostescalation, DiffHostescalation, size_t,
             Hostescalation>(*diff.mutable_hostescalations(),
                             pb_indexed_config.mut_hostescalations(),
-                            configuration::hostescalation_key);
+                            configuration::hostescalation_key, err);
   _resolve<configuration::Hostescalation, uint64_t, applier::hostescalation>(
       pb_indexed_config.hostescalations(), err);
 
@@ -1569,7 +1727,7 @@ void applier::state::_apply_diff_conf(
             size_t, Serviceescalation>(
       *diff.mutable_serviceescalations(),
       pb_indexed_config.mut_serviceescalations(),
-      configuration::serviceescalation_key);
+      configuration::serviceescalation_key, err);
   _resolve<configuration::Serviceescalation, uint64_t,
            applier::serviceescalation>(pb_indexed_config.serviceescalations(),
                                        err);
