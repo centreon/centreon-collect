@@ -597,6 +597,124 @@ TEST_F(BamBA, KpiServiceDtInheritAllCriticalPb) {
   }
 }
 
+/**
+ * A downtime cancelled by broker itself (poller restart) keeps actual_end_time
+ * NULL. Such a downtime is over and must not pin the kpi -- and therefore the
+ * BA inherited downtime -- forever.
+ */
+TEST_F(BamBA, KpiServiceDtCancelledWithoutEndTime) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_ratio_percent>(1, 1, 4, true, _logger)};
+  test_ba->set_level_critical(100);
+  test_ba->set_level_warning(75);
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  std::vector<std::shared_ptr<bam::kpi_service>> kpis;
+  for (int i = 0; i < 4; i++) {
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
+    s->set_state_hard(bam::state_critical);
+    s->set_state_soft(s->get_state_hard());
+    test_ba->add_impact(s);
+    s->add_parent(test_ba);
+    kpis.push_back(s);
+  }
+
+  time_t now(time(nullptr));
+
+  auto ss{std::make_shared<neb::service_status>()};
+  ss->service_id = 1;
+
+  /* Every kpi goes critical then in downtime: the BA inherits the downtime. */
+  for (size_t j = 0; j < kpis.size(); j++) {
+    ss->last_check = now + 1;
+    ss->host_id = j + 1;
+    ss->last_hard_state = 2;
+    kpis[j]->service_update(ss, _visitor.get());
+
+    auto dt{std::make_shared<neb::downtime>()};
+    dt->internal_id = j + 1;
+    dt->host_id = ss->host_id;
+    dt->service_id = 1;
+    dt->was_started = true;
+    dt->actual_start_time = now + 2;
+    dt->actual_end_time = 0;
+    kpis[j]->service_update(dt, _visitor.get());
+  }
+  ASSERT_TRUE(test_ba->in_downtime());
+
+  /* The downtime of the first kpi is cancelled without any actual_end_time nor
+   * deletion_time, as broker does when its poller restarts. */
+  auto cancelled{std::make_shared<neb::downtime>()};
+  cancelled->internal_id = 1;
+  cancelled->host_id = 1;
+  cancelled->service_id = 1;
+  cancelled->was_started = true;
+  cancelled->was_cancelled = true;
+  cancelled->actual_start_time = now + 2;
+  cancelled->actual_end_time = 0;
+  kpis[0]->service_update(cancelled, _visitor.get());
+
+  ASSERT_FALSE(kpis[0]->in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
+}
+
+TEST_F(BamBA, KpiServiceDtCancelledWithoutEndTimePb) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_ratio_percent>(1, 1, 4, true, _logger)};
+  test_ba->set_level_critical(100);
+  test_ba->set_level_warning(75);
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  std::vector<std::shared_ptr<bam::kpi_service>> kpis;
+  for (int i = 0; i < 4; i++) {
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
+    s->set_state_hard(bam::state_critical);
+    s->set_state_soft(s->get_state_hard());
+    test_ba->add_impact(s);
+    s->add_parent(test_ba);
+    kpis.push_back(s);
+  }
+
+  time_t now(time(nullptr));
+
+  auto ss{std::make_shared<neb::service_status>()};
+  ss->service_id = 1;
+
+  for (size_t j = 0; j < kpis.size(); j++) {
+    ss->last_check = now + 1;
+    ss->host_id = j + 1;
+    ss->last_hard_state = 2;
+    kpis[j]->service_update(ss, _visitor.get());
+
+    auto dt{std::make_shared<neb::pb_downtime>()};
+    auto& downtime = dt->mut_obj();
+    downtime.set_id(j + 1);
+    downtime.set_host_id(ss->host_id);
+    downtime.set_service_id(1);
+    downtime.set_started(true);
+    downtime.set_actual_start_time(now + 2);
+    downtime.set_actual_end_time(0);
+    kpis[j]->service_update(dt, _visitor.get());
+  }
+  ASSERT_TRUE(test_ba->in_downtime());
+
+  auto cancelled{std::make_shared<neb::pb_downtime>()};
+  auto& cancelled_obj = cancelled->mut_obj();
+  cancelled_obj.set_id(1);
+  cancelled_obj.set_host_id(1);
+  cancelled_obj.set_service_id(1);
+  cancelled_obj.set_started(true);
+  cancelled_obj.set_cancelled(true);
+  cancelled_obj.set_actual_start_time(now + 2);
+  cancelled_obj.set_actual_end_time(0);
+  kpis[0]->service_update(cancelled, _visitor.get());
+
+  ASSERT_FALSE(kpis[0]->in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
+}
+
 TEST_F(BamBA, KpiServiceDtInheritOneOK) {
   std::shared_ptr<bam::ba> test_ba{
       std::make_shared<bam::ba_ratio_percent>(1, 1, 4, true, _logger)};
@@ -1416,6 +1534,8 @@ TEST_F(BamBA, KpiServiceDt) {
     dt->actual_start_time = now + 2 + 10 * i;
     dt->actual_end_time = 0;
     dt->was_started = true;
+    /* The downtime restarts: it is no longer the cancelled one. */
+    dt->was_cancelled = false;
     std::cout << "service_update 1" << std::endl;
     kpis[0]->service_update(dt, _visitor.get());
 
@@ -1580,6 +1700,8 @@ TEST_F(BamBA, KpiServiceDtPb) {
     dt_obj.set_actual_start_time(now + 2 + 10 * i);
     dt_obj.set_actual_end_time(0);
     dt_obj.set_started(true);
+    /* The downtime restarts: it is no longer the cancelled one. */
+    dt_obj.set_cancelled(false);
     std::cout << "service_update 1" << std::endl;
     kpis[0]->service_update(dt, _visitor.get());
 
