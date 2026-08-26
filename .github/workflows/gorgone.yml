@@ -536,7 +536,9 @@ jobs:
           # needed to find the candidate to promote. This job only runs after
           # robot-test succeeds, so this candidate is e2e-tested before it can
           # ever be promoted to ghcr.io stable.
-          if [[ "$RAW_REF" =~ ^(release|hotfix)-[0-9]+\.[0-9]+-next$ ]]; then
+          # TEMP TEST HACK (MON-207622) — remove the branch-name alternative
+          # below before merging PR #3647.
+          if [[ "$RAW_REF" =~ ^(release|hotfix)-[0-9]+\.[0-9]+-next$ ]] || [[ "$RAW_REF" == "MON-207622-provenance-attestation-sbom-ghcr" ]]; then
             echo "version_tag=${MAJOR_VERSION}.${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
           else
             echo "version_tag=" >> "$GITHUB_OUTPUT"
@@ -742,9 +744,13 @@ jobs:
       needs.changes.outputs.trigger_delivery == 'true' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+      (github.head_ref || github.ref_name) != 'MON-207622-provenance-attestation-sbom-ghcr' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
+    # TEMP TEST HACK (MON-207622) — remove the branch-name condition above
+    # before merging PR #3647. Prevents a real RPM delivery from the forced
+    # 'testing' stability hack in get-environment.yml.
 
     strategy:
       fail-fast: false
@@ -778,9 +784,12 @@ jobs:
       needs.changes.outputs.trigger_delivery == 'true' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+      (github.head_ref || github.ref_name) != 'MON-207622-provenance-attestation-sbom-ghcr' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
+    # TEMP TEST HACK (MON-207622) — remove the branch-name condition above
+    # before merging PR #3647.
 
     strategy:
       fail-fast: false
@@ -826,10 +835,13 @@ jobs:
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.changes.outputs.trigger_delivery == 'true' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      (github.head_ref || github.ref_name) != 'MON-207622-provenance-attestation-sbom-ghcr' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+    # TEMP TEST HACK (MON-207622) — remove the branch-name condition above
+    # before merging PR #3647.
 
     strategy:
       fail-fast: false
@@ -860,10 +872,13 @@ jobs:
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.changes.outputs.trigger_delivery == 'true' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      (github.head_ref || github.ref_name) != 'MON-207622-provenance-attestation-sbom-ghcr' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+    # TEMP TEST HACK (MON-207622) — remove the branch-name condition above
+    # before merging PR #3647.
 
     strategy:
       fail-fast: false
