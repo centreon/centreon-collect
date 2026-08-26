@@ -456,7 +456,16 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
   }
 
   if (!_event || _event->in_downtime() != _downtimed) {
-    _last_check = _downtimed ? dt->actual_start_time : dt->actual_end_time;
+    if (_downtimed)
+      _last_check = dt->actual_start_time;
+    else if (!dt->actual_end_time.is_null())
+      _last_check = dt->actual_end_time;
+    else if (!dt->deletion_time.is_null())
+      _last_check = dt->deletion_time;
+    else if (_event)
+      /* A cancelled downtime may carry no end time at all. When no event
+       * last_check is untouched */
+      _last_check = time(nullptr);
     _logger->trace("kpi service {} update, last check set to {}", _id,
                    _last_check);
   }
@@ -519,8 +528,16 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   }
 
   if (!_event || _event->in_downtime() != _downtimed) {
-    _last_check =
-        _downtimed ? downtime.actual_start_time() : downtime.actual_end_time();
+    if (_downtimed)
+      _last_check = downtime.actual_start_time();
+    else if (!time_is_undefined(downtime.actual_end_time()))
+      _last_check = downtime.actual_end_time();
+    else if (!time_is_undefined(downtime.deletion_time()))
+      _last_check = downtime.deletion_time();
+    else if (_event)
+      /* A cancelled downtime may carry no end time at all. When no event
+       * last_check is untouched */
+      _last_check = time(nullptr);
     _logger->trace("kpi service {} update, last check set to {}", _id,
                    _last_check);
   }

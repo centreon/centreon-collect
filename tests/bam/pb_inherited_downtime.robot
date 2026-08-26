@@ -401,7 +401,7 @@ Ctn BAM Setup
     ${date}    Get Current Date    result_format=epoch
     Log To Console    Cleaning downtimes at date=${date}
     Execute SQL String
-    ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
+    ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE deletion_time IS NULL
     Execute SQL String    UPDATE services SET scheduled_downtime_depth=0
     Execute SQL String    UPDATE hosts SET scheduled_downtime_depth=0
     Execute SQL String    UPDATE resources SET in_downtime=0
