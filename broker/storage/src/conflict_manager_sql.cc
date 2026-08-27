@@ -108,10 +108,11 @@ void conflict_manager::_clean_tables(uint64_t instance_id) {
    * makes every consumer (BAM in_downtime computation, availability reporting)
    * consider the downtime still running forever. */
   query = fmt::format(
-      "UPDATE downtimes SET cancelled=1,actual_end_time={} WHERE "
+      "UPDATE downtimes SET cancelled=1,actual_end_time={},deletion_time={} "
+      "WHERE "
       "actual_end_time IS NULL AND cancelled=0 "
       "AND instance_id={}",
-      time(nullptr), instance_id);
+      time(nullptr), time(nullptr), instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, conn);
   _add_action(conn, actions::downtimes);
