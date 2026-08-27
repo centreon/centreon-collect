@@ -597,8 +597,16 @@ jobs:
             "BUILD_DATE=${{ steps.build-date.outputs.date }}"
             "BUILD_VERSION=${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}-${{ needs.get-environment.outputs.release }}"
             "PACKAGE_SOURCES=centreon-collect ${{ matrix.image }} (Debian ${{ matrix.distrib }})"
-          sbom: true
-          provenance: mode=max
+            "GIT_REVISION=${{ github.event.pull_request.head.sha || github.sha }}"
+          # Disabled to match centreon/centreon#11136: BuildKit's own
+          # attestation manifests add an extra "unknown"-platform entry to
+          # the multi-arch manifest list, which would make this image's
+          # digest diverge from what any downstream digest-reconstruction
+          # step (e.g. a future ghcr.io/Pulp promotion) computes by
+          # re-deriving it from the per-platform manifests alone. SBOM is
+          # still produced at scan time by docker-trivy-cves below.
+          provenance: false
+          sbom: false
           pull: true
           push: true
           # Disabled: BuildKit's own attestation manifests would make this
@@ -680,8 +688,18 @@ jobs:
         env:
           IMAGE: ${{ env.ENGINE_IMAGE }}
           PLATFORM: ${{ matrix.platform }}
+          SUMMARY_FRAGMENT_FILE: /tmp/summary-fragment.md
         run: ./.github/scripts/centreon-engine-docker-boot-test.sh
         shell: bash
+
+      - name: Upload summary fragment
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: test-summary-fragment-boot-${{ matrix.distrib }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/summary-fragment.md
+          retention-days: 1
+          if-no-files-found: ignore
 
       - name: Upload debug artifacts on failure
         if: failure()

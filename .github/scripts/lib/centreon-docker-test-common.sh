@@ -20,6 +20,14 @@
 # the table from their own EXIT trap with `_summary_render "<title>" "$rc"`,
 # capturing `rc=$?` as the trap's *first* statement so it reflects the
 # original exit status rather than the trap's own commands.
+#
+# Written to $SUMMARY_FRAGMENT_FILE, not $GITHUB_STEP_SUMMARY directly: these
+# scripts run as separate matrix legs (one runner each), and GitHub renders
+# one Step Summary block per job regardless of what a script writes into it -
+# there's no way to merge multiple jobs' summaries into one block from inside
+# the job. The docker-test-summary job downloads every leg's fragment as an
+# artifact and concatenates them into ONE combined Step Summary instead.
+# Falls back to $GITHUB_STEP_SUMMARY when unset, for local/manual runs.
 SUMMARY_STEP_NAMES=()
 SUMMARY_STEP_STATUS=()
 
@@ -56,5 +64,5 @@ _summary_render() {
       echo "**Result: ❌ FAILED** (exit code ${exit_code})"
     fi
     echo
-  } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+  } >> "${SUMMARY_FRAGMENT_FILE:-${GITHUB_STEP_SUMMARY:-/dev/null}}"
 }

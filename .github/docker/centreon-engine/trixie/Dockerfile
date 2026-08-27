@@ -204,14 +204,19 @@ EOF
 ARG BUILD_DATE
 ARG BUILD_VERSION=unknown
 ARG PACKAGE_SOURCES=unknown
+ARG GIT_REVISION=unknown
 
 LABEL org.opencontainers.image.title="Centreon Engine" \
       org.opencontainers.image.description="Centreon Engine monitoring scheduler/executor" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.revision="${GIT_REVISION}" \
+      org.opencontainers.image.source="https://github.com/centreon/centreon-collect" \
+      org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="Centreon" \
       org.centreon.package-sources="${PACKAGE_SOURCES}" \
-      org.centreon.base-image="debian:13-slim"
+      org.centreon.base-image="debian:13-slim" \
+      org.centreon.release-stage="beta"
 
 # gRPC engine management API (inter-container, no host mapping needed)
 EXPOSE 50155

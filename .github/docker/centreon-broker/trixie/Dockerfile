@@ -177,14 +177,19 @@ ENV PATH="/opt/centreon/venv/bin:$PATH"
 ARG BUILD_DATE
 ARG BUILD_VERSION=unknown
 ARG PACKAGE_SOURCES=unknown
+ARG GIT_REVISION=unknown
 
 LABEL org.opencontainers.image.title="Centreon Broker" \
       org.opencontainers.image.description="Centreon Broker event broker (BBDO protocol)" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.revision="${GIT_REVISION}" \
+      org.opencontainers.image.source="https://github.com/centreon/centreon-collect" \
+      org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="Centreon" \
       org.centreon.package-sources="${PACKAGE_SOURCES}" \
-      org.centreon.base-image="debian:13-slim"
+      org.centreon.base-image="debian:13-slim" \
+      org.centreon.release-stage="beta"
 
 # Expose ports (same as current Dockerfile)
 # gRPC central-module
