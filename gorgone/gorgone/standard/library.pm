@@ -507,6 +507,29 @@ sub getlog {
             push @bind_values, $data->{ $_->[0] };
         }
     }
+
+    # last_id is the proxy's incremental sync cursor (separate from the 'id' filter above,
+    # which callers use as-is for pagination). It's id-based rather than the ctime-based
+    # cursor below so it isn't subject to floating point rounding collisions between
+    # closely-spaced timestamps (which can redeliver the same row several times).
+    # It must also tolerate the history table being wiped and VACUUMed (id has no
+    # AUTOINCREMENT, so ids restart from 1): if the requested last_id is now above the
+    # table's current max id, a reset happened, so we fall back to id > 0 (everything
+    # currently in the table) instead of filtering all of it out.
+    if (defined($data->{last_id}) && $data->{last_id} ne '') {
+        my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => 'SELECT MAX(id) FROM gorgone_history' });
+        if ($status == -1) {
+            return (GORGONE_ACTION_FINISH_KO, { message => 'database issue while getting the max id' });
+        }
+        my ($max_id) = $sth->fetchrow_array();
+        my $cursor = $data->{last_id};
+        if (defined($max_id) and $max_id < $data->{last_id} ){
+            $cursor = 0;
+        }
+        $filter .= $filter_append . 'id > ? AND ';
+        push @bind_values, $cursor;
+    }
+
     # sqlite don't round correctly float. to be sure the same log is not sent over and over we round to 4 digits
     # (input should contains 5 digit as it use time::hires)
     foreach ((['ctime', '>'], ['etime', '>'])){
