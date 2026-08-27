@@ -17,6 +17,7 @@
  *
  */
 #include "common/engine_conf/indexed_diff_state.hh"
+#include <spdlog/common.h>
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
@@ -60,7 +61,9 @@ void indexed_diff_state::add_diff_state(
   } else {
     logger->debug("Adding differential configuration for poller {}",
                   diff_state.poller_id());
-    logger->trace("diff: {}", diff_state.DebugString());
+    if (logger->level() <= spdlog::level::trace) {
+      logger->trace("diff: {}", diff_state.ShortDebugString());
+    }
     _add_diff_message<DiffTimeperiod, Timeperiod, std::string>(
         diff_state.mutable_timeperiods(), _added_timeperiods,
         _modified_timeperiods, _removed_timeperiods,
