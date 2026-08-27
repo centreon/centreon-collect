@@ -101,7 +101,8 @@ export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
 
 mkdir /src
-cp /root/vcpkg.json /src/vcpkg.json
+#benchmark does not compile under jammy so we remove it as it is not mandatory for packaging
+grep -v benchmark /root/vcpkg.json > /src/vcpkg.json
 
 /vcpkg/vcpkg install \
   --clean-after-build \
