@@ -1432,19 +1432,23 @@ void applier::state::_apply_diff_conf(
   APPLY_DIFF(command_file);
   if (!diff.broker_module().empty()) {
     pb_indexed_config.mut_state().clear_broker_module();
-    for (auto& m : diff.broker_module()) {
+    for (const auto& m : diff.broker_module()) {
       pb_indexed_config.mut_state().add_broker_module(m);
-      if (!broker::loader::instance().loaded(m)) {
+      size_t file_arg_sep = m.find(' ');
+      std::string file_path = m.substr(0, file_arg_sep);
+      std::string args;
+      if (file_arg_sep != std::string::npos) {
+        args = m.substr(file_arg_sep + 1);
+      }
+      if (!broker::loader::instance().loaded(file_path)) {
         if (!verify_config) {
-          std::pair<std::string, std::string> p =
-              absl::StrSplit(m, absl::MaxSplits(' ', 1));
-          auto mod = broker::loader::instance().add_module(p.first, p.second);
+          auto mod = broker::loader::instance().add_module(file_path, args);
           if (mod)
             mod->open();
           else {
             config_logger->error(
                 "Error loading broker module '{}' with parameters '{}'",
-                p.first, p.second);
+                file_path, args);
           }
         }
       }

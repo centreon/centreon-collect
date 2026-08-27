@@ -408,9 +408,13 @@ int main(int argc, char* argv[]) {
           neb_init_callback_list();
 
           for (auto& m : new_conf->broker_module()) {
-            std::pair<std::string, std::string> p =
-                absl::StrSplit(m, absl::MaxSplits(' ', 1));
-            broker::loader::instance().add_module(p.first, p.second);
+            size_t file_arg_sep = m.find(' ');
+            std::string file_path = m.substr(0, file_arg_sep);
+            std::string args;
+            if (file_arg_sep != std::string::npos) {
+              args = m.substr(file_arg_sep + 1);
+            }
+            broker::loader::instance().add_module(file_path, args);
           }
 
           // Apply configuration.
