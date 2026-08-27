@@ -15,21 +15,23 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Extract .deb packages (mounted via --mount during build)
 # Smart extraction: skip broker-cbd, extract all others, then clean up junk files
 RUN --mount=type=bind,source=packages-centreon,target=/packages \
-    mkdir -p /extracted && \
-    cd /packages/${TARGETARCH} && \
-    for deb in centreon*.deb; do \
-        case "$deb" in \
-            *broker-cbd*) continue ;; \
-        esac; \
-        dpkg-deb -x "$deb" /extracted/; \
-    done && \
-    rm -rf /extracted/usr/share/doc/* \
-           /extracted/usr/share/man/* \
-           /extracted/usr/share/info/* \
-           /extracted/usr/share/locale/* \
-           /extracted/usr/share/licenses/* \
-           /extracted/var/cache/* \
-           /extracted/var/log/*
+    bash -e <<'EOF'
+mkdir -p /extracted
+cd /packages/${TARGETARCH}
+for deb in centreon*.deb; do
+    case "$deb" in
+        *broker-cbd*) continue ;;
+    esac
+    dpkg-deb -x "$deb" /extracted/
+done
+rm -rf /extracted/usr/share/doc/* \
+       /extracted/usr/share/man/* \
+       /extracted/usr/share/info/* \
+       /extracted/usr/share/locale/* \
+       /extracted/usr/share/licenses/* \
+       /extracted/var/cache/* \
+       /extracted/var/log/*
+EOF
 
 #############################################
 # Stage 2: Runtime - Minimal final image
