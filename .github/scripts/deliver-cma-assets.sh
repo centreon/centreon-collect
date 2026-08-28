@@ -134,14 +134,14 @@ search_artifactory() {
     -H "Authorization: Bearer ${ARTIFACTORY_TOKEN}" \
     -H "Content-Type: text/plain" \
     --data "$aql" \
-    "https://packages.centreon.com/artifactory/api/search/aql"
+    "https://centreon.jfrog.io/artifactory/api/search/aql"
 }
 
 download_from_artifactory() {
   local repo="$1" art_path="$2" name="$3" dest_dir="$4"
   curl --fail --silent \
     -H "Authorization: Bearer ${ARTIFACTORY_TOKEN}" \
-    "https://packages.centreon.com/artifactory/${repo}/${art_path}/${name}" \
+    "https://centreon.jfrog.io/artifactory/${repo}/${art_path}/${name}" \
     -o "${dest_dir}/${name}"
   echo "${dest_dir}/${name}"
 }
