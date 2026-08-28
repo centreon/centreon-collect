@@ -14,6 +14,9 @@ send many log by ${communication_mode}, expect all of them on the central
     @{process_list}    Set Variable    ${poller_name}    ${central_name}
     Log To Console    \nStarting the gorgone setup
 
+    # remove sqlite database if they exists before starting gorgone to avoid old logs messing the count.
+    Remove File    /etc/centreon-gorgone/${process_list}[1]/history.sdb
+    Remove File    /etc/centreon-gorgone/${process_list}[0]/history.sdb
     Setup Two Gorgone Instances    communication_mode=${communication_mode}    central_name=${central_name}     poller_name=${poller_name}
     #Ctn Check No Error In Logs    pullwss_gorgone_poller_2
 
@@ -26,9 +29,8 @@ send many log by ${communication_mode}, expect all of them on the central
     ...    sqlite3
     ...    database=/etc/centreon-gorgone/${process_list}[0]/history.sdb
     ...    alias=sqlite_poller
-    Execute SQL String    DELETE FROM gorgone_history    alias=sqlite_central
-    Execute SQL String    DELETE FROM gorgone_history    alias=sqlite_poller
-    Execute SQL String    VACUUM    alias=sqlite_poller
+
+
     ${log_size}    Set Variable    200
     ${log_count}    Set Variable    300
     ${nb_log_central}=    Set Variable    0

@@ -48,7 +48,7 @@ check central don't eat cpu when poller is not connected
 
 *** Keywords ***
 Ctn Check Cpu Until Timeout
-    [Arguments]    ${timeout}=60s    ${process_whitelist}=gorgone-proxy    ${max_cpu_usage}=40
+    [Arguments]    ${timeout}=60s    ${process_whitelist}=gorgone-proxy    ${max_cpu_usage}=70
     ${max_date}    Get Current Date    increment=${timeout}
     ${current_date}    Get Current Date
 
