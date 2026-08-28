@@ -267,6 +267,12 @@ file_metadata::file_metadata(
       last_access_time = fs::file_time_type::min();
       last_write_time = fs::file_time_type::min();
     }
+    LARGE_INTEGER li_size;
+    if (GetFileSizeEx(hFile, &li_size)) {
+      size = static_cast<std::uint64_t>(li_size.QuadPart);
+    } else {
+      size = 0;
+    }
     CloseHandle(hFile);
   } else {
     creation_time = fs::file_time_type::min();
@@ -284,7 +290,6 @@ file_metadata::file_metadata(
   } else {
     has_changed = true;
 
-    size = fs::file_size(file_path);
     version = "";
     if (extension == ".exe" || extension == ".dll") {
       version = get_file_version(fs::path(file_path).string());
