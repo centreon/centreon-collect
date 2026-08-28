@@ -411,24 +411,30 @@ void ::check_files_detail::check_files_thread::run() {
   auto keep_object_alive = shared_from_this();
 
   while (_active) {
-    absl::MutexLock l(&_queue_m);
-    _queue_m.Await(absl::Condition(this, &check_files_thread::has_to_wait));
+    std::optional<async_data> to_execute;
+    {
+      absl::MutexLock l(&_queue_m);
+      _queue_m.Await(absl::Condition(this, &check_files_thread::has_to_wait));
 
-    if (!_active) {
-      return;
-    }
+      if (!_active) {
+        return;
+      }
 
-    time_point now = std::chrono::system_clock::now();
-    while (!_queue.empty()) {
-      if (_queue.begin()->timeout < now) {
+      time_point now = std::chrono::system_clock::now();
+      while (!_queue.empty()) {
+        if (_queue.begin()->timeout < now) {
+          _queue.pop_front();
+        } else {
+          break;
+        }
+      }
+
+      if (!_queue.empty()) {
+        to_execute = std::move(_queue.front());
         _queue.pop_front();
-      } else {
-        break;
       }
     }
-
-    if (!_queue.empty()) {
-      auto to_execute = _queue.begin();
+    if (to_execute) {
       // Execute the filter to find files
       auto filter = to_execute->request_filter;
       try {
@@ -447,7 +453,6 @@ void ::check_files_detail::check_files_thread::run() {
                      completion_handler({}, msg_err);
                    });
       }
-      _queue.erase(to_execute);
     }
   }
 }
