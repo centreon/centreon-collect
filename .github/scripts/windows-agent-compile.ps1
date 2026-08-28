@@ -32,6 +32,9 @@ function add_builtin_to_vcpkg_json {
     $inserted = 0
 
     foreach ($line in $content) {
+        if ($line -match "benchmark") {
+            continue
+        }
         $newContent += $line
         if ($line -match "{" -and $inserted -eq 0) {
             $newContent += '"builtin-baseline":"ef7dbf94b9198bc58f45951adcf1f041fcbc5ea0", ' #2025.06.13
@@ -60,10 +63,11 @@ $current_dir = $pwd.ToString()
 #install recent version of 7zip needed by some packages
 Write-Host "install 7zip"
 
-#download 7zip
-Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2408-x64.msi" -OutFile "7z2408-x64.msi"
-#install 7zip
-Start-Process 'msiexec.exe' -ArgumentList '/I "7z2408-x64.msi" /qn' -Wait
+#download and install 7zip
+choco install 7zip -y
+
+#cmake 4.3.3
+choco install cmake --version=4.3.3 -y
 
 #set builtin here in order to not impact linux compil
 add_builtin_to_vcpkg_json
