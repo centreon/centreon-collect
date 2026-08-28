@@ -959,6 +959,14 @@ void check_files::_completion_handler(
     const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
         result,
     const std::string& msg_err) {
+  // _filter is reused across checks to keep change-detection state. If this
+  // check already timed out, a new check may have queued another
+  // find_files() on the same _filter, which would then mutate the very map
+  // "result" refers to. Discard the stale result before touching it.
+  if (start_check_index != _get_running_check_index()) {
+    return;
+  }
+
   auto result_size = result.size();
   e_status ret = e_status::ok;
   std::string output;
