@@ -98,13 +98,13 @@ ARG STABILITY
 RUN bash -e <<EOF
 groupadd -g 33 www-data 2>/dev/null || true
 groupadd -g 900 centreon
-useradd -u 900 -g centreon -m -r -d /var/spool/centreon -s /bin/bash centreon
+useradd -u 900 -g centreon -m -r -l -d /var/spool/centreon -s /bin/bash centreon
 groupadd -g 901 centreon-engine
-useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -s /bin/bash centreon-engine
+useradd -u 901 -g centreon-engine -m -r -l -d /var/lib/centreon-engine -s /bin/bash centreon-engine
 groupadd -g 902 centreon-broker
-useradd -u 902 -g centreon-broker -m -r -d /var/lib/centreon-broker -s /bin/bash centreon-broker
+useradd -u 902 -g centreon-broker -m -r -l -d /var/lib/centreon-broker -s /bin/bash centreon-broker
 groupadd -g 903 centreon-gorgone
-useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -s /bin/bash centreon-gorgone
+useradd -u 903 -g centreon-gorgone -m -r -l -d /var/lib/centreon-gorgone -s /bin/bash centreon-gorgone
 usermod -aG centreon centreon-gorgone
 usermod -aG www-data centreon-gorgone
 usermod -aG centreon-engine centreon-gorgone
@@ -124,13 +124,12 @@ EOF
 # and install those packages plus runtime dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    bash -e <<'EOF'
+    bash -eo pipefail <<'EOF'
 apt-get update
 apt-get install -y --no-install-recommends gnupg wget ca-certificates
 echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
     > /etc/apt/sources.list.d/centreon-plugins.list
-wget -O- https://apt-key.centreon.com | gpg --dearmor \
-    | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+wget -qO- https://apt-key.centreon.com | gpg --dearmor > /etc/apt/trusted.gpg.d/centreon.gpg
 apt-get update
 apt-get install -y --no-install-recommends \
     libnet-curl-perl \
@@ -173,6 +172,8 @@ apt-get install -y --no-install-recommends \
     tzdata \
     ca-certificates \
     libnetaddr-ip-perl
+apt-get remove -y --purge gnupg
+apt-get autoremove -y
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
 EOF
 
@@ -236,16 +237,22 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
 # locally: built with Go 1.26.4), so downloading it is as fresh as building
 # from source - without the multi-minutes-under-QEMU cost of compiling Go
 # for arm64 in CI.
-RUN bash -e <<'EOF'
+RUN bash -eo pipefail <<'EOF'
 ARCH=$(dpkg --print-architecture)
 case "$ARCH" in
     amd64) BUF_ARCH="x86_64" ;;
     arm64) BUF_ARCH="aarch64" ;;
     *) echo "Unsupported arch: $ARCH" && exit 1 ;;
 esac
-curl -sSL -o /usr/local/bin/buf \
-    "https://github.com/bufbuild/buf/releases/download/v1.71.0/buf-Linux-${BUF_ARCH}"
+BUF_ASSET="buf-Linux-${BUF_ARCH}"
+curl -sSLf -o "/tmp/${BUF_ASSET}" \
+    "https://github.com/bufbuild/buf/releases/download/v1.71.0/${BUF_ASSET}"
+curl -sSLf -o /tmp/sha256.txt \
+    "https://github.com/bufbuild/buf/releases/download/v1.71.0/sha256.txt"
+(cd /tmp && grep -E "  ${BUF_ASSET}\$" sha256.txt | sha256sum -c -)
+mv "/tmp/${BUF_ASSET}" /usr/local/bin/buf
 chmod +x /usr/local/bin/buf
+rm -f /tmp/sha256.txt
 mkdir -p /usr/share/centreon-engine/proto
 EOF
 
