@@ -1,3 +1,4 @@
+# do-not-merge: transient marker to exercise the unstable artifactory delivery (MON-207928)
 name: "centreon-common"
 arch: "all"
 platform: "linux"
