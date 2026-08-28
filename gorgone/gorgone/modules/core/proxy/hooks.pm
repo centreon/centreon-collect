@@ -59,7 +59,8 @@ use constant EVENTS => [
     { event => 'PONG' },
     { event => 'REGISTERNODES' }, # msg from a poller when authenticating
     { event => 'REGISTERNODESFROMDB' }, # msg from nodes module with a list of node taken from db.
-    { event => 'UNREGISTERNODES' },
+    { event => 'UNREGISTERNODES' }, # sent by the poller on disconnect
+    { event => 'UNREGISTERNODESFROMCENTRAL' }, # sent by the central (nodes or register module at least) to disable a poller identity from connecting.
     { event => 'PROXYADDNODE' },
     { event => 'PROXYDELNODE' },
     { event => 'PROXYADDSUBNODE' },
@@ -181,10 +182,13 @@ sub routing {
     }
 
     if ($options{action} eq 'UNREGISTERNODES') {
+        # This message come from the poller when it exit, nothing to do.
+        return undef;
+    }
+    if ($options{action} eq 'UNREGISTERNODESFROMCENTRAL') {
         unregister_nodes(%options, data => $data);
         return undef;
     }
-
     if ($options{action} eq 'REGISTERNODES') {
         register_nodes(%options, data => $data);
         return undef;

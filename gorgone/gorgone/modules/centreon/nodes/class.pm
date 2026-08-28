@@ -254,7 +254,7 @@ sub action_centreonnodessync {
 
     $self->send_internal_action({ action => 'SETCOREID', data => { id => $core_id, uid => $core_uid } }) if (defined($core_id));
     $self->send_internal_action({ action => 'REGISTERNODESFROMDB', data => { nodes => $register_nodes } });
-    $self->send_internal_action({ action => 'UNREGISTERNODES', data => { nodes => $unregister_nodes } });
+    $self->send_internal_action({ action => 'UNREGISTERNODESFROMCENTRAL', data => { nodes => $unregister_nodes } });
 
     $self->{logger}->writeLogDebug("[nodes] Finish resync");
     $self->send_log(code => GORGONE_ACTION_FINISH_OK, token => $options{token}, data => { message => 'action nodesresync finished' });
