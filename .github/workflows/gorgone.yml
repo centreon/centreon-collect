@@ -456,6 +456,7 @@ jobs:
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(needs.get-environment.outputs.os_and_database_matrix, 'trixie') &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
