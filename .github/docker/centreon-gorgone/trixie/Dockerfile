@@ -273,6 +273,24 @@ RUN echo "=== Verification ===" && \
     perl -c /usr/bin/gorgoned && \
     echo "=== Files verified ==="
 
+# OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
+ARG BUILD_DATE
+ARG BUILD_VERSION=unknown
+ARG PACKAGE_SOURCES=unknown
+ARG GIT_REVISION=unknown
+
+LABEL org.opencontainers.image.title="Centreon Gorgone" \
+      org.opencontainers.image.description="Centreon Gorgone task orchestration and remote execution daemon" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.revision="${GIT_REVISION}" \
+      org.opencontainers.image.source="https://github.com/centreon/centreon-collect" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.vendor="Centreon" \
+      org.centreon.package-sources="${PACKAGE_SOURCES}" \
+      org.centreon.base-image="debian:13-slim" \
+      org.centreon.release-stage="beta"
+
 # Set the working directory
 WORKDIR /etc/centreon-gorgone/
 
@@ -280,7 +298,7 @@ USER centreon-gorgone
 
 # container.d/99-logs.sh touches this file once every startup script has run.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
-    CMD test -f /tmp/docker.ready
+    CMD test -f /tmp/docker.ready || exit 1
 
 ENTRYPOINT ["/usr/local/lib/centreon-gorgone/container.sh"]
 
