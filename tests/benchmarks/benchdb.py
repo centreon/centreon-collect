@@ -30,8 +30,10 @@ Three tables, and the shape is deliberate:
   as the three repetitions of a configuration load. Long format, so a new
   measurement never needs a schema change.
 
-Access goes through Python only: the podman image carries the sqlite3 module but
-no sqlite3 command line tool.
+The podman image carries both the sqlite3 Python module and the sqlite3 command
+line tool, so results can be read either way. ``sqlite3 -readonly -box`` is handy
+for a quick look, and the -readonly matters: the file is in WAL mode and a
+benchmark may be writing to it.
 """
 
 import json
