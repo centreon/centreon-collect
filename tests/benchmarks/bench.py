@@ -23,6 +23,7 @@
     ./bench.py probe --duration 600
     ./bench.py show --label dt-broker
     ./bench.py compare 25.10 dt-broker
+    ./bench.py graph --label dt-broker --x hosts --y cpu_total_s
 
 Results always land in the same SQLite store (``results/bench.db``), so two
 campaigns can be compared months apart, and a run measured on a customer
@@ -109,6 +110,7 @@ examples:
   ./bench.py probe --duration 600                  measure daemons already running
   ./bench.py show --label dt-broker                what a campaign holds
   ./bench.py compare 25.10 dt-broker               the verdict
+  ./bench.py graph --label L --x hosts --y cpu_total_s   how the cost grows
 
 Each command has its own options, and "run" has one group per benchmark:
   ./bench.py run -h        ./bench.py probe -h        ./bench.py compare -h
@@ -1159,6 +1161,315 @@ def _compare_traces(run_a, run_b, args):
     _log(heaptrack_tools.diff(trace_a, trace_b))
 
 
+# ---------------------------------------------------------------------------
+# graph
+# ---------------------------------------------------------------------------
+
+# The targets in the order anyone reads them: the three daemons, then the two
+# aggregates. Whatever else a benchmark invents lands after them, alphabetically.
+_TARGET_ORDER = ("centengine", "central-broker", "central-rrd", "collect",
+                 "machine")
+
+
+def _slug(text: str) -> str:
+    """Turn a label or a metric name into something usable as a file name.
+
+    Args:
+        text (str): the name to clean up.
+
+    Returns:
+        The same name with anything but letters, digits, dot, dash and
+        underscore folded into underscores.
+    """
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", text).strip("_")
+
+
+def _x_value(row, metrics: dict, name: str) -> Optional[float]:
+    """Read the abscissa of a run.
+
+    The parameters come first because that is what a sweep varies -- hosts,
+    services, duration. A metric is accepted too, so that a cost can be plotted
+    against what actually drove it (results_in_window) rather than against the
+    size of the configuration.
+
+    Args:
+        row: the run row.
+        metrics (dict): its scalars, name to (value, unit).
+        name (str): the parameter or metric to read.
+
+    Returns:
+        The value as a float, or None when the run does not carry it or carries
+        something that is not a number.
+    """
+    params = json.loads(row["params_json"] or "{}")
+    if name in params:
+        value = params[name]
+        return float(value) if isinstance(value, (int, float)) else None
+    if name in metrics:
+        return metrics[name][0]
+    return None
+
+
+def _y_columns(metrics: dict, name: str) -> list[str]:
+    """Decide which metrics a --y stands for.
+
+    Metric names are dotted by target, so a bare suffix means "every target that
+    has it" -- which is the useful graph: one curve per daemon plus the
+    aggregates. A dotted name means that one metric and nothing else. A name
+    with no target at all (window_s, cpu_ms_per_result) matches itself.
+
+    Args:
+        metrics (dict): the scalars of one run, name to (value, unit).
+        name (str): what --y asked for.
+
+    Returns:
+        The matching metric names, in no particular order.
+    """
+    if "." in name:
+        return [name] if name in metrics else []
+    found = [n for n in metrics if "." in n and n.rsplit(".", 1)[1] == name]
+    if name in metrics:
+        found.append(name)
+    return found
+
+
+def _sort_columns(columns: list[str]) -> list[str]:
+    """Order the curves the way a reader expects them.
+
+    Args:
+        columns (list): the metric names to plot.
+
+    Returns:
+        The known targets first, in _TARGET_ORDER, then the rest alphabetically.
+    """
+    def key(name):
+        target = name.rsplit(".", 1)[0] if "." in name else ""
+        if target in _TARGET_ORDER:
+            return (0, _TARGET_ORDER.index(target), name)
+        return (1, 0, name)
+    return sorted(columns, key=key)
+
+
+def _cell(value: Optional[float]) -> str:
+    """Format one value for the data file.
+
+    Args:
+        value (float, optional): the number, or None when the run lacks it.
+
+    Returns:
+        Its text, or NaN -- which gnuplot skips instead of drawing a point at
+        zero, so a missing measurement leaves a gap rather than a lie.
+    """
+    return "NaN" if value is None else f"{value:.6g}"
+
+
+def _write_dat(path: str, blocks: list, columns: list[str], x_name: str,
+               source: str):
+    """Write the gnuplot data file.
+
+    One line per run, so repetitions of the same size stay two points and the
+    spread remains visible. One block per label, separated by two blank lines,
+    which is what gnuplot's "index" reads -- more robust than extra columns when
+    two campaigns were not measured at the same sizes.
+
+    Args:
+        path (str): file to write.
+        blocks (list): (label, points) per campaign, points being (x, values).
+        columns (list): the metric names, one per column after the abscissa.
+        x_name (str): name of the abscissa, for the header.
+        source (str): the store the figures come from.
+    """
+    headers = [x_name] + columns
+    widths = [max(len(h), 12) for h in headers]
+    with open(path, "w") as f:
+        f.write(f"# {' and '.join(b[0] for b in blocks)}: "
+                f"{', '.join(columns)} against {x_name}\n")
+        f.write(f"# from {source}\n")
+        for i, (label, points) in enumerate(blocks):
+            if i:
+                # Two blank lines: gnuplot's block separator, read by "index".
+                f.write("\n\n")
+            f.write(f"# index {i}: {label}\n")
+            f.write("# " + "  ".join(h.ljust(w)
+                                     for h, w in zip(headers, widths)) + "\n")
+            for x, values in points:
+                cells = [_cell(x)] + [_cell(values.get(c)) for c in columns]
+                f.write("  ".join(c.ljust(w)
+                                  for c, w in zip(cells, widths)).rstrip() + "\n")
+
+
+def _write_gp(path: str, dat: str, blocks: list, columns: list[str],
+              args, unit: Optional[str]) -> Optional[str]:
+    """Write the gnuplot script that draws the data file.
+
+    Args:
+        path (str): script to write.
+        dat (str): the data file it plots, referred to by base name so the pair
+            can be moved or shared together.
+        blocks (list): (label, points) per campaign.
+        columns (list): the metric names being plotted.
+        args: the parsed command line.
+        unit (str, optional): unit of the plotted metric, for the y label.
+
+    Returns:
+        The image file the script writes, or None for a terminal one.
+    """
+    image = None
+    # Labels and titles come from the command line, so they can hold anything
+    # the shell holds -- accents included.
+    lines = ["set encoding utf8"]
+    if args.terminal == "dumb":
+        # Straight to the terminal: no image, no viewer, works over ssh and in
+        # the container. The size is a terminal's, not a picture's.
+        lines.append("set terminal dumb size 120,35")
+    else:
+        image = os.path.splitext(path)[0] + "." + args.terminal
+        driver = "pngcairo" if args.terminal == "png" else args.terminal
+        # noenhanced, or gnuplot reads the text as LaTeX would: passive_rate
+        # comes out with a subscript r, and every metric name carries one.
+        lines.append(f"set terminal {driver} size 1000,600 noenhanced")
+        lines.append(f"set output '{os.path.basename(image)}'")
+    ylabel = args.y + (f" ({unit})" if unit else "")
+    lines += [
+        f"set title '{_gp_quote(args.title or f'{args.y} vs {args.x}')}'",
+        f"set xlabel '{_gp_quote(args.x)}'",
+        f"set ylabel '{_gp_quote(ylabel)}'",
+        "set grid",
+        "set key outside right",
+    ]
+    if args.logx:
+        lines.append("set logscale x")
+    if args.logy:
+        lines.append("set logscale y")
+    plots = []
+    for i, (label, _) in enumerate(blocks):
+        for j, column in enumerate(columns):
+            # With one campaign, colour tells the targets apart. With two, the
+            # colour becomes the campaign and the point shape the target, so
+            # the same metric of two branches stays tellable apart -- including
+            # in black and white, where only the shape survives.
+            solo = len(blocks) == 1
+            legend = column if solo else f"{label} {column}"
+            plots.append(f"'{os.path.basename(dat)}' index {i} using 1:{j + 2} "
+                         f"with linespoints lc {(j if solo else i) + 1} "
+                         f"pt {j + 1} title '{_gp_quote(legend)}'")
+    lines.append("plot " + ", \\\n     ".join(plots))
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    return image
+
+
+def _gp_quote(text: str) -> str:
+    """Escape a string for a single quoted gnuplot literal.
+
+    Args:
+        text (str): the raw text.
+
+    Returns:
+        The same text with its quotes doubled, which is how gnuplot escapes them.
+    """
+    return text.replace("'", "''")
+
+
+def cmd_graph(args) -> int:
+    """Plot a metric against a parameter, through gnuplot.
+
+    Args:
+        args: the parsed command line.
+
+    Returns:
+        A process exit status.
+    """
+    db = _open_db(args.db)
+    blocks: list = []
+    columns: list[str] = []
+    unit = None
+    kinds, envs = set(), set()
+    for label in args.label:
+        # Only completed runs: one still in flight has no metric at all, and an
+        # aborted one would drop a point in the middle of the curve.
+        rows = [r for r in db.runs(label=label, bench=args.bench)
+                if r["status"] == "ok"
+                and (args.variant is None or r["variant"] == args.variant)]
+        if not rows:
+            narrowed = "".join(
+                f" and {k} '{v}'" for k, v in (("bench", args.bench),
+                                               ("variant", args.variant)) if v)
+            _die(f"no completed run for label '{label}'{narrowed}")
+        points = []
+        for row in rows:
+            metrics = db.metrics(row["id"])
+            x = _x_value(row, metrics, args.x)
+            wanted = _y_columns(metrics, args.y)
+            if x is None or not wanted:
+                continue
+            for name in _sort_columns(wanted):
+                if name not in columns:
+                    columns.append(name)
+                if unit is None:
+                    unit = metrics[name][1]
+            kinds.add((row["bench"], row["variant"]))
+            envs.add((row["container"], row["cpu_count"]))
+            points.append((x, {n: metrics[n][0] for n in wanted}))
+        if not points:
+            keys = sorted(set(json.loads(rows[0]["params_json"] or "{}")))
+            _die(f"label '{label}' has no run carrying both '{args.x}' and "
+                 f"'{args.y}'; parameters of run #{rows[0]['id']} are "
+                 f"{', '.join(keys) or 'none'}, and 'show --run "
+                 f"{rows[0]['id']}' lists its metrics")
+        points.sort(key=lambda p: p[0])
+        blocks.append((label, points))
+
+    if len(kinds) > 1:
+        # The passive and the active profile of the same benchmark are two
+        # different workloads, so --bench alone cannot always narrow this down.
+        listed = ", ".join(f"{b}/{v or '-'}" for b, v in sorted(kinds))
+        _die(f"the selection mixes several benchmarks ({listed}); "
+             f"pass --bench and/or --variant to pick one")
+    if len(envs) > 1:
+        # Same warning as compare: different machines burn CPU at different
+        # rates, and a curve drawn across two of them is not one measurement.
+        _log(f"WARNING: the runs were not all measured in the same environment "
+             f"({len(envs)} distinct container/cpu_count pairs)")
+
+    columns = _sort_columns(columns)
+    default = os.path.join(
+        HERE, "results", "graphs",
+        f"{'_vs_'.join(_slug(x) for x in args.label)}"
+        f"_{_slug(args.x)}_{_slug(args.y)}")
+    out = args.out or default
+    os.makedirs(os.path.dirname(os.path.abspath(out)), mode=0o775,
+                exist_ok=True)
+    dat, gp = out + ".dat", out + ".gp"
+    _write_dat(dat, blocks, columns, args.x, args.db)
+    image = _write_gp(gp, dat, blocks, columns, args, unit)
+    total = sum(len(p) for _, p in blocks)
+    _log(f"{total} point(s), {len(columns)} curve(s) per campaign")
+    _log(f"  data   {dat}")
+    _log(f"  script {gp}")
+    db.close()
+
+    exe = shutil.which("gnuplot")
+    if args.no_plot:
+        return 0
+    if not exe:
+        # Not a failure: the data file is the deliverable, and gnuplot is only
+        # missing from this machine.
+        _log("gnuplot is not installed here; the data file stands on its own, "
+             "and once it is:")
+        _log(f"  cd {os.path.dirname(os.path.abspath(gp))} && "
+             f"gnuplot {os.path.basename(gp)}")
+        return 0
+    proc = subprocess.run([exe, os.path.basename(gp)],
+                          cwd=os.path.dirname(os.path.abspath(gp)),
+                          check=False)
+    if proc.returncode != 0:
+        _die(f"gnuplot failed on {gp}")
+    if image:
+        _log(f"  image  {image}")
+    return 0
+
+
 def cmd_import_csv(args) -> int:
     """Import a CSV written by the retired bench-load.sh.
 
@@ -1453,6 +1764,44 @@ def build_parser() -> argparse.ArgumentParser:
                        help="for alloc runs, also print the per-stack "
                             "difference between the two heaptrack traces")
     p_cmp.set_defaults(func=cmd_compare)
+
+    p_graph = sub.add_parser(
+        "graph",
+        help="plot a metric against a parameter, through gnuplot",
+        description="Write a gnuplot data file and the script that draws it, "
+                    "then run gnuplot when it is installed. --y takes a bare "
+                    "suffix (cpu_total_s) for one curve per target, or a full "
+                    "name (collect.cpu_total_s) for that one alone. --x is a "
+                    "run parameter (hosts, services) or a metric.")
+    p_graph.add_argument("--label", action="append", required=True,
+                         help="campaign to plot; repeat it to overlay two")
+    p_graph.add_argument("--x", required=True,
+                         help="abscissa: a key of the run parameters, else a "
+                              "metric name")
+    p_graph.add_argument("--y", required=True,
+                         help="ordinate: a metric name, dotted or not")
+    p_graph.add_argument("--bench",
+                         help="restrict to one benchmark, needed when the "
+                              "campaign holds several")
+    p_graph.add_argument("--variant",
+                         help="restrict to one variant, e.g. passive -- the "
+                              "profiles of one benchmark are not one curve")
+    p_graph.add_argument("--out",
+                         help="output path without extension (default "
+                              "results/graphs/<label>_<x>_<y>)")
+    p_graph.add_argument("--terminal", default="png",
+                         choices=("png", "svg", "dumb"),
+                         help="what gnuplot draws on; dumb is ASCII on the "
+                              "terminal (default png)")
+    p_graph.add_argument("--title", help="title of the graph")
+    p_graph.add_argument("--logx", action="store_true",
+                         help="logarithmic abscissa, to read a slope")
+    p_graph.add_argument("--logy", action="store_true",
+                         help="logarithmic ordinate")
+    p_graph.add_argument("--no-plot", action="store_true",
+                         help="write the files and stop, without calling "
+                              "gnuplot")
+    p_graph.set_defaults(func=cmd_graph)
 
     p_imp = sub.add_parser("import-csv",
                            help="import a CSV written by the retired "
