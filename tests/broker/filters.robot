@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-
+Test Teardown       Run Keywords    Ctn Kindly Stop Broker  AND  Ctn Save Logs
 
 *** Test Cases ***
 BFC1
@@ -37,8 +37,6 @@ BFC1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
-    Ctn Kindly Stop Broker
-
 BFC2
     [Documentation]    Scenario: Start broker with only invalid filters on an output
     ...   Given Broker is configured with filters "doe", "foo", and "bar" on the unified SQL output
@@ -65,5 +63,4 @@ BFC2
     ...    Filters applied on endpoint:all
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    "Only neb filter should be applied on sql output"
-
-    Ctn Kindly Stop Broker
+    

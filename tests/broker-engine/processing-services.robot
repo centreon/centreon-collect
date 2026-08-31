@@ -6,7 +6,7 @@ Resource    ../resources/import.resource
 Suite Setup    Ctn Clean Before Suite
 Suite Teardown    Ctn Clean After Suite
 Test Setup    Ctn Stop Processes
-Test Teardown    Ctn Save Logs If Failed
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -60,9 +60,6 @@ BEPS1
         END
     END
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
 BEPS2
     [Documentation]
     ...    Given a central broker, a rrd broker and 1 engine instance configured in centralized mode with 20 hosts and 20 services
@@ -114,9 +111,6 @@ BEPS2
             Disconnect From Database
         END
     END
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 
 BEPS3
     [Documentation]
@@ -181,9 +175,6 @@ BEPS3
             Disconnect From Database
         END
     END
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 
 BEPS3R
     [Documentation]
@@ -253,9 +244,6 @@ BEPS3R
         Ctn Start Engine    newGeneration=True
     END
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
 BEPS4
     [Documentation]
     ...    Given a central broker, a rrd broker and 1 engine instance configured in centralized mode with 50 hosts and 20 services
@@ -324,6 +312,3 @@ BEPS4
     FINALLY
         Disconnect From Database
     END
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
