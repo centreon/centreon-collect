@@ -43,6 +43,11 @@ add_custom_command(
       Comment,AdaptiveService,Host,Service,Tag,Instance,HostGroup,ServiceGroup,DimensionBaEvent,DimensionBvEvent 
   VERBATIM)
 
+# protobuf.hh is included by targets all over the tree (lua, http_tsdb, ...),
+# so expose its generation as a target they can depend on.
+add_custom_target(target_cache_protobuf
+                  DEPENDS ${SRC_DIR}/protobuf.cc ${INC_DIR}/protobuf.hh)
+
 add_custom_command(
   OUTPUT ${TEST_DIR}/protobuf_test_classes.cc ${TEST_DIR}/protobuf_test_classes.hh
   COMMENT "Generating protobuf_test_classes.hh and protobuf_test_classes.cc from protobuf files"
@@ -55,7 +60,7 @@ add_custom_command(
 
 target_precompile_headers(global_cache PRIVATE precomp_inc/precomp.hpp)
 add_dependencies(global_cache pb_common_lib pb_header_lib pb_neb_lib pb_bam_lib
-                 process_stat)
+                 process_stat pb_storage_lib target_broker_message)
 set_target_properties(global_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.

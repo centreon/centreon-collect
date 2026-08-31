@@ -376,7 +376,8 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
+add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib
+                 process_stat pb_storage_lib)
 target_include_directories(rokerbase
                            PRIVATE ${PROJECT_SOURCE_DIR}/core
                            ${PROJECT_SOURCE_DIR}/bam/inc)

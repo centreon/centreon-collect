@@ -46,8 +46,8 @@ add_library(
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh")
 add_dependencies(${SIMU} pb_neb_lib pb_header_lib pb_storage_lib pb_bam_lib
-                 process_stat
-                 pb_open_telemetry_lib)
+                 process_stat pb_open_telemetry_lib pb_common_lib
+                 target_broker_message)
 
 target_link_libraries("${SIMU}" PRIVATE ${LUA_LIBRARIES} fmt::fmt)
 target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hpp)
