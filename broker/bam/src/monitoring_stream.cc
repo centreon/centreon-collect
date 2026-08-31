@@ -126,19 +126,21 @@ uint32_t monitoring_stream::stop() {
   _queue_external_commands_stopped = true;
   _logger->info(
       "bam: monitoring_stream - waiting for external commands to be sent");
-  absl::MutexLock l(&_queue_external_commands_m);
-  time_t delay = time(nullptr) - _last_forced_svc_check;
-  if (delay <= 1)
-    delay = 1;
-  else
-    delay = 0;
-  _queue_external_commands_timer.expires_after(std::chrono::seconds(delay));
-  _queue_external_commands_timer.async_wait(
-      [this, &p](const boost::system::error_code& ec) {
-        if (!ec)
-          _async_write_external_commands();
-        p.set_value();
-      });
+  {
+    absl::MutexLock l(&_queue_external_commands_m);
+    time_t delay = time(nullptr) - _last_forced_svc_check;
+    if (delay <= 1)
+      delay = 1;
+    else
+      delay = 0;
+    _queue_external_commands_timer.expires_after(std::chrono::seconds(delay));
+    _queue_external_commands_timer.async_wait(
+        [this, &p](const boost::system::error_code& ec) {
+          if (!ec)
+            _async_write_external_commands();
+          p.set_value();
+        });
+  }
   p.get_future().wait();
 
   /* Now, it is really cancelled. */

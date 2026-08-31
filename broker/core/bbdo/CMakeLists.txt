@@ -33,6 +33,7 @@ add_dependencies(
   process_stat
   pb_open_telemetry_lib
   pb_neb_lib
+  pb_bam_lib
   engine_conf)
 target_precompile_headers(broker_bbdo PRIVATE precomp_inc/precomp.hh)
 
@@ -53,6 +54,7 @@ add_dependencies(
   process_stat
   pb_open_telemetry_lib
   pb_neb_lib
+  pb_bam_lib
   engine_conf)
 target_precompile_headers(cbmod_bbdo PRIVATE precomp_inc/precomp.hh)
 
