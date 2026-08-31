@@ -278,6 +278,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -384,7 +385,7 @@ jobs:
             "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
             "FROM_IMAGE_VERSION=${{ steps.from_image_version.outputs.from_image_version }}"
           pull: true
-          push: true
+          push: ${{ github.event.pull_request.head.repo.fork != true }}
           load: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ steps.docker-tag.outputs.tag }}
 
@@ -482,6 +483,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -571,7 +573,7 @@ jobs:
             "GIT_REVISION=${{ github.event.pull_request.head.sha || github.sha }}"
           platforms: linux/amd64,linux/arm64
           pull: true
-          push: true
+          push: ${{ github.event.pull_request.head.repo.fork != true }}
           # Disabled: BuildKit's own attestation manifests would make this
           # digest diverge from the ghcr.io one docker-push-to-ghcr.sh
           # reconstructs later.
@@ -628,6 +630,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -691,6 +694,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -790,6 +794,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -938,6 +943,7 @@ jobs:
     name: promote centreon-gorgone-${{ matrix.operating_system }} validated tag
     steps:
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
