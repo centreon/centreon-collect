@@ -590,6 +590,22 @@ def ctn_clear_logs():
     os.makedirs(f"{VAR_ROOT}/log/centreon-broker")
 
 
+def ctn_copy_directory_skip_special(source: str, destination: str) -> None:
+    """Recursively copy a directory tree, skipping FIFOs, sockets and other
+    special files (e.g. Engine's rw/centengine.cmd command pipe), which
+    shutil.copytree (used by Robot's "Copy Directory" keyword) would hang or
+    fail on while broker/engine are still running.
+    """
+    for root, _, files in os.walk(source):
+        rel_dir = os.path.relpath(root, source)
+        dst_dir = os.path.join(destination, rel_dir) if rel_dir != "." else destination
+        os.makedirs(dst_dir, exist_ok=True)
+        for name in files:
+            src_path = os.path.join(root, name)
+            if os.path.isfile(src_path):
+                shutil.copy2(src_path, os.path.join(dst_dir, name))
+
+
 def ctn_engine_log_table_duplicate(result: list):
     dup = True
     for i in result:

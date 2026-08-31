@@ -486,10 +486,10 @@ Ctn Save Logs
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     
     IF    os.path.isdir('${BROKER_LIB}/central-broker-master')
-        Copy Directory    ${BROKER_LIB}/central-broker-master    ${failDir}/var/lib/centreon-broker
+        Ctn Copy Directory Skip Special    ${BROKER_LIB}/central-broker-master    ${failDir}/var/lib/centreon-broker
     END
     IF    os.path.isdir('${ENGINE_LIB}')
-        Copy Directory    ${ENGINE_LIB}    ${failDir}/var/lib/centreon-engine
+        Ctn Copy Directory Skip Special    ${ENGINE_LIB}    ${failDir}/var/lib/centreon-engine
     END
     Move Files    /tmp/lua*.log    ${failDir}
     Move Files    /tmp/mariadb.log    ${failDir}
