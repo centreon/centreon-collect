@@ -40,6 +40,20 @@ installed to write their results.
 apt-get update && apt-get install -y heaptrack gdb tzdata sqlite3
 ```
 
+To plot benchmark results, you may need gnuplot. As explained below, you only need
+`gnuplot-nox` to call `bench.py graph` and produce `.png` or `.svg` files but it
+may be useful to install a full gnuplot package if you want to explore the `.dat` and `.gp` files interactively.
+
+Here are two examples to install `gnuplot`:
+
+```bash
+apt-get install gnuplot-nox
+# or
+apt-get install gnuplot-x11
+# or
+apt-get install gnuplot-qt
+```
+
 - `heaptrack` and `gdb` for the allocation benchmark: it attaches to a running centengine, and
   heaptrack injects itself through gdb. `heaptrack_print` comes with the same package.
   `/proc/sys/kernel/yama/ptrace_scope` must be `0`, which it already is in the container.
@@ -50,10 +64,17 @@ apt-get update && apt-get install -y heaptrack gdb tzdata sqlite3
   to see what is in there. Nothing in the benchmarks needs it -- they use the stdlib module --
   so it is a convenience, but a real one.
 
-`gdb` and `tzdata` are already in the image; `heaptrack` and `sqlite3` were added to
-`Dockerfile.debian`, so a freshly built container has all four.
+- `gnuplot`, for `bench.py graph`. Only the drawing needs it: the `.dat` and `.gp` files are
+  written whatever happens, and the command says what to run once gnuplot is there. The
+  `-nox` package is enough -- png, svg and the ASCII terminal need no X11.
 
-**Robot** lives in a virtualenv under `tests/`. To use an existing one:
+`gdb` and `tzdata` are already in the image; `heaptrack`, `sqlite3` and `gnuplot-nox` were added
+to `Dockerfile.debian`, so a freshly built container has all five.
+
+Here is a full example of a container with all the prerequisites installed:
+
+```bash
+**Robot** lives in a virtualenv `robotframework` under `tests/`. To use an existing one:
 
 ```bash
 podman start eloquent_margulis
@@ -701,6 +722,45 @@ not be compared as if they were the same quantity.
 `run` refuses a modified working tree — nobody can reproduce the binary it would have measured.
 Pass `--allow-dirty` when you know what you are doing, and the run is flagged as such.
 
+### Drawing a curve
+
+`compare` answers "did this change help"; `graph` answers "how does the cost grow". It reads the
+store, writes a gnuplot data file and the script that draws it, and runs gnuplot when it is
+installed:
+
+```bash
+# one curve per target: centengine, central-broker, central-rrd, collect
+./bench.py graph --label dt-broker-prog --x hosts --y cpu_total_s --variant passive
+
+# one target only, two campaigns overlaid
+./bench.py graph --label 25.10 --label dt-broker --x hosts --y collect.cpu_total_s --bench load
+
+# a quick look with no image and no viewer, straight in the terminal
+./bench.py graph --label dt-broker-prog --x hosts --y collect.cpu_total_s --terminal dumb
+
+# log-log, to read a slope: a straight line of gradient 1.7 is a cost in N^1.7
+./bench.py graph --label sizes --x services --y cpu_s --logx --logy
+```
+
+`--y` takes a bare suffix, and then every target that carries it becomes a curve -- which is the
+graph worth looking at. Give it a full name (`collect.cpu_total_s`) for that one metric alone.
+`--x` is a run parameter first (`hosts`, `services`, `duration`), a metric otherwise, so a cost
+can be plotted against what actually drove it (`--x results_in_window`) rather than against the
+size of the configuration.
+
+Three things it deliberately does not do:
+
+- **It does not average repetitions.** Three runs at the same size are three points, and the
+  spread stays on the graph. Averaging two measurements that differ by 13 % draws a curve that
+  looks far more solid than the measurement is.
+- **It does not mix benchmarks or variants.** The passive and the active profile are two
+  workloads, not one curve; the command stops and asks for `--bench` and/or `--variant`.
+- **It does not hide a missing figure.** A run lacking the metric writes `NaN`, which gnuplot
+  skips -- a gap in the line, rather than a point at zero that reads as "it cost nothing".
+
+Runs still in flight are left out, since their metrics are only written when they end. Output
+lands in `results/graphs/`, which is git-ignored like the rest of `results/`.
+
 ### Traps, all of them measured
 
 **Comparisons hold only within one machine.** Different CPU counts burn CPU at different rates,
@@ -765,7 +825,7 @@ trusting it.
 
 | file | role |
 |---|---|
-| `bench.py` | the entry point: `list` / `run` / `probe` / `show` / `compare` / `import-csv` / `export` |
+| `bench.py` | the entry point: `list` / `run` / `probe` / `show` / `compare` / `graph` / `import-csv` / `export` |
 | `benchdb.py` | the SQLite store: schema, insertions, queries |
 | `procstat.py` | `/proc` reading: cumulative CPU, RSS, swap, I/O, machine load, cost of a command |
 | `benchenv.py` | what a run must remember of its context: commit, dirty tree, container, usable CPUs |

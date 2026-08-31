@@ -36,33 +36,48 @@ Test Teardown       Ctn Load Bench Teardown
 
 *** Variables ***
 # Overridable from the command line with -v name:value.
-${label}            ${EMPTY}    # defaults to the git branch, like ./bench.py does
-${duration}         600
+${label}                ${EMPTY}    # defaults to the git branch, like ./bench.py does
+${duration}             600
 # Not a round number chosen for comfort: the generated configuration carries
 # max_service_check_spread=5, so Engine spreads its first checks over five minutes and
 # the check rate only reaches its steady state after that. Measured on a 120s window
 # with a 30s warm-up: 50 service checks per minute where the configuration calls for
 # about 200. A shorter warm-up does not make the benchmark noisier, it makes it wrong.
-${warmup}           330
-${interval}         60
-${nb_hosts}         ${50}
-${svc_by_host}      ${20}
+${warmup}               330
+${interval}             60
+${nb_hosts}             ${50}
+${svc_by_host}          ${20}
+
+# Scheduling of the active checks, read by Engine exactly as written here: the rate is
+# services / (check_interval * interval_length) checks per second. The defaults are what
+# Ctn Config Engine already generates, so leaving them alone reproduces every campaign
+# filed so far -- both are applied only when they differ from the default, and rewriting
+# the check_interval of 10000 services is not free.
+${check_interval}       ${5}
+${interval_length}      ${60}
+
+# Active profile only. The generated hosts carry no check_interval of their own, so
+# Engine falls back to its own default of 5 units. That is 1.7 host checks per second at
+# interval_length=60, lost in the noise -- but at interval_length=1 it becomes 100 of
+# them, and the ramp would measure a rate nobody asked for. Turning the host checks off
+# keeps the requested rate the measured one.
+${host_checks}          ${True}
 
 # Passive profile only: results per second. Deliberately not the rate of the active
 # profile -- the two profiles answer different questions, and reading one against the
 # other would be a mistake.
-${passive_rate}     ${20}
+${passive_rate}         ${20}
 
 # Long enough to defeat the libstdc++ small string optimization (15 bytes), with perf
 # data, as a real plugin would produce. A shorter output allocates nothing when copied
 # and would understate every figure.
-${check_output}     OK - CPU usage is 12 percent | cpu=12%;80;90;0;100 mem=45%;70;85;0;100
+${check_output}         OK - CPU usage is 12 percent | cpu=12%;80;90;0;100 mem=45%;70;85;0;100
 
 # Active profile only: the throw-away plugin every command is rewritten to use.
-${bench_plugin}     ${VarRoot}/lib/centreon-engine/bench-check.sh
+${bench_plugin}         ${VarRoot}/lib/centreon-engine/bench-check.sh
 
-${bench_py}         /work/tests/benchmarks/bench.py
-${engine_cfg}       ${EtcRoot}/centreon-engine/config0/centengine.cfg
+${bench_py}             /work/tests/benchmarks/bench.py
+${engine_cfg}           ${EtcRoot}/centreon-engine/config0/centengine.cfg
 
 
 *** Test Cases ***
@@ -141,11 +156,29 @@ Ctn Load Bench Configure
         ${cmds}    Get File    ${EtcRoot}/centreon-engine/config0/commands.cfg
         Should Not Contain    ${cmds}    check.pl
         Should Not Contain    ${cmds}    connector
+        ${checks_on}    Convert To Boolean    ${host_checks}
+        IF    not ${checks_on}    Ctn Set Hosts Passive    ${0}    host_.*
     ELSE
         # No fork at all, so the profile holds only what Engine and the two cbd do with a
         # result. Hosts too: an active host check would fork just as much as a service one.
         Ctn Set Services Passive    ${0}    service_.*
         Ctn Set Hosts Passive    ${0}    host_.*
+    END
+
+    # Scheduling, applied after Ctn Config Engine since it is what writes the files.
+    # Convert To Integer, because -v check_interval:30 hands over the string "30" and a
+    # string compares unequal to every integer, which would apply the rewrite every time.
+    ${ci}    Convert To Integer    ${check_interval}
+    ${il}    Convert To Integer    ${interval_length}
+    IF    ${ci} != ${5}
+        Ctn Engine Config Replace Value In Services    ${0}    service_.*    check_interval    ${ci}
+    END
+    IF    ${il} != ${60}
+        Ctn Engine Config Set Value    ${0}    interval_length    ${il}
+        # interval_length multiplies retention_update_interval too: left alone, a run at
+        # interval_length=1 would rewrite retention.dat every minute, which is CPU the
+        # benchmark never asked to measure.
+        Ctn Engine Config Set Value    ${0}    retention_update_interval    ${86400}
     END
 
     # The default configuration logs every scheduler call (functions=trace) and every
@@ -196,6 +229,9 @@ Ctn Load Bench Measure
     # named argument, so "profile=active" would never reach the probe at all.
     ...    --param    profile\=${profile}    --param    hosts\=${nb_hosts}
     ...    --param    services\=${services}
+    ...    --param    check_interval\=${check_interval}
+    ...    --param    interval_length\=${interval_length}
+    ...    --param    passive_rate\=${passive_rate}
     ...    stdout=/tmp/bench-load-probe.log    stderr=STDOUT
 
     # The passive profile has to keep feeding results for the whole window, warm-up
