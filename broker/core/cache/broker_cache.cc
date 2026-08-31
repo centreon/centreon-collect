@@ -2254,7 +2254,7 @@ void broker_cache::visit_services_of_instance(
   auto& index_svc = _services.get<by_id>();
   auto& host_by_instance = _hosts.get<by_instance>();
   auto range = host_by_instance.equal_range(instance_id);
-  for (auto it = range.first; it != range.second;) {
+  for (auto it = range.first; it != range.second; ++it) {
     uint64_t host_id = (*it)->obj().host_id();
     for (auto svc_iter = index_svc.lower_bound(std::make_pair(host_id, 0));
          svc_iter != index_svc.end() && (*svc_iter)->obj().host_id() == host_id;
