@@ -233,8 +233,8 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
 # (replaces HTTP api_control calls, and grpcurl - grpcurl's only tagged
 # release stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps
 # since March 2025). Unlike grpcurl, buf releases monthly and its binaries
-# are rebuilt with a current Go toolchain each time (v1.71.0 verified
-# locally: built with Go 1.26.4), so downloading it is as fresh as building
+# are rebuilt with a current Go toolchain each time (v1.72.0 verified
+# locally: built with Go 1.26.5), so downloading it is as fresh as building
 # from source - without the multi-minutes-under-QEMU cost of compiling Go
 # for arm64 in CI.
 RUN bash -eo pipefail <<'EOF'
@@ -246,9 +246,9 @@ case "$ARCH" in
 esac
 BUF_ASSET="buf-Linux-${BUF_ARCH}"
 curl -sSLf -o "/tmp/${BUF_ASSET}" \
-    "https://github.com/bufbuild/buf/releases/download/v1.71.0/${BUF_ASSET}"
+    "https://github.com/bufbuild/buf/releases/download/v1.72.0/${BUF_ASSET}"
 curl -sSLf -o /tmp/sha256.txt \
-    "https://github.com/bufbuild/buf/releases/download/v1.71.0/sha256.txt"
+    "https://github.com/bufbuild/buf/releases/download/v1.72.0/sha256.txt"
 (cd /tmp && grep -E "  ${BUF_ASSET}\$" sha256.txt | sha256sum -c -)
 mv "/tmp/${BUF_ASSET}" /usr/local/bin/buf
 chmod +x /usr/local/bin/buf
