@@ -116,25 +116,16 @@ if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Compilation failed|Can't locat
 fi
 summary_step_pass
 
-# buf (used as "buf curl") is built from source per-arch and the copied
-# .proto files must resolve for gRPC-based centengine management to work.
-summary_step_start "buf runs for this architecture"
-echo "=== [boot] Checking buf runs for this architecture ==="
-if ! docker exec "$CONTAINER_NAME" buf --version; then
-  echo "::error::buf --version failed inside the container (binary/arch mismatch?)"
+# grpc-signal.pl (used by the systemctl shim for centengine SignalProcess
+# calls) needs Protocol::HTTP2::Client to be loadable and its own syntax valid.
+summary_step_start "grpc-signal.pl and Protocol::HTTP2::Client are loadable"
+echo "=== [boot] Checking grpc-signal.pl and its Perl dependencies ==="
+if ! docker exec "$CONTAINER_NAME" perl -e 'require Protocol::HTTP2::Client'; then
+  echo "::error::Protocol::HTTP2::Client failed to load inside the container"
   exit 1
 fi
-summary_step_pass
-
-summary_step_start "engine.proto resolves with buf"
-echo "=== [boot] Checking engine.proto resolves with buf ==="
-# engine.proto has a relative import ("process_stat.proto") copied alongside
-# it - "buf build" on the directory parses the whole schema without needing
-# to reach a live gRPC server.
-proto_check=$(docker exec "$CONTAINER_NAME" buf build /usr/share/centreon-engine/proto -o /dev/null 2>&1) || true
-if [ -n "$proto_check" ]; then
-  echo "::error::engine.proto failed to resolve with buf:"
-  echo "$proto_check"
+if ! docker exec "$CONTAINER_NAME" perl -c /usr/local/lib/centreon-gorgone/grpc-signal.pl; then
+  echo "::error::grpc-signal.pl failed its Perl syntax check"
   exit 1
 fi
 summary_step_pass

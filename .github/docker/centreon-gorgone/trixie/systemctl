@@ -4,24 +4,25 @@
 SERVICE="$2"
 ACTION="$1"
 
-BUF_OPTS="--schema /usr/share/centreon-engine/proto --protocol grpc --http2-prior-knowledge"
-ENGINE_GRPC_ADDR="http://${SERVICE}:50155"
+GRPC_SIGNAL="/usr/local/lib/centreon-gorgone/grpc-signal.pl"
+ENGINE_GRPC_PORT=50155
 
 case "$SERVICE" in
   centengine)
     case "$ACTION" in
       reload)
         # RESTART signal = SIGHUP equivalent (config reload, process stays up)
-        buf curl $BUF_OPTS \
-          -d '{"process": "RESTART"}' \
-          "$ENGINE_GRPC_ADDR/com.centreon.engine.Engine/SignalProcess"
+        # EngineSignalProcess{process: RESTART} - proto3 default enum value
+        # (0) is omitted on the wire, so the request body is empty.
+        perl "$GRPC_SIGNAL" "$SERVICE" "$ENGINE_GRPC_PORT" \
+          /com.centreon.engine.Engine/SignalProcess
         exit $?
         ;;
       restart)
         # SHUTDOWN signal — Docker restart:always/unless-stopped brings the container back
-        buf curl $BUF_OPTS \
-          -d '{"process": "SHUTDOWN"}' \
-          "$ENGINE_GRPC_ADDR/com.centreon.engine.Engine/SignalProcess"
+        # EngineSignalProcess{process: SHUTDOWN} -> field 1 (varint) = 1 -> 0x08 0x01
+        perl "$GRPC_SIGNAL" "$SERVICE" "$ENGINE_GRPC_PORT" \
+          /com.centreon.engine.Engine/SignalProcess 0801
         exit $?
         ;;
       *)

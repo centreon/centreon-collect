@@ -171,7 +171,8 @@ apt-get install -y --no-install-recommends \
     wget \
     tzdata \
     ca-certificates \
-    libnetaddr-ip-perl
+    libnetaddr-ip-perl \
+    libprotocol-http2-perl
 apt-get remove -y --purge gnupg
 apt-get autoremove -y
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
@@ -229,39 +230,11 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
-# Install buf (used as "buf curl") for gRPC-based centengine management
-# (replaces HTTP api_control calls, and grpcurl - grpcurl's only tagged
-# release stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps
-# since March 2025). Unlike grpcurl, buf releases monthly and its binaries
-# are rebuilt with a current Go toolchain each time (v1.72.0 verified
-# locally: built with Go 1.26.5), so downloading it is as fresh as building
-# from source - without the multi-minutes-under-QEMU cost of compiling Go
-# for arm64 in CI.
-RUN bash -eo pipefail <<'EOF'
-ARCH=$(dpkg --print-architecture)
-case "$ARCH" in
-    amd64) BUF_ARCH="x86_64" ;;
-    arm64) BUF_ARCH="aarch64" ;;
-    *) echo "Unsupported arch: $ARCH" && exit 1 ;;
-esac
-BUF_ASSET="buf-Linux-${BUF_ARCH}"
-curl -sSLf -o "/tmp/${BUF_ASSET}" \
-    "https://github.com/bufbuild/buf/releases/download/v1.72.0/${BUF_ASSET}"
-curl -sSLf -o /tmp/sha256.txt \
-    "https://github.com/bufbuild/buf/releases/download/v1.72.0/sha256.txt"
-(cd /tmp && grep -E "  ${BUF_ASSET}\$" sha256.txt | sha256sum -c -)
-mv "/tmp/${BUF_ASSET}" /usr/local/bin/buf
-chmod +x /usr/local/bin/buf
-rm -f /tmp/sha256.txt
-mkdir -p /usr/share/centreon-engine/proto
-EOF
-
-# Copy engine proto definitions for buf curl (no reflection API on centengine)
-COPY --link --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
-COPY --link --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
-
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
+# gRPC client for the systemctl shim's centengine SignalProcess call (replaces
+# shelling out to the buf Go binary - see grpc-signal.pl for why).
+COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/grpc-signal.pl /usr/local/lib/centreon-gorgone/grpc-signal.pl
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/entrypoint /usr/local/lib/centreon-gorgone/
 COPY --link --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/centreon /etc/sudoers.d/centreon
 COPY --link --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
