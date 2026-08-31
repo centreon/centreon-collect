@@ -422,10 +422,13 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
       dt->was_started && dt->actual_end_time.is_null() && !dt->was_cancelled;
   bool changed = false;
 
-  /* Only a duplicated *start* may be skipped here: an event that ends the
-   * downtime must always be handled, otherwise the kpi stays in downtime. */
-  if (downtimed && _downtime_ids.contains(dt->internal_id) &&
-      dt->deletion_time.is_null()) {
+  /* Only an event that really ends the downtime may reach the code below: a
+   * plain re-announcement (engine restart re-sends DOWNTIME_ADD for every
+   * still-running downtime) or a duplicated start carries no end information
+   * and must not close the kpi event. */
+  bool ends_downtime = dt->was_cancelled || !dt->actual_end_time.is_null() ||
+                       !dt->deletion_time.is_null();
+  if (!ends_downtime && _downtime_ids.contains(dt->internal_id)) {
     _logger->trace("Downtime {} already handled in this kpi service",
                    dt->internal_id);
     return;
@@ -498,18 +501,23 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                    time_is_undefined(downtime.actual_end_time()) &&
                    !downtime.cancelled();
   bool changed = false;
-  if (!_downtimed && downtimed) {
-    _downtimed = true;
-    changed = true;
-  }
 
-  /* Only a duplicated *start* may be skipped here: an event that ends the
-   * downtime must always be handled, otherwise the kpi stays in downtime. */
-  if (downtimed && _downtime_ids.contains(downtime.id()) &&
-      time_is_undefined(downtime.deletion_time())) {
+  /* Only an event that really ends the downtime may reach the code below: a
+   * plain re-announcement (engine restart re-sends DOWNTIME_ADD for every
+   * still-running downtime) or a duplicated start carries no end information
+   * and must not close the kpi event. */
+  bool ends_downtime = downtime.cancelled() ||
+                       !time_is_undefined(downtime.actual_end_time()) ||
+                       !time_is_undefined(downtime.deletion_time());
+  if (!ends_downtime && _downtime_ids.contains(downtime.id())) {
     _logger->trace("Downtime {} already handled in this kpi service",
                    downtime.id());
     return;
+  }
+
+  if (!_downtimed && downtimed) {
+    _downtimed = true;
+    changed = true;
   }
 
   if (downtimed) {

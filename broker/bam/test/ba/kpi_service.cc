@@ -2314,3 +2314,132 @@ TEST_F(BamBA, KpiServiceAcknowledgementPb) {
 
   _visitor->print_events();
 }
+
+/* On every engine start, send_initial_configuration() -> send_downtimes_list()
+ * re-announces every still-scheduled downtime as NEBTYPE_DOWNTIME_ADD, which
+ * cbmod::add_downtime emits with started=false, cancelled=false,
+ * actual_end_time=-1 and deletion_time=-1. Such an event carries no end
+ * information: it must not close the open in-downtime kpi_event nor drop the
+ * parent BA out of inherited downtime. */
+TEST_F(BamBA, DtAddResentOnEngineRestart) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_impact>(1, 1, 1, true, _logger)};
+  test_ba->set_level_critical(0);
+  test_ba->set_level_warning(50);
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  auto kpi = std::make_shared<bam::kpi_service>(1, 1, 1, 1, "service 1", _logger);
+  kpi->set_impact_critical(100);
+  kpi->set_state_hard(bam::state_critical);
+  kpi->set_state_soft(kpi->get_state_hard());
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+
+  time_t now(time(nullptr));
+
+  auto ss{std::make_shared<neb::service_status>()};
+  ss->host_id = 1;
+  ss->service_id = 1;
+  ss->last_check = now;
+  ss->last_hard_state = 2;
+  kpi->service_update(ss, _visitor.get());
+
+  /* 1. The downtime really starts. */
+  auto dt{std::make_shared<neb::downtime>()};
+  dt->internal_id = 42;
+  dt->host_id = 1;
+  dt->service_id = 1;
+  dt->was_started = true;
+  dt->actual_start_time = now + 1;
+  dt->actual_end_time = -1;
+  dt->deletion_time = -1;
+  dt->was_cancelled = false;
+  kpi->service_update(dt, _visitor.get());
+  ASSERT_TRUE(test_ba->in_downtime()) << "precondition: BA must be in downtime";
+
+  size_t events_before = _visitor->queue().size();
+
+  /* 2. Engine restarts: the SAME still-running downtime is re-announced as
+   *    DOWNTIME_ADD, i.e. exactly what cbmod::add_downtime emits. */
+  auto readd{std::make_shared<neb::downtime>()};
+  readd->internal_id = 42;
+  readd->host_id = 1;
+  readd->service_id = 1;
+  readd->was_started = false;   /* add_downtime: set_started(false)      */
+  readd->actual_start_time = -1;/* add_downtime: set_actual_start_time(-1)*/
+  readd->actual_end_time = -1;  /* add_downtime: set_actual_end_time(-1)  */
+  readd->deletion_time = -1;    /* add_downtime: set_deletion_time(-1)    */
+  readd->was_cancelled = false; /* add_downtime: set_cancelled(false)     */
+  kpi->service_update(readd, _visitor.get());
+
+  auto events = _visitor->queue();
+  std::cout << "=== events emitted by the re-sent DOWNTIME_ADD: "
+            << (events.size() - events_before) << " ===" << std::endl;
+  _visitor->print_events();
+
+  EXPECT_TRUE(test_ba->in_downtime())
+      << "BA left downtime because a plain DOWNTIME_ADD was treated as an end";
+  EXPECT_EQ(events.size(), events_before)
+      << "the re-sent DOWNTIME_ADD split the kpi_event";
+}
+
+TEST_F(BamBA, DtAddResentOnEngineRestartPb) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_impact>(1, 1, 1, true, _logger)};
+  test_ba->set_level_critical(0);
+  test_ba->set_level_warning(50);
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  auto kpi = std::make_shared<bam::kpi_service>(1, 1, 1, 1, "service 1", _logger);
+  kpi->set_impact_critical(100);
+  kpi->set_state_hard(bam::state_critical);
+  kpi->set_state_soft(kpi->get_state_hard());
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+
+  time_t now(time(nullptr));
+
+  auto ss{std::make_shared<neb::service_status>()};
+  ss->host_id = 1;
+  ss->service_id = 1;
+  ss->last_check = now;
+  ss->last_hard_state = 2;
+  kpi->service_update(ss, _visitor.get());
+
+  auto dt{std::make_shared<neb::pb_downtime>()};
+  auto& o = dt->mut_obj();
+  o.set_id(42);
+  o.set_host_id(1);
+  o.set_service_id(1);
+  o.set_started(true);
+  o.set_actual_start_time(now + 1);
+  o.set_actual_end_time(-1);
+  o.set_deletion_time(-1);
+  o.set_cancelled(false);
+  kpi->service_update(dt, _visitor.get());
+  ASSERT_TRUE(test_ba->in_downtime()) << "precondition: BA must be in downtime";
+
+  size_t events_before = _visitor->queue().size();
+
+  auto readd{std::make_shared<neb::pb_downtime>()};
+  auto& r = readd->mut_obj();
+  r.set_id(42);
+  r.set_host_id(1);
+  r.set_service_id(1);
+  r.set_started(false);
+  r.set_actual_start_time(-1);
+  r.set_actual_end_time(-1);
+  r.set_deletion_time(-1);
+  r.set_cancelled(false);
+  kpi->service_update(readd, _visitor.get());
+
+  auto events = _visitor->queue();
+  std::cout << "=== pb: events emitted by the re-sent DOWNTIME_ADD: "
+            << (events.size() - events_before) << " ===" << std::endl;
+  _visitor->print_events();
+
+  EXPECT_TRUE(test_ba->in_downtime())
+      << "BA left downtime because a plain DOWNTIME_ADD was treated as an end";
+  EXPECT_EQ(events.size(), events_before)
+      << "the re-sent DOWNTIME_ADD split the kpi_event";
+}
