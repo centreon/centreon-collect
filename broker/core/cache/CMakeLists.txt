@@ -54,7 +54,8 @@ add_custom_command(
 
 
 target_precompile_headers(global_cache PRIVATE precomp_inc/precomp.hpp)
-add_dependencies(global_cache  pb_common_lib process_stat)
+add_dependencies(global_cache pb_common_lib pb_header_lib pb_neb_lib pb_bam_lib
+                 process_stat)
 set_target_properties(global_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.
@@ -64,6 +65,7 @@ if(WITH_TESTING)
   )
 
   target_precompile_headers(ut_cache REUSE_FROM  global_cache )
+  add_dependencies(ut_cache pb_common_lib pb_header_lib pb_neb_lib pb_bam_lib)
   set_target_properties(ut_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
   set(TESTS_SOURCES
       ${TESTS_SOURCES} 
