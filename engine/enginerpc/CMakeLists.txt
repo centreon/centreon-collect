@@ -73,7 +73,7 @@ add_library(
   "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
 add_dependencies(enginerpc centreon_common process_stat cerpc pb_neb_lib
-                 pb_storage_lib target_state_proto)
+                 pb_storage_lib pb_open_telemetry_lib target_state_proto)
 target_precompile_headers(enginerpc PRIVATE precomp_inc/precomp.hh)
 
 # Prettier name.

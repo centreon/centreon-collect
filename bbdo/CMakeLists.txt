@@ -66,6 +66,7 @@ foreach(name IN LISTS otl_protobuf_files)
   set(proto_file "${name}.proto")
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
+           "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
     COMMENT "Generating interface files of the otl file ${proto_file}"
     #DEPENDS ${CMAKE_BINARY_DIR}/opentelemetry-proto/${proto_file}
     DEPENDS opentelemetry-proto-files

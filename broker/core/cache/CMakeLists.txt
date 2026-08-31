@@ -60,7 +60,8 @@ add_custom_command(
 
 target_precompile_headers(global_cache PRIVATE precomp_inc/precomp.hpp)
 add_dependencies(global_cache pb_common_lib pb_header_lib pb_neb_lib pb_bam_lib
-                 process_stat pb_storage_lib target_broker_message)
+                 process_stat pb_storage_lib pb_open_telemetry_lib
+                 target_broker_message)
 set_target_properties(global_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.

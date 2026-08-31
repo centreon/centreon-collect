@@ -42,8 +42,8 @@ set(CONFLICTMGR
     PARENT_SCOPE)
 add_dependencies(conflictmgr process_stat pb_bbdo_lib pb_neb_lib
                  pb_rebuild_message_lib pb_remove_graph_message_lib
-                 pb_storage_lib table_max_size target_broker_message
-                 target_state_proto)
+                 pb_storage_lib pb_open_telemetry_lib table_max_size
+                 target_broker_message target_state_proto)
 
 set_target_properties(conflictmgr PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(conflictmgr PRIVATE fmt::fmt)
