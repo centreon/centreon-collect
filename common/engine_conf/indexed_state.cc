@@ -74,6 +74,7 @@ indexed_state::indexed_state(const indexed_state& other) {
  * @param state
  */
 void indexed_state::set_state(std::unique_ptr<State>&& state) {
+  absl::MutexLock l(&_state_m);
   _state = std::move(state);
   _index(_state.get());
 }
@@ -94,6 +95,7 @@ void indexed_state::merge_state(const State& state) {
  * @return State* The State object contained in the indexed_state.
  */
 State* indexed_state::release() {
+  absl::MutexLock l(&_state_m);
   State* retval;
   if (_state) {
     _apply_containers();
@@ -108,6 +110,7 @@ State* indexed_state::release() {
  * @brief Reset the indexed_state. The contained State is deleted.
  */
 void indexed_state::reset() {
+  absl::MutexLock l(&_state_m);
   if (_state)
     _state.reset();
   _clear_containers();
@@ -731,6 +734,32 @@ void indexed_state::serialize_to_ostream(std::ostream* os) {
     state->SerializeToOstream(os);
     set_state(std::move(state));
   }
+}
+
+/**
+ * @brief Tell if legacy broker data logging is enabled, ie the
+ * BROKER_LOGGED_DATA event broker option is set and log v2 is enabled.
+ *
+ * @return true if legacy broker data logging should be performed.
+ */
+bool indexed_state::broker_log_data(uint32_t event_broker_options_mask) const {
+  absl::MutexLock l(&_state_m);
+  return _state &&
+         (state().event_broker_options() & event_broker_options_mask) &&
+         state().log_v2_enabled();
+}
+
+bool indexed_state::accept_passive_service_checks() const {
+  absl::MutexLock l(&_state_m);
+  return _state && _state->accept_passive_service_checks();
+}
+
+int32_t indexed_state::external_command_buffer_slots() const {
+  absl::MutexLock l(&_state_m);
+  if (!_state) {
+    return 0;
+  }
+  return _state->external_command_buffer_slots();
 }
 
 }  // namespace com::centreon::engine::configuration
