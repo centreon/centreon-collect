@@ -278,6 +278,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -384,7 +385,7 @@ jobs:
             "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
             "FROM_IMAGE_VERSION=${{ steps.from_image_version.outputs.from_image_version }}"
           pull: true
-          push: true
+          push: ${{ github.event.pull_request.head.repo.fork != true }}
           load: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ steps.docker-tag.outputs.tag }}
 
@@ -456,7 +457,8 @@ jobs:
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability) &&
+      contains(needs.get-environment.outputs.os_and_database_matrix, 'trixie') &&
+      needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -481,6 +483,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -545,6 +548,11 @@ jobs:
           fi
         shell: bash
 
+      - name: Compute build date
+        id: build-date
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
       - name: Docker build and push
         id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -559,9 +567,13 @@ jobs:
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
             "STABILITY=${{ needs.get-environment.outputs.stability }}"
+            "BUILD_DATE=${{ steps.build-date.outputs.date }}"
+            "BUILD_VERSION=${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}-${{ needs.get-environment.outputs.release }}"
+            "PACKAGE_SOURCES=centreon-collect centreon-gorgone (Debian ${{ matrix.operating_system }})"
+            "GIT_REVISION=${{ github.event.pull_request.head.sha || github.sha }}"
           platforms: linux/amd64,linux/arm64
           pull: true
-          push: true
+          push: ${{ github.event.pull_request.head.repo.fork != true }}
           # Disabled: BuildKit's own attestation manifests would make this
           # digest diverge from the ghcr.io one docker-push-to-ghcr.sh
           # reconstructs later.
@@ -618,6 +630,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -641,8 +654,18 @@ jobs:
         env:
           IMAGE: ${{ env.GORGONE_IMAGE }}
           PLATFORM: ${{ matrix.platform }}
+          SUMMARY_FRAGMENT_FILE: /tmp/summary-fragment.md
         run: ./.github/scripts/gorgone-docker-boot-test.sh
         shell: bash
+
+      - name: Upload summary fragment
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-summary-fragment-boot-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/summary-fragment.md
+          retention-days: 1
+          if-no-files-found: ignore
 
       - name: Upload debug artifacts on failure
         if: failure()
@@ -671,6 +694,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
@@ -684,12 +708,207 @@ jobs:
       - name: Run config/wiring test scenarios
         env:
           IMAGE: ${{ env.GORGONE_IMAGE }}
+          SUMMARY_FRAGMENT_FILE: /tmp/summary-fragment.md
         run: ./.github/scripts/gorgone-docker-config-wiring-test.sh
         shell: bash
+
+      - name: Upload summary fragment
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-summary-fragment-wiring-${{ matrix.operating_system }}
+          path: /tmp/summary-fragment.md
+          retention-days: 1
+          if-no-files-found: ignore
 
       - name: Dump compose logs on failure
         if: failure()
         run: docker compose -f .github/docker/centreon-gorgone/docker-compose.config-wiring-test.yml -p gorgone-config-wiring-test logs
+        shell: bash
+
+  docker-test-summary:
+    # Combines the docker-boot-test matrix (2 legs) and docker-config-wiring-test
+    # into ONE Step Summary block. GitHub renders one Step Summary block per job
+    # unconditionally, so merging what several jobs write is only possible from
+    # a downstream job that collects their output - not by changing what each
+    # job writes into its own summary. Keeps docker-boot-test/
+    # docker-config-wiring-test as separate parallel jobs (same speed, same
+    # per-leg pass/fail granularity as distinct PR checks); this job only
+    # affects the Summary tab.
+    needs: [get-environment, docker-boot-test, docker-config-wiring-test]
+    if: |
+      always() &&
+      needs.get-environment.result == 'success' &&
+      (needs.docker-boot-test.result != 'skipped' || needs.docker-config-wiring-test.result != 'skipped')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Download all summary fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: test-summary-fragment-*
+          path: fragments
+        continue-on-error: true
+
+      - name: Combine fragments into one Step Summary
+        run: |
+          {
+            echo "## Docker gorgone test results"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          shopt -s nullglob
+          found=false
+          for frag in fragments/*/summary-fragment.md; do
+            found=true
+            cat "$frag" >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [ "$found" != "true" ]; then
+            echo "_No test summary fragments were found - the boot-test/wiring-test legs may have failed before producing a report; check their individual job logs._" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        shell: bash
+
+  docker-trivy-cves:
+    # Informational CVE scan + SBOM generation via Trivy, in addition to the
+    # build/SBOM provenance attestations (see "Attest build provenance" above
+    # and attest-ghcr-image) which prove supply chain integrity but don't scan
+    # for known vulnerabilities. Non-blocking (exit-code 0) - findings are
+    # surfaced via the job summary and uploaded as artifacts, not gated on.
+    needs: [get-environment, dockerize-image]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-image.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: docker trivy cves centreon-gorgone-${{ matrix.operating_system }}
+    permissions:
+      contents: read
+    env:
+      SCAN_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize-image.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Run Trivy CVE scan (informational)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
+          format: json
+          output: cve-report-centreon-gorgone-${{ matrix.operating_system }}.json
+          exit-code: '0'
+
+      - name: Write CVE summary
+        env:
+          REPORT: cve-report-centreon-gorgone-${{ matrix.operating_system }}.json
+          IMAGE: ${{ env.SCAN_IMAGE }}
+        run: |
+          count_sev() {
+            jq --arg sev "$1" '[.Results[]?.Vulnerabilities[]?] | group_by(.VulnerabilityID) | map(.[0]) | map(select(.Severity==$sev)) | length' "$REPORT"
+          }
+          badge() {
+            echo -n "![${1} ${2}](https://img.shields.io/badge/${1}-${2}-${3})"
+          }
+          critical=$(count_sev CRITICAL)
+          high=$(count_sev HIGH)
+          medium=$(count_sev MEDIUM)
+          low=$(count_sev LOW)
+          unknown=$(count_sev UNKNOWN)
+          {
+            echo "### Trivy CVE scan — centreon-gorgone-${{ matrix.operating_system }}"
+            echo
+            echo "_ignore-unfixed: true — counts below are fixable CVEs only (a fix is available upstream)._"
+            echo
+            echo "\`${IMAGE}\`"
+            echo
+            badge CRITICAL "$critical" 8b0000
+            echo -n ' '
+            badge HIGH "$high" e05d44
+            echo -n ' '
+            badge MEDIUM "$medium" fe7d37
+            echo -n ' '
+            badge LOW "$low" dfb317
+            echo -n ' '
+            badge UNKNOWN "$unknown" 9f9f9f
+            echo
+            echo
+            high_crit=$(( high + critical ))
+            if [ "$high_crit" -eq 0 ]; then
+              echo "No fixable CRITICAL/HIGH vulnerability found. ✅"
+            else
+              echo "**${high_crit} fixable CRITICAL/HIGH unique CVE(s)** — detail below."
+              echo
+              echo "| CVE | Severity | Status | Fixed version | Affected package(s) |"
+              echo "| --- | --- | --- | --- | --- |"
+              jq -r '
+                [.Results[]?.Vulnerabilities[]?] as $vulns |
+                ($vulns | group_by(.VulnerabilityID) | map({
+                  id: .[0].VulnerabilityID,
+                  severity: .[0].Severity,
+                  status: (.[0].Status // "affected"),
+                  fixed: ([.[].FixedVersion] | map(select(. != null and . != "")) | unique | join(", ")),
+                  pkgs: ([.[].PkgName] | unique | join(", "))
+                })) | map(select(.severity=="CRITICAL" or .severity=="HIGH")) | sort_by(.severity) | .[] |
+                "| [\(.id)](https://avd.aquasec.com/nvd/\(.id | ascii_downcase)) | \(.severity) | \(.status) | \(if .fixed == "" then "—" else .fixed end) | \(.pkgs) |"
+              ' "$REPORT"
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+      - name: Upload CVE report artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cve-report-centreon-gorgone-${{ matrix.operating_system }}
+          path: cve-report-*.json
+          retention-days: 30
+
+      - name: Generate SBOM (CycloneDX format)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          format: cyclonedx
+          output: sbom-centreon-gorgone-${{ matrix.operating_system }}-cyclonedx.json
+
+      - name: Generate SBOM (SPDX format)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          format: spdx-json
+          output: sbom-centreon-gorgone-${{ matrix.operating_system }}-spdx.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-centreon-gorgone-${{ matrix.operating_system }}
+          path: sbom-*.json
+          retention-days: 30
+
+      - name: Trivy info message
+        env:
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
+        run: |
+          if [[ "$STABILITY" == "stable" ]]; then
+            echo "::notice::Trivy CVE scan complete (stable build). Review critical/high CVEs above; consider resolving before ghcr.io promotion."
+          else
+            echo "::notice::Trivy CVE scan complete (unstable build). SBOMs uploaded as artifacts for audit trail."
+          fi
         shell: bash
 
   promote-docker-tag:
@@ -701,7 +920,14 @@ jobs:
     # exact image — promote-docker-to-ghcr looks up version_tag on the
     # eventual stable release (a separate, later run), so it must never point
     # at an image whose own container e2e tests failed.
-    needs: [get-environment, dockerize-image, docker-boot-test, docker-config-wiring-test]
+    needs:
+      [
+        get-environment,
+        dockerize-image,
+        docker-boot-test,
+        docker-config-wiring-test,
+        docker-trivy-cves,
+      ]
     if: |
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
@@ -717,6 +943,7 @@ jobs:
     name: promote centreon-gorgone-${{ matrix.operating_system }} validated tag
     steps:
       - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
