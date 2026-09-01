@@ -793,6 +793,7 @@ jobs:
             const trixie_mysql_8_4       = cfg('trixie',   'mysql:8.4');
             const jammy_mariadb_10_11    = cfg('jammy',    'mariadb:10.11');
             const noble_mariadb_10_11    = cfg('noble',    'mariadb:10.11');
+            const alpine_mariadb_11_8    = cfg('alpine',   'mariadb:11.8');
 
             // Fixed weekday -> preferred configuration (0=sunday, 1=monday, ..., 6=saturday)
             const dailyConfigByDayOfWeek = {
@@ -812,7 +813,7 @@ jobs:
               return preferred && configs.includes(preferred) ? preferred : configs[0];
             };
 
-            const configs = [alma10_mysql_8_4, alma9_mariadb_11_8, trixie_mariadb_11_8]
+            const configs = [alma10_mysql_8_4, alma9_mariadb_11_8, trixie_mariadb_11_8, alpine_mariadb_11_8]
             const cmaConfigs = [
               alma10_mariadb_11_8, alma9_mysql_8_0, alma8_mariadb_10_11,
               bookworm_mariadb_10_11, trixie_mysql_8_4,

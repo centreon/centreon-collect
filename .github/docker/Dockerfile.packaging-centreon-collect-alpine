@@ -1,0 +1,104 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/alpine:3.20 AS centreon_collect_packaging
+
+RUN apk add --no-cache \
+    bash \
+    ca-certificates \
+    curl \
+    git \
+    make \
+    perl \
+    sudo \
+    unzip \
+    wget \
+    zip \
+    zstd
+
+# nfpm has no apk repo of its own on Alpine - fetch the upstream static
+# Go binary release directly (same version pinned as the trixie image).
+RUN bash -e <<EOF
+
+ARCH=\$(uname -m)
+if [ "\$ARCH" = "aarch64" ]; then
+  NFPM_ARCH="arm64"
+else
+  NFPM_ARCH="x86_64"
+fi
+
+curl -fsSL -o /tmp/nfpm.tar.gz "https://github.com/goreleaser/nfpm/releases/download/v2.41.1/nfpm_2.41.1_Linux_\${NFPM_ARCH}.tar.gz"
+tar -xzf /tmp/nfpm.tar.gz -C /usr/local/bin nfpm
+chmod +x /usr/local/bin/nfpm
+rm -f /tmp/nfpm.tar.gz
+
+EOF
+
+FROM centreon_collect_packaging AS centreon_collect_packaging_vcpkg
+
+RUN bash -e <<EOF
+
+apk add --no-cache \
+    build-base \
+    cmake \
+    curl-dev \
+    gdb \
+    gnutls-dev \
+    libgcrypt-dev \
+    lua5.4-dev \
+    mariadb-connector-c-dev \
+    musl-dev \
+    openssl \
+    openssl-dev \
+    perl-dev \
+    pkgconf \
+    python3 \
+    rrdtool-dev \
+    samurai \
+    libssh2-dev \
+    strace \
+    zlib-dev
+
+# Alpine has no ninja apk package - samurai is a drop-in, vcpkg/CMake just
+# need a binary named "ninja" on PATH.
+ln -sf "\$(command -v samu)" /usr/local/bin/ninja
+
+EOF
+
+COPY vcpkg.json /root/vcpkg.json
+COPY overlays /overlays
+COPY custom-triplets /custom-triplets
+
+ARG TRIPLET
+
+RUN bash -e <<EOF
+
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  export VCPKG_FORCE_SYSTEM_BINARIES=arm
+fi
+
+git clone --depth 1 -b 2026.05.25 https://github.com/Microsoft/vcpkg.git
+#jobs have to share all cpus of the host but see all cpus
+#so, if we not limit concurrency, each job will start ntotal_cpu+1 gcc
+export VCPKG_MAX_CONCURRENCY=8
+export VCPKG_FORCE_SYSTEM_BINARIES=1
+./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+export VCPKG_ROOT=/vcpkg
+export PATH=\$VCPKG_ROOT:\$PATH
+
+mkdir /src
+cp /root/vcpkg.json /src/vcpkg.json
+
+/vcpkg/vcpkg install \
+  --clean-after-build \
+  --overlay-triplets=custom-triplets \
+  --triplet ${TRIPLET}-release \
+  --vcpkg-root vcpkg \
+  --x-wait-for-lock \
+  --x-manifest-root=/src \
+  --x-install-root=vcpkg_installed \
+  --overlay-ports=overlays
+
+EOF
+
+WORKDIR /src

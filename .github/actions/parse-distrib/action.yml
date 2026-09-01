@@ -107,6 +107,14 @@ runs:
           DISTRIB_FAMILY="ubuntu"
           DISTRIB_NAME="noble"
           REPO_DISTRIB_NAME="noble"
+        elif [[ "$DISTRIB" == "alpine" ]]; then
+          PACKAGE_DISTRIB_SEPARATOR="-"
+          PACKAGE_VERSION_SEPARATOR="-"
+          PACKAGE_DISTRIB_NAME="alpine3.20"
+          PACKAGE_EXTENSION="apk"
+          DISTRIB_FAMILY="alpine"
+          DISTRIB_NAME="alpine"
+          REPO_DISTRIB_NAME="alpine"
         else
           echo "::error::Distrib $DISTRIB cannot be parsed"
           exit 1
