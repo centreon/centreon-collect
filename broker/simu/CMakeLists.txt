@@ -45,9 +45,7 @@ add_library(
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh")
-add_dependencies(${SIMU} pb_neb_lib pb_storage_lib pb_bam_lib
-                 process_stat
-                 pb_open_telemetry_lib)
+add_dependencies(${SIMU} pb_all_libs process_stat)
 
 target_link_libraries("${SIMU}" PRIVATE ${LUA_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hh)

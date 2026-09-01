@@ -42,10 +42,8 @@ set(HEADERS
 
 add_library(http_tsdb STATIC ${SOURCES} ${HEADERS})
 add_dependencies(http_tsdb
-    pb_neb_lib
+    pb_all_libs
     process_stat
-    pb_storage_lib
-    pb_open_telemetry_lib
     )
 target_include_directories(http_tsdb PRIVATE ${INC_DIR})
 

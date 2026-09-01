@@ -91,7 +91,7 @@ add_library(brokerrpc
 )
 
 target_precompile_headers(brokerrpc PRIVATE ../precomp_inc/precomp.hh)
-add_dependencies(brokerrpc pb_broker_lib pb_bam_lib pb_open_telemetry_lib)
+add_dependencies(brokerrpc pb_all_libs)
 
 target_link_libraries(brokerrpc
   PRIVATE

@@ -57,8 +57,7 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase process_stat pb_common_lib table_max_size pb_neb_lib
-                 pb_open_telemetry_lib)
+add_dependencies(nebbase process_stat table_max_size pb_all_libs)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
 target_link_libraries(nebbase PRIVATE pb_neb_lib pb_common_lib
