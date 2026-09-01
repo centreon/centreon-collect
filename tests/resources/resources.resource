@@ -56,6 +56,8 @@ Ctn Clean Before Suite
     Ctn Clear Broker Logs
     Ctn Clear Commands Status
     Ctn Clear Engine White List
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
 
 Ctn Clean Before Test
     [Documentation]    Per-test isolation for suites that run several tests in a
