@@ -809,7 +809,7 @@ void broker_state::_start_watch_engine_conf_timer() {
         if (!ec) {
           _check_last_engine_conf();
           _start_watch_engine_conf_timer();
-        } else {
+        } else if (ec != boost::asio::error::operation_aborted) {
           logger->error("Error in engine configuration watcher: {}",
                         ec.message());
         }
