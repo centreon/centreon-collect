@@ -50,6 +50,7 @@ add_dependencies(http_tsdb
 	pb_header_lib
 	process_stat
 	pb_storage_lib
+	global_cache
 	)
 target_include_directories(http_tsdb PRIVATE ${INC_DIR})
 
