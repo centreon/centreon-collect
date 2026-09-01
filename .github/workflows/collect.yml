@@ -476,7 +476,7 @@ jobs:
       fail-fast: false
       matrix:
         image: [centreon-engine, centreon-broker]
-        distrib: [trixie]
+        distrib: [trixie, alpine]
 
     name: dockerize ${{ matrix.image }}-${{ matrix.distrib }}
 
@@ -492,38 +492,52 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
+
       - name: Restore amd64 packages
         id: restore-amd64
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ./*.deb
-          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+          path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
+          key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
 
+      # Alpine ships amd64 only (no arm64 packages built for it yet).
       - name: Restore arm64 packages
         id: restore-arm64
+        if: matrix.distrib != 'alpine'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ./*.deb
-          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
+          path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
+          key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
 
       - name: Fail if packages cache is missing
-        if: steps.restore-amd64.outputs.cache-hit != 'true' || steps.restore-arm64.outputs.cache-hit != 'true'
+        if: steps.restore-amd64.outputs.cache-hit != 'true' || (matrix.distrib != 'alpine' && steps.restore-arm64.outputs.cache-hit != 'true')
         run: |
-          [[ "${{ steps.restore-amd64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No deb cache for ${{ matrix.distrib }} amd64 — ensure ${{ matrix.distrib }} amd64 is in collect_matrix (get-environment.yml)."
-          [[ "${{ steps.restore-arm64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No deb cache for ${{ matrix.distrib }} arm64 — ensure ${{ matrix.distrib }} arm64 is in collect_matrix (get-environment.yml)."
+          [[ "${{ steps.restore-amd64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No package cache for ${{ matrix.distrib }} amd64 — ensure ${{ matrix.distrib }} amd64 is in collect_matrix (get-environment.yml)."
+          [[ "${{ matrix.distrib }}" != "alpine" && "${{ steps.restore-arm64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No package cache for ${{ matrix.distrib }} arm64 — ensure ${{ matrix.distrib }} arm64 is in collect_matrix (get-environment.yml)."
           exit 1
         shell: bash
 
       - name: Prepare packages directory
+        env:
+          PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
         run: |
           mkdir -p packages-centreon/amd64 packages-centreon/arm64
-          for deb in centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd,connector-perl,connector-ssh}_${{ needs.get-environment.outputs.major_version }}*.deb; do
-            [[ ! -f "$deb" ]] && continue
-            if [[ "$deb" == *_amd64.deb ]]; then
-              mv "$deb" packages-centreon/amd64/
-            elif [[ "$deb" == *_arm64.deb ]]; then
-              mv "$deb" packages-centreon/arm64/
-            fi
+          for pkg in centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd,connector-perl,connector-ssh}_${MAJOR_VERSION}*."$PACKAGE_EXTENSION"; do
+            [[ ! -f "$pkg" ]] && continue
+            # nfpm names apk artifacts with Alpine's arch strings (x86_64/aarch64)
+            # instead of Docker's (amd64/arm64) - match both.
+            case "$pkg" in
+              *_amd64."$PACKAGE_EXTENSION"|*_x86_64."$PACKAGE_EXTENSION")
+                mv "$pkg" packages-centreon/amd64/ ;;
+              *_arm64."$PACKAGE_EXTENSION"|*_aarch64."$PACKAGE_EXTENSION")
+                mv "$pkg" packages-centreon/arm64/ ;;
+            esac
           done
           ls -lhR packages-centreon/
         shell: bash
@@ -590,14 +604,14 @@ jobs:
         with:
           file: .github/docker/${{ matrix.image }}/${{ matrix.distrib }}/Dockerfile
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.distrib == 'alpine' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           build-args: |
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
             "STABILITY=${{ needs.get-environment.outputs.stability }}"
             "BUILD_DATE=${{ steps.build-date.outputs.date }}"
             "BUILD_VERSION=${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}-${{ needs.get-environment.outputs.release }}"
-            "PACKAGE_SOURCES=centreon-collect ${{ matrix.image }} (Debian ${{ matrix.distrib }})"
+            "PACKAGE_SOURCES=centreon-collect ${{ matrix.image }} (${{ matrix.distrib == 'alpine' && 'Alpine' || 'Debian' }} ${{ matrix.distrib }})"
             "GIT_REVISION=${{ github.event.pull_request.head.sha || github.sha }}"
           pull: true
           push: ${{ github.event.pull_request.head.repo.fork != true }}
@@ -647,8 +661,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [trixie]
+        distrib: [trixie, alpine]
         platform: [linux/amd64, linux/arm64]
+        # Alpine ships amd64 only.
+        exclude:
+          - distrib: alpine
+            platform: linux/arm64
     name: docker boot test centreon-engine-${{ matrix.distrib }} (${{ matrix.platform }})
     env:
       ENGINE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-engine-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
@@ -712,7 +730,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [trixie]
+        distrib: [trixie, alpine]
     name: docker config/wiring test centreon-engine-${{ matrix.distrib }}
     env:
       ENGINE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-engine-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
@@ -809,7 +827,7 @@ jobs:
       fail-fast: false
       matrix:
         image: [centreon-engine, centreon-broker]
-        distrib: [trixie]
+        distrib: [trixie, alpine]
     name: docker trivy cves ${{ matrix.image }}-${{ matrix.distrib }}
     permissions:
       contents: read

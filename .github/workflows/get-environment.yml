@@ -848,11 +848,14 @@ jobs:
               cmaMatrix = withArch(cmaMatrix);
             }
 
-            // Ensure trixie amd64+arm64 are packaged when the dockerize-engine-broker job is requested,
-            // otherwise the deb cache it restores does not exist and the job fails.
+            // Ensure trixie amd64+arm64 and alpine amd64 are packaged when the
+            // dockerize-engine-broker job is requested, otherwise the
+            // deb/apk cache it restores does not exist and the job fails.
+            // Alpine has no arm64 leg (not in ARM64_DISTROS above).
             if (wantsDockerCollect) {
               collectMatrix.push({ operating_system: 'trixie', arch: 'amd64' });
               collectMatrix.push({ operating_system: 'trixie', arch: 'arm64' });
+              collectMatrix.push({ operating_system: 'alpine', arch: 'amd64' });
             }
 
             // deduplicate by os+arch (no database dimension needed for build/packaging)
