@@ -273,6 +273,10 @@ BEPS4
     TRY
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=60s    retry_pause=1s
+    EXCEPT    AS    ${error}
+        ${dump}    Query    SELECT * FROM services WHERE enabled = 1
+        Log    Query result dump: ${dump}    level=WARN
+        Fail    ${error}
     FINALLY
         Disconnect From Database
     END
