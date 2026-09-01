@@ -259,7 +259,7 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   auto* res = sent.mutable_result();
   res->set_cmd_id(77);
   res->set_status(1);
-  res->set_stdout("PING OK - Packet loss = 0%");
+  res->set_std_out("PING OK - Packet loss = 0%");
   auto* after_first = res->mutable_after_first_check();
   after_first->set_used_memory(1024);
   after_first->set_nb_opened_fd(5);
@@ -285,7 +285,7 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   ASSERT_TRUE(got.has_result());
   EXPECT_EQ(got.result().cmd_id(), 77u);
   EXPECT_EQ(got.result().status(), 1);
-  EXPECT_EQ(got.result().stdout(), "PING OK - Packet loss = 0%");
+  EXPECT_EQ(got.result().std_out(), "PING OK - Packet loss = 0%");
   EXPECT_EQ(got.result().after_first_check().used_memory(), 1024u);
   EXPECT_EQ(got.result().after_first_check().nb_opened_fd(), 5u);
   EXPECT_EQ(got.result().after_first_check().nb_thread(), 2u);

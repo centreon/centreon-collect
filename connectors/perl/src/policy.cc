@@ -376,7 +376,7 @@ void policy::_from_script_child(std::shared_ptr<script_child> script_chld,
     if (erased > 0) {  // we send result only for known queries not for pending
                        // erased by timeout
       _reporter->send_result(
-          result(res.cmd_id(), res.status(), res.stdout(), res.stderr()));
+          result(res.cmd_id(), res.status(), res.std_out(), res.std_err()));
     }
   } else if (from_script_mess.has_child_end()) {
     _check_child_stats.get<1>().erase(from_script_mess.child_end().pid());

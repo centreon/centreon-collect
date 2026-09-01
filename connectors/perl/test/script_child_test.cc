@@ -237,7 +237,7 @@ TEST_F(ScriptChildTest, OkCheck) {
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().cmd_id(), 1u);
   EXPECT_EQ(_received[0].result().status(), 0);
-  EXPECT_NE(_received[0].result().stdout().find("OK"), std::string::npos);
+  EXPECT_NE(_received[0].result().std_out().find("OK"), std::string::npos);
 }
 
 /**
@@ -318,7 +318,7 @@ TEST_F(ScriptChildTest, CmdIdRoundTrip) {
  * distinct diagnostic to stderr ("STDERR_MARKER"), then calls exit(0).
  * The loader's BEGIN block intercepts exit() and appends "SCRIPT_EXIT_CODE:0\n"
  * to stderr; check_child strips that marker, decodes the exit status, and
- * forwards the remaining stderr text ("STDERR_MARKER") to result.stderr().
+ * forwards the remaining stderr text ("STDERR_MARKER") to result.std_err().
  */
 TEST_F(ScriptChildTest, StdoutAndStderrBothCaptured) {
   _temp_script = write_temp_script(
@@ -337,10 +337,10 @@ TEST_F(ScriptChildTest, StdoutAndStderrBothCaptured) {
   const auto& res = _received[0].result();
   EXPECT_EQ(res.cmd_id(), 70u);
   EXPECT_EQ(res.status(), 0);
-  EXPECT_NE(res.stdout().find("STDOUT_MARKER"), std::string::npos)
-      << "stdout not captured in result.stdout(); got: " << res.stdout();
-  EXPECT_NE(res.stderr().find("STDERR_MARKER"), std::string::npos)
-      << "stderr not captured in result.stderr(); got: " << res.stderr();
+  EXPECT_NE(res.std_out().find("STDOUT_MARKER"), std::string::npos)
+      << "stdout not captured in result.std_out(); got: " << res.std_out();
+  EXPECT_NE(res.std_err().find("STDERR_MARKER"), std::string::npos)
+      << "stderr not captured in result.std_err(); got: " << res.std_err();
 }
 
 // ============================================================
@@ -521,7 +521,7 @@ TEST_F(ScriptChildTest, LargeStdout) {
   absl::MutexLock l(_mu);
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().status(), 0);
-  EXPECT_GE(_received[0].result().stdout().size(), 50000u);
+  EXPECT_GE(_received[0].result().std_out().size(), 50000u);
 }
 
 // ============================================================
@@ -670,7 +670,7 @@ TEST_F(ScriptChildTest, ScriptReceivesMultipleArgs) {
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().cmd_id(), 50u);
   EXPECT_EQ(_received[0].result().status(), 0);
-  const std::string& out = _received[0].result().stdout();
+  const std::string& out = _received[0].result().std_out();
   EXPECT_NE(out.find("--host"), std::string::npos);
   EXPECT_NE(out.find("192.168.1.1"), std::string::npos);
   EXPECT_NE(out.find("--port"), std::string::npos);
@@ -709,9 +709,9 @@ TEST_F(ScriptChildTest, ScriptArgsDifferPerSequentialCall) {
     ASSERT_TRUE(last.has_result());
     EXPECT_EQ(last.result().cmd_id(), 60 + i);
     EXPECT_EQ(last.result().status(), 0);
-    EXPECT_NE(last.result().stdout().find(targets[i]), std::string::npos)
+    EXPECT_NE(last.result().std_out().find(targets[i]), std::string::npos)
         << "Expected '" << targets[i] << "' in stdout for cmd_id=" << 60 + i;
-    EXPECT_EQ(last.result().stdout().find("server-alpha") != std::string::npos,
+    EXPECT_EQ(last.result().std_out().find("server-alpha") != std::string::npos,
               i == 0)
         << "server-alpha should only appear in the first result";
   }

@@ -192,7 +192,7 @@ static void _dir_content_impl(const std::filesystem::path& dir_path,
       break;
 
     for (long pos = 0; pos < nread;) {
-      auto* entry = reinterpret_cast<struct dirent64*>(buf + pos);
+      auto* entry = reinterpret_cast<struct dirent*>(buf + pos);
       pos += entry->d_reclen;
 
       std::string_view name(entry->d_name);

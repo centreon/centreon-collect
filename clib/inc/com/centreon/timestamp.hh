@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <ctime>
 #include <ostream>
+#include <sys/time.h>
 
 namespace com::centreon {
 

@@ -508,7 +508,7 @@ void script_child::_every_second_timer_handler() {
       auto res = timeout_result.mutable_result();
       res->set_cmd_id(timeout_iter->query->execute().cmd_id());
       res->set_status(3);
-      res->set_stderr("(Process Timeout)");
+      res->set_std_err("(Process Timeout)");
       _send_to_main_process(timeout_result);
     }
     timeout_index.erase(timeout_index.begin(), upper_limit);
@@ -834,7 +834,7 @@ void script_child::_on_child_script_end(int pid) {
     auto res = bad_terminate.mutable_result();
     res->set_cmd_id(pending->query->execute().cmd_id());
     res->set_status(3);
-    res->set_stdout(
+    res->set_std_out(
         fmt::format("Process pid:{} died during check execution", pid));
     _send_to_main_process(bad_terminate);
     pid_index.erase(pending);
