@@ -270,16 +270,8 @@ BEPS4
     Ctn Start Engine    newGeneration=True
 
     # Wait for the initial configuration to be processed by broker
-    TRY
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-        Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=60s    retry_pause=1s
-    EXCEPT    AS    ${error}
-        ${dump}    Query    SELECT * FROM services WHERE enabled = 1
-        Log    Query result dump: ${dump}    level=WARN
-        Fail    ${error}
-    FINALLY
-        Disconnect From Database
-    END
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=60s    retry_pause=1s
 
     # Stop broker and delete its prot files to simulate a lost configuration.
     # Engine's state.prot is preserved so engine can send its configuration back.
@@ -299,20 +291,28 @@ BEPS4
     Should Be True    ${result}    Broker should create a prot file from the configuration received from engine
 
     # Verify DB consistency and cache after recovery
-    TRY
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-        Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
-        Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${1000}    retry_timeout=30s    retry_pause=1s
-        ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
-        ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-        ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${1000}
+    Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+    Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+    ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
+    ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
+    ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${1000}
 
-        # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
-        ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
-        ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
-        ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
-        Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
-        Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
-    FINALLY
-        Disconnect From Database
-    END
+    # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
+    ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
+    ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
+    ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
+    Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
+    Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
+
+    [Teardown]    Run Keywords    Ctn Dump Services If Failed    AND    Ctn Stop Engine Broker And Save Logs    AND  Disconnect From Database  
+
+*** Keywords ***
+
+Ctn Dump Services If Failed
+    Run Keyword If Test Failed    Ctn Dump Services
+
+Ctn Dump Services
+    ${dump}    Query    SELECT * FROM services WHERE enabled = 1
+    ${lines}    Evaluate    "\\n".join(str(row) for row in $dump)
+    Log    Query result dump:${lines}    level=WARN    html=True
+
