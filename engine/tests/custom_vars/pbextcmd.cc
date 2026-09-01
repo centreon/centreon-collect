@@ -102,7 +102,7 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   ASSERT_EQ(processed_cmd,
             "/check_icmp -H 127.0.0.1 -n 42 -w 200,20% -c 400,50% user");
 
-  char* msg = strdupa("hst_test;PACKETNUMBER;44");
+  char msg[] = "hst_test;PACKETNUMBER;44";
   cmd_change_object_custom_var(CMD_CHANGE_CUSTOM_HOST_VAR, msg);
   grab_host_macros_r(macros, hst_found->second.get());
   std::string processed_cmd2(
