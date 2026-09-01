@@ -44,6 +44,7 @@ apk add --no-cache \
     gdb \
     gnutls-dev \
     libgcrypt-dev \
+    linux-headers \
     lua5.4-dev \
     mariadb-connector-c-dev \
     musl-dev \
