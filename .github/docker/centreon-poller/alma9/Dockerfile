@@ -35,8 +35,8 @@ fi
 
 dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
 
-usermod -aG centreon-gorgone centreon-engine
-usermod -aG centreon-gorgone centreon-broker
+usermod -aG centreon-engine centreon-gorgone
+usermod -aG centreon-broker centreon-gorgone
 
 systemctl stop gorgoned
 systemctl stop centengine
