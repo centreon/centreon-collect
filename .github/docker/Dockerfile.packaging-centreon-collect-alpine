@@ -2,6 +2,11 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/alpine:3.20 AS centreon_collect_packaging
 
+# GNU tar (not busybox's) is required: actions/cache (and other GitHub
+# Actions tooling) shell out to `tar --posix ...`, a flag busybox's tar
+# applet doesn't understand ("unrecognized option: posix") - it fails
+# silently there without failing the step, so package caching (used by
+# the dockerize job) silently produces an empty/missing cache entry.
 RUN apk add --no-cache \
     bash \
     ca-certificates \
@@ -10,6 +15,7 @@ RUN apk add --no-cache \
     make \
     perl \
     sudo \
+    tar \
     unzip \
     wget \
     zip \
@@ -62,6 +68,16 @@ apk add --no-cache \
 # Alpine has no ninja apk package - samurai is a drop-in, vcpkg/CMake just
 # need a binary named "ninja" on PATH.
 ln -sf "\$(command -v samu)" /usr/local/bin/ninja
+
+# Alpine's lua5.4/lua5.4-dev only ship versioned library symlinks
+# (/usr/lib/lua5.4/liblua5.4.so.X) - by design, so multiple Lua versions
+# can coexist without colliding, with pkg-config as the intended discovery
+# path. CMake's find_package(Lua) isn't pkg-config-aware though; it looks
+# for a plain unversioned liblua5.4.so via find_library(), which doesn't
+# exist here. Without it, LUA_LIBRARIES silently resolves empty (no
+# CMake error - find_package(Lua) still succeeds off the header alone),
+# and every Lua C API symbol ends up undefined at final link time instead.
+ln -sf /usr/lib/lua5.4/liblua5.4.so.* /usr/lib/liblua5.4.so
 
 EOF
 
