@@ -78,8 +78,13 @@ RUN addgroup -g 33 www-data 2>/dev/null || true && \
 # check_snmp) on its own; Perl-based plugins that depend on those 3 missing
 # CPAN XS modules will not work until an Alpine apk repo/build path exists
 # for them.
+#
+# check_snmp itself doesn't link net-snmp - it execs the snmpget/snmpbulkget
+# CLI tools as a subprocess (confirmed against a real SNMP target: without
+# net-snmp-tools it fails with "External command error", exit code 3).
 RUN apk add --no-cache \
     monitoring-plugins \
+    net-snmp-tools \
     libcap-utils \
     libgcc \
     libstdc++ \
