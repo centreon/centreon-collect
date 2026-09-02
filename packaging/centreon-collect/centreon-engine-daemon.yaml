@@ -85,6 +85,10 @@ contents:
     dst: "/usr/lib/"
     packager: deb
 
+  - src: "../../build/broker/neb/cbmod.so"
+    dst: "/usr/lib/"
+    packager: apk
+
   - src: "../../build/engine/centenginestats"
     dst: "/usr/sbin/centenginestats"
 

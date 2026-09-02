@@ -23,6 +23,10 @@ contents:
     dst: "/usr/lib/debug/usr/lib/"
     packager: deb
 
+  - src: "../../build/clib/libcentreon_clib.so.debug"
+    dst: "/usr/lib/debug/usr/lib/"
+    packager: apk
+
 overrides:
   rpm:
     depends:

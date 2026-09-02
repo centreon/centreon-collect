@@ -61,6 +61,8 @@ RUN addgroup -g 900 centreon && \
 RUN apk add --no-cache \
     python3 \
     py3-pip \
+    libgcc \
+    libstdc++ \
     mariadb-connector-c \
     rrdtool \
     gnutls \
@@ -119,8 +121,8 @@ RUN set -e; \
     test -f /usr/sbin/cbwd; \
     ls /usr/share/centreon/lib/centreon-broker/*.so >/dev/null; \
     ls /etc/centreon-broker/*.json >/dev/null; \
-    ! ldd /usr/sbin/cbd | grep -q "not found"; \
-    ! ldd /usr/sbin/cbwd | grep -q "not found"
+    ! ldd /usr/sbin/cbd 2>&1 | grep -qE "not found|Error loading shared library|Error relocating"; \
+    ! ldd /usr/sbin/cbwd 2>&1 | grep -qE "not found|Error loading shared library|Error relocating"
 
 # Pre-install Python API dependencies at build time (10-15s startup improvement)
 RUN python3 -m venv /opt/centreon/venv && \

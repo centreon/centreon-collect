@@ -81,6 +81,8 @@ RUN addgroup -g 33 www-data 2>/dev/null || true && \
 RUN apk add --no-cache \
     monitoring-plugins \
     libcap-utils \
+    libgcc \
+    libstdc++ \
     mariadb-connector-c \
     gnutls \
     lua5.4-libs \
@@ -153,11 +155,14 @@ COPY --chmod=755 --chown=centreon-engine:centreon-engine \
 COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d/centreon
 
 # Verify critical runtime files, including that the dynamic linker can
-# actually resolve centengine's shared libs.
+# actually resolve centengine's shared libs. musl's ldd/dynamic linker
+# reports unresolved libs differently from glibc's ("Error loading shared
+# library ...: No such file or directory" rather than "=> not found") -
+# match both patterns.
 RUN set -e; \
     test -f /usr/sbin/centengine; \
     test -d /etc/centreon-engine/; \
-    ! ldd /usr/sbin/centengine | grep -q "not found"
+    ! ldd /usr/sbin/centengine 2>&1 | grep -qE "not found|Error loading shared library|Error relocating"
 
 # OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
 ARG BUILD_DATE

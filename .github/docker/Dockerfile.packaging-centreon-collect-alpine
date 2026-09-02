@@ -69,15 +69,19 @@ apk add --no-cache \
 # need a binary named "ninja" on PATH.
 ln -sf "\$(command -v samu)" /usr/local/bin/ninja
 
-# Alpine's lua5.4/lua5.4-dev only ship versioned library symlinks
-# (/usr/lib/lua5.4/liblua5.4.so.X) - by design, so multiple Lua versions
-# can coexist without colliding, with pkg-config as the intended discovery
-# path. CMake's find_package(Lua) isn't pkg-config-aware though; it looks
-# for a plain unversioned liblua5.4.so via find_library(), which doesn't
-# exist here. Without it, LUA_LIBRARIES silently resolves empty (no
-# CMake error - find_package(Lua) still succeeds off the header alone),
-# and every Lua C API symbol ends up undefined at final link time instead.
-ln -sf /usr/lib/lua5.4/liblua5.4.so.* /usr/lib/liblua5.4.so
+# Alpine's lua5.4-dev ships its library as /usr/lib/lua5.4/liblua.so(.a)
+# - unversioned in name, but tucked in a version-numbered subdirectory
+# (so multiple Lua versions can coexist), with pkg-config as the intended
+# discovery path. CMake's find_package(Lua) isn't pkg-config-aware
+# though: find_library() only searches standard lib dirs for names like
+# "lua5.4"/"lua", so it finds neither. That failure is silent - no CMake
+# error, find_package(Lua) still "succeeds" off the header alone - and
+# every Lua C API symbol ends up undefined at final link time instead.
+# Alias both name variants CMake's FindLua.cmake tries into /usr/lib.
+ln -sf lua5.4/liblua.so /usr/lib/liblua5.4.so
+ln -sf lua5.4/liblua.a  /usr/lib/liblua5.4.a
+ln -sf lua5.4/liblua.so /usr/lib/liblua.so
+ln -sf lua5.4/liblua.a  /usr/lib/liblua.a
 
 EOF
 
