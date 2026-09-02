@@ -15,6 +15,7 @@
  *
  * For more information : contact@centreon.com
  */
+#include <cstdint>
 #include <dirent.h>
 
 #include "absl/strings/numbers.h"
@@ -22,6 +23,26 @@
 #include "file_system.hh"
 
 namespace com::centreon::common {
+
+namespace {
+// Layout of the Linux kernel's getdents64(2) raw syscall result - this is
+// a fixed kernel ABI, independent of any libc. It must NOT be aliased to
+// libc's struct dirent/dirent64: glibc's plain struct dirent has a
+// different layout (its d_off/d_reclen fields don't line up with the raw
+// syscall buffer), which silently misparses d_reclen and walks the buffer
+// out of alignment - corrupting the heap only detected much later (e.g.
+// "double free or corruption" at an unrelated point). glibc's own
+// struct dirent64 happens to match this exactly, but relying on that
+// libc-specific type is what broke on musl (which doesn't define it), so
+// define the kernel layout locally instead - correct and portable on both.
+struct linux_dirent64 {
+  uint64_t d_ino;
+  int64_t d_off;
+  unsigned short d_reclen;
+  unsigned char d_type;
+  char d_name[];
+};
+}  // namespace
 
 /**
  * @brief Reads the content of a text file and returns it in an std::string.
@@ -192,7 +213,7 @@ static void _dir_content_impl(const std::filesystem::path& dir_path,
       break;
 
     for (long pos = 0; pos < nread;) {
-      auto* entry = reinterpret_cast<struct dirent*>(buf + pos);
+      auto* entry = reinterpret_cast<struct linux_dirent64*>(buf + pos);
       pos += entry->d_reclen;
 
       std::string_view name(entry->d_name);
