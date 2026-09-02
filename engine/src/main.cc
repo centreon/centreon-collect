@@ -345,11 +345,26 @@ int main(int argc, char* argv[]) {
           bool proto_valid = false;
           if (!proto_conf.empty()) {
             std::filesystem::path proto_conf_file(proto_conf / "state.prot");
-            std::ifstream ifs(proto_conf_file);
-            if (ifs.good()) {
-              new_conf->ParseFromIstream(&ifs);
-              ifs.close();
-              proto_valid = true;
+            std::error_code ec;
+            if (std::filesystem::exists(proto_conf_file, ec)) {
+              std::ifstream ifs(proto_conf_file);
+              if (ifs.good()) {
+                proto_valid = new_conf->ParseFromIstream(&ifs);
+                if (!proto_valid) {
+                  std::cerr << time(nullptr) << ": can't decode "
+                            << proto_conf_file << " => not loaded" << std::endl;
+                } else {
+                  std::cout << time(nullptr) << ": " << proto_conf_file
+                            << " loaded" << std::endl;
+                }
+                ifs.close();
+              } else {
+                std::cerr << time(nullptr) << ": can't load " << proto_conf_file
+                          << " : " << strerror(errno) << std::endl;
+              }
+            } else {
+              std::cout << time(nullptr) << ": " << proto_conf_file
+                        << " does not exist" << std::endl;
             }
           }
           if (!proto_valid) {
