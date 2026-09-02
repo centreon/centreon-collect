@@ -417,9 +417,9 @@ def ctn_run_env():
     try:
         with open('/proc/1/environ', 'r') as f:
             d = f.read()
-            logger.console(d)
+            # logger.console(d)
             arr = d.split("\x00")
-            logger.console(arr)
+            # logger.console(arr)
             arr = [l for l in arr if 'container' in l]
             if len(arr) != 0:
                 ctn = arr[0].split('=')[1]
@@ -598,7 +598,8 @@ def ctn_copy_directory_skip_special(source: str, destination: str) -> None:
     """
     for root, _, files in os.walk(source):
         rel_dir = os.path.relpath(root, source)
-        dst_dir = os.path.join(destination, rel_dir) if rel_dir != "." else destination
+        dst_dir = os.path.join(
+            destination, rel_dir) if rel_dir != "." else destination
         os.makedirs(dst_dir, exist_ok=True)
         for name in files:
             src_path = os.path.join(root, name)

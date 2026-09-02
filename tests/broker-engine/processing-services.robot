@@ -193,6 +193,7 @@ BEPS3R
     Ctn Config BBDO3    ${5}
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    config    trace
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
@@ -219,6 +220,12 @@ BEPS3R
             ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
             ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
             Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
+
+            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs1_flat)
+            Log    pairs1_flat:${lines}    level=WARN
+            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs_cache_sorted)
+            Log    pairs_cache_sorted:${lines}    level=WARN
+
             Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
 
             # Let's check the poller ID is consistent between the database and the cache for each host owning services.
