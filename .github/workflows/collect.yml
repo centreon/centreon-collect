@@ -198,7 +198,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 8 --ulimit core=-1 --privileged
+      options: --cpus 4 --ulimit core=-1 --privileged
       env:
         AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
         AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
