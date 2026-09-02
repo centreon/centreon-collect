@@ -69,7 +69,7 @@ luabinding::luabinding(std::string const& lua_script,
 
   try {
     static absl::Mutex _init_mut;
-    absl::MutexLock l(&_init_mut);
+    absl::MutexLock l(_init_mut);
     _load_script(lua_script);
     _init_script(conf_params);
   } catch (std::exception const& e) {

@@ -50,6 +50,9 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
+const std::string db_user = "root";
+const std::string db_password = "centreon";
+
 class DatabaseStorageTest : public ::testing::Test {
  public:
   void SetUp() override {
@@ -65,8 +68,8 @@ class DatabaseStorageTest : public ::testing::Test {
 // When there is no database
 // Then the mysql creation throws an exception
 TEST_F(DatabaseStorageTest, NoDatabase) {
-  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 9876, "root",
-                         "centreon", "centreon_storage");
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 9876, db_user,
+                         db_password, "centreon_storage");
   std::unique_ptr<mysql> ms;
   ASSERT_THROW(ms.reset(new mysql(db_cfg, log_v2::instance().get(log_v2::SQL))),
                msg_fmt);
@@ -76,8 +79,8 @@ TEST_F(DatabaseStorageTest, NoDatabase) {
 // And when the connection is well done
 // Then no exception is thrown and the mysql object is well built.
 TEST_F(DatabaseStorageTest, ConnectionOk) {
-  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
-                         "centreon", "centreon_storage");
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, db_user,
+                         db_password, "centreon_storage");
   std::unique_ptr<mysql> ms;
   ASSERT_NO_THROW(ms = std::make_unique<mysql>(
                       db_cfg, log_v2::instance().get(log_v2::SQL)));
@@ -1496,8 +1499,8 @@ TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
 // Then we can bind values to it and execute the statement.
 // Then a commit makes data available in the database.
 TEST_F(DatabaseStorageTest, LastInsertId) {
-  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
-                         "centreon", "centreon_storage", 5, true, 5);
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, db_user,
+                         db_password, "centreon_storage", 5, true, 5);
   time_t now = time(nullptr);
   std::string query(
       fmt::format("INSERT INTO metrics"
