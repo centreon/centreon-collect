@@ -31,8 +31,8 @@ message Result {
     uint64 cmd_id = 1;
     int64 pid = 2;
     int32 status = 3;
-    string stdout = 4;
-    string stderr = 5;
+    string std_out = 4;
+    string std_err = 5;
     CheckChildStatistics after_first_check = 6;
     CheckChildStatistics after_last_check = 7;
 }

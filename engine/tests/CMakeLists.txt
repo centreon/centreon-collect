@@ -167,6 +167,10 @@ if(WITH_TESTING)
       "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/timeperiod/utils.hh")
   add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+  # utils.cc includes common/engine_conf/timeperiod_helper.hh, which pulls in
+  # the generated state.pb.h - without this, ninja has no edge forcing
+  # target_state_proto to run before this target compiles on a clean build.
+  add_dependencies(ut_engine_utils target_state_proto)
   target_link_libraries(ut_engine_utils PRIVATE dl)
   add_executable(ut_engine ${ut_sources})
   target_include_directories(

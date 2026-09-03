@@ -69,12 +69,18 @@ void handle::_close() {
       bool (*code)();
       void* data;
     } sym;
+    // dlerror() reports the error for the *last* failed dl*() call, not
+    // necessarily this one - e.g. load_file()'s dlsym() lookup of the
+    // (usually absent) parents_list symbol leaves a stale, unconsumed
+    // error behind for every module with no parents. Clear it first so
+    // the check below reflects this dlsym() call, not a leftover one.
+    dlerror();
     sym.data = dlsym(_handle, deinitialization);
 
     bool can_unload = true;
     // Could not find deinitialization routine.
-    char const* error_str{dlerror()};
-    if (error_str) {
+    if (!sym.data) {
+      char const* error_str{dlerror()};
       _logger->info(
           "modules: could not find deinitialization routine in '{}': {}",
           _filename, error_str);

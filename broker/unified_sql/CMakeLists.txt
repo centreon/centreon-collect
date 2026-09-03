@@ -61,6 +61,7 @@ add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
                  pb_remove_graph_message_lib
                   process_stat
                  pb_neb_lib
+                 pb_broker_lib
                  pb_open_telemetry_lib)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(

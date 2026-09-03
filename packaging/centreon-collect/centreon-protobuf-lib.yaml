@@ -24,6 +24,10 @@ contents:
     dst: "/usr/lib/"
     packager: deb
 
+  - src: "../../build/bbdo/libcentreon_pb_bbdo.so"
+    dst: "/usr/lib/"
+    packager: apk
+
   - src: "../../build/common/engine_conf/libcentreon_engine_conf.so"
     dst: "/usr/lib64/"
     packager: rpm
@@ -31,6 +35,10 @@ contents:
   - src: "../../build/common/engine_conf/libcentreon_engine_conf.so"
     dst: "/usr/lib/"
     packager: deb
+
+  - src: "../../build/common/engine_conf/libcentreon_engine_conf.so"
+    dst: "/usr/lib/"
+    packager: apk
 
 rpm:
   summary: Centreon protobuf object libraries.

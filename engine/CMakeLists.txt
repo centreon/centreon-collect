@@ -499,7 +499,14 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
 
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib)
+# centenginestats.cc pulls in notifier.hh, which includes the generated
+# bbdo/neb.pb.h and (via contactgroup.hh -> contactgroup_helper.hh ->
+# message_helper.hh) the generated common/engine_conf/state.pb.h - without
+# these, ninja has no edge forcing pb_neb_lib's protoc generation or
+# target_state_proto to run before this target compiles, a race that only
+# some build-graph schedulings expose (see cce_core's identical
+# dependencies below, added for the same headers).
+add_dependencies(centenginestats centreon_clib pb_neb_lib target_state_proto)
 target_link_libraries(centenginestats PRIVATE centreon_clib fmt::fmt absl::log absl::base absl::log_internal_check_op)
 
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})

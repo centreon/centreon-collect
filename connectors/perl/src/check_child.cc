@@ -252,7 +252,7 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
           if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR)) {
             nb_read = ::read(stdout_pipe_fd[0], buffer, sizeof(buffer));
             if (nb_read > 0) {
-              res->mutable_stdout()->append(buffer, nb_read);
+              res->mutable_std_out()->append(buffer, nb_read);
               stdout_received = true;
             }
           }
@@ -280,7 +280,7 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
               re2::RE2::Replace(&to_clean, exit_code_pattern, "");
               re2::RE2::Replace(&to_clean, exit_code_pattern_without_exit_code,
                                 "");
-              res->mutable_stderr()->append(to_clean);
+              res->mutable_std_err()->append(to_clean);
               stderr_received = true;
             }
           }
@@ -288,10 +288,10 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         if (!status_decoded) {
           SPDLOG_LOGGER_ERROR(
               _logger, "pid: {} fail to decode status stderr: {} stdout: {}",
-              getpid(), common::ascii_hex_dump(res->stderr()),
-              common::ascii_hex_dump(res->stdout()));
+              getpid(), common::ascii_hex_dump(res->std_err()),
+              common::ascii_hex_dump(res->std_out()));
           res->set_status(3);  // UNKNOWN
-          res->set_stdout("script status no decoded " + res->stdout());
+          res->set_std_out("script status no decoded " + res->std_out());
         }
         load new_load = measure_load();
         if (!_after_first_check_load) {

@@ -42,10 +42,11 @@ set(CONFLICTMGR
     PARENT_SCOPE)
 add_dependencies(conflictmgr
 	process_stat
+	pb_broker_lib
 	)
 
 set_target_properties(conflictmgr PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(conflictmgr PRIVATE fmt::fmt)
+target_link_libraries(conflictmgr PRIVATE centreon_pb_bbdo fmt::fmt)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
 
 # Storage module.

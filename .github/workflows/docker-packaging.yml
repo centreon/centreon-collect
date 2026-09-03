@@ -62,6 +62,8 @@ jobs:
             distrib: noble
           - runner: centreon-collect-arm64
             distrib: noble
+          - runner: centreon-collect
+            distrib: alpine
 
     runs-on: ${{ matrix.runner }}
 

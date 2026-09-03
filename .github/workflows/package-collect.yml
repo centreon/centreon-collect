@@ -146,14 +146,15 @@ jobs:
           done
         shell: bash
 
-      - name: Remove selinux packaging files on debian
-        if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' }}
+      - name: Remove selinux packaging files on debian/alpine
+        if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' || steps.parse-distrib.outputs.package_extension == 'apk' }}
         run: rm -f packaging/centreon-*/*-selinux.yaml
         shell: bash
 
       - name: Compile sources
         env:
           PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
+          DISTRIB_FAMILY: ${{ steps.parse-distrib.outputs.distrib_family }}
           ARCH: ${{ inputs.arch }}
           LEGACY_ENGINE: ${{ inputs.legacy_engine }}
         run: |
@@ -173,6 +174,15 @@ jobs:
 
           mv /root/.cache /github/home/
 
+          # Alpine has no systemd - use a plain sysv-style startup script
+          # instead (accepted by both engine/CMakeLists.txt and
+          # broker/CMakeLists.txt's WITH_STARTUP_SCRIPT validation).
+          if [ "$DISTRIB_FAMILY" = "alpine" ]; then
+            STARTUP_SCRIPT="sysv"
+          else
+            STARTUP_SCRIPT="systemd"
+          fi
+
           $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
@@ -184,7 +194,7 @@ jobs:
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
                   -DCMAKE_INSTALL_PREFIX=/usr \
-                  -DWITH_STARTUP_SCRIPT=systemd \
+                  -DWITH_STARTUP_SCRIPT=$STARTUP_SCRIPT \
                   -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
                   -DWITH_USER_BROKER=centreon-broker \
                   -DWITH_GROUP_BROKER=centreon-broker \

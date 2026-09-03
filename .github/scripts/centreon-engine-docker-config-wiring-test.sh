@@ -29,6 +29,19 @@ LOG_FILE=/tmp/centreon-engine-config-wiring-test.log
 : > "$LOG_FILE"
 READY_TIMEOUT="${READY_TIMEOUT:-60}"
 
+# The custom-deps.json/plugins.json scenarios below drive apt/dpkg-query
+# directly - they don't apply to the Alpine image, which has no apt-based
+# dynamic plugin install path yet (see the "KNOWN GAP" comment in
+# .github/docker/centreon-engine/alpine/Dockerfile). Detect that once up
+# front and skip those scenarios instead of letting them fail on a missing
+# dpkg-query - with `set -e` they'd otherwise abort the whole script before
+# ever reaching the wiring scenarios below, which are the ones that matter.
+HAS_APT=true
+if ! docker run --rm --entrypoint sh "$IMAGE" -c 'command -v apt-get' > /dev/null 2>&1; then
+  HAS_APT=false
+  echo "NOTE: $IMAGE has no apt-get - skipping the custom-deps.json/plugins.json scenarios for this image."
+fi
+
 # buf (used as "buf curl") is a build tool for the *test runner*, not the
 # image under test - same tool .github/docker/centreon-gorgone/trixie/Dockerfile
 # uses for the same purpose (see rationale there: buf releases monthly with
@@ -130,6 +143,8 @@ create_with_configs() {
   docker start "$container" > /dev/null
 }
 
+if [ "$HAS_APT" = "true" ]; then
+
 summary_step_start "custom-deps.json installs a plain valid apt package"
 echo "=== [config:custom-deps-install] custom-deps.json installs a plain valid apt package ==="
 deps_file=$(mktemp); TMPFILES+=("$deps_file")
@@ -209,6 +224,8 @@ if docker logs centreon-engine-cfg-skip-$$ 2>&1 | grep -q "Installing plugins fr
 fi
 echo "OK: plugins.json correctly skipped an already up-to-date package."
 summary_step_pass
+
+fi # HAS_APT
 
 summary_step_start "Custom plugin volume mount is usable"
 echo "=== [config:custom-plugins-volume] a script mounted at /usr/lib/nagios/plugins/custom is usable ==="
