@@ -56,6 +56,7 @@ apk add --no-cache \
     musl-dev \
     openssl \
     openssl-dev \
+    perl-app-cpanminus \
     perl-dev \
     pkgconf \
     python3 \
@@ -82,6 +83,15 @@ ln -sf lua5.4/liblua.so /usr/lib/liblua5.4.so
 ln -sf lua5.4/liblua.a  /usr/lib/liblua5.4.a
 ln -sf lua5.4/liblua.so /usr/lib/liblua.so
 ln -sf lua5.4/liblua.a  /usr/lib/liblua.a
+
+# common/http/test/vault_test.cc shells out to tests/vault/vault-server.pl,
+# a local mock HTTPS server used to exercise the real TLS client code path
+# end-to-end (rather than mocking it). It needs HTTP::Daemon::SSL and JSON,
+# neither of which Alpine's apk repos carry at all (checked both main and
+# community) - install via cpanm instead. This is a build-time-only need
+# for WITH_TESTING=On unit-test runs, unrelated to the openssl/openssl-dev
+# already installed for the actual product build.
+cpanm --notest HTTP::Daemon::SSL JSON
 
 EOF
 
