@@ -64,6 +64,7 @@ apk add --no-cache \
     samurai \
     libssh2-dev \
     strace \
+    tzdata \
     zlib-dev
 
 # Alpine has no ninja apk package - samurai is a drop-in, vcpkg/CMake just
