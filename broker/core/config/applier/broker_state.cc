@@ -352,6 +352,28 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
     poller_conf_lost = !state.ParseFromIstream(&f);
     if (!poller_conf_lost) {
       pblshr.write(engine_state);
+
+      /* The poller announced its own engine_conf at connection time (from
+       * its welcome packet). If it doesn't match the config_version stored
+       * in this .prot file, Broker can no longer trust that this engine_conf
+       * reflects what the poller actually has: clear it so Broker behaves as
+       * if the poller had no known configuration at all. This way, the next
+       * time a real configuration change occurs, _prepare_diff_for_poller
+       * will find no baseline to trust and fall back to sending the poller
+       * its whole configuration, instead of silently keeping an untrusted
+       * value that could later produce an incorrect incremental diff. */
+      absl::WriterMutexLock lck(&_connected_peers_m);
+      auto found = _engine_peers.find(poller_id);
+      if (found != _engine_peers.end() &&
+          found->second.engine_conf != state.config_version()) {
+        _logger->warn(
+            "Poller {} announced engine conf '{}' which does not match "
+            "Broker's configuration '{}' for it (from '{}'): clearing the "
+            "known engine conf for this poller",
+            poller_id, found->second.engine_conf, state.config_version(),
+            prot_file.string());
+        found->second.engine_conf.clear();
+      }
     }
   } else {
     poller_conf_lost = true;
@@ -361,7 +383,6 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   } else {
     _logger->info("Unable to fill global cache: cannot open '{}'",
                   prot_file.string());
-    poller_conf_lost = true;
   }
 
   /* The directory watcher has been started but may be there were <ID>.lck
