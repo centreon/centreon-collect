@@ -415,6 +415,11 @@ broker_state::foreign_states broker_state::load_foreign_objects() const {
   if (ec)
     _logger->warn("Cannot browse the pollers configuration directory '{}': {}",
                   pollers_config_dir().string(), ec.message());
+  _logger->debug(
+      "Loaded the {} stored poller configurations for the cross-poller "
+      "validation: {} hosts and {} services indexed",
+      retval.states.size(), retval.objects.hosts.size(),
+      retval.objects.services.size());
   return retval;
 }
 
@@ -903,6 +908,28 @@ bool broker_state::all_engine_peers_acknowledged() {
 }
 
 /**
+ * @brief Tell whether the configuration of a poller is already prepared and
+ * only waits for that poller to show up.
+ *
+ * A poller that is not connected cannot be handed anything, so once its
+ * new-<ID>.prot is written there is nothing left to do but wait. Its .lck is
+ * deliberately kept in that situation, which means the watcher finds it again
+ * on every cycle: without this test, an unreachable poller would have Broker
+ * redo the whole preparation -- and, above all, reload every stored poller
+ * configuration -- every five seconds forever. The delivery happens when the
+ * poller connects, through _get_lck_file_if_exists().
+ *
+ * @param poller_id The poller ID.
+ * @return True when the poller is absent and its configuration is ready.
+ */
+bool broker_state::_conf_prepared_for_disconnected_poller(
+    uint32_t poller_id) const {
+  return !_is_engine_peer_connected(poller_id) &&
+         std::filesystem::exists(pollers_config_dir() /
+                                 fmt::format("new-{}.prot", poller_id));
+}
+
+/**
  * For each <ID>.lck file found in the cache directory, this function checks
  * if there is a new Engine configuration for the poller with this ID and
  * prepares the diff to propagate.
@@ -937,6 +964,18 @@ void broker_state::_check_last_engine_conf() {
           if (absl::SimpleAtoi(stem, &poller_id)) {
             if (pollers_set.contains(poller_id))
               continue;  // already queued by inotify
+            /* No inotify event reported this file, so it is a leftover of a
+             * push already handled: if its configuration is prepared and the
+             * poller is away, the only thing left is its connection. Requeuing
+             * it here would cost a full reload of the configuration store on
+             * every cycle for nothing. */
+            if (_conf_prepared_for_disconnected_poller(poller_id)) {
+              _logger->debug(
+                  "Lock file '{}' left for poller {}, whose configuration is "
+                  "already prepared: waiting for the poller to connect",
+                  p.string(), poller_id);
+              continue;
+            }
             _logger->info(
                 "Found orphan lock file '{}' not reported by inotify — "
                 "scheduling configuration check for poller {}",
@@ -955,32 +994,24 @@ void broker_state::_check_last_engine_conf() {
   /* Read once for the whole batch: on a deploy-all, pollers_set holds every
    * poller and re-reading the store for each of them would parse it as many
    * times as it has entries. Each iteration only points `self` at the poller it
-   * validates. Nothing pending means nothing to validate, and this runs on a
-   * timer, so the store is not read at all in that case. */
-  foreign_states foreign;
-  if (!pollers_set.empty())
-    foreign = load_foreign_objects();
+   * validates. The read is deferred to the first poller that really needs
+   * validating: a batch made only of pollers waiting for their connection must
+   * not pay for the whole store, since it is retried on every cycle. */
+  std::optional<foreign_states> foreign;
   for (uint32_t poller_id : pollers_set) {
-    foreign.objects.self = poller_id;
     _logger->debug(
         "Checking if there is a new Engine configuration for poller {}",
         poller_id);
-    /* The configuration of a poller can only be delivered once that poller is
-     * connected. If it is not connected yet but its configuration has already
-     * been prepared (new-{ID}.prot present), there is nothing to do but wait:
-     * keep the .lck and avoid re-parsing the whole configuration on every
-     * watcher cycle. The configuration will be delivered when the poller
-     * connects (its connection re-queues the poller through
-     * _get_lck_file_if_exists). */
-    if (!_is_engine_peer_connected(poller_id) &&
-        std::filesystem::exists(pollers_config_dir() /
-                                fmt::format("new-{}.prot", poller_id))) {
+    if (_conf_prepared_for_disconnected_poller(poller_id)) {
       _logger->debug(
           "Poller {} configuration already prepared; waiting for the poller to "
           "connect before delivering it",
           poller_id);
       continue;
     }
+    if (!foreign)
+      foreign = load_foreign_objects();
+    foreign->objects.self = poller_id;
     auto state = std::make_unique<engine::configuration::State>();
     engine::configuration::state_helper state_hlp(state.get());
     engine::configuration::error_cnt err;
@@ -1014,9 +1045,9 @@ void broker_state::_check_last_engine_conf() {
          * Being the central, we can do better than a poller alone: the
          * configurations stored for the other pollers tell whether an object
          * this one references is genuinely undefined or merely lives elsewhere.
-         * `foreign` is loaded above the loop and owns the strings its index
-         * borrows, so it outlives every resolve of the batch. */
-        state_hlp.resolve(err, _logger, foreign.objects);
+         * `foreign` is declared outside the loop and owns the strings its
+         * index borrows, so it outlives every resolve of the batch. */
+        state_hlp.resolve(err, _logger, foreign->objects);
         if (err.config_errors)
           throw com::centreon::exceptions::msg_fmt(
               "configuration for poller {} (version '{}') has {} error(s); "

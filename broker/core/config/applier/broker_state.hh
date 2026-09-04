@@ -192,6 +192,8 @@ class broker_state : public state {
   uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
   void _watch_engine_conf(absl::flat_hash_set<uint32_t>* poller_ids);
   void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  bool _conf_prepared_for_disconnected_poller(uint32_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
   bool _is_engine_peer_connected(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);

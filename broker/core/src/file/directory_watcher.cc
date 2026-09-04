@@ -19,6 +19,7 @@
 #include "com/centreon/broker/file/directory_watcher.hh"
 
 #include <errno.h>
+#include <boost/asio/error.hpp>
 #include <boost/system/detail/error_code.hpp>
 
 #include "com/centreon/common/pool.hh"
@@ -97,7 +98,13 @@ directory_watcher::~directory_watcher() {
 directory_watcher::iterator directory_watcher::watch() {
   boost::system::error_code ec;
   _bytes_read = _sd.read_some(boost::asio::buffer(_buffer), ec);
-  if (ec) {
+  if (ec == asio::error::would_block || ec == asio::error::try_again) {
+    /* The descriptor is non-blocking, so an empty inotify queue is the
+     * ordinary case -- most of the time nothing happened since the previous
+     * call. Reporting it as an error would fill the logs with one error line
+     * per watcher cycle. */
+    _bytes_read = 0;
+  } else if (ec) {
     _logger->error("Unable to read from inotify: {}", ec.message());
     _bytes_read = 0;
   }

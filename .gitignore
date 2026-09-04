@@ -115,6 +115,10 @@ connectors/ssh/test/connector/binary.hh
 # doc
 **/doc/devel-doc
 **/doc/_build
+**/doc/.mermaid-cache
+**/doc/*.log
+**/doc/*.pdf
+**/doc/*.tex
 
 # benchmarks
 # The result store and the generated configurations stay local to the machine

@@ -527,6 +527,10 @@ réalité `Broker` exécute un timer (toutes les 5s) dans son objet
     répertoire de cache des configurations. Cette demande se traduit par
     une lecture de descripteur de fichier, non bloquante. S’il n’y a
     rien, la fonction retourne tout de suite avec rien comme résultat.
+    Le descripteur étant non bloquant, une file d’événements vide se
+    traduit par `EAGAIN` : c’est le cas ordinaire — la plupart des ticks
+    ne trouvent rien — et il n’est donc pas journalisé comme une erreur,
+    faute de quoi chaque cycle laisserait une ligne `error` derrière lui.
 
 2.  Dans le cas d’une réponse positive, il récupère les noms de fichier
     `<poller ID>.lck` pour déduire quelles configurations viennent
@@ -634,12 +638,6 @@ une lecture sur le descripteur de fichier `inotify`. Ce timer est lancé
 en asynchrone et quand un fichier est détecté, `Broker` fait plusieurs
 tâches :
 
-En complément d’`inotify`, le timer effectue également un scan du répertoire à
-chaque déclenchement. Ce fallback permet de détecter les fichiers `.lck` qu’`inotify`
-aurait pu manquer (par exemple lorsque plusieurs `touch()` rapides saturent la file
-d’événements du noyau). Tout fichier `.lck` trouvé lors du scan mais non signalé par
-`inotify` est traité comme un événement de configuration manqué.
-
 1.  Il lit le répertoire de configuration pour en faire une structure
     `engine::State`.
 
@@ -656,6 +654,25 @@ d’événements du noyau). Tout fichier `.lck` trouvé lors du scan mais non si
 
 Toutes ces étapes sont faites en tâche de fond.
 
+En complément d’`inotify`, le timer effectue également un scan du répertoire à
+chaque déclenchement. Ce fallback permet de détecter les fichiers `.lck` qu’`inotify`
+aurait pu manquer (par exemple lorsque plusieurs `touch()` rapides saturent la file
+d’événements du noyau). Tout fichier `.lck` trouvé lors du scan mais non signalé par
+`inotify` est traité comme un événement de configuration manqué.
+
+Une exception près : un `.lck` que le scan retrouve alors que `new-X.prot` existe
+déjà et que le poller *X* n’est pas connecté n’est **pas** réinjecté. Aucun
+événement `inotify` ne l’a signalé, il ne s’agit donc pas d’une nouvelle poussée
+mais du `.lck` volontairement conservé (voir le cycle de vie ci-dessous) : tout est
+déjà préparé sur disque, il ne manque que la connexion du poller, et celle-ci
+réinjectera le poller d’elle-même via `_get_lck_file_if_exists`. Ce filtre n’est pas
+une micro-optimisation : sans lui, un poller éteint faisait réinjecter son `.lck`
+toutes les 5 secondes, et **chaque réinjection relit et réindexe la totalité des
+configurations stockées** de la plateforme — `load_foreign_objects`, nécessaire à la
+validation inter-pollers — avant de conclure qu’il n’y avait rien à faire. Un seul
+poller absent suffisait donc à faire reparser en permanence toute la configuration
+de la plateforme.
+
 #### Cycle de vie du fichier `X.lck`
 
 Le fichier `X.lck` ne représente pas seulement « une configuration vient
@@ -668,10 +685,17 @@ d’arriver », mais « une configuration est en attente de livraison au poller
 - La suppression a lieu uniquement dans `_check_last_engine_conf`, **après**
   `_prepare_diff_for_poller` et **seulement si le poller est connecté**
   (`_is_engine_peer_connected`, c’est-à-dire présent dans `_engine_peers`).
-- Si le poller n’est pas encore connecté, le `.lck` est conservé. Pour éviter
-  de re-parser inutilement la configuration à chaque tick de 5 s, une garde en
-  tête de boucle saute le traitement lorsque le poller n’est pas connecté et
-  que `new-X.prot` a déjà été préparé.
+- Si le poller n’est pas encore connecté, le `.lck` est conservé. Le test
+  « poller absent **et** `new-X.prot` déjà écrit » est factorisé dans
+  `_conf_prepared_for_disconnected_poller` et appliqué à deux endroits : en tête
+  de la boucle de traitement, et dans le scan de secours pour ne pas réinjecter
+  le poller du tout. Le chargement des configurations stockées
+  (`load_foreign_objects`) est de plus **différé au premier poller réellement à
+  valider**, si bien qu’un lot composé uniquement de pollers en attente de
+  connexion ne coûte plus qu’un `stat` par `.lck`. Ce chargement journalise en
+  `debug` le volume indexé (« Loaded the N stored poller configurations… ») :
+  voir cette ligne se répéter alors que rien n’est déployé signale que quelque
+  chose réclame le store sans en avoir besoin.
 - Si la configuration poussée est **rejetée comme invalide** (elle échoue à la
   validation décrite dans
   [Valider une configuration de poller](#valider-une-configuration-de-poller--lendpoint-grpc-checkpollerconfig) :
@@ -1043,6 +1067,16 @@ peut-être faudra-t-il augmenter un peu ce délai ou le paramétrer
 autrement. L'intérêt de faire cela à des intervalles réguliers est que si plusieurs
 pollers sont modifiés en parallèle, `Broker` devrait pouvoir les traiter
 ensemble.
+
+> **Le timer est le moteur, pas `inotify`.** Le descripteur `inotify` n’est lu
+> qu’en réponse au tick : la détection est donc bornée par le délai de 5 secondes
+> et non immédiate, et la lecture ne consomme qu’un seul tampon de 4 Ko par tick,
+> soit une centaine d’événements — au-delà, le reliquat attend le tick suivant
+> (c’est l’une des raisons d’être du scan de secours). Passer à une lecture
+> asynchrone (`async_read_some` réarmé dans son handler, drainant jusqu’à
+> `EAGAIN`) supprimerait à la fois la latence, la troncature et le coût au repos,
+> et ramènerait le timer à un simple filet de sécurité à basse fréquence. C’est
+> une évolution identifiée, non encore faite.
 
 Dans l’étape précédente, nous avons fait évoluer la négociation entre
 `Engine` et `Broker` mais globalement les deux fonctionnent comme avant.
