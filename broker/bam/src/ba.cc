@@ -312,8 +312,10 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
         "{})",
         _id, _name, _host_id, _service_id);
 
-    // Check if there was a change.
-    bool in_downtime(dt->was_started && dt->actual_end_time.is_null());
+    // Check if there was a change. A cancelled downtime is over, even when it
+    // carries no actual_end_time (poller restart cancellation).
+    bool in_downtime(dt->was_started && dt->actual_end_time.is_null() &&
+                     !dt->was_cancelled);
     if (_in_downtime != in_downtime) {
       SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: {}",
                           _in_downtime);
@@ -347,6 +349,8 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   assert(downtime.host_id() == _host_id &&
          downtime.service_id() == _service_id);
 
+  // Check if there was a change. A cancelled downtime is over, even when it
+  // carries no actual_end_time (poller restart cancellation).
   // Log message.
   SPDLOG_LOGGER_DEBUG(
       _logger,
@@ -356,7 +360,16 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
 
   // Check if there was a change.
   bool in_downtime(downtime.started() &&
-                   time_is_undefined(downtime.actual_end_time()));
+                   time_is_undefined(downtime.actual_end_time()) &&
+                   !downtime.cancelled());
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(
+      _logger,
+      "BAM: BA {} '{}' is getting notified of a pb downtime {} on its service "
+      "({}, {}) in downtime {}",
+      _id, _name, downtime.id(), _host_id, _service_id, in_downtime);
+
   if (_in_downtime != in_downtime) {
     SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: {}",
                         _in_downtime);
