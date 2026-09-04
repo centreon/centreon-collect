@@ -38,7 +38,8 @@ target_precompile_headers("80-event_script" PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("80-event_script" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 
-add_dependencies("80-event_script" process_stat)
+add_dependencies("80-event_script" process_stat pb_common_lib
+                 target_broker_message)
 
 #Testing.
 if(WITH_TESTING)

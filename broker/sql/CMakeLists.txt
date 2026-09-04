@@ -42,12 +42,9 @@ add_library("${SQL}" SHARED
   "${INC_DIR}/com/centreon/broker/sql/factory.hh"
   "${INC_DIR}/com/centreon/broker/sql/stream.hh"
 )
-add_dependencies(${SQL}
-	pb_neb_lib
-	process_stat
-	pb_header_lib
-	pb_open_telemetry_lib
-	)
+add_dependencies(${SQL} pb_neb_lib process_stat pb_header_lib
+                 pb_open_telemetry_lib pb_common_lib target_broker_message
+                 target_state_proto)
 
 set_target_properties("${SQL}" PROPERTIES
     PREFIX ""

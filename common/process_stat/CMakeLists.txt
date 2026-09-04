@@ -31,6 +31,17 @@ add_custom_command(
   --proto_path=${CMAKE_CURRENT_SOURCE_DIR} process_stat.proto
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# process_stat.pb.h is included by targets outside this directory; expose its
+# generation separately so they can order against it without depending on the
+# process_stat library itself (which reuses centreon_common's precompiled
+# header, and would therefore create a dependency cycle).
+add_custom_target(target_process_stat_proto
+  DEPENDS
+    ${CMAKE_BINARY_DIR}/common/process_stat/process_stat.pb.cc
+    ${CMAKE_BINARY_DIR}/common/process_stat/process_stat.pb.h
+    ${CMAKE_BINARY_DIR}/common/process_stat/process_stat.grpc.pb.cc
+    ${CMAKE_BINARY_DIR}/common/process_stat/process_stat.grpc.pb.h)
+
 add_library(process_stat STATIC
   ${CMAKE_BINARY_DIR}/common/process_stat/process_stat.pb.cc
   process_stat.cc
