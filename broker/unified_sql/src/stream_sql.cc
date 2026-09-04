@@ -162,10 +162,14 @@ void stream::_clean_tables(uint64_t instance_id) {
   SPDLOG_LOGGER_DEBUG(
       _logger_sql, "unified_sql: Cancellation of downtimes (instance_id: {})",
       instance_id);
+  /* A cancelled downtime must also be terminated: leaving actual_end_time NULL
+   * makes every consumer (BAM in_downtime computation, availability
+   * reporting)*/
   query = fmt::format(
-      "UPDATE downtimes SET cancelled=1 WHERE actual_end_time IS NULL AND "
-      "cancelled=0 AND instance_id={}",
-      instance_id);
+      "UPDATE downtimes SET cancelled=1,actual_end_time={},deletion_time={} "
+      "WHERE "
+      "actual_end_time IS NULL AND cancelled=0 AND instance_id={}",
+      time(nullptr), time(nullptr), instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, conn);
   _add_action(conn, actions::downtimes);
