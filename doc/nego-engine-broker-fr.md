@@ -16,7 +16,14 @@ Négociation entre Engine et Broker
 * [Lecture de la configuration Engine](#lecture-de-la-configuration-engine)
   * [Gestion de la configuration côté Engine](#gestion-de-la-configuration-côté-engine)
   * [Gestion de l’envoi de la configuration par Broker à Engine](#gestion-de-lenvoi-de-la-configuration-par-broker-à-engine)
-    * [Cycle de vie du fichier `X.lck`](#cycle-de-vie-du-fichier-xlck)
+      * [Cycle de vie du fichier `X.lck`](#cycle-de-vie-du-fichier-xlck)
+  * [Valider une configuration de poller : l'endpoint gRPC `CheckPollerConfig`](#valider-une-configuration-de-poller--lendpoint-grpc-checkpollerconfig)
+    * [Implémentation](#implémentation)
+    * [Portée et feuille de route](#portée-et-feuille-de-route)
+    * [Ordre de portage recommandé](#ordre-de-portage-recommandé)
+    * [Analyse : porter les checks de `resolve()` sur le `State`](#analyse--porter-les-checks-de-resolve-sur-le-state)
+    * [Ce qu'`expand()` couvre déjà (et ce qui reste à porter)](#ce-quexpand-couvre-déjà-et-ce-qui-reste-à-porter)
+    * [Passer d'un throw précoce à une accumulation](#passer-dun-throw-précoce-à-une-accumulation)
   * [Calcul de la différence](#calcul-de-la-différence)
   * [Écriture de la configuration en base de données](#écriture-de-la-configuration-en-base-de-données)
     * [Étude de cas](#étude-de-cas)
@@ -27,6 +34,9 @@ Négociation entre Engine et Broker
   * [Quelques points plus techniques](#quelques-points-plus-techniques)
   * [Split de broker::config::applier::state](#split-de-brokerconfigapplierstate)
     * [Cycle de vie de broker\_state, du cache et du downtime\_manager](#cycle-de-vie-de-broker_state-du-cache-et-du-downtime_manager)
+      * [Démarrage](#démarrage)
+      * [Barrière de readiness au démarrage](#barrière-de-readiness-au-démarrage)
+      * [Arrêt](#arrêt)
 * [Streams sql/storage](#streams-sqlstorage)
 * [Cache centralisé Broker](#cache-centralisé-broker)
   * [Fonctionnement en configuration centralisée](#fonctionnement-en-configuration-centralisée)
@@ -83,7 +93,7 @@ Négociation entre Engine et Broker
   * [Modifications nécessaires](#modifications-nécessaires)
   * [Mise en place](#mise-en-place)
     * [Étape 1 — Nouveaux messages BBDO (✅ implémenté)](#étape-1--nouveaux-messages-bbdo--implémenté)
-    * [Étape 2 — via_remote + détection relais (✅ implémenté)](#étape-2--via_remote--détection-relais--implémenté)
+    * [Étape 2 — via\_remote + détection relais (✅ implémenté)](#étape-2--via_remote--détection-relais--implémenté)
     * [Étape 3 — ConfigRequest envoyé par le relais (✅ implémentée)](#étape-3--configrequest-envoyé-par-le-relais--implémentée)
     * [Étape 4 — Traitement du ConfigRequest au central (✅ implémentée)](#étape-4--traitement-du-configrequest-au-central--implémentée)
     * [Étape 5 — Forward DiffState/ack dans le relais (✅ implémenté)](#étape-5--forward-diffstateack-dans-le-relais--implémenté)
@@ -94,31 +104,37 @@ Négociation entre Engine et Broker
     * [Infrastructure Robot commune à créer dans tests/resources/ :](#infrastructure-robot-commune-à-créer-dans-testsresources-)
 * [Gestion centralisée des downtimes et acquittements](#gestion-centralisée-des-downtimes-et-acquittements)
   * [Problème](#problème)
-  * [Solution : le paramètre notification_mode](#solution--le-paramètre-notification_mode)
+  * [Solution : le paramètre notification\_mode](#solution--le-paramètre-notification_mode)
   * [Persistance](#persistance)
   * [Migration et downtimes / acquittements](#migration-et-downtimes--acquittements)
+  * [Pilotage de la décision de notification côté Broker](#pilotage-de-la-décision-de-notification-côté-broker)
+    * [Initialisation du backend](#initialisation-du-backend)
+    * [Déclenchement : un troisième traitement dans `multiplexing::engine`](#déclenchement--un-troisième-traitement-dans-multiplexingengine)
+    * [Coupure de la décision côté Engine](#coupure-de-la-décision-côté-engine)
 * [Travaux préparatoires avant le Poller HA](#travaux-préparatoires-avant-le-poller-ha)
+  * [Prérequis : les timeperiods doivent être gérables par Broker](#prérequis--les-timeperiods-doivent-être-gérables-par-broker)
   * [File `neb` à triple priorité](#file-neb-à-triple-priorité)
-    * [Implémentation](#implémentation)
+    * [Implémentation](#implémentation-1)
       * [Conteneur : `std::deque` + index `size_t`](#conteneur--stddeque--index-size_t)
       * [Classification à l'insertion](#classification-à-linsertion)
       * [Acquittement](#acquittement)
       * [Débordement sur disque (rétention)](#débordement-sur-disque-rétention)
       * [Résultats de benchmark](#résultats-de-benchmark)
-      * [Type d'entrée : struct vs pair, emplace_back vs push_back](#type-dentrée--struct-vs-pair-emplace_back-vs-push_back)
+      * [Type d'entrée : struct vs pair, emplace\_back vs push\_back](#type-dentrée--struct-vs-pair-emplace_back-vs-push_back)
       * [Champ timestamp : heure d'insertion, pas heure de collecte](#champ-timestamp--heure-dinsertion-pas-heure-de-collecte)
       * [Perte de connexion : `nack_events()`](#perte-de-connexion--nack_events)
   * [BAM : lecture de l'état des downtimes depuis le cache Broker](#bam--lecture-de-létat-des-downtimes-depuis-le-cache-broker)
-  * [Implémentation de notification_mode = broker sur zones mono-poller](#implémentation-de-notification_mode--broker-sur-zones-mono-poller)
+  * [Implémentation de notification\_mode = broker sur zones mono-poller](#implémentation-de-notification_mode--broker-sur-zones-mono-poller)
     * [Endpoints gRPC BrokerRpc](#endpoints-grpc-brokerrpc)
     * [Inherited downtimes via BrokerRpc](#inherited-downtimes-via-brokerrpc)
     * [Règles d'escalade](#règles-descalade)
-    * [pb_notification_execute](#pb_notification_execute)
+    * [pb\_notification\_execute](#pb_notification_execute)
   * [Stratégie de test](#stratégie-de-test)
 * [Poller HA](#poller-ha)
   * [Arborescence de configuration des pollers](#arborescence-de-configuration-des-pollers)
   * [Auto-surveillance d'Engine](#auto-surveillance-dengine)
     * [Mise en œuvre](#mise-en-œuvre)
+    * [Ce qu'Engine fait de ces indicateurs](#ce-quengine-fait-de-ces-indicateurs)
   * [Architecture du protocole HA](#architecture-du-protocole-ha)
     * [Vision générale](#vision-générale)
     * [La notion de zone](#la-notion-de-zone)
@@ -126,7 +142,7 @@ Négociation entre Engine et Broker
     * [Interface PHP → Broker : le fichier centengine.cfg](#interface-php--broker--le-fichier-centenginecfg)
     * [Héritage de configuration zone → poller](#héritage-de-configuration-zone--poller)
       * [Évolution du format `centengine.cfg`](#évolution-du-format-centenginecfg)
-    * [Activation de la zone : min_pollers](#activation-de-la-zone--min_pollers)
+    * [Activation de la zone : min\_pollers](#activation-de-la-zone--min_pollers)
     * [Distribution des ressources sur les pollers](#distribution-des-ressources-sur-les-pollers)
       * [Blocs de co-localisation](#blocs-de-co-localisation)
       * [Algorithme en deux phases](#algorithme-en-deux-phases)
@@ -134,11 +150,11 @@ Négociation entre Engine et Broker
     * [Protocole de migration d'un host](#protocole-de-migration-dun-host)
     * [Préservation de l'état lors de la migration](#préservation-de-létat-lors-de-la-migration)
     * [Downtimes et acquittements centralisés](#downtimes-et-acquittements-centralisés)
-      * [notification_mode = engine (défaut)](#notification_mode--engine-défaut)
-      * [notification_mode = broker](#notification_mode--broker)
-    * [Notifications](#notifications)
-      * [notification_mode = engine (défaut)](#notification_mode--engine-défaut-1)
-      * [notification_mode = broker](#notification_mode--broker-1)
+      * [notification\_mode = engine (défaut)](#notification_mode--engine-défaut)
+      * [notification\_mode = broker](#notification_mode--broker)
+    * [Notifications en mode HA](#notifications-en-mode-ha)
+      * [notification\_mode = engine (défaut)](#notification_mode--engine-défaut-1)
+      * [notification\_mode = broker](#notification_mode--broker-1)
     * [Rebalancing par seuil](#rebalancing-par-seuil)
       * [Message Health](#message-health)
       * [Score de charge et seuils](#score-de-charge-et-seuils)
@@ -1407,9 +1423,10 @@ Le timer exécute la méthode `config::applier::state::_check_last_engine_conf()
 
 ```mermaid
 stateDiagram-v2
-    [*] --> _watch_engine_conf(poller_ids)
-    _watch_engine_conf(poller_ids) --> pour_chaque_poller_id
-    note right of _watch_engine_conf(poller_ids): Cette fonction récupère les IDs remontés par inotify<br/>(complétés par le scan de secours du répertoire).<br/>Le fichier ID.lck n'est PAS supprimé ici : il marque<br/>une configuration en attente de livraison.
+    [*] --> watch_engine_conf
+    watch_engine_conf: _watch_engine_conf(poller_ids)
+    watch_engine_conf --> pour_chaque_poller_id
+    note right of watch_engine_conf: Cette fonction récupère les IDs remontés par inotify<br/>(complétés par le scan de secours du répertoire).<br/>Le fichier ID.lck n'est PAS supprimé ici — il marque<br/>une configuration en attente de livraison.
     pour_chaque_poller_id: Pour chaque poller ID dans poller_ids
     state garde_attente <<choice>>
     pour_chaque_poller_id --> garde_attente
@@ -1731,7 +1748,7 @@ sequenceDiagram
     CACHE->>CACHE: _load_cache() lit <cache_dir>.cache
     Note over CACHE: remplit seulement _pending_active_downtimes<br/>PAS de réinjection ici :<br/>_global_cache pas encore affecté
     deactivate CACHE
-    S->>S: endpoint::apply(); arme la barrière de readiness<br/>(le démarrage du moteur est différé, voir plus bas)
+    S->>S: endpoint::apply() puis arme la barrière de readiness<br/>(le démarrage du moteur est différé, voir plus bas)
     S-->>BS: retour (_global_cache désormais affecté)
 
     alt notification_mode == broker (depuis _on_barrier_released(), une fois la barrière levée)
@@ -4080,6 +4097,13 @@ flowchart TD
     E --> G["(phase suivante)\nmessage BBDO → Broker"]
 ```
 
+### Ce qu'Engine fait de ces indicateurs
+
+Dans un premier temps, Engine se contente de journaliser un avertissement dès qu'un seuil est
+franchi (par exemple `latency_avg > step` ou `queue_depth > 1000`). Cela permet au watchdog
+(`cbwd`) et aux opérateurs de détecter un Engine dégradé avant qu'il ne décroche complètement,
+sans modifier le protocole BBDO.
+
 Ces valeurs sont envoyées à Broker dans un message `Health` du namespace **bbdo** (pas `neb`),
 ce qui garantit une livraison immédiate sans passer par la queue. Si Engine est surchargé,
 c'est précisément le moment où la queue `neb` s'allonge — un message `Health` dans `neb`
@@ -4716,7 +4740,7 @@ quand notification_mode=broker.
 Les champs 3 et 4 de `MigrationStateSnapshot` (`downtimes`, `acknowledgements`) ne sont pas
 utilisés quand notification_mode=broker. Ils n'existent que pour notification_mode=engine.
 
-### Notifications
+### Notifications en mode HA
 
 #### notification_mode = engine (défaut)
 
@@ -5012,14 +5036,23 @@ La prise en compte par Broker du Health doit permettre le rééquilibrage des co
 * services passifs problématiques
 * agent
 * retention.dat (côté poller, si ça change on n'a plus l'info)
-* hostdependencies les hosts doivent être sur le même poller.
-* servicedependencies les hosts de ces services doivent être sur le même poller.
+* hostdependencies / servicedependencies, dépendances d'**exécution** : évaluées localement
+par le poller (`host::authorized_by_dependencies`, `service::authorized_by_dependencies`) et
+elles inhibent le check lui-même, décision synchrone dans le chemin chaud du scheduler — la
+co-localisation reste donc obligatoire. Validation : traitée — une dépendance inter-pollers
+est une erreur de configuration détectée au `resolve`, grâce à la vue globale que Broker a
+des configurations des autres pollers (`foreign_objects`). Attention : un maître absent rend
+`master_*_ptr` nul et la dépendance est alors *silencieusement ignorée*, d'où la validation.
+* dépendances de **notification** : déjà évaluées par Broker (`broker_cache`), elles
+pourraient franchir les pollers. Refusées aujourd'hui malgré tout, faute de domicile pour une
+dépendance dont aucun des deux pollers ne connaît l'autre extrémité — elles contraignent donc
+encore le placement, et les blocs de co-localisation se calculent sur les deux types.
 * Hostescalation / Serviceescalation : les escalades doivent suivre l'objet notifié (contrainte de co-location déjà appliquée par l'algorithme de distribution ; gérée par le service de notification en mode configuration centralisée).
 * Downtimes et acquittements : traités — voir [Downtimes et acquittements centralisés](#downtimes-et-acquittements-centralisés) et [Notifications en mode HA](#notifications-en-mode-ha).
 * Anomalydetection doit être sur le même poller que le service associé. Et sa conf doit suivre.
 * Très difficile de garder la compatibilité avec l'ancien comportement d'engine
 * ping-pong
-* le check de la configuration Engine doit être migré en gRPC sur Broker.
+* le check de la configuration Engine en gRPC sur Broker : traité — RPC `CheckPollerConfig`. Reste l'extension multi-pollers (sections par poller et section globale).
 * dans la table resources, nous n'avons actuellement que poller_id, est-il judicieux d'aussi ajouter la zone_id ? Première
 impression : oui. Même si globalement nous remplaçons poller_id par zone_id, il y a des exceptions !! Les pollers ID gardent
 leur sens par exemple pour accéder aux logs.
