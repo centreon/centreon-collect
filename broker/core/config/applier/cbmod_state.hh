@@ -50,7 +50,8 @@ class cbmod_state : public state {
   mutable absl::Mutex _diff_state_m;
   std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
   std::unique_ptr<com::centreon::engine::configuration::State>
-      _current_engine_state;
+      _current_engine_state ABSL_GUARDED_BY(_current_engine_state_m);
+  mutable absl::Mutex _current_engine_state_m;
 
  public:
   cbmod_state(const std::string& engine_conf_version,

@@ -19,6 +19,8 @@
 #ifndef CCB_RRD_CACHED_HH
 #define CCB_RRD_CACHED_HH
 
+#include <absl/base/thread_annotations.h>
+#include <absl/synchronization/mutex.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
@@ -41,10 +43,10 @@ class cached : public backend {
   asio::io_context _io_context;
   bool _batch;
   lib _lib;
-  T _socket;
-  std::filesystem::path _filename;
+  T _socket ABSL_GUARDED_BY(_protect);
+  std::filesystem::path _filename ABSL_GUARDED_BY(_protect);
   /// Serialises socket access between the write thread and the merge thread.
-  absl::Mutex _socket_m;
+  mutable absl::Mutex _protect;
 
  public:
   cached(std::filesystem::path tmpl_path, uint32_t cache_size)
@@ -65,6 +67,7 @@ class cached : public backend {
       throw broker::rrd::exceptions::open("RRD: file '{}' does not exist",
                                           filename);
 
+    absl::MutexLock l(&_protect);
     // Remember information for further operations.
     _filename = filename;
   }
@@ -89,6 +92,7 @@ class cached : public backend {
     this->close();
 
     // Remember informations for further operations.
+    absl::MutexLock l(&_protect);
     _filename = filename;
 
     /* We are unfortunately forced to use librrd to create RRD file as
@@ -101,6 +105,7 @@ class cached : public backend {
    * @brief Close the current RRD file.
    */
   void close() override {
+    absl::MutexLock l(&_protect);
     _filename.clear();
     _batch = false;
   }
@@ -121,6 +126,7 @@ class cached : public backend {
     std::string cmd(fmt::format("FORGET {}\n", filename));
 
     try {
+      absl::MutexLock l(&_protect);
       _send_to_cached(cmd);
     } catch (msg_fmt const& e) {
       _logger->error(e.what());
@@ -136,8 +142,8 @@ class cached : public backend {
    *
    *  @param[in] command Command to send.
    */
-  void _send_to_cached(const std::string& command) {
-    absl::MutexLock lk(&_socket_m);
+  void _send_to_cached(const std::string& command)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect) {
     boost::system::error_code err;
 
     asio::write(_socket, asio::buffer(command), asio::transfer_all(), err);
@@ -194,6 +200,7 @@ class cached : public backend {
   void begin() override {
     // Send BATCH command to rrdcached.
     _batch = true;
+    absl::MutexLock l(&_protect);
     _send_to_cached("BATCH\n");
   }
 
@@ -207,6 +214,7 @@ class cached : public backend {
     asio::local::stream_protocol::endpoint ep(name);
 
     try {
+      absl::MutexLock l(&_protect);
       _socket.connect(ep);
     } catch (boost::system::system_error const& se) {
       throw msg_fmt("RRD: could not connect to local socket '{}: {}", name,
@@ -232,6 +240,7 @@ class cached : public backend {
           address, port, ec.message());
     }
 
+    absl::MutexLock l(&_protect);
     asio::connect(_socket, endpoints, ec);
     if (ec) {
       throw msg_fmt(
@@ -256,6 +265,7 @@ class cached : public backend {
     if (_batch) {
       // Send a . on the line to indicate that transaction is over.
       _batch = false;
+      absl::MutexLock l(&_protect);
       _send_to_cached(".\n");
     }
   }
@@ -267,6 +277,7 @@ class cached : public backend {
    *  @param[in] value Associated value.
    */
   void update(time_t t, std::string const& value) override {
+    absl::MutexLock l(&_protect);
     // Build rrdcached command.
     std::string cmd(fmt::format("UPDATE {} {}:{}\n", _filename, t, value));
 
@@ -284,6 +295,7 @@ class cached : public backend {
   }
 
   void update(const std::deque<std::string>& pts) override {
+    absl::MutexLock l(&_protect);
     _logger->debug("RRD: updating file '{}' with {} values", _filename,
                    pts.size());
 
@@ -309,6 +321,7 @@ class cached : public backend {
   void pre_merge_flush(const std::filesystem::path& filename) override {
     try {
       _logger->debug("RRD: FLUSH '{}' before merge-fetch", filename);
+      absl::MutexLock l(&_protect);
       _send_to_cached(fmt::format("FLUSH {}\n", filename));
     } catch (msg_fmt const& e) {
       _logger->error("RRD: pre_merge_flush failed for '{}': {}", filename,
@@ -345,6 +358,7 @@ class cached : public backend {
   void post_merge_forget(const std::filesystem::path& filename) override {
     try {
       _logger->debug("RRD: FORGET '{}' after merge-rename", filename);
+      absl::MutexLock l(&_protect);
       _send_to_cached(fmt::format("FORGET {}\n", filename));
     } catch (msg_fmt const& e) {
       _logger->error("RRD: post_merge_forget failed for '{}': {}", filename,

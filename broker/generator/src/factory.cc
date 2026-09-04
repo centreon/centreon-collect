@@ -48,8 +48,7 @@ bool factory::has_endpoint(config::endpoint& cfg,
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const absl::btree_map<std::string, std::string>& global_params,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
+    bool& is_acceptor) const {
   // Generate opener.
   std::auto_ptr<io::endpoint> s;
   if (cfg.type == "generator_receiver")

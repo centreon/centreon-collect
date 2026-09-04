@@ -518,7 +518,6 @@ void applier::service::_inherits_special_vars(
   if (!obj.host_id() || obj.contacts().data().empty() ||
       obj.contactgroups().data().empty() || obj.notification_interval() == 0 ||
       obj.notification_period().empty() || obj.timezone().empty()) {
-    config_logger->error("inherits_special_vars dans if");
     // Find host.
     auto it = std::find_if(s.hosts().begin(), s.hosts().end(),
                            [name = obj.host_name()](const auto& p) {
@@ -550,5 +549,4 @@ void applier::service::_inherits_special_vars(
     if (obj.timezone().empty())
       obj.set_timezone(it->second->timezone());
   }
-  config_logger->error("inherits_special_vars après if");
 }

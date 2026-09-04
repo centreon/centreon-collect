@@ -726,3 +726,115 @@ TEST_F(BrokerCacheTest, Merge) {
   ASSERT_EQ(_cache->servicegroup(1)->obj().name(), "new_sg1");
   ASSERT_EQ(_cache->servicegroup(5)->obj().name(), "sg5");
 }
+
+/**
+ * @brief Publish a tag definition (id, type, name) to the cache.
+ */
+static void publish_tag(const std::unique_ptr<broker_cache>& cache,
+                        uint64_t id,
+                        TagType type,
+                        const std::string& name) {
+  auto t = std::make_shared<neb::pb_tag>();
+  auto& obj = t->mut_obj();
+  obj.set_id(id);
+  obj.set_type(type);
+  obj.set_name(name);
+  obj.set_action(Tag_Action_ADD);
+  obj.set_poller_id(1);
+  cache->publish(t);
+}
+
+TEST_F(BrokerCacheTest, HostAndServiceTags) {
+  publish_hosts(1, 2, 1);
+  publish_services(1, 1, 1);
+
+  /* Tag ids intentionally collide across types (id 1 and id 2 both used by a
+   * HOSTGROUP tag and by a SERVICEGROUP/SERVICECATEGORY tag): the cache keys
+   * tags by (id, type), so this must not cause any cross-type mixup. */
+  publish_tag(_cache, 2, TagType::HOSTGROUP, "hg_tag_2");
+  publish_tag(_cache, 1, TagType::HOSTGROUP, "hg_tag_1");
+  publish_tag(_cache, 1, TagType::HOSTCATEGORY, "hc_tag_1");
+  publish_tag(_cache, 4, TagType::SERVICEGROUP, "sg_tag_4");
+  publish_tag(_cache, 3, TagType::SERVICEGROUP, "sg_tag_3");
+  publish_tag(_cache, 2, TagType::SERVICECATEGORY, "sc_tag_2");
+
+  {
+    auto h = std::make_shared<neb::pb_host>();
+    auto& obj = h->mut_obj();
+    obj.set_host_id(1);
+    obj.set_name("host_1");
+    obj.set_enabled(true);
+    obj.set_instance_id(1);
+    /* Added out of id order, on purpose: the accessors must sort. */
+    auto* t = obj.add_tags();
+    t->set_id(2);
+    t->set_type(TagType::HOSTGROUP);
+    t = obj.add_tags();
+    t->set_id(1);
+    t->set_type(TagType::HOSTGROUP);
+    t = obj.add_tags();
+    t->set_id(1);
+    t->set_type(TagType::HOSTCATEGORY);
+    _cache->publish(h);
+  }
+
+  {
+    auto s = std::make_shared<neb::pb_service>();
+    auto& obj = s->mut_obj();
+    obj.set_host_id(1);
+    obj.set_service_id(1);
+    obj.set_host_name("host_1");
+    obj.set_description("service_1");
+    obj.set_enabled(true);
+    auto* t = obj.add_tags();
+    t->set_id(4);
+    t->set_type(TagType::SERVICEGROUP);
+    t = obj.add_tags();
+    t->set_id(3);
+    t->set_type(TagType::SERVICEGROUP);
+    t = obj.add_tags();
+    t->set_id(2);
+    t->set_type(TagType::SERVICECATEGORY);
+    _cache->publish(s);
+  }
+
+  /* host_1 tags: sorted by ascending id, filtered by type. */
+  ASSERT_THAT(_cache->host_tag_ids(1, TagType::HOSTGROUP),
+              ::testing::ElementsAre(1u, 2u));
+  ASSERT_THAT(_cache->host_tag_names(1, TagType::HOSTGROUP),
+              ::testing::ElementsAre("hg_tag_1", "hg_tag_2"));
+  ASSERT_THAT(_cache->host_tag_ids(1, TagType::HOSTCATEGORY),
+              ::testing::ElementsAre(1u));
+  ASSERT_THAT(_cache->host_tag_names(1, TagType::HOSTCATEGORY),
+              ::testing::ElementsAre("hc_tag_1"));
+  /* host_1 has no SERVICEGROUP tag: the type filter must exclude the
+   * HOSTGROUP/HOSTCATEGORY tags even though ids overlap. */
+  ASSERT_THAT(_cache->host_tag_ids(1, TagType::SERVICEGROUP),
+              ::testing::IsEmpty());
+  /* host_2 has no tags at all. */
+  ASSERT_THAT(_cache->host_tag_ids(2, TagType::HOSTGROUP),
+              ::testing::IsEmpty());
+  /* Unknown host: empty result, not a crash. */
+  ASSERT_THAT(_cache->host_tag_ids(999, TagType::HOSTGROUP),
+              ::testing::IsEmpty());
+
+  /* service (1, 1) tags: sorted by ascending id, filtered by type. */
+  ASSERT_THAT(_cache->service_tag_ids(1, 1, TagType::SERVICEGROUP),
+              ::testing::ElementsAre(3u, 4u));
+  ASSERT_THAT(_cache->service_tag_names(1, 1, TagType::SERVICEGROUP),
+              ::testing::ElementsAre("sg_tag_3", "sg_tag_4"));
+  ASSERT_THAT(_cache->service_tag_ids(1, 1, TagType::SERVICECATEGORY),
+              ::testing::ElementsAre(2u));
+  ASSERT_THAT(_cache->service_tag_names(1, 1, TagType::SERVICECATEGORY),
+              ::testing::ElementsAre("sc_tag_2"));
+  /* Unknown service: empty result, not a crash. */
+  ASSERT_THAT(_cache->service_tag_ids(1, 999, TagType::SERVICEGROUP),
+              ::testing::IsEmpty());
+
+  /* get_tag() must key on (id, type): id 2 is used by both a HOSTGROUP tag
+   * and a SERVICECATEGORY tag, and they must resolve independently. */
+  ASSERT_EQ(_cache->get_tag(2, TagType::HOSTGROUP)->obj().name(), "hg_tag_2");
+  ASSERT_EQ(_cache->get_tag(2, TagType::SERVICECATEGORY)->obj().name(),
+            "sc_tag_2");
+  ASSERT_EQ(_cache->get_tag(999, TagType::HOSTGROUP), nullptr);
+}

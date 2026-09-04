@@ -1168,6 +1168,7 @@ static void forward_pb_service(int type,
     // Search host ID and service ID.
     srv.set_host_id(es->host_id());
     srv.set_service_id(es->service_id());
+    srv.set_instance_id(cbm->poller_id());
     if (srv.host_id() && srv.service_id())
       SPDLOG_LOGGER_DEBUG(neb_logger,
                           "callbacks: service ({}, {}) has a severity id {}",
@@ -3709,26 +3710,6 @@ static void forward_pb_log(const char* data, time_t entry_time) {
 }
 
 /**
- *  Send legacy log data to broker.
- *
- *  @param[in] data       Log entry.
- *  @param[in] entry_time Entry time.
- */
-void broker_log_data_legacy(const char* data, time_t entry_time) {
-  // Config check.
-  if (!(pb_indexed_config.state().event_broker_options() &
-        BROKER_LOGGED_DATA) ||
-      (!pb_indexed_config.state().log_legacy_enabled()) || !cbm)
-    return;
-
-  // Make callbacks.
-  if (cbm->use_protobuf())
-    forward_pb_log(data, entry_time);
-  else
-    forward_log(data, entry_time);
-}
-
-/**
  *  Send log data to broker.
  *
  *  @param[in] data       Log entry.
@@ -3736,9 +3717,7 @@ void broker_log_data_legacy(const char* data, time_t entry_time) {
  */
 void broker_log_data(const char* data, time_t entry_time) {
   // Config check.
-  if (!(pb_indexed_config.state().event_broker_options() &
-        BROKER_LOGGED_DATA) ||
-      !pb_indexed_config.state().log_v2_enabled() || !cbm)
+  if (!pb_indexed_config.broker_log_data(BROKER_LOGGED_DATA) || !cbm)
     return;
 
   // Make callbacks.

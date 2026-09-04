@@ -82,8 +82,6 @@ void stream::_unified_sql_process_pb_service_status(
   auto& cache = config::applier::state::instance().cache();
   auto idx_info = cache.get_index_mapping(host_id, service_id);
   if (!idx_info) {
-    // auto it_index_cache = _index_cache.find({host_id, service_id});
-    // if (it_index_cache == _index_cache.end()) {
     _logger_sql->critical(
         "sql: could not find index for service({}, {}) - maybe the poller with "
         "that service should be restarted",

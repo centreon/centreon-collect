@@ -6,7 +6,7 @@ Resource    ../resources/import.resource
 Suite Setup    Ctn Clean Before Suite
 Suite Teardown    Ctn Clean After Suite
 Test Setup    Ctn Stop Processes
-Test Teardown    Ctn Save Logs If Failed
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -60,9 +60,6 @@ BEPS1
         END
     END
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
 BEPS2
     [Documentation]
     ...    Given a central broker, a rrd broker and 1 engine instance configured in centralized mode with 20 hosts and 20 services
@@ -114,9 +111,6 @@ BEPS2
             Disconnect From Database
         END
     END
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 
 BEPS3
     [Documentation]
@@ -182,9 +176,6 @@ BEPS3
         END
     END
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
 BEPS3R
     [Documentation]
     ...    Given a central broker, a rrd broker and 5 engine instances configured in centralized mode with 20 hosts and 20 services
@@ -202,6 +193,7 @@ BEPS3R
     Ctn Config BBDO3    ${5}
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    config    trace
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
@@ -228,6 +220,12 @@ BEPS3R
             ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
             ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
             Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
+
+            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs1_flat)
+            Log    pairs1_flat:${lines}    level=WARN
+            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs_cache_sorted)
+            Log    pairs_cache_sorted:${lines}    level=WARN
+
             Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
 
             # Let's check the poller ID is consistent between the database and the cache for each host owning services.
@@ -252,9 +250,6 @@ BEPS3R
         Ctn Stop Engine
         Ctn Start Engine    newGeneration=True
     END
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 
 BEPS4
     [Documentation]
@@ -282,12 +277,8 @@ BEPS4
     Ctn Start Engine    newGeneration=True
 
     # Wait for the initial configuration to be processed by broker
-    TRY
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-        Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=60s    retry_pause=1s
-    FINALLY
-        Disconnect From Database
-    END
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=60s    retry_pause=1s
 
     # Stop broker and delete its prot files to simulate a lost configuration.
     # Engine's state.prot is preserved so engine can send its configuration back.
@@ -307,23 +298,28 @@ BEPS4
     Should Be True    ${result}    Broker should create a prot file from the configuration received from engine
 
     # Verify DB consistency and cache after recovery
-    TRY
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-        Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
-        Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${1000}    retry_timeout=30s    retry_pause=1s
-        ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
-        ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-        ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${1000}
+    Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+    Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+    ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
+    ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
+    ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${1000}
 
-        # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
-        ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
-        ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
-        ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
-        Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
-        Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
-    FINALLY
-        Disconnect From Database
-    END
+    # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
+    ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
+    ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
+    ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
+    Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
+    Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Dump Services If Failed    AND    Ctn Stop Engine Broker And Save Logs    AND  Disconnect From Database  
+
+*** Keywords ***
+
+Ctn Dump Services If Failed
+    Run Keyword If Test Failed    Ctn Dump Services
+
+Ctn Dump Services
+    ${dump}    Query    SELECT * FROM services WHERE enabled = 1
+    ${lines}    Evaluate    "\\n".join(str(row) for row in $dump)
+    Log    Query result dump:${lines}    level=WARN    html=True
+

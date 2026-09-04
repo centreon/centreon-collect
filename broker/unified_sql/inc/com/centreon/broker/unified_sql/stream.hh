@@ -473,7 +473,7 @@ class stream : public io::stream {
   void _finish_actions();
   void _update_metrics() ABSL_LOCKS_EXCLUDED(_metrics_m);
   void _clear_instances_cache(const std::list<uint64_t>& ids);
-  bool _host_instance_known(uint64_t host_id) const;
+  std::shared_ptr<neb::pb_host> _host_instance_known(uint64_t host_id) const;
 
   void _start_loop_timer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_timer_m);
 

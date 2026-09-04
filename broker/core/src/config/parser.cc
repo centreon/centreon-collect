@@ -176,8 +176,8 @@ state parser::parse(std::string const& file) {
     if (json_document.is_object() &&
         json_document["centreonBroker"].is_object()) {
       std::string module;
-      for (auto it = json_document["centreonBroker"].begin();
-           it != json_document["centreonBroker"].end(); ++it) {
+      const auto& broker_doc = json_document["centreonBroker"];
+      for (auto it = broker_doc.begin(); it != broker_doc.end(); ++it) {
         if (it.key() == "command_file" && it.value().is_object())
           ;
         else if (get_conf<int, state>({it.key(), it.value()}, "broker_id",
@@ -238,14 +238,20 @@ state parser::parse(std::string const& file) {
           retval.set_bbdo_version(bbdo::bbdo_version(major, minor, patch));
         } else if (get_conf<state>(
                        {it.key(), it.value()}, "cache_config_directory", retval,
-                       &state::set_cache_config_dir, &json::is_string))
-          ;
-        else if (get_conf<state>(
-                     {it.key(), it.value()}, "pollers_config_directory", retval,
-                     &state::set_pollers_config_dir, &json::is_string))
-          ;
-        else if (get_conf<state>({it.key(), it.value()}, "broker_name", retval,
-                                 &state::broker_name, &json::is_string))
+                       &state::set_cache_config_dir, &json::is_string)) {
+          if (!misc::filesystem::readable(retval.cache_config_dir()))
+            throw msg_fmt("The cache config directory '{}' is not accessible",
+                          retval.cache_config_dir());
+        } else if (get_conf<state>({it.key(), it.value()},
+                                   "pollers_config_directory", retval,
+                                   &state::set_pollers_config_dir,
+                                   &json::is_string)) {
+          if (!misc::filesystem::readable(retval.pollers_config_dir()))
+            throw msg_fmt("The poller config directory '{}' is not accessible",
+                          retval.pollers_config_dir());
+        } else if (get_conf<state>({it.key(), it.value()}, "broker_name",
+                                   retval, &state::broker_name,
+                                   &json::is_string))
           ;
         else if (get_conf<int, state>({it.key(), it.value()}, "poller_id",
                                       retval, &state::poller_id,
@@ -266,21 +272,6 @@ state parser::parse(std::string const& file) {
           if (!misc::filesystem::readable(retval.cache_directory()))
             throw msg_fmt("The cache directory '{}' is not accessible",
                           retval.cache_directory());
-        } else if (get_conf<state>(
-                       {it.key(), it.value()}, "cache_config_directory", retval,
-                       &state::set_cache_config_dir, &json::is_string)) {
-          if (!misc::filesystem::readable(retval.cache_config_dir()))
-            throw msg_fmt(
-                "The cache configuration directory '{}' is not accessible",
-                retval.cache_config_dir());
-        } else if (get_conf<state>({it.key(), it.value()},
-                                   "pollers_config_directory", retval,
-                                   &state::set_pollers_config_dir,
-                                   &json::is_string)) {
-          if (!misc::filesystem::readable(retval.pollers_config_dir()))
-            throw msg_fmt(
-                "The pollers configuration directory '{}' is not accessible",
-                retval.pollers_config_dir());
         } else if (get_conf<int, state>({it.key(), it.value()}, "pool_size",
                                         retval, &state::pool_size,
                                         &json::is_number, &json::get<int>))
@@ -293,11 +284,10 @@ state parser::parse(std::string const& file) {
                                       &state::event_queue_max_size,
                                       &json::is_number, &json::get<int>))
           ;
-        else if (get_conf<uint32_t, state>({it.key(), it.value()},
-                                           "priority_age_threshold", retval,
-                                           &state::priority_age_threshold,
-                                           &json::is_number,
-                                           &json::get<uint32_t>))
+        else if (get_conf<uint32_t, state>(
+                     {it.key(), it.value()}, "priority_age_threshold", retval,
+                     &state::priority_age_threshold, &json::is_number,
+                     &json::get<uint32_t>))
           ;
         else if (it.key() == "event_queues_total_size") {
           auto eqts = check_and_read<uint64_t>(json_document["centreonBroker"],

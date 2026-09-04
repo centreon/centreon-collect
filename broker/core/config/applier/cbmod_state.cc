@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include "broker/core/config/applier/cbmod_state.hh"
+#include "absl/synchronization/mutex.h"
 #include "bbdo/internal.hh"
 
 namespace com::centreon::broker::config::applier {
@@ -192,6 +193,7 @@ void cbmod_state::set_diff_state_applied(bool done) {
  */
 void cbmod_state::set_current_engine_conf(
     std::unique_ptr<com::centreon::engine::configuration::State>& conf) {
+  absl::MutexLock l(&_current_engine_state_m);
   _current_engine_state = std::move(conf);
 }
 
@@ -204,6 +206,7 @@ void cbmod_state::set_current_engine_conf(
  */
 std::unique_ptr<com::centreon::engine::configuration::State>
 cbmod_state::current_engine_conf() {
+  absl::MutexLock l(&_current_engine_state_m);
   return std::move(_current_engine_state);
 }
 

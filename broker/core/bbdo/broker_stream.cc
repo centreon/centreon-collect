@@ -19,6 +19,7 @@
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "broker/core/bbdo/basic_stream.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/engine_conf/indexed_diff_state.hh"
 
@@ -70,97 +71,6 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
  */
 void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
   switch (d->type()) {
-    case version_response::static_type(): {
-      auto version(std::static_pointer_cast<version_response>(d));
-      if (version->bbdo_major != get_bbdo_version().major_v) {
-        SPDLOG_LOGGER_ERROR(
-            _logger,
-            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-            "using protocol version {}.{}.{}",
-            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            get_bbdo_version().major_v, get_bbdo_version().minor_v,
-            get_bbdo_version().patch);
-        throw msg_fmt(
-            "BBDO: peer is using protocol version {}.{}.{} "
-            "whereas we're using protocol version {}.{}.{}",
-            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            get_bbdo_version().major_v, get_bbdo_version().minor_v,
-            get_bbdo_version().patch);
-      }
-      SPDLOG_LOGGER_INFO(
-          _logger,
-          "BBDO: peer is using protocol version {}.{}.{} , we're using "
-          "version "
-          "{}.{}.{}",
-          version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-          get_bbdo_version().major_v, get_bbdo_version().minor_v,
-          get_bbdo_version().patch);
-
-      break;
-    }
-    case pb_welcome::static_type(): {
-      auto welcome(std::static_pointer_cast<pb_welcome>(d));
-      const auto& pb_version = welcome->obj().version();
-      if (pb_version.major() != get_bbdo_version().major_v) {
-        SPDLOG_LOGGER_ERROR(
-            _logger,
-            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-            "using protocol version {}.{}.{}",
-            pb_version.major(), pb_version.minor(), pb_version.patch(),
-            get_bbdo_version().major_v, get_bbdo_version().minor_v,
-            get_bbdo_version().patch);
-        throw msg_fmt(
-            "BBDO: peer is using protocol version {}.{}.{} "
-            "whereas we're using protocol version {}.{}.{}",
-            pb_version.major(), pb_version.minor(), pb_version.patch(),
-            get_bbdo_version().major_v, get_bbdo_version().minor_v,
-            get_bbdo_version().patch);
-      }
-      SPDLOG_LOGGER_INFO(
-          _logger,
-          "BBDO: peer is using protocol version {}.{}.{} , we're using "
-          "version "
-          "{}.{}.{}",
-          pb_version.major(), pb_version.minor(), pb_version.patch(),
-          get_bbdo_version().major_v, get_bbdo_version().minor_v,
-          get_bbdo_version().patch);
-      break;
-    }
-    case ack::static_type():
-      SPDLOG_LOGGER_INFO(
-          _logger, "BBDO: received acknowledgement for {} events",
-          std::static_pointer_cast<const ack>(d)->acknowledged_events);
-      acknowledge_events(
-          std::static_pointer_cast<const ack>(d)->acknowledged_events);
-      break;
-    case pb_ack::static_type():
-      SPDLOG_LOGGER_INFO(_logger,
-                         "BBDO: received pb acknowledgement for {} events",
-                         std::static_pointer_cast<const pb_ack>(d)
-                             ->obj()
-                             .acknowledged_events());
-      acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
-                             ->obj()
-                             .acknowledged_events());
-      break;
-    case stop::static_type(): {
-      SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
-      send_event_acknowledgement();
-    } break;
-    case pb_stop::static_type(): {
-      SPDLOG_LOGGER_INFO(
-          _logger, "BBDO: received stop from peer with ID {}",
-          std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
-      send_event_acknowledgement();
-      /* Now, we send a local::pb_stop to ask unified_sql to update the
-       * database since the poller is going away. */
-      auto loc_stop = std::make_shared<local::pb_stop>();
-      auto& obj = loc_stop->mut_obj();
-      obj.set_poller_id(
-          std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
-      multiplexing::publisher pblshr;
-      pblshr.write(loc_stop);
-    } break;
     case pb_diff_state_ack::static_type(): {
       auto ack_ptr = std::static_pointer_cast<pb_diff_state_ack>(d);
       auto& obj = ack_ptr->obj();
@@ -317,6 +227,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       _state.clear_pending_for_poller(pid);
     } break;
     default:
+      basic_stream::_handle_bbdo_event(d);
       break;
   }
 }

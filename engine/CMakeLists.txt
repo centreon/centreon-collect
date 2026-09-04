@@ -497,7 +497,7 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
 
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib pb_neb_lib)
+add_dependencies(centenginestats centreon_clib pb_all_libs)
 target_link_libraries(centenginestats PRIVATE centreon_clib fmt::fmt absl::log absl::base absl::log_internal_check_op)
 
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
@@ -505,7 +505,7 @@ target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 # Library engine target.
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib cbmod)
+add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_all_libs cbmod)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
@@ -565,7 +565,7 @@ if(NOT ONLY_ROBOT_CMA)
 endif()
 
 # Benchmarks.
-if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
+if(WITH_TESTING AND NOT ONLY_ROBOT_CMA AND WITH_BENCH)
   add_subdirectory(benchmark)
 endif()
 

@@ -17,6 +17,7 @@ dnf install --best -y \
     gcc-c++ \
     git \
     gnutls \
+    iptables \
     iproute \
     libgcrypt \
     lua \

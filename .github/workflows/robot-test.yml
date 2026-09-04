@@ -174,10 +174,10 @@ jobs:
           password: ${{ secrets.registry_password }}
 
       #  pam sshd authentication doesn't work with privileged containers
-      - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
+      - name: ${{ (matrix.feature == 'connector_ssh/connector_ssh.robot' || matrix.feature == 'connector_ssh/centralized-connector_ssh.robot') && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         run: |
           privilege_status=""
-          if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
+          if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' && ${{ matrix.feature }} != 'connector_ssh/centralized-connector_ssh.robot' ]]; then
             privilege_status="--privileged"
           fi
           docker run --rm $privilege_status --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \

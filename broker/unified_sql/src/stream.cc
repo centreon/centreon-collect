@@ -326,9 +326,6 @@ void stream::_load_caches() {
 
   std::promise<mysql_result> promise_instance_id;
   std::promise<database::mysql_result> promise_index_data;
-  // std::promise<mysql_result> promise_hi;
-  // std::promise<mysql_result> promise_hg;
-  // std::promise<mysql_result> promise_sg;
   std::promise<mysql_result> promise_metrics;
   std::promise<mysql_result> promise_resource;
   std::promise<mysql_result> promise_severity;
@@ -336,9 +333,6 @@ void stream::_load_caches() {
   std::future<mysql_result> future_instance_id =
       promise_instance_id.get_future();
   std::future<mysql_result> future_index_data = promise_index_data.get_future();
-  // std::future<mysql_result> future_hi = promise_hi.get_future();
-  // std::future<mysql_result> future_hg = promise_hg.get_future();
-  // std::future<mysql_result> future_sg = promise_sg.get_future();
   std::future<mysql_result> future_metrics = promise_metrics.get_future();
   std::future<mysql_result> future_resource = promise_resource.get_future();
   std::future<mysql_result> future_severity = promise_severity.get_future();
@@ -356,19 +350,6 @@ void stream::_load_caches() {
       "description,"
       "special,locked FROM index_data",
       std::move(promise_index_data));
-
-  /* hosts => _cache_host_instance */
-  //_mysql.run_query_and_get_result("SELECT host_id,instance_id FROM hosts",
-  //                                std::move(promise_hi));
-
-  /* hostgroups => _hostgroups_cache */
-  //_mysql.run_query_and_get_result("SELECT hostgroup_id, name FROM hostgroups",
-  //                                std::move(promise_hg));
-
-  /* servicegroups => _servicegroups_cache */
-  //_mysql.run_query_and_get_result(
-  //    "SELECT servicegroup_id, name FROM servicegroups",
-  //    std::move(promise_sg));
 
   /* metrics => _metric_cache */
   _mysql.run_query_and_get_result(
@@ -413,8 +394,6 @@ void stream::_load_caches() {
   try {
     database::mysql_result res(future_index_data.get());
 
-    multiplexing::publisher pblshr;
-
     // Loop through result set.
     while (_mysql.fetch_row(res)) {
       uint64_t index_id = res.value_as_u64(0);
@@ -458,74 +437,6 @@ void stream::_load_caches() {
     throw msg_fmt("unified_sql: could not fetch index list from data DB: {}",
                   e.what());
   }
-
-  /* hosts => _cache_host_instance */
-  // FIXME DBO
-  //_cache_host_instance.clear();
-  // try {
-  //  mysql_result res(future_hi.get());
-  //  while (_mysql.fetch_row(res)) {
-  //    int32_t host_id = res.value_as_i32(0);
-  //    int32_t instance_id = res.value_as_i32(1);
-  //    if (host_id > 0 && instance_id > 0)
-  //      _cache_host_instance[host_id] = instance_id;
-  //    else {
-  //      if (host_id <= 0)
-  //        SPDLOG_LOGGER_ERROR(
-  //            _logger_sql,
-  //            "unified_sql: the 'hosts' table contains rows with host_id <= 0,
-  //            " "you should remove them.");
-  //      if (instance_id <= 0)
-  //        SPDLOG_LOGGER_ERROR(
-  //            _logger_sql,
-  //            "unified_sql: the 'hosts' table contains rows with instance_id "
-  //            "<= 0, you should remove them.");
-  //    }
-  //  }
-  //} catch (std::exception const& e) {
-  //  throw msg_fmt("SQL: could not get the list of host/instance pairs: {}",
-  //                e.what());
-  //}
-
-  /* hostgroups => _hostgroups_cache */
-  //_hostgroups_cache.clear();
-  // try {
-  //  mysql_result res(future_hg.get());
-  //  while (_mysql.fetch_row(res)) {
-  //    uint32_t hg_id = res.value_as_i32(0);
-  //    std::string name = res.value_as_str(1);
-  //    if (hg_id > 0)
-  //      _hostgroups_cache.insert({hg_id, name});
-  //    else
-  //      SPDLOG_LOGGER_ERROR(
-  //          _logger_sql,
-  //          "unified_sql: the table 'hostgroups' contains rows with "
-  //          "hostgroup_id <= 0, you should remove them.");
-  //  }
-  //} catch (const std::exception& e) {
-  //  throw msg_fmt("SQL: could not get the list of hostgroups id: {}",
-  //  e.what());
-  //}
-
-  /* servicegroups => _servicegroups_cache */
-  //_servicegroups_cache.clear();
-  // try {
-  //  mysql_result res(future_sg.get());
-  //  while (_mysql.fetch_row(res)) {
-  //    uint32_t sg_id = res.value_as_i32(0);
-  //    std::string name = res.value_as_str(1);
-  //    if (sg_id > 0)
-  //      _servicegroups_cache.insert({sg_id, name});
-  //    else
-  //      SPDLOG_LOGGER_ERROR(
-  //          _logger_sql,
-  //          "unified_sql: the 'servicegroups' table contains rows with "
-  //          "servicegroup_id <= 0, you should remove them.");
-  //  }
-  //} catch (std::exception const& e) {
-  //  throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
-  //                e.what());
-  //}
 
   _cache_svc_cmd.clear();
   _cache_hst_cmd.clear();
@@ -835,7 +746,6 @@ uint32_t stream::stop() {
   absl::ReleasableMutexLock lck(&_check_queues_m);
   auto check_queues_is_stopped = [this]() { return _check_queues_stopped; };
 
-  _check_queues_m.Await(absl::Condition(&check_queues_is_stopped));
   if (_check_queues_m.AwaitWithTimeout(
           absl::Condition(&check_queues_is_stopped),
           absl::Seconds(queue_timer_duration))) {
@@ -1134,48 +1044,19 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
  */
 void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
   auto& cache = config::applier::state::instance().cache();
-  for (uint64_t instance_id : ids)
+  for (uint64_t instance_id : ids) {
+    cache.visit_hosts_of_instance(instance_id, [this](const Host& host) {
+      _cache_hst_cmd.erase(host.host_id());
+      _resources_cache.erase({host.host_id(), 0});
+    });
+    cache.visit_services_of_instance(
+        instance_id, [this](const Service& service) {
+          _cache_svc_cmd.erase({service.service_id(), service.host_id()});
+          _resources_cache.erase({service.service_id(), service.host_id()});
+        });
+
     cache.remove_instance(instance_id);
-
-  // auto host_ids = cache.host_ids();
-  // for (uint64_t host_id : host_ids) {
-  //   uint64_t instance_id = cache.host(host_id)->obj().instance_id();
-  //   if (std::find(ids.begin(), ids.end(), instance_id) != ids.end()) {
-  //     _cache_hst_cmd.erase(host_id);
-  //     for (auto itt = _cache_svc_cmd.begin(); itt != _cache_svc_cmd.end();
-  //          ++itt) {
-  //       if (itt->first.first == host_id) {
-  //         uint64_t svc_id = itt->first.second;
-  //         auto ridx_it = _index_cache.find({host_id, svc_id});
-  //         uint64_t index_id = ridx_it->second.index_id;
-  //         for (auto idx_it = _index_cache.begin(); idx_it !=
-  //         _index_cache.end();
-  //              ++idx_it) {
-  //           if (idx_it->first.first == index_id)
-  //             _index_cache.erase(idx_it);
-  //           std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
-  //           for (auto metric_it = _metric_cache.begin();
-  //                metric_it != _metric_cache.end(); ++metric_it) {
-  //             if (metric_it->first.first == index_id)
-  //               _metric_cache.erase(metric_it);
-  //           }
-  //         }
-  //         _index_cache.erase(ridx_it);
-  //         _cache_svc_cmd.erase(itt);
-
-  //        // resources
-  //        auto res_it = _resources_cache.find({svc_id, host_id});
-  //        if (res_it != _resources_cache.end())
-  //          _resources_cache.erase(res_it);
-  //      }
-  //      auto res_it = _resources_cache.find({host_id, 0});
-  //      if (res_it != _resources_cache.end())
-  //        _resources_cache.erase(res_it);
-  //    }
-  //    it = _cache_host_instance.erase(it);
-  //  } else
-  //    ++it;
-  //}
+  }
 }
 
 void stream::update() {
