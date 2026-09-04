@@ -15,17 +15,27 @@
 * [Reading Engine configuration](#reading-engine-configuration)
   * [Configuration management on the Engine side](#configuration-management-on-the-engine-side)
   * [Managing configuration sending by Broker to Engine](#managing-configuration-sending-by-broker-to-engine)
-    * [Lifecycle of the `X.lck` file](#lifecycle-of-the-xlck-file)
+      * [Lifecycle of the `X.lck` file](#lifecycle-of-the-xlck-file)
+  * [Validating a poller configuration: the `CheckPollerConfig` gRPC endpoint](#validating-a-poller-configuration-the-checkpollerconfig-grpc-endpoint)
+    * [Implementation](#implementation)
+    * [Scope and roadmap](#scope-and-roadmap)
+    * [Recommended porting order](#recommended-porting-order)
+    * [Analysis: porting `resolve()` checks onto the `State`](#analysis-porting-resolve-checks-onto-the-state)
+    * [What `expand()` already covers (and what remains to port)](#what-expand-already-covers-and-what-remains-to-port)
+    * [Moving from early throw to accumulation](#moving-from-early-throw-to-accumulation)
   * [Calculating the difference](#calculating-the-difference)
   * [Writing configuration to database](#writing-configuration-to-database)
     * [Case study](#case-study)
-    * [Implementation](#implementation)
+    * [Implementation](#implementation-1)
   * [Tricky cases](#tricky-cases)
   * [Cross-cutting objects](#cross-cutting-objects)
   * [The necessity of centralized cache](#the-necessity-of-centralized-cache)
   * [Some more technical points](#some-more-technical-points)
   * [Split of broker::config::applier::state](#split-of-brokerconfigapplierstate)
     * [broker\_state, cache and downtime\_manager lifecycle](#broker_state-cache-and-downtime_manager-lifecycle)
+      * [Startup](#startup)
+      * [Startup readiness barrier](#startup-readiness-barrier)
+      * [Shutdown](#shutdown)
 * [SQL/storage streams](#sqlstorage-streams)
 * [Broker centralized cache](#broker-centralized-cache)
   * [Operating in centralized configuration](#operating-in-centralized-configuration)
@@ -61,11 +71,16 @@
 * [Remote Servers and centralized configuration](#remote-servers-and-centralized-configuration)
   * [Current situation](#current-situation)
   * [Relay identification](#relay-identification)
+    * [Central vs relay](#central-vs-relay)
+    * [Behaviour on ConfigRequest receipt](#behaviour-on-configrequest-receipt)
+    * [Relay auto-detection](#relay-auto-detection)
   * [New BBDO messages](#new-bbdo-messages)
   * [Topology in broker\_cache](#topology-in-broker_cache)
   * [Topology persistence](#topology-persistence)
   * [Scenario 1: poller connects to the remote](#scenario-1-poller-connects-to-the-remote)
   * [Scenario 1b: relay chain (multi-hop)](#scenario-1b-relay-chain-multi-hop)
+    * [Hop-by-hop routing](#hop-by-hop-routing)
+    * [ConfigRequest forwarding](#configrequest-forwarding)
   * [Scenario 2: configuration pushed by PHP](#scenario-2-configuration-pushed-by-php)
   * [Scenario 3: remote offline then reconnects](#scenario-3-remote-offline-then-reconnects)
   * [Scenario 4: central restart](#scenario-4-central-restart)
@@ -73,43 +88,72 @@
   * [gRPC GetTopology endpoint](#grpc-gettopology-endpoint)
   * [.prot file storage](#prot-file-storage)
   * [broker\_state evolution](#broker_state-evolution)
+    * [`running` flag and `has_connection_from_poller` semantics](#running-flag-and-has_connection_from_poller-semantics)
   * [Required changes](#required-changes)
   * [Roll-out](#roll-out)
-    * [Step 1 — New BBDO messages ( ✅ implemented)](#step-1--new-bbdo-messages--implemented)
-    * [Step 2 — via_remote + relay detection ( ✅ implemented)](#step-2--via_remote--relay-detection--implemented)
-    * [Step 3 — ConfigRequest sent by the relay ( ✅ implemented)](#step-3--configrequest-sent-by-the-relay--implemented)
-    * [Step 4 — ConfigRequest handling at the central ( ✅ implemented)](#step-4--configrequest-handling-at-the-central--implemented)
-    * [Step 5 — Forward DiffState/ack in the relay ( ✅ implemented)](#step-5--forward-diffstateack-in-the-relay--implemented)
-    * [Step 6 — PHP push via relay ( ✅ implemented)](#step-6--php-push-via-relay--implemented)
-    * [Step 7 — Migration + ConfigRevoke ( ✅ implemented)](#step-7--migration--configrevoke--implemented)
-    * [Step 8 — Topology persistence](#step-8--topology-persistence)
-    * [Step 9 — gRPC GetTopology](#step-9--grpc-gettopology)
+    * [Step 1 — New BBDO messages (✅ implemented)](#step-1--new-bbdo-messages--implemented)
+    * [Step 2 — via\_remote + relay detection (✅ implemented)](#step-2--via_remote--relay-detection--implemented)
+    * [Step 3 — ConfigRequest sent by the relay (✅ implemented)](#step-3--configrequest-sent-by-the-relay--implemented)
+    * [Step 4 — ConfigRequest handling at the central (✅ implemented)](#step-4--configrequest-handling-at-the-central--implemented)
+    * [Step 5 — Forward DiffState/ack in the relay (✅ implemented)](#step-5--forward-diffstateack-in-the-relay--implemented)
+    * [Step 6 — PHP push via relay (✅ implemented)](#step-6--php-push-via-relay--implemented)
+    * [Step 7 — Migration + ConfigRevoke (✅ implemented)](#step-7--migration--configrevoke--implemented)
+    * [Step 8 — Topology persistence (✅ implemented)](#step-8--topology-persistence--implemented)
+    * [Step 9 — gRPC GetTopology (✅ implemented)](#step-9--grpc-gettopology--implemented)
+    * [Common Robot infrastructure to create in tests/resources/:](#common-robot-infrastructure-to-create-in-testsresources)
 * [Centralized downtime and acknowledgement management](#centralized-downtime-and-acknowledgement-management)
   * [Problem](#problem)
-  * [Solution: Broker as source of truth](#solution-broker-as-source-of-truth)
-  * [New BBDO messages](#new-bbdo-messages)
-  * [Persistence and restart](#persistence-and-restart)
+  * [Solution: the notification\_mode parameter](#solution-the-notification_mode-parameter)
+  * [Persistence](#persistence)
   * [Migration and downtimes / acknowledgements](#migration-and-downtimes--acknowledgements)
+  * [Driving the notification decision on Broker](#driving-the-notification-decision-on-broker)
+    * [Backend initialization](#backend-initialization)
+    * [Trigger: a third treatment in `multiplexing::engine`](#trigger-a-third-treatment-in-multiplexingengine)
+    * [Turning off the decision on Engine](#turning-off-the-decision-on-engine)
+* [Preparatory work before Poller HA](#preparatory-work-before-poller-ha)
+  * [Prerequisite: timeperiods must be Broker-manageable](#prerequisite-timeperiods-must-be-broker-manageable)
+  * [Triple-priority neb queue](#triple-priority-neb-queue)
+    * [Implementation](#implementation-2)
+      * [Container: `std::deque` + `size_t` index](#container-stddeque--size_t-index)
+      * [Classification at insertion](#classification-at-insertion)
+      * [Acknowledgement](#acknowledgement)
+      * [Disk spill (retention on disk)](#disk-spill-retention-on-disk)
+      * [Benchmark results](#benchmark-results)
+      * [Entry type: struct vs pair, emplace\_back vs push\_back](#entry-type-struct-vs-pair-emplace_back-vs-push_back)
+      * [Timestamp field: insertion time, not event data time](#timestamp-field-insertion-time-not-event-data-time)
+      * [Handling connection loss: `nack_events()`](#handling-connection-loss-nack_events)
+  * [BAM: reading downtime state from the Broker cache](#bam-reading-downtime-state-from-the-broker-cache)
+  * [Implementing notification\_mode = broker on single-poller zones](#implementing-notification_mode--broker-on-single-poller-zones)
+    * [BrokerRpc gRPC endpoints](#brokerrpc-grpc-endpoints)
+    * [Inherited downtimes via BrokerRpc](#inherited-downtimes-via-brokerrpc)
+    * [Escalation rules](#escalation-rules)
+    * [pb\_notification\_execute](#pb_notification_execute)
+  * [Test strategy](#test-strategy)
 * [Poller HA](#poller-ha)
   * [Poller configuration tree](#poller-configuration-tree)
-  * [Engine configuration files](#engine-configuration-files)
-  * [List of peers](#list-of-peers)
   * [Engine self-monitoring](#engine-self-monitoring)
-    * [Implementation](#implementation-1)
+    * [Implementation](#implementation-3)
     * [What Engine does with these indicators](#what-engine-does-with-these-indicators)
-  * [unified_sql](#unified_sql)
   * [HA protocol architecture](#ha-protocol-architecture)
     * [Overview](#overview-1)
+    * [The notion of zone](#the-notion-of-zone)
     * [Non-HA mode: compatibility and single-poller zone](#non-ha-mode-compatibility-and-single-poller-zone)
-    * [PHP → Broker interface: centengine.cfg](#php--broker-interface-centengine)
+    * [PHP → Broker interface: centengine.cfg](#php--broker-interface-centenginecfg)
     * [Zone-to-poller configuration inheritance](#zone-to-poller-configuration-inheritance)
-    * [Zone activation: min_pollers](#zone-activation-min_pollers)
+      * [Evolution of the `centengine.cfg` format](#evolution-of-the-centenginecfg-format)
+    * [Zone activation: min\_pollers](#zone-activation-min_pollers)
     * [Resource distribution across pollers](#resource-distribution-across-pollers)
       * [Co-location blocks](#co-location-blocks)
       * [Two-phase algorithm](#two-phase-algorithm)
     * [Behavior when a poller is removed from the zone](#behavior-when-a-poller-is-removed-from-the-zone)
     * [Host migration protocol](#host-migration-protocol)
     * [Runtime state preservation during migration](#runtime-state-preservation-during-migration)
+    * [Centralized downtimes and acknowledgements](#centralized-downtimes-and-acknowledgements)
+      * [notification\_mode = engine (default)](#notification_mode--engine-default)
+      * [notification\_mode = broker](#notification_mode--broker)
+    * [Notifications in HA mode](#notifications-in-ha-mode)
+      * [notification\_mode = engine (default)](#notification_mode--engine-default-1)
+      * [notification\_mode = broker](#notification_mode--broker-1)
     * [Threshold rebalancing](#threshold-rebalancing)
       * [Health message](#health-message)
       * [Load score and thresholds](#load-score-and-thresholds)
@@ -122,7 +166,7 @@
     * [Study on distribution mechanism](#study-on-distribution-mechanism)
     * [Introduction of Zone and DiffZone messages](#introduction-of-zone-and-diffzone-messages)
   * [Multiple tickets in parallel](#multiple-tickets-in-parallel)
-    * [Preparing unified_sql](#preparing-unified_sql)
+    * [Preparing unified\_sql](#preparing-unified_sql)
     * [Centralized cache](#centralized-cache)
     * [The conversion block](#the-conversion-block)
   * [Evolutions](#evolutions)
@@ -1095,9 +1139,10 @@ The timer executes the `config::applier::state::_check_last_engine_conf()` metho
 
 ```mermaid
 stateDiagram-v2
-    [*] --> _watch_engine_conf(poller_ids)
-    _watch_engine_conf(poller_ids) --> pour_chaque_poller_id
-    note right of _watch_engine_conf(poller_ids): This function retrieves IDs reported by inotify<br/>(completed by the fallback directory scan).<br/>The ID.lck file is NOT deleted here: it marks<br/>a configuration pending delivery.
+    [*] --> watch_engine_conf
+    watch_engine_conf: _watch_engine_conf(poller_ids)
+    watch_engine_conf --> pour_chaque_poller_id
+    note right of watch_engine_conf: This function retrieves IDs reported by inotify<br/>(completed by the fallback directory scan).<br/>The ID.lck file is NOT deleted here — it marks<br/>a configuration pending delivery.
     pour_chaque_poller_id: For each poller ID in poller_ids
     state garde_attente <<choice>>
     pour_chaque_poller_id --> garde_attente
@@ -1397,7 +1442,7 @@ sequenceDiagram
     CACHE->>CACHE: _load_cache() reads <cache_dir>.cache
     Note over CACHE: fills _pending_active_downtimes only<br/>NO re-injection here:<br/>_global_cache not assigned yet
     deactivate CACHE
-    S->>S: endpoint::apply(); arm the startup readiness barrier<br/>(engine start is deferred, see below)
+    S->>S: endpoint::apply() then arm the startup readiness barrier<br/>(engine start is deferred, see below)
     S-->>BS: return (_global_cache now assigned)
 
     alt notification_mode == broker (from _on_barrier_released(), once the barrier releases)
@@ -2847,21 +2892,21 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
 
 ## Roll-out
 
-### Step 1 — New BBDO messages ( ✅ implemented)
+### Step 1 — New BBDO messages (✅ implemented)
   No Robot test at this stage — validation is purely at compilation and unit test level
   (message serialisation/deserialisation).
 
-### Step 2 — via_remote + relay detection ( ✅ implemented)
+### Step 2 — via_remote + relay detection (✅ implemented)
   Same — unit tests on `is_relay()` and the detection logic.
 
-### Step 3 — ConfigRequest sent by the relay ( ✅ implemented)
+### Step 3 — ConfigRequest sent by the relay (✅ implemented)
   → CCCRC1 (`centralized-relay-conf.robot`): A configured relay receives an Engine. Verify in the
   central's logs that `ConfigRequest{poller_id=N}` is received.
 
   Implemented keywords: `Ctn Config Relay`, `Ctn Start Relay`, `Ctn Stop Relay`
   (in `tests/resources/Broker.py` and `tests/resources/resources.resource`).
 
-### Step 4 — ConfigRequest handling at the central ( ✅ implemented)
+### Step 4 — ConfigRequest handling at the central (✅ implemented)
   → CCCRC2 (`centralized-relay-conf.robot`): A poller configuration is pre-created before the
   central broker starts. Verify that the central processes the lck file, computes the diff, and
   sends a non-unknown `DiffState` to the relay when a `ConfigRequest` arrives.
@@ -2869,7 +2914,7 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
   CCCRC1 covers the unknown path (central has no config → sends `DiffState{unknown=true}`).
   CCCRC2 covers the diff_ready path (central has config → sends `DiffState` with content).
 
-### Step 5 — Forward DiffState/ack in the relay ( ✅ implemented)
+### Step 5 — Forward DiffState/ack in the relay (✅ implemented)
   → CCCRC3 (`centralized-relay-conf.robot`): Pre-created config for poller 1. Central sends
   `DiffState` to relay. The relay queues it in `_pending_diff_states` and forwards it to Engine
   on the next `read()` cycle of the ENGINE-connected stream. Engine applies it and sends back a
@@ -2880,7 +2925,7 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
   so that forwarded acks (where the BROKER stream's poller_id is the relay's, not the Engine's)
   are routed correctly.
 
-### Step 6 — PHP push via relay ( ✅ implemented)
+### Step 6 — PHP push via relay (✅ implemented)
   When PHP pushes a new `.lck` for a poller whose Engine is behind a relay, the central must
   route the resulting DiffState through the relay rather than looking for a direct ENGINE stream.
 
@@ -2896,7 +2941,7 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
   verify central log "BBDO: sending DiffState to relay for poller 1" then "received diff state ack
   from poller 1".
 
-### Step 7 — Migration + ConfigRevoke ( ✅ implemented)
+### Step 7 — Migration + ConfigRevoke (✅ implemented)
   When Engine N reconnects via a new relay R2 while previously registered behind R1, the central
   detects the migration and must send `ConfigRevoke{poller_id=N}` to R1 so it can clean up.
 
@@ -2917,7 +2962,7 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
   Engine restarted → Relay4 sends ConfigRequest → central detects migration →
   central sends ConfigRevoke to Relay3 (verified in relay3 log) + DiffState to Relay4 → ack.
 
-### Step 8 — Topology persistence ( ✅ implemented)
+### Step 8 — Topology persistence (✅ implemented)
   **Implementation**:
   - `TopologyCache` protobuf message added to `bbdo/bbdo.proto` — on-disk format for
     `(poller_id, relay_id)` pairs.
@@ -2932,7 +2977,7 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
   Verify that the relay reconnects and DiffStateAck is received again (topology.cache hint
   enables routing before relay reconnects).
 
-### Step 9 — gRPC GetTopology ( ✅ implemented)
+### Step 9 — gRPC GetTopology (✅ implemented)
   **Implementation**: `broker_impl::GetTopology` iterates `connected_peers()` and builds
   a `TopologyResponse` with `direct_brokers` (ENGINE peers with `via_remote != 0` grouped
   under their relay entry) and `direct_pollers` (ENGINE peers with `via_remote == 0`).
@@ -3684,6 +3729,18 @@ be delayed by the very overload it is meant to report.
 ## HA protocol architecture
 
 ### Overview
+
+Poller HA combines two distinct mechanisms sharing the same migration infrastructure:
+
+- **Load balancing**: Broker rebalances hosts between the pollers of a zone according to their
+  load. Threshold-triggered, not continuous.
+- **Failover**: when a poller goes down, Broker redistributes its hosts to the surviving pollers
+  of the zone. This is a special case of migration where the source poller is dead.
+
+Central Broker does not control poller startup. HA is therefore entirely reactive: Broker
+detects the failure and redistributes, but cannot start a new poller.
+
+### The notion of zone
 
 The HA model introduces a load-balancing and failover layer on top of the existing centralized
 configuration mechanism. A *zone* groups several pollers that can monitor the same set of
@@ -4576,14 +4633,23 @@ Taking into account Health by Broker must allow rebalancing poller configuration
 * problematic passive services
 * agent
 * retention.dat (on poller side, if it changes we no longer have the info)
-* hostdependencies hosts must be on the same poller.
-* servicedependencies hosts of these services must be on the same poller.
+* hostdependencies / servicedependencies, **execution** dependencies: evaluated locally by
+the poller (`host::authorized_by_dependencies`, `service::authorized_by_dependencies`) and
+they inhibit the check itself, a synchronous decision on the scheduler hot path — so
+co-location remains mandatory. Validation: handled — a cross-poller dependency is a
+configuration error caught at `resolve`, thanks to the global view Broker has of the other
+pollers' configurations (`foreign_objects`). Beware: a missing master leaves `master_*_ptr`
+null and the dependency is then *silently ignored*, hence the validation.
+* **notification** dependencies: already evaluated by Broker (`broker_cache`), they could
+cross pollers. Still refused today, for lack of a home for a dependency neither poller knows
+the far end of — so they still constrain placement, and co-location blocks are computed on
+both kinds.
 * Hostescalation / Serviceescalation: escalations must follow the notified object (co-location constraint already enforced by the distribution algorithm; handled by the notification service in centralized configuration mode).
 * Downtimes and acknowledgements: handled — see [Centralized downtimes and acknowledgements](#centralized-downtimes-and-acknowledgements) and [Notifications in HA mode](#notifications-in-ha-mode).
 * Anomalydetection must be on the same poller as the associated service. And its configuration must follow.
 * Very difficult to keep compatibility with old engine behavior
 * ping-pong
-* Engine configuration check must be migrated to gRPC on Broker.
+* Engine configuration check in gRPC on Broker: handled — `CheckPollerConfig` RPC. The multi-poller extension (per-poller sections plus a global one) remains.
 * in the resources table, we currently only have poller_id, is it wise to also add zone_id? First impression: yes. Even if overall we replace poller_id with zone_id, there are exceptions!! Poller IDs keep their meaning for example to access logs.
 
 # Issue resolution
