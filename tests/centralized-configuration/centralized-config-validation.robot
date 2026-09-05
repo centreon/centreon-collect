@@ -299,7 +299,7 @@ BECFGVAL9
     ...    When the configuration change is notified to Broker
     ...    Then Broker prepares and stores the poller configuration once
     ...    And it keeps the .lck since the configuration cannot be delivered yet
-    ...    And it does not prepare that configuration again on every watcher cycle
+    ...    And nothing at all happens about that poller on the following cycles
     [Tags]    broker    engine    config    centralized    MON-187019
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
@@ -354,12 +354,11 @@ BECFGVAL9
     ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${stored}    5
     Should Not Be True    ${found}    Broker prepared the configuration again for an absent poller
 
-    # And the reason the .lck is left alone must be the intended one.
-    ${prepared}    Create List    whose configuration is already prepared
-    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${prepared}    30
-    Should Be True
-    ...    ${found}
-    ...    Broker did not recognize the .lck as one whose configuration is already prepared
+    # Nor must the directory be scanned at all: the scan is a safety net for what
+    # inotify cannot report, and nothing here asked for it.
+    ${scan}    Create List    Scanning the engine configuration directory
+    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${scan}    5
+    Should Not Be True    ${found}    Broker scanned the cache directory while nothing asked for it
     File Should Exist    ${VarRoot}/lib/centreon/config/1.lck    the lock file must still be there
 
     # An empty inotify queue is the ordinary case and must not be logged as an
