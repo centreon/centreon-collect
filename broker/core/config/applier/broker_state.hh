@@ -176,6 +176,19 @@ class broker_state : public state {
       _watch_strand;
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
+  /* When the cache directory was last scanned in full, and whether the watcher
+   * asked for one because the events could not be trusted. inotify detects a
+   * change; the scan is only there for what inotify could not report. Both are
+   * touched from _check_last_engine_conf() alone, which runs on _watch_strand,
+   * so they need no lock.
+   *
+   * Empty means never scanned, which is what makes the first cycle scan and so
+   * picks up the .lck files already waiting when Broker started. It has to be
+   * said this way rather than by an old timestamp: steady_clock counts from the
+   * boot, so on a machine up for less than the scan period any past-looking
+   * value is still within it. */
+  std::optional<std::chrono::steady_clock::time_point> _last_full_scan;
+  bool _scan_requested_by_watcher = false;
 
   /* Startup readiness barrier hook (mechanism lives in the base state): once the
    * engine is started, re-inject the persisted active downtimes so they are

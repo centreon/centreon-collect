@@ -257,8 +257,16 @@ void broker_state::set_cache_config_dir(
   _cache_config_dir = cache_config_dir;
   if (!_cache_config_dir.empty()) {
     _logger->info("Watching for changes in '{}'", _cache_config_dir.string());
+    /* IN_DELETE_SELF and IN_MOVE_SELF are about the watched directory itself,
+     * not its content: they are what tells the watcher its watch died and has
+     * to be established again. They have to be asked for -- unlike IN_IGNORED,
+     * which the kernel delivers on its own -- and without them a cache
+     * directory that is renamed rather than deleted would silently stop being
+     * watched. */
     _cache_config_dir_watcher = std::make_unique<file::directory_watcher>(
-        _cache_config_dir, IN_CREATE | IN_MODIFY | IN_ATTRIB, true);
+        _cache_config_dir,
+        IN_CREATE | IN_MODIFY | IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF,
+        true);
     if (!_watch_engine_conf_timer) {
       _logger->debug("Starting engine configuration watcher");
       _watch_strand = std::make_unique<
@@ -336,6 +344,11 @@ void broker_state::load_topology_cache() {
 }
 
 namespace {
+/* How often the cache directory is walked when nothing asked for it. Long on
+ * purpose: it only has to catch what inotify structurally cannot report, not to
+ * detect ordinary configuration pushes. */
+constexpr std::chrono::minutes full_scan_period{5};
+
 /**
  * @brief The poller id a stored configuration file name carries.
  *
@@ -945,17 +958,38 @@ void broker_state::_check_last_engine_conf() {
 
   _watch_engine_conf(&pollers_set);
 
-  /* Fallback: scan the directory for any .lck files that inotify may have
-   * missed (e.g. when multiple rapid touch() calls overflow the inotify
-   * queue). This ensures that no configuration update is permanently lost.
+  /* Fallback: scan the directory for any .lck files that inotify did not
+   * report, so that no configuration update is permanently lost.
+   *
+   * This is a safety net, not the detection mechanism -- inotify is. It runs
+   * when the watcher says the events were incomplete (the kernel dropped some,
+   * or the watch was lost), and otherwise on a slow period, so that whatever
+   * neither inotify nor the watcher's own reporting covers -- a directory on a
+   * filesystem where inotify does not work, say -- cannot stay hidden forever.
+   * Scanning on every cycle instead would mean walking the directory, and
+   * stat-ing every .lck still waiting for its poller, forever and for nothing.
    */
-  if (!_cache_config_dir.empty()) {
+  const auto now = std::chrono::steady_clock::now();
+  const bool scan_due = _scan_requested_by_watcher || !_last_full_scan ||
+                        now - *_last_full_scan >= full_scan_period;
+  if (scan_due && !_cache_config_dir.empty()) {
+    if (_scan_requested_by_watcher)
+      _logger->info(
+          "Scanning the engine configuration directory '{}': the changes "
+          "reported by inotify were incomplete",
+          _cache_config_dir.string());
+    /* A scan was attempted, so the slow period starts over either way -- an
+     * unreadable directory must not be walked every five seconds. But a scan
+     * that failed answered nothing, so an explicit request stands and is
+     * retried on the next cycle instead of in five minutes. */
+    _last_full_scan = now;
     std::error_code scan_ec;
     std::filesystem::directory_iterator dir_it(_cache_config_dir, scan_ec);
     if (scan_ec) {
       _logger->warn("Error scanning engine config directory '{}': {}",
                     _cache_config_dir.string(), scan_ec.message());
     } else {
+      _scan_requested_by_watcher = false;
       for (const auto& entry : dir_it) {
         const auto& p = entry.path();
         if (p.extension() == ".lck") {
@@ -967,8 +1001,8 @@ void broker_state::_check_last_engine_conf() {
             /* No inotify event reported this file, so it is a leftover of a
              * push already handled: if its configuration is prepared and the
              * poller is away, the only thing left is its connection. Requeuing
-             * it here would cost a full reload of the configuration store on
-             * every cycle for nothing. */
+             * it here would reload the whole configuration store for nothing --
+             * and the poller's own connection requeues it anyway. */
             if (_conf_prepared_for_disconnected_poller(poller_id)) {
               _logger->debug(
                   "Lock file '{}' left for poller {}, whose configuration is "
@@ -1165,6 +1199,11 @@ void broker_state::_watch_engine_conf(
   if (_cache_config_dir_watcher) {
     _logger->debug("Watch engine configuration directory");
     auto it = _cache_config_dir_watcher->watch();
+    /* The watcher reports when the kernel dropped events or when the watch had
+     * to be established again. In both cases what happened in the directory is
+     * unknown to us and only a scan can recover it. */
+    if (_cache_config_dir_watcher->take_rescan_request())
+      _scan_requested_by_watcher = true;
     for (auto end = _cache_config_dir_watcher->end(); it != end; ++it) {
       _logger->debug("Change detected in '{}'", _cache_config_dir.string());
       auto [event, name] = *it;
