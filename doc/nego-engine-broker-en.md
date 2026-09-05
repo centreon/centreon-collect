@@ -15,6 +15,7 @@
 * [Reading Engine configuration](#reading-engine-configuration)
   * [Configuration management on the Engine side](#configuration-management-on-the-engine-side)
   * [Managing configuration sending by Broker to Engine](#managing-configuration-sending-by-broker-to-engine)
+      * [Losing the `inotify` watch](#losing-the-inotify-watch)
       * [Lifecycle of the `X.lck` file](#lifecycle-of-the-xlck-file)
   * [Validating a poller configuration: the `CheckPollerConfig` gRPC endpoint](#validating-a-poller-configuration-the-checkpollerconfig-grpc-endpoint)
     * [Implementation](#implementation)
@@ -496,23 +497,116 @@ But actually, there is a specific message for this, it's the `pb_diff_state_ack`
 
 All these steps are done as a background task.
 
-In addition to `inotify`, the timer also performs a directory scan on each trigger.
-This fallback detects `.lck` files that `inotify` may have missed (for example when
-multiple rapid `touch()` calls saturate the kernel event queue). Any `.lck` file
-found during the scan but not reported by `inotify` is treated as a missed
-configuration event.
+Seen end to end, from the write by PHP to the acknowledgement by `Engine`:
+
+```mermaid
+sequenceDiagram
+    participant php
+    participant C as Cache directory
+    participant W as directory_watcher<br/>(inotify)
+    participant T as 5 s timer<br/>_check_last_engine_conf
+    participant P as pollers-config
+    participant S as BBDO stream
+    participant E as Engine X
+
+    php ->> C: writes the configuration into X/
+    php ->> C: touch X.lck
+    C -->> W: inotify event on X.lck
+
+    T ->> W: watch()
+    W -->> T: X.lck changed
+    opt First cycle, 5 minutes elapsed,<br/>or incomplete events<br/>(IN_Q_OVERFLOW, watch re-established)
+        T ->> C: directory scan
+        C -->> T: .lck files inotify did not report
+    end
+
+    T ->> C: hash_directory(X/): configuration version
+    T ->> T: parse + expand + resolve
+
+    alt Invalid configuration
+        T ->> C: removes X.lck
+        Note right of T: Refused: no new-X.prot, no diff.<br/>An invalid configuration never becomes<br/>valid on its own, replaying it is pointless.
+    else Valid configuration
+        T ->> P: writes new-X.prot
+        T ->> P: writes diff-X.prot<br/>(diff against X.prot, or full configuration)
+        alt Poller X connected
+            T ->> C: removes X.lck
+            S ->> P: reads diff-X.prot
+            S ->> E: pb_diff_state
+            E -->> S: pb_diff_state_ack
+            S ->> P: renames new-X.prot into X.prot
+            Note right of S: What follows (global diff, database)<br/>is described in the<br/>"Computing the difference" chapter.
+        else Poller X absent
+            Note right of T: X.lck kept: nothing can be delivered to it.<br/>The following cycles no longer requeue it,<br/>everything is already prepared on disk.
+            E ->> S: BBDO connection and negotiation
+            S ->> T: add_peer: _get_lck_file_if_exists
+            Note right of T: X.lck found again, the poller is requeued<br/>and the delivery resumes the flow above.
+        end
+    end
+```
+
+In addition to `inotify`, the timer can also scan the directory to detect `.lck`
+files that `inotify` did not report. Any `.lck` file found during the scan but not
+reported by `inotify` is treated as a missed configuration event.
+
+That scan is a **safety net, not the detection mechanism** — `inotify` is what
+detects. So it does not run on every tick, but in three situations:
+
+1. **On the first cycle**, which picks up the `.lck` files already there when
+   `Broker` started (a configuration pushed while `Broker` was down, or just before
+   the watcher was in place).
+2. **When the kernel says it lost events.** If the `inotify` event queue saturates
+   — several `touch()` calls in a row, typically a mass deployment — the kernel
+   delivers an event carrying `IN_Q_OVERFLOW`: it *announces* the loss. The scan is
+   then triggered by that announcement rather than by speculation.
+3. **When the watch was lost and re-established** (see below): whatever happened in
+   the directory while it was unwatched is invisible to us.
+
+Outside those cases, a slow scan (every 5 minutes) remains for whatever none of the
+above covers — a directory on a filesystem where `inotify` does not work, say.
+Scanning on every tick cost a directory walk plus one `stat` per `.lck` still
+waiting for its poller, forever and for nothing.
 
 With one exception: a `.lck` the scan finds while `new-X.prot` already exists and
 poller *X* is not connected is **not** requeued. No `inotify` event reported it, so
 it is not a fresh push but the `.lck` deliberately retained (see the lifecycle
 below): everything is already prepared on disk, only the poller's connection is
 missing, and that connection requeues the poller by itself through
-`_get_lck_file_if_exists`. This filter is not a micro-optimization: without it, a
-poller that is switched off had its `.lck` requeued every 5 seconds, and **every
-requeue reads and reindexes all the stored poller configurations** of the platform
-— `load_foreign_objects`, needed by the cross-poller validation — before concluding
-there was nothing to do. A single absent poller was therefore enough to have the
-whole platform configuration parsed over and over.
+`_get_lck_file_if_exists`. This filter is not a micro-optimization: without it, back
+when the scan ran on every tick, a poller that was switched off had its `.lck`
+requeued every 5 seconds, and **every requeue reads and reindexes all the stored
+poller configurations** of the platform — `load_foreign_objects`, needed by the
+cross-poller validation — before concluding there was nothing to do. A single absent
+poller was therefore enough to have the whole platform configuration parsed over and
+over.
+
+#### Losing the `inotify` watch
+
+An `inotify` watch is on an **inode**, not on a path. If the cache directory is
+deleted, renamed or replaced, the watch does not follow the path: the kernel
+delivers `IN_IGNORED`, `IN_DELETE_SELF` or `IN_MOVE_SELF`, and after that nothing
+is ever reported again. `directory_watcher` handles those three by re-establishing
+the watch on its original path and asking for a scan. Three precautions:
+
+- `IN_DELETE_SELF` and `IN_MOVE_SELF` have to be **asked for** in the mask, unlike
+  `IN_IGNORED` and `IN_Q_OVERFLOW` which the kernel delivers on its own. Without
+  them, a directory that is *renamed* rather than deleted would silently stop
+  being watched, since the watch would stay very much alive — on the moved
+  inode;
+
+- removing the old watch comes before adding the new one. A directory that was
+  merely renamed keeps an **active** watch on the moved inode: not dropping it
+  would leak one watch per rename, while still listening to a directory nobody
+  writes to any more;
+- if re-establishing fails — the directory does not exist yet — it is retried on
+  the next cycle, but the failure is logged only once, otherwise it would leave one
+  `error` line per cycle.
+
+Before this handling, a recreated cache directory left `Broker` permanently deaf to
+configuration changes. Scanning on every tick hid it: the scan kept finding the
+`.lck` files. Now that the scan is rare, re-establishing the watch stops being a
+refinement and becomes a prerequisite.
+
 
 #### Lifecycle of the `X.lck` file
 

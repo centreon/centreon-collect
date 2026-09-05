@@ -16,6 +16,7 @@ Négociation entre Engine et Broker
 * [Lecture de la configuration Engine](#lecture-de-la-configuration-engine)
   * [Gestion de la configuration côté Engine](#gestion-de-la-configuration-côté-engine)
   * [Gestion de l’envoi de la configuration par Broker à Engine](#gestion-de-lenvoi-de-la-configuration-par-broker-à-engine)
+      * [Perte du watch `inotify`](#perte-du-watch-inotify)
       * [Cycle de vie du fichier `X.lck`](#cycle-de-vie-du-fichier-xlck)
   * [Valider une configuration de poller : l'endpoint gRPC `CheckPollerConfig`](#valider-une-configuration-de-poller--lendpoint-grpc-checkpollerconfig)
     * [Implémentation](#implémentation)
@@ -654,11 +655,80 @@ tâches :
 
 Toutes ces étapes sont faites en tâche de fond.
 
-En complément d’`inotify`, le timer effectue également un scan du répertoire à
-chaque déclenchement. Ce fallback permet de détecter les fichiers `.lck` qu’`inotify`
-aurait pu manquer (par exemple lorsque plusieurs `touch()` rapides saturent la file
-d’événements du noyau). Tout fichier `.lck` trouvé lors du scan mais non signalé par
-`inotify` est traité comme un événement de configuration manqué.
+Vu de bout en bout, de l’écriture par PHP jusqu’à l’acquittement d’`Engine` :
+
+```mermaid
+sequenceDiagram
+    participant php
+    participant C as Répertoire de cache
+    participant W as directory_watcher<br/>(inotify)
+    participant T as Timer 5 s<br/>_check_last_engine_conf
+    participant P as pollers-config
+    participant S as Stream BBDO
+    participant E as Engine X
+
+    php ->> C: écrit la configuration dans X/
+    php ->> C: touch X.lck
+    C -->> W: événement inotify sur X.lck
+
+    T ->> W: watch()
+    W -->> T: X.lck a changé
+    opt Premier cycle, 5 minutes écoulées,<br/>ou événements incomplets<br/>(IN_Q_OVERFLOW, watch rétabli)
+        T ->> C: scan du répertoire
+        C -->> T: .lck qu'inotify n'a pas signalés
+    end
+
+    T ->> C: hash_directory(X/) : version de la conf
+    T ->> T: parse + expand + resolve
+
+    alt Configuration invalide
+        T ->> C: supprime X.lck
+        Note right of T: Refus : ni new-X.prot, ni diff.<br/>Une conf invalide ne redevient pas<br/>valide seule, la rejouer est inutile.
+    else Configuration valide
+        T ->> P: écrit new-X.prot
+        T ->> P: écrit diff-X.prot<br/>(diff avec X.prot, ou conf complète)
+        alt Poller X connecté
+            T ->> C: supprime X.lck
+            S ->> P: lit diff-X.prot
+            S ->> E: pb_diff_state
+            E -->> S: pb_diff_state_ack
+            S ->> P: renomme new-X.prot en X.prot
+            Note right of S: La suite (diff global, base de données)<br/>est décrite au chapitre<br/>« Calcul de la différence ».
+        else Poller X absent
+            Note right of T: X.lck conservé : rien ne peut lui être livré.<br/>Les cycles suivants ne le réinjectent plus,<br/>tout est déjà prêt sur disque.
+            E ->> S: connexion et négociation BBDO
+            S ->> T: add_peer : _get_lck_file_if_exists
+            Note right of T: X.lck retrouvé, le poller est réinjecté<br/>et la livraison reprend le flux ci-dessus.
+        end
+    end
+```
+
+En complément d’`inotify`, le timer peut aussi scanner le répertoire pour
+détecter les fichiers `.lck` qu’`inotify` n’aurait pas signalés. Tout fichier `.lck`
+trouvé lors du scan mais non signalé par `inotify` est traité comme un événement de
+configuration manqué.
+
+Ce scan est un **filet de sécurité, pas le mécanisme de détection** — c’est
+`inotify` qui détecte. Il ne tourne donc pas à chaque tick, mais dans trois
+situations :
+
+1. **Au premier cycle**, ce qui ramasse les `.lck` déjà présents au démarrage de
+   `Broker` (une configuration poussée alors que `Broker` était arrêté, ou juste
+   avant que le watcher ne soit en place).
+2. **Quand le noyau dit avoir perdu des événements.** Si la file d’événements
+   `inotify` sature — plusieurs `touch()` en rafale, typiquement un déploiement de
+   masse — le noyau livre un événement portant `IN_Q_OVERFLOW` : il *annonce* la
+   perte. Le scan est alors déclenché par cette annonce, et non plus par
+   spéculation.
+3. **Quand le watch a été perdu et rétabli** (voir ci-dessous) : ce qui s’est
+   produit dans le répertoire pendant qu’il n’était pas surveillé nous est
+   invisible.
+
+En dehors de ces cas, un scan lent (toutes les 5 minutes) subsiste pour ce que rien
+de ce qui précède ne couvre — un répertoire sur un système de fichiers où `inotify`
+ne fonctionne pas, par exemple. Scanner à chaque tick coûtait un parcours du
+répertoire et un `stat` par `.lck` encore en attente de son poller, indéfiniment et
+pour rien.
 
 Une exception près : un `.lck` que le scan retrouve alors que `new-X.prot` existe
 déjà et que le poller *X* n’est pas connecté n’est **pas** réinjecté. Aucun
@@ -666,12 +736,40 @@ déjà et que le poller *X* n’est pas connecté n’est **pas** réinjecté. A
 mais du `.lck` volontairement conservé (voir le cycle de vie ci-dessous) : tout est
 déjà préparé sur disque, il ne manque que la connexion du poller, et celle-ci
 réinjectera le poller d’elle-même via `_get_lck_file_if_exists`. Ce filtre n’est pas
-une micro-optimisation : sans lui, un poller éteint faisait réinjecter son `.lck`
-toutes les 5 secondes, et **chaque réinjection relit et réindexe la totalité des
-configurations stockées** de la plateforme — `load_foreign_objects`, nécessaire à la
-validation inter-pollers — avant de conclure qu’il n’y avait rien à faire. Un seul
-poller absent suffisait donc à faire reparser en permanence toute la configuration
-de la plateforme.
+une micro-optimisation : sans lui, et du temps où le scan tournait à chaque tick, un
+poller éteint faisait réinjecter son `.lck` toutes les 5 secondes, et **chaque
+réinjection relit et réindexe la totalité des configurations stockées** de la
+plateforme — `load_foreign_objects`, nécessaire à la validation inter-pollers —
+avant de conclure qu’il n’y avait rien à faire. Un seul poller absent suffisait donc
+à faire reparser en permanence toute la configuration de la plateforme.
+
+#### Perte du watch `inotify`
+
+Un watch `inotify` porte sur un **inode**, pas sur un chemin. Si le répertoire de
+cache est supprimé, renommé ou remplacé, le watch ne suit pas le chemin : le noyau
+livre `IN_IGNORED`, `IN_DELETE_SELF` ou `IN_MOVE_SELF`, puis plus rien n’est jamais
+signalé. `directory_watcher` traite ces trois événements en rétablissant le watch
+sur son chemin d’origine, et en demandant un scan. Trois précautions :
+
+- `IN_DELETE_SELF` et `IN_MOVE_SELF` doivent être **demandés** dans le masque, à
+  la différence d’`IN_IGNORED` et d’`IN_Q_OVERFLOW` que le noyau livre de
+  lui-même. Sans eux, un répertoire *renommé* — et non supprimé — cesserait
+  silencieusement d’être surveillé, puisque le watch resterait bien vivant, mais
+  sur l’inode déplacé ;
+
+- le retrait de l’ancien watch précède l’ajout du nouveau. Un répertoire
+  simplement renommé conserve un watch **actif** sur l’inode déplacé : ne pas le
+  retirer fuirait un watch par renommage, tout en continuant d’écouter un
+  répertoire que plus personne n’alimente ;
+- si le rétablissement échoue — le répertoire n’existe pas encore — il est retenté
+  au cycle suivant, mais l’échec n’est journalisé qu’une seule fois, sans quoi il
+  laisserait une ligne `error` par cycle.
+
+Avant ce traitement, un répertoire de cache recréé rendait `Broker` définitivement
+sourd aux changements de configuration. Le scan à chaque tick le masquait : il
+continuait de trouver les `.lck`. Le scan devenant rare, la reprise du watch cesse
+d’être un raffinement pour devenir un prérequis.
+
 
 #### Cycle de vie du fichier `X.lck`
 
