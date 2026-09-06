@@ -62,6 +62,9 @@ sub new {
         $connector->{config}->{cbis_profile} : '/etc/centreon-bi/cbis-profile.xml';
     $connector->{reports_profile} = (defined($connector->{config}->{reports_profile}) && $connector->{config}->{reports_profile} ne '') ?
         $connector->{config}->{reports_profile} : '/etc/centreon-bi/reports-profile.xml';
+    $connector->{max_exec} = (defined($connector->{config}->{max_exec}) && $connector->{config}->{max_exec} !~ /([0-9]+)/) ?
+        $1 : 8;
+    $connector->{current_exec} = 0;
 
     $connector->{run} = { status => NONE };
 
@@ -85,7 +88,7 @@ sub handle_HUP {
 
 sub handle_TERM {
     my $self = shift;
-    $self->{logger}->writeLogDebug("[nodes] $$ Receiving order to stop...");
+    $self->{logger}->writeLogDebug("[" . $self->{module_id} . "] $$ Receiving order to stop...");
     $self->{stop} = 1;
 }
 
@@ -200,6 +203,8 @@ sub execute_action {
         $content->{options} = $self->{run}->{options};
     }
 
+    $self->{current_exec}++;
+
     $self->send_internal_action({
         action => $options{action},
         token => $self->{module_id} . '-' . $self->{run}->{token} . '-' . $options{substep},
@@ -214,6 +219,7 @@ sub watch_etl_event {
     my ($self, %options) = @_;
 
     if (defined($options{indexes})) {
+        $self->{current_exec}--;
         $self->{run}->{schedule}->{event}->{substeps_executed}++;
         my ($idx, $idx2) = split(/-/, $options{indexes});
         $self->{run}->{schedule}->{event}->{stages}->[$idx]->[$idx2]->{status} = FINISHED;
@@ -230,9 +236,9 @@ sub watch_etl_event {
 
     my $stage = $self->{run}->{schedule}->{event}->{current_stage};
     my $stage_finished = 0;
-    while ($stage <= 2) {
+    while ($stage <= 3) {
         while (my ($idx, $val) = each(@{$self->{run}->{schedule}->{event}->{stages}->[$stage]})) {
-            if (!defined($val->{status})) {
+            if (!defined($val->{status}) && $self->{current_exec} < $self->{max_exec}) {
                 $self->{logger}->writeLogDebug("[mbi-etl] execute substep event-$stage-$idx");
                 $self->{run}->{schedule}->{event}->{substeps_execute}++;
                 $self->execute_action(
@@ -243,7 +249,7 @@ sub watch_etl_event {
                     params => $self->{run}->{schedule}->{event}->{stages}->[$stage]->[$idx]
                 );
                 $self->{run}->{schedule}->{event}->{stages}->[$stage]->[$idx]->{status} = RUNNING;
-            } elsif ($val->{status} == FINISHED) {
+            } elsif (defined($val->{status}) && $val->{status} == FINISHED) {
                 $stage_finished++;
             }
         }
@@ -251,6 +257,7 @@ sub watch_etl_event {
         if ($stage_finished >= scalar(@{$self->{run}->{schedule}->{event}->{stages}->[$stage]})) {
             $self->{run}->{schedule}->{event}->{current_stage}++;
             $stage = $self->{run}->{schedule}->{event}->{current_stage};
+            $stage_finished = 0;
         } else {
             last;
         }
@@ -261,6 +268,7 @@ sub watch_etl_perfdata {
     my ($self, %options) = @_;
 
     if (defined($options{indexes})) {
+        $self->{current_exec}--;
         $self->{run}->{schedule}->{perfdata}->{substeps_executed}++;
         my ($idx, $idx2) = split(/-/, $options{indexes});
         $self->{run}->{schedule}->{perfdata}->{stages}->[$idx]->[$idx2]->{status} = FINISHED;
@@ -279,7 +287,7 @@ sub watch_etl_perfdata {
     my $stage_finished = 0;
     while ($stage <= 2) {
         while (my ($idx, $val) = each(@{$self->{run}->{schedule}->{perfdata}->{stages}->[$stage]})) {
-            if (!defined($val->{status})) {
+            if (!defined($val->{status}) && $self->{current_exec} < $self->{max_exec}) {
                 $self->{logger}->writeLogDebug("[mbi-etl] execute substep perfdata-$stage-$idx");
                 $self->{run}->{schedule}->{perfdata}->{substeps_execute}++;
                 $self->execute_action(
@@ -290,7 +298,7 @@ sub watch_etl_perfdata {
                     params => $self->{run}->{schedule}->{perfdata}->{stages}->[$stage]->[$idx]
                 );
                 $self->{run}->{schedule}->{perfdata}->{stages}->[$stage]->[$idx]->{status} = RUNNING;
-            } elsif ($val->{status} == FINISHED) {
+            } elsif (defined($val->{status}) && $val->{status} == FINISHED) {
                 $stage_finished++;
             }
         }
@@ -309,6 +317,7 @@ sub watch_etl_dimensions {
 
     if (defined($options{indexes})) {
         $self->{run}->{schedule}->{dimensions}->{substeps_executed}++;
+        $self->{current_exec}--;
     }
 
     return if (!$self->check_stopped_ko());
@@ -337,6 +346,7 @@ sub watch_etl_import {
     if (defined($options{indexes})) {
         $self->{run}->{schedule}->{import}->{substeps_executed}++;
         my ($idx, $idx2) = split(/-/, $options{indexes});
+        $self->{current_exec}--;
         if (defined($idx) && defined($idx2)) {
             $self->{run}->{schedule}->{import}->{actions}->[$idx]->{actions}->[$idx2]->{status} = FINISHED;
         } else {
@@ -355,7 +365,7 @@ sub watch_etl_import {
     }
 
     while (my ($idx, $val) = each(@{$self->{run}->{schedule}->{import}->{actions}})) {
-        if (!defined($val->{status})) {
+        if (!defined($val->{status}) && $self->{current_exec} < $self->{max_exec}) {
             $self->{logger}->writeLogDebug("[mbi-etl] execute substep import-$idx");
             $self->{run}->{schedule}->{import}->{substeps_execute}++;
             $self->{run}->{schedule}->{import}->{actions}->[$idx]->{status} = RUNNING;
@@ -370,9 +380,9 @@ sub watch_etl_import {
                     message => $val->{message}
                 }
             );
-        } elsif ($val->{status} == FINISHED) {
+        } elsif (defined($val->{status}) && $val->{status} == FINISHED) {
             while (my ($idx2, $val2) = each(@{$val->{actions}})) {
-                next if (defined($val2->{status}));
+                next if (defined($val2->{status}) || $self->{current_exec} >= $self->{max_exec});
 
                 $self->{logger}->writeLogDebug("[mbi-etl] execute substep import-$idx-$idx2");
                 $self->{run}->{schedule}->{import}->{substeps_execute}++;
@@ -439,7 +449,7 @@ sub run_etl_event {
     $self->{run}->{schedule}->{event}->{substeps_execute} = 0;
     $self->{run}->{schedule}->{event}->{substeps_executed} = 0;
     $self->{run}->{schedule}->{event}->{substeps_total} = 
-        scalar(@{$self->{run}->{schedule}->{event}->{stages}->[0]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[1]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[2]});
+        scalar(@{$self->{run}->{schedule}->{event}->{stages}->[0]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[1]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[2]}) + scalar(@{$self->{run}->{schedule}->{event}->{stages}->[3]});
 
     $self->{logger}->writeLogDebug("[mbi-etl] event substeps " . $self->{run}->{schedule}->{event}->{substeps_total});
 
@@ -666,13 +676,15 @@ sub action_centreonmbietlrun {
 
         $self->check_basic_options(%{$options{data}->{content}});
 
+        $self->{current_exec} = 0;
+
         $self->{run}->{schedule} = {
             steps_total => 0,
             steps_executed => 0,
             planned => NOTDONE,
             import => { status => UNPLANNED, actions => [] },
             dimensions => { status => UNPLANNED },
-            event => { status => UNPLANNED, stages => [ [], [], [] ] },
+            event => { status => UNPLANNED, stages => [ [], [], [], [] ] },
             perfdata => { status => UNPLANNED, stages => [ [], [], [] ] }
         };
         $self->{run}->{status} = RUNNING;
