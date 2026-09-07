@@ -649,6 +649,15 @@ Ctn Wait For Engine To Be Ready
     END
 
 Ctn Push Configuration Per Poller And Wait
+    [Documentation]    Announce the configuration of each poller with its own
+    ...    <ID>.lck, then wait for every one of them to have answered and for the
+    ...    lock files to be consumed.
+    ...
+    ...    The historical shape: one file per poller, which leaves Broker to guess
+    ...    where an export ends -- it can only coalesce what arrives close together.
+    ...    Prefer Ctn Push Configuration Batch And Wait, which announces the whole
+    ...    export at once. This one stays for the tests that must keep covering the
+    ...    older shape, still supported for backward compatibility.
     [Arguments]    ${start}    ${idx_start}    ${idx_end}=0    ${timeout}=60
     ${content}    Create List
     IF    ${idx_end} == 0
@@ -667,6 +676,47 @@ Ctn Push Configuration Per Poller And Wait
     FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
         Wait Until Keyword Succeeds    30 sec    2 sec    File Should Not Exist    ${VarRoot}/lib/centreon/config/${poller_id}.lck
     END
+
+Ctn Push Configuration Batch And Wait
+    [Documentation]    Announce the configuration of several pollers with a single
+    ...    pollers.lck -- the way PHP is meant to for a whole export -- then wait for
+    ...    each of them to have answered and for the batch file to be consumed.
+    ...
+    ...    This is the way to push a configuration from now on. Its counterpart,
+    ...    Ctn Push Configuration Per Poller And Wait, touches one <ID>.lck per
+    ...    poller and so leaves Broker to guess where the export ends: it stays for
+    ...    the tests that must keep covering that older shape. Indexes are
+    ...    configuration indexes (from 0), as there.
+    ...
+    ...    ${atomic} picks how the file is written, both being allowed: False writes
+    ...    into it directly, and Broker acts on the close (IN_CLOSE_WRITE); True
+    ...    writes a temporary and renames it (IN_MOVED_TO).
+    [Arguments]    ${start}    ${idx_start}    ${idx_end}=0    ${timeout}=60    ${atomic}=${False}
+    IF    ${idx_end} == 0
+        ${idx_end}    Evaluate    ${idx_start} + 1
+    END
+    ${content}    Create List
+    ${ids}    Create List
+    FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
+        ${poller_id}    Evaluate    ${idx} + 1
+        Append To List    ${ids}    ${poller_id}
+        Append To List    ${content}
+        ...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already has the latest configuration
+    END
+    ${body}    Catenate    SEPARATOR=\n    @{ids}
+    ${batch}    Set Variable    ${VarRoot}/lib/centreon/config/pollers.lck
+    IF    ${atomic}
+        Create File    ${batch}.tmp    ${body}\n
+        Move File    ${batch}.tmp    ${batch}
+    ELSE
+        Create File    ${batch}    ${body}\n
+    END
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True
+    ...    ${result[0]}
+    ...    The broker must answer for every poller of the batch [${idx_start}, ${idx_end}).
+    # Consumed as soon as read: its disappearance is Broker's acknowledgement.
+    Wait Until Removed    ${batch}    30s
 
 Ctn Start Agent
     ${run_env}    Ctn Run Env

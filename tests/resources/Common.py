@@ -3258,3 +3258,76 @@ def ctn_engine_stderr_tail(idx: int, nb_lines: int = 20):
         return f"<{stderr} is empty>"
     return "".join(lines[-nb_lines:])
 
+
+
+def ctn_count_in_log(log: str, date, content: str):
+    """Count the lines of a log file containing a string, from a date onwards.
+
+    Counting from a date rather than over the whole file is what lets a test
+    assert on one phase of its scenario without having to subtract a count taken
+    earlier -- a subtraction that only holds if nothing slipped in between.
+
+    Lines whose timestamp cannot be parsed are not counted: a line that cannot be
+    placed in time cannot be said to belong to the window.
+
+    Args:
+        log (str): The log file.
+        date: The date to count from, as a timestamp or an iso string. 0 counts
+        the whole file.
+        content (str): The string to look for.
+
+    Returns:
+        int: how many lines match, 0 if the file does not exist yet.
+    """
+    limit = ctn_get_date(str(date))
+    count = 0
+    try:
+        with open(log, "r") as f:
+            for line in f:
+                if content not in line:
+                    continue
+                d = ctn_extract_date_from_log(line)
+                if d is not None and d >= limit:
+                    count += 1
+    except IOError:
+        return 0
+    return count
+
+
+def ctn_wait_for_stable_count_in_log(log: str, date, content: str,
+                                     timeout: int = 60, quiet: int = 3):
+    """Wait until the number of lines containing <content>, from <date> onwards,
+    stops growing, and return it.
+
+    Meant to replace a fixed Sleep before or after measuring something in a log.
+    A Sleep is a bet on how fast the machine is -- too short and the measure is
+    taken while work is still going on, too long and every run pays for it. This
+    waits for the thing itself to settle instead, so it is both quicker on an
+    idle machine and safe on a loaded CI.
+
+    Args:
+        log (str): The log file.
+        date: The date to count from, as a timestamp or an iso string.
+        content (str): The string to count.
+        timeout (int, optional): Give up growing after this many seconds and
+        return what we have. Defaults to 60.
+        quiet (int, optional): How many seconds without a new line are needed to
+        call the count settled. Defaults to 3.
+
+    Returns:
+        int: the settled count.
+    """
+    limit = time.time() + timeout
+    count = ctn_count_in_log(log, date, content)
+    last_change = time.time()
+    while time.time() < limit:
+        time.sleep(1)
+        current = ctn_count_in_log(log, date, content)
+        if current != count:
+            count = current
+            last_change = time.time()
+        elif time.time() - last_change >= quiet:
+            return count
+    logger.console(
+        f"Count of '{content}' in {log} still moving after {timeout}s: {count}")
+    return count

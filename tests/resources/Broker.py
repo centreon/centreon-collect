@@ -2825,7 +2825,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int, in_resou
             with connection.cursor() as cursor:
                 if in_resources:
                     cursor.execute(
-                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
+                        f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
                 else:
                     cursor.execute(
                         f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
