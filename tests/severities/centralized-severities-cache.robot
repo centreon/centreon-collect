@@ -71,7 +71,7 @@ BECSEV4
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Phase 1: verify both severities are present in the broker cache
     Log To Console    Phase 1: verifying severities in broker cache
@@ -86,7 +86,7 @@ BECSEV4
     Ctn Remove Severities From Hosts    ${3}
     Ctn Create Severities File    ${3}    ${0}
     ${start2}    Ctn Get Round Current Date
-    Ctn Wait For Engine Configuration To Be Applied    ${start2}    ${3}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start2}    ${3}    ${4}
 
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    1    60
     Should Be True    ${result}    Phase 2: severity (1, SERVICE) should persist after removing poller 3
@@ -99,7 +99,7 @@ BECSEV4
     Ctn Remove Severities From Hosts    ${2}
     Ctn Create Severities File    ${2}    ${0}
     ${start3}    Ctn Get Round Current Date
-    Ctn Wait For Engine Configuration To Be Applied    ${start3}    ${2}    ${3}
+    Ctn Push Configuration Per Poller And Wait    ${start3}    ${2}    ${3}
 
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    1    60
     Should Be True    ${result}    Phase 3: severity (1, SERVICE) should persist after removing poller 2
@@ -112,12 +112,12 @@ BECSEV4
     Ctn Remove Severities From Hosts    ${0}
     Ctn Create Severities File    ${0}    ${0}
     ${start4}    Ctn Get Round Current Date
-    Ctn Wait For Engine Configuration To Be Applied    ${start4}    ${0}    ${1}
+    Ctn Push Configuration Per Poller And Wait    ${start4}    ${0}    ${1}
     Ctn Remove Severities From Services    ${1}
     Ctn Remove Severities From Hosts    ${1}
     Ctn Create Severities File    ${1}    ${0}
     ${start5}    Ctn Get Round Current Date
-    Ctn Wait For Engine Configuration To Be Applied    ${start5}    ${1}    ${2}
+    Ctn Push Configuration Per Poller And Wait    ${start5}    ${1}    ${2}
 
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    ${None}    60
     Should Be True    ${result}    Phase 4: severity (1, SERVICE) should be gone after removing all pollers
@@ -170,7 +170,7 @@ BECSEV5
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Verify initial state
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    1    60
@@ -231,7 +231,7 @@ BECSEV6
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # GetSeverities must return exactly 2 entries with correct (id, type, level)
     ${result}    Ctn Check Severities Count With Timeout    51001    2    60
@@ -284,7 +284,7 @@ BECSEV7
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Verify cache is correct before restart
     ${result}    Ctn Check Severities Count With Timeout    51001    2    60
@@ -302,7 +302,7 @@ BECSEV7
     Log To Console    Restarting broker
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Cache must be fully repopulated after restart
     ${result}    Ctn Check Severities Count With Timeout    51001    2    60

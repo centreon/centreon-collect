@@ -648,7 +648,7 @@ Ctn Wait For Engine To Be Ready
         ...    The engine external command pipe config${i}/rw/centengine.cmd should be a FIFO open for reading.
     END
 
-Ctn Wait For Engine Configuration To Be Applied
+Ctn Push Configuration Per Poller And Wait
     [Arguments]    ${start}    ${idx_start}    ${idx_end}=0    ${timeout}=60
     ${content}    Create List
     IF    ${idx_end} == 0
