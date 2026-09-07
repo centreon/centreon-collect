@@ -228,7 +228,8 @@ void broker_cache::merge(
     auto& index_svc = _services.get<by_id>();
     for (const engine::configuration::Service& svc : state.services()) {
       auto s = std::make_shared<neb::pb_service>();
-      _fill_service(&s->mut_obj(), svc, state.poller_id());
+      _fill_service(&s->mut_obj(), svc);
+      s->mut_obj().set_instance_id(state.poller_id());
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted)
         index_svc.replace(it, s);
@@ -238,7 +239,8 @@ void broker_cache::merge(
     for (const engine::configuration::Anomalydetection& ad :
          state.anomalydetections()) {
       auto s = std::make_shared<neb::pb_service>();
-      _fill_anomaly_detection(&s->mut_obj(), ad, state.poller_id());
+      _fill_anomaly_detection(&s->mut_obj(), ad);
+      s->mut_obj().set_instance_id(state.poller_id());
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted)
         index_svc.replace(it, s);
@@ -647,10 +649,17 @@ void broker_cache::apply(
   if (section_enabled(CACHE_SERVICES)) {
     auto& s_index = _services.get<by_id>();
 
+    std::ostringstream debug;
+    for (const auto& serv : _services) {
+      debug << '(' << serv->obj().instance_id() << ",(" << serv->obj().host_id()
+            << ',' << serv->obj().service_id() << ")),";
+    }
+    SPDLOG_LOGGER_ERROR(_logger, "services before apply diff: {}", debug.str());
+
     /* Adding services */
     for (const engine::configuration::Service& svc : diff.services().added()) {
       auto s = std::make_shared<neb::pb_service>();
-      _fill_service(&s->mut_obj(), svc, diff.poller_id());
+      _fill_service(&s->mut_obj(), svc);
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
@@ -660,7 +669,7 @@ void broker_cache::apply(
     for (const engine::configuration::Service& svc :
          diff.services().modified()) {
       auto s = std::make_shared<neb::pb_service>();
-      _fill_service(&s->mut_obj(), svc, diff.poller_id());
+      _fill_service(&s->mut_obj(), svc);
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
@@ -684,7 +693,7 @@ void broker_cache::apply(
     for (const engine::configuration::Anomalydetection& ad :
          diff.anomalydetections().added()) {
       auto s = std::make_shared<neb::pb_service>();
-      _fill_anomaly_detection(&s->mut_obj(), ad, diff.poller_id());
+      _fill_anomaly_detection(&s->mut_obj(), ad);
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
@@ -694,7 +703,7 @@ void broker_cache::apply(
     for (const engine::configuration::Anomalydetection& ad :
          diff.anomalydetections().modified()) {
       auto s = std::make_shared<neb::pb_service>();
-      _fill_anomaly_detection(&s->mut_obj(), ad, diff.poller_id());
+      _fill_anomaly_detection(&s->mut_obj(), ad);
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
@@ -725,6 +734,16 @@ void broker_cache::apply(
         _severities.erase(std::make_pair(id, Severity_Type_SERVICE));
         continue;
       }
+    }
+    {
+      std::ostringstream debug;
+      for (const auto& serv : _services) {
+        debug << '(' << serv->obj().instance_id() << ",("
+              << serv->obj().host_id() << ',' << serv->obj().service_id()
+              << ")),";
+      }
+      SPDLOG_LOGGER_ERROR(_logger, "services after apply diff: {}",
+                          debug.str());
     }
   }
 
@@ -986,9 +1005,7 @@ void broker_cache::_fill_host(Host* obj,
  * @param cfg The source configuration object.
  */
 template <typename ConfigType>
-void broker_cache::_fill_service_common(Service* obj,
-                                        const ConfigType& cfg,
-                                        uint64_t instance_id) {
+void broker_cache::_fill_service_common(Service* obj, const ConfigType& cfg) {
   BOOST_PP_SEQ_FOR_EACH(
       translate, ,
       (host_id)(service_id)(action_url)(check_freshness)(check_interval)(display_name)(event_handler)(first_notification_delay)(freshness_threshold)(high_flap_threshold)(host_name)(icon_image)(icon_image_alt)(is_volatile)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_service)(retain_nonstatus_information)(retain_status_information)(retry_interval)(severity_id)(icon_id));
@@ -1044,7 +1061,7 @@ void broker_cache::_fill_service_common(Service* obj,
     t->set_type(static_cast<TagType>(tag.second()));
   }
   obj->set_description(cfg.service_description());
-  obj->set_instance_id(instance_id);
+  obj->set_instance_id(cfg.poller_id());
 }
 
 /**
@@ -1054,9 +1071,8 @@ void broker_cache::_fill_service_common(Service* obj,
  * @param cfg The configuration Service object to use as source
  */
 void broker_cache::_fill_service(Service* obj,
-                                 const engine::configuration::Service& cfg,
-                                 uint64_t instance_id) {
-  _fill_service_common(obj, cfg, instance_id);
+                                 const engine::configuration::Service& cfg) {
+  _fill_service_common(obj, cfg);
 
   BOOST_PP_SEQ_FOR_EACH(translate, , (check_command)(check_period));
 
@@ -1088,9 +1104,8 @@ void broker_cache::_fill_service(Service* obj,
  */
 void broker_cache::_fill_anomaly_detection(
     Service* obj,
-    const engine::configuration::Anomalydetection& cfg,
-    uint64_t instance_id) {
-  _fill_service_common(obj, cfg, instance_id);
+    const engine::configuration::Anomalydetection& cfg) {
+  _fill_service_common(obj, cfg);
 
   obj->set_type(ServiceType::ANOMALY_DETECTION);
 }

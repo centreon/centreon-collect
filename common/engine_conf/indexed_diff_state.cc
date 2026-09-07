@@ -143,7 +143,8 @@ void indexed_diff_state::add_diff_state(
                       HostServiceId>(
         diff_state.mutable_services(), _added_services, _modified_services,
         _removed_services,
-        [](Service* obj) {
+        [poller_id = diff_state.poller_id()](Service* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->host_id(), obj->service_id());
         },
         [](const HostServiceId& proto_key) {
@@ -159,7 +160,8 @@ void indexed_diff_state::add_diff_state(
                       std::pair<uint64_t, uint64_t>, HostServiceId>(
         diff_state.mutable_anomalydetections(), _added_anomalydetections,
         _modified_anomalydetections, _removed_anomalydetections,
-        [](Anomalydetection* obj) {
+        [poller_id = diff_state.poller_id()](Anomalydetection* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->host_id(), obj->service_id());
         },
         [](const HostServiceId& proto_key) {
@@ -291,14 +293,16 @@ void indexed_diff_state::add_state(
 
   _add_message<Service, std::pair<uint64_t, uint64_t>>(
       state.mutable_services(), _added_services, _modified_services,
-      _removed_services, [](Service* obj) {
+      _removed_services, [poller_id = state.poller_id()](Service* obj) {
+        obj->set_poller_id(poller_id);
         return std::make_pair(obj->host_id(), obj->service_id());
       });
 
   _add_message<Anomalydetection, std::pair<uint64_t, uint64_t>>(
       state.mutable_anomalydetections(), _added_anomalydetections,
       _modified_anomalydetections, _removed_anomalydetections,
-      [](Anomalydetection* obj) {
+      [poller_id = state.poller_id()](Anomalydetection* obj) {
+        obj->set_poller_id(poller_id);
         return std::make_pair(obj->host_id(), obj->service_id());
       });
 
@@ -431,14 +435,16 @@ void indexed_diff_state::add_state(
 
   _add_message_copy<Service, std::pair<uint64_t, uint64_t>>(
       state.services(), _added_services, _modified_services, _removed_services,
-      [](Service* obj) {
+      [poller_id = state.poller_id()](Service* obj) {
+        obj->set_poller_id(poller_id);
         return std::make_pair(obj->host_id(), obj->service_id());
       });
 
   _add_message_copy<Anomalydetection, std::pair<uint64_t, uint64_t>>(
       state.anomalydetections(), _added_anomalydetections,
       _modified_anomalydetections, _removed_anomalydetections,
-      [](Anomalydetection* obj) {
+      [poller_id = state.poller_id()](Anomalydetection* obj) {
+        obj->set_poller_id(poller_id);
         return std::make_pair(obj->host_id(), obj->service_id());
       });
 

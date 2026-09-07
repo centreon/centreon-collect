@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include "broker/core/bbdo/cbmod_stream.hh"
+#include <spdlog/common.h>
 #include "bbdo/bbdo/version_response.hh"
 #include "broker/core/bbdo/basic_stream.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -36,6 +37,10 @@ void cbmod_stream::send_engine_conf(
   auto pb_conf = std::make_shared<bbdo::pb_diff_state>();
   auto& obj = pb_conf->mut_obj();
   obj.set_allocated_state(conf.release());
+  if (_logger->level() <= spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(_logger, "Send diff config to broker: {}",
+                        io::data::dump_json{*pb_conf});
+  }
   _write(pb_conf);
 }
 

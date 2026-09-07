@@ -23,6 +23,7 @@
 #include "com/centreon/common/pool.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
+#include "google/protobuf/json/json.h"
 
 namespace com::centreon::broker::config::applier {
 
@@ -350,6 +351,8 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
     auto engine_state = std::make_shared<neb::pb_engine_state>();
     auto& state = engine_state->mut_obj();
     poller_conf_lost = !state.ParseFromIstream(&f);
+    _logger->debug("poller_id = {}, state.poller_id()= {}", poller_id,
+                   state.poller_id());
     if (!poller_conf_lost) {
       pblshr.write(engine_state);
 
@@ -918,6 +921,12 @@ bool broker_state::_prepare_diff_for_poller(
           engine::configuration::indexed_state(std::move(previous_state));
       previous_indexed_state.diff_with_new_config(*state, _logger,
                                                   diff_state.get());
+      if (_logger->level() <= spdlog::level::trace) {
+        std::string debug;
+        ::google::protobuf::json::MessageToJsonString(*diff_state, &debug);
+        SPDLOG_LOGGER_TRACE(_logger, "diff for poller {}: {}", poller_id,
+                            debug);
+      }
     } else {
       /* Otherwise, we do as if there was no previous configuration,
        * so the diff will be the whole new configuration. */

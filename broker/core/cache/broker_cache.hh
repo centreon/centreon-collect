@@ -390,17 +390,14 @@ class broker_cache {
                   uint64_t poller_id_hint = 0)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   template <typename ConfigType>
-  void _fill_service_common(Service* obj,
-                            const ConfigType& cfg,
-                            uint64_t instance_id);
+  void _fill_service_common(Service* obj, const ConfigType& cfg);
   void _fill_service(Service* service,
-                     const com::centreon::engine::configuration::Service& cfg,
-                     uint64_t instance_id)
+                     const com::centreon::engine::configuration::Service& cfg)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _fill_anomaly_detection(
       Service* service,
-      const com::centreon::engine::configuration::Anomalydetection& cfg,
-      uint64_t instance_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+      const com::centreon::engine::configuration::Anomalydetection& cfg)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);

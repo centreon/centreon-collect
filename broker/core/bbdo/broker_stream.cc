@@ -53,6 +53,10 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
     SPDLOG_LOGGER_INFO(_logger,
                        "BBDO: sending DiffState to poller {} (unknown={})",
                        poller_id, obj.unknown());
+    if (_logger->level() <= spdlog::level::trace) {
+      SPDLOG_LOGGER_TRACE(_logger, "BBDO: sending DiffState to poller {} :{}",
+                          poller_id, io::data::dump_json{*pb_conf});
+    }
     _write(pb_conf);
     _state.set_available_conf_sent_to_engine_peer(
         static_cast<uint32_t>(poller_id));
