@@ -512,6 +512,14 @@ void broker_state::create_prot_file(
   assert(conf.poller_id());
   const uint32_t poller_id = conf.poller_id();
 
+  if (!pollers_config_dir_usable()) {
+    _logger->error(
+        "No pollers configuration directory: refusing to store the "
+        "configuration of poller {} at a relative path",
+        poller_id);
+    return;
+  }
+
   // Logs the skip reason, clears the unknown flag, and signals to the caller
   // that creation should be skipped.
   auto skip = [&](std::string_view reason) {
@@ -678,6 +686,15 @@ void broker_state::add_peer(uint64_t poller_id,
  */
 bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   bool retval = true;
+  if (!pollers_config_dir_usable()) {
+    /* Nothing to feed the cache from, and no relative path to stumble into:
+     * this instance simply does not hold poller configurations. */
+    _logger->debug(
+        "No pollers configuration directory: poller {} keeps the configuration "
+        "it came with",
+        poller_id);
+    return retval;
+  }
   std::filesystem::path prot_file =
       pollers_config_dir() / fmt::format("{}.prot", poller_id);
   std::fstream f(prot_file);
@@ -706,7 +723,8 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
    * the expensive half of a cycle -- hash, parse, expand, resolve, and the
    * reload of every stored configuration behind it -- to reach a result already
    * sitting on disk. */
-  if (_prepare_diff_from_new_prot_file(poller_id)) {
+  if (supports_centralized_conf() &&
+      _prepare_diff_from_new_prot_file(poller_id)) {
     _logger->info(
         "Poller {} has a configuration prepared from when it was away: handing "
         "it over without reading its sources again",
@@ -791,7 +809,9 @@ std::string broker_state::poller_timezone(uint64_t poller_id) const {
  * @return The poller ID when a lock file is waiting for it, 0 otherwise.
  */
 uint32_t broker_state::_lck_file_for_poller(uint32_t poller_id) noexcept {
-  if (!_cache_config_dir_watcher) {
+  /* No watcher means no cache directory to look into, and an empty one would
+   * make the path below relative. */
+  if (!_cache_config_dir_watcher || _cache_config_dir.empty()) {
     return 0;
   }
 
@@ -1258,6 +1278,11 @@ void broker_state::_check_last_engine_conf(bool force_scan) {
               "configuration for poller {} (version '{}') has {} error(s); "
               "refusing to push it to the poller",
               poller_id, version, err.config_errors);
+        if (!pollers_config_dir_usable())
+          throw com::centreon::exceptions::msg_fmt(
+              "no pollers configuration directory is configured: refusing to "
+              "write the configuration of poller {} to a relative path",
+              poller_id);
         if (!std::filesystem::exists(pollers_config_dir())) {
           std::filesystem::create_directories(pollers_config_dir(), ec);
           if (ec) {
@@ -1570,6 +1595,13 @@ bool broker_state::_read_watch_events() {
 bool broker_state::_prepare_diff_for_poller(
     uint64_t poller_id,
     std::unique_ptr<engine::configuration::State>&& state) {
+  if (!pollers_config_dir_usable()) {
+    _logger->error(
+        "No pollers configuration directory: refusing to prepare a diff for "
+        "poller {} at a relative path",
+        poller_id);
+    return false;
+  }
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
   if (it == _engine_peers.end())
@@ -1879,6 +1911,16 @@ void broker_state::register_engine_peer_via_relay(
  */
 std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
     uint64_t poller_id) {
+  if (!pollers_config_dir_usable()) {
+    /* Without a directory, the path below would be relative and read whatever
+     * file of that name sits in cbd's working directory -- a configuration
+     * belonging to nobody. */
+    _logger->debug(
+        "No pollers configuration directory: nothing can have been prepared "
+        "for poller {}",
+        poller_id);
+    return std::nullopt;
+  }
   const auto new_file =
       pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
   std::ifstream f(new_file);
@@ -1915,6 +1957,16 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
 broker_state::relay_config_response broker_state::prepare_relay_config_response(
     uint64_t engine_id,
     const std::string& relay_config_version) {
+  if (!pollers_config_dir_usable()) {
+    /* A relay has no pollers configuration directory, and this is the central's
+     * side of the exchange: without one there is nothing stored to answer with.
+     */
+    _logger->error(
+        "No pollers configuration directory: cannot answer the configuration "
+        "request for poller {}",
+        engine_id);
+    return relay_config_response::unknown;
+  }
   const auto diff_file =
       pollers_config_dir() / fmt::format("diff-{}.prot", engine_id);
   const auto prev_file =

@@ -292,6 +292,19 @@ class broker_state : public state {
   bool supports_centralized_conf() const override {
     return !_pollers_config_dir.empty();
   }
+  /**
+   * @brief Whether the directories this instance needs are configured.
+   *
+   * An empty path is not harmless: joining a file name onto it yields a
+   * *relative* path, resolved against whatever the working directory of cbd
+   * happens to be. Reading there finds foreign files, and writing there leaves
+   * some -- which is how a legacy poller once got handed a configuration
+   * prepared for another platform. Every use of these directories is therefore
+   * guarded rather than assumed.
+   */
+  bool pollers_config_dir_usable() const noexcept {
+    return !_pollers_config_dir.empty();
+  }
   void create_prot_file(
       const com::centreon::engine::configuration::State& conf);
 
