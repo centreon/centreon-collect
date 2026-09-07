@@ -377,15 +377,15 @@ void broker_cache::apply(
 
   _logger->debug("Applying configuration diff for poller id {} and name '{}'",
                  diff.poller_id(), diff.poller_name());
-  // /* The easy case: when the diff is not really a diff */
-  // if (diff.has_state()) {
-  //   merge(diff.state());
-  //   return;
-  // }
+  /* The easy case: when the diff is not really a diff */
+  if (diff.has_state()) {
+    merge(diff.state());
+    return;
+  }
 
   /* Work on instances */
-  //   if (diff.has_poller_name())
-  //     _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
+  if (diff.has_poller_name())
+    _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
