@@ -533,6 +533,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
       ${TEST_DIR}/compression/stream/read.cc
       ${TEST_DIR}/compression/stream/write.cc
       ${TEST_DIR}/compression/zlib/zlib.cc
+      ${TEST_DIR}/config/broker_state.cc
       ${TEST_DIR}/config/init.cc
       ${TEST_DIR}/config/parser.cc
       ${TEST_DIR}/file/disk_accessor.cc

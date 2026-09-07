@@ -16,8 +16,15 @@ Négociation entre Engine et Broker
 * [Lecture de la configuration Engine](#lecture-de-la-configuration-engine)
   * [Gestion de la configuration côté Engine](#gestion-de-la-configuration-côté-engine)
   * [Gestion de l’envoi de la configuration par Broker à Engine](#gestion-de-lenvoi-de-la-configuration-par-broker-à-engine)
+      * [Les rouages](#les-rouages)
       * [Perte du watch `inotify`](#perte-du-watch-inotify)
+      * [Deux façons d'annoncer une poussée](#deux-façons-dannoncer-une-poussée)
+        * [Quels événements font foi](#quels-événements-font-foi)
+        * [La livraison à la connexion d'un poller](#la-livraison-à-la-connexion-dun-poller)
+        * [Ce que le cycle a fait](#ce-que-le-cycle-a-fait)
+      * [Démarrage de la surveillance](#démarrage-de-la-surveillance)
       * [Cycle de vie du fichier `X.lck`](#cycle-de-vie-du-fichier-xlck)
+      * [Quand un tour de configuration est-il terminé ?](#quand-un-tour-de-configuration-est-il-terminé-)
   * [Valider une configuration de poller : l'endpoint gRPC `CheckPollerConfig`](#valider-une-configuration-de-poller--lendpoint-grpc-checkpollerconfig)
     * [Implémentation](#implémentation)
     * [Portée et feuille de route](#portée-et-feuille-de-route)
@@ -634,10 +641,22 @@ qu’il a bien reçu et appliqué la nouvelle configuration.
 Après que le php a fini d’écrire dans ce répertoire la configuration
 du poller *X*, il crée à côté du répertoire *X*, un fichier `X.lck`.
 `Broker` surveille la création/modification de n’importe quel fichier
-`*.lck` dans ce répertoire. Pour cela un timer cadencé à 5 secondes fait
-une lecture sur le descripteur de fichier `inotify`. Ce timer est lancé
-en asynchrone et quand un fichier est détecté, `Broker` fait plusieurs
-tâches :
+`*.lck` dans ce répertoire.
+
+La surveillance est **événementielle** : une attente asynchrone
+(`async_wait_readable`) est posée sur le descripteur `inotify`, et rien ne
+s’exécute tant que le noyau n’a rien à dire. À son réveil, `Broker` lit les
+événements, **réarme aussitôt l’attente** — un lot plus gros qu’un tampon laisse
+le descripteur lisible, l’attente suivante aboutit immédiatement et la file est
+donc vidée au lieu d’être étalée — puis arme un délai de regroupement.
+
+Ce regroupement de 500 ms est ce qui remplace l’ancien cadencement : chaque
+nouvel événement repousse l’échéance, si bien qu’un déploiement de masse, qui
+touche un `.lck` par poller en rafale, est traité **en un seul lot** et ne relit
+donc qu’une fois les configurations stockées. Un plafond de 5 secondes empêche
+un flux continu d’événements de repousser le traitement indéfiniment.
+
+Une fois le lot constitué, `Broker` fait plusieurs tâches :
 
 1.  Il lit le répertoire de configuration pour en faire une structure
     `engine::State`.
@@ -661,8 +680,8 @@ Vu de bout en bout, de l’écriture par PHP jusqu’à l’acquittement d’`En
 sequenceDiagram
     participant php
     participant C as Répertoire de cache
-    participant W as directory_watcher<br/>(inotify)
-    participant T as Timer 5 s<br/>_check_last_engine_conf
+    participant W as directory_watcher<br/>(inotify, attente async)
+    participant T as Worker de configuration<br/>_check_last_engine_conf
     participant P as pollers-config
     participant S as Stream BBDO
     participant E as Engine X
@@ -671,9 +690,9 @@ sequenceDiagram
     php ->> C: touch X.lck
     C -->> W: événement inotify sur X.lck
 
-    T ->> W: watch()
-    W -->> T: X.lck a changé
-    opt Premier cycle, 5 minutes écoulées,<br/>ou événements incomplets<br/>(IN_Q_OVERFLOW, watch rétabli)
+    W -->> T: réveil : lecture des événements,<br/>attente réarmée aussitôt
+    Note right of T: Regroupement de 500 ms (plafond 5 s) :<br/>chaque nouvel événement repousse l'échéance,<br/>une rafale devient un seul lot.
+    opt Premier cycle, répertoire de cache connu<br/>après le démarrage, timer de sécurité (5 min),<br/>ou événements incomplets<br/>(IN_Q_OVERFLOW, watch rétabli)
         T ->> C: scan du répertoire
         C -->> T: .lck qu'inotify n'a pas signalés
     end
@@ -697,7 +716,7 @@ sequenceDiagram
         else Poller X absent
             Note right of T: X.lck conservé : rien ne peut lui être livré.<br/>Les cycles suivants ne le réinjectent plus,<br/>tout est déjà prêt sur disque.
             E ->> S: connexion et négociation BBDO
-            S ->> T: add_peer : _get_lck_file_if_exists
+            S ->> T: add_peer : _get_lck_file_if_exists<br/>et réveil du regroupement
             Note right of T: X.lck retrouvé, le poller est réinjecté<br/>et la livraison reprend le flux ci-dessus.
         end
     end
@@ -709,26 +728,35 @@ trouvé lors du scan mais non signalé par `inotify` est traité comme un évén
 configuration manqué.
 
 Ce scan est un **filet de sécurité, pas le mécanisme de détection** — c’est
-`inotify` qui détecte. Il ne tourne donc pas à chaque tick, mais dans trois
+`inotify` qui détecte. Il ne tourne donc pas à chaque tick, mais dans quatre
 situations :
 
-1. **Au premier cycle**, ce qui ramasse les `.lck` déjà présents au démarrage de
-   `Broker` (une configuration poussée alors que `Broker` était arrêté, ou juste
-   avant que le watcher ne soit en place).
-2. **Quand le noyau dit avoir perdu des événements.** Si la file d’événements
+1. **Au premier cycle**, déclenché immédiatement au démarrage de la
+   surveillance, ce qui ramasse les `.lck` déjà présents (une configuration
+   poussée alors que `Broker` était arrêté, ou juste avant que le watcher ne
+   soit en place).
+2. **Quand le répertoire de cache devient connu après ce démarrage**, la
+   surveillance ayant été lancée par la connexion d’un poller avant que la
+   configuration ne soit appliquée : le premier cycle n’avait alors rien à
+   scanner (voir [Démarrage de la surveillance](#démarrage-de-la-surveillance)).
+3. **Quand le noyau dit avoir perdu des événements.** Si la file d’événements
    `inotify` sature — plusieurs `touch()` en rafale, typiquement un déploiement de
    masse — le noyau livre un événement portant `IN_Q_OVERFLOW` : il *annonce* la
    perte. Le scan est alors déclenché par cette annonce, et non plus par
    spéculation.
-3. **Quand le watch a été perdu et rétabli** (voir ci-dessous) : ce qui s’est
+4. **Quand le watch a été perdu et rétabli** (voir ci-dessous) : ce qui s’est
    produit dans le répertoire pendant qu’il n’était pas surveillé nous est
    invisible.
 
-En dehors de ces cas, un scan lent (toutes les 5 minutes) subsiste pour ce que rien
-de ce qui précède ne couvre — un répertoire sur un système de fichiers où `inotify`
-ne fonctionne pas, par exemple. Scanner à chaque tick coûtait un parcours du
-répertoire et un `stat` par `.lck` encore en attente de son poller, indéfiniment et
-pour rien.
+En dehors de ces cas, un timer de sécurité à 5 minutes déclenche un scan pour ce
+que rien de ce qui précède ne couvre — un répertoire sur un système de fichiers où
+`inotify` ne fonctionne pas, par exemple. Ce timer relit aussi les événements, et
+c’est important : c’est le seul chemin qui rappelle `watch()`, donc le seul qui
+puisse rétablir un watch dont la reprise avait échoué. Une surveillance purement
+événementielle ne pourrait jamais se réveiller pour se réparer.
+
+Scanner à chaque tick coûtait un parcours du répertoire et un `stat` par `.lck`
+encore en attente de son poller, indéfiniment et pour rien.
 
 Une exception près : un `.lck` que le scan retrouve alors que `new-X.prot` existe
 déjà et que le poller *X* n’est pas connecté n’est **pas** réinjecté. Aucun
@@ -742,6 +770,80 @@ réinjection relit et réindexe la totalité des configurations stockées** de l
 plateforme — `load_foreign_objects`, nécessaire à la validation inter-pollers —
 avant de conclure qu’il n’y avait rien à faire. Un seul poller absent suffisait donc
 à faire reparser en permanence toute la configuration de la plateforme.
+
+#### Les rouages
+
+Quatre choses seulement déclenchent un cycle, et tout le reste en découle : un
+événement `inotify`, l'échéance du regroupement, celle du filet de sécurité, et la
+connexion d'un poller. Elles se répartissent sur **deux strands** — le premier
+surveille et ne travaille jamais, le second lit les configurations — ce qui est ce
+qui permet à la file `inotify` de continuer à se vider pendant qu'une configuration
+de 50 000 services est lue.
+
+```mermaid
+flowchart TD
+    PHP["php touche X.lck<br/>ou pollers.lck"]
+    CFG["set_cache_config_dir()"]
+    PEER["add_peer()"]
+
+    subgraph watch["_watch_strand"]
+        START["_start_watching()"]
+        ARMW["_arm_inotify_wait()<br/>attente sur le descripteur"]
+        READ["_read_watch_events()<br/>watch(), remplit _lck_set"]
+        ARMD["_arm_debounce()<br/>500 ms de calme, plafond 5 s"]
+        ARMS["_arm_safety_timer()<br/>5 min, ou 5 s si le watch est perdu"]
+        FEED["_feed_cache_and_wake_up_resources()<br/>_lck_file_for_poller() ou new-N.prot"]
+    end
+
+    subgraph conf["_config_strand"]
+        POST["_post_config_work(force_scan)"]
+        CHECK["_check_last_engine_conf(force_scan)<br/>pollers.lck, scan, hash, parse,<br/>expand, resolve, new-X.prot, diff-X.prot"]
+    end
+
+    CFG --> START
+    CFG -. "si la surveillance tournait déjà :<br/>rattraper ce que le démarrage a manqué" .-> POST
+    PEER --> START
+    PEER --> FEED
+    PHP -. "événement" .-> ARMW
+
+    START --> ARMW
+    START --> ARMS
+    START -- "force_scan" --> POST
+
+    ARMW -- "au réveil" --> READ
+    READ -- "se réarmer aussitôt" --> ARMW
+    READ --> ARMD
+    READ -. "si le watch est perdu :<br/>revenir dans 5 s" .-> ARMS
+    FEED -. "rien n'a bougé sur disque" .-> ARMD
+
+    ARMD -- "à l'échéance,<br/>sans scan" --> POST
+    ARMS -- "à l'échéance" --> READ
+    ARMS -- "à l'échéance,<br/>force_scan" --> POST
+    POST --> CHECK
+```
+
+Les flèches pleines sont des appels directs. Les pointillées valent pour ce qui
+n'en est pas un : un événement livré par le noyau, un `post()` qui diffère le travail
+sur un strand, ou un chemin qui n'est emprunté que sous condition.
+
+Trois traits à retenir de ce schéma :
+
+* **`_read_watch_events()` réarme l'attente avant tout le reste.** Une rafale plus
+  grosse qu'un tampon laisse le descripteur lisible, l'attente suivante aboutit
+  aussitôt, et la file se vide au lieu de s'étaler sur plusieurs cycles.
+* **Le regroupement est la seule voie normale vers le travail.** `_arm_debounce()`
+  repousse l'échéance à chaque événement ; c'est le dernier armement qui déclenche
+  `_post_config_work()`, les précédents s'effacent sur `operation_aborted`.
+* **La connexion d'un poller doit se réveiller elle-même.** Rien n'a changé sur le
+  disque, donc `inotify` n'a rien à dire : `_feed_cache_and_wake_up_resources()`
+  poste `_arm_debounce()` de sa propre initiative, sans quoi la configuration du
+  poller attendrait le filet de sécurité.
+
+L'état partagé se réduit à trois choses : `_lck_set`, les pollers à traiter, protégé
+par un mutex puisqu'il est rempli depuis les deux strands ;
+`_scan_requested_by_watcher`, un atomique écrit côté surveillance et lu côté travail ;
+et `_burst_started_at`, qui n'appartient qu'à `_watch_strand` et n'a donc besoin
+d'aucune protection.
 
 #### Perte du watch `inotify`
 
@@ -770,6 +872,116 @@ sourd aux changements de configuration. Le scan à chaque tick le masquait : il
 continuait de trouver les `.lck`. Le scan devenant rare, la reprise du watch cesse
 d’être un raffinement pour devenir un prérequis.
 
+
+#### Deux façons d'annoncer une poussée
+
+PHP dispose de deux formes, et `Broker` lit les deux.
+
+La forme historique est un fichier `<poller_id>.lck` par poller. Elle porte **deux**
+informations à la fois : « voici une nouvelle configuration » et « celle-ci attend
+encore d'être livrée à son poller » — c'est pourquoi le fichier est conservé tant que
+le poller n'est pas connecté. Son défaut est qu'elle ne dit pas où s'arrête un
+export : `Broker` ne peut que regrouper ce qui arrive de façon rapprochée, alors que
+l'intervalle entre deux `.lck` est le temps de génération de la configuration
+suivante, soit plusieurs secondes sur un gros poller. Un export portant sur
+plusieurs pollers se scinde alors en plusieurs lots.
+
+La forme cible est un fichier unique, `pollers.lck`, qui **énumère les pollers du
+lot**, un identifiant par ligne. `Broker` n'a plus rien à deviner : il traite
+l'export en une passe, quelle que soit la durée qu'a prise sa génération. C'est ce
+qui rend correct le déplacement d'un objet d'un poller vers un autre — le diff
+global réconcilie alors le retrait et l'ajout en une simple modification, au lieu de
+les voir dans deux lots successifs. Le contrat détaillé est décrit dans
+[php-evolutions](./php-evolutions-fr.md#évolution-3--un-lot-de-configuration-explicite--pollerslck).
+
+Contrairement à un `<poller_id>.lck`, `pollers.lck` est **consommé dès sa lecture** :
+il n'annonce qu'un export, il ne marque jamais une livraison en attente. Ce rôle est
+tenu par le `new-<ID>.prot` que `Broker` écrit dans son propre répertoire.
+
+Le fichier est lu en tête de cycle plutôt qu'au moment de l'événement, si bien qu'un
+lot qu'`inotify` n'aurait pas signalé est tout de même ramassé par un scan.
+
+##### Quels événements font foi
+
+Un `<ID>.lck` est vide : seul son nom compte, donc n'importe quel événement le
+concernant suffit. `pollers.lck` a un **contenu**, et `IN_CREATE` arrive alors que le
+fichier est encore vide — y réagir reviendrait à lire un lot incomplet, ou aucun.
+Deux événements seulement disent qu'un fichier est fini, et `Broker` n'écoute que
+ceux-là pour le fichier de lot :
+
+* `IN_CLOSE_WRITE`, quand celui qui l'écrivait l'a refermé — c'est ce qui rend
+  l'écriture directe sûre, et donc permise par le contrat ;
+* `IN_MOVED_TO`, quand il est arrivé par renommage.
+
+Les deux doivent être **demandés** dans le masque, comme `IN_DELETE_SELF` et
+`IN_MOVE_SELF`. Sans `IN_MOVED_TO`, le `rename()` que le contrat autorise resterait
+invisible : le fichier n'apparaîtrait qu'au scan suivant.
+
+##### La livraison à la connexion d'un poller
+
+Quand un poller absent lors du lot démarre, sa configuration est déjà prête :
+`new-<ID>.prot` contient l'état, et il ne reste qu'à calculer la différence avec ce
+que le poller annonce faire tourner. `add_peer()` s'en charge **directement**, par
+`_prepare_diff_from_new_prot_file()`, sans repasser par un cycle :
+
+* si `<ID>.prot` existe et correspond à la version annoncée par le poller, la
+  différence est calculée ;
+* sinon la configuration complète est envoyée.
+
+Relire les sources aurait refait la moitié coûteuse d'un cycle — `hash_directory`,
+`parse`, `expand`, `resolve`, et le rechargement de toutes les configurations
+stockées derrière — pour aboutir à un résultat déjà présent sur le disque.
+
+Le `<ID>.lck` historique, lui, n'ouvre pas ce raccourci : il dit qu'une configuration
+attend, pas laquelle, et les sources ont pu changer depuis. Sa présence remet donc le
+poller dans la liste à traiter (`_lck_file_for_poller()`), pour un cycle complet.
+
+##### Ce que le cycle a fait
+
+Chaque cycle qui a travaillé se termine par une ligne de bilan, parce qu'une
+configuration qui ne part nulle part doit se voir sans relecture croisée du journal :
+
+```
+Configuration cycle: 3 ready, 1 sent, 0 refused, 2 poller(s) not connected: 2, 3
+```
+
+`Broker` ne sait pas combien de pollers compte la plateforme — seuls les pollers
+connectés lui sont connus — mais il sait combien de configurations il vient de
+préparer, et lesquelles il n'a pu remettre à personne. Les pollers nommés là ont leur
+configuration prête sur disque et seront servis dès qu'ils se connecteront.
+
+#### Démarrage de la surveillance
+
+La surveillance a **deux déclencheurs**, et c’est le premier arrivé qui la met en
+route : `set_cache_config_dir()`, lorsque la configuration de `Broker` est
+appliquée, et `add_peer()`, lorsqu’un poller se connecte. L’ordre n’est pas
+garanti — un poller déjà lancé se connecte parfois quelques dizaines de
+millisecondes avant que la configuration ne soit appliquée.
+
+Quand c’est `add_peer()` qui gagne, la surveillance démarre **sans savoir où est
+le répertoire de cache**, ce qui a trois conséquences immédiates :
+
+1. l’attente `inotify` ne peut pas être armée, faute de descripteur ;
+2. le premier cycle ne scanne rien, `_cache_config_dir` étant encore vide ;
+3. `_get_lck_file_if_exists()` renvoie 0 pour le poller qui vient de se
+   connecter — il abandonne sans watcher — donc son `.lck` n’est même pas
+   cherché.
+
+`set_cache_config_dir()` doit donc, lorsqu’elle trouve la machinerie déjà
+lancée, faire **deux** choses : armer l’attente, et **redemander un cycle avec
+scan**. Armer seulement ne suffit pas : `inotify` ne signale que ce qui arrive
+*après* l’armement, et le poller qui a déclenché ce démarrage précoce est
+justement celui dont la configuration a été manquée. Il resterait sans
+configuration jusqu’au timer de sécurité, soit cinq minutes.
+
+> **Pourquoi ce point n’existait pas avant.** Le tick de 5 secondes rescannait le
+> répertoire indéfiniment : tout ce qui avait été manqué au démarrage était
+> rattrapé au cycle suivant, sans que personne n’ait à savoir qu’il avait été
+> manqué. Ce rattrapage implicite disparaît avec le cadencement, et ce que le
+> démarrage ne fait pas, plus rien ne le fera. L’armement de l’attente est par
+> ailleurs rendu idempotent (`_inotify_wait_armed`) : tentée depuis deux endroits,
+> deux attentes sur un même descripteur se déclencheraient toutes les deux pour
+> un seul événement.
 
 #### Cycle de vie du fichier `X.lck`
 
@@ -848,7 +1060,7 @@ stateDiagram-v2
     Conservee: Conservee - conf valide, X.lck conservé jusqu'à connexion
     Livree: Livree - DiffState envoyé, X.lck supprimé
     [*] --> EnAttente: PHP écrit le répertoire de conf
-    EnAttente --> Validation: tick 5s ou add_peer
+    EnAttente --> Validation: événement inotify, scan ou add_peer
     Validation --> Rejetee: config_errors detectees
     Validation --> Preparee: conf valide
     Rejetee --> [*]
@@ -876,6 +1088,40 @@ version :
 
 4.  Ce message est stocké côté `cbmod` par `Engine` et est appliqué au
     plus vite dans sa boucle principale.
+
+#### Quand un tour de configuration est-il terminé ?
+
+La question n'est pas rhétorique : clore un tour déclenche la construction de la
+différence globale, laquelle **consomme et supprime tous les `diff-<ID>.prot`** du
+répertoire. Le clore alors qu'un poller a sa différence préparée mais pas encore
+remise détruit ce fichier — et il n'est jamais réécrit. Le poller continue alors de
+réclamer sa mise à jour et `Broker` échoue indéfiniment à ouvrir un fichier disparu.
+
+`all_engine_peers_acknowledged()` compte donc, parmi les pairs connectés :
+
+* ceux à qui la configuration a été **envoyée**, et parmi eux ceux qui ont acquitté ;
+* ceux dont une configuration est **prête mais pas encore envoyée** — le tour n'est
+  pas terminé tant qu'il en reste un.
+
+```
+All engine peers acknowledged? 1/3 acknowledged, 0 still waiting to be sent
+```
+
+> **Le piège.** Le critère « ce pair a une configuration disponible non envoyée » ne
+> peut pas s'écrire `available_conf` non vide, car ce champ n'est **jamais vidé** :
+> tous les pairs paraîtraient en attente pour toujours et aucune différence globale
+> ne serait plus jamais publiée. Ce qui distingue « une livraison est due » de « la
+> dernière a été acquittée », c'est `available_conf != engine_conf`, `engine_conf`
+> prenant la version acquittée au moment de l'acquittement. C'est exactement le test
+> que fait `engine_peer_needs_update()`, et les deux le partagent désormais
+> (`_peer_needs_update()`) : c'est leur divergence qui avait causé la perte de
+> configuration décrite plus haut.
+
+Un poller **non connecté** n'entre dans aucun de ces comptes, et c'est correct :
+préparer une différence exige un pair, donc un poller éteint n'a aucun
+`diff-<ID>.prot` à perdre. Un `1/1 acknowledged` sur une plateforme dont deux pollers
+sont éteints est donc légitime — c'est la ligne de bilan du cycle qui lève
+l'ambiguïté en nommant les absents.
 
 Côté `Broker`, si on parle un peu plus technique, la lecture de la
 configuration `Engine` est faite en utilisant la librairie
@@ -1166,15 +1412,15 @@ autrement. L'intérêt de faire cela à des intervalles réguliers est que si pl
 pollers sont modifiés en parallèle, `Broker` devrait pouvoir les traiter
 ensemble.
 
-> **Le timer est le moteur, pas `inotify`.** Le descripteur `inotify` n’est lu
-> qu’en réponse au tick : la détection est donc bornée par le délai de 5 secondes
-> et non immédiate, et la lecture ne consomme qu’un seul tampon de 4 Ko par tick,
-> soit une centaine d’événements — au-delà, le reliquat attend le tick suivant
-> (c’est l’une des raisons d’être du scan de secours). Passer à une lecture
-> asynchrone (`async_read_some` réarmé dans son handler, drainant jusqu’à
-> `EAGAIN`) supprimerait à la fois la latence, la troncature et le coût au repos,
-> et ramènerait le timer à un simple filet de sécurité à basse fréquence. C’est
-> une évolution identifiée, non encore faite.
+> **C’est `inotify` qui mène, plus un timer.** Historiquement le descripteur
+> n’était lu qu’en réponse à un tick de 5 secondes : la détection était bornée
+> par ce délai, la lecture ne consommait qu’un tampon de 4 Ko par tick (une
+> centaine d’événements, le reliquat attendant le tick suivant), et un cycle
+> était payé même quand rien ne se passait. L’attente asynchrone a supprimé les
+> trois : plus rien ne s’exécute au repos, la détection est immédiate, et le
+> réarmement après chaque lecture vide la file. Le regroupement de 500 ms décrit
+> plus haut conserve la mutualisation que le cadencement apportait, et le timer
+> est devenu un filet de sécurité à 5 minutes.
 
 Dans l’étape précédente, nous avons fait évoluer la négociation entre
 `Engine` et `Broker` mais globalement les deux fonctionnent comme avant.

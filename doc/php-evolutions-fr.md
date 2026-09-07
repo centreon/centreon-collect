@@ -9,7 +9,7 @@
     * [`pollers_config_directory`](#pollers_config_directory)
     * [`notification_mode`](#notification_mode)
     * [`bbdo_version`](#bbdo_version)
-    * [`grpc` (rpc_port / listen_address)](#grpc-rpc_port--listen_address)
+    * [`grpc` (rpc\_port / listen\_address)](#grpc-rpc_port--listen_address)
   * [Paramètres Engine](#paramètres-engine)
     * [`broker_module_cfg_file`](#broker_module_cfg_file)
     * [Démarrage nouvelle génération (`-p`)](#démarrage-nouvelle-génération--p)
@@ -23,6 +23,13 @@
   * [Catalogue des commandes](#catalogue-des-commandes)
   * [Découverte et ports](#découverte-et-ports)
   * [Tri des commentaires — ne pas se fier à l'`internal_id`](#tri-des-commentaires--ne-pas-se-fier-à-linternal_id)
+* [Évolution 3 — Un lot de configuration explicite : `pollers.lck`](#évolution-3--un-lot-de-configuration-explicite--pollerslck)
+  * [Le problème](#le-problème)
+  * [La cible](#la-cible)
+  * [Les règles](#les-règles)
+  * [Ce que Broker en fait](#ce-que-broker-en-fait)
+  * [Rétrocompatibilité](#rétrocompatibilité)
+  * [Limite assumée](#limite-assumée)
 <!-- TOC -->
 
 ---
@@ -318,3 +325,125 @@ Broker ses valeurs sont volontairement discontinues. Trier les commentaires par
 > **avant** d'activer `notification_mode = broker` : sinon chaque commentaire de downtime
 > Broker se trierait après tous les commentaires Engine, quel que soit son instant réel
 > de création.
+
+# Évolution 3 — Un lot de configuration explicite : `pollers.lck`
+
+## Le problème
+
+Le contrat actuel demande à PHP de toucher `<poller_id>.lck` **une fois le
+sous-répertoire de ce poller entièrement écrit**. PHP travaille donc poller par
+poller : il écrit `1/`, touche `1.lck`, écrit `2/`, touche `2.lck`. L'intervalle
+entre deux `.lck` n'est pas un délai d'écriture de fichier vide — c'est le temps
+de **génération complète** de la configuration du poller suivant : requêtes SQL,
+rendu des modèles, écriture de plusieurs mégaoctets de `.cfg`. Sur un poller à
+50 000 services, cela se compte en secondes.
+
+Broker regroupe les poussées rapprochées pour les traiter en un seul lot, mais ce
+regroupement repose sur un délai (500 ms par défaut) : il ne peut pas deviner
+qu'une seconde configuration est encore en cours de génération. Au-delà du délai,
+un export qui concerne plusieurs pollers devient **plusieurs lots**.
+
+Ce n'est pas seulement une question de coût. Un objet **déplacé d'un poller vers
+un autre** — cas courant : rééquilibrer un host — n'est correct que si les deux
+configurations sont dans le même lot. Le diff global réconcilie alors le retrait
+et l'ajout en une simple modification (`indexed_diff_state`), et l'host change
+de poller sans jamais être désactivé. En deux lots, cette réconciliation n'a pas
+lieu : selon l'ordre d'arrivée, l'host peut se retrouver **désactivé en base
+alors qu'un poller le surveille toujours**.
+
+## La cible
+
+Un fichier unique, `pollers.lck`, prend la place des `.lck` individuels côté PHP
+et **énumère les pollers du lot** :
+
+```
+<cache_config_directory>/
+├── 1/
+│   ├── centengine.cfg
+│   └── ...
+├── 2/
+│   └── ...
+└── pollers.lck      ← touché en dernier, contient « 1 » et « 2 »
+```
+
+Contenu : un identifiant de poller par ligne, sans autre décoration.
+
+```
+1
+2
+```
+
+Broker n'a plus rien à deviner : il sait exactement quels pollers composent le
+lot, attend de les avoir tous, et n'en fait qu'une passe — une seule lecture des
+configurations stockées, un seul diff global, aucun état transitoire en base.
+La durée de génération de PHP n'entre plus en jeu, quelle qu'elle soit.
+
+## Les règles
+
+1. **`pollers.lck` est touché en dernier**, après que *tous* les sous-répertoires
+   du lot soient complets. C'est la même règle qu'aujourd'hui, portée du poller
+   au lot.
+2. **Deux façons de l'écrire, au choix.** Écrire directement dedans — ouvrir,
+   écrire les identifiants, fermer — convient : Broker attend la **fermeture** du
+   fichier (`IN_CLOSE_WRITE`) et ne le lit donc jamais à moitié écrit. Passer par
+   un fichier temporaire du même répertoire puis un `rename()` convient tout
+   autant, Broker écoutant aussi l'arrivée par renommage (`IN_MOVED_TO`).
+
+   Ce qu'il ne faut pas faire, en revanche, c'est laisser le fichier ouvert après
+   y avoir écrit : rien n'est signalé tant qu'il n'est pas fermé, et le lot
+   attendrait le prochain scan.
+3. **Un seul lot à la fois.** PHP ne doit pas écrire un nouveau `pollers.lck`
+   tant que le précédent est présent : sa disparition est l'accusé de réception
+   de Broker. Un lot supplémentaire pendant qu'un autre est en cours de
+   traitement doit attendre.
+4. **Un lot ne contient que des pollers dont le répertoire a été écrit.**
+   Nommer un poller sans avoir écrit son répertoire fait échouer la validation de
+   sa configuration.
+
+## Ce que Broker en fait
+
+Le `.lck` porte aujourd'hui deux informations distinctes : « voici une nouvelle
+configuration » et « cette configuration attend encore d'être livrée à son
+poller » — c'est pourquoi Broker le conserve tant que le poller n'est pas
+connecté. Avec `pollers.lck`, seule la première reste du ressort de PHP. Le suivi
+de la livraison devient interne à Broker, dans le répertoire qu'il possède
+(`pollers_config_directory`), et `pollers.lck` est consommé dès sa lecture.
+
+Cela rend le contrat plus net : PHP annonce, Broker suit. PHP n'a plus à se
+demander pourquoi un `.lck` qu'il a touché est toujours là.
+
+## Rétrocompatibilité
+
+Broker lit **les deux formes, durablement** :
+
+* si `pollers.lck` est présent, il fait foi et définit le lot ;
+* sinon les `<poller_id>.lck` individuels sont traités comme aujourd'hui, avec le
+  regroupement par délai.
+
+La lecture des `.lck` individuels n'est pas une passerelle de migration à retirer
+plus tard : elle reste supportée. Un PHP antérieur à cette évolution, une
+plateforme mise à jour par étapes ou un outil tiers qui pousse une configuration
+continuent donc de fonctionner sans rien changer, avec les limites décrites plus
+haut — le regroupement redevient une affaire de délai, et un déplacement d'objet
+réparti sur deux lots reste exposé.
+
+En revanche, un PHP qui adopte `pollers.lck` **cesse d'écrire** les
+`<poller_id>.lck` : les deux signaux ne doivent pas être émis pour un même
+export, sinon le même lot serait annoncé deux fois.
+
+## Limite assumée
+
+`pollers.lck` garantit qu'un **export** est un lot, ce qui couvre le déplacement
+d'un objet entre pollers dès lors qu'il est exporté en une fois — le cas normal.
+
+Il ne peut rien pour un déplacement réparti sur **deux exports successifs** : un
+utilisateur qui exporterait d'abord le poller source, puis le poller cible dans
+un second export. `Broker` voit alors deux lots sans rien qui les relie, et n'a
+aucun moyen de savoir que le retrait d'un côté et l'ajout de l'autre sont le même
+déplacement.
+
+**Ce cas est accepté**, comme une maladresse d'usage : un déplacement se fait en
+un export. Le symptôme, s'il se produit, est un objet **désactivé en base alors
+qu'un poller le surveille toujours** — la désactivation demandée par le poller
+source s'applique quel que soit le poller qui le surveille désormais. Le remède
+est de réexporter les deux pollers ensemble.

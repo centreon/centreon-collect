@@ -168,7 +168,24 @@ class broker_state : public state {
   absl::flat_hash_map<uint64_t, std::string> _engine_configuration
       ABSL_GUARDED_BY(_connected_peers_m);
   std::atomic<bool> _watch_engine_conf_stopped{false};
-  std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
+  /* Safety net, not the engine: inotify is what wakes Broker up on a
+   * configuration push. This fires rarely, and only covers what events cannot
+   * -- a watch that could not be established again, a directory on a
+   * filesystem inotify does not serve. */
+  std::unique_ptr<boost::asio::steady_timer> _safety_timer;
+  /* Coalescing timer. A deploy-all touches one .lck per poller in a burst, and
+   * handling them as one batch reads the configuration store once instead of
+   * once per poller. Every event pushes this timer back, up to a ceiling so a
+   * continuous stream cannot postpone the work forever. */
+  std::unique_ptr<boost::asio::steady_timer> _debounce_timer;
+  /* When the burst being coalesced started, so the ceiling can be applied.
+   * Empty when no burst is pending. Strand-only, like the timers. */
+  std::optional<std::chrono::steady_clock::time_point> _burst_started_at;
+  /* Whether a wait is currently outstanding on the inotify descriptor. Arming
+   * is attempted from more than one place -- the start, and the moment the
+   * watcher appears if it did not exist then -- and two waits on one descriptor
+   * would both fire for a single event. Strand-only. */
+  bool _inotify_wait_armed = false;
   /* Strand serializing every engine-configuration watcher handler so the
    * destructor can drain any in-flight handler before the watched resources are
    * destroyed (closes the shutdown race). Created together with the timer. */
@@ -176,19 +193,23 @@ class broker_state : public state {
       _watch_strand;
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
-  /* When the cache directory was last scanned in full, and whether the watcher
-   * asked for one because the events could not be trusted. inotify detects a
-   * change; the scan is only there for what inotify could not report. Both are
-   * touched from _check_last_engine_conf() alone, which runs on _watch_strand,
-   * so they need no lock.
+  /* Where the configuration work runs. Reading a poller configuration --
+   * hash_directory, parse, expand, resolve, and the reload of the stored
+   * configurations behind it -- takes seconds on a large platform, and running
+   * it on _watch_strand would hold up the draining of the inotify queue for
+   * just as long: a strand serializes its handlers, so the wait could not
+   * complete while a configuration is being read.
    *
-   * Empty means never scanned, which is what makes the first cycle scan and so
-   * picks up the .lck files already waiting when Broker started. It has to be
-   * said this way rather than by an old timestamp: steady_clock counts from the
-   * boot, so on a machine up for less than the scan period any past-looking
-   * value is still within it. */
-  std::optional<std::chrono::steady_clock::time_point> _last_full_scan;
-  bool _scan_requested_by_watcher = false;
+   * A second strand on the shared pool is all it takes. Two strands run
+   * independently of one another, so the watching keeps up while a
+   * configuration is read, and the work is still serialized with itself. */
+  std::unique_ptr<boost::asio::strand<boost::asio::io_context::executor_type>>
+      _config_strand;
+  /* Set when the watcher reports that the events it read cannot be taken as
+   * complete -- the kernel dropped some, or the watch had to be established
+   * again -- which only a scan can make up for. Written from the strand and
+   * read from the configuration worker, hence the atomic. */
+  std::atomic<bool> _scan_requested_by_watcher{false};
 
   /* Startup readiness barrier hook (mechanism lives in the base state): once the
    * engine is started, re-inject the persisted active downtimes so they are
@@ -201,10 +222,15 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void _start_watch_engine_conf_timer();
-  uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
-  void _watch_engine_conf(absl::flat_hash_set<uint32_t>* poller_ids);
-  void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  void _start_watching();
+  void _arm_inotify_wait();
+  void _arm_debounce();
+  void _arm_safety_timer();
+  void _post_config_work(bool force_scan);
+  uint32_t _lck_file_for_poller(uint32_t poller_id) noexcept;
+  absl::flat_hash_set<uint32_t> _consume_poller_batch();
+  bool _read_watch_events() ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  void _check_last_engine_conf(bool force_scan) ABSL_LOCKS_EXCLUDED(_lck_set_m);
   bool _conf_prepared_for_disconnected_poller(uint32_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
@@ -247,6 +273,9 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  /* Whether a configuration is prepared for this peer and still owes it a
+   * delivery. Expects _connected_peers_m to be held. */
+  static bool _peer_needs_update(const engine_peer& peer);
   bool engine_peer_needs_update(uint64_t poller_id) const;
   void acknowledge_engine_peer(uint64_t poller_id);
   void set_poller_engine_conf(uint32_t poller_id,

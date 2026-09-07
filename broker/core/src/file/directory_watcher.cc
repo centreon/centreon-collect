@@ -145,6 +145,17 @@ directory_watcher::iterator directory_watcher::watch() {
 }
 
 /**
+ * @brief Cancel a pending asynchronous wait.
+ */
+void directory_watcher::cancel() noexcept {
+  boost::system::error_code ec;
+  _sd.cancel(ec);
+  if (ec)
+    _logger->error("directory_watcher: cannot cancel the wait on '{}': {}",
+                   _to_watch_dir, ec.message());
+}
+
+/**
  * @brief Establish the watch again on the directory this watcher was built
  * for, after it was lost.
  *

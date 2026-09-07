@@ -18,9 +18,11 @@
 
 #include "broker/core/config/applier/broker_state.hh"
 
+#include <algorithm>
 #include <future>
 
 #include <boost/asio/bind_executor.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/asio/post.hpp>
 
 #include "bbdo/bbdo.pb.h"
@@ -51,9 +53,17 @@ broker_state::~broker_state() {
    * is defensive; instance_ptr() is null then. */
   if (auto engine = multiplexing::engine::instance_ptr())
     engine->set_notification_sink(nullptr);
-  if (_watch_engine_conf_timer) {
+  if (_safety_timer) {
+    /* Order matters: the flag first, so a handler that is already running stops
+     * re-arming, then the cancels, then the drain. The pending wait has to be
+     * cancelled too -- it holds a handler that would otherwise be called long
+     * after this object is gone. */
     _watch_engine_conf_stopped.store(true);
-    _watch_engine_conf_timer->cancel();
+    _safety_timer->cancel();
+    if (_debounce_timer)
+      _debounce_timer->cancel();
+    if (_cache_config_dir_watcher)
+      _cache_config_dir_watcher->cancel();
     /* Drain the watcher: post a barrier on the strand and wait for it. Because
      * the strand serializes every watcher handler, when the barrier runs no
      * handler is in flight or queued, so the resources used by the handler
@@ -61,12 +71,20 @@ broker_state::~broker_state() {
      * This is deadlock-free here: the pool is still running at shutdown (it is
      * stopped only after deinit()), this destructor runs on the main thread
      * (not a pool thread), and it holds no lock the handler could wait on. */
-    if (_watch_strand) {
+    auto drain = [](auto& strand) {
+      if (!strand)
+        return;
       std::promise<void> drained;
       auto fut = drained.get_future();
-      boost::asio::post(*_watch_strand, [&drained] { drained.set_value(); });
+      boost::asio::post(*strand, [&drained] { drained.set_value(); });
       fut.wait();
-    }
+    };
+    drain(_watch_strand);
+    /* The watching first, so nothing can post any more configuration work;
+     * then the work itself. Its barrier runs behind whatever cycle is in
+     * flight, so a configuration being read is finished rather than cut short
+     * -- which would leave a half-written .prot behind. */
+    drain(_config_strand);
   }
   save_topology_cache();
   /* Hand the started downtimes over to the global cache so they are persisted
@@ -257,7 +275,13 @@ void broker_state::set_cache_config_dir(
   _cache_config_dir = cache_config_dir;
   if (!_cache_config_dir.empty()) {
     _logger->info("Watching for changes in '{}'", _cache_config_dir.string());
-    /* IN_DELETE_SELF and IN_MOVE_SELF are about the watched directory itself,
+    /* IN_CLOSE_WRITE and IN_MOVED_TO are the two events that mean "this file is
+     * complete": the first when whoever wrote it closed it, the second when it
+     * was renamed into place. A <ID>.lck can do without them -- only its name
+     * is read -- but pollers.lck has contents, and IN_CREATE fires while the
+     * file is still empty.
+     *
+     * IN_DELETE_SELF and IN_MOVE_SELF are about the watched directory itself,
      * not its content: they are what tells the watcher its watch died and has
      * to be established again. They have to be asked for -- unlike IN_IGNORED,
      * which the kernel delivers on its own -- and without them a cache
@@ -265,16 +289,32 @@ void broker_state::set_cache_config_dir(
      * watched. */
     _cache_config_dir_watcher = std::make_unique<file::directory_watcher>(
         _cache_config_dir,
-        IN_CREATE | IN_MODIFY | IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF,
+        IN_CREATE | IN_MODIFY | IN_ATTRIB | IN_CLOSE_WRITE | IN_MOVED_TO |
+            IN_DELETE_SELF | IN_MOVE_SELF,
         true);
-    if (!_watch_engine_conf_timer) {
+    if (!_safety_timer) {
       _logger->debug("Starting engine configuration watcher");
+      auto& io_ctx = com::centreon::common::pool::instance().io_context();
       _watch_strand = std::make_unique<
           boost::asio::strand<boost::asio::io_context::executor_type>>(
-          com::centreon::common::pool::instance().io_context().get_executor());
-      _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
-          com::centreon::common::pool::instance().io_context());
-      _start_watch_engine_conf_timer();
+          io_ctx.get_executor());
+      _safety_timer = std::make_unique<boost::asio::steady_timer>(io_ctx);
+      _debounce_timer = std::make_unique<boost::asio::steady_timer>(io_ctx);
+      _config_strand = std::make_unique<
+          boost::asio::strand<boost::asio::io_context::executor_type>>(
+          io_ctx.get_executor());
+      _start_watching();
+    } else {
+      /* The machinery was already started by a peer that connected before this
+       * configuration was applied, at a time when there was no directory to
+       * watch. Two things were missed then and neither comes back on its own:
+       * the wait could not be armed, and whatever happened before this point is
+       * unknown to us -- that peer's own .lck was not even looked for, since
+       * _lck_file_for_poller() gives up without a watcher. So arm the wait,
+       * and scan, or a poller that connected first would wait for the safety
+       * timer to be given its configuration. */
+      boost::asio::post(*_watch_strand, [this] { _arm_inotify_wait(); });
+      _post_config_work(true);
     }
   } else if (_cache_config_dir_watcher) {
     _logger->info("Stop watching for changes in '{}'",
@@ -344,10 +384,29 @@ void broker_state::load_topology_cache() {
 }
 
 namespace {
-/* How often the cache directory is walked when nothing asked for it. Long on
- * purpose: it only has to catch what inotify structurally cannot report, not to
- * detect ordinary configuration pushes. */
-constexpr std::chrono::minutes full_scan_period{5};
+/* How long a burst of events is coalesced before it is handled. Long enough
+ * that a deploy-all lands as one batch -- and so reads the configuration store
+ * once -- short enough that a push is delivered without a perceptible wait. */
+constexpr std::chrono::milliseconds debounce_delay{500};
+/* A ceiling on that coalescing, so a stream of events that never stops cannot
+ * postpone the work indefinitely. */
+constexpr std::chrono::seconds debounce_max_delay{5};
+/* How often the safety net fires when no event does. Long on purpose: it only
+ * has to catch what inotify structurally cannot report -- a watch that could
+ * not be re-established, a filesystem inotify does not serve -- not to detect
+ * ordinary configuration pushes. */
+constexpr std::chrono::minutes safety_period{5};
+/* How soon the net comes back when the watch is down. A lost watch reports
+ * nothing at all, so no event can ever wake us up to retry: the usual slow pace
+ * would leave Broker blind to configuration changes for minutes, when what
+ * normally caused it -- a cache directory being recreated -- is over in
+ * seconds. */
+constexpr std::chrono::seconds watch_retry_period{5};
+
+/* The file PHP touches last to announce a whole export: it names every poller
+ * of the batch, so Broker no longer has to guess where the batch ends. See
+ * doc/php-evolutions. The individual <id>.lck files remain supported. */
+constexpr std::string_view poller_batch_file{"pollers.lck"};
 
 /**
  * @brief The poller id a stored configuration file name carries.
@@ -588,14 +647,18 @@ void broker_state::add_peer(uint64_t poller_id,
     }
   }
   if (extended_negotiation) {
-    if (!_watch_engine_conf_timer) {
+    if (!_safety_timer) {
       _logger->debug("Starting engine configuration watcher");
+      auto& io_ctx = com::centreon::common::pool::instance().io_context();
       _watch_strand = std::make_unique<
           boost::asio::strand<boost::asio::io_context::executor_type>>(
-          com::centreon::common::pool::instance().io_context().get_executor());
-      _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
-          com::centreon::common::pool::instance().io_context());
-      _start_watch_engine_conf_timer();
+          io_ctx.get_executor());
+      _safety_timer = std::make_unique<boost::asio::steady_timer>(io_ctx);
+      _debounce_timer = std::make_unique<boost::asio::steady_timer>(io_ctx);
+      _config_strand = std::make_unique<
+          boost::asio::strand<boost::asio::io_context::executor_type>>(
+          io_ctx.get_executor());
+      _start_watching();
     }
 
     /* Feeding the cache and waking up resources in the database */
@@ -637,10 +700,30 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
    * and apply the diff if needed.
    */
   _logger->debug("Checking for existing {}.lck file", poller_id);
-  uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
-  if (existing_lck) {
-    absl::MutexLock lck(&_lck_set_m);
-    _lck_set.insert(existing_lck);
+  /* A configuration prepared while this poller was away can be handed over as
+   * it stands: new-<ID>.prot holds the state, and all that is left is the diff
+   * against what the poller says it runs. Reading the sources again would redo
+   * the expensive half of a cycle -- hash, parse, expand, resolve, and the
+   * reload of every stored configuration behind it -- to reach a result already
+   * sitting on disk. */
+  if (_prepare_diff_from_new_prot_file(poller_id)) {
+    _logger->info(
+        "Poller {} has a configuration prepared from when it was away: handing "
+        "it over without reading its sources again",
+        poller_id);
+    poller_conf_lost = false;
+  } else if (uint32_t existing_lck = _lck_file_for_poller(poller_id)) {
+    /* Only a lock file, so what waits is an announcement rather than a prepared
+     * state: the sources have to be read, which means a full cycle. */
+    {
+      absl::MutexLock lck(&_lck_set_m);
+      _lck_set.insert(existing_lck);
+    }
+    /* Nothing in the directory changed, so inotify has nothing to say and would
+     * never wake the watcher up for this poller: the wait has to be nudged from
+     * here, or its configuration would sit until the safety timer fires. */
+    if (_watch_strand)
+      boost::asio::post(*_watch_strand, [this] { _arm_debounce(); });
     poller_conf_lost = false;
   }
   if (poller_conf_lost) {
@@ -692,14 +775,22 @@ std::string broker_state::poller_timezone(uint64_t poller_id) const {
 }
 
 /**
- * @brief Get the current lck files in the cache configuration directory.
- * This method is used to check if some Engine configurations are already
- * present in the cache directory when the watcher is started.
+ * @brief Whether a `<poller_id>.lck` is still waiting in the cache directory.
  *
- * @return The poller ID if <poller_id>.lck file exists in the cache
- * configuration directory, 0 otherwise.
+ * That file is the announcement *and* the pending-delivery marker, which is why
+ * it is kept until the poller shows up. It says a configuration is waiting, but
+ * not which one: the sources may well have changed since, so the poller has to
+ * go through a full cycle rather than be handed anything directly.
+ *
+ * A batch announcement (`pollers.lck`) never leaves such a file behind -- it is
+ * consumed as soon as it is read -- and needs none: what it leaves is the
+ * prepared configuration itself, which _prepare_diff_from_new_prot_file()
+ * hands over as it stands.
+ *
+ * @param poller_id The poller ID.
+ * @return The poller ID when a lock file is waiting for it, 0 otherwise.
  */
-uint32_t broker_state::_get_lck_file_if_exists(uint32_t poller_id) noexcept {
+uint32_t broker_state::_lck_file_for_poller(uint32_t poller_id) noexcept {
   if (!_cache_config_dir_watcher) {
     return 0;
   }
@@ -708,17 +799,69 @@ uint32_t broker_state::_get_lck_file_if_exists(uint32_t poller_id) noexcept {
   std::filesystem::path lck_file(_cache_config_dir /
                                  fmt::format("{}.lck", poller_id));
 
-  if (!std::filesystem::is_regular_file(lck_file, ec)) {
-    if (ec) {
-      _logger->warn("Cannot check if '{}' is a regular file: {}",
-                    lck_file.string(), ec.message());
-    }
-    return 0;
+  if (std::filesystem::is_regular_file(lck_file, ec)) {
+    _logger->debug("Found lock file '{}' for poller id {}", lck_file.string(),
+                   poller_id);
+    return poller_id;
   }
+  if (ec)
+    _logger->warn("Cannot check if '{}' is a regular file: {}",
+                  lck_file.string(), ec.message());
+  return 0;
+}
 
-  _logger->debug("Found lock file '{}' for poller id {}", lck_file.string(),
-                 poller_id);
-  return poller_id;
+/**
+ * @brief Read the poller batch file and consume it.
+ *
+ * Consumed as soon as it is read, unlike a `<poller_id>.lck`: it only says
+ * which pollers an export covers, never that a delivery is still pending --
+ * `new-<poller_id>.prot` is what says that. PHP waits for the file to disappear
+ * before announcing another batch, which is what keeps the two from racing.
+ *
+ * @return The poller IDs the batch names, empty when there is no batch.
+ */
+absl::flat_hash_set<uint32_t> broker_state::_consume_poller_batch() {
+  absl::flat_hash_set<uint32_t> retval;
+  if (_cache_config_dir.empty())
+    return retval;
+
+  const std::filesystem::path batch_file(_cache_config_dir / poller_batch_file);
+  std::error_code ec;
+  if (!std::filesystem::is_regular_file(batch_file, ec))
+    return retval;
+
+  std::ifstream f(batch_file);
+  if (!f) {
+    _logger->error("Cannot read the poller batch file '{}': {}",
+                   batch_file.string(), strerror(errno));
+    return retval;
+  }
+  std::string line;
+  while (std::getline(f, line)) {
+    std::string_view id = absl::StripAsciiWhitespace(line);
+    if (id.empty())
+      continue;
+    uint32_t poller_id;
+    if (absl::SimpleAtoi(id, &poller_id))
+      retval.insert(poller_id);
+    else
+      _logger->warn(
+          "Ignoring '{}' in the poller batch file '{}': not a poller id", id,
+          batch_file.string());
+  }
+  f.close();
+
+  std::filesystem::remove(batch_file, ec);
+  if (ec)
+    _logger->error(
+        "Cannot remove the poller batch file '{}': {}. The batch would be "
+        "handled again on the next cycle",
+        batch_file.string(), ec.message());
+  if (!retval.empty())
+    _logger->info(
+        "Poller batch '{}' announces the configuration of {} poller(s)",
+        batch_file.string(), retval.size());
+  return retval;
 }
 
 /**
@@ -898,7 +1041,20 @@ bool broker_state::all_engine_peers_acknowledged() {
   bool retval = true;
   uint32_t engine_count = 0;
   uint32_t engine_good = 0;
+  uint32_t engine_pending = 0;
   for (const auto& [key, peer] : _engine_peers) {
+    /* A peer whose configuration is prepared but not delivered yet is part of
+     * this round, even though nothing was sent to it. Leaving it out would let
+     * one peer's acknowledgement close the round on its own -- and the global
+     * diff then consumes every diff-<N>.prot of the directory, including the
+     * ones still waiting for their poller. Those files are never written again,
+     * so the peer keeps asking to be updated and Broker keeps failing to open a
+     * file that no longer exists. */
+    if (_peer_needs_update(peer)) {
+      ++engine_pending;
+      retval = false;
+      continue;
+    }
     if (peer.available_conf_sent) {
       if (!peer.conf_acknowledged)
         retval = false;
@@ -907,8 +1063,10 @@ bool broker_state::all_engine_peers_acknowledged() {
       ++engine_count;
     }
   }
-  _logger->debug("All engine peers acknowledged? {}/{} acknowledged",
-                 engine_good, engine_count);
+  _logger->debug(
+      "All engine peers acknowledged? {}/{} acknowledged, {} still waiting to "
+      "be sent",
+      engine_good, engine_count, engine_pending);
   if (retval && engine_count > 0) {
     /* Reset all flags so that a concurrent or subsequent call won't
      * trigger a second global diff publication for the same round. */
@@ -930,7 +1088,7 @@ bool broker_state::all_engine_peers_acknowledged() {
  * on every cycle: without this test, an unreachable poller would have Broker
  * redo the whole preparation -- and, above all, reload every stored poller
  * configuration -- every five seconds forever. The delivery happens when the
- * poller connects, through _get_lck_file_if_exists().
+ * poller connects, through _lck_file_for_poller().
  *
  * @param poller_id The poller ID.
  * @return True when the poller is absent and its configuration is ready.
@@ -947,8 +1105,11 @@ bool broker_state::_conf_prepared_for_disconnected_poller(
  * if there is a new Engine configuration for the poller with this ID and
  * prepares the diff to propagate.
  *
+ * @param force_scan Scan the cache directory whatever the events said. Set by
+ * the safety timer and by the first cycle, the two moments when events are not
+ * what we are relying on.
  */
-void broker_state::_check_last_engine_conf() {
+void broker_state::_check_last_engine_conf(bool force_scan) {
   _logger->trace("Checking for new Engine configurations");
   absl::flat_hash_set<uint32_t> pollers_set;
   {
@@ -956,7 +1117,12 @@ void broker_state::_check_last_engine_conf() {
     pollers_set.swap(_lck_set);
   }
 
-  _watch_engine_conf(&pollers_set);
+  /* A batch names its pollers outright, so the whole export is handled in this
+   * single pass whatever the time PHP took to generate it -- which is what the
+   * delay-based coalescing cannot promise. Read here rather than on the event,
+   * so a batch the events did not report is still picked up by a scan. */
+  for (uint32_t poller_id : _consume_poller_batch())
+    pollers_set.insert(poller_id);
 
   /* Fallback: scan the directory for any .lck files that inotify did not
    * report, so that no configuration update is permanently lost.
@@ -969,27 +1135,22 @@ void broker_state::_check_last_engine_conf() {
    * Scanning on every cycle instead would mean walking the directory, and
    * stat-ing every .lck still waiting for its poller, forever and for nothing.
    */
-  const auto now = std::chrono::steady_clock::now();
-  const bool scan_due = _scan_requested_by_watcher || !_last_full_scan ||
-                        now - *_last_full_scan >= full_scan_period;
-  if (scan_due && !_cache_config_dir.empty()) {
-    if (_scan_requested_by_watcher)
+  const bool requested = _scan_requested_by_watcher.load();
+  if ((force_scan || requested) && !_cache_config_dir.empty()) {
+    if (requested)
       _logger->info(
           "Scanning the engine configuration directory '{}': the changes "
           "reported by inotify were incomplete",
           _cache_config_dir.string());
-    /* A scan was attempted, so the slow period starts over either way -- an
-     * unreadable directory must not be walked every five seconds. But a scan
-     * that failed answered nothing, so an explicit request stands and is
-     * retried on the next cycle instead of in five minutes. */
-    _last_full_scan = now;
     std::error_code scan_ec;
     std::filesystem::directory_iterator dir_it(_cache_config_dir, scan_ec);
     if (scan_ec) {
       _logger->warn("Error scanning engine config directory '{}': {}",
                     _cache_config_dir.string(), scan_ec.message());
     } else {
-      _scan_requested_by_watcher = false;
+      /* A scan that failed answered nothing, so an explicit request stands and
+       * is honoured on the next occasion rather than being dropped here. */
+      _scan_requested_by_watcher.store(false);
       for (const auto& entry : dir_it) {
         const auto& p = entry.path();
         if (p.extension() == ".lck") {
@@ -1031,6 +1192,14 @@ void broker_state::_check_last_engine_conf() {
    * validates. The read is deferred to the first poller that really needs
    * validating: a batch made only of pollers waiting for their connection must
    * not pay for the whole store, since it is retried on every cycle. */
+  /* What the cycle did, told at the end in one line. Broker cannot know how
+   * many pollers the platform has, but it does know how many configurations it
+   * just prepared -- and which of them it could not hand over. */
+  uint32_t conf_ready = 0;
+  uint32_t conf_sent = 0;
+  uint32_t conf_rejected = 0;
+  std::vector<uint32_t> pollers_away;
+
   std::optional<foreign_states> foreign;
   for (uint32_t poller_id : pollers_set) {
     _logger->debug(
@@ -1041,6 +1210,8 @@ void broker_state::_check_last_engine_conf() {
           "Poller {} configuration already prepared; waiting for the poller to "
           "connect before delivering it",
           poller_id);
+      ++conf_ready;
+      pollers_away.push_back(poller_id);
       continue;
     }
     if (!foreign)
@@ -1113,11 +1284,16 @@ void broker_state::_check_last_engine_conf() {
          * Consume it only once the poller is connected, so the diff prepared
          * below can be attached to its peer and delivered. If the poller is not
          * connected yet, keep the .lck so the configuration is retried — and
-         * recovered through _get_lck_file_if_exists when the poller finally
+         * recovered through _lck_file_for_poller when the poller finally
          * connects — instead of being silently dropped, which would otherwise
          * leave Broker believing the poller configuration is "lost or unknown".
          */
+        ++conf_ready;
         bool peer_connected = _is_engine_peer_connected(poller_id);
+        if (peer_connected)
+          ++conf_sent;
+        else
+          pollers_away.push_back(poller_id);
         _prepare_diff_for_poller(poller_id, std::move(state));
         if (peer_connected) {
           std::filesystem::path lck_file =
@@ -1135,6 +1311,7 @@ void broker_state::_check_last_engine_conf() {
               "configuration is retried once it connects",
               poller_id);
       } catch (const std::exception& e) {
+        ++conf_rejected;
         _logger->error("rejecting invalid configuration for poller {}: {}",
                        poller_id, e.what());
         /* The pushed configuration is structurally invalid
@@ -1153,62 +1330,210 @@ void broker_state::_check_last_engine_conf() {
       _logger->error("Cannot create Engine configuration test file '{}': {}",
                      centengine_test.string(), ec.message());
   }
+
+  /* One line for the whole cycle, so that a configuration that went nowhere is
+   * visible without cross-reading the log. The pollers named here have their
+   * configuration ready on disk and will be served the moment they connect. */
+  if (conf_ready || conf_rejected) {
+    if (pollers_away.empty())
+      _logger->info("Configuration cycle: {} ready, {} sent, {} refused",
+                    conf_ready, conf_sent, conf_rejected);
+    else
+      _logger->info(
+          "Configuration cycle: {} ready, {} sent, {} refused, {} poller(s) "
+          "not "
+          "connected: {}",
+          conf_ready, conf_sent, conf_rejected, pollers_away.size(),
+          fmt::join(pollers_away, ", "));
+  }
 }
 
 /**
- * @brief Start the timer to watch for changes in the Engine configurations
- * directory.
+ * @brief Start watching the Engine configuration directory.
  *
+ * Three things are set going: an immediate first cycle, which scans and so
+ * picks up whatever was pushed while Broker was down; the wait on the inotify
+ * descriptor, which is what detects a push from now on; and the safety timer.
+ *
+ * Every handler below is bound to _watch_strand, so they are serialized with
+ * one another and with the drain barrier the destructor posts: once that
+ * barrier runs, no handler is in flight or queued and the watched resources can
+ * be destroyed without a race.
  */
-void broker_state::_start_watch_engine_conf_timer() {
-  bool expected = false;
-  if (!_watch_engine_conf_stopped.compare_exchange_strong(expected, false))
-    return;
+void broker_state::_start_watching() {
+  _watch_engine_conf_stopped.store(false);
+  _post_config_work(true);
+  /* Posted rather than called: _inotify_wait_armed belongs to the strand, and
+   * this runs on whichever thread applied the configuration or accepted the
+   * peer. */
+  boost::asio::post(*_watch_strand, [this] { _arm_inotify_wait(); });
+  _arm_safety_timer();
+}
 
-  _logger->trace(
-      "Starting watch engine configuration timer with a 5 seconds delay");
-  _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
-  /* The handler is bound to _watch_strand so it is serialized with the drain
-   * barrier posted by the destructor: once that barrier runs, no watcher
-   * handler is in flight or queued and the watched resources can be destroyed
-   * safely. */
-  _watch_engine_conf_timer->async_wait(boost::asio::bind_executor(
+/**
+ * @brief Wait for the next thing inotify has to say, and read it when it comes.
+ *
+ * The wait is re-armed from its own handler before the coalescing starts, so a
+ * burst larger than one buffer is drained right away rather than one buffer per
+ * cycle.
+ */
+void broker_state::_arm_inotify_wait() {
+  if (!_cache_config_dir_watcher || _watch_engine_conf_stopped.load() ||
+      _inotify_wait_armed)
+    return;
+  _inotify_wait_armed = true;
+  _cache_config_dir_watcher->async_wait_readable(boost::asio::bind_executor(
       *_watch_strand,
       [this, logger = _logger](const boost::system::error_code& ec) {
-        if (ec) {
-          logger->error("Error in engine configuration watcher: {}",
-                        ec.message());
-          return;
-        }
+        _inotify_wait_armed = false;
         if (_watch_engine_conf_stopped.load())
           return;
-        _check_last_engine_conf();
-        _start_watch_engine_conf_timer();
+        if (ec) {
+          /* A cancelled wait is the shutdown path, nothing to report. Anything
+           * else leaves us with no way to be woken up, so the safety timer is
+           * all that is left -- say so. */
+          if (ec != boost::asio::error::operation_aborted)
+            logger->error(
+                "Waiting on the engine configuration directory failed: {}. "
+                "Changes will only be seen by the periodic scan",
+                ec.message());
+          return;
+        }
+        const bool batch_announced = _read_watch_events();
+        _arm_inotify_wait();
+        if (batch_announced) {
+          /* A batch names its pollers, so there is nothing left to guess and no
+           * reason to wait: coalescing exists to find the end of a burst, and
+           * this one announced its own. Any burst under way is folded in, since
+           * the cycle drains _lck_set whole. */
+          _burst_started_at.reset();
+          _debounce_timer->cancel();
+          _post_config_work(false);
+        } else
+          _arm_debounce();
+        /* Reading may just have found the watch lost, with no way to put it
+         * back. From here on nothing will be reported and no event will bring
+         * us back, so the net is the only thing left -- and it has to come
+         * round quickly. */
+        if (_cache_config_dir_watcher->watch_lost())
+          _arm_safety_timer();
       }));
 }
 
 /**
- * @brief Check if some new engine configurations are available.
+ * @brief Push back the handling of the events read so far, so that a burst is
+ * handled as one batch.
  *
- * @param poller_ids A set to fill with the poller IDs concerned by some new
- * configuration. This set can already contain some poller IDs to check
- * (for example when a poller initiates its connection to Broker).
+ * Called on every event, and on a poller connecting -- which queues its poller
+ * id without any file having changed, so nothing else would wake us up for it.
  */
-void broker_state::_watch_engine_conf(
-    absl::flat_hash_set<uint32_t>* poller_ids) {
+void broker_state::_arm_debounce() {
+  if (!_debounce_timer || _watch_engine_conf_stopped.load())
+    return;
+  const auto now = std::chrono::steady_clock::now();
+  if (!_burst_started_at)
+    _burst_started_at = now;
+  /* Pushing back on every event is what coalesces the burst; the ceiling is
+   * what keeps a burst that never ends from being handled never. */
+  _debounce_timer->expires_at(
+      std::min(now + debounce_delay, *_burst_started_at + debounce_max_delay));
+  _debounce_timer->async_wait(boost::asio::bind_executor(
+      *_watch_strand, [this](const boost::system::error_code& ec) {
+        /* Re-arming cancels the pending wait, which lands here with
+         * operation_aborted: that handler must leave the burst alone, the one
+         * that replaced it will handle it. */
+        if (ec || _watch_engine_conf_stopped.load())
+          return;
+        _burst_started_at.reset();
+        _post_config_work(false);
+      }));
+}
+
+/**
+ * @brief Hand a configuration cycle over to the worker thread.
+ *
+ * Called from the strand, and deliberately the only way the work is started:
+ * what the strand serializes is the watching, what the worker serializes is the
+ * reading of configurations, and neither should wait on the other.
+ *
+ * @param force_scan Passed through to _check_last_engine_conf().
+ */
+void broker_state::_post_config_work(bool force_scan) {
+  if (!_config_strand || _watch_engine_conf_stopped.load())
+    return;
+  boost::asio::post(*_config_strand, [this, force_scan] {
+    if (_watch_engine_conf_stopped.load())
+      return;
+    _check_last_engine_conf(force_scan);
+  });
+}
+
+/**
+ * @brief Arm the safety net.
+ */
+void broker_state::_arm_safety_timer() {
+  if (_watch_engine_conf_stopped.load())
+    return;
+  /* Re-arming an armed timer cancels its pending wait, whose handler then
+   * returns on operation_aborted: switching between the two paces costs
+   * nothing more than that. */
+  const bool blind =
+      _cache_config_dir_watcher && _cache_config_dir_watcher->watch_lost();
+  if (blind)
+    _safety_timer->expires_after(watch_retry_period);
+  else
+    _safety_timer->expires_after(safety_period);
+  _safety_timer->async_wait(boost::asio::bind_executor(
+      *_watch_strand, [this](const boost::system::error_code& ec) {
+        if (ec || _watch_engine_conf_stopped.load())
+          return;
+        /* Reading the events too: a watch that was lost is re-established from
+         * watch(), and without this nothing would ever call it again. */
+        /* The return value is of no use here: a scan is forced either way. */
+        _read_watch_events();
+        _post_config_work(true);
+        _arm_safety_timer();
+      }));
+}
+
+/**
+ * @brief Read what inotify has to report and queue the pollers it names.
+ *
+ * Reading and handling are two separate steps now: this one runs as soon as the
+ * kernel has something, the handling waits for the burst to settle. The poller
+ * ids therefore go to _lck_set, which is where a connecting poller queues
+ * itself too, rather than to a set local to one cycle.
+ */
+bool broker_state::_read_watch_events() {
+  bool batch_announced = false;
   if (_cache_config_dir_watcher) {
     _logger->debug("Watch engine configuration directory");
+    /* Gathered here and handed over in one go below: a deploy-all names one
+     * poller per event, and taking the lock for each of them would serialize
+     * the whole burst against the handling side for nothing. */
+    absl::flat_hash_set<uint32_t> found;
     auto it = _cache_config_dir_watcher->watch();
     /* The watcher reports when the kernel dropped events or when the watch had
      * to be established again. In both cases what happened in the directory is
      * unknown to us and only a scan can recover it. */
     if (_cache_config_dir_watcher->take_rescan_request())
-      _scan_requested_by_watcher = true;
+      _scan_requested_by_watcher.store(true);
     for (auto end = _cache_config_dir_watcher->end(); it != end; ++it) {
       _logger->debug("Change detected in '{}'", _cache_config_dir.string());
       auto [event, name] = *it;
       _logger->debug("event: {}, name: '{}'", event, name);
       if (absl::EndsWith(name, ".lck")) {
+        if (name == poller_batch_file) {
+          /* The file has contents, so only the events that mean it is finished
+           * count: its writer closed it, or it was renamed into place. On
+           * IN_CREATE it exists but is still empty, and reading it then would
+           * see an incomplete batch -- or none at all. */
+          if (!(event & (IN_CLOSE_WRITE | IN_MOVED_TO)))
+            continue;
+          _logger->info("A poller batch was announced in '{}'", name);
+          batch_announced = true;
+          continue;
+        }
         std::string_view prefix(name.data(), name.size() - 4);
         uint32_t poller_id;
         if (absl::SimpleAtoi(prefix, &poller_id)) {
@@ -1219,15 +1544,20 @@ void broker_state::_watch_engine_conf(
           /* The .lck is NOT removed here: it marks a configuration still
            * pending delivery. It is consumed later, in _check_last_engine_conf,
            * only once the poller is connected. Keeping it until then allows the
-           * configuration to be recovered (via _get_lck_file_if_exists) should
+           * configuration to be recovered (via _lck_file_for_poller) should
            * the poller connect after this detection. */
-          poller_ids->insert(poller_id);
+          found.insert(poller_id);
         } else
           _logger->warn("Change in '{}' detected but poller id not found",
                         _cache_config_dir.string());
       }
     }
+    if (!found.empty()) {
+      absl::MutexLock lck(&_lck_set_m);
+      _lck_set.insert(found.begin(), found.end());
+    }
   }
+  return batch_announced;
 }
 
 /**
@@ -1318,6 +1648,22 @@ bool broker_state::_prepare_diff_for_poller(
  *
  * @return A boolean indicating if the poller engine peer needs an update.
  */
+/**
+ * @brief Whether a configuration is prepared for a peer and still owes it a
+ * delivery.
+ *
+ * available_conf is never cleared, so its mere presence proves nothing: what
+ * says a delivery is still due is that it differs from what the peer told us it
+ * runs. Once the peer acknowledges, engine_conf takes the acknowledged version
+ * and the two match again.
+ *
+ * @param peer The peer to look at. _connected_peers_m must be held.
+ */
+bool broker_state::_peer_needs_update(const engine_peer& peer) {
+  return !peer.available_conf_sent && !peer.available_conf.empty() &&
+         peer.available_conf != peer.engine_conf;
+}
+
 bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   _logger->trace("engine_peer_needs_update called for poller id {}", poller_id);
@@ -1325,9 +1671,7 @@ bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
   if (found == _engine_peers.end())
     return false;
   const auto& peer = found->second;
-  if (peer.available_conf_sent)
-    return false;
-  if (!peer.available_conf.empty() && peer.available_conf != peer.engine_conf) {
+  if (_peer_needs_update(peer)) {
     _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
                    peer.available_conf, peer.engine_conf, poller_id);
     return true;

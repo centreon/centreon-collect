@@ -9,7 +9,7 @@
     * [`pollers_config_directory`](#pollers_config_directory)
     * [`notification_mode`](#notification_mode)
     * [`bbdo_version`](#bbdo_version)
-    * [`grpc` (rpc_port / listen_address)](#grpc-rpc_port--listen_address)
+    * [`grpc` (rpc\_port / listen\_address)](#grpc-rpc_port--listen_address)
   * [Engine parameters](#engine-parameters)
     * [`broker_module_cfg_file`](#broker_module_cfg_file)
     * [New-generation start (`-p`)](#new-generation-start--p)
@@ -23,6 +23,13 @@
   * [Command catalogue](#command-catalogue)
   * [Discovery and ports](#discovery-and-ports)
   * [Ordering comments — do not rely on `internal_id`](#ordering-comments--do-not-rely-on-internal_id)
+* [Evolution 3 — An explicit configuration batch: `pollers.lck`](#evolution-3--an-explicit-configuration-batch-pollerslck)
+  * [The problem](#the-problem)
+  * [The target](#the-target)
+  * [The rules](#the-rules)
+  * [What Broker does with it](#what-broker-does-with-it)
+  * [Backward compatibility](#backward-compatibility)
+  * [Accepted limit](#accepted-limit)
 <!-- TOC -->
 
 ---
@@ -309,3 +316,121 @@ comments its values are deliberately discontinuous. Order comments by `entry_tim
 > If the current UI/API happens to order comments by `internal_id`, it must be fixed
 > **before** enabling `notification_mode = broker`: otherwise every Broker downtime
 > comment would sort after all Engine comments regardless of its real creation time.
+
+# Evolution 3 — An explicit configuration batch: `pollers.lck`
+
+## The problem
+
+The current contract asks PHP to touch `<poller_id>.lck` **once that poller's
+subdirectory is entirely written**. PHP therefore works poller by poller: it
+writes `1/`, touches `1.lck`, writes `2/`, touches `2.lck`. The interval between
+two `.lck` files is not the time it takes to write an empty file — it is the time
+to **fully generate** the next poller's configuration: SQL queries, template
+rendering, several megabytes of `.cfg` written. On a poller with 50,000 services,
+that is measured in seconds.
+
+Broker coalesces pushes that arrive close together and handles them as one batch,
+but that coalescing rests on a delay (500 ms by default): it cannot guess that a
+second configuration is still being generated. Past the delay, an export covering
+several pollers becomes **several batches**.
+
+This is not only about cost. An object **moved from one poller to another** — a
+common case: rebalancing a host — is only correct if both configurations are in
+the same batch. The global diff then reconciles the removal and the addition into
+a plain modification (`indexed_diff_state`), and the host changes poller without
+ever being disabled. In two batches that reconciliation does not happen:
+depending on the order of arrival, the host can end up **disabled in the database
+while a poller is still monitoring it**.
+
+## The target
+
+A single file, `pollers.lck`, takes the place of the individual `.lck` files on
+the PHP side and **lists the pollers of the batch**:
+
+```
+<cache_config_directory>/
+├── 1/
+│   ├── centengine.cfg
+│   └── ...
+├── 2/
+│   └── ...
+└── pollers.lck      ← touched last, holds "1" and "2"
+```
+
+Contents: one poller id per line, nothing else.
+
+```
+1
+2
+```
+
+Broker no longer has anything to guess: it knows exactly which pollers make up
+the batch, waits until it has them all, and makes a single pass over them — one
+read of the stored configurations, one global diff, no transient state in the
+database. How long PHP takes to generate no longer matters.
+
+## The rules
+
+1. **`pollers.lck` is touched last**, after *all* the batch's subdirectories are
+   complete. Same rule as today, moved from the poller to the batch.
+2. **Two ways of writing it, whichever suits.** Writing straight into it --
+   open, write the ids, close -- is fine: Broker waits for the file to be
+   **closed** (`IN_CLOSE_WRITE`), so it never reads it half-written. Going
+   through a temporary file in the same directory and a `rename()` is equally
+   fine, Broker listening for an arrival by rename too (`IN_MOVED_TO`).
+
+   What must not be done is leaving the file open after writing to it: nothing
+   is reported until it is closed, and the batch would wait for the next scan.
+3. **One batch at a time.** PHP must not write a new `pollers.lck` while the
+   previous one is still there: its disappearance is Broker's acknowledgement. A
+   further batch produced while one is being handled has to wait.
+4. **A batch only names pollers whose directory has been written.** Naming a
+   poller without having written its directory makes the validation of its
+   configuration fail.
+
+## What Broker does with it
+
+Today the `.lck` carries two distinct pieces of information: "here is a new
+configuration" and "this configuration is still waiting to be delivered to its
+poller" — which is why Broker keeps it while the poller is not connected. With
+`pollers.lck`, only the first stays PHP's concern. Tracking the delivery becomes
+internal to Broker, in the directory it owns (`pollers_config_directory`), and
+`pollers.lck` is consumed as soon as it is read.
+
+That makes the contract cleaner: PHP announces, Broker keeps track. PHP no longer
+has to wonder why a `.lck` it touched is still there.
+
+## Backward compatibility
+
+Broker reads **both shapes, for good**:
+
+* if `pollers.lck` is present, it prevails and defines the batch;
+* otherwise the individual `<poller_id>.lck` files are handled as they are today,
+  with the delay-based coalescing.
+
+Reading the individual `.lck` files is not a migration bridge to be removed
+later: it stays supported. A PHP older than this evolution, a platform upgraded
+in stages, or a third-party tool pushing a configuration therefore keep working
+untouched, with the limits described above — coalescing goes back to being a
+matter of delay, and an object moved across two batches stays exposed.
+
+A PHP that adopts `pollers.lck`, on the other hand, **stops writing** the
+`<poller_id>.lck` files: both signals must not be emitted for one export, or the
+same batch would be announced twice.
+
+## Accepted limit
+
+`pollers.lck` guarantees that one **export** is one batch, which covers moving an
+object between pollers as long as it is exported in one go — the normal case.
+
+It can do nothing for a move split across **two successive exports**: a user
+exporting the source poller first, then the target poller in a second export.
+`Broker` then sees two batches with nothing tying them together, and has no way
+of knowing that the removal on one side and the addition on the other are the
+same move.
+
+**That case is accepted**, as a usage mistake: a move is done in one export. The
+symptom, should it happen, is an object **disabled in the database while a poller
+is still monitoring it** — the removal asked for by the source poller applies
+whichever poller now monitors the object. The remedy is to re-export both pollers
+together.
