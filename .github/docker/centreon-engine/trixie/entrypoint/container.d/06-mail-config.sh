@@ -11,13 +11,14 @@ if [ -n "$SMTP_HOST" ]; then
         TLS_LINE="tls on"
     fi
 
-    # container.sh runs as the unprivileged centreon-engine user (USER
-    # centreon-engine in the Dockerfile), so /etc/msmtprc is not writable.
-    # MSMTPRC (set in the Dockerfile ENV) points msmtp at a writable path
-    # instead - and since it's an exported env var rather than $HOME, it's
-    # inherited the same way by centengine itself and by every notification
-    # command it forks, regardless of how each child's environment is built.
-    cat > "$MSMTPRC" <<EOF
+    # centengine spawns notification commands with a from-scratch environment
+    # (only NAGIOS_*/macro vars, see common/process/src/spawnp_launcher.cc's
+    # posix_spawnp call) - no $HOME, no $MSMTPRC, nothing inherited from this
+    # script's own environment. msmtp's only env-independent lookup is the
+    # fixed /etc/msmtprc path, pre-created in the Dockerfile as writable by
+    # centreon-engine (the file's own owner/mode allow overwriting its
+    # contents even though /etc itself stays root-owned).
+    cat > /etc/msmtprc <<EOF
 defaults
 $TLS_LINE
 tls_starttls on
@@ -29,7 +30,7 @@ from $SMTP_FROM
 
 account default : relay
 EOF
-    chmod 600 "$MSMTPRC"
+    chmod 600 /etc/msmtprc
 fi
 
 RESOURCE_CFG="/etc/centreon-engine/resource.cfg"
