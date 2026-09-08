@@ -6,6 +6,6 @@ case "$1" in
   1 | [2-9] | [1-9][0-9]* | upgrade | failed-upgrade | deconfigure)
     ;;
   *)
-    systemctl stop centreon.service ||:
+    systemctl stop gorgoned.service ||:
     ;;
 esac
