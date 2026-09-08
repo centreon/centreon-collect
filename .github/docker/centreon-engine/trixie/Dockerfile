@@ -48,7 +48,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GORGONE_TOKEN= \
     CENTRAL_HOST= \
     APP_SECRET= \
-    SALT=
+    SALT= \
+    SMTP_HOST= \
+    SMTP_PORT=25 \
+    SMTP_FROM=centreon-engine@localhost \
+    SMTP_TLS=off \
+    MSMTPRC=/var/lib/centreon-engine/.msmtprc
 
 # Create users and groups (must match current setup for compatibility)
 RUN bash -e <<EOF
@@ -112,7 +117,11 @@ apt-get install -y --no-install-recommends \
     libcap2-bin \
     inotify-tools \
     sudo \
-    centreon-plugin-applications-monitoring-centreon-poller
+    mailutils \
+    msmtp \
+    msmtp-mta \
+    centreon-plugin-applications-monitoring-centreon-poller \
+    centreon-plugin-notification-email
 setcap cap_net_raw+ep /usr/lib/nagios/plugins/check_icmp
 apt-get remove -y --purge libcap2-bin gnupg wget
 apt-get autoremove -y
