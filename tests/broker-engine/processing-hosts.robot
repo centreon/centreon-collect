@@ -372,6 +372,12 @@ BEPH4B
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${prepared}    ${content}    60
     Should Be True    ${result}    Broker should have prepared a configuration it could not deliver
 
+    # And the announcement is gone even though nothing was delivered: what is
+    # waiting for the poller is new-1.prot, in the directory broker owns. This is
+    # what makes the hand-over below work for a batch push too, where PHP writes
+    # no <ID>.lck at all.
+    Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
+
     # Engine shows up: the prepared configuration is handed over as it stands,
     # without reading the sources again and without asking engine for anything.
     ${connect}    Ctn Get Round Current Date

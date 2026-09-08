@@ -28,6 +28,7 @@
   * [La cible](#la-cible)
   * [Les règles](#les-règles)
   * [Ce que Broker en fait](#ce-que-broker-en-fait)
+  * [Ce que la disparition de l'annonce signifie](#ce-que-la-disparition-de-lannonce-signifie)
   * [Rétrocompatibilité](#rétrocompatibilité)
   * [Limite assumée](#limite-assumée)
 <!-- TOC -->
@@ -411,6 +412,25 @@ de la livraison devient interne à Broker, dans le répertoire qu'il possède
 
 Cela rend le contrat plus net : PHP annonce, Broker suit. PHP n'a plus à se
 demander pourquoi un `.lck` qu'il a touché est toujours là.
+
+## Ce que la disparition de l'annonce signifie
+
+Historiquement, un `<poller_id>.lck` disparaissait quand la configuration avait
+**atteint son poller**. Ce n'est plus le cas : les deux formes disparaissent quand
+**Broker a lu l'annonce et préparé les configurations** qu'elle nommait.
+
+La distinction compte pour PHP :
+
+* ce qu'il peut déduire de la disparition est « Broker a pris la configuration en
+  charge, je peux pousser la suivante » — ce qui est précisément ce dont il a besoin,
+  et la règle 3 ci-dessus ;
+* ce qu'il ne peut **pas** en déduire est que le poller l'a reçue. Un poller éteint
+  ne peut rien acquitter, et l'attendre bloquerait indéfiniment un export par
+  ailleurs correct. La configuration est alors conservée par Broker et livrée à la
+  connexion du poller, sans nouvelle intervention de PHP.
+
+Un export qui vise un poller arrêté est donc un succès du point de vue de PHP. C'est
+le comportement qu'a toujours eu `pollers.lck`, désormais partagé par les deux formes.
 
 ## Rétrocompatibilité
 

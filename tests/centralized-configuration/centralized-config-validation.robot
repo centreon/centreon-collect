@@ -298,7 +298,7 @@ BECFGVAL9
     ...    And Broker is started in centralized mode while Engine is left stopped
     ...    When the configuration change is notified to Broker
     ...    Then Broker prepares and stores the poller configuration once
-    ...    And it keeps the .lck since the configuration cannot be delivered yet
+    ...    And it consumes the .lck, new-1.prot being what says the delivery is pending
     ...    And nothing at all happens about that poller on the following cycles
     [Tags]    broker    engine    config    centralized    MON-187019
     Ctn Config Centralized Engine    ${1}
@@ -319,11 +319,11 @@ BECFGVAL9
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot
     File Should Exist    ${prot}    a valid configuration must be stored
 
-    # The poller is absent, so the .lck must survive: it is what allows the
-    # configuration to be delivered when the poller finally connects.
-    File Should Exist
-    ...    ${VarRoot}/lib/centreon/config/1.lck
-    ...    the lock file must be kept while the poller is not connected
+    # The announcement has been read and what it announced is on disk, so it
+    # must be gone -- PHP waits for exactly that. What says the delivery is
+    # still pending is new-1.prot, checked just above, and it says so whether
+    # the poller is connected or not.
+    Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
     # From here on, nothing more must happen about that poller. The 2s wait puts
     # ${middle} strictly after the preparation logged above, since the date is
@@ -343,8 +343,8 @@ BECFGVAL9
     ...    ${found}
     ...    Broker parsed every stored poller configuration again while nothing was being deployed
 
-    # And the cause of that reload, the requeuing of the .lck, must not happen
-    # either.
+    # And the cause of that reload, the requeuing of an announcement, must not
+    # happen either -- there is none left to requeue.
     ${orphan}    Create List    Found orphan lock file
     ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${orphan}    5
     Should Not Be True    ${found}    the lock file was requeued while its poller was still absent
@@ -359,7 +359,9 @@ BECFGVAL9
     ${scan}    Create List    Scanning the engine configuration directory
     ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${scan}    5
     Should Not Be True    ${found}    Broker scanned the cache directory while nothing asked for it
-    File Should Exist    ${VarRoot}/lib/centreon/config/1.lck    the lock file must still be there
+    File Should Not Exist
+    ...    ${VarRoot}/lib/centreon/config/1.lck
+    ...    the announcement must not come back
 
     # An empty inotify queue is the ordinary case and must not be logged as an
     # error, otherwise every cycle leaves one error line behind.

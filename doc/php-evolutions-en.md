@@ -28,6 +28,7 @@
   * [The target](#the-target)
   * [The rules](#the-rules)
   * [What Broker does with it](#what-broker-does-with-it)
+  * [What the announcement disappearing means](#what-the-announcement-disappearing-means)
   * [Backward compatibility](#backward-compatibility)
   * [Accepted limit](#accepted-limit)
 <!-- TOC -->
@@ -399,6 +400,26 @@ internal to Broker, in the directory it owns (`pollers_config_directory`), and
 
 That makes the contract cleaner: PHP announces, Broker keeps track. PHP no longer
 has to wonder why a `.lck` it touched is still there.
+
+## What the announcement disappearing means
+
+Historically, a `<poller_id>.lck` disappeared once the configuration had **reached
+its poller**. That is no longer the case: both shapes disappear once **Broker has
+read the announcement and prepared the configurations** it named.
+
+The distinction matters to PHP:
+
+* what it can conclude from the disappearance is "Broker has taken the configuration
+  over, I may push the next one" -- which is precisely what it needs, and rule 3
+  above;
+* what it **cannot** conclude is that the poller received it. A stopped poller cannot
+  acknowledge anything, and waiting for it would block an otherwise correct export
+  indefinitely. Broker keeps the configuration and delivers it when the poller
+  connects, with no further action from PHP.
+
+An export aimed at a stopped poller is therefore a success as far as PHP is
+concerned. This has always been the behaviour of `pollers.lck`, now shared by both
+shapes.
 
 ## Backward compatibility
 

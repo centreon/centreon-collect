@@ -59,9 +59,9 @@ class BrokerStateRound : public ::testing::Test {
       std::filesystem::create_directories(d);
     }
     _state->set_pollers_config_dir(_dir);
-    /* The cache directory has to be known, and watched: a pending delivery is
-     * announced by a <N>.lck living there, and it is that announcement which
-     * makes a prepared configuration deliverable. */
+    /* Known and watched, as on a real central: the announcements PHP pushes
+     * live there. None is left in these tests -- a configuration prepared for
+     * an absent poller has already had its announcement consumed. */
     _state->set_cache_config_dir(_cache_dir);
   }
 
@@ -73,22 +73,13 @@ class BrokerStateRound : public ::testing::Test {
 
   /**
    * @brief Leave a prepared configuration for a poller, the way a cycle does
-   * for one that was not connected at the time: the announcement stays on
-   * disk, and the prepared state is written after it.
+   * for one that was not connected at the time.
    *
-   * The announcement is backdated on purpose. Broker tells a prepared
-   * configuration from the residue of an earlier push by comparing the two
-   * timestamps, and writing both within the same instant would make them
-   * indistinguishable -- which the product resolves in favour of a full cycle,
-   * not of the hand-over this fixture is about.
+   * `new-<N>.prot` alone, with no announcement beside it: the cycle that wrote
+   * this file consumed the announcement in the same breath. Its presence is
+   * what says a delivery is still pending.
    */
   void leave_prepared_conf(uint64_t poller_id, const std::string& version) {
-    std::filesystem::path lck = _cache_dir / fmt::format("{}.lck", poller_id);
-    std::ofstream(lck).close();
-    std::filesystem::last_write_time(
-        lck, std::filesystem::file_time_type::clock::now() -
-                 std::chrono::seconds(10));
-
     com::centreon::engine::configuration::State st;
     st.set_poller_id(poller_id);
     st.set_config_version(version);
@@ -100,10 +91,10 @@ class BrokerStateRound : public ::testing::Test {
   /**
    * @brief Connect an Engine peer announcing that it runs no configuration.
    *
-   * With an announcement and a new-<N>.prot left beforehand, this is the real
-   * path of a poller starting after its configuration was pushed: add_peer()
-   * hands the prepared state over without reading the sources again, which is
-   * what sets available_conf while nothing has been sent yet.
+   * With a new-<N>.prot left beforehand, this is the real path of a poller
+   * starting after its configuration was pushed: add_peer() hands the prepared
+   * state over without reading the sources again, which is what sets
+   * available_conf while nothing has been sent yet.
    *
    * No <N>.prot is written, so the cache is not fed and nothing is published --
    * this test needs no multiplexing engine.

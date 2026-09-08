@@ -20,9 +20,9 @@
       * [Two ways to announce a push](#two-ways-to-announce-a-push)
         * [Which events count](#which-events-count)
         * [Handing over when a poller connects](#handing-over-when-a-poller-connects)
-        * [What the cycle did](#what-the-cycle-did)
+          * [What the cycle did](#what-the-cycle-did)
       * [Starting the watching](#starting-the-watching)
-      * [Lifecycle of the `X.lck` file](#lifecycle-of-the-xlck-file)
+      * [Life cycle of an announcement](#life-cycle-of-an-announcement)
       * [When is a configuration round over?](#when-is-a-configuration-round-over)
   * [Validating a poller configuration: the `CheckPollerConfig` gRPC endpoint](#validating-a-poller-configuration-the-checkpollerconfig-grpc-endpoint)
     * [Implementation](#implementation)
@@ -550,19 +550,20 @@ sequenceDiagram
         Note right of T: Refused: no new-X.prot, no diff.<br/>An invalid configuration never becomes<br/>valid on its own, replaying it is pointless.
     else Valid configuration
         T ->> P: writes new-X.prot
+        T ->> C: removes X.lck
+        Note right of T: The announcement has been read and what it<br/>announced is on disk: new-X.prot is now what<br/>says a delivery is pending.
         T ->> P: writes diff-X.prot<br/>(diff against X.prot, or full configuration)
         alt Poller X connected
-            T ->> C: removes X.lck
             S ->> P: reads diff-X.prot
             S ->> E: pb_diff_state
             E -->> S: pb_diff_state_ack
             S ->> P: renames new-X.prot into X.prot
             Note right of S: What follows (global diff, database)<br/>is described in the<br/>"Computing the difference" chapter.
         else Poller X absent
-            Note right of T: X.lck kept: nothing can be delivered to it.<br/>The following cycles no longer requeue it,<br/>everything is already prepared on disk.
+            Note right of T: Nothing can be delivered to it, and nothing<br/>is requeued: new-X.prot waits on disk.
             E ->> S: BBDO connection and negotiation
-            S ->> T: add_peer: _get_lck_file_if_exists<br/>and coalescing nudged
-            Note right of T: X.lck found again, the poller is requeued<br/>and the delivery resumes the flow above.
+            S ->> T: add_peer: no announcement,<br/>but new-X.prot is there
+            Note right of T: Handed over straight from the prepared state,<br/>without reading the sources again.
         end
     end
 ```
@@ -594,21 +595,22 @@ That timer also reads the events, which matters: it is the only path that calls
 `watch()` again, hence the only one able to re-establish a watch whose recovery had
 failed. Purely event-driven watching could never wake up to repair itself.
 
-Scanning on every tick cost a directory walk plus one `stat` per `.lck` still
-waiting for its poller, forever and for nothing.
+Scanning on every tick cost a directory walk plus one `stat` per announcement still
+present, forever and for nothing.
 
-With one exception: a `.lck` the scan finds while `new-X.prot` already exists and
-poller *X* is not connected is **not** requeued. No `inotify` event reported it, so
-it is not a fresh push but the `.lck` deliberately retained (see the lifecycle
-below): everything is already prepared on disk, only the poller's connection is
-missing, and that connection requeues the poller by itself through
-`_get_lck_file_if_exists`. This filter is not a micro-optimization: without it, back
-when the scan ran on every tick, a poller that was switched off had its `.lck`
-requeued every 5 seconds, and **every requeue reads and reindexes all the stored
-poller configurations** of the platform — `load_foreign_objects`, needed by the
-cross-poller validation — before concluding there was nothing to do. A single absent
-poller was therefore enough to have the whole platform configuration parsed over and
-over.
+Everything the scan finds is handled, with no exception: an announcement still there
+is, by construction, a push `Broker` has not read -- it never lets one outlive the
+cycle that reads it (see
+[Life cycle of an announcement](#life-cycle-of-an-announcement)).
+
+> That was not the case while a `.lck` was kept until its poller connected. The scan
+> then kept finding announcements already handled, and **every requeue reads and
+> reindexes all the stored poller configurations** of the platform --
+> `load_foreign_objects`, needed by the cross-poller validation -- before concluding
+> there was nothing to do: a single stopped poller was enough to have the whole
+> platform configuration parsed over and over. A dedicated filter was needed to avoid
+> it; unifying the lifetime of announcements removed the cause, and the filter with
+> it.
 
 #### The moving parts
 
@@ -714,14 +716,11 @@ refinement and becomes a prerequisite.
 
 PHP has two shapes at its disposal, and `Broker` reads both.
 
-The historical one is a `<poller_id>.lck` file per poller. It carries **two** pieces
-of information at once: "here is a new configuration" and "this one is still waiting
-to be delivered to its poller" — which is why the file is kept while the poller is
-not connected. Its shortcoming is that it does not say where an export ends:
-`Broker` can only coalesce what arrives close together, whereas the interval between
-two `.lck` files is the time it takes to generate the next configuration, several
-seconds on a large poller. An export covering several pollers then splits into
-several batches.
+The historical one is a `<poller_id>.lck` file per poller. Its shortcoming is that it
+does not say where an export ends: `Broker` can only coalesce what arrives close
+together, whereas the interval between two `.lck` files is the time it takes to
+generate the next configuration, several seconds on a large poller. An export
+covering several pollers then splits into several batches.
 
 The target shape is a single file, `pollers.lck`, which **lists the pollers of the
 batch**, one id per line. `Broker` has nothing left to guess: it handles the export
@@ -731,12 +730,20 @@ the addition into a plain modification, instead of seeing them in two successive
 batches. The detailed contract is described in
 [php-evolutions](./php-evolutions-en.md#evolution-3--an-explicit-configuration-batch-pollerslck).
 
-Unlike a `<poller_id>.lck`, `pollers.lck` is **consumed as soon as it is read**: it
-only announces an export, it never marks a pending delivery. That role belongs to
-the `new-<ID>.prot` `Broker` writes in its own directory.
+Both shapes have the **same lifetime**: they announce, nothing more, and `Broker`
+removes them once the configurations they name have been prepared. What marks a
+pending delivery is the `new-<ID>.prot` `Broker` writes in its own directory -- see
+[Life cycle of an announcement](#life-cycle-of-an-announcement). A `pollers.lck`
+could not hold that role anyway: it names several pollers, whose deliveries do not
+complete together.
 
-The file is read at the top of a cycle rather than on the event, so a batch
-`inotify` failed to report is still picked up by a scan.
+The only difference in handling left is **coalescing**. A `pollers.lck` names its
+batch, so there is nothing to wait for; `<ID>.lck` files arrive one at a time, and
+only a delay can guess where the burst ends.
+
+The batch file is read at the top of a cycle rather than on the event, so a batch
+`inotify` failed to report is still picked up by a scan. It is removed at the end of
+the cycle, once every poller it names has been through validation.
 
 ##### Which events count
 
@@ -756,23 +763,40 @@ file would only surface on the next scan.
 
 ##### Handing over when a poller connects
 
-When a poller that was away during the batch starts up, its configuration is already
-prepared: `new-<ID>.prot` holds the state, and all that is left is the difference
-against what the poller says it runs. `add_peer()` takes care of that **directly**,
-through `_prepare_diff_from_new_prot_file()`, without going through a cycle:
+When a poller that was away during the batch starts up, its configuration may already
+be prepared. `add_peer()` looks at what is waiting for it, in this order:
 
-* if `<ID>.prot` exists and matches the version the poller announced, the difference
-  is computed;
-* otherwise the whole configuration is sent.
+* **an announcement (`<ID>.lck`)**: it has not been read yet, so the sources have not
+  been validated. The poller goes back in the list to handle for a **full cycle**, and
+  the debounce is re-armed from there -- nothing changed in the directory, so
+  `inotify` would never have woken the watcher up for this poller.
+* **otherwise a `new-<ID>.prot`**: the state is on disk and all that is left is the
+  difference against what the poller says it runs.
+  `_prepare_diff_from_new_prot_file()` takes care of that **directly**, without going
+  through a cycle: if `<ID>.prot` exists and matches the version the poller announced,
+  the difference is computed; otherwise the whole configuration is sent. Reading the
+  sources again would have redone the expensive half of a cycle -- `hash_directory`,
+  `parse`, `expand`, `resolve`, and the reload of every stored configuration behind
+  it -- to reach a result already sitting there.
+* **neither**: Broker follows the normal path -- unknown configuration, and it is up
+  to the poller to say what it has.
 
-Reading the sources again would have redone the expensive half of a cycle --
-`hash_directory`, `parse`, `expand`, `resolve`, and the reload of every stored
-configuration behind it -- to reach a result already sitting on disk.
+**The order follows from the hand-over; it needs no timestamps to justify it.** A
+cycle removes the announcement as soon as it has written the prepared file, so an
+announcement still present is necessarily about a push *later* than the prepared file
+sitting next to it. Handing the prepared state over would deliver the older of the
+two.
 
-The historical `<ID>.lck` opens no such shortcut: it says a configuration is
-waiting, not which one, and the sources may have changed since. Its presence
-therefore puts the poller back in the list to handle (`_lck_file_for_poller()`), for
-a full cycle.
+That is what allowed the comparison of the two files' write times to be removed,
+along with the filter that kept the scan from requeuing a stopped poller: an
+announcement still there is work to do, with nothing else to ask.
+
+> **A race this fixed.** When not every known poller is connected at the same time,
+> Broker used to publish the global diff with a subset of the pollers -- those whose
+> configuration had been sent and acknowledged -- and abandon the late poller's
+> prepared one. The `new-<ID>.prot` waiting for it is what earns it a delivery the
+> moment it connects, and a new global diff is then published to bring it into the
+> database.
 
 ##### What the cycle did
 
@@ -801,7 +825,7 @@ directory is**, which has three immediate consequences:
 
 1. the `inotify` wait cannot be armed, there being no descriptor;
 2. the first cycle scans nothing, `_cache_config_dir` still being empty;
-3. `_get_lck_file_if_exists()` returns 0 for the poller that just connected — it
+3. `_lck_file_for_poller()` returns 0 for the poller that just connected — it
    gives up without a watcher — so its `.lck` is not even looked for.
 
 So `set_cache_config_dir()`, when it finds the machinery already running, has to
@@ -818,87 +842,76 @@ minutes later.
 > The arming is also made idempotent (`_inotify_wait_armed`): attempted from two
 > places, two waits on one descriptor would both fire for a single event.
 
-#### Lifecycle of the `X.lck` file
+One last ordering point, in `apply()` this time: the pollers configuration directory
+is set **before** `set_cache_config_dir()`, never after. Setting the cache directory
+starts the watching, and the cycle it posts writes `new-<ID>.prot`; with no
+destination directory, that path would be relative to cbd's working directory. It is
+the same trap as the one above, the other way round: here it is not the watching that
+starts too early, it is what it needs that arrives too late.
 
-The `X.lck` file does not merely mean "a configuration has just arrived", but
-"a configuration is pending delivery to poller *X*". Its deletion is therefore
-**conditioned on the poller being present**:
+#### Life cycle of an announcement
 
-- Neither the `inotify` detection (`_watch_engine_conf`) nor the fallback scan
-  deletes the `.lck`. They only add the poller to the list to process.
-- The deletion happens only in `_check_last_engine_conf`, **after**
-  `_prepare_diff_for_poller` and **only if the poller is connected**
-  (`_is_engine_peer_connected`, i.e. present in `_engine_peers`).
-- If the poller is not connected yet, the `.lck` is kept. The "poller absent
-  **and** `new-X.prot` already written" test is factored into
-  `_conf_prepared_for_disconnected_poller` and applied in two places: at the top
-  of the processing loop, and in the fallback scan so that the poller is not
-  requeued at all. On top of that, loading the stored configurations
-  (`load_foreign_objects`) is **deferred to the first poller that really needs
-  validating**, so a batch made only of pollers waiting for their connection now
-  costs one `stat` per `.lck` and nothing more. That load logs the indexed volume
-  at `debug` level ("Loaded the N stored poller configurations…"): seeing that
-  line repeat while nothing is being deployed means something is asking for the
-  store without needing it.
-- If the pushed configuration is **rejected as invalid** (it fails the
-  validation described in
-  [Validating a poller configuration](#validating-a-poller-configuration-the-checkpollerconfig-grpc-endpoint):
-  `parse`+`expand`+`resolve` report at least one error), Broker **refuses to
-  push it**: no `new-X.prot` is written and no `diff-X.prot` is prepared. In
-  that case the `.lck` is consumed **unconditionally** — even though nothing was
-  delivered to the poller — because a structurally-invalid configuration will
-  never become valid on its own, and Broker must not re-parse it on every 5 s
-  tick forever. PHP creates a fresh `.lck` when it pushes a corrected
-  configuration.
+Two files are involved, and each says one thing only:
 
-So the `.lck` is deleted in two situations that must not be confused: a *valid*
-configuration that has been prepared **and delivered** to a connected poller,
-and an *invalid* configuration that is **refused**. It is **kept** only when a
-valid configuration is prepared but its poller is not connected yet.
+| File | What it says | Who writes it | Who removes it |
+|---|---|---|---|
+| `X.lck` or `pollers.lck` | a configuration has arrived and Broker has not read it yet | PHP | Broker, as soon as it has read it |
+| `new-X.prot` | a configuration is ready and waits to be acknowledged by its poller | Broker | the rename to `X.prot` on acknowledgement |
 
-> **Known limitation.** The rejection branch currently consumes the `.lck` on
-> *any* exception thrown while handling the configuration, not only on
-> validation errors — a transient I/O or serialization error on an otherwise
-> valid configuration would therefore drop it without retry. Narrowing this to
-> validation errors only is a known follow-up.
+An announcement therefore says **nothing** about delivery, and its removal is no
+longer conditional on the poller being there. What `new-X.prot` says, it says whether
+the poller is connected or not, and it says it in the directory Broker owns -- which
+is what makes `pollers.lck` possible at all, since a batch file cannot track the
+delivery of each of the pollers it names.
 
-Why this precaution? When a poller connects **after** its configuration has
-been prepared (for instance, its `.lck` was detected while it was still
-starting up), Broker finds the retained `.lck` through
-`_get_lck_file_if_exists` during `add_peer`. The poller is then re-queued and
-its configuration is delivered on the next tick. Without this retention, the
-prepared `diff-X.prot` would be left orphaned: the poller would connect with
-neither `X.prot` nor `X.lck`, and Broker would wrongly consider its
-configuration *lost or unknown* (see the
-[Configuration management on the Engine side](#configuration-management-on-the-engine-side)
-section).
+**The two markers hand over to one another.** The announcement is removed as soon as
+`new-X.prot` has been written, and **never before**: at no instant is there neither of
+them, so a write failure or an abrupt stop between the two always leaves something to
+retry from. If the write fails, the announcement is deliberately kept and the next
+cycle reads the sources again.
 
-> **Fixed race.** This behavior fixes a race where, when not all known pollers
-> are connected at the same time, Broker published the global diff with a
-> subset of the pollers (those whose config had been *sent and acknowledged*)
-> and dropped the prepared configuration of the late poller. With the `.lck`
-> retention, that poller's configuration is delivered as soon as it connects,
-> and a new global diff is published to integrate it into the database.
+Neither the `inotify` detection nor the fallback scan removes an announcement: reading
+an event is not handling what it announced. Only the cycle does, once the prepared
+file is on disk.
 
-The complete lifecycle of the `X.lck` file, including the validation gate, is:
+**One exception:** if the pushed configuration is **rejected as invalid** (it fails
+the validation described in
+[Validating a poller configuration](#validating-a-poller-configuration--the-checkpollerconfig-grpc-endpoint):
+`parse`+`expand`+`resolve` report at least one error), no `new-X.prot` is written, and
+the announcement is consumed all the same -- the one case where the baton is not
+passed, for want of a successor. A structurally invalid configuration will never
+become valid on its own, and retrying it forever would amount to rejecting it forever.
+PHP creates a fresh announcement when it pushes a corrected configuration.
+
+> **Known limitation.** The rejection branch consumes the announcement on *any*
+> exception raised while handling the configuration, not only on a validation error --
+> a transient I/O or serialization error on an otherwise valid configuration would
+> therefore drop it with no retry. Restricting this to validation errors alone is an
+> identified follow-up fix.
+
+##### What PHP observes
+
+The announcement disappearing used to mean "your configuration reached its poller".
+It now means "Broker has taken your configuration over", which is all PHP needs in
+order to push the next one -- and all it can usefully wait for, a stopped poller
+being unable to acknowledge anything. This was already the semantics of
+`pollers.lck`; both shapes now say the same thing.
 
 ```mermaid
 stateDiagram-v2
-    Pending: Pending - X.lck present, config awaiting delivery
+    Announced: Announced - announcement present, not read yet
     Validating: Validating - parse + expand + resolve
-    Rejected: Rejected - config refused, X.lck consumed, no retry
-    Prepared: Prepared - new-X.prot and diff-X.prot written
-    Kept: Kept - valid config, X.lck kept until poller connects
-    Delivered: Delivered - DiffState sent, X.lck removed
-    [*] --> Pending: PHP writes config dir
-    Pending --> Validating: inotify event, scan or add_peer
+    Rejected: Rejected - config refused, announcement consumed, no retry
+    Prepared: Prepared - new-X.prot written, announcement removed
+    Acknowledged: Acknowledged - DiffState acknowledged, new-X.prot renamed to X.prot
+    [*] --> Announced: PHP writes the config dir then the announcement
+    Announced --> Validating: inotify event or scan
     Validating --> Rejected: config_errors found
+    Validating --> Announced: write failure, announcement kept
     Validating --> Prepared: config valid
     Rejected --> [*]
-    Prepared --> Delivered: poller connected
-    Prepared --> Kept: poller not connected
-    Kept --> Delivered: poller connects later
-    Delivered --> [*]
+    Prepared --> Acknowledged: poller connected, or as soon as it connects
+    Acknowledged --> [*]
 ```
 
 The BBDO stream in connection with poller *X* is configured on reading to also check if the connected `Engine` has a new version:
@@ -937,6 +950,21 @@ All engine peers acknowledged? 1/3 acknowledged, 0 still waiting to be sent
 > acknowledged version at acknowledgement time. That is exactly the test
 > `engine_peer_needs_update()` makes, and both now share it (`_peer_needs_update()`):
 > their divergence is what caused the configuration loss described above.
+
+> **The second trap: re-arming the flag for a version already in flight.** The "not
+> sent yet" flag is set by `_prepare_diff_for_poller()`, and it is set **only when
+> the version changes**. PHP is free to announce the same export twice -- one
+> `<ID>.lck` when the configuration is written, a second one a few hundred
+> milliseconds later -- and the second cycle then prepares a version identical to the
+> one already handed to the poller. Marking it "not sent yet" again orphans its
+> acknowledgement: the ack looks for a peer marked as served, finds none
+> (`0/0 acknowledged`), and the round never closes. No global difference is published
+> and **nothing reaches the database**, even though the poller did answer.
+>
+> The defect was latent: with the old 5-second tick the two cycles were too far apart
+> to overlap, an acknowledgement taking about a hundred milliseconds. The 500 ms
+> debounce brings them close enough for the second cycle to cut in front of the first
+> one's acknowledgement.
 
 A poller that is **not connected** enters none of those counts, and rightly so:
 preparing a difference requires a peer, so a poller that is switched off has no
@@ -1315,11 +1343,12 @@ overwriting the file.
 
 > **Not to be confused with a late poller.** This `unknown=true` mechanism only
 > covers genuine configuration loss (no `<ID>.prot`, no `<ID>.lck`, no
-> `new-<ID>.prot` in progress). The case of a poller that connects *after* PHP
-> has pushed its configuration no longer lands here: the `<ID>.lck` is kept
-> until the connection (see [Lifecycle of the `X.lck` file](#lifecycle-of-the-xlck-file)),
-> so `_get_lck_file_if_exists` finds it and delivery resumes through the normal
-> flow instead of a `DiffState{unknown=true}`.
+> `new-<ID>.prot` in progress). The case of a poller that connects *after* PHP has
+> pushed its configuration does not land here: either its announcement has not been
+> read yet and it goes back for a cycle, or its `new-<ID>.prot` is waiting and is
+> handed over directly (see
+> [Life cycle of an announcement](#life-cycle-of-an-announcement)) -- either way
+> delivery resumes through the normal flow instead of a `DiffState{unknown=true}`.
 
 ```mermaid
 sequenceDiagram
@@ -1507,7 +1536,7 @@ stateDiagram-v2
     [*] --> watch_engine_conf
     watch_engine_conf: _watch_engine_conf(poller_ids)
     watch_engine_conf --> pour_chaque_poller_id
-    note right of watch_engine_conf: This function retrieves IDs reported by inotify<br/>(completed by the fallback directory scan).<br/>The ID.lck file is NOT deleted here — it marks<br/>a configuration pending delivery.
+    note right of watch_engine_conf: This function retrieves IDs reported by inotify<br/>(completed by the fallback directory scan).<br/>The ID.lck file is NOT deleted here: reading an<br/>event is not handling what it announced.<br/>The cycle removes it, once new-ID.prot is written.
     pour_chaque_poller_id: For each poller ID in poller_ids
     state garde_attente <<choice>>
     pour_chaque_poller_id --> garde_attente
@@ -1696,7 +1725,7 @@ classDiagram
         -flat_hash_set<uint32_t> _lck_set
         -_prepare_diff_for_poller(uint64_t poller_id, unique_ptr<State>&& state)
         -_start_watch_engine_conf_timer()
-        -_get_lck_file_if_exists(uint32_t poller_id)
+        -_lck_file_for_poller(uint32_t poller_id)
         -_watcher_engine_conf(flat_hash_set<uint32_t>& poller_ids)
         -_check_last_engine_conf()
         +add_peer()

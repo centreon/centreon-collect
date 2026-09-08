@@ -229,12 +229,10 @@ class broker_state : public state {
   void _post_config_work(bool force_scan);
   uint32_t _lck_file_for_poller(uint32_t poller_id) noexcept;
   void _remove_lck_file(uint32_t poller_id) noexcept;
-  absl::flat_hash_set<uint32_t> _consume_poller_batch();
+  absl::flat_hash_set<uint32_t> _read_poller_batch();
+  void _remove_poller_batch();
   bool _read_watch_events() ABSL_LOCKS_EXCLUDED(_lck_set_m);
   void _check_last_engine_conf(bool force_scan) ABSL_LOCKS_EXCLUDED(_lck_set_m);
-  bool _prepared_conf_is_current(uint32_t poller_id) const;
-  bool _conf_prepared_for_disconnected_poller(uint32_t poller_id) const
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
   bool _is_engine_peer_connected(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
