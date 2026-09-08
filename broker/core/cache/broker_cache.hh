@@ -18,7 +18,6 @@
 #ifndef CCB_CACHE_BROKER_CACHE_HH
 #define CCB_CACHE_BROKER_CACHE_HH
 
-#include "boost/multi_index/ordered_index.hpp"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -145,6 +144,7 @@ struct by_pair {};
 struct by_host {};
 struct by_hostgroup {};
 struct by_servicegroup {};
+struct by_group_instance {};
 
 struct indexed_host_hostgroup {
   uint64_t host_id;
@@ -173,10 +173,10 @@ struct host_hostgroup_second_extractor {
   }
 };
 
-struct host_hostgroup_poller_id_extractor {
-  using result_type = uint64_t;
+struct host_hostgroup_host_group_id_poller_id_extractor {
+  using result_type = std::pair<uint64_t /*group_id*/, uint64_t /*poller_id*/>;
   result_type operator()(const indexed_host_hostgroup& hh) const {
-    return hh.poller_id;
+    return std::make_pair(hh.hostgroup->obj().hostgroup_id(), hh.poller_id);
   }
 };
 
@@ -190,8 +190,9 @@ using HostHostgroupContainer = bm::multi_index_container<
                                           &indexed_host_hostgroup::host_id>>,
         bm::ordered_non_unique<bm::tag<by_hostgroup>,
                                host_hostgroup_second_extractor>,
-        bm::ordered_non_unique<bm::tag<by_instance>,
-                               host_hostgroup_poller_id_extractor>>>;
+        bm::ordered_non_unique<
+            bm::tag<by_group_instance>,
+            host_hostgroup_host_group_id_poller_id_extractor>>>;
 
 struct indexed_service_servicegroup {
   uint64_t host_id;
@@ -233,6 +234,14 @@ struct service_servicegroup_by_servicegroup_extractor {
   }
 };
 
+struct service_servicegroup_service_group_id_poller_id_extractor {
+  using result_type = std::pair<uint64_t /*group_id*/, uint64_t /*poller_id*/>;
+  result_type operator()(const indexed_service_servicegroup& ss) const {
+    return std::make_pair(ss.servicegroup->obj().servicegroup_id(),
+                          ss.poller_id);
+  }
+};
+
 using ServiceServicegroupContainer = bm::multi_index_container<
     indexed_service_servicegroup,
     bm::indexed_by<
@@ -240,9 +249,11 @@ using ServiceServicegroupContainer = bm::multi_index_container<
                            service_servicegroup_triplet_extractor>,
         bm::ordered_non_unique<bm::tag<by_service>,
                                service_servicegroup_by_service_extractor>,
+        bm::ordered_non_unique<bm::tag<by_servicegroup>,
+                               service_servicegroup_by_servicegroup_extractor>,
         bm::ordered_non_unique<
-            bm::tag<by_servicegroup>,
-            service_servicegroup_by_servicegroup_extractor>>>;
+            bm::tag<by_group_instance>,
+            service_servicegroup_service_group_id_poller_id_extractor>>>;
 
 struct servicegroup_id_extractor {
   using result_type = uint64_t;

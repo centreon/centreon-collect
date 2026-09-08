@@ -57,6 +57,8 @@ void indexed_diff_state::add_diff_state(
     configuration::DiffState& diff_state,
     const std::shared_ptr<spdlog::logger>& logger) {
   if (diff_state.has_state()) {
+    logger->debug("Adding full configuration for poller {}",
+                  diff_state.poller_id());
     add_state(*diff_state.mutable_state(), logger);
   } else {
     logger->debug("Adding differential configuration for poller {}",

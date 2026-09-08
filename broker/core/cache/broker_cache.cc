@@ -16,9 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include <boost/preprocessor/seq/for_each.hpp>
-#include <sstream>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/events.hh"
@@ -28,7 +26,6 @@
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "common/engine_conf/state.pb.h"
-#include "spdlog/spdlog.h"
 
 namespace com::centreon::broker::cache {
 
@@ -91,7 +88,7 @@ broker_cache::~broker_cache() noexcept {
  */
 void broker_cache::merge(
     const com::centreon::engine::configuration::State& state) {
-  SPDLOG_LOGGER_ERROR(_logger, "merge configuration for poller {} id:{}",
+  SPDLOG_LOGGER_DEBUG(_logger, "merge configuration for poller {} id:{}",
                       state.poller_name(), state.poller_id());
 
   absl::WriterMutexLock lck{&_mutex};
@@ -102,12 +99,10 @@ void broker_cache::merge(
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
-    absl::flat_hash_set<std::pair<uint64_t, uint32_t>> eraser;
     for (const engine::configuration::Severity& sev : state.severities()) {
       auto key = std::make_pair(sev.key().id(), sev.key().type());
       uint64_t poller_id =
           sev.poller_id() != 0 ? sev.poller_id() : state.poller_id();
-      eraser.emplace(key);
       auto it = _severities.find(key);
       if (it != _severities.end()) {
         it->second.first.level = sev.level();  // preserve existing db_id
@@ -116,17 +111,6 @@ void broker_cache::merge(
         _severities.insert(
             {key,
              {{sev.level(), 0}, absl::flat_hash_set<uint64_t>{poller_id}}});
-      }
-    }
-    // erase deleted severities for this poller
-    for (auto iter = _severities.begin(); iter != _severities.end();) {
-      if (!eraser.contains(iter->first)) {
-        iter->second.second.erase(state.poller_id());
-        if (iter->second.second.empty()) {
-          _severities.erase(iter++);
-          continue;
-        }
-        ++iter;
       }
     }
   }
@@ -159,13 +143,12 @@ void broker_cache::merge(
       obj.set_alias(hg.alias());
     };
 
-    _host_hostgroups.get<by_instance>().erase(state.poller_id());
-    absl::flat_hash_set<uint64_t> my_hgs;
-    my_hgs.reserve(state.hostgroups().size());
     for (const auto& hg : state.hostgroups()) {
-      my_hgs.emplace(hg.hostgroup_id());
       const uint64_t hg_poller_id =
           hg.poller_id() != 0 ? hg.poller_id() : state.poller_id();
+      if (hg_poller_id == state.poller_id())
+        _host_hostgroups.get<by_group_instance>().erase(
+            std::make_pair(hg.hostgroup_id(), hg_poller_id));
       auto found = hg_index.find(hg.hostgroup_id());
       bool inserted = false;
       if (found == hg_index.end()) {
@@ -174,8 +157,6 @@ void broker_cache::merge(
         std::tie(found, inserted) = hg_index.emplace(
             hostgroup, absl::flat_hash_set<uint64_t>{hg_poller_id});
       } else {
-        /* We can const_cast because keys of the multiindex are in found->first,
-         * we don't change found->first here even if the hostgroup changed. */
         if (found->first->obj().name() != hg.hostgroup_name()) {
           std::string old_name = found->first->obj().name();
           hg_index.modify(
@@ -200,24 +181,16 @@ void broker_cache::merge(
           continue;
 
         uint64_t host_id = (*host_it)->obj().host_id();
-        _host_hostgroups.emplace(host_id, state.poller_id(), found->first);
+        _host_hostgroups.emplace(host_id, hg_poller_id, found->first);
       }
     }
-    // we have first erased members for this poller so we will erase pollers in
-    // groups not concerned about this poller
+    // we have first erased members for this poller so we will empty hostgroups
+    const auto& host_hostgroup_index = _host_hostgroups.get<by_hostgroup>();
     for (auto iter = _hostgroups.begin(); iter != _hostgroups.end();) {
-      if (my_hgs.contains(iter->first->obj().hostgroup_id())) {
+      if (host_hostgroup_index.contains(iter->first->obj().hostgroup_id())) {
         ++iter;
-        continue;
-      }
-      _hostgroups.modify(iter,
-                         [poller_id = state.poller_id()](auto& to_update) {
-                           to_update.second.erase(poller_id);
-                         });
-      if (iter->second.empty()) {
-        iter = _hostgroups.erase(iter);
       } else {
-        ++iter;
+        iter = _hostgroups.erase(iter);
       }
     }
   }
@@ -245,13 +218,6 @@ void broker_cache::merge(
       if (!inserted)
         index_svc.replace(it, s);
     }
-
-    std::ostringstream debug;
-    for (const auto& serv : _services) {
-      debug << '(' << serv->obj().instance_id() << ",(" << serv->obj().host_id()
-            << ',' << serv->obj().service_id() << ")),";
-    }
-    SPDLOG_LOGGER_ERROR(_logger, "services: {}", debug.str());
   }
 
   /* Work on servicegroups */
@@ -266,12 +232,12 @@ void broker_cache::merge(
       obj.set_alias(sg.alias());
     };
 
-    absl::flat_hash_set<uint64_t> my_sgs;
-    my_sgs.reserve(state.servicegroups().size());
     for (const auto& sg : state.servicegroups()) {
-      my_sgs.emplace(sg.servicegroup_id());
       const uint64_t sg_poller_id =
           sg.poller_id() != 0 ? sg.poller_id() : state.poller_id();
+      if (sg_poller_id == state.poller_id())
+        _service_servicegroups.get<by_group_instance>().erase(
+            std::make_pair(sg.servicegroup_id(), sg_poller_id));
       auto found = _servicegroups.find(sg.servicegroup_id());
       bool inserted = false;
       if (found == sg_index.end()) {
@@ -280,9 +246,6 @@ void broker_cache::merge(
         std::tie(found, inserted) = sg_index.emplace(
             servicegroup, absl::flat_hash_set<uint64_t>{sg_poller_id});
       } else {
-        /* We can const_cast because keys of the multiindex are in found->first,
-         * we don't change found->first here even if the servicegroup changed.
-         */
         if (found->first->obj().name() != sg.servicegroup_name()) {
           std::string old_name = found->first->obj().name();
           sg_index.modify(
@@ -310,24 +273,19 @@ void broker_cache::merge(
         uint64_t host_id = (*service_it)->obj().host_id();
         uint64_t service_id = (*service_it)->obj().service_id();
         _service_servicegroups.insert(
-            {host_id, service_id, state.poller_id(), found->first});
+            {host_id, service_id, sg_poller_id, found->first});
       }
     }
-    // we have first erased members for this poller so we will erase pollers in
-    // groups not concerned about this poller
+    // we have first erased members for this poller so we will erase empty
+    // groups
+    auto& service_service_group_index =
+        _service_servicegroups.get<by_servicegroup>();
     for (auto iter = _servicegroups.begin(); iter != _servicegroups.end();) {
-      if (my_sgs.contains(iter->first->obj().servicegroup_id())) {
+      if (service_service_group_index.contains(
+              iter->first->obj().servicegroup_id())) {
         ++iter;
-        continue;
-      }
-      _servicegroups.modify(iter,
-                            [poller_id = state.poller_id()](auto& to_update) {
-                              to_update.second.erase(poller_id);
-                            });
-      if (iter->second.empty()) {
-        iter = _servicegroups.erase(iter);
       } else {
-        ++iter;
+        iter = _servicegroups.erase(iter);
       }
     }
   }
@@ -649,13 +607,6 @@ void broker_cache::apply(
   if (section_enabled(CACHE_SERVICES)) {
     auto& s_index = _services.get<by_id>();
 
-    std::ostringstream debug;
-    for (const auto& serv : _services) {
-      debug << '(' << serv->obj().instance_id() << ",(" << serv->obj().host_id()
-            << ',' << serv->obj().service_id() << ")),";
-    }
-    SPDLOG_LOGGER_ERROR(_logger, "services before apply diff: {}", debug.str());
-
     /* Adding services */
     for (const engine::configuration::Service& svc : diff.services().added()) {
       auto s = std::make_shared<neb::pb_service>();
@@ -734,16 +685,6 @@ void broker_cache::apply(
         _severities.erase(std::make_pair(id, Severity_Type_SERVICE));
         continue;
       }
-    }
-    {
-      std::ostringstream debug;
-      for (const auto& serv : _services) {
-        debug << '(' << serv->obj().instance_id() << ",("
-              << serv->obj().host_id() << ',' << serv->obj().service_id()
-              << ")),";
-      }
-      SPDLOG_LOGGER_ERROR(_logger, "services after apply diff: {}",
-                          debug.str());
     }
   }
 

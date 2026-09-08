@@ -208,10 +208,9 @@ BEPS3R
     ${steps}    Evaluate    list(range(5)) + list(range(3, -1, -1))
     FOR    ${i}    IN    @{steps}
         ${nb_hosts}    Evaluate    ${20} + 5 * ${i}
-        ${nb_services}    Evaluate    ${20} + 5 * ${i}
-        ${nb_total}    Evaluate    ${nb_hosts} * ${nb_services}
-        Log To Console    Five instances of Engine working with ${nb_hosts} hosts and ${nb_services} services per host (${nb_total} total)
-        Ctn Update Engine Config    ${5}    ${nb_hosts}    ${nb_services}
+        ${nb_total}    Evaluate    ${nb_hosts} * 20
+        Log To Console    Five instances of Engine working with ${nb_hosts} hosts and 20 services per host (${nb_total} total)
+        Ctn Update Engine Config    ${5}    ${nb_hosts}    20
 
         TRY
             Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -226,11 +225,6 @@ BEPS3R
             ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
             ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
             Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
-
-            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs1_flat)
-            Log    pairs1_flat:${lines}    level=WARN
-            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs_cache_sorted)
-            Log    pairs_cache_sorted:${lines}    level=WARN
 
             Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
 

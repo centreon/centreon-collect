@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 #include "broker/core/bbdo/cbmod_stream.hh"
-#include <spdlog/common.h>
 #include "bbdo/bbdo/version_response.hh"
 #include "broker/core/bbdo/basic_stream.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
