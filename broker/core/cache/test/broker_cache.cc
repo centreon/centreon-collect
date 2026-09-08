@@ -660,50 +660,98 @@ TEST_F(BrokerCacheTest, UpdateServicegroupMemberWithoutServicegroup) {
 
 TEST_F(BrokerCacheTest, Merge) {
   com::centreon::engine::configuration::State state;
+
+  /* Three hosts and three services are added to the state, so that they can
+   * be used as members of the hostgroups and servicegroups defined below. */
+  for (uint64_t id = 1; id <= 3; ++id) {
+    auto* h = state.mutable_hosts()->Add();
+    h->set_host_id(id);
+    h->set_host_name(fmt::format("host_{}", id));
+    h->set_poller_id(1);
+  }
+
+  for (uint64_t id = 1; id <= 3; ++id) {
+    auto* s = state.mutable_services()->Add();
+    s->set_host_id(id);
+    s->set_service_id(id);
+    s->set_host_name(fmt::format("host_{}", id));
+    s->set_service_description(fmt::format("service_{}", id));
+    s->set_poller_id(1);
+  }
+
   auto* hg = state.mutable_hostgroups()->Add();
   hg->set_hostgroup_id(1);
   hg->set_hostgroup_name("hg1");
   hg->set_alias("alias hg1");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_1");
 
   hg = state.mutable_hostgroups()->Add();
   hg->set_hostgroup_id(2);
   hg->set_hostgroup_name("hg2");
   hg->set_alias("alias hg2");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_2");
 
   hg = state.mutable_hostgroups()->Add();
   hg->set_hostgroup_id(3);
   hg->set_hostgroup_name("hg3");
   hg->set_alias("alias hg3");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_3");
 
   auto* sg = state.mutable_servicegroups()->Add();
   sg->set_servicegroup_id(1);
   sg->set_servicegroup_name("sg1");
   sg->set_alias("alias sg1");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_1,service_1");
 
   sg = state.mutable_servicegroups()->Add();
   sg->set_servicegroup_id(2);
   sg->set_servicegroup_name("sg2");
   sg->set_alias("alias sg2");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_2,service_2");
 
   sg = state.mutable_servicegroups()->Add();
   sg->set_servicegroup_id(3);
   sg->set_servicegroup_name("sg3");
   sg->set_alias("alias sg3");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_3,service_3");
   _cache->merge(state);
+
+  ASSERT_EQ(_cache->host(1)->obj().name(), "host_1");
+  ASSERT_EQ(_cache->host(2)->obj().name(), "host_2");
+  ASSERT_EQ(_cache->host(3)->obj().name(), "host_3");
+
+  ASSERT_EQ(_cache->service(1, 1)->obj().description(), "service_1");
+  ASSERT_EQ(_cache->service(2, 2)->obj().description(), "service_2");
+  ASSERT_EQ(_cache->service(3, 3)->obj().description(), "service_3");
 
   ASSERT_EQ(_cache->hostgroup(1)->obj().name(), "hg1");
   ASSERT_EQ(_cache->hostgroup(2)->obj().name(), "hg2");
   ASSERT_EQ(_cache->hostgroup(3)->obj().name(), "hg3");
+  ASSERT_THAT(_cache->hostgroup_members(1), ::testing::ElementsAre(1u));
+  ASSERT_THAT(_cache->hostgroup_members(2), ::testing::ElementsAre(2u));
+  ASSERT_THAT(_cache->hostgroup_members(3), ::testing::ElementsAre(3u));
 
   ASSERT_EQ(_cache->servicegroup(1)->obj().name(), "sg1");
   ASSERT_EQ(_cache->servicegroup(2)->obj().name(), "sg2");
   ASSERT_EQ(_cache->servicegroup(3)->obj().name(), "sg3");
+  ASSERT_THAT(_cache->servicegroup_members(1),
+              ::testing::ElementsAre(std::make_pair(1, 1)));
+  ASSERT_THAT(_cache->servicegroup_members(2),
+              ::testing::ElementsAre(std::make_pair(2, 2)));
+  ASSERT_THAT(_cache->servicegroup_members(3),
+              ::testing::ElementsAre(std::make_pair(3, 3)));
 
   state.mutable_hostgroups(0)->set_hostgroup_name("new_hg1");
   hg = state.mutable_hostgroups()->Add();
@@ -711,6 +759,8 @@ TEST_F(BrokerCacheTest, Merge) {
   hg->set_hostgroup_name("hg4");
   hg->set_alias("alias hg4");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_2");
 
   state.mutable_servicegroups(0)->set_servicegroup_name("new_sg1");
   sg = state.mutable_servicegroups()->Add();
@@ -718,13 +768,22 @@ TEST_F(BrokerCacheTest, Merge) {
   sg->set_servicegroup_name("sg5");
   sg->set_alias("alias sg5");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_3,service_3");
 
   _cache->merge(state);
 
   ASSERT_EQ(_cache->hostgroup(1)->obj().name(), "new_hg1");
   ASSERT_EQ(_cache->hostgroup(4)->obj().name(), "hg4");
+  ASSERT_THAT(_cache->hostgroup_members(1), ::testing::ElementsAre(1u));
+  ASSERT_THAT(_cache->hostgroup_members(4), ::testing::ElementsAre(2u));
+
   ASSERT_EQ(_cache->servicegroup(1)->obj().name(), "new_sg1");
   ASSERT_EQ(_cache->servicegroup(5)->obj().name(), "sg5");
+  ASSERT_THAT(_cache->servicegroup_members(1),
+              ::testing::ElementsAre(std::make_pair(1, 1)));
+  ASSERT_THAT(_cache->servicegroup_members(5),
+              ::testing::ElementsAre(std::make_pair(3, 3)));
 }
 
 /**

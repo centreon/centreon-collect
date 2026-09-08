@@ -4291,6 +4291,7 @@ TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
 }
 
 TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
+  std::filesystem::remove("/tmp/log");
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   char tmp[256];
   getcwd(tmp, 256);
@@ -4354,9 +4355,10 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
 
   auto it = l1.begin();
   for (auto it1 = l2.begin(); it1 != l2.end();) {
-    if (*it1 == "host_name" || *it1 == "icon_id" || *it1 == "internal_id" ||
-        *it1 == "is_volatile" || *it1 == "long_output" ||
-        *it1 == "severity_id" || *it1 == "tags" || *it1 == "type") {
+    if (*it1 == "host_name" || *it1 == "icon_id" || *it1 == "instance_id" ||
+        *it1 == "internal_id" || *it1 == "is_volatile" ||
+        *it1 == "long_output" || *it1 == "severity_id" || *it1 == "tags" ||
+        *it1 == "type") {
       ++it1;
       continue;
     }
@@ -4376,6 +4378,7 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
 }
 
 TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
+  std::filesystem::remove("/tmp/log");
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   char tmp[256];
   getcwd(tmp, 256);
@@ -5170,14 +5173,18 @@ TEST_F(LuaTest, GlobalConf) {
 
   auto* svc = state.mutable_services()->Add();
   svc->set_host_id(1);
+  svc->set_host_name("host1");
   svc->set_service_id(1);
   svc->set_service_description("My service 1");
   svc->set_severity_id(3);
+  svc->set_poller_id(1);
 
   svc = state.mutable_services()->Add();
   svc->set_host_id(1);
+  svc->set_host_name("host1");
   svc->set_service_id(2);
   svc->set_service_description("My service 2");
+  svc->set_poller_id(1);
 
   auto* hg = state.mutable_hostgroups()->Add();
   hg->set_hostgroup_id(1);

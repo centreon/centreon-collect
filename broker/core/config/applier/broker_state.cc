@@ -917,7 +917,9 @@ bool broker_state::_prepare_diff_for_poller(
       diff_state = std::make_unique<engine::configuration::DiffState>();
       if (_logger->level() <= spdlog::level::trace) {
         std::string debug;
-        ::google::protobuf::json::MessageToJsonString(*previous_state, &debug);
+        auto dummy [[maybe_unused]] =
+            ::google::protobuf::json::MessageToJsonString(*previous_state,
+                                                          &debug);
         SPDLOG_LOGGER_TRACE(_logger, "previous state for poller {}: {}",
                             poller_id, debug);
       }
@@ -928,7 +930,8 @@ bool broker_state::_prepare_diff_for_poller(
                                                   diff_state.get());
       if (_logger->level() <= spdlog::level::trace) {
         std::string debug;
-        ::google::protobuf::json::MessageToJsonString(*diff_state, &debug);
+        auto dummy [[maybe_unused]] =
+            ::google::protobuf::json::MessageToJsonString(*diff_state, &debug);
         SPDLOG_LOGGER_TRACE(_logger, "diff for poller {}: {}", poller_id,
                             debug);
       }
