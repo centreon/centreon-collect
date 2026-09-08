@@ -48,7 +48,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GORGONE_TOKEN= \
     CENTRAL_HOST= \
     APP_SECRET= \
-    SALT=
+    SALT= \
+    SMTP_HOST= \
+    SMTP_PORT=25 \
+    SMTP_FROM=centreon-engine@localhost \
+    SMTP_TLS=off
 
 # Create users and groups (must match current setup for compatibility)
 RUN bash -e <<EOF
@@ -112,7 +116,11 @@ apt-get install -y --no-install-recommends \
     libcap2-bin \
     inotify-tools \
     sudo \
-    centreon-plugin-applications-monitoring-centreon-poller
+    mailutils \
+    msmtp \
+    msmtp-mta \
+    centreon-plugin-applications-monitoring-centreon-poller \
+    centreon-plugin-notification-email
 setcap cap_net_raw+ep /usr/lib/nagios/plugins/check_icmp
 apt-get remove -y --purge libcap2-bin gnupg wget
 apt-get autoremove -y
@@ -154,6 +162,21 @@ chmod 755 /var/log/centreon-engine \
 chmod 0755 /var/spool/centreon
 chmod 0755 /var/lib/centreon-broker
 chmod 0755 /var/lib/centreon-gorgone
+
+# centengine spawns notification commands with a from-scratch environment
+# built only from NAGIOS_*/macro variables (see
+# common/process/src/spawnp_launcher.cc's posix_spawnp call and
+# engine/src/commands/raw.cc) - it does NOT inherit the container's own
+# environ, so neither $HOME nor an $MSMTPRC env var ever reaches msmtp when
+# centengine (rather than a manual docker exec) is what runs the command.
+# msmtp's last, env-independent fallback is the fixed /etc/msmtprc path, so
+# pre-create it owned by centreon-engine here: the container.d entrypoint
+# runs as that unprivileged user and can then overwrite this file's
+# contents (needs write access to the file, not to /etc itself) without
+# ever needing root or a working env var at notification time.
+touch /etc/msmtprc
+chown centreon-engine:centreon-engine /etc/msmtprc
+chmod 600 /etc/msmtprc
 EOF
 
 COPY --chown=centreon-engine:centreon-engine <<EOF /etc/centreon-engine/engine-context.json
