@@ -19,6 +19,7 @@
 #include "broker/core/config/applier/broker_state.hh"
 
 #include <gtest/gtest.h>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 
@@ -44,27 +45,50 @@ class BrokerStateRound : public ::testing::Test {
  protected:
   broker_state* _state = nullptr;
   std::filesystem::path _dir;
+  std::filesystem::path _cache_dir;
 
  public:
   void SetUp() override {
     config::applier::state::load<broker_state>("unittest");
     _state = static_cast<broker_state*>(&config::applier::state::instance());
     _dir = std::filesystem::temp_directory_path() / "ut_broker_state_round";
-    std::filesystem::remove_all(_dir);
-    std::filesystem::create_directories(_dir);
+    _cache_dir =
+        std::filesystem::temp_directory_path() / "ut_broker_state_round_cache";
+    for (const auto& d : {_dir, _cache_dir}) {
+      std::filesystem::remove_all(d);
+      std::filesystem::create_directories(d);
+    }
     _state->set_pollers_config_dir(_dir);
+    /* The cache directory has to be known, and watched: a pending delivery is
+     * announced by a <N>.lck living there, and it is that announcement which
+     * makes a prepared configuration deliverable. */
+    _state->set_cache_config_dir(_cache_dir);
   }
 
   void TearDown() override {
     config::applier::state::unload();
     std::filesystem::remove_all(_dir);
+    std::filesystem::remove_all(_cache_dir);
   }
 
   /**
    * @brief Leave a prepared configuration for a poller, the way a cycle does
-   * for one that was not connected at the time.
+   * for one that was not connected at the time: the announcement stays on
+   * disk, and the prepared state is written after it.
+   *
+   * The announcement is backdated on purpose. Broker tells a prepared
+   * configuration from the residue of an earlier push by comparing the two
+   * timestamps, and writing both within the same instant would make them
+   * indistinguishable -- which the product resolves in favour of a full cycle,
+   * not of the hand-over this fixture is about.
    */
   void leave_prepared_conf(uint64_t poller_id, const std::string& version) {
+    std::filesystem::path lck = _cache_dir / fmt::format("{}.lck", poller_id);
+    std::ofstream(lck).close();
+    std::filesystem::last_write_time(
+        lck, std::filesystem::file_time_type::clock::now() -
+                 std::chrono::seconds(10));
+
     com::centreon::engine::configuration::State st;
     st.set_poller_id(poller_id);
     st.set_config_version(version);
@@ -76,10 +100,10 @@ class BrokerStateRound : public ::testing::Test {
   /**
    * @brief Connect an Engine peer announcing that it runs no configuration.
    *
-   * With a new-<N>.prot left beforehand, this is the real path of a poller
-   * starting after its configuration was pushed: add_peer() hands the prepared
-   * state over without reading the sources again, which is what sets
-   * available_conf while nothing has been sent yet.
+   * With an announcement and a new-<N>.prot left beforehand, this is the real
+   * path of a poller starting after its configuration was pushed: add_peer()
+   * hands the prepared state over without reading the sources again, which is
+   * what sets available_conf while nothing has been sent yet.
    *
    * No <N>.prot is written, so the cache is not fed and nothing is published --
    * this test needs no multiplexing engine.

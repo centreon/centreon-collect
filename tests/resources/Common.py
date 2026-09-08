@@ -3112,6 +3112,21 @@ def ctn_clear_prot_files(broker_only: bool = False):
             continue
         file.unlink()
 
+def ctn_clear_lck_files():
+    """Remove the <ID>.lck files PHP leaves in the cache configuration directory.
+
+    The counterpart of ctn_clear_prot_files(), and needed with it to leave Broker
+    with nothing at all: a .lck is enough for a cycle to rebuild new-<ID>.prot
+    from the PHP cache, so removing only the .prot files does not make Broker
+    blind -- it makes it slow.
+    """
+    directory = Path(f"{VAR_ROOT}/lib/centreon/config")
+    if not directory.is_dir():
+        return
+    for file in directory.glob('*.lck'):
+        file.unlink()
+
+
 def ctn_check_resource_ids(typ: str, logfile: str):
     """
     Check if resource ids are correct in the log file compared to the database.

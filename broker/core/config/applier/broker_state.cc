@@ -120,9 +120,9 @@ broker_state::~broker_state() {
         std::move(active));
   }
   /* Hand the notification runtime states over to the global cache so the
-   * notification chain (number, timings, notified contacts) is persisted and can
-   * be re-injected on the next start. Same ordering constraint as downtimes:
-   * BEFORE unload() and while the cache is still alive. */
+   * notification chain (number, timings, notified contacts) is persisted and
+   * can be re-injected on the next start. Same ordering constraint as
+   * downtimes: BEFORE unload() and while the cache is still alive. */
   if (com::centreon::common::notifications::notification_manager::is_loaded()) {
     std::vector<BrokerCache::NotificationState> states;
     for (const auto& snap :
@@ -218,17 +218,17 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
    * merge). */
 
   if (s.get_bbdo_version().major_v >= 3) {
-    // Configuration cache directory (for broker, from php).
-    set_cache_config_dir(s.cache_config_dir());
-
-    // Pollers configuration directory (for Broker).
-    // If not provided in the configuration, use a default directory.
+    /* The cache directory is set first, so that the watcher is started and the
+     * topology cache can be loaded. */
     if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
       set_pollers_config_dir(std::filesystem::path(cache_dir()) /
                              "pollers-configuration/");
       load_topology_cache();
     } else
       set_pollers_config_dir(s.pollers_config_dir());
+
+    // Configuration cache directory (for broker, from php).
+    set_cache_config_dir(s.cache_config_dir());
   }
 }
 
@@ -717,31 +717,45 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
    * and apply the diff if needed.
    */
   _logger->debug("Checking for existing {}.lck file", poller_id);
-  /* A configuration prepared while this poller was away can be handed over as
-   * it stands: new-<ID>.prot holds the state, and all that is left is the diff
-   * against what the poller says it runs. Reading the sources again would redo
-   * the expensive half of a cycle -- hash, parse, expand, resolve, and the
-   * reload of every stored configuration behind it -- to reach a result already
-   * sitting on disk. */
-  if (supports_centralized_conf() &&
-      _prepare_diff_from_new_prot_file(poller_id)) {
-    _logger->info(
-        "Poller {} has a configuration prepared from when it was away: handing "
-        "it over without reading its sources again",
-        poller_id);
-    poller_conf_lost = false;
-  } else if (uint32_t existing_lck = _lck_file_for_poller(poller_id)) {
-    /* Only a lock file, so what waits is an announcement rather than a prepared
-     * state: the sources have to be read, which means a full cycle. */
-    {
-      absl::MutexLock lck(&_lck_set_m);
-      _lck_set.insert(existing_lck);
+  /* The lock file is the announcement, and it alone says a delivery is
+   * pending. Without it there is nothing to hand over: a `new-<ID>.prot` left
+   * on disk is the residue of a delivery whose announcement was already
+   * consumed, and pushing it would send this poller a configuration nobody
+   * asked for -- possibly one older than what it runs.
+   *
+   * With it, and provided the prepared file post-dates it
+   * (_prepared_conf_is_current), `new-<ID>.prot` is the configuration prepared
+   * while the poller was away, and it can be handed over as it stands: the
+   * state is on disk and all that is left is the diff against what the poller
+   * says it runs. Reading the sources again would redo the expensive half of a
+   * cycle -- hash, parse, expand, resolve, and the reload of every stored
+   * configuration behind it -- to reach a result already sitting there. */
+  if (uint32_t existing_lck = _lck_file_for_poller(poller_id)) {
+    if (supports_centralized_conf() && _prepared_conf_is_current(poller_id) &&
+        _prepare_diff_from_new_prot_file(poller_id)) {
+      _logger->info(
+          "Poller {} has a configuration prepared from when it was away: "
+          "handing it over without reading its sources again",
+          poller_id);
+      /* The announcement has been honoured, so it must not survive: the
+       * delivery is done and nothing is waiting any more. */
+      _remove_lck_file(poller_id);
+    } else {
+      /* An announcement with nothing prepared for it -- either no
+       * `new-<ID>.prot` at all, or one older than the announcement, which
+       * belongs to an earlier push. Either way the sources have to be read,
+       * which means a full cycle. */
+      {
+        absl::MutexLock lck(&_lck_set_m);
+        _lck_set.insert(existing_lck);
+      }
+      /* Nothing in the directory changed, so inotify has nothing to say and
+       * would never wake the watcher up for this poller: the wait has to be
+       * nudged from here, or its configuration would sit until the safety timer
+       * fires. */
+      if (_watch_strand)
+        boost::asio::post(*_watch_strand, [this] { _arm_debounce(); });
     }
-    /* Nothing in the directory changed, so inotify has nothing to say and would
-     * never wake the watcher up for this poller: the wait has to be nudged from
-     * here, or its configuration would sit until the safety timer fires. */
-    if (_watch_strand)
-      boost::asio::post(*_watch_strand, [this] { _arm_debounce(); });
     poller_conf_lost = false;
   }
   if (poller_conf_lost) {
@@ -828,6 +842,34 @@ uint32_t broker_state::_lck_file_for_poller(uint32_t poller_id) noexcept {
     _logger->warn("Cannot check if '{}' is a regular file: {}",
                   lck_file.string(), ec.message());
   return 0;
+}
+
+/**
+ * @brief Remove the `<poller_id>.lck` announcement, its configuration having
+ * been delivered.
+ *
+ * The lock file is what says "PHP pushed a configuration for this poller and
+ * it has not reached it yet". Every path that completes such a delivery --
+ * whether it read the sources or handed over an already prepared
+ * `new-<poller_id>.prot` -- has to remove it, or the announcement stands
+ * forever: PHP waits for the file to disappear, and a leftover one makes
+ * Broker redo the same delivery at every restart.
+ *
+ * @param poller_id The poller ID.
+ */
+void broker_state::_remove_lck_file(uint32_t poller_id) noexcept {
+  if (_cache_config_dir.empty())
+    return;
+  std::error_code ec;
+  std::filesystem::path lck_file =
+      _cache_config_dir / fmt::format("{}.lck", poller_id);
+  std::filesystem::remove(lck_file, ec);
+  if (ec)
+    _logger->warn("Cannot remove lock file '{}': {}", lck_file.string(),
+                  ec.message());
+  else
+    _logger->debug("Removed lock file '{}' after processing",
+                   lck_file.string());
 }
 
 /**
@@ -1116,8 +1158,54 @@ bool broker_state::all_engine_peers_acknowledged() {
 bool broker_state::_conf_prepared_for_disconnected_poller(
     uint32_t poller_id) const {
   return !_is_engine_peer_connected(poller_id) &&
-         std::filesystem::exists(pollers_config_dir() /
-                                 fmt::format("new-{}.prot", poller_id));
+         _prepared_conf_is_current(poller_id);
+}
+
+/**
+ * @brief Whether `new-<poller_id>.prot` is the prepared form of the
+ * announcement currently waiting, rather than a leftover of an older one.
+ *
+ * The two files are written by different actors -- PHP touches the `.lck`, a
+ * cycle writes the `.prot` -- and their mere coexistence says nothing: a
+ * configuration prepared while the poller was away keeps its `.lck` on disk, so
+ * a *newer* push lands next to an *older* prepared file. Taking one for the
+ * other loses the new configuration outright: the cycle skips it as "already
+ * prepared", or the hand-over delivers the old state and consumes the new
+ * announcement with it.
+ *
+ * What distinguishes them is the order in which they were written. A cycle
+ * reads the `.lck` and only then writes the `.prot`, so a prepared file that
+ * post-dates the announcement is that announcement, prepared. One that
+ * pre-dates it belongs to an earlier push and the sources have to be read
+ * again.
+ *
+ * @param poller_id The poller ID.
+ * @return True when a prepared configuration exists and is not older than the
+ * waiting announcement (or no announcement waits at all).
+ */
+bool broker_state::_prepared_conf_is_current(uint32_t poller_id) const {
+  if (!pollers_config_dir_usable())
+    return false;
+
+  std::error_code ec;
+  auto prepared = std::filesystem::last_write_time(
+      pollers_config_dir() / fmt::format("new-{}.prot", poller_id), ec);
+  if (ec)
+    return false;  // nothing prepared
+
+  if (_cache_config_dir.empty())
+    return true;
+  std::error_code lck_ec;
+  auto announced = std::filesystem::last_write_time(
+      _cache_config_dir / fmt::format("{}.lck", poller_id), lck_ec);
+  if (lck_ec)
+    return true;  // nothing announced, so nothing newer to prepare
+
+  /* Equality goes to the announcement: a cycle cannot have prepared a
+   * configuration before reading the file that announced it, so the same
+   * timestamp means the two are indistinguishable, and redoing the cycle is the
+   * only harmless way out. */
+  return prepared > announced;
 }
 
 /**
@@ -1320,17 +1408,9 @@ void broker_state::_check_last_engine_conf(bool force_scan) {
         else
           pollers_away.push_back(poller_id);
         _prepare_diff_for_poller(poller_id, std::move(state));
-        if (peer_connected) {
-          std::filesystem::path lck_file =
-              cache_config_dir() / fmt::format("{}.lck", poller_id);
-          std::filesystem::remove(lck_file, ec);
-          if (ec)
-            _logger->warn("Cannot remove lock file '{}': {}", lck_file.string(),
-                          ec.message());
-          else
-            _logger->debug("Removed lock file '{}' after processing",
-                           lck_file.string());
-        } else
+        if (peer_connected)
+          _remove_lck_file(poller_id);
+        else
           _logger->info(
               "Poller {} is not connected yet; keeping its lock file so its "
               "configuration is retried once it connects",
@@ -1662,9 +1742,19 @@ bool broker_state::_prepare_diff_for_poller(
 
     /* The new configuration to send to the poller is
      * new-<poller-ID>.prot. Once sent to it, this file must be renamed
-     * into <poller-ID>.prot and the diff file can be removed. */
-    peer.available_conf = new_version;
-    peer.available_conf_sent = false;
+     * into <poller-ID>.prot and the diff file can be removed.
+     *
+     * The "not sent yet" flag is armed only when the version actually changes.
+     * Re-preparing a version already in flight -- two announcements for one
+     * export, which PHP is free to make -- would otherwise orphan its
+     * acknowledgement: the ack closes the round by looking for a peer marked as
+     * served, finds none, and the round never completes. No global diff is then
+     * published and nothing reaches the database, even though the poller did
+     * answer. */
+    if (peer.available_conf != new_version) {
+      peer.available_conf = new_version;
+      peer.available_conf_sent = false;
+    }
     return true;
   }
   _logger->error("Cannot write the diff Engine protobuf configuration '{}': {}",
@@ -2010,7 +2100,9 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       {
         absl::WriterMutexLock lck(&_connected_peers_m);
         auto it = _engine_peers.find(engine_id);
-        if (it != _engine_peers.end()) {
+        /* Same rule as in _prepare_diff_for_poller: arming the "not sent yet"
+         * flag for a version already in flight orphans its acknowledgement. */
+        if (it != _engine_peers.end() && it->second.available_conf != version) {
           it->second.available_conf = version;
           it->second.available_conf_sent = false;
         }

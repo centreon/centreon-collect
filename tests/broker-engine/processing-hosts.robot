@@ -241,9 +241,9 @@ BEPH4
     [Documentation]
     ...    Given a central broker, a rrd broker and 1 engine instance configured in centralized mode with 50 hosts and 20 services
     ...    When broker and engine are started and the initial configuration is processed
-    ...    And broker is stopped and its prot files are deleted to simulate a lost configuration
+    ...    And broker is stopped and left with neither a prot file nor a prepared one
     ...    And broker is restarted
-    ...    Then broker detects that the engine configuration is unknown and sends a DiffState with the unknown flag set
+    ...    Then broker, having nothing to send, asks engine for its configuration with the unknown flag set
     ...    And engine sends back its current configuration to broker
     ...    And broker recovers the configuration by creating a new prot file
     ...    And the database hosts and resources tables remain consistent
@@ -269,10 +269,15 @@ BEPH4
         Disconnect From Database
     END
 
-    # Stop broker and delete its prot files to simulate a lost configuration.
+    # Stop broker and leave it with nothing at all: no <ID>.prot to diff against,
+    # and no new-<ID>.prot to hand over either. The .lck files have to go too --
+    # one is enough for a cycle to rebuild new-<ID>.prot from the PHP cache, and
+    # broker would then have something to send rather than being blind. That is
+    # the other case, covered by BEPH4B.
     # Engine's state.prot is preserved so engine can send its configuration back.
     Ctn Kindly Stop Broker
     Ctn Clear Prot Files    broker_only=True
+    Ctn Clear Lck Files
 
     # Restart broker and check that it recovers the configuration from engine
     ${start}    Ctn Get Round Current Date
@@ -303,6 +308,91 @@ BEPH4
         Sort List    ${host_ids_cache}
         Lists Should Be Equal    ${ids1_flat}    ${ids2_flat}
         Lists Should Be Equal    ${ids1_flat}    ${host_ids_cache}
+    FINALLY
+        Disconnect From Database
+    END
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BEPH4B
+    [Documentation]
+    ...    Given a central broker and one engine instance configured in centralized mode with 50 hosts
+    ...    When broker loses its <ID>.prot but a configuration has been prepared for the poller
+    ...    And that prepared configuration differs from the one engine runs
+    ...    Then broker hands it over as a whole state, not as a diff
+    ...    And it does not ask engine for its configuration, having something to send
+    ...    And the hosts remain consistent in database
+    ...
+    ...    The other half of BEPH4: there, broker is left with nothing and has to ask.
+    ...    Here it holds new-<ID>.prot, so it is in the position of a first start --
+    ...    no known reference to diff against, but a full configuration to deliver.
+    [Tags]    broker    engine    hosts
+    Ctn Config Centralized Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Retention
+    # The .lck files stay: Ctn Config Centralized Engine has just posted the
+    # announcement of this configuration, and without it broker would start
+    # blind -- which is BEPH4, not this test.
+    Ctn Clear Prot Files
+
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    TRY
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled = 1    ==    ${50}
+        ...    retry_timeout=60s    retry_pause=1s
+    FINALLY
+        Disconnect From Database
+    END
+
+    # Both go down, then broker loses its reference while engine keeps running
+    # nothing: what is left is the PHP cache, from which a configuration can be
+    # prepared.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Ctn Clear Prot Files    broker_only=True
+
+    # The sources change while nobody is there to be served, so what broker
+    # prepares really differs from what engine runs -- otherwise it would rightly
+    # have nothing to send and the hand-over could not be observed.
+    Ctn Engine Config Set Value    ${0}    log_level_checks    trace
+
+    # Broker alone: the push prepares new-1.prot and keeps it, since the poller
+    # is not there to be served.
+    ${prepared}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Notify Broker Of Engine Config Change    ${0}
+    ${content}    Create List    Configuration cycle: 1 ready, 0 sent
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${prepared}    ${content}    60
+    Should Be True    ${result}    Broker should have prepared a configuration it could not deliver
+
+    # Engine shows up: the prepared configuration is handed over as it stands,
+    # without reading the sources again and without asking engine for anything.
+    ${connect}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    ${content}    Create List    handing it over without reading its sources again
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${connect}    ${content}    60
+    Should Be True    ${result}    Broker should hand over the configuration prepared while the poller was away
+
+    ${content}    Create List    sending DiffState to poller 1 (unknown=false)
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${connect}    ${content}    60
+    Should Be True    ${result}    Broker should send the whole state, not an unknown request
+
+    # Having something to send, it must not have asked engine for anything.
+    ${content}    Create List    Sending unknown diff state to peer
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${connect}    ${content}    10
+    Should Not Be True    ${result}    Broker had a configuration ready and should not have asked engine for one
+
+    TRY
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled = 1    ==    ${50}
+        ...    retry_timeout=60s    retry_pause=1s
     FINALLY
         Disconnect From Database
     END
