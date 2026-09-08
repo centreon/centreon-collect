@@ -226,13 +226,31 @@ class broker_state : public state {
   void _arm_inotify_wait();
   void _arm_debounce();
   void _arm_safety_timer();
-  void _post_config_work(bool force_scan);
+  /* What one read of the inotify queue found. The two announcement shapes are
+   * routed apart from here on, so they are counted apart. */
+  struct watch_report {
+    /* A `pollers.lck` was written or renamed into place. Its poller ids are not
+     * here: the file is read by the worker. */
+    bool batch_announced = false;
+    /* At least one `<poller_id>.lck` was reported, and its id queued in
+     * _lck_set. */
+    bool pollers_announced = false;
+    /* What happened in the directory is partly unknown -- the kernel dropped
+     * events, or the watch had to be established again -- and only a scan can
+     * make up for it. Names no poller, hence a flag of its own: without it a
+     * read that reported nothing else would post no work at all. */
+    bool rescan_requested = false;
+  };
+  watch_report _read_watch_events() ABSL_LOCKS_EXCLUDED(_lck_set_m);
   uint32_t _lck_file_for_poller(uint32_t poller_id) noexcept;
   void _remove_lck_file(uint32_t poller_id) noexcept;
   absl::flat_hash_set<uint32_t> _read_poller_batch();
   void _remove_poller_batch();
-  bool _read_watch_events() ABSL_LOCKS_EXCLUDED(_lck_set_m);
-  void _check_last_engine_conf(bool force_scan) ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  absl::flat_hash_set<uint32_t> _scan_for_announcements(
+      const absl::flat_hash_set<uint32_t>& already_queued);
+  void _post_individual_work(bool force_scan) ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  void _post_batch_work();
+  void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
   bool _is_engine_peer_connected(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);

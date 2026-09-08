@@ -314,7 +314,8 @@ void broker_state::set_cache_config_dir(
        * and scan, or a poller that connected first would wait for the safety
        * timer to be given its configuration. */
       boost::asio::post(*_watch_strand, [this] { _arm_inotify_wait(); });
-      _post_config_work(true);
+      _post_individual_work(true);
+      _post_batch_work();
     }
   } else if (_cache_config_dir_watcher) {
     _logger->info("Stop watching for changes in '{}'",
@@ -1174,70 +1175,131 @@ bool broker_state::all_engine_peers_acknowledged() {
  * the safety timer and by the first cycle, the two moments when events are not
  * what we are relying on.
  */
-void broker_state::_check_last_engine_conf(bool force_scan) {
-  _logger->trace("Checking for new Engine configurations");
-  absl::flat_hash_set<uint32_t> pollers_set;
-  {
-    absl::MutexLock lck(&_lck_set_m);
-    pollers_set.swap(_lck_set);
+absl::flat_hash_set<uint32_t> broker_state::_scan_for_announcements(
+    const absl::flat_hash_set<uint32_t>& already_queued) {
+  absl::flat_hash_set<uint32_t> found;
+  if (_cache_config_dir.empty())
+    return found;
+
+  std::error_code scan_ec;
+  std::filesystem::directory_iterator dir_it(_cache_config_dir, scan_ec);
+  if (scan_ec) {
+    /* A scan that failed answered nothing, so an explicit request stands and is
+     * honoured on the next occasion rather than being dropped here. */
+    _logger->warn("Error scanning engine config directory '{}': {}",
+                  _cache_config_dir.string(), scan_ec.message());
+    return found;
   }
-
-  /* A batch names its pollers outright, so the whole export is handled in this
-   * single pass whatever the time PHP took to generate it -- which is what the
-   * delay-based coalescing cannot promise. Read here rather than on the event,
-   * so a batch the events did not report is still picked up by a scan. */
-  const absl::flat_hash_set<uint32_t> batch = _read_poller_batch();
-  pollers_set.insert(batch.begin(), batch.end());
-
-  /* Fallback: scan the directory for any .lck files that inotify did not
-   * report, so that no configuration update is permanently lost.
-   *
-   * This is a safety net, not the detection mechanism -- inotify is. It runs
-   * when the watcher says the events were incomplete (the kernel dropped some,
-   * or the watch was lost), and otherwise on a slow period, so that whatever
-   * neither inotify nor the watcher's own reporting covers -- a directory on a
-   * filesystem where inotify does not work, say -- cannot stay hidden forever.
-   * Scanning on every cycle instead would mean walking the directory, and
-   * stat-ing every .lck still waiting for its poller, forever and for nothing.
-   */
-  const bool requested = _scan_requested_by_watcher.load();
-  if ((force_scan || requested) && !_cache_config_dir.empty()) {
-    if (requested)
+  _scan_requested_by_watcher.store(false);
+  for (const auto& entry : dir_it) {
+    const auto& p = entry.path();
+    if (p.extension() != ".lck")
+      continue;
+    uint32_t poller_id;
+    if (absl::SimpleAtoi(p.stem().string(), &poller_id)) {
+      if (already_queued.contains(poller_id))
+        continue;  // inotify reported it, so it is not orphan
       _logger->info(
-          "Scanning the engine configuration directory '{}': the changes "
-          "reported by inotify were incomplete",
-          _cache_config_dir.string());
-    std::error_code scan_ec;
-    std::filesystem::directory_iterator dir_it(_cache_config_dir, scan_ec);
-    if (scan_ec) {
-      _logger->warn("Error scanning engine config directory '{}': {}",
-                    _cache_config_dir.string(), scan_ec.message());
-    } else {
-      /* A scan that failed answered nothing, so an explicit request stands and
-       * is honoured on the next occasion rather than being dropped here. */
-      _scan_requested_by_watcher.store(false);
-      for (const auto& entry : dir_it) {
-        const auto& p = entry.path();
-        if (p.extension() == ".lck") {
-          std::string stem = p.stem().string();
-          uint32_t poller_id;
-          if (absl::SimpleAtoi(stem, &poller_id)) {
-            if (pollers_set.contains(poller_id))
-              continue;  // already queued by inotify
-            _logger->info(
-                "Found orphan lock file '{}' not reported by inotify — "
-                "scheduling configuration check for poller {}",
-                p.string(), poller_id);
-            /* The .lck is kept until the poller is connected and its
-             * configuration has been delivered. It is consumed in
-             * _check_last_engine_conf. */
-            pollers_set.insert(poller_id);
-          }
-        }
-      }
+          "Found orphan lock file '{}' not reported by inotify — scheduling "
+          "configuration check for poller {}",
+          p.string(), poller_id);
+      found.insert(poller_id);
     }
   }
+  return found;
+}
 
+/**
+ * @brief Hand the pollers announced one at a time over to a cycle.
+ *
+ * This is the `<poller_id>.lck` path. Such announcements arrive one per poller
+ * with nothing saying where the export ends, so they are accumulated in
+ * _lck_set and it takes a delay -- the debounce -- to decide the burst is over.
+ * Whatever has accumulated by then is one lot.
+ *
+ * @param force_scan Scan the directory whatever the events said, and take
+ * whatever it finds into the lot. Set by the first cycle and by the safety net,
+ * the two moments when events are not what we are relying on.
+ */
+void broker_state::_post_individual_work(bool force_scan) {
+  if (!_config_strand || _watch_engine_conf_stopped.load())
+    return;
+  boost::asio::post(*_config_strand, [this, force_scan] {
+    if (_watch_engine_conf_stopped.load())
+      return;
+    absl::flat_hash_set<uint32_t> pollers_set;
+    {
+      absl::MutexLock lck(&_lck_set_m);
+      pollers_set.swap(_lck_set);
+    }
+
+    /* Fallback: scan the directory for any .lck files that inotify did not
+     * report, so that no configuration update is permanently lost.
+     *
+     * This is a safety net, not the detection mechanism -- inotify is. It runs
+     * when the watcher says the events were incomplete (the kernel dropped
+     * some, or the watch was lost), and otherwise on a slow period, so that
+     * whatever neither inotify nor the watcher's own reporting covers -- a
+     * directory on a filesystem where inotify does not work, say -- cannot stay
+     * hidden forever. Scanning on every cycle instead would mean walking the
+     * directory for nothing. */
+    const bool requested = _scan_requested_by_watcher.load();
+    if (force_scan || requested) {
+      if (requested)
+        _logger->info(
+            "Scanning the engine configuration directory '{}': the changes "
+            "reported by inotify were incomplete",
+            _cache_config_dir.string());
+      pollers_set.merge(_scan_for_announcements(pollers_set));
+    }
+
+    if (!pollers_set.empty())
+      _run_config_cycle(pollers_set);
+  });
+}
+
+/**
+ * @brief Hand a batch announced by `pollers.lck` over to a cycle.
+ *
+ * This is the other path, and it owes nothing to the first one. A batch names
+ * the pollers it covers, so there is no end of burst to guess and nothing to
+ * wait for: the lot is complete the moment the file is read, whatever time PHP
+ * took to generate it -- which is exactly what a delay cannot promise.
+ *
+ * The file is read here, from the worker, rather than at the moment of the
+ * event: the safety net posts this too, so a batch the events did not report is
+ * still picked up. Reading an absent batch costs one stat.
+ */
+void broker_state::_post_batch_work() {
+  if (!_config_strand || _watch_engine_conf_stopped.load())
+    return;
+  boost::asio::post(*_config_strand, [this] {
+    if (_watch_engine_conf_stopped.load())
+      return;
+    absl::flat_hash_set<uint32_t> batch = _read_poller_batch();
+    if (batch.empty())
+      return;
+    _run_config_cycle(batch);
+    /* Every configuration the batch named has been through the cycle --
+     * prepared or refused -- so the announcement has nothing left to say. */
+    _remove_poller_batch();
+  });
+}
+
+/**
+ * @brief Validate, store and hand over the configuration of every poller of a
+ * lot.
+ *
+ * What a lot is made of, and when it is complete, is the business of whoever
+ * posts it -- the two announcement shapes answer that differently. From here on
+ * they are the same work.
+ *
+ * @param pollers_set The pollers to handle. Never empty.
+ */
+void broker_state::_run_config_cycle(
+    const absl::flat_hash_set<uint32_t>& pollers_set) {
+  _logger->trace("Handling the configuration of {} poller(s)",
+                 pollers_set.size());
   std::error_code ec;
   /* Read once for the whole batch: on a deploy-all, pollers_set holds every
    * poller and re-reading the store for each of them would parse it as many
@@ -1381,11 +1443,6 @@ void broker_state::_check_last_engine_conf(bool force_scan) {
           conf_ready, conf_sent, conf_rejected, pollers_away.size(),
           fmt::join(pollers_away, ", "));
   }
-
-  /* Every configuration the batch named has been through the cycle -- prepared
-   * or refused -- so the announcement has nothing left to say. */
-  if (!batch.empty())
-    _remove_poller_batch();
 }
 
 /**
@@ -1402,7 +1459,10 @@ void broker_state::_check_last_engine_conf(bool force_scan) {
  */
 void broker_state::_start_watching() {
   _watch_engine_conf_stopped.store(false);
-  _post_config_work(true);
+  /* Both paths, so that whatever was pushed while Broker was down is picked up
+   * whichever shape it took. */
+  _post_individual_work(true);
+  _post_batch_work();
   /* Posted rather than called: _inotify_wait_armed belongs to the strand, and
    * this runs on whichever thread applied the configuration or accepted the
    * peer. */
@@ -1439,17 +1499,17 @@ void broker_state::_arm_inotify_wait() {
                 ec.message());
           return;
         }
-        const bool batch_announced = _read_watch_events();
+        const watch_report report = _read_watch_events();
         _arm_inotify_wait();
-        if (batch_announced) {
-          /* A batch names its pollers, so there is nothing left to guess and no
-           * reason to wait: coalescing exists to find the end of a burst, and
-           * this one announced its own. Any burst under way is folded in, since
-           * the cycle drains _lck_set whole. */
-          _burst_started_at.reset();
-          _debounce_timer->cancel();
-          _post_config_work(false);
-        } else
+        /* The two announcement shapes are handled apart, and neither disturbs
+         * the other. A batch has nothing to wait for and goes straight to a
+         * cycle; individual announcements start or extend a burst whose end
+         * only a delay can find. When both arrive at once -- which the contract
+         * does not foresee, one PHP writing one shape or the other -- the burst
+         * keeps its own pace instead of being cut short by the batch. */
+        if (report.batch_announced)
+          _post_batch_work();
+        if (report.pollers_announced || report.rescan_requested)
           _arm_debounce();
         /* Reading may just have found the watch lost, with no way to put it
          * back. From here on nothing will be reported and no event will bring
@@ -1485,27 +1545,8 @@ void broker_state::_arm_debounce() {
         if (ec || _watch_engine_conf_stopped.load())
           return;
         _burst_started_at.reset();
-        _post_config_work(false);
+        _post_individual_work(false);
       }));
-}
-
-/**
- * @brief Hand a configuration cycle over to the worker thread.
- *
- * Called from the strand, and deliberately the only way the work is started:
- * what the strand serializes is the watching, what the worker serializes is the
- * reading of configurations, and neither should wait on the other.
- *
- * @param force_scan Passed through to _check_last_engine_conf().
- */
-void broker_state::_post_config_work(bool force_scan) {
-  if (!_config_strand || _watch_engine_conf_stopped.load())
-    return;
-  boost::asio::post(*_config_strand, [this, force_scan] {
-    if (_watch_engine_conf_stopped.load())
-      return;
-    _check_last_engine_conf(force_scan);
-  });
 }
 
 /**
@@ -1529,23 +1570,32 @@ void broker_state::_arm_safety_timer() {
           return;
         /* Reading the events too: a watch that was lost is re-established from
          * watch(), and without this nothing would ever call it again. */
-        /* The return value is of no use here: a scan is forced either way. */
+        /* What the events said is of no use here: both paths are driven anyway,
+         * the scan for what inotify did not report about individual
+         * announcements, and a read for a batch file it did not report either.
+         */
         _read_watch_events();
-        _post_config_work(true);
+        _post_individual_work(true);
+        _post_batch_work();
         _arm_safety_timer();
       }));
 }
 
 /**
- * @brief Read what inotify has to report and queue the pollers it names.
+ * @brief Read what inotify has to report and route it.
  *
- * Reading and handling are two separate steps now: this one runs as soon as the
+ * Reading and handling are two separate steps: this one runs as soon as the
  * kernel has something, the handling waits for the burst to settle. The poller
- * ids therefore go to _lck_set, which is where a connecting poller queues
- * itself too, rather than to a set local to one cycle.
+ * ids of individual announcements therefore go to _lck_set, which is where a
+ * connecting poller queues itself too, rather than to a set local to one cycle.
+ *
+ * A batch carries no poller id here -- its ids are in the file, read by the
+ * worker -- so all this reports about it is that one was announced. Which is
+ * also why the two are told apart here and not later: from this point on they
+ * travel by different paths.
  */
-bool broker_state::_read_watch_events() {
-  bool batch_announced = false;
+broker_state::watch_report broker_state::_read_watch_events() {
+  watch_report report;
   if (_cache_config_dir_watcher) {
     _logger->debug("Watch engine configuration directory");
     /* Gathered here and handed over in one go below: a deploy-all names one
@@ -1556,8 +1606,13 @@ bool broker_state::_read_watch_events() {
     /* The watcher reports when the kernel dropped events or when the watch had
      * to be established again. In both cases what happened in the directory is
      * unknown to us and only a scan can recover it. */
-    if (_cache_config_dir_watcher->take_rescan_request())
+    if (_cache_config_dir_watcher->take_rescan_request()) {
       _scan_requested_by_watcher.store(true);
+      /* This names no poller -- the kernel dropped events, or the watch had to
+       * be established again -- so without saying it here nothing would post
+       * the work and the scan would wait for the safety net. */
+      report.rescan_requested = true;
+    }
     for (auto end = _cache_config_dir_watcher->end(); it != end; ++it) {
       _logger->debug("Change detected in '{}'", _cache_config_dir.string());
       auto [event, name] = *it;
@@ -1571,7 +1626,7 @@ bool broker_state::_read_watch_events() {
           if (!(event & (IN_CLOSE_WRITE | IN_MOVED_TO)))
             continue;
           _logger->info("A poller batch was announced in '{}'", name);
-          batch_announced = true;
+          report.batch_announced = true;
           continue;
         }
         std::string_view prefix(name.data(), name.size() - 4);
@@ -1591,11 +1646,12 @@ bool broker_state::_read_watch_events() {
       }
     }
     if (!found.empty()) {
+      report.pollers_announced = true;
       absl::MutexLock lck(&_lck_set_m);
       _lck_set.insert(found.begin(), found.end());
     }
   }
-  return batch_announced;
+  return report;
 }
 
 /**

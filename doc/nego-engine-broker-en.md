@@ -18,6 +18,7 @@
       * [The moving parts](#the-moving-parts)
       * [Losing the `inotify` watch](#losing-the-inotify-watch)
       * [Two ways to announce a push](#two-ways-to-announce-a-push)
+        * [Two paths that owe each other nothing](#two-paths-that-owe-each-other-nothing)
         * [Which events count](#which-events-count)
         * [Handing over when a poller connects](#handing-over-when-a-poller-connects)
           * [What the cycle did](#what-the-cycle-did)
@@ -526,7 +527,7 @@ sequenceDiagram
     participant php
     participant C as Cache directory
     participant W as directory_watcher<br/>(inotify, async wait)
-    participant T as Configuration worker<br/>_check_last_engine_conf
+    participant T as Configuration worker<br/>_run_config_cycle
     participant P as pollers-config
     participant S as BBDO stream
     participant E as Engine X
@@ -629,51 +630,63 @@ flowchart TD
     subgraph watch["_watch_strand"]
         START["_start_watching()"]
         ARMW["_arm_inotify_wait()<br/>wait on the descriptor"]
-        READ["_read_watch_events()<br/>watch(), fills _lck_set"]
+        READ["_read_watch_events()<br/>watch(), routes the two shapes"]
         ARMD["_arm_debounce()<br/>500 ms of quiet, 5 s ceiling"]
         ARMS["_arm_safety_timer()<br/>5 min, or 5 s if the watch is lost"]
         FEED["_feed_cache_and_wake_up_resources()<br/>_lck_file_for_poller() or new-N.prot"]
     end
 
     subgraph conf["_config_strand"]
-        POST["_post_config_work(force_scan)"]
-        CHECK["_check_last_engine_conf(force_scan)<br/>pollers.lck, scan, hash, parse,<br/>expand, resolve, new-X.prot, diff-X.prot"]
+        POSTI["_post_individual_work(force_scan)<br/>lot = _lck_set + _scan_for_announcements()"]
+        POSTB["_post_batch_work()<br/>lot = _read_poller_batch()"]
+        CYCLE["_run_config_cycle(lot)<br/>hash, parse, expand, resolve,<br/>new-X.prot, diff-X.prot"]
     end
 
     CFG --> START
-    CFG -. "if the watching was already running:<br/>catch up on what the start missed" .-> POST
+    CFG -. "if the watching was already running:<br/>catch up on what the start missed" .-> POSTI
+    CFG -. .-> POSTB
     PEER --> START
     PEER --> FEED
     PHP -. "event" .-> ARMW
 
     START --> ARMW
     START --> ARMS
-    START -- "force_scan" --> POST
+    START -- "force_scan" --> POSTI
+    START --> POSTB
 
     ARMW -- "on waking" --> READ
     READ -- "re-arm at once" --> ARMW
-    READ --> ARMD
+    READ -- "X.lck files, or a rescan to do" --> ARMD
+    READ -- "a pollers.lck:<br/>nothing to wait for" --> POSTB
     READ -. "if the watch is lost:<br/>come back in 5 s" .-> ARMS
     FEED -. "nothing moved on disk" .-> ARMD
 
-    ARMD -- "at the deadline,<br/>no scan" --> POST
+    ARMD -- "at the deadline,<br/>no scan" --> POSTI
     ARMS -- "at the deadline" --> READ
-    ARMS -- "at the deadline,<br/>force_scan" --> POST
-    POST --> CHECK
+    ARMS -- "at the deadline,<br/>force_scan" --> POSTI
+    ARMS -- "at the deadline" --> POSTB
+    POSTI --> CYCLE
+    POSTB --> CYCLE
 ```
 
 Solid arrows are direct calls. Dotted ones stand for what is not one: an event
 delivered by the kernel, a `post()` deferring work onto a strand, or a path only
 taken under some condition.
 
-Three things this picture is meant to make plain:
+Four things this picture is meant to make plain:
 
+* **The two announcement shapes travel by separate paths.** `_read_watch_events()`
+  tells them apart and does nothing else with them: a `pollers.lck` goes straight to
+  `_post_batch_work()`, `<X>.lck` files go through coalescing. Both end at the same
+  `_run_config_cycle()`, which takes its lot **as a parameter** -- which is what lets
+  the two paths owe each other nothing.
 * **`_read_watch_events()` re-arms the wait before anything else.** A burst larger
   than one buffer leaves the descriptor readable, the next wait completes at once,
   and the queue drains instead of being spread over several cycles.
-* **Coalescing is the only ordinary road to the work.** `_arm_debounce()` pushes the
-  deadline back on every event; it is the last arming that fires
-  `_post_config_work()`, the earlier ones bow out on `operation_aborted`.
+* **Coalescing is the only ordinary road to the work, for individual
+  announcements.** `_arm_debounce()` pushes the deadline back on every event; it is
+  the last arming that fires `_post_individual_work()`, the earlier ones bow out on
+  `operation_aborted`.
 * **A poller connecting has to wake itself up.** Nothing changed on disk, so
   `inotify` has nothing to say: `_feed_cache_and_wake_up_resources()` posts
   `_arm_debounce()` of its own accord, or the poller's configuration would wait for
@@ -741,9 +754,39 @@ The only difference in handling left is **coalescing**. A `pollers.lck` names it
 batch, so there is nothing to wait for; `<ID>.lck` files arrive one at a time, and
 only a delay can guess where the burst ends.
 
-The batch file is read at the top of a cycle rather than on the event, so a batch
-`inotify` failed to report is still picked up by a scan. It is removed at the end of
-the cycle, once every poller it names has been through validation.
+##### Two paths that owe each other nothing
+
+That difference is the only one, but it shapes everything: the two shapes are routed
+**as soon as the events are read** and follow distinct paths from there, meeting again
+only in the handling of a poller.
+
+| | `<ID>.lck` | `pollers.lck` |
+|---|---|---|
+| Building the lot | accumulated in `_lck_set`, plus whatever a scan finds | read from the file, lot known outright |
+| Coalescing | debounce 500 ms, 5 s ceiling | none |
+| Who posts the work | `_post_individual_work()` | `_post_batch_work()` |
+| End of handling | announcements removed one by one, as each `new-<ID>.prot` is written | file removed at the end of the cycle |
+
+`_run_config_cycle()` takes its lot **as a parameter**. That is what makes the two
+paths independent: as long as the lot was a shared member (`_lck_set`) read at the top
+of a cycle, every cycle consumed everything, whatever its origin.
+
+What the separation fixed along the way: a batch announcement used to **cancel the
+coalescing under way**, cutting short an unfinished burst of `<ID>.lck` files, and the
+batch file was read by any cycle at all, including one triggered by an individual
+announcement. The contract does not foresee one PHP emitting both shapes, but nothing
+held Broker to that, and since backward compatibility is permanent the two can coexist
+on a platform being migrated.
+
+The batch file is read from the worker rather than on the event, so a batch `inotify`
+failed to report is still picked up -- the safety net posts this path too, and reading
+an absent batch costs one `stat`.
+
+⚠️ An `inotify` queue overflow (or a watch established again) names **no poller**: it
+belongs to neither path and has to be reported on its own
+(`watch_report::rescan_requested`). Without that, a read reporting nothing else posts
+no work at all and the scan waits for the safety net -- five minutes during which the
+lost push stays invisible.
 
 ##### Which events count
 
@@ -1049,7 +1092,7 @@ identically everywhere:
 
 - **`CheckPollerConfig`** (Broker) — `parse` + `expand` + `resolve` on the
   injected capturing logger;
-- **ingestion** (`broker_state::_check_last_engine_conf`) — `parse` + `expand` +
+- **ingestion** (`broker_state::_run_config_cycle`) — `parse` + `expand` +
   `resolve`; if `config_errors > 0` Broker refuses to push the configuration
   (see the `.lck` lifecycle above);
 - **Engine** — `main.cc` (`--verify-config`, and the non-trusted `centengine.cfg`
@@ -1230,7 +1273,7 @@ Latent bugs spotted along the way: uninitialized `double user_value` used when
 
 The configuration is received by the `config::applier::state` instance of `Broker`.
 
-It is interesting to keep a small time window to be able to mutualize changes from different pollers. For now, queries to `inotify` are made every 5 seconds; perhaps it will be necessary to increase this delay a bit or configure it differently. The advantage of doing this at regular intervals is that if several pollers are modified in parallel, `Broker` should be able to process them together.
+It is interesting to keep a small time window to be able to mutualize changes from different pollers: if several pollers are modified in parallel, `Broker` handles them together. That window is the 500 ms debounce, and a `pollers.lck` does away with the guessing altogether by naming its batch.
 
 > **`inotify` leads now, not a timer.** The descriptor used to be read only in
 > response to a 5-second tick: detection was bounded by that delay, the read
@@ -1527,9 +1570,14 @@ stateDiagram-v2
 
 This method memorizes the poller in its peers list. It starts the `Engine` configuration monitoring timer if negotiation is extended and the peer is an `Engine`. And it also checks if a `.lck` file already exists for the poller ID because `inotify` doesn't report files existing before it starts. If such a file is found, the poller ID is added to the list to process on the next timer tick.
 
-Subsequently, the timer is executed as a background task and checks every 5s if a `.lck` file has been modified or created; in this case the list of `.lck` files is enriched then processed as a background task. Let's focus on this part.
+Subsequently, `inotify` is what reports an announcement arriving; the list of pollers
+to handle is enriched then processed as a background task, after 500 ms of coalescing
+for individual announcements or straight away for a `pollers.lck`. A safety net every
+5 min covers what events cannot say. Let's focus on this part.
 
-The timer executes the `config::applier::state::_check_last_engine_conf()` method.
+The work is carried out by `config::applier::state::_run_config_cycle()`, posted by
+either `_post_individual_work()` or `_post_batch_work()` depending on the shape of the
+announcement.
 
 ```mermaid
 stateDiagram-v2
@@ -1639,10 +1687,10 @@ par On State applier side
     par Broker main thread
     S ->> S: add_peer
     note right of S: Adding a new poller.<br/>Starting inotify timer if necessary.
-    and Thread monitoring .lck files
-        loop Every 5 seconds
-            S ->> S: _check_last_engine_conf()
-            note right of S: Reading .lck files<br/>and preparing<br/>new-ID.prot and diff-ID.prot files
+    and Configuration worker
+        loop On every announcement (coalesced), or 5 min
+            S ->> S: _run_config_cycle(lot)
+            note right of S: Lot from coalesced X.lck files<br/>or from a pollers.lck read at once.<br/>Preparing new-ID.prot and diff-ID.prot files
         end
     end
 and Reading on BBDO stream
@@ -1700,7 +1748,7 @@ classDiagram
         -shared_ptr<spdlog::logger> _logger;
 
         +add_peer()
-        +_check_last_engine_conf()
+        +_run_config_cycle()
         +_prepare_diff_for_poller()
         etc...
     }
@@ -1721,13 +1769,16 @@ classDiagram
         -flat_hash_map<peer_key, broker_peer> _broker_peers
         -flat_hash_map<peer_key, unknown_peer> _unknown_peers
         -flat_hash_map<uint64_t, string> _engine_configuration
-        -unique_ptr<steady_timer> _watch_engine_conf_timer
+        -unique_ptr<steady_timer> _safety_timer
+        -unique_ptr<steady_timer> _debounce_timer
         -flat_hash_set<uint32_t> _lck_set
         -_prepare_diff_for_poller(uint64_t poller_id, unique_ptr<State>&& state)
-        -_start_watch_engine_conf_timer()
+        -_start_watching()
         -_lck_file_for_poller(uint32_t poller_id)
-        -_watcher_engine_conf(flat_hash_set<uint32_t>& poller_ids)
-        -_check_last_engine_conf()
+        -_read_watch_events() watch_report
+        -_post_individual_work(bool force_scan)
+        -_post_batch_work()
+        -_run_config_cycle(const flat_hash_set<uint32_t>& pollers_set)
         +add_peer()
         +remove_peer()
         +has_connection_from_poller(uint64_t poller_id)
@@ -2040,10 +2091,10 @@ sequenceDiagram
         par Broker main thread
             S ->> S: add_peer
             note right of S: Adding a new poller.<br/>Starting inotify timer if necessary.
-        and Thread monitoring .lck files
-            loop Every 5 seconds
-                S ->> S: _check_last_engine_conf()
-                note right of S: Reading .lck files<br/>and preparing<br/>new-ID.prot and diff-ID.prot files
+        and Configuration worker
+            loop On every announcement (coalesced), or 5 min
+                S ->> S: _run_config_cycle(lot)
+                note right of S: Lot from coalesced X.lck files<br/>or from a pollers.lck read at once.<br/>Preparing new-ID.prot and diff-ID.prot files
             end
         end
     and Reading on BBDO stream
