@@ -105,6 +105,35 @@ sub deleteEntriesForRebuild {
     push @{$etl->{run}->{schedule}->{perfdata}->{stages}->[0]}, { type => 'sql', db => 'centstorage', sql => $sql };
 }
 
+# Weekly centile values are stamped with the first day of the week they aggregate,
+# which is up to 7 days before the rebuild period (see processWeek).
+# Return the period holding the week first days that a rebuild of
+# $options{start} => $options{end} recomputes, or undef when that rebuild period
+# triggers no weekly aggregation at all.
+sub getWeeklyCentilePeriod {
+    my (%options) = @_;
+
+    my $weekFirstDay = $options{week_first_day} // '';
+    my ($firstWeek, $lastWeek);
+
+    # same days as the ones processed by rebuildProcessing
+    my $days = $utils->getRangePartitionDate($options{start}, $options{end});
+    foreach my $day (@$days) {
+        next if ($utils->getDayOfWeek($day->{date}) ne $weekFirstDay);
+
+        $firstWeek = $day->{date} if (!defined($firstWeek));
+        $lastWeek = $day->{date};
+    }
+
+    return undef if (!defined($firstWeek));
+
+    # end is exclusive: the last week first day must remain inside the period
+    return {
+        start => $utils->subtractDateDays($firstWeek, 7),
+        end => $utils->subtractDateDays($lastWeek, 6)
+    };
+}
+
 sub purgeTables {
     my ($etl, $periods) = @_;
 
@@ -174,7 +203,10 @@ sub purgeTables {
             name => 'mod_bi_metriccentileweeklyvalue',
             active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.week'}),
             start => $daily_start,
-          end => $daily_end
+          end => $daily_end,
+            # the table is dropped and recreated when purging, so the period only
+            # needs to be realigned on the weeks when keeping the existing data
+            align_on_week => $noPurge
         },
         {
             name => 'mod_bi_metriccentilemonthlyvalue',
@@ -190,13 +222,26 @@ sub purgeTables {
     foreach my $t (@tables) {
         next unless $t->{active};
 
+        my ($start, $end) = ($t->{start}, $t->{end});
+        if ($t->{align_on_week}) {
+            my $weeklyPeriod = getWeeklyCentilePeriod(
+                start => $start,
+                end => $end,
+                week_first_day => $props->{'centile.weekFirstDay'}
+            );
+            # no week is recomputed by this rebuild: nothing to purge
+            next if (!defined($weeklyPeriod));
+
+            ($start, $end) = ($weeklyPeriod->{start}, $weeklyPeriod->{end});
+        }
+
         if ($noPurge) {
-            deleteEntriesForRebuild($etl, name => $t->{name}, start => $t->{start}, end => $t->{end});
+            deleteEntriesForRebuild($etl, name => $t->{name}, start => $start, end => $end);
         } else {
             if ($t->{full_empty_on_purge}) {
                 emptyTableForRebuild($etl, name => $t->{name}, column => 'time_id');
             } else {
-                emptyTableForRebuild($etl, name => $t->{name}, column => 'time_id', start => $t->{start}, end => $t->{end});
+                emptyTableForRebuild($etl, name => $t->{name}, column => 'time_id', start => $start, end => $end);
             }
         }
     }
