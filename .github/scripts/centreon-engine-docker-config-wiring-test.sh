@@ -232,4 +232,69 @@ if ! echo "$grpc_output" | grep -q '"major"'; then
 fi
 echo "OK: engine gRPC management API answered GetVersion on port 50155."
 
+summary_step_start "Email notifications reach an SMTP relay (native mail command + connector plugin)"
+echo "=== [wiring:mail-notifications] both notify-*-by-email (native msmtp/mail) and notify-*-by-email-plugin (centreon-plugin-notification-email) actually deliver mail ==="
+MAIL_NET="engine-mail-wiring-net-$$"
+docker network create "$MAIL_NET" > /dev/null
+NETWORKS+=("$MAIL_NET")
+
+MAILPIT="mailpit-$$"
+docker run -d --name "$MAILPIT" --network "$MAIL_NET" -p 127.0.0.1::8025 axllent/mailpit:v1.31.1 > /dev/null
+CONTAINERS+=("$MAILPIT")
+
+MAILPIT_HTTP_PORT=$(docker port "$MAILPIT" 8025/tcp | head -1 | cut -d: -f2)
+mailpit_up=false
+for _ in $(seq 1 30); do
+  if curl -sf "http://127.0.0.1:$MAILPIT_HTTP_PORT/api/v1/messages" > /dev/null 2>&1; then
+    mailpit_up=true
+    break
+  fi
+  sleep 1
+done
+if [ "$mailpit_up" != "true" ]; then
+  echo "::error::mailpit stub never came up on http://127.0.0.1:$MAILPIT_HTTP_PORT"
+  exit 1
+fi
+
+MAIL_TEST_CONTAINER="centreon-engine-wiring-mail-$$"
+CREATE_EXTRA_ARGS="--network $MAIL_NET -e SMTP_HOST=$MAILPIT -e SMTP_PORT=1025 -e SMTP_FROM=centreon-engine@example.test" \
+  create_with_configs "$MAIL_TEST_CONTAINER"
+wait_ready "$MAIL_TEST_CONTAINER" || exit 1
+
+# Go through the real external-command pipe (SEND_CUSTOM_HOST/SVC_NOTIFICATION)
+# rather than invoking mail/the connector by hand: this is what actually
+# exercises commands.cfg's notify-*-by-email(-plugin) command_line as centengine
+# resolves it (macros like $CONTACTEMAIL$/$SMTPADDRESS$/$HOSTID$ included), and
+# the contacts.cfg/contactgroups.cfg wiring that fans a single notification out
+# to both the admin-smtp and admin-plugin contacts. Option 3 = broadcast|forced,
+# so it bypasses the notification_period/state filtering that a synthetic
+# CUSTOM-type event would otherwise never satisfy.
+docker exec "$MAIL_TEST_CONTAINER" sh -c \
+  'echo "[$(date +%s)] SEND_CUSTOM_HOST_NOTIFICATION;test;3;e2e-test;wiring test host notification" > /var/lib/centreon-engine/rw/centengine.cmd'
+docker exec "$MAIL_TEST_CONTAINER" sh -c \
+  'echo "[$(date +%s)] SEND_CUSTOM_SVC_NOTIFICATION;test;dummy;3;e2e-test;wiring test service notification" > /var/lib/centreon-engine/rw/centengine.cmd'
+
+messages_json=""
+for _ in $(seq 1 30); do
+  messages_json=$(curl -sf "http://127.0.0.1:$MAILPIT_HTTP_PORT/api/v1/messages")
+  if echo "$messages_json" | grep -q "admin-smtp@example.test" && echo "$messages_json" | grep -q "admin-plugin@example.test"; then
+    break
+  fi
+  sleep 1
+done
+if ! echo "$messages_json" | grep -q "admin-smtp@example.test"; then
+  echo "::error::no mail received by mailpit for the admin-smtp contact (notify-host/service-by-email, native mailutils/msmtp path)"
+  echo "$messages_json"
+  docker logs "$MAIL_TEST_CONTAINER" || true
+  exit 1
+fi
+if ! echo "$messages_json" | grep -q "admin-plugin@example.test"; then
+  echo "::error::no mail received by mailpit for the admin-plugin contact (notify-host/service-by-email-plugin, centreon-plugin-notification-email connector)"
+  echo "$messages_json"
+  docker logs "$MAIL_TEST_CONTAINER" || true
+  exit 1
+fi
+echo "OK: a real custom notification, resolved and dispatched by centengine itself, delivered mail via both the native SMTP command and the notification-email connector."
+summary_step_pass
+
 echo "=== [config/wiring] PASSED ==="
