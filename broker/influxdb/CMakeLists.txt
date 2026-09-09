@@ -58,7 +58,8 @@ target_link_libraries(
 target_precompile_headers(${INFLUXDB} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${INFLUXDB}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${INFLUXDB}" nebbase process_stat)
+add_dependencies("${INFLUXDB}" nebbase process_stat target_broker_message
+                 target_cache_protobuf)
 
 # Testing.
 if(WITH_TESTING)
