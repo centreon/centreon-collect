@@ -92,11 +92,27 @@ class broker_state : public state {
     bool extended_negotiation;
   };
 
+  /**
+   * @brief The configurations of the other pollers, and the index built over
+   * them.
+   *
+   * The two travel together on purpose: `objects` holds non-owning
+   * `std::string_view` pointing into `states`, so the caller must keep the
+   * whole thing alive for as long as it uses the index. The states are held
+   * behind `unique_ptr` so that moving or returning this structure never moves
+   * the messages themselves, which would dangle every view.
+   */
+  struct foreign_states {
+    std::vector<std::unique_ptr<com::centreon::engine::configuration::State>>
+        states;
+    com::centreon::engine::configuration::foreign_objects objects;
+  };
+
  public:
   enum notification_mode { notification_mode_engine, notification_mode_broker };
 
-  /* @brief True when Broker owns the notification decision. Advertised to Engine
-   * at negotiation so it stops deciding notifications on its own. */
+  /* @brief True when Broker owns the notification decision. Advertised to
+   * Engine at negotiation so it stops deciding notifications on its own. */
   bool notifications_on_broker() const {
     return _notification_mode == notification_mode_broker;
   }
@@ -211,8 +227,8 @@ class broker_state : public state {
    * read from the configuration worker, hence the atomic. */
   std::atomic<bool> _scan_requested_by_watcher{false};
 
-  /* Startup readiness barrier hook (mechanism lives in the base state): once the
-   * engine is started, re-inject the persisted active downtimes so they are
+  /* Startup readiness barrier hook (mechanism lives in the base state): once
+   * the engine is started, re-inject the persisted active downtimes so they are
    * ordered after the flushed startup definitions. No-op in non-broker mode. */
   void _on_barrier_released() override;
 
@@ -250,6 +266,14 @@ class broker_state : public state {
       const absl::flat_hash_set<uint32_t>& already_queued);
   void _post_individual_work(bool force_scan) ABSL_LOCKS_EXCLUDED(_lck_set_m);
   void _post_batch_work();
+
+  std::unique_ptr<engine::configuration::State> _read_poller_conf(
+      uint32_t poller_id,
+      const foreign_states& foreign,
+      bool& refused);
+  bool _store_poller_conf(uint32_t poller_id,
+                          const engine::configuration::State& state,
+                          const std::string& version);
   void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
   bool _is_engine_peer_connected(uint64_t poller_id) const
@@ -326,21 +350,6 @@ class broker_state : public state {
   void create_prot_file(
       const com::centreon::engine::configuration::State& conf);
 
-  /**
-   * @brief The configurations of the other pollers, and the index built over
-   * them.
-   *
-   * The two travel together on purpose: `objects` holds non-owning
-   * `std::string_view` pointing into `states`, so the caller must keep the
-   * whole thing alive for as long as it uses the index. The states are held
-   * behind `unique_ptr` so that moving or returning this structure never moves
-   * the messages themselves, which would dangle every view.
-   */
-  struct foreign_states {
-    std::vector<std::unique_ptr<com::centreon::engine::configuration::State>>
-        states;
-    com::centreon::engine::configuration::foreign_objects objects;
-  };
   foreign_states load_foreign_objects() const;
 
   enum class relay_config_response { unknown, up_to_date, diff_ready };

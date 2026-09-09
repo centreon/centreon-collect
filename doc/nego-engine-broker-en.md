@@ -24,6 +24,7 @@
           * [What the cycle did](#what-the-cycle-did)
       * [Starting the watching](#starting-the-watching)
       * [Life cycle of an announcement](#life-cycle-of-an-announcement)
+        * [Who consumes the announcement, and who keeps it](#who-consumes-the-announcement-and-who-keeps-it)
       * [When is a configuration round over?](#when-is-a-configuration-round-over)
   * [Validating a poller configuration: the `CheckPollerConfig` gRPC endpoint](#validating-a-poller-configuration-the-checkpollerconfig-grpc-endpoint)
     * [Implementation](#implementation)
@@ -926,11 +927,42 @@ passed, for want of a successor. A structurally invalid configuration will never
 become valid on its own, and retrying it forever would amount to rejecting it forever.
 PHP creates a fresh announcement when it pushes a corrected configuration.
 
-> **Known limitation.** The rejection branch consumes the announcement on *any*
-> exception raised while handling the configuration, not only on a validation error --
-> a transient I/O or serialization error on an otherwise valid configuration would
-> therefore drop it with no retry. Restricting this to validation errors alone is an
-> identified follow-up fix.
+##### Who consumes the announcement, and who keeps it
+
+Handling one poller reads as two halves, and a failure does not mean the same thing
+in each:
+
+* **reading and validating** (`_read_poller_conf()`: `hash_directory`,
+  `build_test_file`, `parse`, `expand`, `resolve`) works on the pushed content and on
+  nothing else. A failure there is therefore a property of that content, which will
+  not become valid on its own: the configuration is refused and **the announcement
+  consumed**.
+* **storing** (`_store_poller_conf()`) is about the disk, or about a directory that is
+  not configured. It says nothing of the configuration: **the announcement is kept**
+  -- it is then the only trace of the push -- and nothing is handed to the poller, a
+  state absent from disk being impossible to acknowledge (the acknowledgement renames
+  the very file that was not written).
+
+Every way out, since this is where the mistakes crept in:
+
+| Way out | Announcement | Counted |
+|---|---|---|
+| `hash_directory` fails | **kept** | — |
+| `build_test_file` fails | **kept** | — |
+| validation in error | **consumed** | `refused` |
+| storing impossible (4 paths) | **kept** | — |
+| success | **consumed** | `ready` |
+
+⚠️ The one place where the validation `try` still reaches too far is a `parse`
+failing for an I/O reason: it would be counted as an invalid configuration. That is
+defensible -- `centengine.test` was written two lines above, so if it cannot be read
+the problem is structural -- but a firm guarantee would need a distinct exception type
+in the parser, outside `broker_state`.
+
+> Previously, a control-flow `throw` on `pollers_config_dir_usable()` landed in the
+> rejection branch: a **valid** configuration had its announcement consumed with no
+> retry because Broker had no destination directory. That was the most damaging case
+> of a `catch` covering both halves at once.
 
 ##### What PHP observes
 

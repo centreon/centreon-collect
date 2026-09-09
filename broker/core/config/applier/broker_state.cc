@@ -1287,6 +1287,154 @@ void broker_state::_post_batch_work() {
 }
 
 /**
+ * @brief Read, validate and store the configuration a poller was pushed.
+ *
+ * The two halves of this are told apart on purpose, because a failure does not
+ * mean the same thing in each:
+ *
+ *  - **reading and validating** work on the pushed content and on nothing else,
+ *    so a failure there is a property of that content. It will not become valid
+ *    on its own, and retrying would reject it forever: the configuration is
+ *    refused and its announcement consumed.
+ *  - **storing** is about the disk, or about a directory that is not
+ *    configured. It says nothing of the configuration, so the announcement is
+ *    kept -- it is then the only trace left of the push, and what makes the
+ * next cycle read it again.
+ *
+ * @param poller_id The poller whose pushed configuration is read.
+ * @param foreign The configurations stored for the other pollers, so that an
+ * object living elsewhere is not taken for an undefined one.
+ * @return The stored state, ready to be handed over; nullptr when nothing was
+ * stored. @p refused then says which of the two halves failed, so the caller
+ * can count it and know whether an announcement is still waiting.
+ */
+std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
+    uint32_t poller_id,
+    const foreign_states& foreign,
+    bool& refused) {
+  refused = false;
+  const std::filesystem::path dir =
+      cache_config_dir() / fmt::to_string(poller_id);
+
+  std::error_code ec;
+  const std::string version = common::hash_directory(dir, ec);
+  if (ec) {
+    _logger->error(
+        "Cannot compute the Engine configuration version for poller '{}': {}",
+        poller_id, ec.message());
+    return nullptr;
+  }
+
+  const std::filesystem::path centengine_test = dir / "centengine.test";
+  engine::configuration::parser::build_test_file(centengine_test,
+                                                 dir / "centengine.cfg", ec);
+  if (ec) {
+    /* Nothing was even read, so this says nothing about the configuration
+     * itself: the announcement stays and the next cycle tries again. */
+    _logger->error("Cannot create Engine configuration test file '{}': {}",
+                   centengine_test.string(), ec.message());
+    return nullptr;
+  }
+
+  auto state = std::make_unique<engine::configuration::State>();
+  try {
+    engine::configuration::state_helper state_hlp(state.get());
+    engine::configuration::error_cnt err;
+    engine::configuration::parser p;
+    p.parse(centengine_test, state.get(), err);
+    state->set_config_version(version);
+    state->set_poller_id(poller_id);
+    state_hlp.expand(err);
+    /* Being the central, we can do better than a poller alone: the
+     * configurations stored for the other pollers tell whether an object this
+     * one references is genuinely undefined or merely lives elsewhere. */
+    state_hlp.resolve(err, _logger, foreign.objects);
+    if (err.config_errors)
+      throw com::centreon::exceptions::msg_fmt(
+          "configuration for poller {} (version '{}') has {} error(s); "
+          "refusing to push it to the poller",
+          poller_id, version, err.config_errors);
+  } catch (const std::exception& e) {
+    refused = true;
+    _logger->error("rejecting invalid configuration for poller {}: {}",
+                   poller_id, e.what());
+    /* The announcement is consumed even though nothing was prepared -- the one
+     * case where the two markers do not hand over to one another, because there
+     * is nothing to hand over to. Retrying it forever would reject it forever.
+     * PHP creates a fresh announcement when it pushes a corrected
+     * configuration. */
+    _remove_lck_file(poller_id);
+    return nullptr;
+  }
+
+  if (!_store_poller_conf(poller_id, *state, version))
+    return nullptr;
+  return state;
+}
+
+/**
+ * @brief Write the validated configuration of a poller to `new-<ID>.prot`, and
+ * consume the announcement that brought it.
+ *
+ * Every path out of here that is not a success keeps the announcement, and
+ * hands nothing to the poller: a state that is not on disk cannot be
+ * acknowledged, since the acknowledgement renames the very file that was not
+ * written.
+ *
+ * @return True when the state is on disk and the announcement consumed.
+ */
+bool broker_state::_store_poller_conf(uint32_t poller_id,
+                                      const engine::configuration::State& state,
+                                      const std::string& version) {
+  if (!pollers_config_dir_usable()) {
+    _logger->error(
+        "No pollers configuration directory: refusing to write the "
+        "configuration of poller {} to a relative path. Keeping its "
+        "announcement",
+        poller_id);
+    return false;
+  }
+  std::error_code ec;
+  if (!std::filesystem::exists(pollers_config_dir())) {
+    std::filesystem::create_directories(pollers_config_dir(), ec);
+    if (ec) {
+      _logger->error(
+          "Cannot create pollers configuration directory '{}': {}. Keeping the "
+          "announcement of poller {}",
+          pollers_config_dir().string(), ec.message(), poller_id);
+      return false;
+    }
+  }
+  const std::filesystem::path last_prot_conf =
+      pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+  std::ofstream f(last_prot_conf);
+  if (!f) {
+    _logger->error(
+        "Cannot write the new Engine protobuf configuration '{}': {}. Keeping "
+        "the announcement of poller {}",
+        last_prot_conf.string(), strerror(errno), poller_id);
+    return false;
+  }
+  if (!state.SerializeToOstream(&f)) {
+    _logger->error(
+        "Cannot serialize the new Engine configuration of poller {} to '{}'. "
+        "Keeping its announcement",
+        poller_id, last_prot_conf.string());
+    return false;
+  }
+  f.close();
+  _logger->info("New Engine configuration for poller {} stored, version '{}'",
+                poller_id, version);
+  /* The announcement has been read and what it announced is now on disk, so it
+   * has nothing left to say: from here on it is `new-<ID>.prot` that says a
+   * delivery is pending, whether the poller is connected or not. Removed only
+   * once that file exists -- the two markers hand over to one another, and at
+   * no instant is there neither. */
+  _remove_lck_file(poller_id);
+  return true;
+}
+
+/**
  * @brief Validate, store and hand over the configuration of every poller of a
  * lot.
  *
@@ -1300,15 +1448,6 @@ void broker_state::_run_config_cycle(
     const absl::flat_hash_set<uint32_t>& pollers_set) {
   _logger->trace("Handling the configuration of {} poller(s)",
                  pollers_set.size());
-  std::error_code ec;
-  /* Read once for the whole batch: on a deploy-all, pollers_set holds every
-   * poller and re-reading the store for each of them would parse it as many
-   * times as it has entries. Each iteration only points `self` at the poller it
-   * validates. The read is deferred to the first poller that really needs
-   * validating, so a cycle woken up for nothing pays nothing -- the case that
-   * made this necessary, a lingering announcement requeued every few seconds,
-   * cannot happen any more now that an announcement does not outlive its
-   * reading. */
   /* What the cycle did, told at the end in one line. Broker cannot know how
    * many pollers the platform has, but it does know how many configurations it
    * just prepared -- and which of them it could not hand over. */
@@ -1317,6 +1456,11 @@ void broker_state::_run_config_cycle(
   uint32_t conf_rejected = 0;
   std::vector<uint32_t> pollers_away;
 
+  /* Read once for the whole lot: on a deploy-all, pollers_set holds every
+   * poller and re-reading the store for each of them would parse it as many
+   * times as it has entries. Each iteration only points `self` at the poller it
+   * validates. The read is deferred to the first poller of the lot, so a cycle
+   * woken up for nothing pays nothing. */
   std::optional<foreign_states> foreign;
   for (uint32_t poller_id : pollers_set) {
     _logger->debug(
@@ -1325,107 +1469,20 @@ void broker_state::_run_config_cycle(
     if (!foreign)
       foreign = load_foreign_objects();
     foreign->objects.self = poller_id;
-    auto state = std::make_unique<engine::configuration::State>();
-    engine::configuration::state_helper state_hlp(state.get());
-    engine::configuration::error_cnt err;
-    std::string version = common::hash_directory(
-        cache_config_dir() / fmt::to_string(poller_id), ec);
-    if (ec) {
-      _logger->error(
-          "Cannot compute the Engine configuration version for poller "
-          "'{}': "
-          "{}",
-          poller_id, ec.message());
+
+    bool refused = false;
+    auto state = _read_poller_conf(poller_id, *foreign, refused);
+    if (!state) {
+      conf_rejected += refused;
       continue;
     }
-    engine::configuration::parser p;
-    std::filesystem::path centengine_test =
-        cache_config_dir() / fmt::to_string(poller_id) / "centengine.test";
-    std::filesystem::path centengine_cfg =
-        cache_config_dir() / fmt::to_string(poller_id) / "centengine.cfg";
-    engine::configuration::parser::build_test_file(centengine_test,
-                                                   centengine_cfg, ec);
-    if (!ec) {
-      try {
-        p.parse(centengine_test, state.get(), err);
-        state->set_config_version(version);
-        state->set_poller_id(poller_id);
-        state_hlp.expand(err);
-        /* We do not trust the pushed configuration: validate it before storing
-         * and delivering it. If it is invalid, refuse to push it (the throw is
-         * caught below, so the .prot is not written and no diff is prepared).
-         *
-         * Being the central, we can do better than a poller alone: the
-         * configurations stored for the other pollers tell whether an object
-         * this one references is genuinely undefined or merely lives elsewhere.
-         * `foreign` is declared outside the loop and owns the strings its
-         * index borrows, so it outlives every resolve of the batch. */
-        state_hlp.resolve(err, _logger, foreign->objects);
-        if (err.config_errors)
-          throw com::centreon::exceptions::msg_fmt(
-              "configuration for poller {} (version '{}') has {} error(s); "
-              "refusing to push it to the poller",
-              poller_id, version, err.config_errors);
-        if (!pollers_config_dir_usable())
-          throw com::centreon::exceptions::msg_fmt(
-              "no pollers configuration directory is configured: refusing to "
-              "write the configuration of poller {} to a relative path",
-              poller_id);
-        if (!std::filesystem::exists(pollers_config_dir())) {
-          std::filesystem::create_directories(pollers_config_dir(), ec);
-          if (ec) {
-            _logger->error(
-                "Cannot create pollers configuration directory '{}': {}",
-                pollers_config_dir().string(), ec.message());
-          }
-        }
-        std::filesystem::path last_prot_conf =
-            pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
-        std::ofstream f(last_prot_conf);
-        if (f) {
-          state->SerializeToOstream(&f);
-          f.close();
-          _logger->info(
-              "New Engine configuration for poller {} stored, version '{}'",
-              poller_id, version);
-          /* The announcement has been read and what it announced is now on
-           * disk, so it has nothing left to say: from here on it is
-           * `new-<ID>.prot` that says a delivery is pending, whether the poller
-           * is connected or not. Removed only once that file exists -- the two
-           * markers hand over to one another, and at no instant is there
-           * neither. */
-          _remove_lck_file(poller_id);
-        } else {
-          /* Nothing was written, so the announcement is all that is left of
-           * this push: keeping it is what makes the next cycle try again. */
-          _logger->error(
-              "Cannot write the new Engine protobuf configuration '{}': {}. "
-              "Keeping the announcement of poller {} so the configuration is "
-              "read again",
-              last_prot_conf.string(), strerror(errno), poller_id);
-        }
-        ++conf_ready;
-        if (_is_engine_peer_connected(poller_id))
-          ++conf_sent;
-        else
-          pollers_away.push_back(poller_id);
-        _prepare_diff_for_poller(poller_id, std::move(state));
-      } catch (const std::exception& e) {
-        ++conf_rejected;
-        _logger->error("rejecting invalid configuration for poller {}: {}",
-                       poller_id, e.what());
-        /* The pushed configuration is structurally invalid
-         * (parse/expand/resolve error): it will never become valid on its own,
-         * so the announcement is consumed even though nothing was prepared --
-         * the only case where the two markers do not hand over to one another,
-         * because there is nothing to hand over to. Retrying it forever would
-         * reject it forever. PHP creates a fresh announcement when it pushes a
-         * corrected configuration. */
-        _remove_lck_file(poller_id);
-      }
-    } else
-      _logger->error("Cannot create Engine configuration test file '{}': {}",
-                     centengine_test.string(), ec.message());
+
+    ++conf_ready;
+    if (_is_engine_peer_connected(poller_id))
+      ++conf_sent;
+    else
+      pollers_away.push_back(poller_id);
+    _prepare_diff_for_poller(poller_id, std::move(state));
   }
 
   /* One line for the whole cycle, so that a configuration that went nowhere is

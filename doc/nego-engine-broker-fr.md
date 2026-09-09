@@ -26,6 +26,7 @@ Négociation entre Engine et Broker
         * [Ce que le cycle a fait](#ce-que-le-cycle-a-fait)
       * [Démarrage de la surveillance](#démarrage-de-la-surveillance)
       * [Cycle de vie de l'annonce](#cycle-de-vie-de-lannonce)
+        * [Qui consomme l'annonce, et qui la garde](#qui-consomme-lannonce-et-qui-la-garde)
       * [Quand un tour de configuration est-il terminé ?](#quand-un-tour-de-configuration-est-il-terminé-)
   * [Valider une configuration de poller : l'endpoint gRPC `CheckPollerConfig`](#valider-une-configuration-de-poller--lendpoint-grpc-checkpollerconfig)
     * [Implémentation](#implémentation)
@@ -1095,12 +1096,41 @@ redeviendra jamais valide d'elle-même, et la retenter indéfiniment reviendrait
 la rejeter indéfiniment. PHP crée une nouvelle annonce lorsqu'il pousse une
 configuration corrigée.
 
-> **Limitation connue.** La branche de rejet consomme l'annonce sur *toute*
-> exception levée pendant le traitement, et pas seulement sur une erreur de
-> validation — une erreur d'I/O ou de sérialisation transitoire sur une
-> configuration par ailleurs valide la laisserait donc tomber sans retry.
-> Restreindre ce comportement aux seules erreurs de validation est un correctif
-> de suivi identifié.
+##### Qui consomme l'annonce, et qui la garde
+
+Le traitement d'un poller se lit en deux moitiés, et un échec n'y a pas le même
+sens :
+
+* **lire et valider** (`_read_poller_conf()` : `hash_directory`, `build_test_file`,
+  `parse`, `expand`, `resolve`) travaille sur le contenu poussé et sur rien
+  d'autre. Un échec y est donc une propriété de ce contenu, qui ne redeviendra pas
+  valide seul : la configuration est refusée et **l'annonce consommée**.
+* **stocker** (`_store_poller_conf()`) est affaire de disque, ou de répertoire non
+  configuré. Cela ne dit rien de la configuration : **l'annonce est gardée** — elle
+  est alors la seule trace de la poussée — et rien n'est livré au poller, un état
+  absent du disque ne pouvant pas être acquitté (l'acquittement renomme justement
+  le fichier qui n'a pas été écrit).
+
+Tous les chemins de sortie, puisque c'est là que les erreurs se sont glissées :
+
+| Sortie | Annonce | Compté |
+|---|---|---|
+| `hash_directory` échoue | **gardée** | — |
+| `build_test_file` échoue | **gardée** | — |
+| validation en erreur | **consommée** | `refused` |
+| stockage impossible (4 chemins) | **gardée** | — |
+| succès | **consommée** | `ready` |
+
+⚠️ Le seul cas où le `try` de validation embrasse trop large est un `parse` qui
+échouerait pour une raison d'I/O : il serait compté comme une configuration
+invalide. C'est tenable — `centengine.test` vient d'être écrit deux lignes plus
+haut, donc s'il est illisible c'est structurel — mais une garantie franche
+demanderait un type d'exception distinct côté parseur, hors de `broker_state`.
+
+> Auparavant, un `throw` de contrôle sur `pollers_config_dir_usable()` tombait dans
+> la branche de rejet : une configuration **valide** voyait son annonce consommée
+> sans retry parce que Broker n'avait pas de répertoire de destination. C'était le
+> cas le plus dommageable d'un `catch` couvrant les deux moitiés à la fois.
 
 ##### Ce que PHP observe
 
