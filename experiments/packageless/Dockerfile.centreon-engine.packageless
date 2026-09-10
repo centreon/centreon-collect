@@ -1,0 +1,92 @@
+# syntax=docker/dockerfile:1
+#
+# EXPERIMENTAL / test-only. Proves out "Level 1" of the package-less design
+# from Obsidian doc 10 - Package-less builds: reuse the existing nfpm yaml
+# as a declarative copy-list, skip `nfpm pack` + `dpkg-deb -x` entirely.
+#
+# NOT wired into CI, NOT a replacement for .github/docker/centreon-engine/trixie/Dockerfile.
+# Context: repo root. Expects a build/ tree already populated (real `ninja -Cbuild`
+# output + objcopy stripping, OR - for this mechanism test - the synthetic
+# placeholder tree the test session created).
+
+#############################################
+# Stage 1: manifest-driven staging (replaces nfpm pack + dpkg-deb -x)
+#############################################
+FROM docker.centreon.com/centreon/packaging-centreon-collect-vcpkg-trixie:09a000e6 AS manifest-stage
+
+RUN apt-get update -qq && apt-get install -y --no-install-recommends python3-yaml \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /repo
+COPY . /repo
+
+RUN mkdir -p /staging && \
+    python3 /repo/experiments/packageless/scripts/manifest_stage.py stage \
+      --manifest /repo/packaging/centreon-collect/centreon-engine-daemon.yaml \
+      --manifest /repo/packaging/centreon-collect/centreon-broker-core.yaml \
+      --manifest /repo/packaging/centreon-collect/centreon-broker-cbd.yaml \
+      --packager deb \
+      --root /staging
+
+RUN python3 /repo/experiments/packageless/scripts/manifest_stage.py list-dst \
+      --manifest /repo/packaging/centreon-collect/centreon-engine-daemon.yaml \
+      --manifest /repo/packaging/centreon-collect/centreon-broker-core.yaml \
+      --manifest /repo/packaging/centreon-collect/centreon-broker-cbd.yaml \
+      --packager deb \
+      > /staging.manifest-dst-list.txt
+
+#############################################
+# Stage 2: runtime - minimal image, no nfpm/.deb involved at all
+#############################################
+FROM debian:13-slim AS runtime
+
+RUN bash -e <<'EOF'
+groupadd -g 900 centreon
+useradd -u 900 -g centreon -m -r -l -d /var/spool/centreon -s /bin/bash centreon
+groupadd -g 901 centreon-engine
+useradd -u 901 -g centreon-engine -m -r -l -d /var/lib/centreon-engine -s /bin/bash centreon-engine
+groupadd -g 902 centreon-broker
+useradd -u 902 -g centreon-broker -m -r -l -d /var/lib/centreon-broker -s /bin/bash centreon-broker
+mkdir -p /etc/centreon-engine/conf.d /etc/centreon-broker /var/lib/centreon-engine/rw \
+         /var/log/centreon-engine/archives /usr/share/centreon/lib/centreon-broker \
+         /usr/lib64/centreon-engine
+EOF
+
+# Bulk whole-subtree copy - same pattern the real .deb-based Dockerfiles use
+# (COPY --from=extractor /extracted/usr/ /usr/), just sourced from the
+# manifest-driven staging dir instead of a dpkg-deb extraction.
+COPY --from=manifest-stage --link /staging/ /
+COPY --from=manifest-stage /staging.manifest-dst-list.txt /tmp/manifest-dst-list.txt
+
+# Check 1: today's existing verification pattern (dynamic linker can resolve
+# DT_NEEDED deps). Kept for parity with the real Dockerfiles - but see the
+# doc: this does NOT catch a moved externalcmd.so/cbmod.so, because both are
+# dlopen()'d by path from config (clib/src/library.cc), never DT_NEEDED.
+RUN bash -eo pipefail <<'EOF'
+test -f /usr/sbin/centengine
+! ldd /usr/sbin/centengine | grep -q "not found"
+EOF
+
+# Check 2: manifest-conformance assertion - the check this experiment adds.
+# For every non-ghost dst: the manifest declares, assert it exists in the
+# final image. This is what actually catches a moved path: pure bash, no
+# python needed in the shipped image (the list was pre-computed in the
+# builder stage).
+RUN bash -eo pipefail <<'EOF'
+missing=0
+while IFS= read -r path; do
+  if [ ! -e "$path" ]; then
+    echo "MANIFEST CONFORMANCE FAILURE: declared but missing: $path"
+    missing=1
+  fi
+done < /tmp/manifest-dst-list.txt
+if [ "$missing" -eq 1 ]; then
+  echo "=== manifest-conformance check FAILED - image does not match the nfpm manifests ==="
+  exit 1
+fi
+echo "=== manifest-conformance check OK - every manifest dst: present in the image ==="
+EOF
+
+RUN rm -f /tmp/manifest-dst-list.txt
+
+CMD ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"]
