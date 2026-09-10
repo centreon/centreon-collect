@@ -184,3 +184,106 @@ BCPC8
     Should Not Be Empty    ${errors}    the missing service must be reported as an error
     ${joined}    Evaluate    " ".join($errors)
     Should Contain    ${joined}    ghost_service    the error must name the missing service
+
+BCPC9
+    [Documentation]    Scenario: a dependency on a host of another poller is named as such
+    ...    Given two pollers whose configurations have been ingested and acknowledged
+    ...    And a host dependency of poller 1 whose dependent host belongs to poller 2
+    ...    When CheckPollerConfig is called on the configuration directory of poller 1
+    ...    Then ok is false, as at ingestion: a dependency does not cross a poller boundary
+    ...    And the ERROR names poller 2 instead of claiming the host is defined nowhere
+    [Tags]    broker    engine    grpc    config    MON-187019
+    # What this test reads is the content of pollers-configuration/, so a .prot
+    # left by an earlier test would make the assertions pass without any
+    # ingestion having taken place -- or name a poller nobody configured here.
+    Ctn Clear Prot Files
+    Ctn Clear Broker Cache
+    # Ten hosts over two pollers: host_1..host_5 on poller 1, host_6..host_10 on
+    # poller 2.
+    Ctn Config Centralized Engine    ${2}    ${10}    ${2}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Broker Config Log    central    config    debug
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    # The index is built from the acknowledged configurations -- <N>.prot, not the
+    # new-<N>.prot work files -- so both pollers have to have acknowledged before
+    # anything of poller 2 can be found.
+    ${content}    Create List    All engine peers acknowledged? 2/2 acknowledged
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    the two pollers did not acknowledge their configuration
+    ${stored}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/2.prot
+    Wait Until Created    ${stored}    30s
+
+    # Now a dependency of poller 1 on a host of poller 2. Not notified to Broker:
+    # what is under test is the endpoint, not the ingestion.
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    Ctn Add Host Dependency    ${0}    host_1    host_6
+
+    ${res}    Ctn Broker Check Poller Config    ${PollerConfigDir}
+    Should Not Be Equal    ${res}    ${None}    CheckPollerConfig did not answer
+    Should Not Be True    ${res}[ok]    a cross-poller dependency must not be ok
+    ${errors}    Evaluate    [d['message'] for d in $res['diagnostics'] if d['severity'] == 'ERROR']
+    ${joined}    Evaluate    " ".join($errors)
+
+    # The whole point of the cross-poller index: say where the host actually is.
+    Should Contain    ${joined}    belongs to poller 2
+    ...    the error must name the poller the host lives on
+    Should Not Contain    ${joined}    host_6' is not defined anywhere
+    ...    host_6 is defined, on another poller: the degraded message must not be used
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BCPC10
+    [Documentation]    Scenario: an object dropped from the configuration under check reads as undefined
+    ...    Given poller 1 whose configuration has been ingested and acknowledged
+    ...    When host_5 is removed from its configuration and a dependency still references it
+    ...    And CheckPollerConfig is called on that directory
+    ...    Then host_5 reads as defined nowhere, not as living on poller 1 itself
+    [Tags]    broker    engine    grpc    config    MON-187019
+    Ctn Clear Prot Files
+    Ctn Clear Broker Cache
+    Ctn Config Centralized Engine    ${1}    ${10}    ${2}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    config    debug
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    # 1.prot has to hold host_5 before it is dropped: what is under test is the
+    # index still knowing an object the configuration under check no longer has.
+    ${content}    Create List    All engine peers acknowledged? 1/1 acknowledged
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    the poller did not acknowledge its configuration
+    ${stored}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot
+    Wait Until Created    ${stored}    30s
+
+    # host_5 leaves the configuration but stays in the stored one, and something
+    # still references it. Without the self filter it would be found in 1.prot
+    # and read as "living on poller 1" -- a dangling reference going unreported.
+    Ctn Engine Config Remove All Services From Host    ${0}    host_5
+    Ctn Engine Config Remove Host    ${0}    host_5
+    Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
+    Ctn Add Host Dependency    ${0}    host_1    host_5
+
+    ${res}    Ctn Broker Check Poller Config    ${PollerConfigDir}
+    Should Not Be Equal    ${res}    ${None}    CheckPollerConfig did not answer
+    Should Not Be True    ${res}[ok]    a dangling reference must not be ok
+    ${errors}    Evaluate    [d['message'] for d in $res['diagnostics'] if d['severity'] == 'ERROR']
+    ${joined}    Evaluate    " ".join($errors)
+
+    Should Contain    ${joined}    host_5' is not defined anywhere
+    ...    a host dropped from the configuration under check must read as undefined
+    Should Not Contain    ${joined}    belongs to poller 1
+    ...    the poller being validated must be excluded from its own index
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
