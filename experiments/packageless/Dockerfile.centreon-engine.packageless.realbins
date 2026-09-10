@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+#
+# Real-artifact size comparison variant. Context: a host dir already
+# containing the real `manifest_stage.py stage` output (real ninja+objcopy
+# binaries, real cmake-generated centengine.cfg etc.) - staging already
+# proven to work in Dockerfile.centreon-engine.packageless; this variant
+# skips re-running it just to get an apples-to-apples final image for a
+# real size comparison against the real .deb-based image.
+
+FROM debian:13-slim AS runtime
+
+RUN bash -e <<'EOF'
+groupadd -g 900 centreon
+useradd -u 900 -g centreon -m -r -l -d /var/spool/centreon -s /bin/bash centreon
+groupadd -g 901 centreon-engine
+useradd -u 901 -g centreon-engine -m -r -l -d /var/lib/centreon-engine -s /bin/bash centreon-engine
+groupadd -g 902 centreon-broker
+useradd -u 902 -g centreon-broker -m -r -l -d /var/lib/centreon-broker -s /bin/bash centreon-broker
+mkdir -p /etc/centreon-engine/conf.d /etc/centreon-broker /var/lib/centreon-engine/rw \
+         /var/log/centreon-engine/archives /usr/share/centreon/lib/centreon-broker \
+         /usr/lib64/centreon-engine
+EOF
+
+COPY --link . /
+
+# No ldd/runtime-deps check here - this variant exists purely to measure the
+# size delta the packaging approach itself contributes (staged payload vs
+# .deb-extracted payload), not to be a fully functional runtime image. Real
+# runtime apt dependencies (libssl, libmariadb3, monitoring-plugins, ...) are
+# identical either way and would just add noise to an apples-to-apples
+# comparison of "what does skipping nfpm+dpkg-deb save."
+
+CMD ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"]
