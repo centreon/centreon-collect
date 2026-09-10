@@ -295,6 +295,32 @@ jobs:
           path: staging-centreon
           key: ${{ github.run_id }}-${{ github.sha }}-staging-centreon-collect-trixie-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
 
+      # Same mechanism as the centreon-engine payload above, for the
+      # centreon-broker Docker image. Mirrors the extractor exclusion on
+      # .github/docker/centreon-broker/trixie/Dockerfile (skips
+      # *centreon-engine*|*connector*): clib/protobuf-lib are still needed
+      # (20-unified_sql.so dlopen's libcentreon_engine_conf.so at runtime,
+      # confirmed via ldd against a real build).
+      - name: Stage centreon-broker package-less Docker payload
+        if: ${{ inputs.distrib == 'trixie' && ! inputs.only_robot_cma }}
+        run: |
+          apt-get update -qq && apt-get install -y -qq --no-install-recommends python3-yaml
+          python3 .github/scripts/manifest_stage.py \
+            --manifest packaging/centreon-collect/centreon-clib.yaml \
+            --manifest packaging/centreon-collect/centreon-protobuf-lib.yaml \
+            --manifest packaging/centreon-collect/centreon-broker.yaml \
+            --manifest packaging/centreon-collect/centreon-broker-core.yaml \
+            --manifest packaging/centreon-collect/centreon-broker-cbd.yaml \
+            --root staging-broker
+        shell: bash
+
+      - name: Cache centreon-broker package-less Docker payload
+        if: ${{ inputs.distrib == 'trixie' && ! inputs.only_robot_cma }}
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: staging-broker
+          key: ${{ github.run_id }}-${{ github.sha }}-staging-broker-collect-trixie-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+
       - name: Package centreon-monitoring-agent
         if: ${{ inputs.only_robot_cma }}
         uses: ./.github/actions/package

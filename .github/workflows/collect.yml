@@ -570,6 +570,45 @@ jobs:
           ls -lhR staging-centreon/
         shell: bash
 
+      # Same as centreon-engine above, for centreon-broker's own staged payload.
+      - name: Restore broker package-less payload (amd64)
+        if: matrix.image == 'centreon-broker'
+        id: restore-staging-broker-amd64
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: staging-broker
+          key: ${{ github.run_id }}-${{ github.sha }}-staging-broker-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+
+      - name: Move amd64 broker package-less payload aside
+        if: matrix.image == 'centreon-broker' && steps.restore-staging-broker-amd64.outputs.cache-hit == 'true'
+        run: mv staging-broker staging-broker-amd64
+        shell: bash
+
+      - name: Restore broker package-less payload (arm64)
+        if: matrix.image == 'centreon-broker'
+        id: restore-staging-broker-arm64
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: staging-broker
+          key: ${{ github.run_id }}-${{ github.sha }}-staging-broker-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
+
+      - name: Fail if broker package-less payload cache is missing
+        if: matrix.image == 'centreon-broker' && (steps.restore-staging-broker-amd64.outputs.cache-hit != 'true' || steps.restore-staging-broker-arm64.outputs.cache-hit != 'true')
+        run: |
+          [[ "${{ steps.restore-staging-broker-amd64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No package-less staging cache for ${{ matrix.distrib }} amd64 (broker) — check the 'Stage centreon-broker package-less Docker payload' step in package-collect.yml ran."
+          [[ "${{ steps.restore-staging-broker-arm64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No package-less staging cache for ${{ matrix.distrib }} arm64 (broker) — check the 'Stage centreon-broker package-less Docker payload' step in package-collect.yml ran."
+          exit 1
+        shell: bash
+
+      - name: Assemble per-arch broker package-less staging directory
+        if: matrix.image == 'centreon-broker'
+        run: |
+          mkdir -p staging-broker
+          mv staging-broker-amd64 staging-broker/amd64
+          mv staging-broker-arm64 staging-broker/arm64
+          ls -lhR staging-broker/
+        shell: bash
+
       - name: Login to registry
         if: ${{ github.event.pull_request.head.repo.fork != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0

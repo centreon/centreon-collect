@@ -1,47 +1,19 @@
 # syntax=docker/dockerfile:1
 
 #############################################
-# Stage 1: Extract files from .deb packages
+# Runtime - Minimal final image
 #############################################
-FROM debian:13-slim AS extractor
-
-ARG TARGETARCH
-
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    bash -e <<EOF
-apt-get update
-apt-get install -y --no-install-recommends dpkg
-EOF
-
-# Extract .deb packages (mounted via --mount during build)
-# NOTE: packages-centreon/ is shared with the sibling centreon-engine build in
-# CI and contains engine/connector .deb files too. Mirrors the exclusion
-# pattern on the centreon-engine Dockerfile (which skips broker-cbd): skip
-# anything engine/connector-specific here, so the bulk COPY below can copy
-# the whole extracted tree without bundling unrelated binaries into this image.
-RUN --mount=type=bind,source=packages-centreon,target=/packages \
-    mkdir -p /extracted && \
-    cd /packages/${TARGETARCH} && \
-    for deb in *.deb; do \
-        case "$deb" in \
-            *centreon-engine*|*connector*) continue ;; \
-        esac; \
-        dpkg-deb -x "$deb" /extracted/; \
-    done && \
-    rm -rf /extracted/usr/share/doc/* \
-           /extracted/usr/share/man/* \
-           /extracted/usr/share/info/* \
-           /extracted/usr/share/locale/* \
-           /extracted/usr/share/licenses/* \
-           /extracted/var/cache/* \
-           /extracted/var/log/*
-
-#############################################
-# Stage 2: Runtime - Minimal final image
-#############################################
+# No extractor stage: the runtime payload (binaries, libs, modules, configs)
+# is staged straight from the nfpm manifests by package-collect.yml's "Stage
+# centreon-broker package-less Docker payload" step
+# (.github/scripts/manifest_stage.py), which replays their contents: entries
+# against build/ - the same files nfpm itself would pack, no .deb ever
+# built or extracted for this image. collect.yml's dockerize-engine-broker
+# job restores that staged tree per-arch into staging-broker/{amd64,arm64}/
+# before this Dockerfile builds.
 FROM debian:13-slim AS runtime
 
+ARG TARGETARCH
 ARG VERSION
 ARG IS_CLOUD
 ARG STABILITY
@@ -80,8 +52,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     bash -e <<EOF
 apt-get update
 apt-get install -y --no-install-recommends \
-    python3-minimal \
-    python3-venv \
     libmariadb3 \
     librrd8t64 \
     libgnutls30t64 \
@@ -117,22 +87,22 @@ chmod 0755 /var/lib/centreon-engine
 chmod 0755 /var/lib/centreon-gorgone
 EOF
 
-# Copy runtime files from extractor in bulk (binaries, libraries, modules).
+# Copy the staged runtime payload in bulk (binaries, libraries, modules).
 # NOTE: a single non-wildcard destination is required here — Docker does not
 # glob-expand COPY destinations. A per-file cherry-pick was used previously,
 # which happened to be safe on its own, but diverged from the same bulk-copy
 # approach used on the sibling centreon-engine Dockerfile after that one hit
 # a real bug (a wildcard *destination* like "/usr/lib*/ /usr/lib*/" silently
 # created a literal directory named "lib*"). Aligning both Dockerfiles on the
-# same non-wildcard whole-tree copy — safe here because the extractor stage
-# above already excludes engine/connector packages, so nothing unrelated ends
-# up in /extracted/usr/ to begin with.
-COPY --from=extractor --link --chmod=755 \
-    /extracted/usr/ /usr/
+# same non-wildcard whole-tree copy — safe here because the staged manifest
+# set (see package-collect.yml) only includes clib/protobuf-lib/broker*, so
+# nothing engine/connector-specific ends up in the staged tree to begin with.
+COPY --link --chmod=755 \
+    staging-broker/${TARGETARCH}/usr/ /usr/
 
 # Configuration files (--chown prevents --link)
-COPY --from=extractor --chown=centreon-broker:centreon-broker --chmod=664 \
-     /extracted/etc/ /etc/
+COPY --chown=centreon-broker:centreon-broker --chmod=664 \
+     staging-broker/${TARGETARCH}/etc/ /etc/
 
 # COPY --chmod applies the same mode to every copied entry, files and
 # directories alike — if the .deb package ever ships a subdirectory directly
@@ -159,19 +129,6 @@ ls /etc/centreon-broker/*.json >/dev/null
 ! ldd /usr/sbin/cbd | grep -q "not found"
 ! ldd /usr/sbin/cbwd | grep -q "not found"
 EOF
-
-# Pre-install Python API dependencies at build time (10-15s startup improvement)
-RUN bash -e <<EOF
-python3 -m venv /opt/centreon/venv
-/opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip
-/opt/centreon/venv/bin/pip install --no-cache-dir \
-    fastapi==0.140.0 \
-    starlette==1.3.1 \
-    uvicorn==0.32.0
-chown -R centreon-broker:centreon-broker /opt/centreon/venv
-EOF
-
-ENV PATH="/opt/centreon/venv/bin:$PATH"
 
 # OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
 ARG BUILD_DATE
