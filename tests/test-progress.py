@@ -18,6 +18,10 @@ When no test name is given, the script reads the running run's output.xml (which
 robot fills incrementally) and uses the last <test> tag it finds — i.e. the test
 currently executing — exactly as if that name had been passed on the command line.
 
+The report opens with the command line of the running run, so that the figures
+can be read on their own: a position and a percentage only mean something once
+one knows what selection they are about.
+
 The script discovers the exact command line of the running `robot` process and
 reuses its arguments (suites, tags, tests…) to build the dryrun, so it works for
 any selection — e.g. `robot bam` or `robot -s some.suite`, not only a full run.
@@ -364,7 +368,34 @@ def fmt_duration(seconds):
     return f"{s}s"
 
 
-def status_lines(test_name, idx, total, elapsed, colour, finished_count=None):
+def format_command(run_args, width=0):
+    """Render the robot command line of the running run, for display.
+
+    Shown so that a progress report can be read on its own: the numbers only
+    mean something once one knows what selection they are about -- a full run,
+    one suite, one tag.
+
+    Args:
+        run_args: The arguments of the running robot process, or None when no
+            run was detected (the report then describes the default selection).
+        width: Terminal width to fit into; 0 means do not truncate. The command
+            is cut with an ellipsis rather than wrapped, which would break the
+            fixed-height frame the progress mode redraws.
+
+    Returns:
+        The command as a single printable line.
+    """
+    if run_args is None:
+        return f"n/a (no running run — default selection: robot "\
+               f"{' '.join(DEFAULT_ARGS)})"
+    cmd = "robot " + " ".join(run_args)
+    if width and len(cmd) > width:
+        cmd = cmd[:max(0, width - 1)] + "\u2026"
+    return cmd
+
+
+def status_lines(test_name, idx, total, elapsed, colour, finished_count=None,
+                 run_args=None, width=0):
     """Build the status report for a test as a list of printable lines.
 
     Args:
@@ -379,6 +410,11 @@ def status_lines(test_name, idx, total, elapsed, colour, finished_count=None):
             current test's own </test> has been scanned) reaches 0; during a
             live run it equals idx, leaving the count unchanged. Defaults to
             idx (the current test still counts as remaining).
+        run_args: Arguments of the running robot process, to show which command
+            the report is about. None omits nothing: the line then names the
+            default selection instead.
+        width: Terminal width the command line is truncated to; 0 disables
+            truncation.
 
     Returns:
         A tuple (lines, pct): the report as a list of printable lines, and
@@ -410,7 +446,14 @@ def status_lines(test_name, idx, total, elapsed, colour, finished_count=None):
         remaining = f"\033[1;96m{remaining}\033[0m"     # bright bold cyan
         percent = f"\033[1;38;5;208m{percent}\033[0m"   # bright bold orange
 
-    lines = [f"Test        : {name}  ({fraction})",
+    label = "Command     : "
+    command = format_command(run_args, max(0, width - len(label)) if width
+                             else 0)
+    if colour:
+        command = f"\033[2m{command}\033[0m"          # dim: context, not data
+
+    lines = [f"{label}{command}",
+             f"Test        : {name}  ({fraction})",
              f"Remaining   : {remaining}  (current test included)",
              f"Progress    : {percent} %"]
 
@@ -519,13 +562,15 @@ def progress_loop(tests, run_args, pid):
             header = time.strftime("Following robot run — %H:%M:%S "
                                    "(Ctrl-C to stop watching)")
             if current is None:
-                body = ["Waiting for the first test to appear in "
+                body = [f"Command     : {format_command(run_args, width - 14)}",
+                        "Waiting for the first test to appear in "
                         f"{out_xml}…"]
                 pct = 0.0
             else:
                 finished_count = sum(1 for n in results if n in index)
                 body, pct = status_lines(current, index[current], total,
-                                         elapsed, colour, finished_count)
+                                         elapsed, colour, finished_count,
+                                         run_args, width)
             if failed_idx:
                 # Failed test names, in run order (their position in the run).
                 failed_names = sorted(
@@ -623,7 +668,7 @@ def main():
                  f"tests (typo? excluded by a tag?)")
 
     lines, _ = status_lines(args.test, tests.index(args.test), len(tests),
-                            elapsed, sys.stdout.isatty())
+                            elapsed, sys.stdout.isatty(), None, run_args)
     print("\n".join(lines))
 
 
