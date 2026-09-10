@@ -334,14 +334,11 @@ uv venv --python=/usr/bin/python3 robotframework
 And now, we can install the required python modules for our tests:
 
 ```bash
-uv pip install -U robotframework \\
-        robotframework-databaselibrary \\
-        robotframework-examples pymysql \\
-        robotframework-requests psutil \\
-        robotframework-httpctrl pyjwt \\
-        grpcio grpcio_tools \\
-        autopep8 robotframework-tidy
+uv pip install -U -r requirements.txt
 ```
+
+The list lives in `tests/requirements.txt`, which `create-dev-container.sh`
+installs from as well: add a package there rather than in both places.
 
 When you want to enable the virtual environment, you just have to execute the following command:
 
