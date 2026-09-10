@@ -242,13 +242,7 @@ run "
   cd ${TESTS_DIR}
   rm -rf robotframework
   uv venv --python=/usr/bin/python3 robotframework
-  uv pip install --python robotframework/bin/python -U \
-      robotframework \
-      robotframework-databaselibrary \
-      robotframework-examples pymysql \
-      robotframework-requests psutil \
-      robotframework-httpctrl pyjwt \
-      grpcio grpcio_tools
+  uv pip install --python robotframework/bin/python -U -r requirements.txt
 "
 
 echo ">>> (6/6) Generating the python gRPC stubs (init-proto.sh)"
