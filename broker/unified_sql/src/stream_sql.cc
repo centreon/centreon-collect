@@ -991,6 +991,10 @@ std::shared_ptr<neb::pb_host> stream::_host_instance_known(
     }
   }
   return {};
+  //  //  FIXME DBO: with the centralized configuration, checks are executed
+  //  earlier
+  //  //  than before and it is possible that the cache is not ready when first
+  //  //  checks arrive. So we temporarily disable this assert.
 }
 
 /**

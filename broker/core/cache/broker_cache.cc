@@ -26,6 +26,7 @@
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "common/engine_conf/state.pb.h"
+#include "google/protobuf/json/json.h"
 
 namespace com::centreon::broker::cache {
 
@@ -117,8 +118,16 @@ void broker_cache::merge(
 
   /* Work on hosts */
   if (section_enabled(CACHE_HOSTS)) {
+    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts fro poller {}",
+                        state.hosts().size(), state.poller_id());
     // remove all host for this poller
+    SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} before clean",
+                        _hosts.get<by_instance>().count(state.poller_id()),
+                        state.poller_id());
     _hosts.get<by_instance>().erase(state.poller_id());
+    SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} after clean",
+                        _hosts.get<by_instance>().count(state.poller_id()),
+                        state.poller_id());
     auto& index = _hosts.get<by_id>();
     for (const engine::configuration::Host& host : state.hosts()) {
       auto h = std::make_shared<neb::pb_host>();
@@ -127,6 +136,9 @@ void broker_cache::merge(
       if (!inserted)
         index.replace(it, h);
     }
+    SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} after insert",
+                        _hosts.get<by_instance>().count(state.poller_id()),
+                        state.poller_id());
   }
 
   /* Work on hostgroups */
@@ -218,6 +230,13 @@ void broker_cache::merge(
       if (!inserted)
         index_svc.replace(it, s);
     }
+
+    std::ostringstream debug;
+    for (const auto& serv : _services) {
+      debug << '(' << serv->obj().instance_id() << ",(" << serv->obj().host_id()
+            << ',' << serv->obj().service_id() << ")),";
+    }
+    SPDLOG_LOGGER_ERROR(_logger, "services: {}", debug.str());
   }
 
   /* Work on servicegroups */
@@ -335,21 +354,34 @@ void broker_cache::apply(
     const com::centreon::engine::configuration::DiffState& diff) {
   absl::WriterMutexLock lck{&_mutex};
 
-  _logger->debug("Applying configuration diff for poller id {} and name '{}'",
-                 diff.poller_id(), diff.poller_name());
+  SPDLOG_LOGGER_DEBUG(
+      _logger, "Applying configuration diff for poller id {} and name '{}'",
+      diff.poller_id(), diff.poller_name());
+
+  std::string debug_diff;
+  ::google::protobuf::json::MessageToJsonString(diff, &debug_diff);
+  SPDLOG_LOGGER_TRACE(_logger, "apply diff: {}", debug_diff);
+
   /* The easy case: when the diff is not really a diff */
   if (diff.has_state()) {
     merge(diff.state());
-    return;
   }
 
+  /*
+  FIX ME JCR
+  là, state est vide et seuls "fullConfPollerId"
+      : [ "5", "3" ] est renseigné de plus le traitement de full_conf_poller_id
+            dans database_configurator ne couvre que les hosts et services
+            Il faut revoir le mécanisme pour les state complets
+*/
   /* Work on instances */
-  if (diff.has_poller_name())
+  if (diff.has_poller_name() && diff.poller_id())
     _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
-    _logger->debug(
+    SPDLOG_LOGGER_DEBUG(
+        _logger,
         "apply(): {} severities added {} severities modified {} "
         "severities removed",
         diff.severities().added_size(), diff.severities().modified_size(),
@@ -361,7 +393,8 @@ void broker_cache::apply(
       if (it != _severities.end()) {
         it->second.first.level = sev.level();  // preserve existing db_id
         it->second.second.insert(sev.poller_id());
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity added (id={} type={} level={} poller_id={}): set "
             "now has {} pollers",
             sev.key().id(), sev.key().type(), sev.level(), sev.poller_id(),
@@ -370,7 +403,8 @@ void broker_cache::apply(
         _severities.insert({key,
                             {{sev.level(), 0},
                              absl::flat_hash_set<uint64_t>{sev.poller_id()}}});
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity added (id={} type={} level={} poller_id={}): new "
             "entry",
             sev.key().id(), sev.key().type(), sev.level(), sev.poller_id());
@@ -397,14 +431,16 @@ void broker_cache::apply(
         auto before_size = it->second.second.size();
         it->second.second.erase(key.poller_id());
         auto after_size = it->second.second.size();
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity removed (id={} type={} poller_id={}): set "
             "size {} -> {}",
             key.id(), key.type(), key.poller_id(), before_size, after_size);
         if (it->second.second.empty())
           _severities.erase(it);
       } else {
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity removed (id={} type={} poller_id={}): NOT "
             "FOUND in cache",
             key.id(), key.type(), key.poller_id());
@@ -461,14 +497,23 @@ void broker_cache::apply(
       auto h = std::make_shared<neb::pb_host>();
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
-      if (!inserted)
+      if (!inserted) {
         hosts_by_id.replace(it, h);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "update host instead off add {} for poller {}",
+                            host.host_id(), diff.poller_id());
+      } else {
+        SPDLOG_LOGGER_TRACE(_logger, "add host {} for poller {}",
+                            host.host_id(), diff.poller_id());
+      }
     }
 
     /* Modifying hosts */
     for (const engine::configuration::Host& host : diff.hosts().modified()) {
       auto h = std::make_shared<neb::pb_host>();
       _fill_host(&h->mut_obj(), host);
+      SPDLOG_LOGGER_TRACE(_logger, "update host {} for poller {}",
+                          host.host_id(), diff.poller_id());
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
         hosts_by_id.replace(it, h);
@@ -607,6 +652,13 @@ void broker_cache::apply(
   if (section_enabled(CACHE_SERVICES)) {
     auto& s_index = _services.get<by_id>();
 
+    std::ostringstream debug;
+    for (const auto& serv : _services) {
+      debug << '(' << serv->obj().instance_id() << ",(" << serv->obj().host_id()
+            << ',' << serv->obj().service_id() << ")),";
+    }
+    SPDLOG_LOGGER_ERROR(_logger, "services before apply diff: {}", debug.str());
+
     /* Adding services */
     for (const engine::configuration::Service& svc : diff.services().added()) {
       auto s = std::make_shared<neb::pb_service>();
@@ -685,6 +737,16 @@ void broker_cache::apply(
         _severities.erase(std::make_pair(id, Severity_Type_SERVICE));
         continue;
       }
+    }
+    {
+      std::ostringstream debug;
+      for (const auto& serv : _services) {
+        debug << '(' << serv->obj().instance_id() << ",("
+              << serv->obj().host_id() << ',' << serv->obj().service_id()
+              << ")),";
+      }
+      SPDLOG_LOGGER_ERROR(_logger, "services after apply diff: {}",
+                          debug.str());
     }
   }
 
@@ -784,6 +846,8 @@ void broker_cache::apply(
           removed_host_severity_ids.insert(severity_id);
 
         hosts_by_id.erase(host_it);
+        SPDLOG_LOGGER_TRACE(_logger, "remove host {} for poller {}", host_id,
+                            diff.poller_id());
       }
     }
 

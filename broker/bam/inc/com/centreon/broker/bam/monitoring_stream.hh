@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_MONITORING_STREAM_HH
 #define CCB_BAM_MONITORING_STREAM_HH
 
-#include <absl/container/flat_hash_set.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/sql/database_config.hh"

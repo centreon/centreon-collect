@@ -17,6 +17,7 @@
  *
  */
 #include "common/engine_conf/indexed_diff_state.hh"
+#include <google/protobuf/json/json.h>
 #include <spdlog/common.h>
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
@@ -57,12 +58,13 @@ void indexed_diff_state::add_diff_state(
     configuration::DiffState& diff_state,
     const std::shared_ptr<spdlog::logger>& logger) {
   if (diff_state.has_state()) {
-    logger->debug("Adding full configuration for poller {}",
-                  diff_state.poller_id());
+    SPDLOG_LOGGER_DEBUG(logger, "Adding full configuration for poller {}",
+                        diff_state.poller_id());
     add_state(*diff_state.mutable_state(), logger);
   } else {
-    logger->debug("Adding differential configuration for poller {}",
-                  diff_state.poller_id());
+    SPDLOG_LOGGER_DEBUG(logger,
+                        "Adding differential configuration for poller {}",
+                        diff_state.poller_id());
     if (logger->level() <= spdlog::level::trace) {
       logger->trace("diff: {}", diff_state.ShortDebugString());
     }
@@ -124,7 +126,8 @@ void indexed_diff_state::add_diff_state(
           return obj->host_id();
         });
 
-    logger->debug(
+    SPDLOG_LOGGER_DEBUG(
+        logger,
         "{} hosts added, {} hosts modified and {} hosts removed in the "
         "global diff state",
         _added_hosts.size(), _modified_hosts.size(), _removed_hosts.size());
@@ -152,7 +155,8 @@ void indexed_diff_state::add_diff_state(
         [](const HostServiceId& proto_key) {
           return std::make_pair(proto_key.host_id(), proto_key.service_id());
         });
-    logger->debug(
+    SPDLOG_LOGGER_DEBUG(
+        logger,
         "{} services added, {} services modified and {} services removed in "
         "the global diff state",
         _added_services.size(), _modified_services.size(),
@@ -228,7 +232,12 @@ void indexed_diff_state::add_state(
     configuration::State& state,
     const std::shared_ptr<spdlog::logger>& logger) {
   assert(state.poller_id() != 0);
-  logger->debug("Adding full configuration for poller {}", state.poller_id());
+  SPDLOG_LOGGER_DEBUG(logger, "Adding full configuration for poller {}",
+                      state.poller_id());
+  std::string state_debug;
+  ::google::protobuf::json::MessageToJsonString(state, &state_debug);
+  SPDLOG_LOGGER_TRACE(logger, "apply state {}", state_debug);
+
   _add_message<Timeperiod, std::string>(
       state.mutable_timeperiods(), _added_timeperiods, _modified_timeperiods,
       _removed_timeperiods,
@@ -250,7 +259,8 @@ void indexed_diff_state::add_state(
         return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
       });
 
-  logger->debug(
+  SPDLOG_LOGGER_DEBUG(
+      logger,
       "{} severities added and {} severities modified in the global diff "
       "state",
       _added_severities.size(), _modified_severities.size());
@@ -279,7 +289,7 @@ void indexed_diff_state::add_state(
                                  return obj->host_id();
                                });
 
-  logger->debug("There are {} added hosts", _added_hosts.size());
+  SPDLOG_LOGGER_DEBUG(logger, "There are {} added hosts", _added_hosts.size());
 
   _add_message<Hostgroup, std::pair<std::string, uint32_t>>(
       state.mutable_hostgroups(), _added_hostgroups, _modified_hostgroups,
@@ -288,7 +298,8 @@ void indexed_diff_state::add_state(
         return std::make_pair(obj->hostgroup_name(), poller_id);
       });
 
-  logger->debug(
+  SPDLOG_LOGGER_DEBUG(
+      logger,
       "There are {} added hostgroups, {} modified hostgroups and {} removed",
       _added_hostgroups.size(), _modified_hostgroups.size(),
       _removed_hostgroups.size());
@@ -369,8 +380,8 @@ void indexed_diff_state::add_state(
 void indexed_diff_state::add_state(
     const configuration::State& state,
     const std::shared_ptr<spdlog::logger>& logger) {
-  logger->debug("Adding full configuration for poller {} (copy)",
-                state.poller_id());
+  SPDLOG_LOGGER_DEBUG(logger, "Adding full configuration for poller {} (copy)",
+                      state.poller_id());
   _add_message_copy<Timeperiod, std::string>(
       state.timeperiods(), _added_timeperiods, _modified_timeperiods,
       _removed_timeperiods,
@@ -392,7 +403,8 @@ void indexed_diff_state::add_state(
         return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
       });
 
-  logger->debug(
+  SPDLOG_LOGGER_DEBUG(
+      logger,
       "{} severities added and {} severities modified in the global diff "
       "state",
       _added_severities.size(), _modified_severities.size());
@@ -421,7 +433,7 @@ void indexed_diff_state::add_state(
                                       return obj->host_id();
                                     });
 
-  logger->debug("There are {} added hosts", _added_hosts.size());
+  SPDLOG_LOGGER_DEBUG(logger, "There are {} added hosts", _added_hosts.size());
 
   _add_message_copy<Hostgroup, std::pair<std::string, uint32_t>>(
       state.hostgroups(), _added_hostgroups, _modified_hostgroups,
@@ -430,7 +442,8 @@ void indexed_diff_state::add_state(
         return std::make_pair(obj->hostgroup_name(), poller_id);
       });
 
-  logger->debug(
+  SPDLOG_LOGGER_DEBUG(
+      logger,
       "There are {} added hostgroups, {} modified hostgroups and {} removed",
       _added_hostgroups.size(), _modified_hostgroups.size(),
       _removed_hostgroups.size());

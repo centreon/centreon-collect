@@ -191,6 +191,7 @@ BEPS3R
     Ctn Config Broker    central
     Ctn Config Broker    module    ${5}
     Ctn Config BBDO3    ${5}
+    Ctn Broker Config Source Log    central    1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    trace
     Ctn Broker Config Log    central    config    trace

@@ -61,8 +61,9 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
     _state.set_available_conf_sent_to_engine_peer(
         static_cast<uint32_t>(poller_id));
   } else {
-    _logger->error("BBDO: failed to open diff file '{}' for poller {}",
-                   diff_name.string(), poller_id);
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "BBDO: failed to open diff file '{}' for poller {}",
+                        diff_name.string(), poller_id);
   }
 }
 
@@ -99,12 +100,14 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
                                      fmt::format("new-{}.prot", engine_id));
       std::filesystem::path name(_state.pollers_config_dir() /
                                  fmt::format("{}.prot", engine_id));
-      _logger->debug("bbdo::basic_stream removing {}", name.string());
+      SPDLOG_LOGGER_DEBUG(_logger, "bbdo::basic_stream removing {}",
+                          name.string());
       std::error_code ec;
       std::filesystem::rename(new_name, name, ec);
       if (ec && ec != std::errc::no_such_file_or_directory)
-        _logger->error("Unable to rename the file from '{}' to '{}'",
-                       new_name.string(), name.string());
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "Unable to rename the file from '{}' to '{}'",
+                            new_name.string(), name.string());
 
       // All the peer pollers have their configuration acknowledged.
       if (_state.all_engine_peers_acknowledged()) {
@@ -118,8 +121,9 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           std::string poller_id_str(entry.path().filename().string());
           if (entry.is_regular_file() && entry.path().extension() == ".prot" &&
               absl::StartsWith(poller_id_str, "diff-")) {
-            _logger->debug("BBDO: Merging diff file '{}' into the global one",
-                           entry.path().string());
+            SPDLOG_LOGGER_DEBUG(
+                _logger, "BBDO: Merging diff file '{}' into the global one",
+                entry.path().string());
             std::string_view poller_id_view(poller_id_str);
             poller_id_view.remove_prefix(5);
             poller_id_view.remove_suffix(5);
@@ -133,12 +137,13 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
                 diff.ParseFromIstream(&f);
                 f.close();
                 global_diff.add_diff_state(diff, _logger);
-                _logger->debug("BBDO: Removing diff file '{}'",
-                               diff_name.string());
+                SPDLOG_LOGGER_DEBUG(_logger, "BBDO: Removing diff file '{}'",
+                                    diff_name.string());
                 std::filesystem::remove(diff_name);
               }
             } else {
-              _logger->error(
+              SPDLOG_LOGGER_ERROR(
+                  _logger,
                   "BBDO: The file '{}' seems not to be a diff state file.",
                   poller_id_str);
             }
@@ -148,7 +153,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         auto& obj = diff->mut_obj();
         global_diff.release_diff_state(obj);
         multiplexing::publisher pblshr;
-        _logger->debug("BBDO: Publishing global diff state");
+        SPDLOG_LOGGER_DEBUG(_logger, "BBDO: Publishing global diff state");
         pblshr.write(diff);
       }
     } break;
@@ -172,8 +177,8 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         if (pid > 0)
           _state.push_pending_diff_state(pid, diff);
         else
-          _logger->error(
-              "BBDO: relay received DiffState with unknown poller_id");
+          SPDLOG_LOGGER_ERROR(
+              _logger, "BBDO: relay received DiffState with unknown poller_id");
       }
     } break;
     case pb_config_request::static_type(): {
@@ -251,7 +256,8 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   if (peer_type() == common::ENGINE &&
       _state.engine_peer_needs_update(poller_id())) {
-    _logger->debug(
+    SPDLOG_LOGGER_DEBUG(
+        _logger,
         "BBDO: We should send the Engine configuration to the poller {}",
         poller_id());
     _send_diff_state_for_poller(poller_id());
