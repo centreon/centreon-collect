@@ -2275,7 +2275,7 @@ void database_configurator::_add_service_resources_mariadb(
   auto& global_cache = config::applier::state::instance().cache();
 
   for (const auto& msg : lst) {
-    auto key = std::make_pair(msg.host_id(), msg.service_id());
+    auto key = std::make_pair(msg.service_id(), msg.host_id());
     keys.push_back(key);
 
     bind->set_value_as_u64(0, msg.service_id());
@@ -2377,7 +2377,7 @@ void database_configurator::_add_service_resources_mysql(
   auto& services_cache = _stream->service_description_id_cache();
   auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
-    auto key = std::make_pair(msg.host_id(), msg.service_id());
+    auto key = std::make_pair(msg.service_id(), msg.host_id());
     keys.push_back(key);
 
     auto h = global_cache.host(msg.host_id());
@@ -2504,7 +2504,7 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
 
   auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
-    auto key = std::make_pair(msg.host_id(), msg.service_id());
+    auto key = std::make_pair(msg.service_id(), msg.host_id());
     keys.push_back(key);
 
     bind->set_value_as_u64(0, msg.service_id());
@@ -2602,7 +2602,7 @@ void database_configurator::_add_anomalydetection_resources_mysql(
   auto& global_cache = config::applier::state::instance().cache();
   std::vector<std::string> values;
   for (const auto& msg : lst) {
-    auto key = std::make_pair(msg.host_id(), msg.service_id());
+    auto key = std::make_pair(msg.service_id(), msg.host_id());
     keys.push_back(key);
 
     auto h = global_cache.host(msg.host_id());

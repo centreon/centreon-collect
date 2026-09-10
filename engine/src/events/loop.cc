@@ -88,10 +88,8 @@ loop::loop() : _need_reload(false), _reload_running(false) {}
  * @brief Reload the configuration and apply its difference with the current
  * one.
  *
- * @param reloading A boolean to know if the configuration is currently
- * reloading.
  */
-static void apply_conf(std::atomic<bool>* reloading) {
+static void apply_conf() {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
   try {
@@ -109,7 +107,6 @@ static void apply_conf(std::atomic<bool>* reloading) {
   } catch (std::exception const& e) {
     config_logger->error("Error: {}", e.what());
   }
-  *reloading = false;
   process_logger->info("Reload configuration finished.");
 }
 
@@ -117,11 +114,9 @@ static void apply_conf(std::atomic<bool>* reloading) {
  * @brief Apply a diff configuration.
  *
  * @param diff_conf The new diff configuration.
- * @param reloading A boolean to know if the configuration is currently
- * reloading.
+ *
  */
-static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
-                       std::atomic<bool>* reloading) {
+static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload differential configuration.");
   try {
@@ -148,7 +143,6 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
   } catch (const std::exception& e) {
     config_logger->error("Error: {}", e.what());
   }
-  *reloading = false;
   process_logger->info(
       "Reload differential configuration finished. new engine version '{}'",
       pb_indexed_config.state().config_version());
@@ -158,7 +152,6 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
  *  Slot to dispatch Centreon Engine events.
  */
 void loop::_dispatching() {
-  std::atomic<bool> reloading{false};
   for (;;) {
     // See if we should exit or restart (a signal was encountered).
     if (sigshutdown)
@@ -179,22 +172,13 @@ void loop::_dispatching() {
     // Start reload configuration.
     if (_need_reload) {
       process_logger->info("Need reload.");
-      if (!reloading) {
-        process_logger->info("Reloading...");
-        reloading = true;
-        auto future [[maybe_unused]] =
-            std::async(std::launch::async, apply_conf, &reloading);
-      } else {
-        process_logger->info("Already reloading...");
-      }
+      process_logger->info("Reloading...");
+      apply_conf();
       _need_reload = false;
     }
     std::unique_ptr<configuration::DiffState> diff_conf;
-    if (!reloading) {
-      diff_conf = cbm->diff_state();
-    }
+    diff_conf = cbm->diff_state();
     if (diff_conf) {
-      reloading = true;
       process_logger->info("Need reload.");
       process_logger->info("Reloading...");
       if (diff_conf->unknown()) {
@@ -218,12 +202,10 @@ void loop::_dispatching() {
         /* Reset reloading: unlike apply_diff (which is async and resets
          * it at the end), sending the current conf is synchronous and we
          * must allow future diffs to be processed. */
-        reloading = false;
       } else {
         process_logger->info("New differential configuration to load.");
         process_logger->info("Reloading from Broker...");
-        auto future [[maybe_unused]] = std::async(
-            std::launch::async, apply_diff, std::move(diff_conf), &reloading);
+        apply_diff(std::move(diff_conf));
       }
     }
 

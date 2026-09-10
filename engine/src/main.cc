@@ -368,6 +368,7 @@ int main(int argc, char* argv[]) {
             }
           }
           if (!proto_valid) {
+            new_conf = std::make_unique<configuration::State>();
             configuration::state_helper state_hlp(new_conf.get());
             configuration::parser p;
             p.parse(config_file, new_conf.get(), err);

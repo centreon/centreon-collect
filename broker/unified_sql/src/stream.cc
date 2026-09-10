@@ -1051,7 +1051,7 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
     });
     cache.visit_services_of_instance(
         instance_id, [this](const Service& service) {
-          _cache_svc_cmd.erase({service.service_id(), service.host_id()});
+          _cache_svc_cmd.erase({service.host_id(), service.service_id()});
           _resources_cache.erase({service.service_id(), service.host_id()});
         });
 

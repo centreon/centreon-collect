@@ -52,6 +52,7 @@ indexed_state::indexed_state(const indexed_state& other) {
     copy_map(other._timeperiods, _timeperiods);
     copy_map(other._commands, _commands);
     copy_map(other._connectors, _connectors);
+    copy_map(other._hostgroups, _hostgroups);
     copy_map(other._severities, _severities);
     copy_map(other._tags, _tags);
     copy_map(other._contacts, _contacts);

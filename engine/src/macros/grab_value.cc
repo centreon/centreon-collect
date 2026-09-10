@@ -918,7 +918,7 @@ int grab_macro_value_r(nagios_macros* mac,
   buf = macro_name.substr(0, buf_end);
   if (buf_end != std::string_view::npos) {
     size_t arg0_end = macro_name.find(':', buf_end + 1);
-    arg[0] = macro_name.substr(buf_end + 1, arg0_end);
+    arg[0] = macro_name.substr(buf_end + 1, arg0_end - buf_end - 1);
     if (arg0_end != std::string_view::npos) {
       arg[1] = macro_name.substr(arg0_end + 1);
     }

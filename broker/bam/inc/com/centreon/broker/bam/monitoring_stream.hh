@@ -120,6 +120,9 @@ class monitoring_stream : public io::stream {
   void _write_cache();
   void _execute();
 
+  void _start_queue_external_commands_timer(unsigned second_delay)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_external_commands_m);
+
  public:
   monitoring_stream(const std::string& name,
                     const std::string& ext_cmd_file,

@@ -728,6 +728,7 @@ void monitoring_stream::_write_forced_svc_check(
       description);
   absl::MutexLock lck(&_queue_external_commands_m);
   _forced_svc_checks.emplace(host, description);
+  _start_queue_external_commands_timer(5);
 }
 
 /**
@@ -740,12 +741,7 @@ void monitoring_stream::_write_external_command(const std::string& cmd) {
       _logger, "BAM: monitoring stream _write_external_command <<{}>>", cmd);
   absl::MutexLock lck(&_queue_external_commands_m);
   _queue_external_commands.push_back(cmd);
-  _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
-  _queue_external_commands_timer.async_wait(
-      [this](const boost::system::error_code& ec) {
-        if (!ec)
-          _async_write_external_commands();
-      });
+  _start_queue_external_commands_timer(0);
 }
 
 /**
@@ -841,12 +837,7 @@ void monitoring_stream::_async_write_external_commands() {
 
   if (!_queue_external_commands_stopped) {
     absl::MutexLock lck(&_queue_external_commands_m);
-    _queue_external_commands_timer.expires_after(std::chrono::seconds(5));
-    _queue_external_commands_timer.async_wait(
-        [this](const boost::system::error_code& ec) {
-          if (!ec)
-            this->_async_write_external_commands();
-        });
+    _start_queue_external_commands_timer(5);
   }
 }
 
@@ -862,13 +853,25 @@ void monitoring_stream::_read_cache() {
   _logger->debug("BAM: scheduling {} external commands from cache",
                  _queue_external_commands.size());
   if (!_queue_external_commands.empty()) {
-    _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
-    _queue_external_commands_timer.async_wait(
-        [this](const boost::system::error_code& ec) {
-          if (!ec)
-            _async_write_external_commands();
-        });
+    _start_queue_external_commands_timer(0);
   }
+}
+
+/**
+ * @brief start _queue_external_commands_timer timer.
+ * _queue_external_commands_m must be locked before
+ *
+ * @param second_delay
+ */
+void monitoring_stream::_start_queue_external_commands_timer(
+    unsigned second_delay) {
+  _queue_external_commands_timer.expires_after(
+      std::chrono::seconds(second_delay));
+  _queue_external_commands_timer.async_wait(
+      [this](const boost::system::error_code& ec) {
+        if (!ec)
+          _async_write_external_commands();
+      });
 }
 
 /**

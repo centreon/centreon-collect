@@ -537,7 +537,7 @@ bool broker_state::is_peer_conf_known(uint64_t poller_id) const {
   if (found != _engine_peers.end()) {
     return !found->second.conf_unknown;
   }
-  return false;
+  return true;
 }
 
 /**

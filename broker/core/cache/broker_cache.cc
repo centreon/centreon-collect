@@ -155,12 +155,10 @@ void broker_cache::merge(
       obj.set_alias(hg.alias());
     };
 
+    _host_hostgroups.get<by_instance>().erase(state.poller_id());
     for (const auto& hg : state.hostgroups()) {
       const uint64_t hg_poller_id =
           hg.poller_id() != 0 ? hg.poller_id() : state.poller_id();
-      if (hg_poller_id == state.poller_id())
-        _host_hostgroups.get<by_group_instance>().erase(
-            std::make_pair(hg.hostgroup_id(), hg_poller_id));
       auto found = hg_index.find(hg.hostgroup_id());
       bool inserted = false;
       if (found == hg_index.end()) {
@@ -230,13 +228,6 @@ void broker_cache::merge(
       if (!inserted)
         index_svc.replace(it, s);
     }
-
-    std::ostringstream debug;
-    for (const auto& serv : _services) {
-      debug << '(' << serv->obj().instance_id() << ",(" << serv->obj().host_id()
-            << ',' << serv->obj().service_id() << ")),";
-    }
-    SPDLOG_LOGGER_ERROR(_logger, "services: {}", debug.str());
   }
 
   /* Work on servicegroups */
@@ -251,12 +242,10 @@ void broker_cache::merge(
       obj.set_alias(sg.alias());
     };
 
+    _service_servicegroups.get<by_instance>().erase(state.poller_id());
     for (const auto& sg : state.servicegroups()) {
       const uint64_t sg_poller_id =
           sg.poller_id() != 0 ? sg.poller_id() : state.poller_id();
-      if (sg_poller_id == state.poller_id())
-        _service_servicegroups.get<by_group_instance>().erase(
-            std::make_pair(sg.servicegroup_id(), sg_poller_id));
       auto found = _servicegroups.find(sg.servicegroup_id());
       bool inserted = false;
       if (found == sg_index.end()) {
@@ -352,20 +341,20 @@ void broker_cache::merge(
  */
 void broker_cache::apply(
     const com::centreon::engine::configuration::DiffState& diff) {
-  absl::WriterMutexLock lck{&_mutex};
-
   SPDLOG_LOGGER_DEBUG(
       _logger, "Applying configuration diff for poller id {} and name '{}'",
       diff.poller_id(), diff.poller_name());
 
-  std::string debug_diff;
-  ::google::protobuf::json::MessageToJsonString(diff, &debug_diff);
-  SPDLOG_LOGGER_TRACE(_logger, "apply diff: {}", debug_diff);
-
-  /* The easy case: when the diff is not really a diff */
-  if (diff.has_state()) {
-    merge(diff.state());
+  if (_logger->level() <= spdlog::level::trace) {
+    std::string debug_diff;
+    auto dummy [[maybe_unused]] =
+        ::google::protobuf::json::MessageToJsonString(diff, &debug_diff);
+    SPDLOG_LOGGER_TRACE(_logger, "apply diff: {}", debug_diff);
   }
+  /* The easy case: when the diff is not really a diff */
+  // if (diff.has_state()) {
+  //   merge(diff.state());
+  // }
 
   /*
   FIX ME JCR
@@ -374,9 +363,10 @@ void broker_cache::apply(
             dans database_configurator ne couvre que les hosts et services
             Il faut revoir le mécanisme pour les state complets
 */
+  absl::WriterMutexLock lck{&_mutex};
   /* Work on instances */
-  if (diff.has_poller_name() && diff.poller_id())
-    _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
+  // if (diff.has_poller_name() && diff.poller_id())
+  //   _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -540,11 +530,17 @@ void broker_cache::apply(
       std::tie(found, inserted) = hg_index.emplace(
           hostgroup, absl::flat_hash_set<uint64_t>{hg.poller_id()});
     } else {
-      hg_index.modify(found, [&hg](HostgroupContainer::value_type& to_update) {
-        to_update.first->mut_obj().set_name(hg.hostgroup_name());
-        to_update.first->mut_obj().set_alias(hg.alias());
-        to_update.second.insert(hg.poller_id());
-      });
+      std::string old_name = found->first->obj().name();
+      hg_index.modify(
+          found,
+          [&hg](HostgroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(hg.hostgroup_name());
+            to_update.first->mut_obj().set_alias(hg.alias());
+            to_update.second.insert(hg.poller_id());
+          },
+          [&old_name](HostgroupContainer::value_type& to_rollback) {
+            to_rollback.first->mut_obj().set_name(old_name);
+          });
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
@@ -652,13 +648,6 @@ void broker_cache::apply(
   if (section_enabled(CACHE_SERVICES)) {
     auto& s_index = _services.get<by_id>();
 
-    std::ostringstream debug;
-    for (const auto& serv : _services) {
-      debug << '(' << serv->obj().instance_id() << ",(" << serv->obj().host_id()
-            << ',' << serv->obj().service_id() << ")),";
-    }
-    SPDLOG_LOGGER_ERROR(_logger, "services before apply diff: {}", debug.str());
-
     /* Adding services */
     for (const engine::configuration::Service& svc : diff.services().added()) {
       auto s = std::make_shared<neb::pb_service>();
@@ -738,16 +727,6 @@ void broker_cache::apply(
         continue;
       }
     }
-    {
-      std::ostringstream debug;
-      for (const auto& serv : _services) {
-        debug << '(' << serv->obj().instance_id() << ",("
-              << serv->obj().host_id() << ',' << serv->obj().service_id()
-              << ")),";
-      }
-      SPDLOG_LOGGER_ERROR(_logger, "services after apply diff: {}",
-                          debug.str());
-    }
   }
 
   /* Work on servicegroups */
@@ -769,11 +748,16 @@ void broker_cache::apply(
       std::tie(found, inserted) = sg_index.emplace(
           servicegroup, absl::flat_hash_set<uint64_t>{sg.poller_id()});
     } else {
+      std::string old_name = found->first->obj().name();
       sg_index.modify(
-          found, [&sg](ServicegroupContainer::value_type& to_update) {
+          found,
+          [&sg](ServicegroupContainer::value_type& to_update) {
             to_update.first->mut_obj().set_name(sg.servicegroup_name());
             to_update.first->mut_obj().set_alias(sg.alias());
             to_update.second.insert(sg.poller_id());
+          },
+          [&old_name](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(old_name);
           });
     }
     if (!add) {
@@ -1183,12 +1167,18 @@ void broker_cache::update_servicegroup(
   if (servicegroup->obj().enabled()) {
     auto& sg_index = _servicegroups.get<by_id>();
     if (auto found = sg_index.find(sg_id); found != sg_index.end()) {
+      std::string old_name = found->first->obj().name();
       // The element already exists, we update it
-      sg_index.modify(found, [&](ServicegroupContainer::value_type& to_update) {
-        to_update.first->mut_obj().set_name(servicegroup->obj().name());
-        to_update.first->mut_obj().set_alias(servicegroup->obj().alias());
-        to_update.second.insert(servicegroup->obj().poller_id());
-      });
+      sg_index.modify(
+          found,
+          [&](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(servicegroup->obj().name());
+            to_update.first->mut_obj().set_alias(servicegroup->obj().alias());
+            to_update.second.insert(servicegroup->obj().poller_id());
+          },
+          [&old_name](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(old_name);
+          });
     } else {
       // The element is missing, we create it and insert it
       auto filled_servicegroup = std::make_shared<neb::pb_service_group>();
@@ -1631,6 +1621,9 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
     else
       index.insert(svc);
   } else {
+    if (it == index.end()) {
+      return;
+    }
     if (s.instance_id() != 0 && (*it)->obj().instance_id() != 0 &&
         s.instance_id() != (*it)->obj().instance_id()) {
       SPDLOG_LOGGER_DEBUG(
@@ -1640,9 +1633,7 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
           s.host_id(), s.instance_id(), (*it)->obj().instance_id());
       return;
     }
-
-    if (it != index.end() && (*it)->obj().instance_id() == s.instance_id())
-      index.erase(it);
+    index.erase(it);
   }
 }
 

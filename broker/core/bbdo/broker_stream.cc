@@ -162,7 +162,11 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       if (!diff->obj().unknown() && _state.supports_centralized_conf()) {
         // Central: Engine sent its full state back → store as N.prot.
         assert(diff->obj().has_state());
-        _state.create_prot_file(diff->obj().state());
+        if (diff->obj().has_state()) {
+          _state.create_prot_file(diff->obj().state());
+        } else {
+          SPDLOG_LOGGER_CRITICAL(_logger, "Receive uknown diff without state");
+        }
       } else if (_state.is_relay()) {
         // Relay: received DiffState from central → queue for forwarding to
         // the Engine-connected stream.  No local storage.
