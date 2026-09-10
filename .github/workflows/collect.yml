@@ -553,6 +553,11 @@ jobs:
           path: staging-centreon
           key: ${{ github.run_id }}-${{ github.sha }}-staging-centreon-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
 
+      - name: Move arm64 package-less payload aside
+        if: matrix.image == 'centreon-engine' && steps.restore-staging-arm64.outputs.cache-hit == 'true'
+        run: mv staging-centreon staging-centreon-arm64
+        shell: bash
+
       - name: Fail if package-less payload cache is missing
         if: matrix.image == 'centreon-engine' && (steps.restore-staging-amd64.outputs.cache-hit != 'true' || steps.restore-staging-arm64.outputs.cache-hit != 'true')
         run: |
@@ -591,6 +596,11 @@ jobs:
         with:
           path: staging-broker
           key: ${{ github.run_id }}-${{ github.sha }}-staging-broker-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
+
+      - name: Move arm64 broker package-less payload aside
+        if: matrix.image == 'centreon-broker' && steps.restore-staging-broker-arm64.outputs.cache-hit == 'true'
+        run: mv staging-broker staging-broker-arm64
+        shell: bash
 
       - name: Fail if broker package-less payload cache is missing
         if: matrix.image == 'centreon-broker' && (steps.restore-staging-broker-amd64.outputs.cache-hit != 'true' || steps.restore-staging-broker-arm64.outputs.cache-hit != 'true')
