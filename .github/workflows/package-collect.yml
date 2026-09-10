@@ -263,6 +263,38 @@ jobs:
         run: rm -f packaging/centreon-{collect,monitoring-agent}/*debuginfo*.yaml
         shell: bash
 
+      # Stages the centreon-engine Docker image's payload directly from the
+      # nfpm manifests, replaying their contents: entries against build/ the
+      # same way nfpm/dpkg-deb would - so .github/docker/centreon-engine/trixie/Dockerfile
+      # can COPY it without ever packing/extracting a .deb. Same package set
+      # the "Prepare packages directory" step in collect.yml's
+      # dockerize-engine-broker job already feeds that Dockerfile's extractor
+      # today (minus broker-cbd, which that Dockerfile's own extractor skips).
+      # trixie-only: no other distrib builds this Docker image.
+      - name: Stage centreon-engine package-less Docker payload
+        if: ${{ inputs.distrib == 'trixie' && ! inputs.only_robot_cma }}
+        run: |
+          apt-get update -qq && apt-get install -y -qq --no-install-recommends python3-yaml
+          python3 .github/scripts/manifest_stage.py \
+            --manifest packaging/centreon-collect/centreon-clib.yaml \
+            --manifest packaging/centreon-collect/centreon-protobuf-lib.yaml \
+            --manifest packaging/centreon-collect/centreon-engine.yaml \
+            --manifest packaging/centreon-collect/centreon-engine-daemon.yaml \
+            --manifest packaging/centreon-collect/centreon-engine-opentelemetry.yaml \
+            --manifest packaging/centreon-collect/centreon-broker.yaml \
+            --manifest packaging/centreon-collect/centreon-broker-core.yaml \
+            --manifest packaging/centreon-collect/centreon-connector-perl.yaml \
+            --manifest packaging/centreon-collect/centreon-connector-ssh.yaml \
+            --root staging-centreon
+        shell: bash
+
+      - name: Cache centreon-engine package-less Docker payload
+        if: ${{ inputs.distrib == 'trixie' && ! inputs.only_robot_cma }}
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: staging-centreon
+          key: ${{ github.run_id }}-${{ github.sha }}-staging-centreon-collect-trixie-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+
       - name: Package centreon-monitoring-agent
         if: ${{ inputs.only_robot_cma }}
         uses: ./.github/actions/package
