@@ -338,8 +338,7 @@ uv pip install -U robotframework \\
         robotframework-databaselibrary \\
         robotframework-examples pymysql \\
         robotframework-requests psutil \\
-        robotframework-httpctrl boto3 \\
-        GitPython py-cpuinfo pyjwt \\
+        robotframework-httpctrl pyjwt \\
         grpcio grpcio_tools \\
         autopep8 robotframework-tidy
 ```
@@ -373,13 +372,6 @@ robot broker/sql.robot
 For Broker OTLP export tests using a local Python gRPC collector, see
 [OTLP integration tests](broker-engine/otlp.md). These tests do not require SQL
 or an external OpenTelemetry collector.
-
-In order to execute bench tests (broker-engine/bench.robot), you need also to
-install py-cpuinfo, cython and boto3
-
-```bash
-uv pip install py-cpuinfo cython gitpython boto3
-```
 
 ## Implemented tests
 

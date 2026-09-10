@@ -57,7 +57,7 @@ Once installed, you have to create a virtual environment, we create it in the ce
 
 ```bash
 cd centreon-collect/tests
-uv venv --python=python3.11 robotframework
+uv venv --python=/usr/bin/python3 robotframework
 ```
 
 And now, we can install the required python modules for our tests:
@@ -67,8 +67,7 @@ uv pip install -U robotframework \
         robotframework-databaselibrary \
         robotframework-examples pymysql \
         robotframework-requests psutil \
-        robotframework-httpctrl boto3 \
-        GitPython unqlite py-cpuinfo pyjwt \
+        robotframework-httpctrl pyjwt \
         grpcio grpcio_tools \
         autopep8 robotframework-tidy
 ```
@@ -102,13 +101,6 @@ robot broker/sql.robot
 For Broker OTLP export tests using a local Python gRPC collector, see
 [OTLP integration tests](broker-engine/otlp.md). These tests do not require SQL
 or an external OpenTelemetry collector.
-
-In order to execute bench tests (broker-engine/bench.robot), you need also to
-install py-cpuinfo, cython, unqlite and boto3
-
-```bash
-uv pip install py-cpuinfo cython unqlite gitpython boto3
-```
 
 ## Implemented tests
 
