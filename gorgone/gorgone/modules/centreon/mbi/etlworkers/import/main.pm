@@ -24,19 +24,41 @@ use strict;
 use warnings;
 use gorgone::standard::misc;
 use File::Basename;
+use Try::Tiny;
 
 sub sql {
     my ($etlwk, %options) = @_;
 
     return if (!defined($options{params}->{sql}));
 
-    foreach (@{$options{params}->{sql}}) {
-        $etlwk->{messages}->writeLog('INFO', $_->[0]);
+    # An action may declare its statements as opportunistic: one of them failing is then reported
+    # and the next one is still attempted, instead of stopping the whole ETL run.
+    my $continueOnError = defined($options{params}->{continue_on_error}) &&
+        $options{params}->{continue_on_error} == 1 ? 1 : 0;
+
+    foreach my $statement (@{$options{params}->{sql}}) {
+        $etlwk->{messages}->writeLog('INFO', $statement->[0]);
+
+        my $connection;
         if ($options{params}->{db} eq 'centstorage') {
-            $etlwk->{dbbi_centstorage_con}->query({ query => $_->[1] });
+            $connection = $etlwk->{dbbi_centstorage_con};
         } elsif ($options{params}->{db} eq 'centreon') {
-            $etlwk->{dbbi_centreon_con}->query({ query => $_->[1] });
+            $connection = $etlwk->{dbbi_centreon_con};
         }
+        next if (!defined($connection));
+
+        if ($continueOnError == 0) {
+            $connection->query({ query => $statement->[1] });
+            next;
+        }
+
+        my $error;
+        try {
+            $connection->query({ query => $statement->[1] });
+        } catch {
+            $error = $_;
+        };
+        $etlwk->{messages}->writeLog('WARNING', $statement->[0] . ' failed: ' . $error) if (defined($error));
     }
 }
 
