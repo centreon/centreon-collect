@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2024 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -970,10 +970,9 @@ grpc::Status broker_impl::NotificationAuthorizedByDependencies(
       } else {
         service = cache.service(host_id, request->service_id());
         if (!service)
-          return grpc::Status(
-              grpc::StatusCode::NOT_FOUND,
-              fmt::format("Service with id '{}:{}' not found", host_id,
-                          request->service_id()));
+          return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                              fmt::format("Service with id '{}:{}' not found",
+                                          host_id, request->service_id()));
       }
       service_id = service->obj().service_id();
     } break;
@@ -1424,8 +1423,7 @@ grpc::Status broker_impl::ScheduleDowntime(
                         "end_time <= start_time)");
 
   if (request->type() == ScheduleDowntimeRequest::HOST) {
-    for (uint64_t svc_id :
-         cache.service_ids_for_host(resolved_host_id)) {
+    for (uint64_t svc_id : cache.service_ids_for_host(resolved_host_id)) {
       uint64_t svc_downtime_id;
       downtime_manager::instance().schedule_downtime(
           downtime::service_downtime, resolved_host_id, svc_id,
@@ -1500,8 +1498,7 @@ grpc::Status broker_impl::CheckPollerConfig(
   // Dedicated single-threaded logger: its records are captured here instead of
   // going to broker's shared CONFIG logger (no locking, no shared state).
   auto sink = std::make_shared<capturing_sink>();
-  auto logger =
-      std::make_shared<spdlog::logger>("check-poller-config", sink);
+  auto logger = std::make_shared<spdlog::logger>("check-poller-config", sink);
   logger->set_level(spdlog::level::warn);  // only warnings and errors matter
 
   // build_test_file rewrites the cfg_file=/resource_file= paths to resolve
@@ -1521,6 +1518,47 @@ grpc::Status broker_impl::CheckPollerConfig(
     return grpc::Status::OK;
   }
 
+  /* The same cross-poller index the ingestion builds, so that both paths judge
+   * a configuration identically: an object defined on another poller must read
+   * as living elsewhere here too, not as undefined.
+   *
+   * The Broker gRPC service only runs on instances with the Broker role, so the
+   * cast is safe -- same reasoning as GetPeers above. On an instance holding no
+   * poller configuration (a relay), the index comes back empty and the
+   * validation is simply the local one.
+   */
+  config::applier::broker_state* st =
+      static_cast<config::applier::broker_state*>(
+          &config::applier::state::instance());
+  auto foreign = st->load_foreign_objects();
+
+  /* Which poller is being validated has to be excluded from that index, or an
+   * object dropped from the directory under validation would still be found in
+   * the configuration stored for that same poller and read as "defined
+   * elsewhere" -- letting a dangling reference through.
+   *
+   * A poller configuration lives in a directory named after its id, which is
+   * where the ingestion takes it from as well: nothing carries it inside the
+   * .cfg files. `lexically_normal` so that a trailing slash does not hide the
+   * name. */
+  uint32_t validated_poller = 0;
+  if (absl::SimpleAtoi(dir.lexically_normal().filename().string(),
+                       &validated_poller))
+    foreign.set_to_exclude(validated_poller);
+  else if (!foreign.empty()) {
+    /* Nothing says which poller this is, so nothing can be excluded. Said out
+     * loud rather than silently accepted: a reference to an object this very
+     * directory has just dropped would be taken for one living elsewhere. */
+    auto* d = response->add_diagnostics();
+    d->set_severity(ConfigDiagnostic_Severity_WARNING);
+    d->set_message(fmt::format(
+        "'{}' is not named after a poller id, so the objects stored for the "
+        "poller it belongs to cannot be told apart from those of the others: a "
+        "reference to an object removed from this very configuration may go "
+        "unreported",
+        dir.string()));
+  }
+
   conf::State state;
   conf::state_helper state_hlp(&state);
   conf::error_cnt err;
@@ -1529,11 +1567,17 @@ grpc::Status broker_impl::CheckPollerConfig(
   try {
     p.parse(test.string(), &state, err);
     state_hlp.expand(err, logger);
-    state_hlp.resolve(err, logger);
+    state_hlp.resolve(err, logger, foreign);
   } catch (const std::exception& e) {
     thrown = e.what();
   }
-  std::filesystem::remove(test, ec);  // best-effort cleanup of the derived file
+
+  std::filesystem::remove(test, ec);
+  if (ec)
+    SPDLOG_LOGGER_ERROR(
+        log_v2::instance().get(log_v2::CORE),
+        "CheckPollerConfig: cannot remove the derived file '{}': {}",
+        test.string(), ec.message());
 
   // Logged warnings/errors first (chronological), then the fatal exception.
   for (const auto& r : sink->records) {

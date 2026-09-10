@@ -28,6 +28,12 @@ Négociation entre Engine et Broker
       * [Cycle de vie de l'annonce](#cycle-de-vie-de-lannonce)
         * [Qui consomme l'annonce, et qui la garde](#qui-consomme-lannonce-et-qui-la-garde)
       * [Quand un tour de configuration est-il terminé ?](#quand-un-tour-de-configuration-est-il-terminé-)
+  * [La validation inter-pollers : `load_foreign_objects()`](#la-validation-inter-pollers--load_foreign_objects)
+    * [`self`, et le piège qu'il couvre](#self-et-le-piège-quil-couvre)
+    * [Quand l'index est construit](#quand-lindex-est-construit)
+    * [Pourquoi l'index possède ses noms](#pourquoi-lindex-possède-ses-noms)
+    * [Ce que l'index change — et ce qu'il ne change pas](#ce-que-lindex-change--et-ce-quil-ne-change-pas)
+    * [Les deux chemins de validation, désormais alignés](#les-deux-chemins-de-validation-désormais-alignés)
   * [Valider une configuration de poller : l'endpoint gRPC `CheckPollerConfig`](#valider-une-configuration-de-poller--lendpoint-grpc-checkpollerconfig)
     * [Implémentation](#implémentation)
     * [Portée et feuille de route](#portée-et-feuille-de-route)
@@ -1236,6 +1242,143 @@ il utilise aussi cette librairie.
 
 La surveillance en utilisant `inotify` est faite au sein de la classe
 `config::applier::state`.
+
+## La validation inter-pollers : `load_foreign_objects()`
+
+Un poller seul ne peut pas juger de tout. S'il référence un host qu'il ne définit
+pas — une dépendance, une escalade, un groupe — il n'a qu'une réponse : *indéfini*.
+`Broker`, lui, connaît les configurations de **tous** les pollers, et peut donc
+distinguer un objet réellement inexistant d'un objet qui **vit ailleurs**.
+
+C'est le rôle de `load_foreign_objects()` : construire, à partir de tous les
+`<N>.prot` stockés, deux index de noms passés ensuite à `resolve()` :
+
+```
+hosts    : host_name                        → poller qui le définit
+services : {host_name, description}         → poller qui le définit
+```
+
+### `self`, et le piège qu'il couvre
+
+L'index est bâti sur **toutes** les configurations stockées, sans savoir laquelle
+sera validée ensuite : celle du poller courant en fait donc partie et doit être
+écartée. D'où `foreign_objects::self`, positionné à chaque itération.
+
+Ce n'est pas qu'une commodité. Le cas subtil est un objet **présent dans la
+configuration précédemment stockée du poller, et retiré de celle qu'on valide** :
+sans le filtre, il se lirait « défini sur ce poller » alors qu'il vient
+justement d'en disparaître, et une référence pendante passerait inaperçue. Avec le
+filtre, il se lit « indéfini », ce qui est la vérité.
+
+### Quand l'index est construit
+
+```mermaid
+sequenceDiagram
+    participant W as _post_individual_work<br/>ou _post_batch_work
+    participant C as _run_config_cycle(lot)
+    participant F as load_foreign_objects()
+    participant D as pollers-configuration/
+    participant R as _read_poller_conf(poller)
+
+    W ->> C: un lot de pollers
+    loop pour chaque poller du lot
+        alt premier poller réellement validé
+            C ->> F: construction de l'index
+            F ->> D: lit tous les <N>.prot
+            D -->> F: hosts et services de chaque poller
+            F -->> C: index (noms possédés)
+            Note right of F: Une seule fois par cycle.<br/>Différé : un cycle réveillé pour rien ne paie rien.
+        end
+        C ->> C: foreign.objects.self = poller
+        C ->> R: lecture + validation
+        R ->> R: parse, expand,<br/>resolve(err, logger, foreign)
+    end
+    Note right of C: L'index est détruit à la fin du cycle.<br/>Il est déclaré hors de la boucle :<br/>il doit survivre à tous les resolve du lot.
+```
+
+Deux propriétés à ne pas casser : l'index est construit **une seule fois par
+cycle** — sur un déploiement complet, le reconstruire par poller relirait le
+magasin autant de fois qu'il y a de pollers — et il est déclaré **hors** de la
+boucle, parce que `resolve()` emprunte les noms qu'il contient.
+
+### Pourquoi l'index possède ses noms
+
+`foreign_objects` est fait de `std::string_view` : quelqu'un doit posséder les
+chaînes. Ce furent d'abord les messages `State` eux-mêmes, gardés vivants pour
+toute la durée de la validation — c'est-à-dire des dizaines de mégaoctets de
+configuration désérialisée conservés pour en extraire quelques centaines de
+milliers de noms.
+
+Aujourd'hui `foreign_states::names` les possède (un `std::deque<std::string>`, dont
+les éléments ne bougent jamais — ni à la croissance, ni au déplacement de la
+structure), les noms sont **internés** (un `host_name` partagé par ses vingt-cinq
+services est stocké une fois), et chaque message est libéré dès qu'il a été
+parcouru. Mesuré sur 10 pollers de 50 000 services (51,6 Mo de `.prot`) :
+
+| | temps (libération incluse) | pic mémoire |
+|---|---|---|
+| index emprunté aux messages | 391 ms | 391 Mo |
+| index possédant, noms internés | **295 ms** | **82 Mo** |
+
+Le coût est linéaire, environ 5 ms par mégaoctet de `.prot`. Les 82 Mo restants
+sont l'index lui-même (500 000 entrées) ; les noms distincts ne pèsent plus qu'un
+mégaoctet.
+
+> ⚠️ Le temps **baisse** alors qu'on fait un peu plus de travail (l'internement),
+> et ce n'est pas un paradoxe : libérer chaque message aussitôt laisse l'allocateur
+> réutiliser ses blocs pour le poller suivant, au lieu de faire enfler le tas
+> jusqu'à 391 Mo avant de tout rendre. Mesurer ceci demande de chronométrer la
+> **libération** aussi : la version qui emporte ses déchets dans sa valeur de retour
+> les fait payer à l'appelant, après la fin du chronomètre.
+
+Le banc de mesure est `broker/core/config/applier/test/broker_state_foreign_bench.cc`
+(`DISABLED_`, donc gratuit en intégration continue) :
+
+```bash
+tests/ut_broker --gtest_also_run_disabled_tests --gtest_filter='*ForeignObjectsCost*'
+```
+
+### Ce que l'index change — et ce qu'il ne change pas
+
+**Il ne rend jamais une configuration valide.** Les quatre endroits qui le
+consultent incrémentent `err.config_errors` **avant** de l'interroger :
+
+```
+hostdependency_helper.cc:280   err.config_errors++;
+hostdependency_helper.cc:282   if (uint64_t poller = elsewhere.poller_of_host(...))
+```
+
+Un objet qui vit sur un autre poller est donc une erreur, exactement comme un
+objet qui n'existe pas — une dépendance ou une escalade ne franchit pas la
+frontière d'un poller. Ce que l'index apporte est la **précision du
+diagnostic** :
+
+| Sans l'index | Avec l'index |
+|---|---|
+| « Dependent host 'X' … is not defined anywhere! » | « Dependent host 'X' … belongs to poller 2 : \<raison\> » |
+
+La différence n'est pas cosmétique pour qui reçoit le message : le premier envoie
+chercher une faute de frappe, le second dit ce qui s'est réellement passé.
+
+### Les deux chemins de validation, désormais alignés
+
+`resolve()` prend les objets étrangers en **paramètre par défaut vide**
+(`common/engine_conf/state_helper.hh:47`). `CheckPollerConfig` ne les passait pas,
+et rendait donc le diagnostic dégradé — le verdict, lui, était le même. Les deux
+chemins construisent maintenant le même index :
+
+| Chemin | Appel |
+|---|---|
+| Ingestion — `_read_poller_conf()` | `resolve(err, logger, foreign->objects)` |
+| `CheckPollerConfig` — `broker_impl.cc` | `resolve(err, logger, foreign.objects)` |
+
+Reste la question de `self`, que la requête ne porte pas : elle ne nomme qu'un
+répertoire. Comme une configuration de poller vit dans un répertoire nommé par son
+id — c'est de là que l'ingestion le tire, rien ne le porte dans les `.cfg` —
+l'endpoint le lit du nom du répertoire. Si ce nom n'est pas un id, rien ne peut
+être exclu : l'endpoint le **dit** alors dans un diagnostic `WARNING`, plutôt que
+de laisser passer sans bruit une référence à un objet que ce répertoire vient de
+retirer.
 
 ## Valider une configuration de poller : l'endpoint gRPC `CheckPollerConfig`
 

@@ -188,9 +188,22 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       _logger->debug("bbdo::basic_stream removing {}", name.string());
       std::error_code ec;
       std::filesystem::rename(new_name, name, ec);
-      if (ec && ec != std::errc::no_such_file_or_directory)
-        _logger->error("Unable to rename the file from '{}' to '{}'",
-                       new_name.string(), name.string());
+      if (ec) {
+        if (ec != std::errc::no_such_file_or_directory)
+          _logger->error("Unable to rename the file from '{}' to '{}'",
+                         new_name.string(), name.string());
+      } else {
+        /* A new configuration just became this poller's reference, so the cache
+         * follows. Only on a successful rename: without a `new-<ID>.prot` there
+         * was nothing new to acknowledge, and `<ID>.prot` already describes
+         * what the cache holds.
+         *
+         * Done here rather than by publishing a pb_engine_state: that event is
+         * handled by unified_sql's _process_engine_state, which calls
+         * process_state() and would rewrite the whole configuration to the
+         * database on every single export. */
+        _state.merge_poller_config_in_cache(engine_id);
+      }
 
       // All the peer pollers have their configuration acknowledged.
       if (_state.all_engine_peers_acknowledged()) {

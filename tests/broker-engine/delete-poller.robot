@@ -628,3 +628,67 @@ EBDP8
     Should Be True    ${result}    No message about these two wrong service status.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+EBDP_CENTRALIZED_PROT
+    [Documentation]    Scenario: removing a poller also removes the configuration Broker stores for it
+    ...    Given three pollers in centralized mode, each with its configuration acknowledged
+    ...    And Broker therefore holds a <id>.prot for each of them
+    ...    When every Engine is stopped and Poller3 is removed through the gRPC command
+    ...    Then 3.prot is gone, so a later start cannot load a poller that left the platform
+    ...    And the configurations of the two remaining pollers are untouched
+    [Tags]    broker    engine    grpc    config    centralized
+    Ctn Clear Prot Files
+    Ctn Clear Broker Cache
+    Ctn Config Centralized Engine    ${3}    ${10}    ${2}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    sql    debug
+
+    ${prot_dir}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    # A <id>.prot only appears once its poller has acknowledged: that is the
+    # rename of new-<id>.prot, so waiting on the acknowledgements is waiting on
+    # the files.
+    ${content}    Create List    All engine peers acknowledged? 3/3 acknowledged
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The three pollers did not acknowledge their configuration
+    Wait Until Created    ${prot_dir}/3.prot    30s
+    File Should Exist    ${prot_dir}/1.prot
+    File Should Exist    ${prot_dir}/2.prot
+
+    # RemovePoller only accepts a poller that is not running, so every Engine is
+    # stopped first. Broker stays up: it is the one that has to handle the
+    # command and delete the file.
+    Ctn Stop Engine
+    ${content}    Create List    unified_sql: Disabling poller (id: 3
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not process the stop of poller 3
+
+    Ctn Remove Poller By Id    51001    ${3}
+
+    # The file must go, and it alone: nothing says the other two pollers left.
+    Wait Until Removed    ${prot_dir}/3.prot    30s
+    File Should Exist    ${prot_dir}/1.prot
+    ...    the configuration of poller 1 must not be touched
+    File Should Exist    ${prot_dir}/2.prot
+    ...    the configuration of poller 2 must not be touched
+
+    ${content}    Create List    poller 3 is no longer on the platform
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not report removing the stored configuration
+
+    # And the point of it all: a later start must not load poller 3 back into the
+    # cache. The log names the pollers it loads, so it says so directly.
+    ${restart}    Ctn Get Round Current Date
+    Ctn Kindly Stop Broker
+    Ctn Start Broker    newGeneration=True
+    ${content}    Create List    stored configurations of poller(s) 1, 2
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    The cache was not filled from the two remaining pollers only
+    Ctn Kindly Stop Broker

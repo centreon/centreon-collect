@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #define CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #include <boost/asio/strand.hpp>
+#include <mutex>
 
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/broker_notification_dispatcher.hh"
@@ -92,21 +93,6 @@ class broker_state : public state {
     bool extended_negotiation;
   };
 
-  /**
-   * @brief The configurations of the other pollers, and the index built over
-   * them.
-   *
-   * The two travel together on purpose: `objects` holds non-owning
-   * `std::string_view` pointing into `states`, so the caller must keep the
-   * whole thing alive for as long as it uses the index. The states are held
-   * behind `unique_ptr` so that moving or returning this structure never moves
-   * the messages themselves, which would dangle every view.
-   */
-  struct foreign_states {
-    std::vector<std::unique_ptr<com::centreon::engine::configuration::State>>
-        states;
-    com::centreon::engine::configuration::foreign_objects objects;
-  };
 
  public:
   enum notification_mode { notification_mode_engine, notification_mode_broker };
@@ -269,7 +255,7 @@ class broker_state : public state {
 
   std::unique_ptr<engine::configuration::State> _read_poller_conf(
       uint32_t poller_id,
-      const foreign_states& foreign,
+      const com::centreon::engine::configuration::foreign_objects& foreign,
       bool& refused);
   bool _store_poller_conf(uint32_t poller_id,
                           const engine::configuration::State& state,
@@ -350,7 +336,17 @@ class broker_state : public state {
   void create_prot_file(
       const com::centreon::engine::configuration::State& conf);
 
-  foreign_states load_foreign_objects() const;
+  bool _merge_stored_config_in_cache(const std::filesystem::path& path,
+                                     uint64_t poller_id);
+  /* Guards the one-shot loading of the stored configurations: it is pulled by
+   * whoever first needs the cache, from more than one thread. */
+  std::once_flag _pollers_config_in_cache_once;
+  void _ensure_pollers_config_in_cache();
+  void load_pollers_config_in_cache();
+  void merge_poller_config_in_cache(uint64_t poller_id);
+  void remove_poller_config(uint64_t poller_id) override;
+  com::centreon::engine::configuration::foreign_objects
+  load_foreign_objects() const;
 
   enum class relay_config_response { unknown, up_to_date, diff_ready };
   void register_engine_peer_via_relay(uint64_t engine_id,

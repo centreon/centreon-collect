@@ -1135,9 +1135,14 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
  * @param ids The list of instance IDs to clear from the cache.
  */
 void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
-  auto& cache = config::applier::state::instance().cache();
-  for (uint64_t instance_id : ids)
+  auto& state = config::applier::state::instance();
+  auto& cache = state.cache();
+  for (uint64_t instance_id : ids) {
     cache.remove_instance(instance_id);
+    /* And the configuration files kept for it: otherwise the next startup
+     * would load them back into the cache we just cleaned. */
+    state.remove_poller_config(instance_id);
+  }
 
   // auto host_ids = cache.host_ids();
   // for (uint64_t host_id : host_ids) {

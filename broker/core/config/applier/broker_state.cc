@@ -240,6 +240,20 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
  * known yet; re-injected later from _process_engine_state after merge).
  */
 void broker_state::_on_barrier_released() {
+  /* Here and not at the end of apply(): the output streams are created
+   * asynchronously by their failover, and it is their constructors that declare
+   * which cache sections they need. Filling the cache from apply() therefore
+   * stored nothing at all on a cold start -- measured: "0 hosts and 0 services
+   * known" on the first run, 50 and 1000 on the next -- which is the very
+   * non-determinism this loading is meant to remove.
+   *
+   * The readiness barrier releases once every output endpoint has registered as
+   * ready, so by here they exist and have spoken. And it runs before the
+   * re-injections below, which need the cache to already know the resource. */
+  /* Net: on a platform where no poller connects, nothing else would pull the
+   * load, and the cache would stay empty for the re-injections below. */
+  _ensure_pollers_config_in_cache();
+
   if (_notification_mode == notification_mode_broker) {
     cache().reinject_pending_downtimes();
     cache().reinject_pending_notification_states();
@@ -429,6 +443,201 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
 }  // namespace
 
 /**
+ * @brief Fill the global cache with every poller configuration Broker stores.
+ *
+ * Called once at startup, and this is what makes the cache's contents
+ * *deterministic*. Until now it was filled only when a poller connected
+ * (`merge()` from `_feed_cache_and_wake_up_resources`) and by the events the
+ * poller then sent, so what it held about an absent poller depended on
+ * history: connected earlier in this run, or described by a cache file left by
+ * a previous one, or nothing at all. The same observable state -- a poller that
+ * is not there -- gave three different answers, and no reader could reason
+ * about it.
+ *
+ * The rule is now the one the rest of the code already assumes: an object
+ * defined on the platform is in the cache, whether its poller is connected or
+ * not. That is what lets Broker carry downtimes and notification states for a
+ * poller that is momentarily down, and it is why the base marks a stopped
+ * poller's hosts `enabled=0` rather than deleting them.
+ *
+ * The stored `<poller_id>.prot` files are the source: Broker writes them
+ * itself, and each is a configuration Engine has acknowledged. Which also makes
+ * the configuration part of the on-disk cache file redundant -- and it could be
+ * stale, since nothing recalibrated it on an export.
+ *
+ * Called from _on_barrier_released(), and the moment is not free to choose:
+ *  - it must run once every output stream exists, since it is their
+ *    constructors that declare the cache sections they need (`unified_sql` asks
+ *    for all of them) and `merge()` stores nothing for a section nobody wants.
+ *    The streams are created asynchronously, so the end of apply() is too
+ *    early;
+ *  - it must run before any re-injection of persisted downtimes or
+ *    notification states, which need the cache to already know the resource.
+ */
+bool broker_state::_merge_stored_config_in_cache(
+    const std::filesystem::path& path,
+    uint64_t poller_id) {
+  engine::configuration::State state;
+  std::ifstream f(path, std::ios::binary);
+  if (!f || !state.ParseFromIstream(&f)) {
+    /* One unreadable configuration costs the cache what that poller defines,
+     * nothing more. */
+    _logger->warn(
+        "Cannot read the stored configuration '{}' of poller {}: the cache "
+        "will not know what this poller defines",
+        path.string(), poller_id);
+    return false;
+  }
+  cache().merge(state);
+  return true;
+}
+
+/**
+ * @brief Load the stored configurations into the cache, once, before anything
+ * else touches it.
+ *
+ * Lazily and not from a fixed point in the startup, because there is no fixed
+ * point that works. Two constraints pull in opposite directions:
+ *
+ *  - too early -- the end of apply() -- and nothing is stored at all: the
+ *    output streams are created asynchronously by their failover, and it is
+ *    their constructors that declare the cache sections, without which merge()
+ *    keeps nothing;
+ *  - too late -- the readiness barrier -- and it *overwrites* fresher data: a
+ *    poller connects and acknowledges through its BBDO stream well before the
+ *    multiplexing engine, hence before the barrier releases. Measured: the
+ *    configuration acknowledged at 29.678 was undone by the load at 32.007.
+ *
+ * So the load is pulled by its first user instead of being pushed at a moment
+ * chosen in advance. Whoever is about to read or update the cache calls this
+ * first, and by then the sections have been declared -- otherwise there would
+ * be nothing to read.
+ */
+void broker_state::_ensure_pollers_config_in_cache() {
+  std::call_once(_pollers_config_in_cache_once,
+                 [this] { load_pollers_config_in_cache(); });
+}
+
+/**
+ * @brief Bring the cache up to date with the configuration poller @p poller_id
+ * has just acknowledged.
+ *
+ * Called from the BBDO stream, right after `new-<ID>.prot` became
+ * `<ID>.prot` -- the moment that configuration becomes the reference, because
+ * Engine confirmed applying it.
+ *
+ * Without this, loading the stored configurations at startup would only give a
+ * cache that is right *at startup*: the first export would leave it behind, and
+ * it would stay behind until that poller reconnected. This is what makes the
+ * cache know objects an export has just created.
+ *
+ * It runs before the global diff is published, so whoever handles that diff
+ * finds the cache already describing what the diff refers to.
+ *
+ * @param poller_id The poller whose configuration was acknowledged.
+ */
+void broker_state::merge_poller_config_in_cache(uint64_t poller_id) {
+  if (!pollers_config_dir_usable())
+    return;
+  /* The stored configurations first, so this fresher one lands on top of them
+   * and not the other way round. */
+  _ensure_pollers_config_in_cache();
+  const auto path = pollers_config_dir() / fmt::format("{}.prot", poller_id);
+  const auto started_at = std::chrono::steady_clock::now();
+  if (!_merge_stored_config_in_cache(path, poller_id))
+    return;
+  /* The counts say what the cache holds afterwards, which is the only way to
+   * see that the merge had an effect -- a section no module asked for makes
+   * merge() store nothing. Guarded because they walk the whole cache: the
+   * arguments of a log call are evaluated whether or not the level is on. */
+  if (_logger->should_log(spdlog::level::debug))
+    _logger->debug(
+        "Global cache updated with the configuration acknowledged by poller {} "
+        "in {} ms: {} hosts and {} services known",
+        poller_id,
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - started_at)
+            .count(),
+        cache().host_ids().size(), cache().service_ids().size());
+}
+
+/**
+ * @brief Forget everything stored about a poller removed from the platform.
+ *
+ * The three files a poller can have in the configuration directory go together:
+ * `<ID>.prot` is the configuration it acknowledged, `new-<ID>.prot` one waiting
+ * to be acknowledged, `diff-<ID>.prot` a difference waiting to be delivered.
+ * None of them means anything once the poller is gone.
+ *
+ * Leaving them behind is not harmless. The startup load turns every stored
+ * configuration into cache entries, so a leftover file would keep describing
+ * hosts and services nobody monitors any more -- and a leftover `diff-` is
+ * worse, since the global diff is built by merging whatever `diff-*.prot` the
+ * directory holds.
+ *
+ * @param poller_id The poller being removed.
+ */
+void broker_state::remove_poller_config(uint64_t poller_id) {
+  if (!pollers_config_dir_usable())
+    return;
+  for (const char* pattern : {"{}.prot", "new-{}.prot", "diff-{}.prot"}) {
+    const auto path =
+        pollers_config_dir() / fmt::format(fmt::runtime(pattern), poller_id);
+    std::error_code ec;
+    if (std::filesystem::remove(path, ec))
+      _logger->info("Removed '{}': poller {} is no longer on the platform",
+                    path.string(), poller_id);
+    else if (ec)
+      _logger->warn("Cannot remove '{}' of removed poller {}: {}",
+                    path.string(), poller_id, ec.message());
+  }
+}
+
+/**
+ * @brief Fill the global cache with every poller configuration Broker stores.
+ */
+void broker_state::load_pollers_config_in_cache() {
+  if (!pollers_config_dir_usable() ||
+      !std::filesystem::exists(pollers_config_dir()))
+    return;
+
+  const auto started_at = std::chrono::steady_clock::now();
+  /* The pollers are named, not counted. A configuration is stored for as long
+   * as Broker holds its file, and nothing removes that file when a poller
+   * leaves the platform by any other route than the RemovePoller command --
+   * someone deleting it from the interface without it, say. Naming them is what
+   * lets an unexpected id be spotted at a glance instead of by walking the
+   * directory. Sorted so two starts read the same way. */
+  std::vector<uint64_t> pollers;
+  std::error_code ec;
+  for (const auto& entry :
+       std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
+    const uint64_t id = stored_poller_config_id(entry.path());
+    if (id == 0)
+      continue;
+    if (_merge_stored_config_in_cache(entry.path(), id))
+      pollers.push_back(id);
+  }
+  std::sort(pollers.begin(), pollers.end());
+  if (ec)
+    _logger->warn("Cannot browse the pollers configuration directory '{}': {}",
+                  pollers_config_dir().string(), ec.message());
+  if (!pollers.empty())
+    /* The counts are what the cache actually holds, not what was read: a
+     * section no module asked for makes merge() store nothing, and the number
+     * of files parsed would say nothing about it. Walking the cache once at
+     * startup costs nothing worth guarding against. */
+    _logger->info(
+        "Global cache filled from the stored configurations of poller(s) {} in "
+        "{} ms: {} hosts and {} services known",
+        fmt::join(pollers, ", "),
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - started_at)
+            .count(),
+        cache().host_ids().size(), cache().service_ids().size());
+}
+
+/**
  * @brief Read every poller configuration Broker stores, and index their hosts
  * and services by poller.
  *
@@ -438,7 +647,8 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
  *
  * The result is deliberately not tied to one poller, so that validating several
  * pollers in a row parses the store once instead of once per poller. Which
- * poller a given validation is about is told through `foreign_objects::self`,
+ * poller a given validation is about is told through
+ * `foreign_objects::set_to_exclude()`,
  * and that is what keeps its own objects out of the answers.
  *
  * The index mirrors the intra-poller one built by `state_helper::resolve`,
@@ -448,8 +658,10 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
  * @return The states read, and the index borrowing their strings. Both must
  * outlive the validation that uses the index.
  */
-broker_state::foreign_states broker_state::load_foreign_objects() const {
-  foreign_states retval;
+engine::configuration::foreign_objects broker_state::load_foreign_objects()
+    const {
+  const auto started_at = std::chrono::steady_clock::now();
+  engine::configuration::foreign_objects retval;
   if (pollers_config_dir().empty() ||
       !std::filesystem::exists(pollers_config_dir()))
     return retval;
@@ -461,9 +673,9 @@ broker_state::foreign_states broker_state::load_foreign_objects() const {
     if (id == 0)
       continue;
 
-    auto state = std::make_unique<engine::configuration::State>();
+    engine::configuration::State state;
     std::ifstream f(entry.path(), std::ios::binary);
-    if (!f || !state->ParseFromIstream(&f)) {
+    if (!f || !state.ParseFromIstream(&f)) {
       /* A configuration we cannot read only costs us the precision of the
        * diagnostics about that poller, so it is not worth failing the whole
        * validation. */
@@ -474,25 +686,25 @@ broker_state::foreign_states broker_state::load_foreign_objects() const {
           entry.path().string(), id);
       continue;
     }
-    for (const auto& h : state->hosts())
-      retval.objects.hosts.emplace(h.host_name(), id);
-    for (const auto& s : state->services())
-      retval.objects.services.emplace(
-          std::pair<std::string_view, std::string_view>(
-              s.host_name(), s.service_description()),
-          id);
-    /* Moving the unique_ptr does not move the message, so every view inserted
-     * above stays valid. */
-    retval.states.push_back(std::move(state));
+    for (const auto& h : state.hosts())
+      retval.add_host(h.host_name(), id);
+    for (const auto& s : state.services())
+      retval.add_service(s.host_name(), s.service_description(), id);
+    /* `state` dies here: what the index needed of it has been copied into
+     * `retval.names`, and keeping the message alive for the rest of the
+     * validation would hold the whole configuration for a handful of names. */
   }
   if (ec)
     _logger->warn("Cannot browse the pollers configuration directory '{}': {}",
                   pollers_config_dir().string(), ec.message());
   _logger->debug(
-      "Loaded the {} stored poller configurations for the cross-poller "
-      "validation: {} hosts and {} services indexed",
-      retval.states.size(), retval.objects.hosts.size(),
-      retval.objects.services.size());
+      "Loaded the stored poller configurations for the cross-poller "
+      "validation: {} hosts and {} services indexed over {} distinct names in "
+      "{} ms",
+      retval.host_count(), retval.service_count(), retval.name_count(),
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - started_at)
+          .count());
   return retval;
 }
 
@@ -687,6 +899,10 @@ void broker_state::add_peer(uint64_t poller_id,
  */
 bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   bool retval = true;
+  /* Same reason as in merge_poller_config_in_cache(): what this publishes ends
+   * up merged into the cache, so the stored configurations must already be
+   * there. */
+  _ensure_pollers_config_in_cache();
   if (!pollers_config_dir_usable()) {
     /* Nothing to feed the cache from, and no relative path to stumble into:
      * this instance simply does not hold poller configurations. */
@@ -1310,7 +1526,7 @@ void broker_state::_post_batch_work() {
  */
 std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
     uint32_t poller_id,
-    const foreign_states& foreign,
+    const engine::configuration::foreign_objects& foreign,
     bool& refused) {
   refused = false;
   const std::filesystem::path dir =
@@ -1348,7 +1564,7 @@ std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
     /* Being the central, we can do better than a poller alone: the
      * configurations stored for the other pollers tell whether an object this
      * one references is genuinely undefined or merely lives elsewhere. */
-    state_hlp.resolve(err, _logger, foreign.objects);
+    state_hlp.resolve(err, _logger, foreign);
     if (err.config_errors)
       throw com::centreon::exceptions::msg_fmt(
           "configuration for poller {} (version '{}') has {} error(s); "
@@ -1458,17 +1674,17 @@ void broker_state::_run_config_cycle(
 
   /* Read once for the whole lot: on a deploy-all, pollers_set holds every
    * poller and re-reading the store for each of them would parse it as many
-   * times as it has entries. Each iteration only points `self` at the poller it
-   * validates. The read is deferred to the first poller of the lot, so a cycle
-   * woken up for nothing pays nothing. */
-  std::optional<foreign_states> foreign;
+   * times as it has entries. Each iteration only moves the exclusion onto the
+   * poller it validates. The read is deferred to the first poller of the lot,
+   * so a cycle woken up for nothing pays nothing. */
+  std::optional<engine::configuration::foreign_objects> foreign;
   for (uint32_t poller_id : pollers_set) {
     _logger->debug(
         "Checking if there is a new Engine configuration for poller {}",
         poller_id);
     if (!foreign)
       foreign = load_foreign_objects();
-    foreign->objects.self = poller_id;
+    foreign->set_to_exclude(poller_id);
 
     bool refused = false;
     auto state = _read_poller_conf(poller_id, *foreign, refused);

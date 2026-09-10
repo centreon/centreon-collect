@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_MESSAGE_HELPER_HH
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/container/node_hash_set.h>
 #include <google/protobuf/util/message_differencer.h>
 #include "common/engine_conf/state.pb.h"
 
@@ -48,31 +49,99 @@ struct error_cnt {
  * the poller that owns the object, which turns an unactionable "not defined
  * anywhere" into a diagnostic an administrator can do something about.
  */
-struct foreign_objects {
+class foreign_objects {
+  /* The names the two indexes below point at, each stored once.
+   *
+   * They have to be owned by someone: the keys are `std::string_view`, and the
+   * messages they were read from are released as soon as they have been walked
+   * -- keeping them alive would mean holding the whole configuration of the
+   * platform to read a few hundred thousand names out of it. Interning them
+   * here means a host name shared by its twenty-five services is stored once,
+   * and a description repeated across every host likewise.
+   *
+   * `node_hash_set` and not `flat_hash_set`: this is the container abseil
+   * documents as the choice "if you need pointer stability", and pointer
+   * stability is exactly what every view handed out below depends on. A flat
+   * set relocates its elements on rehash, and a string of 15 characters or less
+   * carries its bytes *inside* the object (measured on libstdc++), so its data
+   * would move with it -- every view on a short name, which is to say on most
+   * service descriptions, would dangle. Silently, and only for the short ones.
+   *
+   * Empty, and free, whenever the validation runs without a global view: Engine
+   * checking its own configuration never fills this in. */
+  absl::node_hash_set<std::string> _names;
+
   /* Host name to the id of the poller defining it. */
-  absl::flat_hash_map<std::string_view, uint64_t> hosts;
+  absl::flat_hash_map<std::string_view, uint64_t> _hosts;
   /* {host name, service description} to the id of the poller defining it. */
   absl::flat_hash_map<std::pair<std::string_view, std::string_view>, uint64_t>
-      services;
-  /* The poller being validated. The index is built once over every stored
-   * configuration, without knowing which validation will use it, so the
-   * configuration of that poller is in there too and has to be filtered out.
-   * It also covers a subtler case: an object present in the poller's previously
-   * stored configuration but dropped from the one being validated must read as
-   * undefined, not as living on that same poller. */
-  uint64_t self = 0;
+      _services;
+  /* The poller whose objects must be left out of every answer -- in practice
+   * the one being validated, since the index is built once over every stored
+   * configuration, without knowing which validation will use it, so that
+   * poller's own configuration is in there too.
+   *
+   * Excluding it also covers a subtler case: an object present in the poller's
+   * previously stored configuration but dropped from the one being validated
+   * must read as undefined, not as living on that same poller.
+   *
+   * 0 means "exclude nothing", which is a proper answer and not a missing one:
+   * Engine validates its own configuration with no global view, and
+   * CheckPollerConfig may be given a directory that is not named after a poller
+   * id. Hence a name saying what the field does rather than whose id it is --
+   * "self = 0" would read as "I do not know who I am". */
+  uint64_t _to_exclude = 0;
+
+  /* @brief Store @a name once, and return a view on the stored copy. */
+  std::string_view _intern(std::string_view name) {
+    return *_names.emplace(name).first;
+  }
+
+ public:
+  foreign_objects() = default;
+  /* Copying would hand out an index pointing into the *original*'s names, so it
+   * is forbidden rather than left as a trap. */
+  foreign_objects(const foreign_objects&) = delete;
+  foreign_objects& operator=(const foreign_objects&) = delete;
+  /* Moving is safe: a node set transfers its nodes without touching the strings
+   * they hold, so every view stays valid. */
+  foreign_objects(foreign_objects&&) = default;
+  foreign_objects& operator=(foreign_objects&&) = default;
+
+  /* @brief Record that @a poller_id defines this host. */
+  void add_host(std::string_view host_name, uint64_t poller_id) {
+    _hosts.emplace(_intern(host_name), poller_id);
+  }
+
+  /* @brief Record that @a poller_id defines this service. */
+  void add_service(std::string_view host_name,
+                   std::string_view description,
+                   uint64_t poller_id) {
+    _services.emplace(std::pair<std::string_view, std::string_view>(
+                          _intern(host_name), _intern(description)),
+                      poller_id);
+  }
+
+  /* @brief Leave the objects of @a poller_id out of every answer below. Pass 0,
+   * or leave it alone, to exclude nothing. */
+  void set_to_exclude(uint64_t poller_id) noexcept { _to_exclude = poller_id; }
+
+  bool empty() const noexcept { return _hosts.empty() && _services.empty(); }
+  size_t host_count() const noexcept { return _hosts.size(); }
+  size_t service_count() const noexcept { return _services.size(); }
+  size_t name_count() const noexcept { return _names.size(); }
 
   /* The id of the poller defining @a host, 0 when no other poller does. */
   uint64_t poller_of_host(std::string_view host) const {
-    auto it = hosts.find(host);
-    return it == hosts.end() || it->second == self ? 0 : it->second;
+    auto it = _hosts.find(host);
+    return it == _hosts.end() || it->second == _to_exclude ? 0 : it->second;
   }
 
   /* The id of the poller defining the service, 0 when no other poller does. */
   uint64_t poller_of_service(std::string_view host,
                              std::string_view description) const {
-    auto it = services.find({host, description});
-    return it == services.end() || it->second == self ? 0 : it->second;
+    auto it = _services.find({host, description});
+    return it == _services.end() || it->second == _to_exclude ? 0 : it->second;
   }
 };
 
