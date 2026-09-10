@@ -87,6 +87,31 @@ fi
 echo "=== manifest-conformance check OK - every manifest dst: present in the image ==="
 EOF
 
+# Check 3: compiled-path assertion - the check that actually matters for the
+# externalcmd.so/cbmod.so class of bug. Neither check 1 (ldd) nor check 2
+# (manifest-conformance) can catch a dst: moving independently of the path
+# CMake baked into the generated centengine.cfg's `broker_module=` line
+# (engine/conf/centengine.cfg.in:121, `broker_module=@ENGINE_MODULES_DIR@externalcmd.so`,
+# substituted from engine/CMakeLists.txt:50's hardcoded ENGINE_MODULES_DIR) -
+# that config line is what centengine actually dlopen()s from at runtime,
+# independent of whatever the nfpm yaml's dst: says. This check parses that
+# config file directly and asserts the path it declares actually exists.
+RUN bash -eo pipefail <<'EOF'
+missing=0
+while IFS= read -r path; do
+  [ -z "$path" ] && continue
+  if [ ! -e "$path" ]; then
+    echo "COMPILED-PATH ASSERTION FAILURE: centengine.cfg's broker_module= declares '$path' but it does not exist in the image"
+    missing=1
+  fi
+done < <(grep -E '^broker_module=' /etc/centreon-engine/centengine.cfg | sed -E 's/^broker_module=([^ ]+).*/\1/')
+if [ "$missing" -eq 1 ]; then
+  echo "=== compiled-path assertion FAILED - centengine.cfg references a path the image does not have ==="
+  exit 1
+fi
+echo "=== compiled-path assertion OK - every broker_module= path in centengine.cfg exists on disk ==="
+EOF
+
 RUN rm -f /tmp/manifest-dst-list.txt
 
 CMD ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"]
