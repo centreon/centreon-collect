@@ -131,9 +131,19 @@ mkdir -p "${CACHE}"
 podman rm -f "${CONTAINER}" 2>/dev/null || true
 # --privileged and the same mounts as the reference container (pasta network by
 # default).
+#
+# --init is REQUIRED, not cosmetic: with `sleep infinity` as PID 1 nothing ever
+# calls wait(), so every orphaned process becomes a permanent zombie. The test
+# teardowns orphan a lot of `pkill` (Common.py kills cbd/centengine/rrdcached
+# that way), and each zombie holds a cgroup pid. The container hits its
+# PidsLimit (2048 by default), after which nothing can fork any more:
+# `pthread_create failed`, "Server Threadpool Exhausted", and a robot campaign
+# that collapses into hundreds of meaningless failures. --init runs catatonit as
+# PID 1, which reaps orphans.
 podman run -d --name "${CONTAINER}" \
   --hostname "${CONTAINER}" \
   --privileged \
+  --init \
   -v "${SRC}:${WORK}" \
   -v "${CACHE}:/root/.cache" \
   "${IMAGE}" sleep infinity
@@ -170,7 +180,17 @@ run '
   localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 || true
 '
 
-echo ">>> (3/6) Centreon service users"
+echo ">>> (3/6) Host-path symlink and centreon service users"
+# `cmake --install` replays build/cmake_install.cmake, which embeds the ABSOLUTE
+# host paths recorded when the build tree was configured on the host. Inside the
+# container the sources live under /work, so those paths would not resolve.
+# Symlinking the host repository path to /work makes both views point at the
+# same files, and `cmake --install <worktree>/build` then works unchanged.
+run "
+  mkdir -p \"\$(dirname '${SRC}')\"
+  ln -sfn ${WORK} '${SRC}'
+  ls -ld '${SRC}'
+"
 run '
   id centreon-engine >/dev/null 2>&1 || useradd -d /var/lib/centreon-engine -r centreon-engine
   id centreon-broker >/dev/null 2>&1 || useradd -d /var/lib/centreon-broker -r centreon-broker
@@ -227,10 +247,8 @@ run "
       robotframework-databaselibrary \
       robotframework-examples pymysql \
       robotframework-requests psutil \
-      robotframework-httpctrl boto3 \
-      GitPython py-cpuinfo pyjwt \
-      grpcio grpcio_tools \
-      cython
+      robotframework-httpctrl pyjwt \
+      grpcio grpcio_tools
 "
 
 echo ">>> (6/6) Generating the python gRPC stubs (init-proto.sh)"

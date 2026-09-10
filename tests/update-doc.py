@@ -338,8 +338,7 @@ uv pip install -U robotframework \\
         robotframework-databaselibrary \\
         robotframework-examples pymysql \\
         robotframework-requests psutil \\
-        robotframework-httpctrl boto3 \\
-        GitPython py-cpuinfo pyjwt \\
+        robotframework-httpctrl pyjwt \\
         grpcio grpcio_tools \\
         autopep8 robotframework-tidy
 ```
@@ -368,13 +367,6 @@ And it is also possible to execute a specific test, for example:
 
 ```
 robot broker/sql.robot
-```
-
-In order to execute bench tests (broker-engine/bench.robot), you need also to
-install py-cpuinfo, cython and boto3
-
-```bash
-uv pip install py-cpuinfo cython gitpython boto3
 ```
 
 ## Implemented tests

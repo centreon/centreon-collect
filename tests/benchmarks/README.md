@@ -68,8 +68,9 @@ apt-get install gnuplot-qt
   written whatever happens, and the command says what to run once gnuplot is there. The
   `-nox` package is enough -- png, svg and the ASCII terminal need no X11.
 
-`gdb` and `tzdata` are already in the image; `heaptrack`, `sqlite3` and `gnuplot-nox` were added
-to `Dockerfile.debian`, so a freshly built container has all five.
+`gdb` and `tzdata` are already in the image; `heaptrack` and `sqlite3` are installed by
+`create-dev-container.sh`, so a freshly built container has four of the five. `gnuplot-nox` is
+deliberately left out -- install it by hand in the container when you want to draw the curves.
 
 Here is a full example of a container with all the prerequisites installed:
 
@@ -169,12 +170,14 @@ timestamps; `psutil` watches processes; `PyJWT` is used by the vault tests. The
 `opentelemetry` package is deliberately absent: that import resolves to
 `resources/opentelemetry`, which `init-proto.sh` generates.
 
-Packages that are **not** needed and are deliberately left out: `boto3`, `unqlite` and
-`py-cpuinfo` are imported only by `resources/Bench.py`, the legacy benchmark that uploaded its
-results to an S3 bucket, and that file is commented out of `import.resource`; `cython` and
-`gitpython` are imported by nothing at all. `Dockerfile.debian` still installs `boto3`,
-`py-cpuinfo`, `cython` and `gitpython` in its own `~/.venv`, and `unqlite` came from a manual
-install in this one — history, not a requirement.
+Packages that are **not** needed and are deliberately left out: `boto3`, `py-cpuinfo` and
+`cython` are imported by nothing any more, and so is `gitpython` — `benchenv.py` finds the
+git working tree by calling `git` itself, not through a library. They were the dependencies of
+`resources/Bench.py`, the legacy benchmark that uploaded its results to an S3 bucket; that
+file, its `tests/bench.py` reader and `broker-engine/bench-unstable.robot` were **removed** on
+2026-09-09, along with `unqlite`, which nothing else used. `create-dev-container.sh` still
+installs `boto3`, `py-cpuinfo`, `cython` and `gitpython` in the robot venv — history, not a
+requirement.
 
 Optional, for contributing rather than running: `autopep8` formats the Python,
 `robotframework-tidy` the robot files, `ruff` lints.
