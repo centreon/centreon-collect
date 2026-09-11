@@ -295,7 +295,10 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
  * @return A shared pointer to the logger.
  */
 std::shared_ptr<spdlog::logger> log_v2::get(log_v2::logger_id idx) {
-  return _loggers[idx];
+  if (idx < _loggers.size())
+    return _loggers[idx];
+  else
+    return {};
 }
 
 /**

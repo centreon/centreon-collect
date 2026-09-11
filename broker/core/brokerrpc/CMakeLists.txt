@@ -84,14 +84,14 @@ set_target_properties(pb_broker_lib PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
 
-# Bibliothèque brokerrpc
+# brokerrpc library
 add_library(brokerrpc
   broker_impl.cc
   brokerrpc.cc
 )
 
 target_precompile_headers(brokerrpc PRIVATE ../precomp_inc/precomp.hh)
-add_dependencies(brokerrpc pb_broker_lib)
+add_dependencies(brokerrpc pb_all_libs)
 
 target_link_libraries(brokerrpc
   PRIVATE

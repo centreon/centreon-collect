@@ -267,6 +267,12 @@ file_metadata::file_metadata(
       last_access_time = fs::file_time_type::min();
       last_write_time = fs::file_time_type::min();
     }
+    LARGE_INTEGER li_size;
+    if (GetFileSizeEx(hFile, &li_size)) {
+      size = static_cast<std::uint64_t>(li_size.QuadPart);
+    } else {
+      size = 0;
+    }
     CloseHandle(hFile);
   } else {
     creation_time = fs::file_time_type::min();
@@ -284,7 +290,6 @@ file_metadata::file_metadata(
   } else {
     has_changed = true;
 
-    size = fs::file_size(file_path);
     version = "";
     if (extension == ".exe" || extension == ".dll") {
       version = get_file_version(fs::path(file_path).string());
@@ -411,24 +416,30 @@ void ::check_files_detail::check_files_thread::run() {
   auto keep_object_alive = shared_from_this();
 
   while (_active) {
-    absl::MutexLock l(&_queue_m);
-    _queue_m.Await(absl::Condition(this, &check_files_thread::has_to_wait));
+    std::optional<async_data> to_execute;
+    {
+      absl::MutexLock l(&_queue_m);
+      _queue_m.Await(absl::Condition(this, &check_files_thread::has_to_wait));
 
-    if (!_active) {
-      return;
-    }
+      if (!_active) {
+        return;
+      }
 
-    time_point now = std::chrono::system_clock::now();
-    while (!_queue.empty()) {
-      if (_queue.begin()->timeout < now) {
+      time_point now = std::chrono::system_clock::now();
+      while (!_queue.empty()) {
+        if (_queue.begin()->timeout < now) {
+          _queue.pop_front();
+        } else {
+          break;
+        }
+      }
+
+      if (!_queue.empty()) {
+        to_execute = std::move(_queue.front());
         _queue.pop_front();
-      } else {
-        break;
       }
     }
-
-    if (!_queue.empty()) {
-      auto to_execute = _queue.begin();
+    if (to_execute) {
       // Execute the filter to find files
       auto filter = to_execute->request_filter;
       try {
@@ -447,7 +458,6 @@ void ::check_files_detail::check_files_thread::run() {
                      completion_handler({}, msg_err);
                    });
       }
-      _queue.erase(to_execute);
     }
   }
 }
@@ -954,6 +964,14 @@ void check_files::_completion_handler(
     const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
         result,
     const std::string& msg_err) {
+  // _filter is reused across checks to keep change-detection state. If this
+  // check already timed out, a new check may have queued another
+  // find_files() on the same _filter, which would then mutate the very map
+  // "result" refers to. Discard the stale result before touching it.
+  if (start_check_index != _get_running_check_index()) {
+    return;
+  }
+
   auto result_size = result.size();
   e_status ret = e_status::ok;
   std::string output;

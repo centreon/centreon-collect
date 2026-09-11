@@ -176,9 +176,7 @@ void parser::_parse_global_configuration(const std::string& path,
     if (absl::StrContains(m, "cbmod.so")) {
       auto arr = absl::StrSplit(m, absl::ByAnyChar(" \t\n"), absl::SkipEmpty());
       auto it = arr.begin();
-      std::string_view module_name;
       if (it != arr.end()) {
-        module_name = *it;
         ++it;
         if (it != arr.end()) {
           std::string_view module_args = *it;

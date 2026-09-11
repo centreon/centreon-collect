@@ -59,11 +59,7 @@ add_library(
 set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX ""
   POSITION_INDEPENDENT_CODE TRUE
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
-                 pb_remove_graph_message_lib
-		 process_stat
-                 pb_neb_lib
-                 pb_open_telemetry_lib)
+add_dependencies("${UNIFIED_SQL}" pb_all_libs process_stat)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hh)
 target_link_libraries(
   ${UNIFIED_SQL} PRIVATE

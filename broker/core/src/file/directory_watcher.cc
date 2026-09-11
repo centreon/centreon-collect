@@ -77,7 +77,6 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
  *  Destructor.
  */
 directory_watcher::~directory_watcher() {
-  std::cout << "directory_watcher destructor" << std::endl;
   boost::system::error_code ec;
   auto ec1 = _sd.close(ec);
   if (ec1) {

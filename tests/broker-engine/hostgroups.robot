@@ -36,9 +36,9 @@ BENHG1
     Ctn Reload Engine
 
     ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
-    ...    enabling membership of host 1 to host group 1 on instance 1
+    ...    enabling membership of host 3 to host group 1
+    ...    enabling membership of host 2 to host group 1
+    ...    enabling membership of host 1 to host group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
@@ -71,9 +71,9 @@ BENHGU1
     Ctn Reload Engine
 
     ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
-    ...    enabling membership of host 1 to host group 1 on instance 1
+    ...    enabling membership of host 3 to host group 1
+    ...    enabling membership of host 2 to host group 1
+    ...    enabling membership of host 1 to host group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
@@ -103,8 +103,8 @@ BENHGU2
     Ctn Reload Engine
 
     ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
+    ...    enabling membership of host 3 to host group 1
+    ...    enabling membership of host 2 to host group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
@@ -180,8 +180,8 @@ BENHG4
     Ctn Reload Engine
 
     ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
+    ...    enabling membership of host 3 to host group 1
+    ...    enabling membership of host 2 to host group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
@@ -252,7 +252,7 @@ BENHGU4_${test_label}
     Ctn Reload Engine
 
     ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
+    ...    enabling membership of host 3 to host group 1
     ...    enabling membership of host 2 to host group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45

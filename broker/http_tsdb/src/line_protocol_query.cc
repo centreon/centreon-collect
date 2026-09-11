@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/strings/str_join.h>
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
@@ -390,6 +391,17 @@ void line_protocol_query::_get_dollar_sign(io::data const& d,
   (void)d;
   is << "$";
 }
+
+#define GET_MAPPING(value_to_return_in_case_of_failure)                    \
+  uint64_t metric_id =                                                     \
+      static_cast<const storage::pb_metric&>(d).obj().metric_id();         \
+  auto mm = config::applier::state::instance().cache().get_metric_mapping( \
+      metric_id);                                                          \
+  if (!mm) {                                                               \
+    SPDLOG_LOGGER_ERROR(_logger, "unknown metric {}", metric_id);          \
+    return value_to_return_in_case_of_failure;                             \
+  }
+
 /**
  *  Get the status index id of a data, be it either metric or status.
  *
@@ -401,14 +413,7 @@ uint64_t line_protocol_query::_get_index_id(io::data const& d) const {
     case storage::pb_status::static_type():
       return static_cast<storage::pb_status const&>(d).obj().index_id();
     case storage::pb_metric::static_type(): {
-      uint64_t metric_id =
-          static_cast<storage::pb_metric const&>(d).obj().metric_id();
-      auto mm = config::applier::state::instance().cache().get_metric_mapping(
-          metric_id);
-      if (!mm) {
-        SPDLOG_LOGGER_ERROR(_logger, "unknown metric {}", metric_id);
-        return 0;
-      }
+      GET_MAPPING(0)
       return mm->obj().index_id();
     }
     default:
@@ -552,13 +557,7 @@ void line_protocol_query::_get_host_group(io::data const& d,
   absl::btree_set<uint64_t> sorted;
   for (const auto& g : groups)
     sorted.insert(g->obj().hostgroup_id());
-  bool first = true;
-  for (uint64_t id : sorted) {
-    if (!first)
-      is << ',';
-    is << id;
-    first = false;
-  }
+  is << absl::StrJoin(sorted, ",");
 }
 
 /**
@@ -578,13 +577,7 @@ void line_protocol_query::_get_service_group(io::data const& d,
   absl::btree_set<uint64_t> sorted;
   for (const auto& g : groups)
     sorted.insert(g->obj().servicegroup_id());
-  bool first = true;
-  for (uint64_t id : sorted) {
-    if (!first)
-      is << ',';
-    is << id;
-    first = false;
-  }
+  is << absl::StrJoin(sorted, ",");
 }
 
 /**
@@ -598,14 +591,8 @@ void line_protocol_query::_get_min(io::data const& d,
                                    unsigned& string_index [[maybe_unused]],
                                    std::ostream& is) const {
   if (d.type() == storage::pb_metric::static_type()) {
-    uint64_t metric_id =
-        static_cast<storage::pb_metric const&>(d).obj().metric_id();
-    auto mapping =
-        config::applier::state::instance().cache().get_metric_mapping(
-            metric_id);
-    if (mapping) {
-      is << mapping->obj().min();
-    }
+    GET_MAPPING()
+    is << mm->obj().min();
   }
 }
 
@@ -620,14 +607,8 @@ void line_protocol_query::_get_max(io::data const& d,
                                    unsigned& string_index [[maybe_unused]],
                                    std::ostream& is) const {
   if (d.type() == storage::pb_metric::static_type()) {
-    uint64_t metric_id =
-        static_cast<storage::pb_metric const&>(d).obj().metric_id();
-    auto mapping =
-        config::applier::state::instance().cache().get_metric_mapping(
-            metric_id);
-    if (mapping) {
-      is << mapping->obj().max();
-    }
+    GET_MAPPING()
+    is << mm->obj().max();
   }
 }
 

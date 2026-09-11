@@ -25,6 +25,7 @@
 #include "com/centreon/broker/bam/ba_ratio_percent.hh"
 #include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -317,6 +318,9 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   o.set_scheduled_downtime_depth(in_downtime ? 1 : 0);
   o.set_max_check_attempts(1);
   o.set_enabled(true);
+  o.set_instance_id(
+      com::centreon::broker::config::applier::state::instance().poller_id());
+
   return s;
 }
 

@@ -366,9 +366,7 @@ void broker_downtime_data(int type,
                           unsigned long triggered_by,
                           unsigned long duration,
                           unsigned long downtime_id);
-void broker_external_command(int type,
-                             int command_type,
-                             char* command_args);
+void broker_external_command(int type, int command_type, char* command_args);
 template <typename G>
 void broker_group(int type, const G* group);
 
@@ -381,7 +379,6 @@ int broker_host_check(int type,
                       const char* cmdline);
 void broker_host_status(const com::centreon::engine::host* hst,
                         uint32_t attributes);
-void broker_log_data_legacy(const char* data, time_t entry_time);
 void broker_log_data(const char* data, time_t entry_time);
 void broker_program_state(int type, int flags);
 void broker_program_status();

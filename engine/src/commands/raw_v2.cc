@@ -273,13 +273,19 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
   }
 
   if (_last_processed_cmd != processed_cmd) {
-    _process_args = common::process<true>::parse_cmd_line(processed_cmd);
+    try {
+      _process_args = common::process<true>::parse_cmd_line(processed_cmd);
+    } catch (const std::exception& e) {
+      _running = false;
+      throw;
+    }
     _last_processed_cmd = processed_cmd;
   }
 
   uint64_t command_id(get_uniq_id());
 
   if (!gest_call_interval(command_id, to_push_to_checker, caller)) {
+    _running = false;
     return command_id;
   }
 
@@ -287,7 +293,12 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
       std::make_shared<boost::process::v2::process_environment>(_empty_args);
 
   SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: id={}", command_id);
-  _build_environment_macros(macros, *env);
+  try {
+    _build_environment_macros(macros, *env);
+  } catch (const std::exception& e) {
+    _running = false;
+    throw;
+  }
 
   try {
     _process = std::make_shared<common::process<true>>(
@@ -313,6 +324,7 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
     SPDLOG_LOGGER_TRACE(commands_logger,
                         "raw_v2::run: start process failed: id={}, {}: {}",
                         command_id, _name, e.what());
+    _running = false;
     throw;
   }
 

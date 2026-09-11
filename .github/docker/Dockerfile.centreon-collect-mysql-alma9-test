@@ -28,6 +28,7 @@ dnf install --best -y \
     gnutls \
     iproute \
     libgcrypt \
+    iptables \
     lua \
     mariadb-connector-c \
     mysql-server \

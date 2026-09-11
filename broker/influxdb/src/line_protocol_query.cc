@@ -397,7 +397,14 @@ void line_protocol_query::_get_index_id(const io::data& d, std::ostream& is) {
     auto& cache = config::applier::state::instance().cache();
     auto& metric = static_cast<const storage::pb_metric&>(d).obj();
     auto mm = cache.get_metric_mapping(metric.metric_id());
-    is << mm->obj().index_id();
+    if (!mm) {
+      log_v2::instance()
+          .get(log_v2::INFLUXDB)
+          ->warn("influxdb: could not find index_id name for metric id {}",
+                 metric.metric_id());
+    } else {
+      is << mm->obj().index_id();
+    }
   }
 }
 
@@ -460,7 +467,7 @@ void line_protocol_query::_get_service(io::data const& d, std::ostream& is) {
     auto logger = log_v2::instance().get(log_v2::INFLUXDB);
     logger->warn(
         "influxdb: could not find service description for "
-        "service id {}",
+        "service {}:{}",
         host_id, service_id);
   }
 }

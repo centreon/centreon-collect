@@ -660,50 +660,98 @@ TEST_F(BrokerCacheTest, UpdateServicegroupMemberWithoutServicegroup) {
 
 TEST_F(BrokerCacheTest, Merge) {
   com::centreon::engine::configuration::State state;
+
+  /* Three hosts and three services are added to the state, so that they can
+   * be used as members of the hostgroups and servicegroups defined below. */
+  for (uint64_t id = 1; id <= 3; ++id) {
+    auto* h = state.mutable_hosts()->Add();
+    h->set_host_id(id);
+    h->set_host_name(fmt::format("host_{}", id));
+    h->set_poller_id(1);
+  }
+
+  for (uint64_t id = 1; id <= 3; ++id) {
+    auto* s = state.mutable_services()->Add();
+    s->set_host_id(id);
+    s->set_service_id(id);
+    s->set_host_name(fmt::format("host_{}", id));
+    s->set_service_description(fmt::format("service_{}", id));
+    s->set_poller_id(1);
+  }
+
   auto* hg = state.mutable_hostgroups()->Add();
   hg->set_hostgroup_id(1);
   hg->set_hostgroup_name("hg1");
   hg->set_alias("alias hg1");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_1");
 
   hg = state.mutable_hostgroups()->Add();
   hg->set_hostgroup_id(2);
   hg->set_hostgroup_name("hg2");
   hg->set_alias("alias hg2");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_2");
 
   hg = state.mutable_hostgroups()->Add();
   hg->set_hostgroup_id(3);
   hg->set_hostgroup_name("hg3");
   hg->set_alias("alias hg3");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_3");
 
   auto* sg = state.mutable_servicegroups()->Add();
   sg->set_servicegroup_id(1);
   sg->set_servicegroup_name("sg1");
   sg->set_alias("alias sg1");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_1,service_1");
 
   sg = state.mutable_servicegroups()->Add();
   sg->set_servicegroup_id(2);
   sg->set_servicegroup_name("sg2");
   sg->set_alias("alias sg2");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_2,service_2");
 
   sg = state.mutable_servicegroups()->Add();
   sg->set_servicegroup_id(3);
   sg->set_servicegroup_name("sg3");
   sg->set_alias("alias sg3");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_3,service_3");
   _cache->merge(state);
+
+  ASSERT_EQ(_cache->host(1)->obj().name(), "host_1");
+  ASSERT_EQ(_cache->host(2)->obj().name(), "host_2");
+  ASSERT_EQ(_cache->host(3)->obj().name(), "host_3");
+
+  ASSERT_EQ(_cache->service(1, 1)->obj().description(), "service_1");
+  ASSERT_EQ(_cache->service(2, 2)->obj().description(), "service_2");
+  ASSERT_EQ(_cache->service(3, 3)->obj().description(), "service_3");
 
   ASSERT_EQ(_cache->hostgroup(1)->obj().name(), "hg1");
   ASSERT_EQ(_cache->hostgroup(2)->obj().name(), "hg2");
   ASSERT_EQ(_cache->hostgroup(3)->obj().name(), "hg3");
+  ASSERT_THAT(_cache->hostgroup_members(1), ::testing::ElementsAre(1u));
+  ASSERT_THAT(_cache->hostgroup_members(2), ::testing::ElementsAre(2u));
+  ASSERT_THAT(_cache->hostgroup_members(3), ::testing::ElementsAre(3u));
 
   ASSERT_EQ(_cache->servicegroup(1)->obj().name(), "sg1");
   ASSERT_EQ(_cache->servicegroup(2)->obj().name(), "sg2");
   ASSERT_EQ(_cache->servicegroup(3)->obj().name(), "sg3");
+  ASSERT_THAT(_cache->servicegroup_members(1),
+              ::testing::ElementsAre(std::make_pair(1, 1)));
+  ASSERT_THAT(_cache->servicegroup_members(2),
+              ::testing::ElementsAre(std::make_pair(2, 2)));
+  ASSERT_THAT(_cache->servicegroup_members(3),
+              ::testing::ElementsAre(std::make_pair(3, 3)));
 
   state.mutable_hostgroups(0)->set_hostgroup_name("new_hg1");
   hg = state.mutable_hostgroups()->Add();
@@ -711,6 +759,8 @@ TEST_F(BrokerCacheTest, Merge) {
   hg->set_hostgroup_name("hg4");
   hg->set_alias("alias hg4");
   hg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_string_group(hg->mutable_members(),
+                                                          "host_2");
 
   state.mutable_servicegroups(0)->set_servicegroup_name("new_sg1");
   sg = state.mutable_servicegroups()->Add();
@@ -718,11 +768,132 @@ TEST_F(BrokerCacheTest, Merge) {
   sg->set_servicegroup_name("sg5");
   sg->set_alias("alias sg5");
   sg->set_poller_id(1);
+  com::centreon::engine::configuration::fill_pair_string_group(
+      sg->mutable_members(), "host_3,service_3");
 
   _cache->merge(state);
 
   ASSERT_EQ(_cache->hostgroup(1)->obj().name(), "new_hg1");
   ASSERT_EQ(_cache->hostgroup(4)->obj().name(), "hg4");
+  ASSERT_THAT(_cache->hostgroup_members(1), ::testing::ElementsAre(1u));
+  ASSERT_THAT(_cache->hostgroup_members(4), ::testing::ElementsAre(2u));
+
   ASSERT_EQ(_cache->servicegroup(1)->obj().name(), "new_sg1");
   ASSERT_EQ(_cache->servicegroup(5)->obj().name(), "sg5");
+  ASSERT_THAT(_cache->servicegroup_members(1),
+              ::testing::ElementsAre(std::make_pair(1, 1)));
+  ASSERT_THAT(_cache->servicegroup_members(5),
+              ::testing::ElementsAre(std::make_pair(3, 3)));
+}
+
+/**
+ * @brief Publish a tag definition (id, type, name) to the cache.
+ */
+static void publish_tag(const std::unique_ptr<broker_cache>& cache,
+                        uint64_t id,
+                        TagType type,
+                        const std::string& name) {
+  auto t = std::make_shared<neb::pb_tag>();
+  auto& obj = t->mut_obj();
+  obj.set_id(id);
+  obj.set_type(type);
+  obj.set_name(name);
+  obj.set_action(Tag_Action_ADD);
+  obj.set_poller_id(1);
+  cache->publish(t);
+}
+
+TEST_F(BrokerCacheTest, HostAndServiceTags) {
+  publish_hosts(1, 2, 1);
+  publish_services(1, 1, 1);
+
+  /* Tag ids intentionally collide across types (id 1 and id 2 both used by a
+   * HOSTGROUP tag and by a SERVICEGROUP/SERVICECATEGORY tag): the cache keys
+   * tags by (id, type), so this must not cause any cross-type mixup. */
+  publish_tag(_cache, 2, TagType::HOSTGROUP, "hg_tag_2");
+  publish_tag(_cache, 1, TagType::HOSTGROUP, "hg_tag_1");
+  publish_tag(_cache, 1, TagType::HOSTCATEGORY, "hc_tag_1");
+  publish_tag(_cache, 4, TagType::SERVICEGROUP, "sg_tag_4");
+  publish_tag(_cache, 3, TagType::SERVICEGROUP, "sg_tag_3");
+  publish_tag(_cache, 2, TagType::SERVICECATEGORY, "sc_tag_2");
+
+  {
+    auto h = std::make_shared<neb::pb_host>();
+    auto& obj = h->mut_obj();
+    obj.set_host_id(1);
+    obj.set_name("host_1");
+    obj.set_enabled(true);
+    obj.set_instance_id(1);
+    /* Added out of id order, on purpose: the accessors must sort. */
+    auto* t = obj.add_tags();
+    t->set_id(2);
+    t->set_type(TagType::HOSTGROUP);
+    t = obj.add_tags();
+    t->set_id(1);
+    t->set_type(TagType::HOSTGROUP);
+    t = obj.add_tags();
+    t->set_id(1);
+    t->set_type(TagType::HOSTCATEGORY);
+    _cache->publish(h);
+  }
+
+  {
+    auto s = std::make_shared<neb::pb_service>();
+    auto& obj = s->mut_obj();
+    obj.set_host_id(1);
+    obj.set_service_id(1);
+    obj.set_host_name("host_1");
+    obj.set_description("service_1");
+    obj.set_enabled(true);
+    auto* t = obj.add_tags();
+    t->set_id(4);
+    t->set_type(TagType::SERVICEGROUP);
+    t = obj.add_tags();
+    t->set_id(3);
+    t->set_type(TagType::SERVICEGROUP);
+    t = obj.add_tags();
+    t->set_id(2);
+    t->set_type(TagType::SERVICECATEGORY);
+    _cache->publish(s);
+  }
+
+  /* host_1 tags: sorted by ascending id, filtered by type. */
+  ASSERT_THAT(_cache->host_tag_ids(1, TagType::HOSTGROUP),
+              ::testing::ElementsAre(1u, 2u));
+  ASSERT_THAT(_cache->host_tag_names(1, TagType::HOSTGROUP),
+              ::testing::ElementsAre("hg_tag_1", "hg_tag_2"));
+  ASSERT_THAT(_cache->host_tag_ids(1, TagType::HOSTCATEGORY),
+              ::testing::ElementsAre(1u));
+  ASSERT_THAT(_cache->host_tag_names(1, TagType::HOSTCATEGORY),
+              ::testing::ElementsAre("hc_tag_1"));
+  /* host_1 has no SERVICEGROUP tag: the type filter must exclude the
+   * HOSTGROUP/HOSTCATEGORY tags even though ids overlap. */
+  ASSERT_THAT(_cache->host_tag_ids(1, TagType::SERVICEGROUP),
+              ::testing::IsEmpty());
+  /* host_2 has no tags at all. */
+  ASSERT_THAT(_cache->host_tag_ids(2, TagType::HOSTGROUP),
+              ::testing::IsEmpty());
+  /* Unknown host: empty result, not a crash. */
+  ASSERT_THAT(_cache->host_tag_ids(999, TagType::HOSTGROUP),
+              ::testing::IsEmpty());
+
+  /* service (1, 1) tags: sorted by ascending id, filtered by type. */
+  ASSERT_THAT(_cache->service_tag_ids(1, 1, TagType::SERVICEGROUP),
+              ::testing::ElementsAre(3u, 4u));
+  ASSERT_THAT(_cache->service_tag_names(1, 1, TagType::SERVICEGROUP),
+              ::testing::ElementsAre("sg_tag_3", "sg_tag_4"));
+  ASSERT_THAT(_cache->service_tag_ids(1, 1, TagType::SERVICECATEGORY),
+              ::testing::ElementsAre(2u));
+  ASSERT_THAT(_cache->service_tag_names(1, 1, TagType::SERVICECATEGORY),
+              ::testing::ElementsAre("sc_tag_2"));
+  /* Unknown service: empty result, not a crash. */
+  ASSERT_THAT(_cache->service_tag_ids(1, 999, TagType::SERVICEGROUP),
+              ::testing::IsEmpty());
+
+  /* get_tag() must key on (id, type): id 2 is used by both a HOSTGROUP tag
+   * and a SERVICECATEGORY tag, and they must resolve independently. */
+  ASSERT_EQ(_cache->get_tag(2, TagType::HOSTGROUP)->obj().name(), "hg_tag_2");
+  ASSERT_EQ(_cache->get_tag(2, TagType::SERVICECATEGORY)->obj().name(),
+            "sc_tag_2");
+  ASSERT_EQ(_cache->get_tag(999, TagType::HOSTGROUP), nullptr);
 }
