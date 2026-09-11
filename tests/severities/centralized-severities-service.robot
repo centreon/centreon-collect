@@ -5,7 +5,7 @@ Resource            ../resources/import.resource
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
+Test Setup          Ctn Setup Severities Service Test
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -400,3 +400,13 @@ CBETUSEV1
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+
+*** Keywords ***
+Ctn Setup Severities Service Test
+    [Documentation]    Stop the running processes and drop the leftover .prot files.
+    ...    Without the second step, Broker starts with the <poller>.prot written by a
+    ...    previous test and pushes that stale configuration back to the pollers as
+    ...    soon as they connect, before the test has touched any .lck file.
+    Ctn Stop Processes
+    Ctn Clear Prot Files

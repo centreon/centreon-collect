@@ -1,0 +1,20 @@
+# Robocop configuration for the robot test suite. Only the formatter is set up
+# here: `robocop format tests` is what used to be `robotidy --overwrite tests`,
+# absorbed into Robocop 6.0. Nothing runs `robocop check` (the linter), so its
+# rules are left alone.
+#
+# The two settings below keep Robocop's output identical to what the standalone
+# robotidy produced, so the migration does not rewrite files nobody touched:
+#
+#   * AlignSettingsSection.min_width -- robotidy rounded the *** Settings ***
+#     column up to a multiple of 4 (20 for a "Suite Teardown"), Robocop stops at
+#     the longest name + 4 (18). min_width restores column 20.
+#   * NormalizeTags -- off in robotidy, on by default in Robocop, where it
+#     lowercases tags. That would turn the MON-xxxxxx ticket tags into
+#     mon-xxxxxx and break every `robot --include MON-...` selection.
+
+[format]
+configure = [
+    "NormalizeTags.enabled=False",
+    "NormalizeTags.normalize_case=False",
+]

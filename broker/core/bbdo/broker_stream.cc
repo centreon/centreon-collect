@@ -193,16 +193,18 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           _logger->error("Unable to rename the file from '{}' to '{}'",
                          new_name.string(), name.string());
       } else {
-        /* A new configuration just became this poller's reference, so the cache
-         * follows. Only on a successful rename: without a `new-<ID>.prot` there
-         * was nothing new to acknowledge, and `<ID>.prot` already describes
-         * what the cache holds.
+        /* A new configuration just became this poller's reference, so the
+         * cache follows -- and it follows the *difference*, which is the only
+         * form that says what the export removed. Only on a successful rename:
+         * without a `new-<ID>.prot` there was nothing new to acknowledge.
          *
-         * Done here rather than by publishing a pb_engine_state: that event is
-         * handled by unified_sql's _process_engine_state, which calls
-         * process_state() and would rewrite the whole configuration to the
-         * database on every single export. */
-        _state.merge_poller_config_in_cache(engine_id);
+         * Before the global diff is published a few lines below, so whoever
+         * handles it finds the cache already up to date. And done here rather
+         * than by publishing a pb_engine_state: that event is handled by
+         * unified_sql's _process_engine_state, which calls process_state() and
+         * would rewrite the whole configuration to the database on every single
+         * export. */
+        _state.apply_poller_diff_in_cache(engine_id);
       }
 
       // All the peer pollers have their configuration acknowledged.
