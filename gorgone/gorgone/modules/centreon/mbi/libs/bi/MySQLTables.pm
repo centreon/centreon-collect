@@ -304,4 +304,107 @@ sub dropIndexesFromReportingTable {
     }
 }
 
+# Build the statements realigning the collation of the reporting mod_bi tables on
+# utf8mb3_general_ci, the collation the module declares in its own DDL.
+#
+# MariaDB 11.5 and later make utf8mb3_uca1400_ai_ci the default collation of the utf8mb3 character
+# set (11.8 being the first LTS carrying the change), so a table or a column created with a
+# character set but no COLLATE clause no longer shares the collation used by the rest of the
+# module. Comparing two different collations of the same character set raises "Illegal mix of
+# collations" (error 1267), which breaks the joins on hg_name between the dimension tables.
+# The reporting tables are created from the structure of the central ones only when they are
+# missing, so a table that already exists is never repaired: this is what realigns it.
+#
+# Two deviations are handled: a column collation, which is what those joins compare, and a table
+# default collation, which is what any column added to that table, or re-declared without a COLLATE
+# clause, would inherit. Converting the columns rebuilds the table; realigning a default touches no
+# row. A table mixing several character sets, or whose default collation was migrated out of the
+# utf8mb3 family, is left alone entirely and reported instead: converting it would transcode its
+# content or revert that migration. The transient tables of the ETL are left out, as they are
+# recreated on every run.
+#
+# Only the modern utf8mb3 spelling is looked for: a server old enough to report the legacy utf8
+# alias predates the collation change and has nothing to realign.
+#
+# returns: two references. The list of [message, query] tuples to run on the reporting server, and
+#          the list of messages describing the tables left for a manual realignment. Those are
+#          returned rather than logged, as this object carries the ETL message collector, which the
+#          scheduler process never drains.
+sub getCollationRealignStatements {
+	my $self = shift;
+	my $db = $self->{"centstorage"};
+
+	my @statements = ();
+	my @warnings = ();
+	my %handled = ();
+	my $mbiTables = " tab.TABLE_SCHEMA = DATABASE()".
+		" AND tab.TABLE_TYPE = 'BASE TABLE'".
+		" AND tab.TABLE_NAME LIKE 'mod|_bi|_%' ESCAPE '|'".
+		" AND tab.TABLE_NAME NOT LIKE 'mod|_bi|_tmp|_%' ESCAPE '|'".
+		" AND tab.TABLE_NAME NOT LIKE '%|_tmp' ESCAPE '|'";
+
+	# One aggregation classifies every deviating table, so that the converted tables and the
+	# reported ones are complementary by construction. The predicates on col. are redundant with
+	# the join, but they are what lets the server resolve information_schema.COLUMNS from the
+	# schema filter instead of opening every table it lists.
+	my $query = "SELECT tab.TABLE_NAME as name, tab.TABLE_COLLATION as table_collation,".
+		" SUM(col.CHARACTER_SET_NAME IS NOT NULL AND col.CHARACTER_SET_NAME <> 'utf8mb3') > 0 as mixes_charsets".
+		" FROM information_schema.TABLES tab".
+		" INNER JOIN information_schema.COLUMNS col ON col.TABLE_SCHEMA = tab.TABLE_SCHEMA".
+		" AND col.TABLE_NAME = tab.TABLE_NAME".
+		" WHERE".$mbiTables.
+		" AND col.TABLE_SCHEMA = DATABASE()".
+		" AND col.TABLE_NAME LIKE 'mod|_bi|_%' ESCAPE '|'".
+		" GROUP BY tab.TABLE_NAME, tab.TABLE_COLLATION".
+		" HAVING SUM(col.CHARACTER_SET_NAME = 'utf8mb3'".
+		" AND col.COLLATION_NAME <> 'utf8mb3_general_ci') > 0";
+	my $sth = $db->query({ query => $query });
+	while (my $row = $sth->fetchrow_hashref()) {
+		# A reported table is recorded as handled too, so that the report stays true: the second
+		# query below would otherwise still realign its default collation.
+		$handled{$row->{"name"}} = 1;
+
+		if ($row->{"mixes_charsets"}) {
+			push @warnings, "table [".$row->{"name"}."] holds utf8mb3 columns outside utf8mb3_general_ci".
+				" but also columns in another character set: left as it is, converting it would transcode".
+				" their content. The reporting queries joining this table keep failing with error 1267".
+				" until it is realigned by hand";
+			next;
+		}
+		if (!defined($row->{"table_collation"}) || $row->{"table_collation"} !~ /^utf8mb3_/) {
+			push @warnings, "table [".$row->{"name"}."] holds utf8mb3 columns outside utf8mb3_general_ci".
+				" but its default collation is [".
+				(defined($row->{"table_collation"}) ? $row->{"table_collation"} : "undefined").
+				"]: left as it is, converting it would revert that character set migration";
+			next;
+		}
+
+		push @statements, [
+			"[COLLATION] convert table [".$row->{"name"}."] to utf8mb3_general_ci",
+			"ALTER TABLE `".$row->{"name"}."` CONVERT TO CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci"
+		];
+	}
+	$sth->finish();
+
+	# Converting the columns of a table realigns its default collation as well, hence the tables
+	# already handled above being skipped here.
+	$query = "SELECT tab.TABLE_NAME as name".
+		" FROM information_schema.TABLES tab".
+		" WHERE".$mbiTables.
+		" AND tab.TABLE_COLLATION LIKE 'utf8mb3|_%' ESCAPE '|'".
+		" AND tab.TABLE_COLLATION <> 'utf8mb3_general_ci'";
+	$sth = $db->query({ query => $query });
+	while (my $row = $sth->fetchrow_hashref()) {
+		next if (defined($handled{$row->{"name"}}));
+
+		push @statements, [
+			"[COLLATION] realign the default collation of table [".$row->{"name"}."]",
+			"ALTER TABLE `".$row->{"name"}."` DEFAULT CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci"
+		];
+	}
+	$sth->finish();
+
+	return (\@statements, \@warnings);
+}
+
 1;
