@@ -23,6 +23,8 @@ use warnings;
 
 package gorgone::modules::centreon::mbi::libs::bi::BIMetric;
 
+use gorgone::modules::centreon::mbi::libs::TableUtils;
+
 # Constructor
 # parameters:
 # $logger: instance of class CentreonLogger
@@ -91,8 +93,6 @@ sub insertMetricsIntoTable {
 sub createTempTable {
 	my ($self, $useMemory) = @_;
 
-	my $db = $self->{"centstorage"};
-	$db->query({ query => "DROP TABLE IF EXISTS `".$self->{"tmpTable"}."`" });
 	my $query = "CREATE TABLE `".$self->{"tmpTable"}."` (";
 	$query .= "`metric_id` int(11) NOT NULL,`metric_name` varchar(1021) NOT NULL,`metric_unit` char(32) DEFAULT NULL,";
 	$query .= "`service_id` int(11) NOT NULL,`service_description` varchar(255) DEFAULT NULL,";
@@ -105,21 +105,22 @@ sub createTempTable {
 	}else {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
-	$db->query({ query => $query });
+	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+		$self->{centstorage}, $self->{logger}, $self->{tmpTable}, $query);
 }
 
 sub createCRC32Table {
 	my ($self) = @_;
 	my $db = $self->{"centstorage"};
-	
-	$db->query({ query => "DROP TABLE IF EXISTS `".$self->{"CRC32"}."`" });
+
 	my $query = "CREATE TABLE `".$self->{"CRC32"}."`  CHARSET=utf8 COLLATE=utf8_general_ci";
 	$query .= " SELECT `id`, CRC32(CONCAT_WS('-', COALESCE(metric_id, '?'),";
 	$query .= " COALESCE(service_id, '?'),COALESCE(service_description, '?'),";
 	$query .= " COALESCE(host_id, '?'),COALESCE(host_name, '?'), COALESCE(sc_id, '?'),COALESCE(sc_name, '?'),";
 	$query .= " COALESCE(hc_id, '?'),COALESCE(hc_name, '?'), COALESCE(hg_id, '?'),COALESCE(hg_name, '?'))) as mycrc";
 	$query .= " FROM ".$self->{"table"};
-	$db->query({ query => $query });
+	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+		$self->{centstorage}, $self->{logger}, $self->{CRC32}, $query);
 	$query = "ALTER TABLE `".$self->{"CRC32"}."` ADD INDEX (`mycrc`)";
 	$db->query({ query => $query });
 }
@@ -149,9 +150,6 @@ sub insertNewEntries {
 
 sub createTodayTable {
 	my ($self,$useMemory) = @_;
-	my $db = $self->{"centstorage"};
-	
-	$db->query({ query => "DROP TABLE IF EXISTS `".$self->{"today_table"}."`" });
 	my $query = "CREATE TABLE `" . $self->{"today_table"} . "` (";
 	$query .= "`id` BIGINT(20) UNSIGNED NOT NULL,";
 	$query .= "`metric_id` BIGINT(20) UNSIGNED NOT NULL,";
@@ -166,7 +164,8 @@ sub createTodayTable {
 	}else {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
-	$db->query({ query => $query });
+	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+		$self->{centstorage}, $self->{logger}, $self->{today_table}, $query);
 }
 
 sub insertTodayEntries {
