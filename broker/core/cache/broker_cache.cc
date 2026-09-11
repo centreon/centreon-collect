@@ -191,7 +191,8 @@ void broker_cache::merge(
           continue;
 
         uint64_t host_id = (*host_it)->obj().host_id();
-        _host_hostgroups.emplace(host_id, hg_poller_id, found->first);
+        _host_hostgroups.emplace(host_id, (*host_it)->obj().instance_id(),
+                                 found->first);
       }
     }
     // we have first erased members for this poller so we will empty hostgroups
@@ -280,8 +281,9 @@ void broker_cache::merge(
 
         uint64_t host_id = (*service_it)->obj().host_id();
         uint64_t service_id = (*service_it)->obj().service_id();
+        uint64_t instance_id = (*service_it)->obj().instance_id();
         _service_servicegroups.insert(
-            {host_id, service_id, sg_poller_id, found->first});
+            {host_id, service_id, instance_id, found->first});
       }
     }
     // we have first erased members for this poller so we will erase empty

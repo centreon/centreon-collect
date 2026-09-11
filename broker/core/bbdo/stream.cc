@@ -233,11 +233,9 @@ void stream::negotiate(stream::negotiation_type neg) {
     set_broker_name(w.broker_name());
 
     set_peer_type(w.peer_type());
-    if (peer_type() != common::UNKNOWN) {
-      /* We are in the bbdo stream, _poller_id, _broker_name,
-       * _extended_negotiation are informations about the peer, not us. */
-      _extended_negotiation = true;
-    }
+    /* We are in the bbdo stream, _poller_id, _broker_name,
+     * _extended_negotiation are informations about the peer, not us. */
+    _extended_negotiation = w.extended_negotiation();
   }
 
   // Negotiation.

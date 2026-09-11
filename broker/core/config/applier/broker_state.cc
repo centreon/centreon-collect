@@ -188,7 +188,14 @@ void broker_state::load_topology_cache() {
  */
 void broker_state::create_prot_file(
     const com::centreon::engine::configuration::State& conf) {
-  assert(conf.poller_id());
+  if (!conf.poller_id()) {
+    std::string state_content;
+    auto dummy [[maybe_unused]] =
+        ::google::protobuf::json::MessageToJsonString(conf, &state_content);
+    SPDLOG_LOGGER_CRITICAL(
+        _logger, "can't create a file for a null poller id {}", state_content);
+    return;
+  }
   const uint32_t poller_id = conf.poller_id();
 
   // Logs the skip reason, clears the unknown flag, and signals to the caller
