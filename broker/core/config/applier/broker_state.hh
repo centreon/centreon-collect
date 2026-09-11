@@ -18,8 +18,8 @@
 
 #ifndef CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #define CCB_CONFIG_APPLIER_BROKER_STATE_HH
+#include <absl/base/call_once.h>
 #include <boost/asio/strand.hpp>
-#include <mutex>
 
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/broker_notification_dispatcher.hh"
@@ -92,7 +92,6 @@ class broker_state : public state {
     common::PeerType peer_type;
     bool extended_negotiation;
   };
-
 
  public:
   enum notification_mode { notification_mode_engine, notification_mode_broker };
@@ -340,13 +339,13 @@ class broker_state : public state {
                                      uint64_t poller_id);
   /* Guards the one-shot loading of the stored configurations: it is pulled by
    * whoever first needs the cache, from more than one thread. */
-  std::once_flag _pollers_config_in_cache_once;
+  absl::once_flag _pollers_config_in_cache_once;
   void _ensure_pollers_config_in_cache();
   void load_pollers_config_in_cache();
-  void merge_poller_config_in_cache(uint64_t poller_id);
+  void apply_poller_diff_in_cache(uint64_t poller_id);
   void remove_poller_config(uint64_t poller_id) override;
-  com::centreon::engine::configuration::foreign_objects
-  load_foreign_objects() const;
+  com::centreon::engine::configuration::foreign_objects load_foreign_objects()
+      const;
 
   enum class relay_config_response { unknown, up_to_date, diff_ready };
   void register_engine_peer_via_relay(uint64_t engine_id,

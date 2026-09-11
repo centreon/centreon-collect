@@ -3676,6 +3676,27 @@ std::shared_ptr<neb::pb_host> broker_cache::host(uint64_t host_id) const {
 }
 
 /**
+ * @brief Get the ID of the host of the given name.
+ *
+ * The caller that only needs the identifier should prefer this to host(): it
+ * hands back a number instead of a shared pointer, so nothing of the cache has
+ * to be kept alive past the lookup.
+ *
+ * @param host_name The name of the desired host.
+ *
+ * @return The host ID, or 0 when no host carries that name -- 0 is never a
+ * host ID, so it says "unknown" without an optional to unwrap.
+ */
+uint64_t broker_cache::host_id(std::string_view host_name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto& index = _hosts.get<by_name>();
+  auto found = index.find(host_name);
+  if (found == index.end())
+    return 0;
+  return (*found)->obj().host_id();
+}
+
+/**
  * @brief Get the list of host IDs present in the cache.
  *
  * @return A vector of host IDs.
@@ -3691,10 +3712,10 @@ std::vector<uint64_t> broker_cache::host_ids() const {
 }
 
 /**
- * @brief Get the service of the given host ID and service ID from the cache.
+ * @brief Get the service of the given host name and description from the cache.
  *
- * @param host_id The host ID of the desired service.
- * @param service_id The service ID of the desired service.
+ * @param hostname The name of the host carrying the desired service.
+ * @param description The description of the desired service.
  *
  * @return A shared pointer to the service, nullptr if not found.
  */
@@ -3703,11 +3724,39 @@ std::shared_ptr<neb::pb_service> broker_cache::service(
     const std::string& description) const {
   absl::ReaderMutexLock l{&_mutex};
   auto& index = _services.get<by_name>();
-  auto found = index.find(std::make_pair(hostname, description));
+  auto found = index.find(
+      std::pair<std::string_view, std::string_view>{hostname, description});
   if (found == index.end())
     return nullptr;
   else
     return *found;
+}
+
+/**
+ * @brief Get the (host ID, service ID) pair naming a service in the database.
+ *
+ * The caller that only needs the identifiers should prefer this to service():
+ * it hands back numbers instead of a shared pointer, and it answers for the
+ * host as well, sparing the separate host_id() lookup the pair would otherwise
+ * cost.
+ *
+ * @param host_name The name of the host carrying the desired service.
+ * @param description The description of the desired service.
+ *
+ * @return The (host ID, service ID) pair, or (0, 0) when no such service is
+ * known -- neither is ever 0, so the pair says "unknown" on its own.
+ */
+std::pair<uint64_t, uint64_t> broker_cache::service_key(
+    std::string_view host_name,
+    std::string_view description) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto& index = _services.get<by_name>();
+  auto found = index.find(
+      std::pair<std::string_view, std::string_view>{host_name, description});
+  if (found == index.end())
+    return {0, 0};
+  const auto& obj = (*found)->obj();
+  return {obj.host_id(), obj.service_id()};
 }
 
 /**
@@ -4555,8 +4604,9 @@ void broker_cache::_save_cache() {
 }
 
 /**
- * @brief Store the started downtimes to persist on the next cache save. Called
- * by broker_state at shutdown, before the downtime_manager is unloaded.
+ * @brief Store the started downtimes to persist on the next cache save. Called by broker_state at shutdown, before the downtime_manager is unloaded.
+ *
+ * @param downtimes The vector of started downtimes to save.
  */
 void broker_cache::set_active_downtimes(std::vector<Downtime> downtimes) {
   absl::WriterMutexLock lck{&_mutex};
@@ -4564,9 +4614,11 @@ void broker_cache::set_active_downtimes(std::vector<Downtime> downtimes) {
 }
 
 /**
- * @brief Store the per-resource notification states to persist on the next cache
- * save. Called by broker_state at shutdown, before the notification_manager is
- * unloaded.
+ * @brief Store the per-resource notification states to persist on the next
+ * cache save. Called by broker_state at shutdown, before the
+ * notification_manager is unloaded.
+ *
+ * @param states The vector of notification states to save.
  */
 void broker_cache::set_notification_states(
     std::vector<BrokerCache::NotificationState> states) {
@@ -4575,13 +4627,9 @@ void broker_cache::set_notification_states(
 }
 
 /**
- * @brief Re-inject the pending notification states into the notification_manager
- * so the notification chain (number, timings and the contacts told about the
- * ongoing problem) resumes after a restart.
- *
- * restore() never fires the backend callback, so this does not echo the restored
- * numbers back to the DB. Drains _pending_notification_states; a no-op when the
- * manager is not loaded (notification_mode != broker) or nothing is pending.
+ * @brief Re-inject the pending notification states into the
+ * notification_manager so the notification chain (number, timings and the
+ * contacts told about the ongoing problem) resumes after a restart.
  */
 void broker_cache::reinject_pending_notification_states() {
   namespace notifications = com::centreon::common::notifications;

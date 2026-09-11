@@ -39,7 +39,9 @@ psutil
 # Used by the vault tests.
 pyjwt
 
-# Formatters: autopep8 for the Python under resources/, robotframework-tidy for
-# the .robot files. See the "Coding style" section of README.md.
+# Formatters: autopep8 for the Python under resources/, robocop for the .robot
+# files -- `robocop format` is what used to be the standalone robotidy, absorbed
+# into Robocop 6.0 and deprecated there. See the "Coding style" section of
+# README.md. Robocop also lints, but nothing here runs `robocop check`.
 autopep8
-robotframework-tidy
+robotframework-robocop

@@ -445,20 +445,10 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
 /**
  * @brief Fill the global cache with every poller configuration Broker stores.
  *
- * Called once at startup, and this is what makes the cache's contents
- * *deterministic*. Until now it was filled only when a poller connected
- * (`merge()` from `_feed_cache_and_wake_up_resources`) and by the events the
- * poller then sent, so what it held about an absent poller depended on
- * history: connected earlier in this run, or described by a cache file left by
- * a previous one, or nothing at all. The same observable state -- a poller that
- * is not there -- gave three different answers, and no reader could reason
- * about it.
- *
- * The rule is now the one the rest of the code already assumes: an object
- * defined on the platform is in the cache, whether its poller is connected or
- * not. That is what lets Broker carry downtimes and notification states for a
- * poller that is momentarily down, and it is why the base marks a stopped
- * poller's hosts `enabled=0` rather than deleting them.
+ * An object defined on the platform is in the cache, whether its poller is
+ * connected or not. That is what lets Broker carry downtimes and notification
+ * states for a poller that is momentarily down, and it is why the base marks a
+ * stopped poller's hosts `enabled=0` rather than deleting them.
  *
  * The stored `<poller_id>.prot` files are the source: Broker writes them
  * itself, and each is a configuration Engine has acknowledged. Which also makes
@@ -473,6 +463,12 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
  *    early;
  *  - it must run before any re-injection of persisted downtimes or
  *    notification states, which need the cache to already know the resource.
+ *
+ *    @param path The path of a stored configuration file.
+ *    @param poller_id The poller whose configuration is stored in @p path.
+ *
+ *    @return true if the configuration was read and merged, false if it could
+ *            not be read (the cache will not know what this poller defines).
  */
 bool broker_state::_merge_stored_config_in_cache(
     const std::filesystem::path& path,
@@ -514,46 +510,58 @@ bool broker_state::_merge_stored_config_in_cache(
  * be nothing to read.
  */
 void broker_state::_ensure_pollers_config_in_cache() {
-  std::call_once(_pollers_config_in_cache_once,
-                 [this] { load_pollers_config_in_cache(); });
+  absl::call_once(_pollers_config_in_cache_once,
+                  [this] { load_pollers_config_in_cache(); });
 }
 
 /**
- * @brief Bring the cache up to date with the configuration poller @p poller_id
- * has just acknowledged.
+ * @brief Carry into the cache the difference poller @p poller_id has just
+ * acknowledged.
  *
- * Called from the BBDO stream, right after `new-<ID>.prot` became
- * `<ID>.prot` -- the moment that configuration becomes the reference, because
- * Engine confirmed applying it.
- *
- * Without this, loading the stored configurations at startup would only give a
- * cache that is right *at startup*: the first export would leave it behind, and
- * it would stay behind until that poller reconnected. This is what makes the
- * cache know objects an export has just created.
- *
- * It runs before the global diff is published, so whoever handles that diff
- * finds the cache already describing what the diff refers to.
+ * Called from the BBDO stream, right after `new-<ID>.prot` became `<ID>.prot`
+ * -- the moment that configuration becomes the reference, because Engine
+ * confirmed applying it. It runs before the global diff is published, so
+ * whoever handles that diff finds the cache already describing what it refers
+ * to.
  *
  * @param poller_id The poller whose configuration was acknowledged.
  */
-void broker_state::merge_poller_config_in_cache(uint64_t poller_id) {
+void broker_state::apply_poller_diff_in_cache(uint64_t poller_id) {
   if (!pollers_config_dir_usable())
     return;
-  /* The stored configurations first, so this fresher one lands on top of them
-   * and not the other way round. */
+  /* The stored configurations first: a difference only means something applied
+   * to the state it was computed against. */
   _ensure_pollers_config_in_cache();
-  const auto path = pollers_config_dir() / fmt::format("{}.prot", poller_id);
-  const auto started_at = std::chrono::steady_clock::now();
-  if (!_merge_stored_config_in_cache(path, poller_id))
+
+  const auto path =
+      pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
+  engine::configuration::DiffState diff;
+  std::ifstream f(path, std::ios::binary);
+  if (!f) {
+    /* No difference was prepared for this poller: it acknowledged a
+     * configuration it already ran, and there is nothing to carry over. */
     return;
+  }
+  if (!diff.ParseFromIstream(&f)) {
+    _logger->warn(
+        "Cannot read '{}': the cache will not follow what poller {} just "
+        "acknowledged",
+        path.string(), poller_id);
+    return;
+  }
+  f.close();
+
+  const auto started_at = std::chrono::steady_clock::now();
+  cache().apply(diff);
   /* The counts say what the cache holds afterwards, which is the only way to
-   * see that the merge had an effect -- a section no module asked for makes
-   * merge() store nothing. Guarded because they walk the whole cache: the
+   * see that the difference had an effect -- a section no module asked for
+   * makes apply() store nothing. Guarded because they walk the whole cache: the
    * arguments of a log call are evaluated whether or not the level is on. */
   if (_logger->should_log(spdlog::level::debug))
     _logger->debug(
-        "Global cache updated with the configuration acknowledged by poller {} "
-        "in {} ms: {} hosts and {} services known",
+        "Global cache follows the difference poller {} acknowledged, applied "
+        "in "
+        "{} ms: {} hosts and {} services known",
         poller_id,
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - started_at)

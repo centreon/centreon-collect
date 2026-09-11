@@ -143,6 +143,24 @@ class database_configurator {
   void _disable_service_resources_mysql(
       const ::google::protobuf::RepeatedPtrField<
           engine::configuration::HostServiceId>& lst);
+  /* Resolving a member of a group, or the parent of a host, by name.
+   *
+   * The global cache answers: it describes what the platform monitors, and it
+   * is brought up to date before anything is applied to the database -- filled
+   * from the stored <poller>.prot at startup, then following each difference a
+   * poller acknowledges. A local name->id map used to be kept here instead, and
+   * it was never rebuilt: after a restart, the first export that only touched a
+   * group lost every one of its members, silently apart from an error line.
+   *
+   * Only names and ids of the *configuration* are asked of the cache. The
+   * database's own identifiers -- resource_id, metric_id, the db_id of a tag or
+   * a severity -- are AUTO_INCREMENT values that exist nowhere else, so their
+   * caches stay where they are. The cache is asked directly, through its
+   * host_id() and service_key() accessors: they hand back identifiers rather
+   * than a shared pointer on the cached object, and service_key() answers for
+   * the host too, so resolving a service member costs one lookup instead of
+   * two.
+   */
   void _add_hostgroups_mariadb(const ::google::protobuf::RepeatedPtrField<
                                    engine::configuration::Hostgroup>& lst,
                                bool is_modification = false);

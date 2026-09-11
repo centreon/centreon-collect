@@ -2,7 +2,6 @@
 Documentation       Importation of all resources
 
 # Collection
-Library             Telnet
 Library             String
 Library             DateTime
 Library             Collections

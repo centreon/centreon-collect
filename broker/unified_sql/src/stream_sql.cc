@@ -4519,11 +4519,15 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing engine state");
   std::shared_ptr<neb::pb_engine_state> state{
       std::static_pointer_cast<neb::pb_engine_state>(d)};
+  auto& cache = config::applier::state::instance().cache();
+  /* The cache first, then the database. That order is not free to choose: the
+   * database side resolves the members of groups and the parents of hosts by
+   * name, and it asks the cache for them -- so the cache has to describe this
+   * configuration before it is applied, not after. */
+  cache.merge(state->obj());
   database_configurator cfg(this, _logger_sql);
   cfg.process_state(state->obj());
-  auto& cache = config::applier::state::instance().cache();
-  cache.merge(state->obj());
-  /* The cache now knows this poller's hosts/services: re-inject any active
+  /* The cache knows this poller's hosts/services: re-inject any active
    * downtimes that were persisted across a Broker restart and were waiting for
    * their resource to be known (centralized mode). */
   cache.reinject_pending_downtimes();

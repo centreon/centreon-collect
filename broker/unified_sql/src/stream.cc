@@ -24,7 +24,6 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
 namespace asio = boost::asio;
@@ -1298,67 +1297,67 @@ void stream::_init_statements() {
 
   const std::string hscr_query(
       "UPDATE hosts SET "
-      "checked=?,"                   // 0: has_been_checked
-      "check_type=?,"                // 1: check_type
-      "state=?,"                     // 2: current_state
-      "state_type=?,"                // 3: state_type
-      "last_state_change=?,"         // 4: last_state_change
-      "last_hard_state=?,"           // 5: last_hard_state
-      "last_hard_state_change=?,"    // 6: last_hard_state_change
-      "last_time_up=?,"              // 7: last_time_up
-      "last_time_down=?,"            // 8: last_time_down
-      "last_time_unreachable=?,"     // 9: last_time_unreachable
-      "output=?,"                    // 10: output + '\n' + long_output
-      "perfdata=?,"                  // 11: perf_data
-      "flapping=?,"                  // 12: is_flapping
-      "percent_state_change=?,"      // 13: percent_state_change
-      "latency=?,"                   // 14: latency
-      "execution_time=?,"            // 15: execution_time
-      "last_check=?,"                // 16: last_check
-      "next_check=?,"                // 17: next_check
-      "should_be_scheduled=?,"       // 18: should_be_scheduled
-      "check_attempt=?,"             // 19: current_check_attempt
-      "notification_number=?,"       // 20: notification_number
-      "no_more_notifications=?,"     // 21: no_more_notifications
-      "last_notification=?,"         // 22: last_notification
-      "next_host_notification=?,"    // 23: next_notification
-      "acknowledged=?,"              // 24: acknowledgement_type != NONE
-      "acknowledgement_type=?,"      // 25: acknowledgement_type
+      "checked=?,"                 // 0: has_been_checked
+      "check_type=?,"              // 1: check_type
+      "state=?,"                   // 2: current_state
+      "state_type=?,"              // 3: state_type
+      "last_state_change=?,"       // 4: last_state_change
+      "last_hard_state=?,"         // 5: last_hard_state
+      "last_hard_state_change=?,"  // 6: last_hard_state_change
+      "last_time_up=?,"            // 7: last_time_up
+      "last_time_down=?,"          // 8: last_time_down
+      "last_time_unreachable=?,"   // 9: last_time_unreachable
+      "output=?,"                  // 10: output + '\n' + long_output
+      "perfdata=?,"                // 11: perf_data
+      "flapping=?,"                // 12: is_flapping
+      "percent_state_change=?,"    // 13: percent_state_change
+      "latency=?,"                 // 14: latency
+      "execution_time=?,"          // 15: execution_time
+      "last_check=?,"              // 16: last_check
+      "next_check=?,"              // 17: next_check
+      "should_be_scheduled=?,"     // 18: should_be_scheduled
+      "check_attempt=?,"           // 19: current_check_attempt
+      "notification_number=?,"     // 20: notification_number
+      "no_more_notifications=?,"   // 21: no_more_notifications
+      "last_notification=?,"       // 22: last_notification
+      "next_host_notification=?,"  // 23: next_notification
+      "acknowledged=?,"            // 24: acknowledgement_type != NONE
+      "acknowledgement_type=?,"    // 25: acknowledgement_type
       // 26: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
       // keeps the depth already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
-      "WHERE host_id=?"              // 27: host_id
+      "WHERE host_id=?"            // 27: host_id
   );
 
   const std::string sscr_query(
       "UPDATE services SET "
-      "checked=?,"                          // 0: has_been_checked
-      "check_type=?,"                       // 1: check_type
-      "state=?,"                            // 2: current_state
-      "state_type=?,"                       // 3: state_type
-      "last_state_change=?,"                // 4: last_state_change
-      "last_hard_state=?,"                  // 5: last_hard_state
-      "last_hard_state_change=?,"           // 6: last_hard_state_change
-      "last_time_ok=?,"                     // 7: last_time_ok
-      "last_time_warning=?,"                // 8: last_time_warning
-      "last_time_critical=?,"               // 9: last_time_critical
-      "last_time_unknown=?,"                // 10: last_time_unknown
-      "output=?,"                           // 11: output + '\n' + long_output
-      "perfdata=?,"                         // 12: perf_data
-      "flapping=?,"                         // 13: is_flapping
-      "percent_state_change=?,"             // 14: percent_state_change
-      "latency=?,"                          // 15: latency
-      "execution_time=?,"                   // 16: execution_time
-      "last_check=?,"                       // 17: last_check
-      "next_check=?,"                       // 18: next_check
-      "should_be_scheduled=?,"              // 19: should_be_scheduled
-      "check_attempt=?,"                    // 20: current_check_attempt
-      "notification_number=?,"              // 21: notification_number
-      "no_more_notifications=?,"            // 22: no_more_notifications
-      "last_notification=?,"                // 23: last_notification
-      "next_notification=?,"                // 24: next_notification
-      "acknowledged=?,"                     // 25: acknowledgement_type != NONE
-      "acknowledgement_type=?,"             // 26: acknowledgement_type
+      "checked=?,"                 // 0: has_been_checked
+      "check_type=?,"              // 1: check_type
+      "state=?,"                   // 2: current_state
+      "state_type=?,"              // 3: state_type
+      "last_state_change=?,"       // 4: last_state_change
+      "last_hard_state=?,"         // 5: last_hard_state
+      "last_hard_state_change=?,"  // 6: last_hard_state_change
+      "last_time_ok=?,"            // 7: last_time_ok
+      "last_time_warning=?,"       // 8: last_time_warning
+      "last_time_critical=?,"      // 9: last_time_critical
+      "last_time_unknown=?,"       // 10: last_time_unknown
+      "output=?,"                  // 11: output + '\n' + long_output
+      "perfdata=?,"                // 12: perf_data
+      "flapping=?,"                // 13: is_flapping
+      "percent_state_change=?,"    // 14: percent_state_change
+      "latency=?,"                 // 15: latency
+      "execution_time=?,"          // 16: execution_time
+      "last_check=?,"              // 17: last_check
+      "next_check=?,"              // 18: next_check
+      "should_be_scheduled=?,"     // 19: should_be_scheduled
+      "check_attempt=?,"           // 20: current_check_attempt
+      "notification_number=?,"     // 21: notification_number
+      "no_more_notifications=?,"   // 22: no_more_notifications
+      "last_notification=?,"       // 23: last_notification
+      "next_notification=?,"       // 24: next_notification
+      "acknowledged=?,"            // 25: acknowledgement_type != NONE
+      "acknowledgement_type=?,"    // 26: acknowledgement_type
       // 27: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
       // keeps the depth already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
@@ -1459,15 +1458,6 @@ mysql& stream::get_mysql() {
 
 bool stream::supports_bulk_prepared_statements() const {
   return _bulk_prepared_statement;
-}
-
-absl::flat_hash_map<std::string, uint64_t>& stream::host_name_id_cache() {
-  return _host_name_id_cache;
-}
-
-absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
-stream::service_description_id_cache() {
-  return _service_description_id_cache;
 }
 
 // boost::bimap<uint32_t, std::string>& stream::servicegroups_cache() {

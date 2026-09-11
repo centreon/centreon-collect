@@ -22,7 +22,6 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/utf8.hh"
-#include "common/engine_conf/state.pb.h"
 
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::misc;
@@ -1259,7 +1258,6 @@ void database_configurator::_add_host_resources_mariadb(
   }
   auto bind = _add_host_resources_stmt->create_bind();
 
-  auto& hosts_cache = _stream->host_name_id_cache();
   auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
@@ -1322,10 +1320,6 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_bool(18, true);
     bind->next_row();
     _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
-    _logger->debug("Adding to cache host '{}' with id {}", msg.host_name(),
-                   msg.host_id());
-    hosts_cache.insert_or_assign(msg.host_name(), msg.host_id());
-    _logger->debug("host cache has {} items now", hosts_cache.size());
   }
   _add_host_resources_stmt->set_bind(std::move(bind));
 
@@ -1371,7 +1365,6 @@ void database_configurator::_add_host_resources_mysql(
   std::list<std::pair<uint64_t, uint64_t>> keys;
 
   std::vector<std::string> values;
-  auto& hosts_cache = _stream->host_name_id_cache();
   auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
@@ -1408,8 +1401,6 @@ void database_configurator::_add_host_resources_mysql(
         msg.checks_active()));
     values.emplace_back(value);
     _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
-    hosts_cache.insert_or_assign(msg.host_name(), msg.host_id());
-    // hosts_instances_cache.insert_or_assign(msg.host_id(), msg.poller_id());
   }
   std::string query(fmt::format(
       "INSERT INTO resources (id,parent_id,internal_id,type,status, "
@@ -2271,7 +2262,6 @@ void database_configurator::_add_service_resources_mariadb(
     mysql.prepare_statement(*_add_service_resources_stmt);
   }
   auto bind = _add_service_resources_stmt->create_bind();
-  auto& services_cache = _stream->service_description_id_cache();
   auto& global_cache = config::applier::state::instance().cache();
 
   for (const auto& msg : lst) {
@@ -2323,9 +2313,6 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_value_as_bool(16, true);
     bind->next_row();
     _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
-    services_cache.insert_or_assign(
-        std::make_pair(msg.host_id(), msg.service_description()),
-        msg.service_id());
   }
   _add_service_resources_stmt->set_bind(std::move(bind));
 
@@ -2371,7 +2358,6 @@ void database_configurator::_add_service_resources_mysql(
 
   std::vector<std::string> values;
   values.reserve(lst.size());
-  auto& services_cache = _stream->service_description_id_cache();
   auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), msg.service_id());
@@ -2409,9 +2395,6 @@ void database_configurator::_add_service_resources_mysql(
         msg.checks_active()));
     values.emplace_back(value);
     _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
-    services_cache.insert_or_assign(
-        std::make_pair(msg.host_id(), msg.service_description()),
-        msg.service_id());
   }
   std::string query(fmt::format(
       "INSERT INTO resources "
@@ -2835,26 +2818,25 @@ void database_configurator::_add_hostgroups_mariadb(
 
   stmt = static_cast<mysql_bulk_stmt*>(_add_hostgroup_members_stmt.get());
   auto bind_members = stmt->create_bind();
-  auto& hosts_cache = _stream->host_name_id_cache();
   auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_hg : lst) {
     if (msg_hg.members().data().empty())
       continue;
 
     for (const auto& member : msg_hg.members().data()) {
-      auto found = hosts_cache.find(member);
-      if (found == hosts_cache.end()) {
+      auto host_id = global_cache.host_id(member);
+      if (!host_id) {
         _logger->error(
             "Host '{}' doesn't exist, so cannot add it to hostgroup '{}'",
             member, msg_hg.hostgroup_name());
         continue;
       }
-      auto h = global_cache.host(found->second);
-      bind_members->set_value_as_i32(0, found->second);
+      auto h = global_cache.host(host_id);
+      bind_members->set_value_as_i32(0, host_id);
       bind_members->set_value_as_i32(1, msg_hg.hostgroup_id());
       _logger->info(
           "enabling membership of host {} to host group {} on instance {}",
-          found->second, msg_hg.hostgroup_id(), h->obj().instance_id());
+          host_id, msg_hg.hostgroup_id(), h->obj().instance_id());
       bind_members->next_row();
     }
   }
@@ -2918,7 +2900,6 @@ void database_configurator::_add_hostgroups_mysql(
     }
   }
 
-  auto& hosts_cache = _stream->host_name_id_cache();
   values.clear();
   auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_hg : lst) {
@@ -2926,20 +2907,20 @@ void database_configurator::_add_hostgroups_mysql(
       continue;
 
     for (const auto& member : msg_hg.members().data()) {
-      auto found = hosts_cache.find(member);
-      if (found == hosts_cache.end()) {
+      auto host_id = global_cache.host_id(member);
+      if (!host_id) {
         _logger->error(
             "Host '{}' doesn't exist, so cannot add it to hostgroup '{}'",
             member, msg_hg.hostgroup_name());
         continue;
       }
       std::string value(
-          fmt::format("({}, {})", found->second, msg_hg.hostgroup_id()));
+          fmt::format("({}, {})", host_id, msg_hg.hostgroup_id()));
       values.emplace_back(value);
-      auto h = global_cache.host(found->second);
+      auto h = global_cache.host(host_id);
       _logger->info(
           "enabling membership of host {} to host group {} on instance {}",
-          found->second, msg_hg.hostgroup_id(), h->obj().instance_id());
+          host_id, msg_hg.hostgroup_id(), h->obj().instance_id());
     }
   }
   if (!values.empty()) {
@@ -3021,39 +3002,37 @@ void database_configurator::_add_servicegroups_mariadb(
 
   stmt = static_cast<mysql_bulk_stmt*>(_add_servicegroup_members_stmt.get());
   auto bind_members = stmt->create_bind();
-  auto& hosts_cache = _stream->host_name_id_cache();
-  auto& services_cache = _stream->service_description_id_cache();
   auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_sg : lst) {
     if (msg_sg.members().data().empty())
       continue;
 
     for (const auto& member : msg_sg.members().data()) {
-      auto fnd_host = hosts_cache.find(member.first());
-      if (fnd_host == hosts_cache.end()) {
-        _logger->error(
-            "Host '{}' does not exist, so cannot add any of its services to "
-            "servicegroup '{}'",
-            member.first(), msg_sg.servicegroup_name());
+      const auto [host_id, service_id] =
+          global_cache.service_key(member.first(), member.second());
+      if (!service_id) {
+        /* Which of the two is missing only changes the message, so the host is
+         * looked up on this path alone. */
+        if (!global_cache.host_id(member.first()))
+          _logger->error(
+              "Host '{}' does not exist, so cannot add any of its services to "
+              "servicegroup '{}'",
+              member.first(), msg_sg.servicegroup_name());
+        else
+          _logger->error(
+              "Service '{}' on host '{}' does not exist, so cannot add it to "
+              "servicegroup '{}'",
+              member.second(), member.first(), msg_sg.servicegroup_name());
         continue;
       }
-      auto fnd_service = services_cache.find(
-          std::make_pair(fnd_host->second, member.second()));
-      if (fnd_service == services_cache.end()) {
-        _logger->error(
-            "Service '{}' on host '{}' does not exist, so cannot add it to "
-            "servicegroup '{}'",
-            member.second(), member.first(), msg_sg.servicegroup_name());
-        continue;
-      }
-      bind_members->set_value_as_i32(0, fnd_host->second);
-      bind_members->set_value_as_i32(1, fnd_service->second);
+      bind_members->set_value_as_i32(0, host_id);
+      bind_members->set_value_as_i32(1, service_id);
       bind_members->set_value_as_i32(2, msg_sg.servicegroup_id());
-      auto h = global_cache.host(fnd_host->second);
+      auto h = global_cache.host(host_id);
       _logger->info(
           "enabling membership of service ({}:{}) to service group {} on "
           "instance {}",
-          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id(),
+          host_id, service_id, msg_sg.servicegroup_id(),
           h->obj().instance_id());
       bind_members->next_row();
     }
@@ -3113,8 +3092,6 @@ void database_configurator::_add_servicegroups_mysql(
     }
   }
 
-  auto& hosts_cache = _stream->host_name_id_cache();
-  auto& services_cache = _stream->service_description_id_cache();
   values.clear();
   auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg_sg : lst) {
@@ -3122,32 +3099,31 @@ void database_configurator::_add_servicegroups_mysql(
       continue;
 
     for (const auto& member : msg_sg.members().data()) {
-      auto fnd_host = hosts_cache.find(member.first());
-      if (fnd_host == hosts_cache.end()) {
-        _logger->error(
-            "Host '{}' does not exist, so cannot add any of its services to "
-            "servicegroup '{}'",
-            member.first(), msg_sg.servicegroup_name());
+      const auto [host_id, service_id] =
+          global_cache.service_key(member.first(), member.second());
+      if (!service_id) {
+        /* Which of the two is missing only changes the message, so the host is
+         * looked up on this path alone. */
+        if (!global_cache.host_id(member.first()))
+          _logger->error(
+              "Host '{}' does not exist, so cannot add any of its services to "
+              "servicegroup '{}'",
+              member.first(), msg_sg.servicegroup_name());
+        else
+          _logger->error(
+              "Service '{}' on host '{}' does not exist, so cannot add it to "
+              "servicegroup '{}'",
+              member.second(), member.first(), msg_sg.servicegroup_name());
         continue;
       }
-      auto fnd_service = services_cache.find(
-          std::make_pair(fnd_host->second, member.second()));
-      if (fnd_service == services_cache.end()) {
-        _logger->error(
-            "Service '{}' on host '{}' does not exist, so cannot add it to "
-            "servicegroup '{}'",
-            member.second(), member.first(), msg_sg.servicegroup_name());
-        continue;
-      }
-      std::string value(fmt::format("({}, {}, {})", fnd_host->second,
-                                    fnd_service->second,
+      std::string value(fmt::format("({}, {}, {})", host_id, service_id,
                                     msg_sg.servicegroup_id()));
       values.emplace_back(value);
-      auto h = global_cache.host(fnd_host->second);
+      auto h = global_cache.host(host_id);
       _logger->info(
           "enabling membership of service ({}:{}) to service group {} on "
           "instance {}",
-          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id(),
+          host_id, service_id, msg_sg.servicegroup_id(),
           h->obj().instance_id());
     }
   }
@@ -3196,11 +3172,12 @@ void database_configurator::_add_host_parents_mariadb(
   }
   auto* stmt = static_cast<mysql_bulk_stmt*>(_add_host_parents_stmt.get());
   auto bind = stmt->create_bind();
+  auto& global_cache = config::applier::state::instance().cache();
   uint32_t count = 0;
   for (const auto& msg : lst) {
     for (const std::string& h : msg.parents().data()) {
-      auto found = _stream->host_name_id_cache().find(h);
-      if (found == _stream->host_name_id_cache().end()) {
+      auto parent_id = global_cache.host_id(h);
+      if (!parent_id) {
         _logger->error(
             "Host '{}' does not exist, so cannot add it as parent of host "
             "'{}'",
@@ -3208,8 +3185,8 @@ void database_configurator::_add_host_parents_mariadb(
         continue;
       }
       bind->set_value_as_i32(0, msg.host_id());
-      bind->set_value_as_i32(1, found->second);
-      _logger->debug("Adding host {} as parent of host {}", found->second,
+      bind->set_value_as_i32(1, parent_id);
+      _logger->debug("Adding host {} as parent of host {}", parent_id,
                      msg.host_id());
       bind->next_row();
       count++;
@@ -3257,11 +3234,12 @@ void database_configurator::_add_host_parents_mysql(
     mysql.prepare_statement(*_add_host_parents_stmt);
   }
 
+  auto& global_cache = config::applier::state::instance().cache();
   uint32_t count = 0;
   for (const auto& msg : lst) {
     for (const std::string& h : msg.parents().data()) {
-      auto found = _stream->host_name_id_cache().find(h);
-      if (found == _stream->host_name_id_cache().end()) {
+      auto parent_id = global_cache.host_id(h);
+      if (!parent_id) {
         _logger->error(
             "Host '{}' does not exist, so cannot add it as parent of host "
             "'{}'",
@@ -3269,8 +3247,8 @@ void database_configurator::_add_host_parents_mysql(
         continue;
       }
       _add_host_parents_stmt->bind_value_as_i32(0, msg.host_id());
-      _add_host_parents_stmt->bind_value_as_i32(1, found->second);
-      _logger->debug("Adding host {} as parent of host {}", found->second,
+      _add_host_parents_stmt->bind_value_as_i32(1, parent_id);
+      _logger->debug("Adding host {} as parent of host {}", parent_id,
                      msg.host_id());
       mysql.run_statement(*_add_host_parents_stmt);
       count++;
