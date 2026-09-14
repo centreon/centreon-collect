@@ -54,6 +54,12 @@ fi
 # processing - MD5 does not match" (open() on the destination fails).
 install -d -m 0770 -o centreon-gorgone -g centreon-gorgone /var/cache/centreon
 
+# Same problem for /etc/centreon: normally created by the centreon-web
+# package (e.g. for centreon_vmware.json pushed by gorgone's legacycmd
+# module), never installed on the poller, so it's missing here too and
+# any such copy fails with "No such file or directory".
+install -d -m 0770 -o centreon-gorgone -g centreon-gorgone /etc/centreon
+
 systemctl stop gorgoned
 systemctl stop centengine
 systemctl stop cbd
