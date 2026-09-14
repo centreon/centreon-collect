@@ -56,6 +56,7 @@ install -d -m 0770 -o centreon-gorgone -g centreon-gorgone /var/cache/centreon
 
 systemctl stop gorgoned
 systemctl stop centengine
+systemctl stop cbd
 
 dnf clean all
 

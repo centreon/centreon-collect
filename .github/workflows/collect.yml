@@ -384,7 +384,7 @@ jobs:
         run: |
           ls -lh *.rpm
           mkdir packages-centreon
-          mv centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-"${MAJOR_VERSION}"*.rpm packages-centreon/
+          mv centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd}-"${MAJOR_VERSION}"*.rpm packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
