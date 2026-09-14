@@ -157,19 +157,6 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
-  enum special_conn {
-    custom_variable,
-    downtime,
-    host_group,
-    host_parent,
-    log,
-    service_group,
-    severity,
-    tag,
-    comment
-  };
-
-
   struct index_info {
     uint64_t index_id;
     std::string host_name;
@@ -178,7 +165,6 @@ class stream : public io::stream {
     bool special;
     bool locked;
   };
-
   static const std::array<std::string, 5> metric_type_name;
 
   struct metric_info {
@@ -357,26 +343,6 @@ class stream : public io::stream {
 
   std::unique_ptr<database::mysql_stmt_base> _sscr_update;
   std::unique_ptr<bulk_bind> _sscr_bind;
-
-  /* Statement and binding to enable hosts in the hosts table. One value is
-   * set at index 0 that is the host ID. */
-  std::unique_ptr<database::mysql_stmt_base> _eh_update;
-  std::unique_ptr<bulk_bind> _eh_bind;
-
-  /* Statement and binding to enable hosts in the resources table. One value
-   * is set at index 0 that is the host ID. */
-  std::unique_ptr<database::mysql_stmt_base> _ehr_update;
-  std::unique_ptr<bulk_bind> _ehr_bind;
-
-  /* Statement and binding to enable services in the services table. One value
-   * is set at index 0 that is the service ID. */
-  std::unique_ptr<database::mysql_stmt_base> _es_update;
-  std::unique_ptr<bulk_bind> _es_bind;
-
-  /* Statement and binding to enable services in the resources table. One value
-   * is set at index 0 that is the service ID. */
-  std::unique_ptr<database::mysql_stmt_base> _esr_update;
-  std::unique_ptr<bulk_bind> _esr_bind;
 
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
