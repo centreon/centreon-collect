@@ -116,7 +116,10 @@ class state {
    * kept on disk. */
   virtual void remove_poller_config(uint64_t poller_id [[maybe_unused]]) {}
 
-  virtual bool is_peer_conf_known(uint64_t poller_id [[maybe_unused]]) const {
+  /* Whether Broker holds the content of the configuration this poller runs.
+   * Says nothing about the poller having told us which version it runs. */
+  virtual bool broker_knows_poller_conf(uint64_t poller_id
+                                        [[maybe_unused]]) const {
     return true;
   }
   /* Local timezone advertised by an Engine peer at negotiation time. Empty when
@@ -150,12 +153,6 @@ class state {
   /* Whether this poller has a live link to this Broker -- directly, or
    * through a relay. Says nothing about its Engine being started. */
   virtual bool is_poller_connected(uint64_t poller_id) const = 0;
-  /* Whether this poller's Engine is running, as told by the last pb_instance
-   * received for it. False at connection time: a peer may well be connected
-   * with its Engine not started yet. */
-  virtual bool is_engine_running(uint64_t poller_id) const = 0;
-  virtual void set_instance_running(uint64_t /*poller_id*/,
-                                    bool /*running*/) noexcept {}
   /* Called by an output stream's failover once it has completed its first
    * open()/load, to release the startup readiness barrier when all output
    * streams created at startup are ready. */

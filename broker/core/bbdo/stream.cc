@@ -318,7 +318,8 @@ void stream::negotiate(stream::negotiation_type neg) {
     config::applier::state::instance().add_peer(
         poller_id(), poller_name(), broker_name(), peer_type(),
         _extended_negotiation, peer_engine_conf, peer_timezone);
-    if (!config::applier::state::instance().is_peer_conf_known(poller_id())) {
+    if (!config::applier::state::instance().broker_knows_poller_conf(
+            poller_id())) {
       _logger->error("No known configuration for the poller {}:{}:{}",
                      poller_id(), poller_name(), broker_name());
       /* We send an unknown diff state to let the peer know that its

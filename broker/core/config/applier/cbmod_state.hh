@@ -84,8 +84,6 @@ class cbmod_state : public state {
   bool broker_peer_supports_extended_negotiation() const;
   bool is_poller_connected(uint64_t poller_id) const override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  bool is_engine_running(uint64_t poller_id) const override
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_diff_state(const std::shared_ptr<io::data>& diff);

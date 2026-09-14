@@ -185,10 +185,10 @@ static uint32_t set_ulong(io::data& t,
  *  @return Event.
  */
 std::shared_ptr<io::data> basic_stream::deserialize(uint32_t event_type,
-                                    uint32_t source_id,
-                                    uint32_t destination_id,
-                                    const char* buffer,
-                                    uint32_t size) {
+                                                    uint32_t source_id,
+                                                    uint32_t destination_id,
+                                                    const char* buffer,
+                                                    uint32_t size) {
   // Get event info (operations and mapping).
   io::event_info const* info(io::events::instance().get_event_info(event_type));
   if (info) {
@@ -830,7 +830,7 @@ void basic_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
     //   assert(obj.poller_id() == _poller_id);
     //   config::applier::state::instance().set_poller_engine_conf(
     //       _poller_id, _poller_name, _broker_name, obj.config_version());
-    //   config::applier::state::instance().acknowledge_engine_peer(
+    //   config::applier::state::instance().set_poller_conf_acknowledged(
     //       obj.poller_id());
     //   SPDLOG_LOGGER_INFO(
     //       _logger,
@@ -850,7 +850,7 @@ void basic_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
     //                    new_name.string(), name.string());
 
     //  // All the peer pollers have their configuration acknowledged.
-    //  if (config::applier::state::instance().all_engine_peers_acknowledged())
+    //  if (config::applier::state::instance().try_close_conf_round())
     //  {
     //    SPDLOG_LOGGER_INFO(
     //        _logger,
@@ -1043,8 +1043,7 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       const auto pending = absl::c_find_if(_buffer, [&](const buffer& b) {
         return b.matches(event_id, source_id, dest_id);
       });
-      const bool must_copy =
-          packet_size == 0xffff || pending != _buffer.end();
+      const bool must_copy = packet_size == 0xffff || pending != _buffer.end();
 
       std::vector<char> content;
       if (must_copy) {
@@ -1171,9 +1170,8 @@ bool basic_stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 void basic_stream::_drop_from_packet(size_t size) {
   if (_packet.size() == size) {
-    SPDLOG_LOGGER_TRACE(_logger,
-                        "packet matched header + content, {} bytes consumed",
-                        size);
+    SPDLOG_LOGGER_TRACE(
+        _logger, "packet matched header + content, {} bytes consumed", size);
     _packet.clear();
   } else {
     /* _packet.size() > size: it carried more than one BBDO packet. */

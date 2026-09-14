@@ -106,9 +106,9 @@ class BrokerStateRound : public ::testing::Test {
 
   /** @brief Play out a delivery: sent, then acknowledged by the poller. */
   void deliver_and_acknowledge(uint64_t poller_id, const std::string& version) {
-    _state->set_available_conf_sent_to_engine_peer(poller_id);
+    _state->set_poller_conf_sent(poller_id);
     _state->set_poller_engine_conf(poller_id, version);
-    _state->acknowledge_engine_peer(poller_id);
+    _state->set_poller_conf_acknowledged(poller_id);
   }
 };
 
@@ -124,17 +124,17 @@ TEST_F(BrokerStateRound, NotOverWhilePeersAreStillOwedTheirConfiguration) {
   for (uint64_t id = 1; id <= 3; ++id) {
     leave_prepared_conf(id, "v1");
     connect(id);
-    ASSERT_TRUE(_state->engine_peer_needs_update(id));
+    ASSERT_TRUE(_state->poller_needs_update(id));
   }
 
   deliver_and_acknowledge(1, "v1");
 
   /* Pollers 2 and 3 have available_conf set, available_conf_sent false: their
    * diff-<N>.prot is on disk waiting for their stream to emit. */
-  ASSERT_TRUE(_state->engine_peer_needs_update(2));
-  ASSERT_TRUE(_state->engine_peer_needs_update(3));
+  ASSERT_TRUE(_state->poller_needs_update(2));
+  ASSERT_TRUE(_state->poller_needs_update(3));
 
-  EXPECT_FALSE(_state->all_engine_peers_acknowledged());
+  EXPECT_FALSE(_state->try_close_conf_round());
 }
 
 /**
@@ -151,9 +151,9 @@ TEST_F(BrokerStateRound, OverOnceEveryPeerHasAcknowledged) {
   }
 
   for (uint64_t id = 1; id <= 3; ++id)
-    ASSERT_FALSE(_state->engine_peer_needs_update(id));
+    ASSERT_FALSE(_state->poller_needs_update(id));
 
-  EXPECT_TRUE(_state->all_engine_peers_acknowledged());
+  EXPECT_TRUE(_state->try_close_conf_round());
 }
 
 /**
@@ -168,5 +168,5 @@ TEST_F(BrokerStateRound, OverWhenTheOnlyServedPeerAcknowledged) {
   connect(1);
   deliver_and_acknowledge(1, "v1");
 
-  EXPECT_TRUE(_state->all_engine_peers_acknowledged());
+  EXPECT_TRUE(_state->try_close_conf_round());
 }

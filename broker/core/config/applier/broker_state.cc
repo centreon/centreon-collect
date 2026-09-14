@@ -346,15 +346,7 @@ void broker_state::set_cache_config_dir(
 void broker_state::save_topology_cache() const {
   if (_pollers_config_dir.empty())
     return;
-  TopologyCache cache;
-  {
-    absl::ReaderMutexLock lck(&_connected_peers_m);
-    for (const auto& [poller_id, relay_id] : _last_known_topology) {
-      auto* e = cache.add_entries();
-      e->set_poller_id(poller_id);
-      e->set_relay_id(relay_id);
-    }
-  }
+  TopologyCache cache = _peers.topology_cache();
   const auto path = _pollers_config_dir / "topology.cache";
   std::ofstream f(path, std::ios::binary | std::ios::trunc);
   if (!f) {
@@ -370,9 +362,9 @@ void broker_state::save_topology_cache() const {
 
 /**
  * @brief Load the topology cache from disk. Called once at startup, after
- * _pollers_config_dir is set. Populates _engine_peers with via_remote hints
- * so that PHP diffs pushed during the outage are routed correctly before
- * the relays reconnect.
+ * _pollers_config_dir is set. Hands the registry the via_remote hints so that
+ * PHP diffs pushed during the outage are routed correctly before the relays
+ * reconnect.
  */
 void broker_state::load_topology_cache() {
   if (_pollers_config_dir.empty())
@@ -386,18 +378,7 @@ void broker_state::load_topology_cache() {
     _logger->warn("Failed to parse topology cache from '{}'", path.string());
     return;
   }
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  for (const auto& e : cache.entries()) {
-    _last_known_topology[e.poller_id()] = e.relay_id();
-    /* No name and no connection date: topology.cache holds neither, and this
-     * entry describes a poller that may connect, not one that is connected.
-     * The zero date is what tells the two apart everywhere else. */
-    if (!_engine_peers.count(e.poller_id())) {
-      _engine_peers[e.poller_id()] =
-          engine_peer{e.poller_id(), "",   0,     false,       "", "",
-                      false,         true, false, e.relay_id()};
-    }
-  }
+  _peers.restore_pollers_from_cache(cache);
   _logger->info("Topology cache loaded: {} hints", cache.entries_size());
 }
 
@@ -744,12 +725,12 @@ void broker_state::create_prot_file(
     return;
   }
 
-  // Logs the skip reason, clears the unknown flag, and signals to the caller
-  // that creation should be skipped.
+  // Logs the skip reason, records that Broker knows this poller's
+  // configuration, and signals to the caller that creation should be skipped.
   auto skip = [&](std::string_view reason) {
     _logger->info("Skipping prot file creation for poller {}: {}", poller_id,
                   reason);
-    set_poller_engine_conf_unknown(poller_id, false);
+    set_broker_knows_poller_conf(poller_id, true);
   };
 
   // If PHP has already sent a new configuration for this poller (signalled by
@@ -792,7 +773,7 @@ void broker_state::create_prot_file(
     f.close();
     _logger->debug("Created prot file '{}' for poller id {}",
                    prot_file.string(), poller_id);
-    set_poller_engine_conf_unknown(poller_id, false);
+    set_broker_knows_poller_conf(poller_id, true);
     _feed_cache_and_wake_up_resources(poller_id);
   } else {
     _logger->error("Unable to create '{}'", prot_file.string());
@@ -813,71 +794,15 @@ void broker_state::add_peer(uint64_t poller_id,
                             const std::string& engine_conf,
                             const std::string& timezone) {
   assert(poller_id && !broker_name.empty());
-  {
+  std::string engine_conf_known =
+      _peers.add_peer(poller_id, poller_name, broker_name, peer_type,
+                      extended_negotiation, engine_conf, timezone);
+
+  if (peer_type == common::ENGINE && is_relay() && extended_negotiation) {
     absl::WriterMutexLock lck(&_connected_peers_m);
-    const peer_key key{poller_id, poller_name, broker_name};
-
-    auto found_engine = _engine_peers.find(poller_id);
-
-    bool already_present = (found_engine != _engine_peers.end() &&
-                            found_engine->second.poller_name == poller_name) ||
-                           _broker_peers.count(key) ||
-                           _unknown_peers.count(key);
-    if (already_present) {
-      _logger->warn(
-          "Poller '{}' with id {} already known as connected. Replacing it.",
-          broker_name, poller_id);
-    } else {
-      _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
-    }
-
-    /* For ENGINE reconnections, preserve the known engine_conf if the caller
-     * did not supply a new one. */
-    std::string effective_engine_conf = engine_conf;
-    if (effective_engine_conf.empty() && peer_type == common::ENGINE) {
-      if (found_engine != _engine_peers.end())
-        effective_engine_conf = found_engine->second.engine_conf;
-    }
-
-    /* Remove from all maps in case the peer type changed.
-     * For BROKER peers, do NOT erase _engine_peers: a relay-registered engine
-     * peer (via_remote) and a broker peer may legitimately share the same
-     * poller_id (e.g. rrd and Engine both on poller 1) and must not interfere.
-     * The engine_peer entry was created by register_engine_peer_via_relay and
-     * must survive until _prepare_diff_for_poller uses it. */
-    if (peer_type != common::BROKER)
-      _engine_peers.erase(poller_id);
-    _broker_peers.erase(key);
-    _unknown_peers.erase(key);
-
-    switch (peer_type) {
-      case common::BROKER:
-        _broker_peers[key] = broker_peer{poller_id, poller_name, broker_name,
-                                         time(nullptr), extended_negotiation};
-        break;
-      case common::ENGINE:
-        _engine_peers[poller_id] = engine_peer{poller_id,
-                                               poller_name,
-                                               time(nullptr),
-                                               extended_negotiation,
-                                               "",
-                                               effective_engine_conf,
-                                               false,
-                                               true,
-                                               false,
-                                               0u};
-        _engine_peers[poller_id].timezone = timezone;
-        if (is_relay() && extended_negotiation)
-          _pending_config_requests[poller_id] = {poller_name,
-                                                 effective_engine_conf};
-        break;
-      default:
-        _unknown_peers[key] =
-            unknown_peer{poller_id,     poller_name, broker_name,
-                         time(nullptr), peer_type,   extended_negotiation};
-        break;
-    }
+    _pending_config_requests[poller_id] = {poller_name, engine_conf_known};
   }
+
   if (extended_negotiation) {
     if (!_safety_timer) {
       _logger->debug("Starting engine configuration watcher");
@@ -998,7 +923,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
         "it "
         "to the poller",
         poller_id);
-    set_poller_engine_conf_unknown(poller_id, true);
+    set_broker_knows_poller_conf(poller_id, false);
     retval = false;
   }
   return retval;
@@ -1013,11 +938,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
  * the poller is unknown or sent no timezone.
  */
 std::string broker_state::poller_timezone(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end())
-    return {};
-  return found->second.timezone;
+  return _peers.poller_timezone(poller_id);
 }
 
 /**
@@ -1175,38 +1096,21 @@ absl::flat_hash_set<uint32_t> broker_state::_read_poller_batch() {
  */
 void broker_state::set_poller_engine_conf(uint32_t poller_id,
                                           const std::string& engine_conf) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end()) {
-    _logger->info("Poller with id {} not found in connected peers", poller_id);
-  } else {
-    auto& peer = found->second;
-    _logger->info(
-        "Poller with id {} available conf '{}' and current version changed "
-        "from '{}' to '{}'",
-        poller_id, peer.available_conf, peer.engine_conf, engine_conf);
-    peer.engine_conf = engine_conf;
-  }
+  _peers.set_poller_engine_conf(poller_id, engine_conf);
 }
 
 /**
- * @brief Set the engine configuration unknown flag for the given poller.
- * When set to true, Broker will send a DiffState{unknown=true} to Engine
- * at the next negotiation, asking it to send back its full configuration.
+ * @brief Record whether Broker holds the content of this poller's
+ * configuration. When set to false, Broker sends a DiffState{unknown=true} to
+ * Engine at the next negotiation, asking it to send its full configuration
+ * back.
  *
  * @param poller_id The poller ID.
- * @param unknown true to mark the configuration as unknown, false
- * otherwise.
+ * @param known false when Broker has nothing stored for this poller.
  */
-void broker_state::set_poller_engine_conf_unknown(uint64_t poller_id,
-                                                  bool unknown) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end()) {
-    _logger->info("Poller with id {} engine conf is now {}", poller_id,
-                  unknown ? "unknown" : "known");
-    found->second.conf_unknown = unknown;
-  }
+void broker_state::set_broker_knows_poller_conf(uint64_t poller_id,
+                                                bool known) {
+  _peers.set_broker_knows_poller_conf(poller_id, known);
 }
 
 /**
@@ -1217,13 +1121,8 @@ void broker_state::set_poller_engine_conf_unknown(uint64_t poller_id,
  * @param poller_id The poller ID.
  * @return true if the configuration is known, false if unknown.
  */
-bool broker_state::is_peer_conf_known(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end()) {
-    return !found->second.conf_unknown;
-  }
-  return true;
+bool broker_state::broker_knows_poller_conf(uint64_t poller_id) const {
+  return _peers.broker_knows_poller_conf(poller_id);
 }
 
 /**
@@ -1235,19 +1134,14 @@ void broker_state::remove_peer(uint64_t poller_id,
                                const std::string& poller_name,
                                const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  const peer_key key{poller_id, poller_name, broker_name};
-  bool erased = _engine_peers.erase(poller_id) || _broker_peers.erase(key) ||
-                _unknown_peers.erase(key);
-  if (erased) {
+  if (_peers.remove_peer(poller_id, poller_name, broker_name))
     _logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
                   poller_name, broker_name, poller_id);
-  } else {
+  else
     _logger->warn(
         "Peer poller: '{}' - broker: '{}' with id {} not found in connected "
         "peers",
         poller_name, broker_name, poller_id);
-  }
 }
 
 /**
@@ -1263,9 +1157,7 @@ void broker_state::remove_peer(uint64_t poller_id,
  * @return true when the poller is connected.
  */
 bool broker_state::is_poller_connected(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto it = _engine_peers.find(poller_id);
-  return it != _engine_peers.end() && it->second.connected_since != 0;
+  return _peers.is_poller_connected(poller_id);
 }
 
 /**
@@ -1276,10 +1168,8 @@ bool broker_state::is_poller_connected(uint64_t poller_id) const {
  *
  * @return true when the Engine of this poller is running.
  */
-bool broker_state::is_engine_running(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto it = _engine_peers.find(poller_id);
-  return it != _engine_peers.end() && it->second.engine_running;
+bool broker_state::is_poller_running(uint64_t poller_id) const {
+  return _peers.is_poller_running(poller_id);
 }
 
 /**
@@ -1296,39 +1186,7 @@ bool broker_state::is_engine_running(uint64_t poller_id) const {
  */
 void broker_state::set_instance_running(uint64_t poller_id,
                                         bool running) noexcept {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto it = _engine_peers.find(poller_id);
-  if (it == _engine_peers.end())
-    return;
-  if (it->second.connected_since == 0) {
-    _logger->warn(
-        "Poller {} announced its Engine as {} while no connection is known "
-        "from it: ignored",
-        poller_id, running ? "running" : "stopped");
-    return;
-  }
-  it->second.engine_running = running;
-}
-
-/**
- * @brief Get every Engine peer this Broker knows about, connected or not.
- *
- * The peers restored from topology.cache are part of the answer: they are what
- * lets a configuration be prepared and routed to the right relay before that
- * relay reconnects. Anything that reports on connections wants
- * connected_pollers() instead.
- *
- * @return A vector of engine_peers.
- */
-std::vector<broker_state::engine_peer> broker_state::known_engine_peers()
-    const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  std::vector<engine_peer> retval;
-  retval.reserve(_engine_peers.size());
-  for (const auto& [_, peer] : _engine_peers) {
-    retval.push_back(peer);
-  }
-  return retval;
+  _peers.set_instance_running(poller_id, running);
 }
 
 /**
@@ -1338,14 +1196,7 @@ std::vector<broker_state::engine_peer> broker_state::known_engine_peers()
  * @return A vector of engine_peers, each one with a connection date.
  */
 std::vector<broker_state::engine_peer> broker_state::connected_pollers() const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  std::vector<engine_peer> retval;
-  retval.reserve(_engine_peers.size());
-  for (const auto& [_, peer] : _engine_peers) {
-    if (peer.connected_since != 0)
-      retval.push_back(peer);
-  }
-  return retval;
+  return _peers.connected_pollers();
 }
 
 /**
@@ -1354,41 +1205,7 @@ std::vector<broker_state::engine_peer> broker_state::connected_pollers() const {
  * @return A vector of peers.
  */
 std::vector<broker_state::peer> broker_state::connected_peers() const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  std::vector<peer> retval;
-  retval.reserve(_engine_peers.size() + _broker_peers.size() +
-                 _unknown_peers.size());
-  for (const auto& [_, bp] : _broker_peers) {
-    retval.push_back({.poller_id = bp.poller_id,
-                      .poller_name = bp.poller_name,
-                      .broker_name = bp.broker_name,
-                      .connected_since = bp.connected_since,
-                      .extended_negotiation = bp.extended_negotiation,
-                      .peer_type = common::BROKER});
-  }
-  for (const auto& [_, ep] : _engine_peers) {
-    /* A peer known from topology.cache has no connection to report. */
-    if (ep.connected_since == 0)
-      continue;
-    retval.push_back({.poller_id = ep.poller_id,
-                      .poller_name = ep.poller_name,
-                      .connected_since = ep.connected_since,
-                      .extended_negotiation = ep.extended_negotiation,
-                      .peer_type = common::ENGINE,
-                      .available_conf = ep.available_conf,
-                      .engine_conf = ep.engine_conf,
-                      .via_remote = ep.via_remote,
-                      .timezone = ep.timezone});
-  }
-  for (const auto& [_, up] : _unknown_peers) {
-    retval.push_back({.poller_id = up.poller_id,
-                      .poller_name = up.poller_name,
-                      .broker_name = up.broker_name,
-                      .connected_since = up.connected_since,
-                      .extended_negotiation = up.extended_negotiation,
-                      .peer_type = up.peer_type});
-  }
-  return retval;
+  return _peers.connected_peers();
 }
 
 /**
@@ -1405,46 +1222,8 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
  * @return True if all Engine peers acknowledged their configuration,
  * false otherwise.
  */
-bool broker_state::all_engine_peers_acknowledged() {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  bool retval = true;
-  uint32_t engine_count = 0;
-  uint32_t engine_good = 0;
-  uint32_t engine_pending = 0;
-  for (const auto& [key, peer] : _engine_peers) {
-    /* A peer whose configuration is prepared but not delivered yet is part of
-     * this round, even though nothing was sent to it. Leaving it out would let
-     * one peer's acknowledgement close the round on its own -- and the global
-     * diff then consumes every diff-<N>.prot of the directory, including the
-     * ones still waiting for their poller. Those files are never written again,
-     * so the peer keeps asking to be updated and Broker keeps failing to open a
-     * file that no longer exists. */
-    if (_peer_needs_update(peer)) {
-      ++engine_pending;
-      retval = false;
-      continue;
-    }
-    if (peer.available_conf_sent) {
-      if (!peer.conf_acknowledged)
-        retval = false;
-      else
-        ++engine_good;
-      ++engine_count;
-    }
-  }
-  _logger->debug(
-      "All engine peers acknowledged? {}/{} acknowledged, {} still waiting to "
-      "be sent",
-      engine_good, engine_count, engine_pending);
-  if (retval && engine_count > 0) {
-    /* Reset all flags so that a concurrent or subsequent call won't
-     * trigger a second global diff publication for the same round. */
-    for (auto& [key, peer] : _engine_peers) {
-      peer.conf_acknowledged = false;
-      peer.available_conf_sent = false;
-    }
-  }
-  return retval && engine_count > 0;
+bool broker_state::try_close_conf_round() {
+  return _peers.try_close_conf_round();
 }
 
 /**
@@ -2009,30 +1788,30 @@ bool broker_state::_prepare_diff_for_poller(
         poller_id);
     return false;
   }
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto it = _engine_peers.find(poller_id);
+  /* Held from the version read below to the arming at the end: two
+   * preparations of the same poller must not interleave. */
+  auto peer = _peers.lock_engine_peer(poller_id);
   /* A poller that is not there gets nothing prepared, and that has to hold for
    * a poller behind a relay exactly as it holds for a direct one. A directly
    * connected poller that is away has no entry at all, so this returns here and
    * its `new-<ID>.prot` simply waits for it. An entry restored from
    * topology.cache would otherwise pass: a diff would be written and
    * `available_conf` armed for a peer nobody can reach, which holds
-   * all_engine_peers_acknowledged() open -- and with it the global diff of
+   * try_close_conf_round() open -- and with it the global diff of
    * every other poller of the round -- until that relay comes back. */
-  if (it == _engine_peers.end() || it->second.connected_since == 0)
+  if (!peer || !peer->connected())
     return false;
-  auto& peer = it->second;
-  if (peer.engine_conf == state->config_version()) {
+  if (peer->engine_conf == state->config_version()) {
     _logger->info(
         "Poller '{}' with id {} already has the latest configuration "
         "(conf: '{}')",
-        peer.poller_name, poller_id, peer.engine_conf);
+        peer->poller_name, poller_id, peer->engine_conf);
     return false;
   }
   _logger->debug(
       "Poller '{}' with id {} has a new configuration available "
       "(old: '{}', new: '{}')",
-      peer.poller_name, poller_id, peer.engine_conf, state->config_version());
+      peer->poller_name, poller_id, peer->engine_conf, state->config_version());
   std::filesystem::path previous_prot_conf =
       pollers_config_dir() / fmt::format("{}.prot", poller_id);
   std::fstream f(previous_prot_conf);
@@ -2044,7 +1823,7 @@ bool broker_state::_prepare_diff_for_poller(
     previous_state->ParseFromIstream(&f);
     /* If the known configuration by Broker is the same as the one
      * sent by the poller, we can compute the diff. */
-    if (previous_state->config_version() == peer.engine_conf) {
+    if (previous_state->config_version() == peer->engine_conf) {
       diff_state = std::make_unique<engine::configuration::DiffState>();
       auto previous_indexed_state =
           engine::configuration::indexed_state(std::move(previous_state));
@@ -2058,7 +1837,7 @@ bool broker_state::_prepare_diff_for_poller(
           "the previous configuration is not the same as the one sent by "
           "the poller (previous: '{}', new: '{}'). The diff will be the "
           "whole new configuration.",
-          peer.poller_name, poller_id, peer.engine_conf,
+          peer->poller_name, poller_id, peer->engine_conf,
           state->config_version());
       diff_state = std::make_unique<engine::configuration::DiffState>();
       diff_state->set_allocated_state(state.release());
@@ -2086,9 +1865,9 @@ bool broker_state::_prepare_diff_for_poller(
      * served, finds none, and the round never completes. No global diff is then
      * published and nothing reaches the database, even though the poller did
      * answer. */
-    if (peer.available_conf != new_version) {
-      peer.available_conf = new_version;
-      peer.available_conf_sent = false;
+    if (peer->available_conf != new_version) {
+      peer->available_conf = new_version;
+      peer->available_conf_sent = false;
     }
     return true;
   }
@@ -2116,24 +1895,9 @@ bool broker_state::_prepare_diff_for_poller(
  *
  * @param peer The peer to look at. _connected_peers_m must be held.
  */
-bool broker_state::_peer_needs_update(const engine_peer& peer) {
-  return !peer.available_conf_sent && !peer.available_conf.empty() &&
-         peer.available_conf != peer.engine_conf;
-}
 
-bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  _logger->trace("engine_peer_needs_update called for poller id {}", poller_id);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end())
-    return false;
-  const auto& peer = found->second;
-  if (_peer_needs_update(peer)) {
-    _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
-                   peer.available_conf, peer.engine_conf, poller_id);
-    return true;
-  }
-  return false;
+bool broker_state::poller_needs_update(uint64_t poller_id) const {
+  return _peers.poller_needs_update(poller_id);
 }
 
 /**
@@ -2143,11 +1907,8 @@ bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
  *
  * @param poller_id
  */
-void broker_state::acknowledge_engine_peer(uint64_t poller_id) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end())
-    found->second.conf_acknowledged = true;
+void broker_state::set_poller_conf_acknowledged(uint64_t poller_id) {
+  _peers.set_poller_conf_acknowledged(poller_id);
 }
 
 /**
@@ -2156,17 +1917,8 @@ void broker_state::acknowledge_engine_peer(uint64_t poller_id) {
  *
  * @param poller_id
  */
-void broker_state::set_available_conf_sent_to_engine_peer(uint32_t poller_id) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end()) {
-    found->second.available_conf_sent = true;
-    found->second.conf_acknowledged = false;
-    _logger->debug("New configuration sent to poller {}", poller_id);
-  } else {
-    _logger->info("Unable to send configuration to poller {}: it doesn't exist",
-                  poller_id);
-  }
+void broker_state::set_poller_conf_sent(uint32_t poller_id) {
+  _peers.set_poller_conf_sent(poller_id);
 }
 
 const std::filesystem::path& broker_state::cache_config_dir() const noexcept {
@@ -2178,12 +1930,7 @@ const std::filesystem::path& broker_state::cache_config_dir() const noexcept {
  * extended_negotiation enabled (i.e. is a BBDO3 central broker or relay).
  */
 bool broker_state::broker_peer_supports_extended_negotiation() const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  for (const auto& [key, bp] : _broker_peers) {
-    if (bp.extended_negotiation)
-      return true;
-  }
-  return false;
+  return _peers.broker_peer_supports_extended_negotiation();
 }
 
 /**
@@ -2280,48 +2027,34 @@ broker_state::pop_pending_notification_executes(uint64_t poller_id) {
 }
 
 /**
- * @brief Register an engine peer that is reachable via a relay.  Called at
- * the central when it receives a ConfigRequest from relay R for poller N.
- * Creates (or updates) an engine_peer entry in _engine_peers with
- * via_remote = relay_poller_id.
+ * @brief Register a poller that is reachable via a relay.  Called at the
+ * central when it receives a ConfigRequest from relay R for poller N.
+ * Records the peer in the registry with via_remote = relay_poller_id, and
+ * queues a ConfigRevoke for the relay it left when it migrated.
  *
- * @param engine_id       Poller ID of the Engine behind the relay.
+ * @param poller_id       Poller ID of the poller behind the relay.
  * @param relay_poller_id Poller ID of the relay that sent the ConfigRequest.
  * @param config_version  Config version currently known by the relay (may be
  *                        empty if the relay has no cached config for N).
  */
-void broker_state::register_engine_peer_via_relay(
-    uint64_t engine_id,
-    const std::string& engine_name,
+void broker_state::register_poller_via_relay(
+    uint64_t poller_id,
+    const std::string& poller_name,
     uint64_t relay_poller_id,
     const std::string& config_version) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-
-  auto it = _engine_peers.find(engine_id);
-  if (it != _engine_peers.end()) {
-    const uint64_t old_relay = it->second.via_remote;
-    if (old_relay != 0 && old_relay != relay_poller_id) {
-      _logger->info(
-          "Engine {} migrated from relay {} to relay {} — queuing ConfigRevoke "
-          "for old relay",
-          engine_id, old_relay, relay_poller_id);
-      _pending_config_revokes[old_relay].push_back(engine_id);
-    } else {
-      _logger->info("Updating engine peer {} via relay {}: config version '{}'",
-                    engine_id, relay_poller_id, config_version);
-    }
-    it->second.via_remote = relay_poller_id;
-    if (!config_version.empty())
-      it->second.engine_conf = config_version;
-  } else {
+  uint64_t migrated_from = _peers.register_poller_via_relay(
+      poller_id, poller_name, relay_poller_id, config_version);
+  if (migrated_from) {
     _logger->info(
-        "Registering engine peer {} via relay {} with config version '{}'",
-        engine_id, relay_poller_id, config_version);
-    _engine_peers[engine_id] = engine_peer{
-        engine_id,      engine_name, time(nullptr), true,  "",
-        config_version, false,       true,          false, relay_poller_id};
+        "Engine {} migrated from relay {} to relay {} - queuing ConfigRevoke "
+        "for old relay",
+        poller_id, migrated_from, relay_poller_id);
+    absl::WriterMutexLock lck(&_connected_peers_m);
+    _pending_config_revokes[migrated_from].push_back(poller_id);
+  } else {
+    _logger->info("Engine peer {} reachable via relay {}: config version '{}'",
+                  poller_id, relay_poller_id, config_version);
   }
-  _last_known_topology[engine_id] = relay_poller_id;
 }
 
 /**
@@ -2373,7 +2106,7 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
  * ConfigRequest is a request/response and leaving it unanswered would stall the
  * handshake -- we only make sure the cycle runs now instead of waiting for the
  * five-minute safety net. The newer configuration follows through
- * engine_peers_via_relay_needing_update() within the debounce.
+ * pollers_via_relay_needing_update() within the debounce.
  *
  * Lookup order:
  * 1. diff-{N}.prot already exists → diff_ready
@@ -2458,13 +2191,12 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       diff.SerializeToOstream(&df);
       df.close();
       {
-        absl::WriterMutexLock lck(&_connected_peers_m);
-        auto it = _engine_peers.find(engine_id);
+        auto peer = _peers.lock_engine_peer(engine_id);
         /* Same rule as in _prepare_diff_for_poller: arming the "not sent yet"
          * flag for a version already in flight orphans its acknowledgement. */
-        if (it != _engine_peers.end() && it->second.available_conf != version) {
-          it->second.available_conf = version;
-          it->second.available_conf_sent = false;
+        if (peer && peer->available_conf != version) {
+          peer->available_conf = version;
+          peer->available_conf_sent = false;
         }
       }
       return relay_config_response::diff_ready;
@@ -2520,19 +2252,9 @@ void broker_state::clear_pending_for_poller(uint64_t poller_id) {
  * @param relay_id The poller ID of the relay.
  * @return Vector of engine poller IDs needing an update via this relay.
  */
-std::vector<uint64_t> broker_state::engine_peers_via_relay_needing_update(
+std::vector<uint64_t> broker_state::pollers_via_relay_needing_update(
     uint64_t relay_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  std::vector<uint64_t> result;
-  for (const auto& [id, peer] : _engine_peers) {
-    if (peer.via_remote != relay_id)
-      continue;
-    if (peer.available_conf_sent)
-      continue;
-    if (!peer.available_conf.empty() && peer.available_conf != peer.engine_conf)
-      result.push_back(id);
-  }
-  return result;
+  return _peers.pollers_via_relay_needing_update(relay_id);
 }
 
 }  // namespace com::centreon::broker::config::applier

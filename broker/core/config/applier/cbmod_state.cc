@@ -128,16 +128,6 @@ bool cbmod_state::is_poller_connected(uint64_t poller_id
 }
 
 /**
- * @brief Check if a poller's Engine is running. Same as above: cbmod
- * supervises no poller.
- *
- * @param poller_id The poller to check.
- */
-bool cbmod_state::is_engine_running(uint64_t poller_id [[maybe_unused]]) const {
-  return false;
-}
-
-/**
  * @brief Get the list of connected pollers.
  *
  * @return A vector of pairs containing the poller id and the poller name.

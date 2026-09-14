@@ -36,8 +36,9 @@ namespace com::centreon::broker::config::applier {
  * that relay is back. It is not a connection, and nothing that reports on
  * connections may count it.
  *
- * Accessors are therefore named after what they return: known_engine_peers()
- * is the whole map, connected_pollers() only the peers actually connected.
+ * Accessors are therefore named after what they return: connected_pollers()
+ * and connected_peers() leave out what only a routing hint stands for, while
+ * everything a configuration is prepared from works on the whole map.
  */
 class peer_registry {
  public:
@@ -63,10 +64,12 @@ class peer_registry {
     /* The conf_acknowledged flag is set to false when a new configuration
      * concerning this Engine peer must be sent to it. Otherwise, it is true. */
     bool conf_acknowledged;
-    /* If the conf is unknown by broker, that is to say no available conf from
-     * php and no <ID>.prot file, this flag is set to true. And this is the
-     * way for Broker to ask its configuration to Engine. */
-    bool conf_unknown;
+    /* Whether Broker holds the content of the configuration this poller runs:
+     * a <ID>.prot on disk, or a <ID>.lck announcing one. False is not a
+     * property of the poller -- which may well tell us in engine_conf the
+     * version it runs -- but of Broker, and it is what makes it ask the poller
+     * for its configuration back. */
+    bool broker_knows_poller_conf;
     /* poller_id of the remote peer that is in front of this peer or 0. */
     uint64_t via_remote;
     /* Whether this poller's Engine is running, as told by the last pb_instance
@@ -118,7 +121,47 @@ class peer_registry {
     bool extended_negotiation;
   };
 
+  /**
+   * @brief Exclusive access to one Engine peer.
+   *
+   * The read-modify-write sequences around a configuration -- read the version
+   * the poller runs, build the diff, then arm the new one -- must not
+   * interleave with one another: two of them preparing the same poller would
+   * write the same file twice. They therefore hold the registry lock from the
+   * first read to the last write, which this object materializes. Everything
+   * else uses the plain accessors below.
+   */
+  class locked_engine_peer {
+    absl::Mutex* _m;
+    engine_peer* _peer;
+
+   public:
+    /* Takes over a mutex the factory has already locked. */
+    locked_engine_peer(absl::Mutex* m, engine_peer* peer) noexcept
+        : _m{m}, _peer{peer} {}
+    locked_engine_peer(const locked_engine_peer&) = delete;
+    locked_engine_peer& operator=(const locked_engine_peer&) = delete;
+    locked_engine_peer(locked_engine_peer&& other) noexcept
+        : _m{other._m}, _peer{other._peer} {
+      other._m = nullptr;
+      other._peer = nullptr;
+    }
+    locked_engine_peer& operator=(locked_engine_peer&&) = delete;
+    ~locked_engine_peer() ABSL_NO_THREAD_SAFETY_ANALYSIS {
+      if (_m)
+        _m->Unlock();
+    }
+    engine_peer* operator->() const noexcept { return _peer; }
+    engine_peer& operator*() const noexcept { return *_peer; }
+    explicit operator bool() const noexcept { return _peer != nullptr; }
+  };
+
  private:
+  /* Whether a configuration is prepared for this peer and still owes it a
+   * delivery. */
+  static bool _peer_needs_update(const engine_peer& peer);
+
+  std::shared_ptr<spdlog::logger> _logger;
   mutable absl::Mutex _connected_peers_m;
   /* Each map is indexed by the tuple {poller_id, poller_name, broker_name}.
    * Peers are split by type. */
@@ -137,22 +180,73 @@ class peer_registry {
       ABSL_GUARDED_BY(_connected_peers_m);
 
  public:
-  std::vector<engine_peer> known_engine_peers() const
+  peer_registry(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger{logger} {}
+
+  /* --- Peer lifecycle ------------------------------------------------- */
+  /* Returns the configuration version the peer is known to run: the one
+   * supplied, or the one already recorded when the caller supplied none. */
+  std::string add_peer(uint64_t poller_id,
+                       const std::string& poller_name,
+                       const std::string& broker_name,
+                       common::PeerType peer_type,
+                       bool extended_negotiation,
+                       const std::string& engine_conf,
+                       const std::string& timezone)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool remove_peer(uint64_t poller_id,
+                   const std::string& poller_name,
+                   const std::string& broker_name)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  /* Registers a poller reached through a relay. Returns the relay it was
+   * reached through until now when that changed -- a migration the caller has
+   * to revoke on the old relay -- and 0 otherwise. */
+  uint64_t register_poller_via_relay(uint64_t poller_id,
+                                     const std::string& poller_name,
+                                     uint64_t relay_poller_id,
+                                     const std::string& config_version)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+
+  /* --- Snapshots ------------------------------------------------------- */
   std::vector<engine_peer> connected_pollers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  bool is_engine_peer_known(uint64_t poller_id) const
+  locked_engine_peer lock_engine_peer(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+
+  /* --- Peer state ------------------------------------------------------ */
   bool is_poller_connected(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  bool is_engine_running(uint64_t poller_id) const
+  bool is_poller_running(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_instance_running(uint64_t poller_id, bool running) noexcept
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  uint64_t relay_for_poller(uint64_t poller_id) const
+  std::string poller_timezone(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool broker_knows_poller_conf(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool broker_peer_supports_extended_negotiation() const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+
+  /* --- Configuration round --------------------------------------------- */
+  bool poller_needs_update(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_poller_engine_conf(uint64_t poller_id,
+                              const std::string& engine_conf)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_broker_knows_poller_conf(uint64_t poller_id, bool known)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_poller_conf_sent(uint64_t poller_id)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_poller_conf_acknowledged(uint64_t poller_id)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool try_close_conf_round() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  std::vector<uint64_t> pollers_via_relay_needing_update(
+      uint64_t relay_id) const ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+
+  /* --- Topology --------------------------------------------------------- */
+  TopologyCache topology_cache() const ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void restore_pollers_from_cache(const TopologyCache& cache)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 };

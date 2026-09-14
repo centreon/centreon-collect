@@ -20,6 +20,8 @@
 
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 
+#include "broker/core/config/applier/broker_state.hh"
+
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
@@ -590,9 +592,22 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
     case neb::pb_instance::static_type(): {
       auto inst = std::static_pointer_cast<neb::pb_instance>(data);
       uint64_t instance_id = inst->obj().instance_id();
+      /* This module is loaded by cbd and nowhere else, so the state is a
+       * broker_state. Checked rather than asserted in a comment: modules are
+       * loaded by configuration, and a configuration that loaded this one
+       * elsewhere should lose the downtime reset, not the process. */
+      auto& applier_state = config::applier::state::instance();
+      if (applier_state.peer_type() != com::centreon::common::BROKER) {
+        _logger->error(
+            "BAM: not running inside a Broker instance, ignoring the state of "
+            "poller {}",
+            instance_id);
+        break;
+      }
+      auto& broker_state =
+          static_cast<config::applier::broker_state&>(applier_state);
       if (inst->obj().running()) {
-        config::applier::state::instance().set_instance_running(instance_id,
-                                                                true);
+        broker_state.set_instance_running(instance_id, true);
       } else {
         /* Only a poller known to be running can stop: a poller that reconnects
          * after a Broker restart replays the events it had kept, a
@@ -607,7 +622,7 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
          * wrongly drop inherited downtimes that must survive the restart, so we
          * only reset it in the Engine-managed case. */
         if (!com::centreon::common::downtimes::downtime_manager::is_loaded() &&
-            config::applier::state::instance().is_engine_running(instance_id)) {
+            broker_state.is_poller_running(instance_id)) {
           _logger->debug(
               "BAM: poller instance {} stopped, resetting downtime state",
               instance_id);
@@ -621,8 +636,7 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
               "downtime state reset",
               instance_id);
         }
-        config::applier::state::instance().set_instance_running(instance_id,
-                                                                false);
+        broker_state.set_instance_running(instance_id, false);
       }
     } break;
     case extcmd::pb_ba_info::static_type(): {
