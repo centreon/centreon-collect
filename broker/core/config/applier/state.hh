@@ -71,7 +71,8 @@ class state {
   mutable absl::Mutex _barrier_m;
   bool _barrier_armed ABSL_GUARDED_BY(_barrier_m) = false;
   bool _barrier_released ABSL_GUARDED_BY(_barrier_m) = false;
-  absl::flat_hash_set<std::string> _barrier_expected ABSL_GUARDED_BY(_barrier_m);
+  absl::flat_hash_set<std::string> _barrier_expected
+      ABSL_GUARDED_BY(_barrier_m);
   absl::flat_hash_set<std::string> _barrier_ready ABSL_GUARDED_BY(_barrier_m);
   std::unique_ptr<boost::asio::steady_timer> _barrier_timer
       ABSL_GUARDED_BY(_barrier_m);
@@ -83,12 +84,13 @@ class state {
         const std::shared_ptr<spdlog::logger>& logger);
   virtual ~state() = default;
 
-  /* Arm the startup readiness barrier at the end of apply() (or start the engine
-   * immediately when there is nothing to wait for / in --check mode). */
+  /* Arm the startup readiness barrier at the end of apply() (or start the
+   * engine immediately when there is nothing to wait for / in --check mode). */
   void _enable_multiplexing(bool run_mux);
   /* Hook invoked once, right after the engine is started when the barrier
    * releases. The base does nothing; broker_state re-injects persisted active
-   * downtimes here so they are ordered after the flushed startup definitions. */
+   * downtimes here so they are ordered after the flushed startup definitions.
+   */
   virtual void _on_barrier_released() {}
 
  public:
@@ -119,8 +121,8 @@ class state {
   }
   /* Local timezone advertised by an Engine peer at negotiation time. Empty when
    * unknown; only broker_state (which tracks connected peers) overrides it. */
-  virtual std::string poller_timezone(
-      uint64_t poller_id [[maybe_unused]]) const {
+  virtual std::string poller_timezone(uint64_t poller_id
+                                      [[maybe_unused]]) const {
     return {};
   }
   virtual void remove_peer(uint64_t poller_id,
@@ -145,7 +147,13 @@ class state {
     assert(_global_cache);
     return *_global_cache;
   }
-  virtual bool has_connection_from_poller(uint64_t poller_id) const = 0;
+  /* Whether this poller has a live link to this Broker -- directly, or
+   * through a relay. Says nothing about its Engine being started. */
+  virtual bool is_poller_connected(uint64_t poller_id) const = 0;
+  /* Whether this poller's Engine is running, as told by the last pb_instance
+   * received for it. False at connection time: a peer may well be connected
+   * with its Engine not started yet. */
+  virtual bool is_engine_running(uint64_t poller_id) const = 0;
   virtual void set_instance_running(uint64_t /*poller_id*/,
                                     bool /*running*/) noexcept {}
   /* Called by an output stream's failover once it has completed its first

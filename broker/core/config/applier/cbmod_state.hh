@@ -58,9 +58,10 @@ class cbmod_state : public state {
   std::unique_ptr<com::centreon::engine::configuration::State>
       _current_engine_state;
   /* Notification-execute events pushed by Broker (notification_mode=broker):
-   * Broker made the decision and dispatched the execution here; the Engine event
-   * loop drains this queue and runs the notification commands. Several may be
-   * pending between two loop iterations, hence a queue and not a single slot. */
+   * Broker made the decision and dispatched the execution here; the Engine
+   * event loop drains this queue and runs the notification commands. Several
+   * may be pending between two loop iterations, hence a queue and not a single
+   * slot. */
   std::deque<NotificationExecute> _pending_notifications
       ABSL_GUARDED_BY(_pending_notifications_m);
   mutable absl::Mutex _pending_notifications_m;
@@ -81,7 +82,9 @@ class cbmod_state : public state {
                    const std::string& poller_name,
                    const std::string& broker_name) override;
   bool broker_peer_supports_extended_negotiation() const;
-  bool has_connection_from_poller(uint64_t poller_id) const override
+  bool is_poller_connected(uint64_t poller_id) const override
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool is_engine_running(uint64_t poller_id) const override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
