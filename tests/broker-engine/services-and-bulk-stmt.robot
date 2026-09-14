@@ -243,9 +243,9 @@ EBPS2
         Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
     ${start}    Get Current Date
-    ${content}    Create List    Check if some statements are ready,    sscr_bind connections
+    ${content}    Create List    unified_sql: BULK pb service status    mysql bind of stmt
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that statements are available should be displayed
+    Should Be True    ${result}    Bulk statements for service statuses should be in flight before MySQL is stopped
     Ctn Stop Mysql
     Ctn Stop Engine
     Ctn Start Mysql
