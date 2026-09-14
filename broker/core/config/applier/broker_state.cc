@@ -389,6 +389,9 @@ void broker_state::load_topology_cache() {
   absl::WriterMutexLock lck(&_connected_peers_m);
   for (const auto& e : cache.entries()) {
     _last_known_topology[e.poller_id()] = e.relay_id();
+    /* No name and no connection date: topology.cache holds neither, and this
+     * entry describes a poller that may connect, not one that is connected.
+     * The zero date is what tells the two apart everywhere else. */
     if (!_engine_peers.count(e.poller_id())) {
       _engine_peers[e.poller_id()] =
           engine_peer{e.poller_id(), "",   0,     false,       "", "",
@@ -1002,19 +1005,6 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
 }
 
 /**
- * @brief Check whether the given poller is currently registered as a connected
- * Engine peer. A pending configuration can only be delivered to a connected
- * poller, so this gates the consumption of its <ID>.lck file.
- *
- * @param poller_id The poller ID.
- * @return true if the poller is a connected Engine peer.
- */
-bool broker_state::_is_engine_peer_connected(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  return _engine_peers.contains(poller_id);
-}
-
-/**
  * @brief Get the local timezone advertised by an Engine peer at negotiation
  * time.
  *
@@ -1261,35 +1251,99 @@ void broker_state::remove_peer(uint64_t poller_id,
 }
 
 /**
- * @brief Check if a poller is currently connected.
+ * @brief Check if a poller has a live link to this Broker, directly or through
+ * a relay.
+ *
+ * An entry restored from topology.cache is not a connection: it only says
+ * which relay to talk to should that poller show up, and carries no connection
+ * date. It is excluded here.
  *
  * @param poller_id The poller to check.
+ *
+ * @return true when the poller is connected.
  */
-bool broker_state::has_connection_from_poller(uint64_t poller_id) const {
+bool broker_state::is_poller_connected(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
-  return it != _engine_peers.end() && it->second.running;
+  return it != _engine_peers.end() && it->second.connected_since != 0;
 }
 
+/**
+ * @brief Check if this poller's Engine is running, as told by the last
+ * pb_instance received for it.
+ *
+ * @param poller_id The poller to check.
+ *
+ * @return true when the Engine of this poller is running.
+ */
+bool broker_state::is_engine_running(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto it = _engine_peers.find(poller_id);
+  return it != _engine_peers.end() && it->second.engine_running;
+}
+
+/**
+ * @brief Record what the last pb_instance said about this poller's Engine.
+ *
+ * A peer that is not connected cannot be running: an entry restored from
+ * topology.cache is a routing hint, and marking it running would make it look
+ * like a live poller to everything downstream. Such an event is dropped and
+ * signalled -- in a sane run it cannot happen, since a peer is registered at
+ * negotiation, well before its Engine announces itself.
+ *
+ * @param poller_id The poller ID.
+ * @param running What the event said.
+ */
 void broker_state::set_instance_running(uint64_t poller_id,
                                         bool running) noexcept {
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
-  if (it != _engine_peers.end())
-    it->second.running = running;
+  if (it == _engine_peers.end())
+    return;
+  if (it->second.connected_since == 0) {
+    _logger->warn(
+        "Poller {} announced its Engine as {} while no connection is known "
+        "from it: ignored",
+        poller_id, running ? "running" : "stopped");
+    return;
+  }
+  it->second.engine_running = running;
 }
 
 /**
- * @brief Get the list of connected pollers.
+ * @brief Get every Engine peer this Broker knows about, connected or not.
+ *
+ * The peers restored from topology.cache are part of the answer: they are what
+ * lets a configuration be prepared and routed to the right relay before that
+ * relay reconnects. Anything that reports on connections wants
+ * connected_pollers() instead.
  *
  * @return A vector of engine_peers.
+ */
+std::vector<broker_state::engine_peer> broker_state::known_engine_peers()
+    const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  std::vector<engine_peer> retval;
+  retval.reserve(_engine_peers.size());
+  for (const auto& [_, peer] : _engine_peers) {
+    retval.push_back(peer);
+  }
+  return retval;
+}
+
+/**
+ * @brief Get the Engine peers currently connected, directly or through a
+ * relay.
+ *
+ * @return A vector of engine_peers, each one with a connection date.
  */
 std::vector<broker_state::engine_peer> broker_state::connected_pollers() const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   std::vector<engine_peer> retval;
   retval.reserve(_engine_peers.size());
   for (const auto& [_, peer] : _engine_peers) {
-    retval.push_back(peer);
+    if (peer.connected_since != 0)
+      retval.push_back(peer);
   }
   return retval;
 }
@@ -1313,6 +1367,9 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
                       .peer_type = common::BROKER});
   }
   for (const auto& [_, ep] : _engine_peers) {
+    /* A peer known from topology.cache has no connection to report. */
+    if (ep.connected_since == 0)
+      continue;
     retval.push_back({.poller_id = ep.poller_id,
                       .poller_name = ep.poller_name,
                       .connected_since = ep.connected_since,
@@ -1702,7 +1759,7 @@ void broker_state::_run_config_cycle(
     }
 
     ++conf_ready;
-    if (_is_engine_peer_connected(poller_id))
+    if (is_poller_connected(poller_id))
       ++conf_sent;
     else
       pollers_away.push_back(poller_id);
@@ -1954,7 +2011,15 @@ bool broker_state::_prepare_diff_for_poller(
   }
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
-  if (it == _engine_peers.end())
+  /* A poller that is not there gets nothing prepared, and that has to hold for
+   * a poller behind a relay exactly as it holds for a direct one. A directly
+   * connected poller that is away has no entry at all, so this returns here and
+   * its `new-<ID>.prot` simply waits for it. An entry restored from
+   * topology.cache would otherwise pass: a diff would be written and
+   * `available_conf` armed for a peer nobody can reach, which holds
+   * all_engine_peers_acknowledged() open -- and with it the global diff of
+   * every other poller of the round -- until that relay comes back. */
+  if (it == _engine_peers.end() || it->second.connected_since == 0)
     return false;
   auto& peer = it->second;
   if (peer.engine_conf == state->config_version()) {
@@ -2301,6 +2366,15 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
  * ConfigRequest for engine poller @p engine_id, and write diff-{N}.prot if
  * it does not exist yet.
  *
+ * A pending `<ID>.lck` is looked at first, for the same reason the direct path
+ * does it in _feed_cache_and_wake_up_resources(): it means PHP announced a
+ * configuration that no cycle has read yet, so whatever sits on disk next to it
+ * is older. Unlike the direct path we do not withhold that older state -- a
+ * ConfigRequest is a request/response and leaving it unanswered would stall the
+ * handshake -- we only make sure the cycle runs now instead of waiting for the
+ * five-minute safety net. The newer configuration follows through
+ * engine_peers_via_relay_needing_update() within the debounce.
+ *
  * Lookup order:
  * 1. diff-{N}.prot already exists → diff_ready
  * 2. new-{N}.prot exists → delegate to _prepare_diff_for_poller via
@@ -2331,6 +2405,22 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       pollers_config_dir() / fmt::format("diff-{}.prot", engine_id);
   const auto prev_file =
       pollers_config_dir() / fmt::format("{}.prot", engine_id);
+
+  /* 0. */
+  if (uint32_t existing_lck = _lck_file_for_poller(engine_id)) {
+    {
+      absl::MutexLock lck(&_lck_set_m);
+      _lck_set.insert(existing_lck);
+    }
+    /* Nothing in the directory changed, so inotify has nothing to say and would
+     * never wake the watcher up for this poller. */
+    if (_watch_strand)
+      boost::asio::post(*_watch_strand, [this] { _arm_debounce(); });
+    _logger->info(
+        "Poller {} behind a relay has a configuration announced but not read "
+        "yet: waking the configuration cycle up for it",
+        engine_id);
+  }
 
   /* 1. */
   if (std::filesystem::exists(diff_file))

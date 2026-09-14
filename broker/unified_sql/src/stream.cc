@@ -1048,7 +1048,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         database::mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
-          if (!config::applier::state::instance().has_connection_from_poller(
+          if (!config::applier::state::instance().is_poller_connected(
                   res.value_as_u64(0))) {
             SPDLOG_LOGGER_WARN(
                 _logger_sql,
@@ -1088,7 +1088,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         database::mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
-          if (!config::applier::state::instance().has_connection_from_poller(
+          if (!config::applier::state::instance().is_poller_connected(
                   poller.obj().idx())) {
             SPDLOG_LOGGER_WARN(
                 _logger_sql,
@@ -1326,7 +1326,7 @@ void stream::_init_statements() {
       // 26: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
       // keeps the depth already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
-      "WHERE host_id=?"            // 27: host_id
+      "WHERE host_id=?"  // 27: host_id
   );
 
   const std::string sscr_query(
@@ -1365,9 +1365,9 @@ void stream::_init_statements() {
 
   const std::string hscr_resources_query(
       "UPDATE resources SET "
-      "status=?,"                     // 0: current_state
-      "status_ordered=?,"             // 1: obtained from current_state
-      "last_status_change=?,"         // 2: last_state_change
+      "status=?,"              // 0: current_state
+      "status_ordered=?,"      // 1: obtained from current_state
+      "last_status_change=?,"  // 2: last_state_change
       // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
       // downtimes) keeps the in_downtime flag set by Broker.
       "in_downtime=COALESCE(?,in_downtime),"
@@ -1384,9 +1384,9 @@ void stream::_init_statements() {
 
   const std::string sscr_resources_query(
       "UPDATE resources SET "
-      "status=?,"                     // 0: current_state
-      "status_ordered=?,"             // 1: obtained from current_state
-      "last_status_change=?,"         // 2: last_state_change
+      "status=?,"              // 0: current_state
+      "status_ordered=?,"      // 1: obtained from current_state
+      "last_status_change=?,"  // 2: last_state_change
       // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
       // downtimes) keeps the in_downtime flag set by Broker.
       "in_downtime=COALESCE(?,in_downtime),"

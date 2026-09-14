@@ -51,11 +51,14 @@ class broker_state : public state {
     bool conf_unknown;
     /* poller_id of the remote peer that is in front of this peer or 0. */
     uint64_t via_remote;
-    /* Set to true only when a pb_instance(running=true) content event has been
-     * received for this peer in the current Broker session. False at TCP
-     * connect time. Used to distinguish real Engine stops from historical
-     * running=false events replayed on Broker reconnect. */
-    bool running = false;
+    /* Whether this poller's Engine is running, as told by the last pb_instance
+     * received for it. False at TCP connect time: a peer may well be connected
+     * with its Engine not started yet. Maintained by the BAM module, the only
+     * reader and writer of it, which relies on reading it before flipping it
+     * to tell a real Engine stop from a running=false event replayed on
+     * Broker reconnect. */
+    bool engine_running = false;
+
     /* Local timezone (IANA name) of the poller machine, advertised in the
      * Welcome message. Empty when the peer did not send one (e.g. legacy
      * Engine or relay-registered peer). Used as the timezone fallback when a
@@ -261,8 +264,6 @@ class broker_state : public state {
                           const std::string& version);
   void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
-  bool _is_engine_peer_connected(uint64_t poller_id) const
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void save_topology_cache() const ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void load_topology_cache() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
@@ -292,9 +293,13 @@ class broker_state : public state {
                    const std::string& poller_name,
                    const std::string& broker_name) override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  bool has_connection_from_poller(uint64_t poller_id) const override
+  bool is_poller_connected(uint64_t poller_id) const override
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool is_engine_running(uint64_t poller_id) const override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_instance_running(uint64_t poller_id, bool running) noexcept override
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  std::vector<engine_peer> known_engine_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<engine_peer> connected_pollers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
@@ -356,7 +361,7 @@ class broker_state : public state {
   relay_config_response prepare_relay_config_response(
       uint64_t engine_id,
       const std::string& relay_config_version)
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m, _lck_set_m);
 
   /* Relay: queue a DiffState for forwarding to the Engine stream of poller N.
    * Called on the BROKER-connected stream when it receives a DiffState from

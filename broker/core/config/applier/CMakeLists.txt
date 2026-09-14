@@ -26,6 +26,8 @@ add_library(broker_applier_state STATIC
   init.hh
   modules.cc
   modules.hh
+  peer_registry.cc
+  peer_registry.hh
   state.cc
   state.hh
 )

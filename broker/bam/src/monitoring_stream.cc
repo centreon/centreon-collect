@@ -34,9 +34,7 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/common/pool.hh"
-#include "common/downtimes/downtime.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -596,14 +594,20 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
         config::applier::state::instance().set_instance_running(instance_id,
                                                                 true);
       } else {
-        /* When Broker owns downtime management, the downtimes live in the
+        /* Only a poller known to be running can stop: a poller that reconnects
+         * after a Broker restart replays the events it had kept, a
+         * running=false among them, and that event says nothing about the
+         * Engine talking to us now. This module is the only writer of that
+         * state, so reading it before flipping it below is what makes the
+         * distinction -- and keeps it free of any ordering assumption.
+         *
+         * When Broker owns downtime management, the downtimes live in the
          * Broker downtime_manager and are NOT re-sent by Engine after a
          * restart. Resetting the KPI downtime state on poller stop would then
          * wrongly drop inherited downtimes that must survive the restart, so we
          * only reset it in the Engine-managed case. */
         if (!com::centreon::common::downtimes::downtime_manager::is_loaded() &&
-            config::applier::state::instance().has_connection_from_poller(
-                instance_id)) {
+            config::applier::state::instance().is_engine_running(instance_id)) {
           _logger->debug(
               "BAM: poller instance {} stopped, resetting downtime state",
               instance_id);
