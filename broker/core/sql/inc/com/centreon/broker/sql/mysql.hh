@@ -30,14 +30,10 @@ using my_error = database::mysql_error;
  *  Here is a binding to the C MySQL connector.
  */
 class mysql {
-  static std::atomic_int _count_ref;
-
   const database_config _db_cfg;
-  int _pending_queries;
 
   std::vector<std::shared_ptr<mysql_connection>> _connection;
   int _current_connection;
-  std::unordered_map<std::string, int> _connection_by_name;
   std::string _server_version;
   bool _support_bulk_statement;
 
@@ -89,10 +85,7 @@ class mysql {
   }
 
   bool fetch_row(database::mysql_result& res);
-  int get_last_insert_id(int thread_id);
   int connections_count() const;
-  int choose_connection_by_name(std::string const& name);
-  int choose_connection_by_instance(int instance_id) const;
   int choose_best_connection(int32_t type);
   const database_config& get_config() const;
   const std::string& get_server_version() { return _server_version; }
@@ -100,7 +93,6 @@ class mysql {
   bool support_bulk_statement() const { return _support_bulk_statement; }
 
  private:
-  static void _initialize_mysql();
   void _check_errors();
   void _get_server_infos();
 };

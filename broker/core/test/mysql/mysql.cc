@@ -23,6 +23,7 @@
 #include <cmath>
 #include <future>
 
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
@@ -54,8 +55,8 @@ class DatabaseStorageTest : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
-                            0);
+      config::applier::init<com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -1258,24 +1259,6 @@ TEST_F(DatabaseStorageTest, CustomVarStatement) {
 /// ASSERT_TRUE(ms->fetch_row(res));
 ////}
 //
-TEST_F(DatabaseStorageTest, ChooseConnectionByName) {
-  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
-                         "centreon", "centreon_storage", 5, true, 5);
-  auto ms = std::make_unique<mysql>(db_cfg);
-  int thread_foo(ms->choose_connection_by_name("foo"));
-  int thread_bar(ms->choose_connection_by_name("bar"));
-  int thread_boo(ms->choose_connection_by_name("boo"));
-  int thread_foo1(ms->choose_connection_by_name("foo"));
-  int thread_bar1(ms->choose_connection_by_name("bar"));
-  int thread_boo1(ms->choose_connection_by_name("boo"));
-  ASSERT_EQ(thread_foo, 0);
-  ASSERT_EQ(thread_bar, 1);
-  ASSERT_EQ(thread_boo, 2);
-  ASSERT_EQ(thread_foo, thread_foo1);
-  ASSERT_EQ(thread_bar, thread_bar1);
-  ASSERT_EQ(thread_boo, thread_boo1);
-}
-
 // Given a mysql object
 // When a prepare statement is done
 // Then we can bind values to it and execute the statement.

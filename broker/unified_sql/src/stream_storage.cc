@@ -806,8 +806,8 @@ void stream::_update_metrics() {
  * apply_to_stmt()/run_statement() on the shared *_update statements but from
  * different threads (the muxer write thread vs the io_context pool).
  *
- * @param force When true, flush every connection that has at least one pending
- * row regardless of the ready() timer (used before an adaptive direct query);
+ * @param force When true, flush every bind that has at least one pending row
+ * regardless of the ready() timer (used before an adaptive direct query);
  * when false, keep the periodic semantics (flush only when a bind is ready()).
  */
 void stream::_flush_status_binds(bool force) {
@@ -821,20 +821,16 @@ void stream::_flush_status_binds(bool force) {
                              const char* bind_name) {
     if (!bind)
       return;
-    SPDLOG_LOGGER_TRACE(
-        _logger_sql,
-        "Check if some statements are ready,  {} connections count = {}",
-        bind_name, bind->connections_count());
-    for (uint32_t conn = 0; conn < bind->connections_count(); conn++) {
-      if (force ? bind->size(conn) > 0 : bind->ready(conn)) {
-        SPDLOG_LOGGER_DEBUG(_logger_sql, "Sending {} {} rows on connection {}",
-                            bind->size(conn), what, conn);
-        // Setting the good bind to the stmt
-        bind->apply_to_stmt(conn);
-        // Executing the stmt (always connection 0, like the adaptive direct
-        // query, so per-row ordering is preserved).
-        _mysql.run_statement(stmt, ec, 0);
-      }
+    SPDLOG_LOGGER_TRACE(_logger_sql, "Check if some {} statements are ready",
+                        bind_name);
+    if (force ? bind->size() > 0 : bind->ready()) {
+      SPDLOG_LOGGER_DEBUG(_logger_sql, "Sending {} {} rows", bind->size(),
+                          what);
+      // Setting the good bind to the stmt
+      bind->apply_to_stmt();
+      // Executing the stmt (always connection 0, like the adaptive direct
+      // query, so per-row ordering is preserved).
+      _mysql.run_statement(stmt, ec, 0);
     }
   };
 
@@ -951,9 +947,7 @@ void stream::_check_queues(boost::system::error_code ec) {
         if (_comments->ready()) {
           SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new comments inserted",
                               _comments->row_count());
-          int32_t conn = special_conn::comment % _mysql.connections_count();
-          _comments->execute(_mysql, database::mysql_error::store_downtime,
-                             conn);
+          _comments->execute(_mysql, database::mysql_error::store_downtime, 0);
           comments_done = true;
         }
       }
@@ -968,8 +962,7 @@ void stream::_check_queues(boost::system::error_code ec) {
             _logs->execute(*_dedicated_connections,
                            database::mysql_error::update_logs);
           else
-            _logs->execute(_mysql, database::mysql_error::update_logs,
-                           special_conn::log % _mysql.connections_count());
+            _logs->execute(_mysql, database::mysql_error::update_logs, 0);
           logs_done = true;
         }
       }

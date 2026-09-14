@@ -32,7 +32,6 @@ using com::centreon::common::log_v2::log_v2;
  */
 mysql::mysql(database_config const& db_cfg)
     : _db_cfg(db_cfg),
-      _pending_queries(0),
       _current_connection(0),
       _logger{log_v2::instance().get(log_v2::SQL)} {
   mysql_manager& mgr(mysql_manager::instance());
@@ -334,40 +333,6 @@ int mysql::choose_best_connection(int32_t type) {
   last_type = type;
   previous_retval = retval;
   return retval;
-}
-
-/**
- *  Return a connection index from a name. The same name will give the same
- *  index.
- *
- *  @param name The name to give
- *
- *  @return an integer
- */
-int mysql::choose_connection_by_name(std::string const& name) {
-  static int connection(0);
-  int retval;
-  std::unordered_map<std::string, int>::iterator it(
-      _connection_by_name.find(name));
-
-  if (it == _connection_by_name.end()) {
-    retval = (connection++) % connections_count();
-    _connection_by_name.insert(std::make_pair(name, retval));
-  } else
-    retval = it->second;
-  return retval;
-}
-
-/**
- *  Return a connection index from an instance id. Each time a same instance
- *  is choosen, the same integer is returned.
- *
- *  @param instance_id The instance id we work with.
- *
- *  @return an integer
- */
-int mysql::choose_connection_by_instance(int instance_id) const {
-  return instance_id % connections_count();
 }
 
 /**

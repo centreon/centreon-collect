@@ -1405,15 +1405,13 @@ void stream::_init_statements() {
       auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);
       _mysql.prepare_statement(*hu);
       _hscr_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *hu, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *hu, _logger_sql);
       _hscr_update = std::move(hu);
 
       auto su = std::make_unique<database::mysql_bulk_stmt>(sscr_query);
       _mysql.prepare_statement(*su);
       _sscr_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *su, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *su, _logger_sql);
       _sscr_update = std::move(su);
     } else {
       _hscr_update = std::make_unique<database::mysql_stmt>(hscr_query);
@@ -1429,16 +1427,14 @@ void stream::_init_statements() {
           std::make_unique<database::mysql_bulk_stmt>(hscr_resources_query);
       _mysql.prepare_statement(*hu);
       _hscr_resources_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *hu, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *hu, _logger_sql);
       _hscr_resources_update = std::move(hu);
 
       auto su =
           std::make_unique<database::mysql_bulk_stmt>(sscr_resources_query);
       _mysql.prepare_statement(*su);
       _sscr_resources_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *su, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *su, _logger_sql);
       _sscr_resources_update = std::move(su);
     } else {
       _hscr_resources_update =

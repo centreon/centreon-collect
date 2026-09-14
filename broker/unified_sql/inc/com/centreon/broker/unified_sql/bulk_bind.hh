@@ -41,16 +41,16 @@ namespace com::centreon::broker::unified_sql {
  *
  * How it works:
  * @code
- * bulk_bind bs(10, 15, 10000, stmt);
+ * bulk_bind bs(15, 10000, stmt);
  * bs.bind()->set_value_as_str(0, "foo");  // first ? in statement
  * bs.bind()->set_value_as_u32(1, 12);  // second ? in statement
  * bs.bind()->next_row();               // Let's go to the next row
  * bs.bind()->set_value_as_str(0, "bar");  // first ? in statement
  * bs.bind()->set_value_as_u32(1, 13);  // second ? in statement
  * ...
- * // Is it time to execute the statement on connection 0?
- * if (bs.ready(0)) {
- *   bs.apply_to_stmt(0);
+ * // Is it time to execute the statement?
+ * if (bs.ready()) {
+ *   bs.apply_to_stmt();
  *   mysql->execute_statement(stmt);
  * }
  * @endcode
@@ -60,27 +60,23 @@ class bulk_bind {
   const uint32_t _max_size;
   database::mysql_bulk_stmt& _stmt;
   mutable absl::Mutex _queue_m;
-  std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind
-      ABSL_GUARDED_BY(_queue_m);
-  std::vector<std::time_t> _next_time ABSL_GUARDED_BY(_queue_m);
+  std::unique_ptr<database::mysql_bulk_bind> _bind ABSL_GUARDED_BY(_queue_m);
+  std::time_t _next_time ABSL_GUARDED_BY(_queue_m);
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  bulk_bind(const size_t connections_count,
-            const uint32_t max_interval,
+  bulk_bind(const uint32_t max_interval,
             const uint32_t max_rows,
             database::mysql_bulk_stmt& stmt,
             const std::shared_ptr<spdlog::logger>& logger);
   bulk_bind(const bulk_bind&) = delete;
-  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn)
+  std::unique_ptr<database::mysql_bulk_bind>& bind()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
-  void apply_to_stmt(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
-  bool ready(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
+  void apply_to_stmt() ABSL_LOCKS_EXCLUDED(_queue_m);
+  bool ready() ABSL_LOCKS_EXCLUDED(_queue_m);
   void force_ready() ABSL_LOCKS_EXCLUDED(_queue_m);
-  std::size_t size(int32_t conn = -1) const ABSL_LOCKS_EXCLUDED(_queue_m);
-  std::time_t next_time() const ABSL_LOCKS_EXCLUDED(_queue_m);
-  std::size_t connections_count() const ABSL_LOCKS_EXCLUDED(_queue_m);
-  void init_from_stmt(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
+  std::size_t size() const ABSL_LOCKS_EXCLUDED(_queue_m);
+  void init_from_stmt() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
   void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_queue_m);
   void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
 

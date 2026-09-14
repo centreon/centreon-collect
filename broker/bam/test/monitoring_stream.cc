@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "bbdo/bam/ba_status.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
@@ -32,8 +33,8 @@ using namespace com::centreon::broker::bam;
 
 class BamMonitoringStream : public testing::Test {
   void SetUp() override {
-    config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
-                          0);
+    config::applier::init<com::centreon::broker::config::applier::broker_state>(
+        "", 0, "test_broker", 0);
   }
   void TearDown() override { config::applier::deinit(); }
 };
@@ -44,11 +45,10 @@ TEST_F(BamMonitoringStream, WriteKpi) {
   database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
                           "centreon_storage");
 
-  std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
   ASSERT_NO_THROW(ms.reset(new monitoring_stream(
-      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
+      "", "", cfg, storage, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<pb_kpi_status> st{std::make_shared<pb_kpi_status>()};
   st->mut_obj().set_kpi_id(1);
@@ -62,11 +62,10 @@ TEST_F(BamMonitoringStream, WriteBA) {
   database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
                           "centreon_storage");
   ;
-  std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
   ASSERT_NO_THROW(ms.reset(new monitoring_stream(
-      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
+      "", "", cfg, storage, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
@@ -79,11 +78,10 @@ TEST_F(BamMonitoringStream, WorkWithNoPendigMysqlRequest) {
   database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
                           "centreon_storage", 0);
   ;
-  std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
   ASSERT_NO_THROW(ms.reset(new monitoring_stream(
-      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
+      "", "", cfg, storage, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
@@ -101,11 +99,10 @@ TEST_F(BamMonitoringStream, WorkWithPendigMysqlRequest) {
   database_config storage("MySQL", "127.0.0.1", "", 3306, "root", "centreon",
                           "centreon_storage", 5);
   ;
-  std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
   ASSERT_NO_THROW(ms.reset(new monitoring_stream(
-      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
+      "", "", cfg, storage, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 

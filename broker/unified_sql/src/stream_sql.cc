@@ -551,11 +551,10 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
    * directly by (internal_id, instance_id). See _process_pb_comment for the
    * rationale and the ordering guarantee. */
   if (!cmmnt.deletion_time.is_null()) {
-    int32_t conn = special_conn::comment % _mysql.connections_count();
     {
       std::lock_guard<database::bulk_or_multi> lck(*_comments);
       if (_comments->row_count() > 0)
-        _comments->execute(_mysql, database::mysql_error::store_comment, conn);
+        _comments->execute(_mysql, database::mysql_error::store_comment, 0);
     }
     std::string where;
     if (cmmnt.internal_id != 0)
@@ -572,7 +571,7 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
     _mysql.run_query(
         fmt::format("UPDATE comments SET deletion_time={} WHERE {}",
                     static_cast<uint64_t>(cmmnt.deletion_time), where),
-        database::mysql_error::store_comment, conn);
+        database::mysql_error::store_comment, 0);
     return;
   }
 
@@ -701,14 +700,13 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
    * directly by (internal_id, instance_id), or in bulk by target when
    * internal_id is 0 (DEL_ALL_*_COMMENTS / object deletion). The unique-key
    * upsert below cannot match such a partial row, so the deletion is handled as
-   * a dedicated UPDATE. Any pending creation is flushed first, on the same
-   * connection, so the UPDATE is applied after it (FIFO ordering preserved). */
+   * a dedicated UPDATE. Any pending creation is flushed first so the UPDATE is
+   * applied after it (FIFO ordering preserved). */
   if (cmmnt.deletion_time() != 0) {
-    int32_t conn = special_conn::comment % _mysql.connections_count();
     {
       std::lock_guard<database::bulk_or_multi> lck(*_comments);
       if (_comments->row_count() > 0)
-        _comments->execute(_mysql, database::mysql_error::store_comment, conn);
+        _comments->execute(_mysql, database::mysql_error::store_comment, 0);
     }
     std::string where;
     if (cmmnt.internal_id() != 0)
@@ -726,7 +724,7 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
     _mysql.run_query(
         fmt::format("UPDATE comments SET deletion_time={} WHERE {}",
                     cmmnt.deletion_time(), where),
-        database::mysql_error::store_comment, conn);
+        database::mysql_error::store_comment, 0);
     return;
   }
 
@@ -2186,9 +2184,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_hosts_services) {
       if (_bulk_prepared_statement) {
         bulk_bind::scoped_lock lck(*_hscr_bind);
-        if (!_hscr_bind->bind(0))
-          _hscr_bind->init_from_stmt(0);
-        auto* b = _hscr_bind->bind(0).get();
+        if (!_hscr_bind->bind())
+          _hscr_bind->init_from_stmt();
+        auto* b = _hscr_bind->bind().get();
         b->set_value_as_bool(0, hscr.checked());
         b->set_value_as_i32(1, hscr.check_type());
         b->set_value_as_i32(2, hscr.state());
@@ -2302,9 +2300,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_resources) {
       if (_bulk_prepared_statement) {
         bulk_bind::scoped_lock lck(*_hscr_resources_bind);
-        if (!_hscr_resources_bind->bind(0))
-          _hscr_resources_bind->init_from_stmt(0);
-        auto* b = _hscr_resources_bind->bind(0).get();
+        if (!_hscr_resources_bind->bind())
+          _hscr_resources_bind->init_from_stmt();
+        auto* b = _hscr_resources_bind->bind().get();
         b->set_value_as_i32(0, hscr.state());
         b->set_value_as_i32(1, hst_ordered_status[hscr.state()]);
         b->set_value_as_u64(2, hscr.last_state_change(),
@@ -3949,9 +3947,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     if (_store_in_hosts_services) {
       if (_bulk_prepared_statement) {
         bulk_bind::scoped_lock lck(*_sscr_bind);
-        if (!_sscr_bind->bind(0))
-          _sscr_bind->init_from_stmt(0);
-        auto* b = _sscr_bind->bind(0).get();
+        if (!_sscr_bind->bind())
+          _sscr_bind->init_from_stmt();
+        auto* b = _sscr_bind->bind().get();
         b->set_value_as_bool(0, sscr.checked());
         b->set_value_as_i32(1, sscr.check_type());
         b->set_value_as_i32(2, sscr.state());
@@ -4080,9 +4078,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
             "unified_sql: BULK pb service status ({}, {}) {} in resources",
             sscr.host_id(), sscr.service_id(), sscr.state());
         bulk_bind::scoped_lock lck(*_sscr_resources_bind);
-        if (!_sscr_resources_bind->bind(0))
-          _sscr_resources_bind->init_from_stmt(0);
-        auto* b = _sscr_resources_bind->bind(0).get();
+        if (!_sscr_resources_bind->bind())
+          _sscr_resources_bind->init_from_stmt();
+        auto* b = _sscr_resources_bind->bind().get();
         b->set_value_as_i32(0, sscr.state());
         b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
         b->set_value_as_u64(2, sscr.last_state_change(),
