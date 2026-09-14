@@ -33,7 +33,7 @@ elif [[ "$STABILITY" == "stable" ]]; then
   dnf config-manager --set-disabled 'centreon*unstable*' --set-disabled 'centreon*testing*'
 fi
 
-dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
+dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone centreon-common
 
 usermod -aG centreon-engine centreon-gorgone
 usermod -aG centreon-broker centreon-gorgone
