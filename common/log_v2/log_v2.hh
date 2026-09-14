@@ -18,13 +18,6 @@
 #ifndef CCC_LOG_V2_HH
 #define CCC_LOG_V2_HH
 
-#include <spdlog/spdlog.h>
-
-#include <array>
-#include <chrono>
-#include <memory>
-#include <string>
-
 #include "config.hh"
 
 namespace com::centreon::common::log_v2 {
@@ -91,12 +84,13 @@ class log_v2 {
   static log_v2* _instance;
   std::string _log_name;
   std::chrono::seconds _flush_interval;
-  std::string _file_path;
   std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
   size_t _current_max_size = 0U;
   bool _log_pid = false;
   bool _log_source = false;
   bool _absl_sink = false;
+
+  void _create_loggers(config::logger_type typ, size_t length = 0);
 
  public:
   static void load(std::string name);
@@ -110,13 +104,12 @@ class log_v2 {
 
   std::chrono::seconds flush_interval();
   void set_flush_interval(uint32_t second_flush_interval);
-  void create_loggers(config::logger_type typ, size_t length = 0);
   std::shared_ptr<spdlog::logger> create_logger(const logger_id id);
   std::shared_ptr<spdlog::logger> get(const logger_id idx);
   void apply(const config& conf);
   bool contains_logger(std::string_view logger) const;
   bool contains_level(const std::string& level) const;
-  const std::string& filename() const { return _file_path; }
+  std::string filename() const;
   std::vector<std::pair<std::string, spdlog::level::level_enum>> levels() const;
   const std::string& log_name() const;
   void disable();

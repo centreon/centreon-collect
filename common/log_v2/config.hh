@@ -38,6 +38,7 @@ class config {
   const std::string _name;
   /* This is a little hack to avoid to replace the log file set by centengine */
   bool _only_atomic_changes = false;
+  bool _allow_change_pattern_and_path = true;
   logger_type _log_type;
   std::string _dirname;
   std::string _filename;
@@ -129,9 +130,14 @@ class config {
   const absl::flat_hash_set<std::string>& loggers_with_custom_sinks() const {
     return _loggers_with_custom_sinks;
   }
-  //  const std::string& name() const { return _name; }
   void allow_only_atomic_changes(bool slave) { _only_atomic_changes = slave; }
   bool only_atomic_changes() const { return _only_atomic_changes; }
+  void allow_change_pattern_and_path(bool allow) {
+    _allow_change_pattern_and_path = allow;
+  }
+  bool allow_change_pattern_and_path() const {
+    return _allow_change_pattern_and_path;
+  }
 };
 }  // namespace com::centreon::common::log_v2
 #endif
