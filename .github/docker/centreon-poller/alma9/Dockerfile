@@ -38,6 +38,15 @@ dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
 usermod -aG centreon-engine centreon-gorgone
 usermod -aG centreon-broker centreon-gorgone
 
+# The reverse membership is also needed: gorgone (re)generates poller
+# config as centreon-gorgone:centreon-gorgone, mode 0660. Without
+# centreon-engine/centreon-broker in the centreon-gorgone group,
+# centengine gets "Permission denied" reading centengine.cfg after the
+# first CFGMOVE and fails to restart with the pushed-down config (it
+# keeps running the stale one baked at image build time until killed).
+usermod -aG centreon-gorgone centreon-engine
+usermod -aG centreon-gorgone centreon-broker
+
 # The engine package's default centengine.cfg ships without a
 # broker_module_cfg_file directive (unlike its bare-metal RPM default),
 # so centengine exits at startup ("No module configuration file provided")
