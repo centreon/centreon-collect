@@ -104,7 +104,8 @@
   * [gRPC GetTopology endpoint](#grpc-gettopology-endpoint)
   * [.prot file storage](#prot-file-storage)
   * [broker\_state evolution](#broker_state-evolution)
-    * [`running` flag and `has_connection_from_poller` semantics](#running-flag-and-has_connection_from_poller-semantics)
+    * [Known, connected, running: three states, three questions](#known-connected-running-three-states-three-questions)
+    * [A poller behind a relay behaves like a direct one](#a-poller-behind-a-relay-behaves-like-a-direct-one)
   * [Required changes](#required-changes)
   * [Roll-out](#roll-out)
     * [Step 1 — New BBDO messages (✅ implemented)](#step-1--new-bbdo-messages--implemented)
@@ -1013,11 +1014,16 @@ Closing it while a poller has its difference prepared but not yet handed over
 destroys that file -- and it is never written again. The poller then keeps asking to
 be updated and `Broker` keeps failing to open a file that is gone.
 
-`all_engine_peers_acknowledged()` therefore counts, among the connected peers:
+`try_close_conf_round()` therefore counts, among the connected peers:
 
 * those the configuration was **sent** to, and among them those that acknowledged;
 * those whose configuration is **ready but not sent yet** -- the round is not over
   while one of them remains.
+
+A peer that is known but not connected -- a hint restored from `topology.cache`
+-- never reaches this count, because nothing is prepared for it in the first
+place (see
+[A poller behind a relay behaves like a direct one](#a-poller-behind-a-relay-behaves-like-a-direct-one)).
 
 ```
 All engine peers acknowledged? 1/3 acknowledged, 0 still waiting to be sent
@@ -1029,7 +1035,7 @@ All engine peers acknowledged? 1/3 acknowledged, 0 still waiting to be sent
 > ever be published again. What tells "a delivery is due" from "the last one was
 > acknowledged" is `available_conf != engine_conf`, `engine_conf` taking the
 > acknowledged version at acknowledgement time. That is exactly the test
-> `engine_peer_needs_update()` makes, and both now share it (`_peer_needs_update()`):
+> `poller_needs_update()` makes, and both now share it (`_peer_needs_update()`):
 > their divergence is what caused the configuration loss described above.
 
 > **The second trap: re-arming the flag for a version already in flight.** The "not
@@ -1555,8 +1561,19 @@ processed:
   configuration;
 - if `<ID>.prot` already exists, the normal flow has already installed it.
 
-In all three cases, Broker simply resets `conf_unknown` to `false` without
+In all three cases, Broker simply records that it knows this poller's
+configuration again -- `set_broker_knows_poller_conf(id, true)` -- without
 overwriting the file.
+
+> **`broker_knows_poller_conf` is not the negation of `engine_conf`.** The two
+> describe opposite sides of the exchange, and they are routinely true together.
+> `engine_conf` is the version **the poller says it runs**, read from its
+> `Welcome`. `broker_knows_poller_conf` says whether **Broker holds the content**
+> of that version -- a `<ID>.prot` on disk, or a `<ID>.lck` announcing one. The
+> whole recovery below rests on the combination "the poller runs v7, and we have
+> no idea what v7 contains": `add_peer()` records `engine_conf` from the
+> `Welcome`, then finds nothing on disk and sets `broker_knows_poller_conf` to
+> false, and the next line reads it to send the `DiffState{unknown=true}`.
 
 > **Not to be confused with a late poller.** This `unknown=true` mechanism only
 > covers genuine configuration loss (no `<ID>.prot`, no `<ID>.lck`, no
@@ -1574,8 +1591,8 @@ sequenceDiagram
 
     E ->> B: BBDO connection and negotiation
     B ->> B: add_peer()
-    note right of B: Broker finds neither <ID>.prot, nor <ID>.lck,<br/>nor new-<ID>.prot for this poller.<br/>The conf_unknown flag is set to true.
-    B ->> B: is_peer_conf_known() → false
+    note right of B: Broker finds neither <ID>.prot, nor <ID>.lck,<br/>nor new-<ID>.prot for this poller.<br/>broker_knows_poller_conf is set to false.
+    B ->> B: broker_knows_poller_conf() → false
     B ->> E: DiffState { unknown = true }
     note right of B: Broker asks Engine<br/>to send its configuration.
     E ->> E: get_current_state(): reading state.prot
@@ -1583,7 +1600,7 @@ sequenceDiagram
         E ->> B: pb_diff_state containing the current State
         note right of E: Engine sends its configuration<br/>on the next write().
         B ->> B: create_prot_file()
-        note right of B: If no more recent file (.lck,<br/>new-<ID>.prot or <ID>.prot) exists,<br/>Broker writes <ID>.prot, resets<br/>conf_unknown to false and feeds the cache.
+        note right of B: If no more recent file (.lck,<br/>new-<ID>.prot or <ID>.prot) exists,<br/>Broker writes <ID>.prot, records that it<br/>knows the conf again and feeds the cache.
     else state.prot absent (first start)
         note right of E: Engine sends nothing.<br/>The .lck flow will take over.
     end
@@ -1935,14 +1952,41 @@ classDiagram
         +write(const std::shared_ptr<io::data>& d)
         +stop()
     }
+    class peer_registry {
+        -shared_ptr<logger> _logger
+        -Mutex _connected_peers_m
+        -flat_hash_map<uint64_t, engine_peer> _engine_peers
+        -flat_hash_map<peer_key, broker_peer> _broker_peers
+        -flat_hash_map<peer_key, unknown_peer> _unknown_peers
+        -flat_hash_map<uint64_t, uint64_t> _poller_to_relay
+        -_peer_needs_update(const engine_peer& peer)$static$
+        +add_peer(...) string
+        +remove_peer(...) bool
+        +register_poller_via_relay(...) uint64_t
+        +connected_pollers()
+        +connected_peers()
+        +is_poller_connected(uint64_t poller_id)
+        +is_poller_running(uint64_t poller_id)
+        +set_instance_running(uint64_t poller_id, bool running)
+        +poller_timezone(uint64_t poller_id)
+        +broker_knows_poller_conf(uint64_t poller_id)
+        +set_broker_knows_poller_conf(uint64_t poller_id, bool known)
+        +poller_needs_update(uint64_t poller_id)
+        +set_poller_conf_sent(uint64_t poller_id)
+        +set_poller_conf_acknowledged(uint64_t poller_id)
+        +try_close_conf_round()
+        +lock_engine_peer(uint64_t poller_id) locked_engine_peer
+        +topology_cache() TopologyCache
+        +restore_pollers_from_cache(const TopologyCache& cache)
+    }
     class broker_state {
         -path _cache_config_dir
         -path _pollers_config_dir
         -unique_ptr<directory_watcher> _cache_config_dir_watcher
-        -flat_hash_map<peer_key, engine_peer> _engine_peers
-        -flat_hash_map<peer_key, broker_peer> _broker_peers
-        -flat_hash_map<peer_key, unknown_peer> _unknown_peers
+        -peer_registry _peers
         -flat_hash_map<uint64_t, string> _engine_configuration
+        -flat_hash_map<uint64_t, pair<string,string>> _pending_config_requests
+        -flat_hash_map<uint64_t, vector<uint64_t>> _pending_config_revokes
         -unique_ptr<steady_timer> _safety_timer
         -unique_ptr<steady_timer> _debounce_timer
         -flat_hash_set<uint32_t> _lck_set
@@ -1955,18 +1999,27 @@ classDiagram
         -_run_config_cycle(const flat_hash_set<uint32_t>& pollers_set)
         +add_peer()
         +remove_peer()
-        +has_connection_from_poller(uint64_t poller_id)
+        +is_poller_connected(uint64_t poller_id)
+        +is_poller_running(uint64_t poller_id)
         +set_instance_running(uint64_t poller_id, bool running)
         +connected_peers()
         +connected_pollers()
-        +engine_peer_needs_update(uint64_t poller_id)
-        +acknowledge_engine_peer(uint64_t poller_id)
+        +poller_needs_update(uint64_t poller_id)
+        +set_poller_conf_sent(uint32_t poller_id)
+        +set_poller_conf_acknowledged(uint64_t poller_id)
         +set_poller_engine_conf()
         +apply(state& s, bool run_mux = true)
     }
     state <|-- cbmod_state
     state <|-- broker_state
+    broker_state *-- peer_registry
 ```
+
+`broker_state` owns no peer map of its own: they all live in `peer_registry`,
+with their own mutex. What stays under `broker_state::_connected_peers_m` is
+only the forwarding queues — `_pending_config_requests`,
+`_pending_config_revokes`, `_pending_diff_states`, `_pending_diff_state_acks`
+and `_engine_configuration`.
 
 The split of `state` also implies splitting the `bbdo::stream` class.
 
@@ -2988,7 +3041,7 @@ The centralized configuration mechanism as currently implemented only covers `EN
 
 ```cpp
 if (peer_type() == common::ENGINE &&
-    _state.engine_peer_needs_update(poller_id())) {
+    _state.poller_needs_update(poller_id())) {
 ```
 
 A remote server connects to the central as a `BROKER` peer. It therefore receives no configuration diff. Its local pollers are not visible to the central and never receive their centralized configuration.
@@ -3412,24 +3465,31 @@ A relay only stores `.prot` files for the Engine pollers **directly connected** 
 
 ## broker\_state evolution
 
-The former single `peer` struct mixed Engine-specific fields with generic ones. It has been replaced by three distinct structs, each stored in its own `flat_hash_map` indexed by `peer_key = tuple<poller_id, poller_name, broker_name>`:
+The former single `peer` struct mixed Engine-specific fields with generic ones. It has been replaced by three distinct structs, each stored in its own `flat_hash_map`. Engine peers are indexed by `poller_id` alone -- a poller has one Engine -- while the other two are indexed by `peer_key = tuple<poller_id, poller_name, broker_name>`. All of them, and the mutex guarding them, live in `peer_registry`:
 
 ```cpp
 struct engine_peer {
     uint64_t    poller_id;
     std::string poller_name;
-    std::string broker_name;
-    time_t      connected_since;
+    /* When the peer connected, directly or through a relay. Empty while it has
+     * never been seen connected in this Broker session -- an entry restored
+     * from topology.cache, a routing hint rather than a peer. */
+    std::optional<time_t> connected_since;
     bool        extended_negotiation;
     std::string available_conf;      // diff available to send to the engine
     std::string engine_conf;         // config version the engine declares it has
     bool        available_conf_sent;
     bool        conf_acknowledged;
-    bool        conf_unknown;
-    /* Set to true only when a pb_instance(running=true) content event has been
-     * received from this poller.  Guards against stale add_peer() / remove_peer()
-     * calls that replay running=false events on Broker reconnect. */
-    bool        running = false;
+    /* Whether Broker holds the *content* of the version above: a <ID>.prot on
+     * disk, or a <ID>.lck announcing one. A property of Broker, not of the
+     * poller -- the two are routinely true together. */
+    bool        broker_knows_poller_conf;
+    uint64_t    via_remote;          // relay in front of this peer, or 0
+    /* What the last pb_instance said about this poller's Engine. Written and
+     * read by the BAM module only, which relies on reading it before flipping
+     * it to tell a real stop from a running=false replayed on reconnect. */
+    bool        engine_running = false;
+    std::string timezone;            // IANA name advertised at negotiation
 };
 
 struct broker_peer {
@@ -3457,15 +3517,20 @@ struct peer {
 
 using peer_key = std::tuple<uint64_t, std::string, std::string>;
 
-absl::flat_hash_map<peer_key, engine_peer>  _engine_peers
+absl::flat_hash_map<uint64_t, engine_peer>  _engine_peers
     ABSL_GUARDED_BY(_connected_peers_m);
 absl::flat_hash_map<peer_key, broker_peer>  _broker_peers
     ABSL_GUARDED_BY(_connected_peers_m);
 absl::flat_hash_map<peer_key, unknown_peer> _unknown_peers
     ABSL_GUARDED_BY(_connected_peers_m);
+/* Which relay leads to which poller, persisted in topology.cache. */
+absl::flat_hash_map<uint64_t, uint64_t>     _poller_to_relay
+    ABSL_GUARDED_BY(_connected_peers_m);
 ```
 
-Three type-separated maps eliminate all dispatch at iteration time: methods that operate on engine peers (`engine_peer_needs_update()`, `all_engine_peers_acknowledged()`, etc.) iterate `_engine_peers` directly without any type test. `connected_peers()` aggregates the three maps into a vector of `peer` with the correct `peer_type` for each entry.
+Three type-separated maps eliminate all dispatch at iteration time: methods that operate on engine peers (`poller_needs_update()`, `try_close_conf_round()`, etc.) iterate `_engine_peers` directly without any type test. `connected_peers()` aggregates the three maps into a vector of `peer` with the correct `peer_type` for each entry, leaving out the Engine entries that are known but not connected.
+
+A read-modify-write sequence on one peer -- read the version it runs, build the diff, arm the new one -- must not interleave with another one on the same poller, or the same file would be written twice. `lock_engine_peer()` hands out a handle that holds the registry lock from the first read to the last write; every other access goes through the plain accessors, which lock for the duration of a single operation.
 
 ```cpp
 // Targeted iteration over engine peers:
@@ -3485,16 +3550,84 @@ switch (peer_type) {
 }
 ```
 
-### `running` flag and `has_connection_from_poller` semantics
+### Known, connected, running: three states, three questions
 
-`engine_peer::running` distinguishes a peer that is **actively running** from one that is merely registered.  It is managed by `set_instance_running()`, which is called by every module that processes `pb_instance` events (e.g. BAM's `monitoring_stream`):
+An entry in `_engine_peers` does not mean the same thing depending on how it
+got there, and conflating the three led to real bugs. The registry therefore
+answers three separate questions.
 
-- `pb_instance(running=true)` → `set_instance_running(poller_id, true)` — the Engine instance is up.
-- `pb_instance(running=false)` → `set_instance_running(poller_id, false)` then `remove_peer()` — the Engine instance stopped or disconnected.
+**Known** — an entry exists. A poller enters the registry either because it
+connected, or because `topology.cache` said, at the previous shutdown, that it
+was reachable through a relay. The latter is a *routing hint*: it lets a
+configuration pushed by PHP during the outage be prepared and addressed to the
+right relay before that relay is back. It is not a connection, and nothing that
+reports on connections may count it.
 
-`has_connection_from_poller(poller_id)` returns `true` **only** when an `engine_peer` exists for that poller *and* its `running` flag is `true`.  This guards against false positives that occur when Broker replays a backlog of `pb_instance(running=false)` events on reconnect: `add_peer()` is called by the BBDO layer as soon as the TCP connection is accepted, but `running` remains `false` until the first `pb_instance(running=true)` content event confirms the instance is actually alive.
+**Connected** — `engine_peer::connected_since` holds a date.
+`std::optional<time_t>` on purpose: the absence of a value *is* "never seen
+connected in this session", where a zero date used to say it implicitly. It is
+set by `add_peer()` at negotiation and by `register_poller_via_relay()` when a
+relay speaks for the poller. It is never cleared: a disconnection erases the
+whole entry.
 
-The base class `state` provides a virtual no-op default for `set_instance_running()` so that modules that don't need it (e.g. `cbmod_state`) require no change.
+`is_poller_connected(poller_id)` answers this one, and it is what
+`connected_pollers()` and `connected_peers()` filter on — so `GetPollers` and
+`GetPeers` no longer report the hints restored from `topology.cache` as pollers
+with an empty name connected since 1970.
+
+**Running** — `engine_peer::engine_running` says what the last `pb_instance`
+told us about the poller's Engine. False at connection time: a peer may well be
+connected with its Engine not started yet.
+
+It is maintained by `set_instance_running()`, whose only caller is BAM's
+`monitoring_stream`, and read back by that same module only. On
+`pb_instance(running=false)`, BAM reads the flag *before* flipping it: a poller
+that was not running is replaying an event it had kept, not stopping, and its
+KPI downtime state must not be reset. Being the single writer is what makes
+that read-then-flip reliable, so the flag deliberately stays BAM's business —
+it is stored in the registry rather than in the module only so that it survives
+a BAM stream restart.
+
+`is_poller_running(poller_id)` answers this one. Neither it nor
+`set_instance_running()` appears on the base class `state`: they would mean
+nothing in `cbmod`, which supervises no poller. They stop at `broker_state`,
+and BAM reaches them by downcasting the state — guarded by `peer_type()`
+rather than asserted in a comment, because a module is loaded by configuration
+and a configuration that loaded this one outside cbd should lose the downtime
+reset, not the process.
+
+> **Why the split matters.** These three used to be a single method,
+> `has_connection_from_poller()`, which returned the *running* flag. unified_sql's
+> `remove_poller()` asks "is this poller connected?" before deleting a poller the
+> database still shows as running — its last guard before dropping its
+> `instances`, `hosts` and `resources` rows. Since `running` was only ever fed by
+> BAM, a Broker without the BAM module answered "not connected" for every poller
+> and the guard never held. It now calls `is_poller_connected()`.
+
+### A poller behind a relay behaves like a direct one
+
+`_prepare_diff_for_poller()` returns early for a poller that is known but not
+connected. Without that gate, an entry restored from `topology.cache` was
+treated as a peer to serve: a `diff-<N>.prot` was written and `available_conf`
+armed for a poller nobody could reach. `_peer_needs_update()` then stayed true
+for it, `try_close_conf_round()` never closed the round, and the global
+diff of **every other poller of the round** was held back until that relay came
+back.
+
+A directly connected poller that is away has no entry at all, so it has always
+returned early there, leaving its `new-<ID>.prot` on disk for when it shows up.
+The gate gives the relay-attached poller exactly that behaviour.
+
+The symmetrical gap was on the catch-up side: `prepare_relay_config_response()`
+looked at `diff-`, `new-` and `<ID>.prot`, but not at a pending `<ID>.lck` —
+a configuration announced by PHP that no cycle had read yet. Where the direct
+path nudges the debounce from `_feed_cache_and_wake_up_resources()`, the relay
+path waited for the five-minute safety net. It now performs the same lookup and
+the same nudge. It still answers with whatever is available rather than
+withholding the older state as the direct path does: a `ConfigRequest` is a
+request/response and leaving it unanswered would stall the handshake; the newer
+configuration follows through `pollers_via_relay_needing_update()` within
+the debounce.
 
 ## Required changes
 
@@ -3502,7 +3635,7 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
 |-----------|--------|
 | `bbdo/bbdo.proto` | Add `bool remote_server` to `Welcome` |
 | `bbdo/bbdo.proto` | Add `ConfigRequest` and `ConfigRevoke` messages |
-| `broker_state` | Replace `_connected_peers` with three typed `flat_hash_map`s: `_engine_peers`, `_broker_peers`, `_unknown_peers` |
+| `peer_registry` | Hold the three typed `flat_hash_map`s -- `_engine_peers`, `_broker_peers`, `_unknown_peers` -- plus `_poller_to_relay`, behind their own mutex; `broker_state` delegates to it |
 | `broker_cache` | Persist topology in `topology.cache` on clean shutdown (`poller_id → remote_id` pairs) |
 | `broker_stream::read()` (central) | Detect `remote_server=true`; handle `ConfigRequest`; populate `_engine_peers[N].via_remote`; send `ConfigRevoke` on migration |
 | `broker_state` (central) | Route PHP diffs via `_engine_peers[N].via_remote`; queue diffs when remote is absent |
@@ -3548,9 +3681,9 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
   When PHP pushes a new `.lck` for a poller whose Engine is behind a relay, the central must
   route the resulting DiffState through the relay rather than looking for a direct ENGINE stream.
 
-  **Implementation**: `broker_state::engine_peers_via_relay_needing_update(relay_id)` collects
-  engine peers with `via_remote == relay_id` that have `available_conf ≠ engine_conf` and
-  `available_conf_sent == false`.  In `broker_stream::read()`, when `peer_type() == BROKER &&
+  **Implementation**: `broker_state::pollers_via_relay_needing_update(relay_id)` collects
+  the pollers with `via_remote == relay_id` that `_peer_needs_update()` reports as still owed
+  a configuration — the same test as everywhere else, deliberately not rewritten here.  In `broker_stream::read()`, when `peer_type() == BROKER &&
   !is_relay()`, the central iterates this list and pushes the `diff-N.prot` to the relay —
   identical to the `ConfigRequest` diff_ready path, but triggered by the PHP push timer instead
   of an incoming request.
