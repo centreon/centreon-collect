@@ -47,6 +47,17 @@ usermod -aG centreon-broker centreon-gorgone
 usermod -aG centreon-gorgone centreon-engine
 usermod -aG centreon-gorgone centreon-broker
 
+# sudoersCentreon's NOPASSWD rules target the "centreon" group
+# (User_Alias CENTREON=%centreon), not centreon-gorgone directly, so
+# without this centreon-gorgone hits a real password prompt when
+# gorgone shells out to `sudo systemctl restart centengine` and the
+# restart signal never gets through. centreon-gorgone's own postinstall
+# (gorgone/packaging/scripts/centreon-gorgone-postinstall.sh) does add
+# this, but relies on the centreon user/group already existing, which
+# isn't guaranteed by RPM transaction ordering in a single dnf install.
+usermod -aG centreon centreon-gorgone
+usermod -aG centreon-gorgone centreon
+
 # The engine package's default centengine.cfg ships without a
 # broker_module_cfg_file directive (unlike its bare-metal RPM default),
 # so centengine exits at startup ("No module configuration file provided")
