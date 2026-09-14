@@ -46,6 +46,14 @@ if ! grep -q '^broker_module_cfg_file=' /etc/centreon-engine/centengine.cfg; the
   echo 'broker_module_cfg_file=/etc/centreon-broker/central-module.json' >> /etc/centreon-engine/centengine.cfg
 fi
 
+# gorgone's legacycmd module defaults cache_dir to /var/cache/centreon
+# (used to receive the config files pushed by CFGMOVE from the central).
+# On a full centreon-web install, the centreon package's postinstall
+# creates this directory; the poller only installs centreon-gorgone, so
+# it's never created here and every config push fails with "Copy
+# processing - MD5 does not match" (open() on the destination fails).
+install -d -m 0770 -o centreon-gorgone -g centreon-gorgone /var/cache/centreon
+
 systemctl stop gorgoned
 systemctl stop centengine
 
