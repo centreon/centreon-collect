@@ -35,6 +35,17 @@ fi
 
 dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
 
+usermod -aG centreon-engine centreon-gorgone
+usermod -aG centreon-broker centreon-gorgone
+
+# The engine package's default centengine.cfg ships without a
+# broker_module_cfg_file directive (unlike its bare-metal RPM default),
+# so centengine exits at startup ("No module configuration file provided")
+# before the poller ever gets a chance to register with the central.
+if ! grep -q '^broker_module_cfg_file=' /etc/centreon-engine/centengine.cfg; then
+  echo 'broker_module_cfg_file=/etc/centreon-broker/central-module.json' >> /etc/centreon-engine/centengine.cfg
+fi
+
 systemctl stop gorgoned
 systemctl stop centengine
 
