@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <charconv>
-
 #include "common/log_v2/log_v2.hh"
 
 #include <absl/base/log_severity.h>
@@ -32,9 +30,6 @@
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include "centreon_rotating_file_sink-inl.hh"
-
-#include <atomic>
-#include <initializer_list>
 
 using namespace com::centreon::common::log_v2;
 using namespace spdlog;
@@ -158,8 +153,25 @@ void log_v2::unload() {
  * @param name Name of the logger.
  * @param ilist List of loggers to initialize.
  */
-log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
-  _create_loggers(config::logger_type::LOGGER_STDOUT);
+log_v2::log_v2(std::string name)
+    : _log_name{std::move(name)},
+      _log_type(config::logger_type::LOGGER_STDOUT) {
+  sink_ptr my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+
+  for (int32_t id = 0; id < LOGGER_SIZE; id++) {
+    std::shared_ptr<spdlog::logger> logger;
+    logger = std::make_shared<spdlog::logger>(
+        std::string(logger_name[id].data(), logger_name[id].size()), my_sink);
+    logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+    if (id > 1)
+      logger->set_level(level::level_enum::err);
+    else
+      logger->set_level(level::level_enum::info);
+    spdlog::register_logger(logger);
+    _loggers[id] = std::move(logger);
+  }
+  /* Hook for gRPC, not beautiful, but no idea how to do better. */
+  absl::AddLogSink(&_common_grpc_sink);
 }
 
 /**
@@ -190,6 +202,7 @@ std::chrono::seconds log_v2::flush_interval() {
 }
 
 void log_v2::set_flush_interval(uint32_t second_flush_interval) {
+  absl::MutexLock l(&_loggers_m);
   _flush_interval = std::chrono::seconds(second_flush_interval);
   if (second_flush_interval == 0) {
     for (auto& l : _loggers) {
@@ -225,72 +238,6 @@ log_v2::logger_id log_v2::get_id(const std::string& name) const noexcept {
 }
 
 /**
- * @brief Create all the loggers in log_v2. By default they are writing into
- * stdout. Broker.
- *
- * @param typ The log type, to log in syslog, a file, in stdout.
- * @param length The max length of the log receiver (only used for files).
- */
-void log_v2::_create_loggers(config::logger_type typ, size_t length) {
-  _not_threadsafe_configuration = true;
-  sink_ptr my_sink;
-
-  for (int32_t id = 0; id < LOGGER_SIZE; id++)
-    assert(!_loggers[id]);
-
-  switch (typ) {
-    case config::logger_type::LOGGER_FILE: {
-      if (length)
-        my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-            "/tmp/centreon-collect.log", _current_max_size, 99);
-      else
-        my_sink = std::make_shared<sinks::centreon_file_sink_mt>(
-            "/tmp/centreon-collect.log");
-    } break;
-    case config::logger_type::LOGGER_SYSLOG:
-      my_sink = std::make_shared<sinks::syslog_sink_mt>(_log_name, 0, 0, true);
-      break;
-    case config::logger_type::LOGGER_STDOUT:
-      my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
-      break;
-  }
-
-  for (int32_t id = 0; id < LOGGER_SIZE; id++) {
-    std::shared_ptr<spdlog::logger> logger;
-    logger = std::make_shared<spdlog::logger>(
-        std::string(logger_name[id].data(), logger_name[id].size()), my_sink);
-    if (_log_pid) {
-      if (_log_source)
-        logger->set_pattern(
-            "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
-      else
-        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-    } else {
-      if (_log_source)
-        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
-      else
-        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-    }
-    if (id > 1)
-      logger->set_level(level::level_enum::err);
-    else
-      logger->set_level(level::level_enum::info);
-    spdlog::register_logger(logger);
-    _loggers[id] = std::move(logger);
-
-    /* Hook for gRPC, not beautiful, but no idea how to do better. */
-    if (id == GRPC || id == OTL) {
-      if (!_absl_sink) {
-        absl::AddLogSink(&_common_grpc_sink);
-        _absl_sink = true;
-      }
-    }
-  }
-
-  _not_threadsafe_configuration = false;
-}
-
-/**
  * @brief Accessor to the logger of given ID.
  *
  * @param idx The ID of the logger to get.
@@ -298,6 +245,7 @@ void log_v2::_create_loggers(config::logger_type typ, size_t length) {
  * @return A shared pointer to the logger.
  */
 std::shared_ptr<spdlog::logger> log_v2::get(log_v2::logger_id idx) {
+  absl::MutexLock l(&_loggers_m);
   if (idx < _loggers.size())
     return _loggers[idx];
   else
@@ -318,51 +266,78 @@ std::shared_ptr<spdlog::logger> log_v2::get(log_v2::logger_id idx) {
  */
 void log_v2::apply(const config& log_conf) {
   spdlog::sink_ptr my_sink;
+  std::shared_ptr<spdlog::logger> warning_to_log;
+  try {
+    absl::MutexLock l(&_loggers_m);
 
-  /* This part is about sinks so it is reserved for masters */
-  if (!log_conf.only_atomic_changes()) {
-    _not_threadsafe_configuration = true;
-    const std::string file_path = log_conf.log_path();
-    switch (log_conf.log_type()) {
-      case config::logger_type::LOGGER_FILE:
-        if (!file_path.empty()) {
-          if (log_conf.max_size())
+    /* This part is about sinks so it is reserved for masters. Recreation must
+     * also happen on the first apply() that requests custom sinks, even if the
+     * resolved type happens to match the constructor's initial LOGGER_STDOUT,
+     * otherwise a config that resolves to stdout on first load would never get
+     * its custom sinks (e.g. engine's broker forwarding sink) attached. Outside
+     * of that narrow case, a same-type apply() must NOT recreate the loggers:
+     * callers may have cached a shared_ptr obtained via get() before this call,
+     * and recreating would silently strand them on a stale, unconfigured
+     * logger object. */
+    if (!log_conf.only_atomic_changes() &&
+        (_log_type != log_conf.log_type() ||
+         (!_broker_sink_added &&
+          !log_conf.loggers_with_custom_sinks().empty()))) {
+      // logger sink containers are not thread safe => recreate loggers
+      const std::string file_path = log_conf.log_path();
+      config::logger_type actual_type = log_conf.log_type();
+      switch (log_conf.log_type()) {
+        case config::logger_type::LOGGER_FILE:
+          if (!file_path.empty()) {
             my_sink = std::make_shared<sinks::centreon_rotating_file_sink_mt>(
                 file_path, log_conf.max_size(), 99);
-          else
-            my_sink = std::make_shared<sinks::centreon_file_sink_mt>(file_path);
+            break;
+          }
+          // No path configured: fall back to stdout, and reflect that in
+          // _log_type so a later apply() with a real path still recreates.
+          actual_type = config::logger_type::LOGGER_STDOUT;
+          [[fallthrough]];
+        case config::logger_type::LOGGER_STDOUT:
+          my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
           break;
-        }
-        [[fallthrough]];
-      case config::logger_type::LOGGER_STDOUT:
-        my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
-        break;
-      case config::logger_type::LOGGER_SYSLOG:
-        my_sink =
-            std::make_shared<sinks::syslog_sink_mt>(file_path, 0, 0, true);
-        break;
-    }
+        case config::logger_type::LOGGER_SYSLOG:
+          my_sink =
+              std::make_shared<sinks::syslog_sink_mt>(file_path, 0, 0, true);
+          break;
+      }
 
-    for (int32_t id = 0; id < LOGGER_SIZE; id++) {
       std::vector<spdlog::sink_ptr> sinks;
-
-      /* Little hack to include the broker sink to engine loggers. */
-      auto& name = logger_name[id];
-      if (log_conf.loggers_with_custom_sinks().contains(name))
-        sinks = log_conf.custom_sinks();
-
-      sinks.push_back(my_sink);
-      auto logger = _loggers[id];
-      logger->sinks() = sinks;
+      for (int32_t id = 0; id < LOGGER_SIZE; id++) {
+        sinks.clear();
+        /* Little hack to include the broker sink to engine loggers. */
+        auto& name = logger_name[id];
+        if (log_conf.loggers_with_custom_sinks().contains(name)) {
+          sinks = log_conf.custom_sinks();
+          _broker_sink_added = true;
+        }
+        sinks.push_back(my_sink);
+        auto logger = std::make_shared<spdlog::logger>(
+            std::string(logger_name[id].data(), logger_name[id].size()),
+            sinks.begin(), sinks.end());
+        spdlog::drop(logger->name());
+        spdlog::register_logger(logger);
+        if (_loggers[id]) {
+          logger->set_level(_loggers[id]->level());
+          logger->flush_on(_loggers[id]->flush_level());
+        }
+        _loggers[id] = logger;
+      }
+      _log_type = actual_type;
+      if (_configured) {
+        warning_to_log = _loggers[CONFIG];
+      }
     }
-    _not_threadsafe_configuration = false;
-  }
+    _configured = true;
 
-  _flush_interval = std::chrono::seconds(
-      log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
-  spdlog::flush_every(_flush_interval);
+    _flush_interval = std::chrono::seconds(
+        log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
+    spdlog::flush_every(_flush_interval);
 
-  if (log_conf.allow_change_pattern_and_path()) {
     for (int32_t id = 0; id < LOGGER_SIZE; id++) {
       auto& name = logger_name[id];
       if (log_conf.loggers().contains(name)) {
@@ -373,6 +348,15 @@ void log_v2::apply(const config& log_conf) {
           logger->flush_on(level::warn);
         else
           logger->flush_on(lvl);
+      }
+    }
+
+    if (log_conf.allow_change_pattern_and_path()) {
+      /* The pattern only depends on the global log_pid()/log_source() flags,
+       * not on the logger name, so it applies to every logger. */
+      for (auto& logger : _loggers) {
+        if (!logger)
+          continue;
         if (log_conf.log_pid()) {
           if (log_conf.log_source())
             logger->set_pattern(
@@ -387,30 +371,35 @@ void log_v2::apply(const config& log_conf) {
             logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
         }
       }
-    }
 
-    for (auto& s : _loggers[0]->sinks()) {
-      spdlog::sinks::centreon_file_sink_base* file_sink =
-          dynamic_cast<spdlog::sinks::centreon_file_sink_base*>(s.get());
-      if (file_sink) {
-        if (!file_sink->set_filename(log_conf.log_path())) {
-          // filename not changed => output not reopened => we have to do it
-          auto* to_reopen =
-              dynamic_cast<spdlog::sinks::centreon_file_sink_mt*>(file_sink);
-          if (to_reopen)
-            to_reopen->reopen();
+      if (log_conf.log_type() == config::logger_type::LOGGER_FILE) {
+        for (auto& s : _loggers[0]->sinks()) {
+          if (auto* rotate_file_sink =
+                  dynamic_cast<spdlog::sinks::centreon_rotating_file_sink_mt*>(
+                      s.get())) {
+            rotate_file_sink->set_filename(log_conf.log_path());
+            rotate_file_sink->set_max_size(log_conf.max_size());
+          }
         }
       }
     }
-  } else {
+    // in case of file rotate is done by rotated, reopen files
     for (auto& s : _loggers[0]->sinks()) {
-      spdlog::sinks::centreon_file_sink_mt* file_sink =
-          dynamic_cast<spdlog::sinks::centreon_file_sink_mt*>(s.get());
-      if (file_sink) {
+      if (auto* file_sink =
+              dynamic_cast<spdlog::sinks::centreon_rotating_file_sink_mt*>(
+                  s.get()))
         file_sink->reopen();
-      }
     }
+  } catch (const std::exception& e) {
+    std::cerr << "Fail to apply log config " << e.what()
+              << " config:" << log_conf << std::endl;
+    throw;
   }
+  if (warning_to_log)
+    warning_to_log->warn(
+        "log type is modified, we can't update type of existing loggers. "
+        "So we will recreate them and older ones will continue to live "
+        "until restart");
 }
 
 /**
@@ -446,6 +435,7 @@ bool log_v2::contains_level(const std::string& level) const {
 std::vector<std::pair<std::string, spdlog::level::level_enum>> log_v2::levels()
     const {
   std::vector<std::pair<std::string, spdlog::level::level_enum>> retval;
+  absl::MutexLock l(&_loggers_m);
   retval.reserve(_loggers.size());
   for (auto& l : _loggers) {
     if (l) {
@@ -461,6 +451,7 @@ const std::string& log_v2::log_name() const {
 }
 
 void log_v2::disable() {
+  absl::MutexLock l(&_loggers_m);
   for (auto& l : _loggers)
     /* Loggers can be not defined in case of legacy logger enabled. */
     if (l)
@@ -468,6 +459,7 @@ void log_v2::disable() {
 }
 
 void log_v2::disable(std::initializer_list<logger_id> ilist) {
+  absl::MutexLock l(&_loggers_m);
   for (logger_id id : ilist) {
     /* Loggers can be not defined in case of legacy logger enabled. */
     if (_loggers[id])
@@ -476,9 +468,10 @@ void log_v2::disable(std::initializer_list<logger_id> ilist) {
 }
 
 std::string log_v2::filename() const {
+  absl::MutexLock l(&_loggers_m);
   for (auto& s : _loggers[0]->sinks()) {
-    spdlog::sinks::centreon_file_sink_base* file_sink =
-        dynamic_cast<spdlog::sinks::centreon_file_sink_base*>(s.get());
+    spdlog::sinks::centreon_rotating_file_sink_mt* file_sink =
+        dynamic_cast<spdlog::sinks::centreon_rotating_file_sink_mt*>(s.get());
     if (file_sink) {
       return file_sink->filename();
     }

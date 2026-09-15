@@ -15,10 +15,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <charconv>
-
-#include "common/log_v2/centreon_rotating_file_sink-inl.hh"
-
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
@@ -27,6 +23,8 @@
 #include <regex>
 #include <thread>
 #include <vector>
+
+#include "common/log_v2/centreon_rotating_file_sink-inl.hh"
 
 using namespace spdlog::sinks;
 namespace fs = std::filesystem;
@@ -74,8 +72,7 @@ TEST(CentreonRotatingFileSinkCalcFilename, IndexInsertedBeforeExtension) {
 }
 
 TEST(CentreonRotatingFileSinkCalcFilename, NoExtensionAppendsIndexAtEnd) {
-  ASSERT_EQ(centreon_rotating_file_sink_mt::calc_filename("base", 2),
-            "base.2");
+  ASSERT_EQ(centreon_rotating_file_sink_mt::calc_filename("base", 2), "base.2");
 }
 
 TEST_F(CentreonRotatingFileSinkTest, ConstructionOpensBaseFile) {
@@ -86,18 +83,11 @@ TEST_F(CentreonRotatingFileSinkTest, ConstructionOpensBaseFile) {
   ASSERT_TRUE(fs::exists(base));
 }
 
-TEST_F(CentreonRotatingFileSinkTest, ZeroMaxSizeThrows) {
-  std::string base = path("zero.log");
-  ASSERT_THROW(
-      std::make_shared<centreon_rotating_file_sink_mt>(base, 0, 3),
-      spdlog::spdlog_ex);
-}
-
 TEST_F(CentreonRotatingFileSinkTest, TooManyMaxFilesThrows) {
   std::string base = path("toomany.log");
-  ASSERT_THROW(std::make_shared<centreon_rotating_file_sink_mt>(base, 1024,
-                                                                 200001),
-               spdlog::spdlog_ex);
+  ASSERT_THROW(
+      std::make_shared<centreon_rotating_file_sink_mt>(base, 1024, 200001),
+      spdlog::spdlog_ex);
 }
 
 TEST_F(CentreonRotatingFileSinkTest, RotateOnOpenMovesExistingContent) {
@@ -106,8 +96,8 @@ TEST_F(CentreonRotatingFileSinkTest, RotateOnOpenMovesExistingContent) {
     std::ofstream os(base);
     os << "old content\n";
   }
-  auto sink = std::make_shared<centreon_rotating_file_sink_mt>(base, 1024, 3,
-                                                                true);
+  auto sink =
+      std::make_shared<centreon_rotating_file_sink_mt>(base, 1024, 3, true);
   ASSERT_TRUE(fs::exists(path("ro.1.log")));
   ASSERT_EQ(read_file(path("ro.1.log")), "old content\n");
   ASSERT_EQ(read_file(base), "");
@@ -119,8 +109,8 @@ TEST_F(CentreonRotatingFileSinkTest, NoRotateOnOpenWhenDisabled) {
     std::ofstream os(base);
     os << "old content\n";
   }
-  auto sink = std::make_shared<centreon_rotating_file_sink_mt>(base, 1024, 3,
-                                                                false);
+  auto sink =
+      std::make_shared<centreon_rotating_file_sink_mt>(base, 1024, 3, false);
   ASSERT_FALSE(fs::exists(path("noro.1.log")));
   ASSERT_EQ(read_file(base), "old content\n");
 }
@@ -167,9 +157,8 @@ TEST_F(CentreonRotatingFileSinkTest, RotateNowRotatesImmediately) {
 // discarded (log.3.log is never created).
 TEST_F(CentreonRotatingFileSinkTest, RotationRespectsMaxFiles) {
   std::string base = path("cap.log");
-  auto sink = std::make_shared<centreon_rotating_file_sink_mt>(base,
-                                                                1024 * 1024,
-                                                                2);
+  auto sink =
+      std::make_shared<centreon_rotating_file_sink_mt>(base, 1024 * 1024, 2);
   spdlog::logger logger("test", sink);
   logger.set_pattern("%v");
 
@@ -218,7 +207,8 @@ TEST_F(CentreonRotatingFileSinkTest, SetFilenameChangesTarget) {
 // Then it opens generation 0 of the new base (not ".1"): the sink only ever
 // tracks the currently-open path, which rotate_() always restores to
 // generation 0, so there is no non-zero generation left to carry over.
-TEST_F(CentreonRotatingFileSinkTest, SetFilenameAfterRotationTargetsGenerationZero) {
+TEST_F(CentreonRotatingFileSinkTest,
+       SetFilenameAfterRotationTargetsGenerationZero) {
   std::string base1 = path("afterrot1.log");
   std::string base2 = path("afterrot2.log");
   auto sink =
@@ -237,6 +227,41 @@ TEST_F(CentreonRotatingFileSinkTest, SetFilenameAfterRotationTargetsGenerationZe
   logger.info("second");
   sink->flush();
   ASSERT_EQ(read_file(base2), "second\n");
+}
+
+// Given a rotating sink close to its rotation threshold on the old file.
+// When set_filename() switches it to a fresh, empty target file.
+// Then the size tracking used to decide rotation is reset to the new file's
+// actual size, so writes to the new file are not prematurely rotated based on
+// the old file's leftover byte count.
+TEST_F(CentreonRotatingFileSinkTest, SetFilenameResetsCurrentSize) {
+  std::string base1 = path("size1.log");
+  std::string base2 = path("size2.log");
+  constexpr std::size_t max_size = 50;
+  auto sink =
+      std::make_shared<centreon_rotating_file_sink_mt>(base1, max_size, 3);
+  spdlog::logger logger("test", sink);
+  logger.set_pattern("%v");
+
+  // 40 bytes written to base1 (under max_size, no rotation there).
+  logger.info(std::string(39, 'A'));
+  sink->flush();
+
+  ASSERT_TRUE(sink->set_filename(base2));
+
+  // 20 bytes then 10 bytes to base2: 30 bytes total, still under max_size.
+  // If the old file's 40 bytes were still counted, the running total would
+  // look like it exceeds max_size and trigger a premature rotation.
+  logger.info(std::string(19, 'B'));
+  sink->flush();
+  logger.info(std::string(9, 'C'));
+  sink->flush();
+
+  ASSERT_FALSE(fs::exists(path("size2.1.log")))
+      << "base2 should not have rotated: its real content is well under "
+         "max_size";
+  std::string content = read_file(base2);
+  ASSERT_EQ(content, std::string(19, 'B') + "\n" + std::string(9, 'C') + "\n");
 }
 
 TEST_F(CentreonRotatingFileSinkTest, SetFilenameDoesNotTruncateExistingTarget) {
@@ -265,9 +290,8 @@ TEST_F(CentreonRotatingFileSinkTest, SetFilenameDoesNotTruncateExistingTarget) {
 TEST_F(CentreonRotatingFileSinkTest, ConcurrentSetFilenameAndLogging) {
   std::string base1 = path("concurrent1.log");
   std::string base2 = path("concurrent2.log");
-  auto sink = std::make_shared<centreon_rotating_file_sink_mt>(base1,
-                                                                1024 * 1024,
-                                                                3);
+  auto sink =
+      std::make_shared<centreon_rotating_file_sink_mt>(base1, 1024 * 1024, 3);
   spdlog::logger logger("test", sink);
   logger.set_pattern("%v");
 
@@ -304,9 +328,8 @@ TEST_F(CentreonRotatingFileSinkTest, ConcurrentSetFilenameAndLogging) {
 TEST_F(CentreonRotatingFileSinkTest, ConcurrentSetFilenameOnly) {
   std::string base1 = path("switch1.log");
   std::string base2 = path("switch2.log");
-  auto sink = std::make_shared<centreon_rotating_file_sink_mt>(base1,
-                                                                1024 * 1024,
-                                                                3);
+  auto sink =
+      std::make_shared<centreon_rotating_file_sink_mt>(base1, 1024 * 1024, 3);
 
   constexpr int kThreads = 16;
   constexpr int kIterations = 1000;

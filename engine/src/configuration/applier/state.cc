@@ -17,11 +17,7 @@
  *
  */
 
-#include <absl/container/fixed_array.h>
-#include <fmt/chrono.h>
 #include <sys/resource.h>
-#include <chrono>
-#include <cstdint>
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"

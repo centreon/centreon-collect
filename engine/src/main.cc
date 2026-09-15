@@ -421,6 +421,9 @@ int main(int argc, char* argv[]) {
 
           configuration::applier::state::instance().apply_log_config(*new_conf);
 
+          init_loggers();
+          com::centreon::common::pool::instance().set_logger(runtime_logger);
+
           neb_init_callback_list();
 
           for (auto& m : new_conf->broker_module()) {

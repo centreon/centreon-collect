@@ -268,6 +268,9 @@ int main(int argc, char* argv[]) {
          * Otherwise we will have issues with concurrent accesses. */
         try {
           log_v2::instance().apply(log_conf);
+          // logger recreated by apply
+          core_logger = log_v2::instance().get(log_v2::CORE);
+          com::centreon::common::pool::instance().set_logger(core_logger);
         } catch (const std::exception& e) {
           core_logger->error("{}", e.what());
         }
