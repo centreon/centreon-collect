@@ -493,7 +493,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
         include:
@@ -571,7 +571,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
         include:
@@ -644,7 +644,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]

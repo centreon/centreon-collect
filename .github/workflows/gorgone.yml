@@ -361,7 +361,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-rpm-pulp:
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     needs: [get-environment, robot-test]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -429,7 +429,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb-pulp:
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     needs: [get-environment, robot-test]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -508,7 +508,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]
