@@ -55,10 +55,6 @@ jobs:
           - runner: centreon-collect-arm64
             distrib: bookworm
           - runner: centreon-collect
-            distrib: bullseye
-          - runner: centreon-collect-arm64
-            distrib: bullseye
-          - runner: centreon-collect
             distrib: jammy
           - runner: centreon-collect-arm64
             distrib: jammy
