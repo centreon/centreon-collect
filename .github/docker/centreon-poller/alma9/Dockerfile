@@ -46,9 +46,6 @@ if ! grep -q '^broker_module_cfg_file=' /etc/centreon-engine/centengine.cfg; the
   echo 'broker_module_cfg_file=/etc/centreon-broker/central-module.json' >> /etc/centreon-engine/centengine.cfg
 fi
 
-install -d -m 0770 -o centreon-gorgone -g centreon-gorgone /var/cache/centreon
-install -d -m 0770 -o centreon-gorgone -g centreon-gorgone /etc/centreon
-
 systemctl stop gorgoned
 systemctl stop centengine
 
