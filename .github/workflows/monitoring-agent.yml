@@ -240,26 +240,15 @@ jobs:
         run: .github/scripts/agent_installer_test.ps1
         shell: powershell
 
+      # enableCrossOsArchive lets deliver-windows-pulp restore this on a linux runner. The cache
+      # VERSION is a hash of the raw path strings, so the three sites that share this key must
+      # spell the path identically -- hence forward slashes here too, which glob accepts on windows.
       - name: Cache monitoring agent
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: agent\installer\centreon-monitoring-agent.exe
+          path: agent/installer/centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
-
-      # deliver-windows-pulp runs on linux (the pulp tooling is only proven there), and the
-      # cache above was written without enableCrossOsArchive so it cannot be restored from a
-      # linux runner. An artifact crosses the os boundary with no flag.
-      # Gated exactly like its consumer, so no run uploads an installer nothing will read.
-      - name: Upload the installer for the Pulp delivery
-        if: |
-          needs.changes.outputs.trigger_delivery == 'true' &&
-          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: cma-windows-installer
-          path: agent\installer\centreon-monitoring-agent.exe
-          retention-days: 1
-          if-no-files-found: error
+          enableCrossOsArchive: true
 
       - name: Upload package artifacts
         if: |
@@ -702,11 +691,13 @@ jobs:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
+      # path and enableCrossOsArchive must match the save byte for byte: both feed the cache version
       - name: Restore cache monitoring agent
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: agent\installer\centreon-monitoring-agent.exe
+          path: agent/installer/centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
+          enableCrossOsArchive: true
           fail-on-cache-miss: true
 
       - name: Deliver
@@ -754,11 +745,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Download the installer built on windows
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Restore the installer built on windows
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          name: cma-windows-installer
-          path: installer
+          path: agent/installer/centreon-monitoring-agent.exe
+          key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
 
       - name: Name the installer after its version
         env:
@@ -769,7 +762,7 @@ jobs:
           set -euo pipefail
           # same name artifactory publishes, so both stores stay comparable
           VERSION_EXE="centreon-monitoring-agent-${CMA_MAJOR_VERSION}.${CMA_MINOR_VERSION}.exe"
-          mv installer/centreon-monitoring-agent.exe "installer/$VERSION_EXE"
+          mv agent/installer/centreon-monitoring-agent.exe "agent/installer/$VERSION_EXE"
           echo "VERSION_EXE=$VERSION_EXE" >> "$GITHUB_ENV"
 
       - name: Deliver the installer on Pulp
@@ -779,7 +772,7 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.cma_major_version }}
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
-          installer_path: installer/${{ env.VERSION_EXE }}
+          installer_path: agent/installer/${{ env.VERSION_EXE }}
           installer_name: ${{ env.VERSION_EXE }}
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
