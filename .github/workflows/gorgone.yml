@@ -497,7 +497,6 @@ jobs:
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-rpm-pulp:
-    continue-on-error: true
     runs-on: centreon-ubuntu-22.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
@@ -526,7 +525,6 @@ jobs:
       - name: Deliver packages on Pulp
         id: deliver_rpm_pulp
         uses: ./.github/actions/package-delivery-pulp
-        continue-on-error: true
         with:
           module_name: gorgone
           distrib: ${{ matrix.distrib }}
@@ -539,12 +537,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp delivery failed
-        if: steps.deliver_rpm_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   deliver-deb:
     runs-on: ubuntu-24.04
@@ -580,7 +572,6 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb-pulp:
-    continue-on-error: true
     runs-on: centreon-ubuntu-22.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
@@ -609,7 +600,6 @@ jobs:
       - name: Deliver packages on Pulp
         id: deliver_deb_pulp
         uses: ./.github/actions/package-delivery-pulp
-        continue-on-error: true
         with:
           module_name: gorgone
           distrib: ${{ matrix.distrib }}
@@ -621,12 +611,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp delivery failed
-        if: steps.deliver_deb_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
@@ -662,7 +646,6 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   promote-pulp:
-    continue-on-error: true
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -688,7 +671,6 @@ jobs:
       - name: Promote ${{ matrix.distrib }} to stable on Pulp
         id: promote_pulp
         uses: ./.github/actions/promote-to-stable-pulp
-        continue-on-error: true
         with:
           module_name: gorgone
           distrib: ${{ matrix.distrib }}
@@ -699,12 +681,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp promotion failed
-        if: steps.promote_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
 
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, promote]
