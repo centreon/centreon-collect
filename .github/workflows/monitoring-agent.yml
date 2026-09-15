@@ -721,10 +721,9 @@ jobs:
           jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
         shell: powershell
 
-  # Blocking, unlike the rpm/deb Pulp jobs: the installers repository is never customer facing,
-  # so a silent divergence from artifactory would go unnoticed until a release needed it.
-  # Delivery fails closed when the major is not provisioned — run create-repos-installers.yml
-  # in centreon/delivery-tooling for every new major.
+  # Blocking, like every other Pulp job since #3705. Delivery also fails closed when the major is
+  # not provisioned — run create-repos-installers.yml in centreon/delivery-tooling for every new
+  # major, including the cloud ones the nightly builds.
   deliver-windows-pulp:
     if: |
       needs.changes.outputs.trigger_delivery == 'true' &&
