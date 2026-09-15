@@ -127,7 +127,7 @@ jobs:
 
   deliver-rpm-pulp:
     continue-on-error: true
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     needs: [get-environment, package]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability) }}
 
@@ -193,7 +193,7 @@ jobs:
 
   deliver-deb-pulp:
     continue-on-error: true
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     needs: [get-environment, package]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -278,7 +278,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]
