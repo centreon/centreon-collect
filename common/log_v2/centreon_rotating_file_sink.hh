@@ -1,24 +1,18 @@
 /**
- * Copyright 2026 Centreon
+ * Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
+ * Distributed under the MIT License (http://opensource.org/licenses/MIT)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For more information : contact@centreon.com
+ * This file is copied from rotating_file_sink{-inl.h,.h}
  */
 
 #pragma once
 
-#include "centreon_file_sink.hh"
+#include <spdlog/common.h>
+#include <spdlog/details/file_helper.h>
+#include <spdlog/details/null_mutex.h>
+#include <spdlog/details/os.h>
+#include <spdlog/details/synchronous_factory.h>
+#include <spdlog/sinks/base_sink.h>
 
 namespace spdlog {
 namespace sinks {
@@ -27,19 +21,25 @@ namespace sinks {
 // Rotating file sink based on size
 //
 template <typename Mutex>
-class centreon_rotating_file_sink final : public base_sink<Mutex>,
-                                          public centreon_file_sink_base {
+class centreon_rotating_file_sink final : public base_sink<Mutex> {
  public:
   centreon_rotating_file_sink(filename_t base_filename,
-                              std::size_t max_size,
-                              std::size_t max_files,
+                              std::size_t max_size = 0,
+                              std::size_t max_files = 99,
                               bool rotate_on_open = false,
                               const file_event_handlers& event_handlers = {});
   static filename_t calc_filename(const filename_t& filename,
                                   std::size_t index);
   void rotate_now();
-  filename_t filename() override;
-  bool set_filename(const std::string& new_filename) override;
+  filename_t filename();
+  bool set_filename(const std::string& new_filename);
+
+  void reopen();
+
+  void set_max_size(size_t max_size) {
+    std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
+    max_size_ = max_size;
+  }
 
  protected:
   void sink_it_(const details::log_msg& msg) override;
@@ -59,7 +59,7 @@ class centreon_rotating_file_sink final : public base_sink<Mutex>,
                     const filename_t& target_filename);
 
   filename_t base_filename_;
-  std::size_t max_size_;
+  std::atomic<std::size_t> max_size_;
   std::size_t max_files_;
   std::size_t current_size_;
   details::file_helper file_helper_;
@@ -101,7 +101,3 @@ inline std::shared_ptr<logger> centreon_rotating_logger_st(
       event_handlers);
 }
 }  // namespace spdlog
-
-#ifdef SPDLOG_HEADER_ONLY
-#include "rotating_file_sink-inl.h"
-#endif

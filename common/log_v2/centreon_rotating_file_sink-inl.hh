@@ -1,26 +1,13 @@
 /**
- * Copyright 2026 Centreon
+ * Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
+ * Distributed under the MIT License (http://opensource.org/licenses/MIT)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For more information : contact@centreon.com
+ * This file is copied from rotating_file_sink{-inl.h,.h}
  */
 
 #pragma once
 
-#ifndef SPDLOG_HEADER_ONLY
 #include "centreon_rotating_file_sink.hh"
-#endif
 
 namespace spdlog {
 namespace sinks {
@@ -36,10 +23,6 @@ SPDLOG_INLINE centreon_rotating_file_sink<Mutex>::centreon_rotating_file_sink(
       max_size_(max_size),
       max_files_(max_files),
       file_helper_{event_handlers} {
-  if (max_size == 0) {
-    throw_spdlog_ex("rotating sink constructor: max_size arg cannot be zero");
-  }
-
   if (max_files > 200000) {
     throw_spdlog_ex(
         "rotating sink constructor: max_files arg cannot exceed 200000");
@@ -95,21 +78,28 @@ SPDLOG_INLINE bool centreon_rotating_file_sink<Mutex>::set_filename(
     const std::string& new_filename) {
   std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
   if (new_filename != base_filename_) {
-    // get current index
-    std::string current_basename;
-    std::tie(current_basename, std::ignore) =
-        details::file_helper::split_by_extension(base_filename_);
-    std::string_view current = file_helper_.filename();
-    current = current.substr(current_basename.length());
-    unsigned current_index = 0;
-    std::from_chars(current.data(), current.data() + current.length(),
-                    current_index);
-    base_filename_ = new_filename;
-    file_helper_.open(calc_filename(base_filename_, current_index), false);
+    try {
+      file_helper_.open(calc_filename(new_filename, 0), false);
+      current_size_ = file_helper_.size();
+      base_filename_ = new_filename;
+    } catch (const std::exception& e) {
+      std::cerr << "fail to open " << new_filename << " : " << e.what()
+                << " => we will continue logging on " << base_filename_
+                << std::endl;
+      file_helper_.open(calc_filename(base_filename_, 0), false);
+      current_size_ = file_helper_.size();
+    }
     return true;
   } else {
     return false;
   }
+}
+
+template <typename Mutex>
+SPDLOG_INLINE void centreon_rotating_file_sink<Mutex>::reopen() {
+  std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
+  file_helper_.reopen(false);
+  current_size_ = file_helper_.size();
 }
 
 template <typename Mutex>
@@ -123,7 +113,7 @@ SPDLOG_INLINE void centreon_rotating_file_sink<Mutex>::sink_it_(
   // rotate only if the real size > 0 to better deal with full disk (see issue
   // #2261). we only check the real size when new_size > max_size_ because it is
   // relatively expensive.
-  if (new_size > max_size_) {
+  if (max_size_ && new_size > max_size_) {
     file_helper_.flush();
     if (file_helper_.size() > 0) {
       rotate_();
