@@ -542,7 +542,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, robot-test]
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -637,7 +637,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     needs: [get-environment, changes, robot-test]
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -722,7 +722,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: ubuntu-24.04
+    runs-on: centreon-ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
