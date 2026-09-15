@@ -33,7 +33,18 @@ elif [[ "$STABILITY" == "stable" ]]; then
   dnf config-manager --set-disabled 'centreon*unstable*' --set-disabled 'centreon*testing*'
 fi
 
-dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
+dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone centreon-common
+
+usermod -aG centreon-engine centreon-gorgone
+usermod -aG centreon-broker centreon-gorgone
+usermod -aG centreon-gorgone centreon-engine
+usermod -aG centreon-gorgone centreon-broker
+usermod -aG centreon centreon-gorgone
+usermod -aG centreon-gorgone centreon
+
+if ! grep -q '^broker_module_cfg_file=' /etc/centreon-engine/centengine.cfg; then
+  echo 'broker_module_cfg_file=/etc/centreon-broker/central-module.json' >> /etc/centreon-engine/centengine.cfg
+fi
 
 systemctl stop gorgoned
 systemctl stop centengine
