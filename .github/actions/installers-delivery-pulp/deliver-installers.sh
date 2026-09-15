@@ -22,8 +22,22 @@ INSTALLER_NAME="${INSTALLER_NAME:?INSTALLER_NAME is not set}"
 # future linux installer does not need a second script
 INSTALLER_OS="${INSTALLER_OS:-windows}"
 
+RELEASE_TYPE="${RELEASE_TYPE:-}"
+
+# same segments as the rpm/deb repositories (see pulp-repository-properties/properties.sh), and
+# deliberately unlike the flat artifactory installers layout: there a release and a hotfix of one
+# major share ".../testing/windows/" and --sync-deletes makes the second delivery erase the first.
 case "$STABILITY" in
-  unstable | testing) ;;
+  unstable)
+    STABILITY_SEGMENT="unstable"
+    ;;
+  testing)
+    if [[ "$RELEASE_TYPE" != "release" && "$RELEASE_TYPE" != "hotfix" ]]; then
+      echo "::error::stability is 'testing' but release_type is '${RELEASE_TYPE:-empty}'. The testing tier is split into testing-release and testing-hotfix, so there is no repository to deliver to."
+      exit 1
+    fi
+    STABILITY_SEGMENT="testing-$RELEASE_TYPE"
+    ;;
   *)
     echo "::error::deliver-installers only writes the delivery tiers, got stability '$STABILITY'. Stable is reached through promote-installers.sh on a tag."
     exit 1
@@ -32,7 +46,7 @@ esac
 
 [[ -f "$INSTALLER_PATH" ]] || { echo "::error::installer not found at $INSTALLER_PATH"; exit 1; }
 
-BASE_PATH="installers/$MODULE_NAME/$MAJOR_VERSION/$STABILITY"
+BASE_PATH="installers/$MODULE_NAME/$MAJOR_VERSION/$STABILITY_SEGMENT"
 REPOSITORY_NAME="${BASE_PATH//\//-}"
 # deliberately free of the stability: both tiers store the unit at the same
 # relative path, which makes promotion a content add of the SAME unit

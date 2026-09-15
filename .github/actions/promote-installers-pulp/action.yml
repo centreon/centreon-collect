@@ -10,6 +10,10 @@ inputs:
   installer_name:
     description: "Published file name, versioned (e.g. centreon-monitoring-agent-25.10.9.exe)"
     required: true
+  release_type:
+    description: "Type of release (release, hotfix) - selects the split testing tier"
+    required: false
+    default: ""
   installer_os:
     description: "The os segment of the relative path inside the repository"
     required: false
@@ -41,6 +45,7 @@ runs:
         MAJOR_VERSION: ${{ inputs.major_version }}
         INSTALLER_NAME: ${{ inputs.installer_name }}
         INSTALLER_OS: ${{ inputs.installer_os }}
+        RELEASE_TYPE: ${{ inputs.release_type }}
         PULP_URL: ${{ inputs.pulp_url }}
         PULP_CONTENT_URL: ${{ inputs.pulp_content_url }}
         PULP_TOKEN: ${{ env.PULP_TOKEN }}

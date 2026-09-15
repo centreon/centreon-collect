@@ -19,7 +19,17 @@ MAJOR_VERSION="${MAJOR_VERSION:?MAJOR_VERSION is not set}"
 INSTALLER_NAME="${INSTALLER_NAME:?INSTALLER_NAME is not set}"
 INSTALLER_OS="${INSTALLER_OS:-windows}"
 
-SOURCE_STABILITY="testing"
+RELEASE_TYPE="${RELEASE_TYPE:?RELEASE_TYPE is not set}"
+
+# the pulp testing tier is split by release type (unlike artifactory's flat "testing"), so the
+# promotion has to read the tier the delivery of this very build wrote to
+case "$RELEASE_TYPE" in
+  release | hotfix) SOURCE_STABILITY="testing-$RELEASE_TYPE" ;;
+  *)
+    echo "::error::release_type must be 'release' or 'hotfix' to locate the source tier (got '${RELEASE_TYPE:-empty}')."
+    exit 1
+    ;;
+esac
 TARGET_STABILITY="stable"
 
 SOURCE_BASE_PATH="installers/$MODULE_NAME/$MAJOR_VERSION/$SOURCE_STABILITY"

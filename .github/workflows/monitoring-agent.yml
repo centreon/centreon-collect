@@ -778,6 +778,7 @@ jobs:
           module_name: monitoring-agent
           major_version: ${{ needs.get-environment.outputs.cma_major_version }}
           stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
           installer_path: installer/${{ env.VERSION_EXE }}
           installer_name: ${{ env.VERSION_EXE }}
           pulp_url: ${{ vars.PULP_API_URL }}
@@ -951,6 +952,7 @@ jobs:
         with:
           module_name: monitoring-agent
           major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
           installer_name: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
