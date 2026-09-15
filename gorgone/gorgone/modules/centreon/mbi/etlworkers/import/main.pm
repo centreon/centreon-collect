@@ -47,18 +47,12 @@ sub sql {
         }
         next if (!defined($connection));
 
-        if ($continueOnError == 0) {
-            $connection->query({ query => $statement->[1] });
-            next;
-        }
-
-        my $error;
         try {
             $connection->query({ query => $statement->[1] });
         } catch {
-            $error = $_;
+            die $_ if (!$continueOnError);
+            $etlwk->{messages}->writeLog('WARNING', $statement->[0] . ' failed: ' . $_);
         };
-        $etlwk->{messages}->writeLog('WARNING', $statement->[0] . ' failed: ' . $error) if (defined($error));
     }
 }
 
