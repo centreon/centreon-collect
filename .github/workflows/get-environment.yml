@@ -792,16 +792,6 @@ jobs:
               "database": "mariadb:10.11",
               "arch": "amd64"
             };
-            const bullseye_mysql_8_4 = {
-              "operating_system": "bullseye",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const bullseye_mariadb_10_11 = {
-              "operating_system": "bullseye",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
             const bookworm_mysql_8_4 = {
               "operating_system": "bookworm",
               "database": "mysql:8.4",
@@ -878,7 +868,6 @@ jobs:
               alma10_mariadb_10_11,
               alma9_mariadb_10_11,
               alma8_mariadb_10_11,
-              bullseye_mariadb_10_11,
               bookworm_mariadb_10_11,
               trixie_mariadb_11_8,
               jammy_mariadb_10_11,
@@ -931,7 +920,7 @@ jobs:
 
               for (const config of configs) {
                 archConfigs.push({...config, "arch": "amd64"});
-                if (["bullseye", "bookworm", "trixie", "jammy", "noble"].includes(config.operating_system)) {
+                if (["bookworm", "trixie", "jammy", "noble"].includes(config.operating_system)) {
                   archConfigs.push({...config, "arch": "arm64"});
                 }
               }
