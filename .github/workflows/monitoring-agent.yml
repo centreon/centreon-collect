@@ -246,6 +246,21 @@ jobs:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
 
+      # deliver-windows-pulp runs on linux (the pulp tooling is only proven there), and the
+      # cache above was written without enableCrossOsArchive so it cannot be restored from a
+      # linux runner. An artifact crosses the os boundary with no flag.
+      # Gated exactly like its consumer, so no run uploads an installer nothing will read.
+      - name: Upload the installer for the Pulp delivery
+        if: |
+          needs.changes.outputs.trigger_delivery == 'true' &&
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cma-windows-installer
+          path: agent\installer\centreon-monitoring-agent.exe
+          retention-days: 1
+          if-no-files-found: error
+
       - name: Upload package artifacts
         if: |
           contains(needs.get-environment.outputs.labels, 'upload-artifacts') ||
@@ -715,6 +730,60 @@ jobs:
           jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
         shell: powershell
 
+  # Blocking, unlike the rpm/deb Pulp jobs: the installers repository is never customer facing,
+  # so a silent divergence from artifactory would go unnoticed until a release needed it.
+  # Delivery fails closed when the major is not provisioned — run create-repos-installers.yml
+  # in centreon/delivery-tooling for every new major.
+  deliver-windows-pulp:
+    if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download the installer built on windows
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cma-windows-installer
+          path: installer
+
+      - name: Name the installer after its version
+        env:
+          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # same name artifactory publishes, so both stores stay comparable
+          VERSION_EXE="centreon-monitoring-agent-${CMA_MAJOR_VERSION}.${CMA_MINOR_VERSION}.exe"
+          mv installer/centreon-monitoring-agent.exe "installer/$VERSION_EXE"
+          echo "VERSION_EXE=$VERSION_EXE" >> "$GITHUB_ENV"
+
+      - name: Deliver the installer on Pulp
+        uses: ./.github/actions/installers-delivery-pulp
+        with:
+          module_name: monitoring-agent
+          major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          installer_path: installer/${{ env.VERSION_EXE }}
+          installer_name: ${{ env.VERSION_EXE }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
   promote-linux:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
@@ -855,6 +924,37 @@ jobs:
           file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+
+  # Blocking, like its delivery counterpart. Needs no installer file: the relative path carries
+  # no stability, so promotion is a content add of the unit already in the testing repository.
+  promote-windows-pulp:
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    needs: [get-environment, deliver-windows-pulp]
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Promote the installer to stable on Pulp
+        uses: ./.github/actions/promote-installers-pulp
+        with:
+          module_name: monitoring-agent
+          major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+          installer_name: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
   set-skip-label:
     needs:
