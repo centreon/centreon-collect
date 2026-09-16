@@ -110,15 +110,18 @@ list_asset_names() {
 }
 
 upload_asset() {
-  local release_id="$1" file="$2" filename
+  local release_id="$1" file="$2" filename encoded_name
   filename=$(basename "$file")
+  # Percent-encode: an unescaped "+" in the query string reaches GitHub as a
+  # space, which it then stores as "." (deb "1+deb12u1" became "1.deb12u1").
+  encoded_name=$(jq -rn --arg name "$filename" '$name|@uri')
   curl --fail --silent \
     -X POST \
     -H "Authorization: Bearer ${GITHUB_TOKEN}" \
     -H "Content-Type: application/octet-stream" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     --data-binary "@${file}" \
-    "https://uploads.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/${release_id}/assets?name=${filename}" \
+    "https://uploads.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/${release_id}/assets?name=${encoded_name}" \
     | jq -r '.browser_download_url'
 }
 
@@ -169,7 +172,7 @@ register_download() {
   local distrib_suffix=""
   if [[ "$filename" =~ \.el([0-9]+)\. ]]; then
     distrib_suffix="-el${BASH_REMATCH[1]}"
-  elif [[ "$filename" =~ ~deb([0-9]+) ]]; then
+  elif [[ "$filename" =~ deb([0-9]+)u[0-9]+ ]]; then
     distrib_suffix="-debian-${BASH_REMATCH[1]}"
   elif [[ "$filename" =~ ubuntu[._]([0-9]+\.[0-9]+) ]]; then
     distrib_suffix="-ubuntu-${BASH_REMATCH[1]}"
