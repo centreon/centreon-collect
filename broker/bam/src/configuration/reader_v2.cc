@@ -18,22 +18,33 @@
 
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 
-#include <fmt/format.h>
+#include <absl/strings/strip.h>
+#include <fmt/ranges.h>
 
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
-#include "com/centreon/broker/bam/configuration/state.hh"
-#include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/bam/exp_parser.hh"
+#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/sql/mysql.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
 using com::centreon::common::log_v2::log_v2;
+
+namespace {
+
+/* The virtual services BAM relies on are named after the object they stand for.
+ * std::string_view rather than strlen(): strlen() is not constexpr, and only
+ * happens to cost nothing because the compilers fold __builtin_strlen on a
+ * literal -- a guarantee of the optimiser, not of the language, and one that
+ * does not hold at -O0. */
+constexpr std::string_view k_ba_prefix{"ba_"};
+constexpr std::string_view k_meta_prefix{"meta_"};
+
+}  // namespace
 
 /**
  *  Constructor.
@@ -63,7 +74,7 @@ void reader_v2::read(state& st) {
     SPDLOG_LOGGER_INFO(_logger, "loading boolean expressions.");
     _load(st.get_bool_exps());
     SPDLOG_LOGGER_INFO(_logger, "loading mapping hosts <-> services.");
-    _load(st.get_hst_svc_mapping());
+    _load(st.get_hst_svc_mapping(), st.get_bool_exps(), st.get_kpis());
     SPDLOG_LOGGER_INFO(_logger, "bam configuration loaded.");
   } catch (std::exception const& e) {
     SPDLOG_LOGGER_ERROR(_logger, "Error while reading bam configuration: {}",
@@ -180,34 +191,65 @@ void reader_v2::_load(state::kpis& kpis) {
                     e.what());
     }
 
-    // Load host ID/service ID of meta-services (temporary fix until
-    // Centreon Broker 3 where meta-services will be computed by Broker
-    // itself.
-    for (state::kpis::iterator it = kpis.begin(), end = kpis.end(); it != end;
-         ++it) {
-      if (it->second.is_meta()) {
-        std::string query(fmt::format(
-            "SELECT DISTINCT hsr.host_host_id, hsr.service_service_id FROM "
-            "service AS s LEFT JOIN host_service_relation AS hsr ON "
-            "s.service_id=hsr.service_service_id WHERE "
-            "s.service_description='meta_{}'",
-            it->second.get_meta_id()));
+    // All the meta-services are selected with one query.
+    absl::flat_hash_set<uint32_t> meta_ids;
+    for (const auto& [kpi_id, k] : kpis) {
+      if (k.is_meta())
+        meta_ids.insert(k.get_meta_id());
+    }
+    if (!meta_ids.empty()) {
+      std::string descriptions;
+      descriptions.reserve(meta_ids.size() * 16);
+      for (uint32_t meta_id : meta_ids) {
+        if (!descriptions.empty())
+          descriptions += ',';
+        /* The description is built from an integer, so there is nothing to
+         * escape here. */
+        descriptions += fmt::format("'{}{}'", k_meta_prefix, meta_id);
+      }
+      std::string query(
+          fmt::format("SELECT DISTINCT s.service_description, hsr.host_host_id,"
+                      " hsr.service_service_id"
+                      " FROM service AS s"
+                      " LEFT JOIN host_service_relation AS hsr"
+                      "   ON s.service_id=hsr.service_service_id"
+                      " WHERE s.service_description IN ({})",
+                      descriptions));
+      absl::flat_hash_map<uint32_t, std::pair<uint32_t, uint32_t>> meta_service;
+      try {
         std::promise<database::mysql_result> promise;
         std::future<database::mysql_result> future = promise.get_future();
         _mysql.run_query_and_get_result(query, std::move(promise), 0);
-        try {
-          database::mysql_result res(future.get());
-          if (!_mysql.fetch_row(res))
-            throw msg_fmt(
-                "virtual service of meta-service {}"
-                " does not exist",
-                it->first);
-          it->second.set_host_id(res.value_as_u32(0));
-          it->second.set_service_id(res.value_as_u32(1));
-        } catch (std::exception const& e) {
-          throw msg_fmt("could not retrieve virtual meta-service's service: {}",
-                        e.what());
+        database::mysql_result res(future.get());
+        while (_mysql.fetch_row(res)) {
+          /* value_as_str returns by value, so the string has to outlive the
+           * view taken on it. */
+          std::string description(res.value_as_str(0));
+          std::string_view number(description);
+          uint32_t meta_id = 0;
+          if (!absl::ConsumePrefix(&number, k_meta_prefix) ||
+              !absl::SimpleAtoi(number, &meta_id))
+            continue;
+          meta_service.emplace(meta_id, std::make_pair(res.value_as_u32(1),
+                                                       res.value_as_u32(2)));
         }
+      } catch (const std::exception& e) {
+        throw msg_fmt("could not retrieve virtual meta-service's service: {}",
+                      e.what());
+      }
+      /* Reported per KPI and not per meta-service, so that the message keeps
+       * naming the KPI the user has to fix. */
+      for (auto& [kpi_id, k] : kpis) {
+        if (!k.is_meta())
+          continue;
+        auto found = meta_service.find(k.get_meta_id());
+        if (found == meta_service.end())
+          throw msg_fmt(
+              "could not retrieve virtual meta-service's service: virtual "
+              "service of meta-service {} does not exist",
+              kpi_id);
+        k.set_host_id(found->second.first);
+        k.set_service_id(found->second.second);
       }
     }
   } catch (reader_exception const& e) {
@@ -303,7 +345,7 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
       uint32_t service_id = res.value_as_u32(3);
       std::string hostname = res.value_as_str(0);
       std::string service_description = res.value_as_str(1);
-      service_description.erase(0, strlen("ba_"));
+      service_description.erase(0, k_ba_prefix.size());
 
       if (!service_description.empty()) {
         uint32_t ba_id;
@@ -387,26 +429,183 @@ void reader_v2::_load(state::bool_exps& bool_exps) {
 }
 
 /**
- *  Load host/service IDs from the DB.
+ *  Collect the host/service couples the boolean expressions name.
  *
- *  @param[out] mapping  Host/service mapping.
+ *  A BAM configuration mentions a service by name in exactly one place: the
+ *  SERVICESTATUS() of a boolean expression, which the old brace syntax
+ *  "{host service}" is rewritten into by the tokenizer. Everything else --
+ *  the KPIs, the BAs -- already carries ids.
+ *
+ *  The expressions are parsed, not pattern-matched: the postfix notation of
+ *  exp_parser puts the two operands right before the function, which is where
+ *  exp_builder pops them from. Anything the parser refuses is skipped rather
+ *  than reported; a broken expression is the applier's business, and failing
+ *  here would take the whole configuration down for one bad rule.
+ *
+ *  @param[in] bool_exps The boolean expressions, already loaded.
+ *
+ *  @return The set of (host name, service description) couples to resolve.
  */
-void reader_v2::_load(bam::hst_svc_mapping& mapping) {
+absl::flat_hash_set<std::pair<std::string, std::string>>
+reader_v2::_named_services(const state::bool_exps& bool_exps) const {
+  absl::flat_hash_set<std::pair<std::string, std::string>> retval;
+  for (const auto& [id, exp] : bool_exps) {
+    try {
+      exp_parser parsr(exp.get_expression());
+      const exp_parser::notation& postfix = parsr.get_postfix();
+      /* Two tokens have to precede the function for the couple to be there;
+       * the iterator walks with two trailing ones rather than indexing, the
+       * notation being a list. */
+      auto host = postfix.begin();
+      auto service = postfix.begin();
+      for (auto it = postfix.begin(); it != postfix.end(); ++it) {
+        if (*it == "SERVICESTATUS" && service != it && host != service)
+          retval.emplace(*host, *service);
+        host = service;
+        service = it;
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "BAM: boolean expression {} could not be parsed while collecting the "
+          "services it names ({}); its own applier will report it",
+          id, e.what());
+    }
+  }
+  return retval;
+}
+
+/**
+ *  Resolve host/service names to ids, for the couples that need it.
+ *
+ *  @param[out] mapping The mapping to fill.
+ *  @param[in]  names   The couples to resolve.
+ */
+void reader_v2::_resolve_named_services(
+    bam::hst_svc_mapping& mapping,
+    const absl::flat_hash_set<std::pair<std::string, std::string>>& names) {
+  if (names.empty())
+    return;
+
+  /* A row constructor list: MariaDB matches the couples as tuples, so one
+   * query resolves them all without a join on the whole service table. Both
+   * halves are escaped -- they come from an expression a user typed. */
+  std::string couples;
+  couples.reserve(names.size() * 64);
+  for (const auto& [host, service] : names) {
+    if (!couples.empty())
+      couples += ',';
+    couples += fmt::format(
+        "('{}','{}')",
+        misc::string::escape(
+            host, get_centreon_host_col_size(centreon_host_host_name)),
+        misc::string::escape(service,
+                             get_centreon_service_col_size(
+                                 centreon_service_service_description)));
+  }
+
+  std::string query(fmt::format(
+      "SELECT h.host_id, s.service_id, h.host_name, s.service_description,"
+      " s.service_activate"
+      " FROM service AS s"
+      " INNER JOIN host_service_relation AS hsr"
+      "   ON s.service_id=hsr.service_service_id"
+      " INNER JOIN host AS h"
+      "   ON hsr.host_host_id=h.host_id"
+      " WHERE (h.host_name, s.service_description) IN ({})",
+      couples));
+  std::promise<database::mysql_result> promise;
+  std::future<database::mysql_result> future = promise.get_future();
+  _mysql.run_query_and_get_result(query, std::move(promise), 0);
+  database::mysql_result res(future.get());
+  while (_mysql.fetch_row(res))
+    mapping.set_service(res.value_as_str(2), res.value_as_str(3),
+                        res.value_as_u32(0), res.value_as_u32(1),
+                        res.value_as_str(4) == "1");
+}
+
+/**
+ *  Read whether the services the KPIs point at are activated.
+ *
+ *  Nothing is resolved here: a service KPI already carries its host id and its
+ *  service id, so only the activation flag is missing. Asking for the couples
+ *  the KPIs name is also more accurate than the join this replaces -- a service
+ *  attached through a hostgroup has no host_service_relation row, so the old
+ *  LEFT JOIN stored it under host id 0 and its deactivation went unnoticed.
+ *
+ *  @param[out] mapping The mapping to fill.
+ *  @param[in]  kpis    The KPIs, already loaded.
+ */
+void reader_v2::_load_kpi_services_activation(bam::hst_svc_mapping& mapping,
+                                              const state::kpis& kpis) {
+  /* The couples, and not a service id to host id map: the same service can be
+   * attached to several hosts, and each of those couples is a KPI of its own
+   * whose activation has to be recorded. Keying by service id alone would
+   * silently keep one of them. */
+  absl::flat_hash_set<std::pair<uint32_t, uint32_t>> couples;
+  absl::flat_hash_set<uint32_t> service_ids;
+  for (const auto& [id, k] : kpis) {
+    if (k.is_service()) {
+      couples.emplace(k.get_host_id(), k.get_service_id());
+      service_ids.insert(k.get_service_id());
+    }
+  }
+  if (couples.empty())
+    return;
+
+  std::string query(
+      fmt::format("SELECT s.service_id, s.service_activate"
+                  " FROM service AS s"
+                  " WHERE s.service_id IN ({})",
+                  fmt::join(service_ids, ",")));
+  std::promise<database::mysql_result> promise;
+  std::future<database::mysql_result> future = promise.get_future();
+  _mysql.run_query_and_get_result(query, std::move(promise), 0);
+  database::mysql_result res(future.get());
+  absl::flat_hash_map<uint32_t, bool> activated;
+  while (_mysql.fetch_row(res))
+    activated[res.value_as_u32(0)] = res.value_as_str(1) == "1";
+
+  for (const auto& [host_id, service_id] : couples) {
+    auto found = activated.find(service_id);
+    /* A service the query did not return stays unknown rather than deactivated:
+     * get_activated() then falls back to true, as it did when the service was
+     * missing from the full table. */
+    if (found != activated.end())
+      mapping.set_activated(host_id, service_id, found->second);
+  }
+}
+
+/**
+ *  Load the host/service IDs BAM actually needs from the DB.
+ *
+ *  This used to read the whole service table of the platform, through two
+ *  joins and a DISTINCT, and keep all of it -- to answer the few hundred
+ *  questions a BAM configuration asks. Measured on the bam-startup benchmark,
+ *  that step was 99% of the configuration load at 200k services, and grew
+ *  faster than the platform did (roughly N^1.28, the DISTINCT being a sort):
+ *  3.4 seconds where the four other steps together took 30 ms.
+ *
+ *  Only two things are needed, and both are known by the time this runs:
+ *  the couples the boolean expressions name, and the activation of the
+ *  services the KPIs point at.
+ *
+ *  Nothing is concluded from a row that is missing. A service the queries do
+ *  not return leaves the mapping untouched, so get_activated() falls back to
+ *  its default -- true -- exactly as it did when the service was absent from
+ *  the full table. Silence stays silence.
+ *
+ *  @param[out] mapping    Host/service mapping.
+ *  @param[in]  bool_exps  The boolean expressions, already loaded.
+ *  @param[in]  kpis       The KPIs, already loaded.
+ */
+void reader_v2::_load(bam::hst_svc_mapping& mapping,
+                      const state::bool_exps& bool_exps,
+                      const state::kpis& kpis) {
   try {
     // XXX : expand hostgroups and servicegroups
-    std::promise<database::mysql_result> promise;
-    std::future<database::mysql_result> future = promise.get_future();
-    _mysql.run_query_and_get_result(
-        "SELECT DISTINCT h.host_id, s.service_id, h.host_name, "
-        "s.service_description,service_activate FROM service s LEFT JOIN "
-        "host_service_relation hsr ON s.service_id=hsr.service_service_id LEFT "
-        "JOIN host h ON hsr.host_host_id=h.host_id",
-        std::move(promise), 0);
-    database::mysql_result res(future.get());
-    while (_mysql.fetch_row(res))
-      mapping.set_service(res.value_as_str(2), res.value_as_str(3),
-                          res.value_as_u32(0), res.value_as_u32(1),
-                          res.value_as_str(4) == "1");
+    _resolve_named_services(mapping, _named_services(bool_exps));
+    _load_kpi_services_activation(mapping, kpis);
   } catch (reader_exception const& e) {
     (void)e;
     throw;

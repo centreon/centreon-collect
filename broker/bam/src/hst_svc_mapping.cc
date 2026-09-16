@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/hst_svc_mapping.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 using com::centreon::common::log_v2::log_v2;
@@ -94,4 +93,23 @@ bool hst_svc_mapping::get_activated(uint32_t hst_id,
                                     uint32_t service_id) const {
   auto it{_activated_mapping.find(std::make_pair(hst_id, service_id))};
   return it == _activated_mapping.end() ? true : it->second;
+}
+
+/**
+ * @brief Record whether a service is activated, without naming it.
+ *
+ * The name-to-id mapping and the activation flag answer two unrelated
+ * questions: the first one resolves what a boolean expression names, the second
+ * one tells whether a KPI points at a service the user has disabled. A KPI
+ * already carries the ids of its service, so nothing has to be resolved for it
+ * and the name would only be read back to be thrown away.
+ *
+ * @param[in] host_id    The host id.
+ * @param[in] service_id The service id.
+ * @param[in] activated  True if the service is activated.
+ */
+void hst_svc_mapping::set_activated(uint32_t host_id,
+                                    uint32_t service_id,
+                                    bool activated) {
+  _activated_mapping[std::make_pair(host_id, service_id)] = activated;
 }

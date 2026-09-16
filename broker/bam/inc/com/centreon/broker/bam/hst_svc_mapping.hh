@@ -57,6 +57,7 @@ class hst_svc_mapping {
                    uint32_t host_id,
                    uint32_t service_id,
                    bool activated);
+  void set_activated(uint32_t host_id, uint32_t service_id, bool activated);
 
   bool get_activated(uint32_t hst_id, uint32_t service_id) const;
 };
