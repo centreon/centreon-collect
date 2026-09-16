@@ -312,9 +312,10 @@ if [[ -f "$out_path" ]]; then
     [[ -e "$chunk" ]] || continue
     c_product="$(sed -n 's/^- product: "\(.*\)"$/\1/p' "$chunk" | head -1)"
     c_os="$(sed -n 's/^  os: "\(.*\)"$/\1/p' "$chunk" | head -1)"
+    c_version="$(sed -n 's/^  version: "\(.*\)"$/\1/p' "$chunk" | head -1)"
     superseded="false"
     for i in "${!E_PRODUCT[@]}"; do
-      if [[ "$c_product" == "${E_PRODUCT[$i]}" && "$c_os" == "${E_OS[$i]}" ]]; then
+      if [[ "$c_product" == "${E_PRODUCT[$i]}" && "$c_os" == "${E_OS[$i]}" && "$c_version" == "${E_VERSION[$i]}" ]]; then
         superseded="true"
         break
       fi
@@ -330,22 +331,23 @@ if [[ -f "$out_path" ]]; then
 fi
 
 for i in "${!E_PRODUCT[@]}"; do
-  render_entry "$i" >"$chunk_dir/$(printf '%s|%s' "${E_PRODUCT[$i]}" "${E_OS[$i]}").new"
+  render_entry "$i" >"$chunk_dir/$(printf '%s|%s|%s' "${E_PRODUCT[$i]}" "${E_OS[$i]}" "${E_VERSION[$i]}").new"
 done
 
 mkdir -p "$(dirname "$out_path")"
 : >"$out_path"
-# Sort by the rendered product then os, matching rm-add-vm.mjs's chunk sort.
+# Sort by the rendered product, os then version, matching rm-add-vm.mjs's chunk sort.
 while IFS= read -r chunk; do
   cat "$chunk" >>"$out_path"
 done < <(
   for chunk in "$chunk_dir"/*.keep "$chunk_dir"/*.new; do
     [[ -e "$chunk" ]] || continue
-    printf '%s\t%s\t%s\n' \
+    printf '%s\t%s\t%s\t%s\n' \
       "$(sed -n 's/^- product: "\(.*\)"$/\1/p' "$chunk" | head -1)" \
       "$(sed -n 's/^  os: "\(.*\)"$/\1/p' "$chunk" | head -1)" \
+      "$(sed -n 's/^  version: "\(.*\)"$/\1/p' "$chunk" | head -1)" \
       "$chunk"
-  done | LC_ALL=C sort -t$'\t' -k1,1 -k2,2 | cut -f3
+  done | LC_ALL=C sort -t$'\t' -k1,1 -k2,2 -k3,3 | cut -f4
 )
 
 log_ok "wrote $out_rel"
