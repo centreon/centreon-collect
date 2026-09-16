@@ -255,7 +255,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, bullseye, bookworm, jammy]
+        distrib: [alma8, alma9, bookworm, jammy]
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -384,16 +384,6 @@ jobs:
             package_extension: rpm
             runner: centreon-collect
             arch: amd64
-          - image: packaging-centreon-collect-vcpkg-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
@@ -493,20 +483,6 @@ jobs:
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: "{}"
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
-            tests_params: "{}"
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-amd64
             tests_params: "{}"
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-arm64-test
@@ -669,10 +645,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: bookworm
@@ -721,10 +693,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: bookworm
@@ -824,7 +792,7 @@ jobs:
     runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
+        distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
 
     steps:
       - name: Checkout sources
@@ -869,7 +837,7 @@ jobs:
     runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
+        distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
     permissions:
       contents: read
       id-token: write
