@@ -17,7 +17,6 @@
  */
 #include <boost/preprocessor/seq/for_each.hpp>
 
-#include <memory>
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/events.hh"
@@ -27,6 +26,7 @@
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "common/engine_conf/state.pb.h"
+#include "google/protobuf/json/json.h"
 
 namespace com::centreon::broker::cache {
 
@@ -89,6 +89,9 @@ broker_cache::~broker_cache() noexcept {
  */
 void broker_cache::merge(
     const com::centreon::engine::configuration::State& state) {
+  SPDLOG_LOGGER_DEBUG(_logger, "merge configuration for poller {} id:{}",
+                      state.poller_name(), state.poller_id());
+
   absl::WriterMutexLock lck{&_mutex};
 
   /* Work on instances */
@@ -115,6 +118,16 @@ void broker_cache::merge(
 
   /* Work on hosts */
   if (section_enabled(CACHE_HOSTS)) {
+    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts fro poller {}",
+                        state.hosts().size(), state.poller_id());
+    // remove all host for this poller
+    SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} before clean",
+                        _hosts.get<by_instance>().count(state.poller_id()),
+                        state.poller_id());
+    _hosts.get<by_instance>().erase(state.poller_id());
+    SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} after clean",
+                        _hosts.get<by_instance>().count(state.poller_id()),
+                        state.poller_id());
     auto& index = _hosts.get<by_id>();
     for (const engine::configuration::Host& host : state.hosts()) {
       auto h = std::make_shared<neb::pb_host>();
@@ -123,6 +136,9 @@ void broker_cache::merge(
       if (!inserted)
         index.replace(it, h);
     }
+    SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} after insert",
+                        _hosts.get<by_instance>().count(state.poller_id()),
+                        state.poller_id());
   }
 
   /* Work on hostgroups */
@@ -139,6 +155,7 @@ void broker_cache::merge(
       obj.set_alias(hg.alias());
     };
 
+    _host_hostgroups.get<by_instance>().erase(state.poller_id());
     for (const auto& hg : state.hostgroups()) {
       const uint64_t hg_poller_id =
           hg.poller_id() != 0 ? hg.poller_id() : state.poller_id();
@@ -150,25 +167,22 @@ void broker_cache::merge(
         std::tie(found, inserted) = hg_index.emplace(
             hostgroup, absl::flat_hash_set<uint64_t>{hg_poller_id});
       } else {
-        /* We can const_cast because keys of the multiindex are in found->first,
-         * we don't change found->first here even if the hostgroup changed. */
         if (found->first->obj().name() != hg.hostgroup_name()) {
-          auto extracted = std::move(
-              const_cast<std::pair<std::shared_ptr<neb::pb_host_group>,
-                                   absl::flat_hash_set<uint64_t>>&>(*found));
-          hg_index.erase(found);
-          extracted.first->mut_obj().set_name(hg.hostgroup_name());
-          /* erase() invalidated found: rebind it to the reinserted node. */
-          std::tie(found, inserted) = hg_index.insert(std::move(extracted));
+          std::string old_name = found->first->obj().name();
+          hg_index.modify(
+              found,
+              [&](auto& to_update) {
+                to_update.first->mut_obj().set_name(hg.hostgroup_name());
+              },
+              [&](auto& to_rollback) {
+                to_rollback.first->mut_obj().set_name(old_name);
+              });
         }
-        auto& obj = const_cast<HostGroup&>(found->first->mut_obj());
-        obj.set_enabled(true);
-        obj.set_alias(hg.alias());
-        /* Bound after the possible rename: a reference taken before the
-         * erase()/insert() round-trip would dangle. */
-        absl::flat_hash_set<uint64_t>& set =
-            const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
-        set.insert(hg_poller_id);
+        hg_index.modify(found, [&](auto& to_update) {
+          to_update.first->mut_obj().set_enabled(true);
+          to_update.first->mut_obj().set_alias(hg.alias());
+          to_update.second.emplace(hg_poller_id);
+        });
       }
       for (const auto& member : hg.members().data()) {
         auto& index = _hosts.get<by_name>();
@@ -177,17 +191,29 @@ void broker_cache::merge(
           continue;
 
         uint64_t host_id = (*host_it)->obj().host_id();
-        _host_hostgroups.insert({host_id, found->first});
+        _host_hostgroups.emplace(host_id, (*host_it)->obj().instance_id(),
+                                 found->first);
+      }
+    }
+    // we have first erased members for this poller so we will empty hostgroups
+    const auto& host_hostgroup_index = _host_hostgroups.get<by_hostgroup>();
+    for (auto iter = _hostgroups.begin(); iter != _hostgroups.end();) {
+      if (host_hostgroup_index.contains(iter->first->obj().hostgroup_id())) {
+        ++iter;
+      } else {
+        iter = _hostgroups.erase(iter);
       }
     }
   }
 
   /* Work on services */
   if (section_enabled(CACHE_SERVICES)) {
+    _services.get<by_instance>().erase(state.poller_id());
     auto& index_svc = _services.get<by_id>();
     for (const engine::configuration::Service& svc : state.services()) {
       auto s = std::make_shared<neb::pb_service>();
       _fill_service(&s->mut_obj(), svc);
+      s->mut_obj().set_instance_id(state.poller_id());
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted)
         index_svc.replace(it, s);
@@ -198,6 +224,7 @@ void broker_cache::merge(
          state.anomalydetections()) {
       auto s = std::make_shared<neb::pb_service>();
       _fill_anomaly_detection(&s->mut_obj(), ad);
+      s->mut_obj().set_instance_id(state.poller_id());
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted)
         index_svc.replace(it, s);
@@ -216,6 +243,7 @@ void broker_cache::merge(
       obj.set_alias(sg.alias());
     };
 
+    _service_servicegroups.get<by_instance>().erase(state.poller_id());
     for (const auto& sg : state.servicegroups()) {
       const uint64_t sg_poller_id =
           sg.poller_id() != 0 ? sg.poller_id() : state.poller_id();
@@ -227,26 +255,22 @@ void broker_cache::merge(
         std::tie(found, inserted) = sg_index.emplace(
             servicegroup, absl::flat_hash_set<uint64_t>{sg_poller_id});
       } else {
-        /* We can const_cast because keys of the multiindex are in found->first,
-         * we don't change found->first here even if the servicegroup changed.
-         */
         if (found->first->obj().name() != sg.servicegroup_name()) {
-          auto extracted = std::move(
-              const_cast<std::pair<std::shared_ptr<neb::pb_service_group>,
-                                   absl::flat_hash_set<uint64_t>>&>(*found));
-          sg_index.erase(found);
-          extracted.first->mut_obj().set_name(sg.servicegroup_name());
-          /* erase() invalidated found: rebind it to the reinserted node. */
-          std::tie(found, inserted) = sg_index.insert(std::move(extracted));
+          std::string old_name = found->first->obj().name();
+          sg_index.modify(
+              found,
+              [&](auto& to_update) {
+                to_update.first->mut_obj().set_name(sg.servicegroup_name());
+              },
+              [&](auto& to_rollback) {
+                to_rollback.first->mut_obj().set_name(old_name);
+              });
         }
-        auto& obj = const_cast<ServiceGroup&>(found->first->mut_obj());
-        obj.set_enabled(true);
-        obj.set_alias(sg.alias());
-        /* Bound after the possible rename: a reference taken before the
-         * erase()/insert() round-trip would dangle. */
-        absl::flat_hash_set<uint64_t>& set =
-            const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
-        set.insert(sg_poller_id);
+        sg_index.modify(found, [&](auto& to_update) {
+          to_update.first->mut_obj().set_enabled(true);
+          to_update.first->mut_obj().set_alias(sg.alias());
+          to_update.second.emplace(sg_poller_id);
+        });
       }
       for (const auto& member : sg.members().data()) {
         auto& index = _services.get<by_name>();
@@ -257,7 +281,21 @@ void broker_cache::merge(
 
         uint64_t host_id = (*service_it)->obj().host_id();
         uint64_t service_id = (*service_it)->obj().service_id();
-        _service_servicegroups.insert({host_id, service_id, found->first});
+        uint64_t instance_id = (*service_it)->obj().instance_id();
+        _service_servicegroups.insert(
+            {host_id, service_id, instance_id, found->first});
+      }
+    }
+    // we have first erased members for this poller so we will erase empty
+    // groups
+    auto& service_service_group_index =
+        _service_servicegroups.get<by_servicegroup>();
+    for (auto iter = _servicegroups.begin(); iter != _servicegroups.end();) {
+      if (service_service_group_index.contains(
+              iter->first->obj().servicegroup_id())) {
+        ++iter;
+      } else {
+        iter = _servicegroups.erase(iter);
       }
     }
   }
@@ -305,23 +343,37 @@ void broker_cache::merge(
  */
 void broker_cache::apply(
     const com::centreon::engine::configuration::DiffState& diff) {
-  absl::WriterMutexLock lck{&_mutex};
+  SPDLOG_LOGGER_DEBUG(
+      _logger, "Applying configuration diff for poller id {} and name '{}'",
+      diff.poller_id(), diff.poller_name());
 
-  _logger->debug("Applying configuration diff for poller id {} and name '{}'",
-                 diff.poller_id(), diff.poller_name());
-  // /* The easy case: when the diff is not really a diff */
+  if (_logger->level() <= spdlog::level::trace) {
+    std::string debug_diff;
+    auto dummy [[maybe_unused]] =
+        ::google::protobuf::json::MessageToJsonString(diff, &debug_diff);
+    SPDLOG_LOGGER_TRACE(_logger, "apply diff: {}", debug_diff);
+  }
+  /* The easy case: when the diff is not really a diff */
   // if (diff.has_state()) {
   //   merge(diff.state());
-  //   return;
   // }
 
+  /*
+  FIX ME JCR
+  là, state est vide et seuls "fullConfPollerId"
+      : [ "5", "3" ] est renseigné de plus le traitement de full_conf_poller_id
+            dans database_configurator ne couvre que les hosts et services
+            Il faut revoir le mécanisme pour les state complets
+*/
+  absl::WriterMutexLock lck{&_mutex};
   /* Work on instances */
-  //   if (diff.has_poller_name())
-  //     _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
+  // if (diff.has_poller_name() && diff.poller_id())
+  //   _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
-    _logger->debug(
+    SPDLOG_LOGGER_DEBUG(
+        _logger,
         "apply(): {} severities added {} severities modified {} "
         "severities removed",
         diff.severities().added_size(), diff.severities().modified_size(),
@@ -333,7 +385,8 @@ void broker_cache::apply(
       if (it != _severities.end()) {
         it->second.first.level = sev.level();  // preserve existing db_id
         it->second.second.insert(sev.poller_id());
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity added (id={} type={} level={} poller_id={}): set "
             "now has {} pollers",
             sev.key().id(), sev.key().type(), sev.level(), sev.poller_id(),
@@ -342,7 +395,8 @@ void broker_cache::apply(
         _severities.insert({key,
                             {{sev.level(), 0},
                              absl::flat_hash_set<uint64_t>{sev.poller_id()}}});
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity added (id={} type={} level={} poller_id={}): new "
             "entry",
             sev.key().id(), sev.key().type(), sev.level(), sev.poller_id());
@@ -369,14 +423,16 @@ void broker_cache::apply(
         auto before_size = it->second.second.size();
         it->second.second.erase(key.poller_id());
         auto after_size = it->second.second.size();
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity removed (id={} type={} poller_id={}): set "
             "size {} -> {}",
             key.id(), key.type(), key.poller_id(), before_size, after_size);
         if (it->second.second.empty())
           _severities.erase(it);
       } else {
-        _logger->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "apply() severity removed (id={} type={} poller_id={}): NOT "
             "FOUND in cache",
             key.id(), key.type(), key.poller_id());
@@ -433,14 +489,23 @@ void broker_cache::apply(
       auto h = std::make_shared<neb::pb_host>();
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
-      if (!inserted)
+      if (!inserted) {
         hosts_by_id.replace(it, h);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "update host instead off add {} for poller {}",
+                            host.host_id(), diff.poller_id());
+      } else {
+        SPDLOG_LOGGER_TRACE(_logger, "add host {} for poller {}",
+                            host.host_id(), diff.poller_id());
+      }
     }
 
     /* Modifying hosts */
     for (const engine::configuration::Host& host : diff.hosts().modified()) {
       auto h = std::make_shared<neb::pb_host>();
       _fill_host(&h->mut_obj(), host);
+      SPDLOG_LOGGER_TRACE(_logger, "update host {} for poller {}",
+                          host.host_id(), diff.poller_id());
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
         hosts_by_id.replace(it, h);
@@ -467,13 +532,17 @@ void broker_cache::apply(
       std::tie(found, inserted) = hg_index.emplace(
           hostgroup, absl::flat_hash_set<uint64_t>{hg.poller_id()});
     } else {
-      auto extracted = hg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(hg.hostgroup_name());
-      obj.set_alias(hg.alias());
-      set.insert(hg.poller_id());
-      hg_index.insert(std::move(extracted));
+      std::string old_name = found->first->obj().name();
+      hg_index.modify(
+          found,
+          [&hg](HostgroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(hg.hostgroup_name());
+            to_update.first->mut_obj().set_alias(hg.alias());
+            to_update.second.insert(hg.poller_id());
+          },
+          [&old_name](HostgroupContainer::value_type& to_rollback) {
+            to_rollback.first->mut_obj().set_name(old_name);
+          });
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
@@ -505,7 +574,8 @@ void broker_cache::apply(
 
       SPDLOG_LOGGER_DEBUG(_logger, "Linking host id {} to hostgroup id {}",
                           host_id, hg.hostgroup_id());
-      _host_hostgroups.insert({host_id, found->first});
+      _host_hostgroups.emplace(host_id, (*host_it)->obj().instance_id(),
+                               found->first);
     }
   };
 
@@ -680,13 +750,17 @@ void broker_cache::apply(
       std::tie(found, inserted) = sg_index.emplace(
           servicegroup, absl::flat_hash_set<uint64_t>{sg.poller_id()});
     } else {
-      auto extracted = sg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(sg.servicegroup_name());
-      obj.set_alias(sg.alias());
-      set.insert(sg.poller_id());
-      sg_index.insert(std::move(extracted));
+      std::string old_name = found->first->obj().name();
+      sg_index.modify(
+          found,
+          [&sg](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(sg.servicegroup_name());
+            to_update.first->mut_obj().set_alias(sg.alias());
+            to_update.second.insert(sg.poller_id());
+          },
+          [&old_name](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(old_name);
+          });
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
@@ -722,11 +796,13 @@ void broker_cache::apply(
 
       uint64_t host_id = (*service_it)->obj().host_id();
       uint64_t service_id = (*service_it)->obj().service_id();
+      uint64_t poller_id = (*service_it)->obj().instance_id();
       SPDLOG_LOGGER_DEBUG(_logger,
                           "Linking service (host id {}, service id {}) "
                           "to servicegroup id {}",
                           host_id, service_id, sg.servicegroup_id());
-      _service_servicegroups.insert({host_id, service_id, found->first});
+      _service_servicegroups.insert(
+          {host_id, service_id, poller_id, found->first});
     }
   };
 
@@ -756,6 +832,8 @@ void broker_cache::apply(
           removed_host_severity_ids.insert(severity_id);
 
         hosts_by_id.erase(host_it);
+        SPDLOG_LOGGER_TRACE(_logger, "remove host {} for poller {}", host_id,
+                            diff.poller_id());
       }
     }
 
@@ -974,6 +1052,7 @@ void broker_cache::_fill_service_common(Service* obj, const ConfigType& cfg) {
     t->set_type(static_cast<TagType>(tag.second()));
   }
   obj->set_description(cfg.service_description());
+  obj->set_instance_id(cfg.poller_id());
 }
 
 /**
@@ -1090,14 +1169,18 @@ void broker_cache::update_servicegroup(
   if (servicegroup->obj().enabled()) {
     auto& sg_index = _servicegroups.get<by_id>();
     if (auto found = sg_index.find(sg_id); found != sg_index.end()) {
+      std::string old_name = found->first->obj().name();
       // The element already exists, we update it
-      auto extracted = sg_index.extract(found);
-      auto& obj = extracted.value().first->mut_obj();
-      auto& set = extracted.value().second;
-      obj.set_name(servicegroup->obj().name());
-      obj.set_alias(servicegroup->obj().alias());
-      set.insert(servicegroup->obj().poller_id());
-      sg_index.insert(std::move(extracted));
+      sg_index.modify(
+          found,
+          [&](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(servicegroup->obj().name());
+            to_update.first->mut_obj().set_alias(servicegroup->obj().alias());
+            to_update.second.insert(servicegroup->obj().poller_id());
+          },
+          [&old_name](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(old_name);
+          });
     } else {
       // The element is missing, we create it and insert it
       auto filled_servicegroup = std::make_shared<neb::pb_service_group>();
@@ -1242,21 +1325,23 @@ void broker_cache::update_hostgroup_member(
           _hostgroups.insert({hg, absl::flat_hash_set<uint64_t>{poller_id}});
     }
     auto [it, inserted2] =
-        _host_hostgroups.insert({hgm_obj.host_id(), found->first});
+        _host_hostgroups.emplace(hgm_obj.host_id(), poller_id, found->first);
 
     assert(it->hostgroup->obj().hostgroup_id() == hgm_obj.hostgroup_id());
     if (it->hostgroup->obj().name() != hgm_obj.name()) {
-      auto extracted = _hostgroups.extract(found);
-      std::string old_name = extracted.value().first->mut_obj().name();
-      extracted.value().first->mut_obj().set_name(hgm_obj.name());
-      auto result = _hostgroups.get<by_id>().insert(std::move(extracted));
-      if (!result.inserted) {
-        SPDLOG_LOGGER_ERROR(
-            _logger, "Failed to update the name of the host group {} to '{}'",
-            hgm_obj.hostgroup_id(), hgm_obj.name());
-        extracted.value().first->mut_obj().set_name(std::move(old_name));
-        _hostgroups.get<by_id>().insert(std::move(extracted));
-      }
+      std::string old_name = found->first->obj().name();
+      _hostgroups.modify(
+          found,
+          [&](HostgroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(hgm_obj.name());
+          },
+          [&](HostgroupContainer::value_type& to_rollback) {
+            to_rollback.first->mut_obj().set_name(std::move(old_name));
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "Failed to update the name of the host group {} to '{}'",
+                hgm_obj.hostgroup_id(), hgm_obj.name());
+          });
     }
   } else {
     _host_hostgroups.erase(key);
@@ -1301,23 +1386,25 @@ void broker_cache::update_servicegroup_member(
       std::tie(found, inserted) = _servicegroups.insert(
           {sg, absl::flat_hash_set<uint64_t>{sgm_obj.poller_id()}});
     }
-    auto [it, inserted2] = _service_servicegroups.insert(
-        {sgm_obj.host_id(), sgm_obj.service_id(), found->first});
+    auto [it, inserted2] =
+        _service_servicegroups.insert({sgm_obj.host_id(), sgm_obj.service_id(),
+                                       sgm_obj.poller_id(), found->first});
     assert(it->servicegroup->obj().servicegroup_id() ==
            sgm_obj.servicegroup_id());
     if (it->servicegroup->obj().name() != sgm_obj.name()) {
-      auto extracted = _servicegroups.extract(found);
-      std::string old_name = extracted.value().first->mut_obj().name();
-      extracted.value().first->mut_obj().set_name(sgm_obj.name());
-      auto result = _servicegroups.get<by_id>().insert(std::move(extracted));
-      if (!result.inserted) {
-        SPDLOG_LOGGER_ERROR(
-            _logger,
-            "Failed to update the name of the service group {} to '{}'",
-            sgm_obj.servicegroup_id(), sgm_obj.name());
-        extracted.value().first->mut_obj().set_name(std::move(old_name));
-        _servicegroups.get<by_id>().insert(std::move(extracted));
-      }
+      std::string old_name = found->first->obj().name();
+      _servicegroups.modify(
+          found,
+          [&](ServicegroupContainer::value_type& to_update) {
+            to_update.first->mut_obj().set_name(sgm_obj.name());
+          },
+          [&](ServicegroupContainer::value_type& to_rollback) {
+            to_rollback.first->mut_obj().set_name(std::move(old_name));
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "Failed to update the name of the service group {} to '{}'",
+                sgm_obj.servicegroup_id(), sgm_obj.name());
+          });
     }
   } else {
     _service_servicegroups.erase(key);
@@ -1536,8 +1623,19 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
     else
       index.insert(svc);
   } else {
-    if (it != index.end())
-      index.erase(it);
+    if (it == index.end()) {
+      return;
+    }
+    if (s.instance_id() != 0 && (*it)->obj().instance_id() != 0 &&
+        s.instance_id() != (*it)->obj().instance_id()) {
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "cache: ignoring stale deletion of host {} from poller {} "
+          "(currently owned by poller {})",
+          s.host_id(), s.instance_id(), (*it)->obj().instance_id());
+      return;
+    }
+    index.erase(it);
   }
 }
 
@@ -1785,14 +1883,16 @@ std::shared_ptr<neb::pb_tag> broker_cache::get_tag(uint64_t tag_id,
  */
 std::vector<uint64_t> broker_cache::host_tag_ids(uint64_t host_id,
                                                  TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<uint64_t> result;
-  auto it = _hosts.get<by_id>().find(host_id);
-  if (it == _hosts.get<by_id>().end())
-    return result;
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() == type)
-      result.push_back(t.id());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto it = _hosts.get<by_id>().find(host_id);
+    if (it == _hosts.get<by_id>().end())
+      return result;
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() == type)
+        result.push_back(t.id());
+    }
   }
   std::sort(result.begin(), result.end());
   return result;
@@ -1808,17 +1908,19 @@ std::vector<uint64_t> broker_cache::host_tag_ids(uint64_t host_id,
  */
 std::vector<std::string> broker_cache::host_tag_names(uint64_t host_id,
                                                       TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<std::pair<uint64_t, std::string>> pairs;
-  auto it = _hosts.get<by_id>().find(host_id);
-  if (it == _hosts.get<by_id>().end())
-    return {};
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() != type)
-      continue;
-    auto tag_it = _tags.find({t.id(), type});
-    if (tag_it != _tags.end())
-      pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto it = _hosts.get<by_id>().find(host_id);
+    if (it == _hosts.get<by_id>().end())
+      return {};
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() != type)
+        continue;
+      auto tag_it = _tags.find({t.id(), type});
+      if (tag_it != _tags.end())
+        pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+    }
   }
   std::sort(pairs.begin(), pairs.end());
   std::vector<std::string> result;
@@ -1839,15 +1941,17 @@ std::vector<std::string> broker_cache::host_tag_names(uint64_t host_id,
 std::vector<uint64_t> broker_cache::service_tag_ids(uint64_t host_id,
                                                     uint64_t service_id,
                                                     TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<uint64_t> result;
-  auto& index = _services.get<by_id>();
-  auto it = index.find(std::make_pair(host_id, service_id));
-  if (it == index.end())
-    return result;
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() == type)
-      result.push_back(t.id());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto& index = _services.get<by_id>();
+    auto it = index.find(std::make_pair(host_id, service_id));
+    if (it == index.end())
+      return result;
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() == type)
+        result.push_back(t.id());
+    }
   }
   std::sort(result.begin(), result.end());
   return result;
@@ -1865,18 +1969,20 @@ std::vector<uint64_t> broker_cache::service_tag_ids(uint64_t host_id,
 std::vector<std::string> broker_cache::service_tag_names(uint64_t host_id,
                                                          uint64_t service_id,
                                                          TagType type) const {
-  absl::ReaderMutexLock lck{&_mutex};
   std::vector<std::pair<uint64_t, std::string>> pairs;
-  auto& index = _services.get<by_id>();
-  auto it = index.find(std::make_pair(host_id, service_id));
-  if (it == index.end())
-    return {};
-  for (const auto& t : (*it)->obj().tags()) {
-    if (t.type() != type)
-      continue;
-    auto tag_it = _tags.find({t.id(), type});
-    if (tag_it != _tags.end())
-      pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+  {
+    absl::ReaderMutexLock lck{&_mutex};
+    auto& index = _services.get<by_id>();
+    auto it = index.find(std::make_pair(host_id, service_id));
+    if (it == index.end())
+      return {};
+    for (const auto& t : (*it)->obj().tags()) {
+      if (t.type() != type)
+        continue;
+      auto tag_it = _tags.find({t.id(), type});
+      if (tag_it != _tags.end())
+        pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
+    }
   }
   std::sort(pairs.begin(), pairs.end());
   std::vector<std::string> result;
@@ -2109,6 +2215,25 @@ std::vector<uint64_t> broker_cache::host_ids() const {
 }
 
 /**
+ * @brief Call visitor on each host present in the cache
+ * for one poller instance.
+ *
+ * @param instance_id poller instance.
+ * @param visitor
+ *
+ */
+void broker_cache::visit_hosts_of_instance(
+    uint64_t instance_id,
+    const absl::FunctionRef<void(const Host&)>& visitor) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto& host_by_instance = _hosts.get<by_instance>();
+  auto range = host_by_instance.equal_range(instance_id);
+  for (; range.first != range.second; ++range.first) {
+    visitor((*range.first)->obj());
+  }
+}
+
+/**
  * @brief Get the service of the given host ID and service ID from the cache.
  *
  * @param host_id The host ID of the desired service.
@@ -2214,6 +2339,30 @@ std::vector<std::pair<uint64_t, uint64_t>> broker_cache::service_ids() const {
     retval.push_back(p);
   }
   return retval;
+}
+
+/**
+ * @brief Apply visitor on each service present in cache for this poller
+ * instance
+ *
+ * @param instance_id poller instance.
+ * @param visitor
+ */
+void broker_cache::visit_services_of_instance(
+    uint64_t instance_id,
+    const absl::FunctionRef<void(const Service&)>& visitor) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto& index_svc = _services.get<by_id>();
+  auto& host_by_instance = _hosts.get<by_instance>();
+  auto range = host_by_instance.equal_range(instance_id);
+  for (auto it = range.first; it != range.second; ++it) {
+    uint64_t host_id = (*it)->obj().host_id();
+    for (auto svc_iter = index_svc.lower_bound(std::make_pair(host_id, 0));
+         svc_iter != index_svc.end() && (*svc_iter)->obj().host_id() == host_id;
+         ++svc_iter) {
+      visitor((*svc_iter)->obj());
+    }
+  }
 }
 
 /**
@@ -2595,15 +2744,23 @@ void broker_cache::_load_cache() {
       for (const auto& inst_pair : to_load.instances())
         _instances.insert({inst_pair.id(), inst_pair.name()});
 
+      absl::flat_hash_map<uint64_t, uint64_t> host_to_instance;
       for (const auto& host : to_load.hosts()) {
         auto h = std::make_shared<neb::pb_host>();
         h->mut_obj().CopyFrom(host);
+        host_to_instance.emplace(h->obj().host_id(), h->obj().instance_id());
         _hosts.get<by_id>().insert(h);
       }
+      absl::flat_hash_map<
+          std::pair<uint64_t /*host_id*/, uint64_t /*service_id*/>, uint64_t>
+          service_to_instance;
       for (const auto& svc : to_load.services()) {
         auto s = std::make_shared<neb::pb_service>();
         s->mut_obj().CopyFrom(svc);
         _services.get<by_id>().insert(s);
+        service_to_instance.emplace(
+            std::make_pair(s->obj().host_id(), s->obj().service_id()),
+            s->obj().instance_id());
       }
       for (const auto& hgp : to_load.hostgroups()) {
         auto hst_grp = std::make_shared<neb::pb_host_group>();
@@ -2619,7 +2776,9 @@ void broker_cache::_load_cache() {
         _hostgroups.get<by_id>().insert(
             std::make_pair(hst_grp, std::move(poller_ids)));
         for (uint64_t host_id : hgp.hosts()) {
-          _host_hostgroups.insert({host_id, hst_grp});
+          auto hst_instance = host_to_instance.find(host_id);
+          if (hst_instance != host_to_instance.end())
+            _host_hostgroups.emplace(host_id, hst_instance->second, hst_grp);
         }
       }
 
@@ -2637,8 +2796,11 @@ void broker_cache::_load_cache() {
         _servicegroups.get<by_id>().insert(
             std::make_pair(svc_grp, std::move(poller_ids)));
         for (const auto& id : sgp.services()) {
-          _service_servicegroups.insert(
-              {id.host_id(), id.service_id(), svc_grp});
+          auto instance_search = service_to_instance.find(
+              std::make_pair(id.host_id(), id.service_id()));
+          if (instance_search != service_to_instance.end())
+            _service_servicegroups.insert({id.host_id(), id.service_id(),
+                                           instance_search->second, svc_grp});
         }
       }
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",

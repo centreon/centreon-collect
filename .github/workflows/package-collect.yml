@@ -172,7 +172,7 @@ jobs:
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
-                  -DWITH_BENCH=ON \
+                  -DWITH_BENCH=OFF \
                   -DWITH_MODULE_SIMU=OFF \
                   -DCMAKE_INSTALL_PREFIX=/usr \
                   -DWITH_STARTUP_SCRIPT=systemd \

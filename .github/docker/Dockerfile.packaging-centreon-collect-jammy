@@ -94,13 +94,15 @@ git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
 #jobs have to share all cpus of the host but see all cpus
 #so, if we not limit concurrency, each job will start ntotal_cpu+1 gcc
 export VCPKG_MAX_CONCURRENCY=8
+export VCPKG_FORCE_SYSTEM_BINARIES=1
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
 
 mkdir /src
-cp /root/vcpkg.json /src/vcpkg.json
+#benchmark does not compile under jammy so we remove it as it is not mandatory for packaging
+grep -v benchmark /root/vcpkg.json > /src/vcpkg.json
 
 /vcpkg/vcpkg install \
   --clean-after-build \

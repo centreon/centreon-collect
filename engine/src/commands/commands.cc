@@ -484,7 +484,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
                                      time_t check_time,
                                      char* args) {
   bool accept_passive_service_checks =
-      pb_indexed_config.state().accept_passive_service_checks();
+      pb_indexed_config.accept_passive_service_checks();
 
   /* skip this service check result if we aren't accepting passive service
    * checks */

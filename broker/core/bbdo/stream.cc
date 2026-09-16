@@ -66,7 +66,6 @@ void stream::negotiate(stream::negotiation_type neg) {
   if (!_negotiate) {
     SPDLOG_LOGGER_INFO(_logger, "BBDO: negotiation disabled.");
     extensions = _get_extension_names(true);
-    return;
   } else
     extensions = _get_extension_names(false);
 
@@ -177,8 +176,8 @@ void stream::negotiate(stream::negotiation_type neg) {
     peer_extensions = v->extensions;
   } else {
     const auto& w = std::static_pointer_cast<pb_welcome>(d)->obj();
-    _logger->trace("BBDO: received pb_welcome packet: {}",
-                   w.ShortDebugString());
+    SPDLOG_LOGGER_TRACE(_logger, "BBDO: received pb_welcome packet: {}",
+                        w.ShortDebugString());
     const auto& pb_version = w.version();
     if (pb_version.major() != my_bbdo_version.major_v) {
       SPDLOG_LOGGER_ERROR(
@@ -234,11 +233,9 @@ void stream::negotiate(stream::negotiation_type neg) {
     set_broker_name(w.broker_name());
 
     set_peer_type(w.peer_type());
-    if (peer_type() != common::UNKNOWN) {
-      /* We are in the bbdo stream, _poller_id, _broker_name,
-       * _extended_negotiation are informations about the peer, not us. */
-      _extended_negotiation = true;
-    }
+    /* We are in the bbdo stream, _poller_id, _broker_name,
+     * _extended_negotiation are informations about the peer, not us. */
+    _extended_negotiation = w.extended_negotiation();
   }
 
   // Negotiation.
@@ -307,19 +304,22 @@ void stream::negotiate(stream::negotiation_type neg) {
   _negotiated = true;
   /* With old BBDO, we don't have poller_id nor poller name available. */
   if (poller_id() > 0 && !broker_name().empty()) {
-    _logger->debug("Adding peer {}:{}:{} with version '{}'", poller_id(),
-                   poller_name(), broker_name(), peer_engine_conf);
+    SPDLOG_LOGGER_DEBUG(_logger, "Adding peer {}:{}:{} with version '{}'",
+                        poller_id(), poller_name(), broker_name(),
+                        peer_engine_conf);
     config::applier::state::instance().add_peer(
         poller_id(), poller_name(), broker_name(), peer_type(),
         _extended_negotiation, peer_engine_conf);
     if (!config::applier::state::instance().is_peer_conf_known(poller_id())) {
-      _logger->error("No known configuration for the poller {}:{}:{}",
-                     poller_id(), poller_name(), broker_name());
       /* We send an unknown diff state to let the peer know that its
        * configuration is not known by Broker. */
       if (_extended_negotiation && peer_type() == common::ENGINE &&
           supports_centralized_conf()) {
-        _logger->debug(
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "No known configuration for the poller {}:{}:{}",
+                            poller_id(), poller_name(), broker_name());
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "Sending unknown diff state to peer {}:{}:{} to let it know that "
             "its configuration is not known by Broker.",
             poller_id(), poller_name(), broker_name());

@@ -28,11 +28,8 @@ target_compile_definitions(broker_bbdo PRIVATE BROKER_COMPILATION)
 target_link_libraries(broker_bbdo PRIVATE protobuf::libprotobuf engine_conf)
 add_dependencies(
   broker_bbdo
-  pb_bbdo_lib
-  pb_extcmd_lib
+  pb_all_libs
   process_stat
-  pb_open_telemetry_lib
-  pb_neb_lib
   engine_conf)
 target_precompile_headers(broker_bbdo PRIVATE precomp_inc/precomp.hh)
 
@@ -48,11 +45,8 @@ target_compile_definitions(cbmod_bbdo PRIVATE CBMOD_COMPILATION)
 target_link_libraries(cbmod_bbdo PRIVATE engine_conf)
 add_dependencies(
   cbmod_bbdo
-  pb_bbdo_lib
-  pb_extcmd_lib
+  pb_all_libs
   process_stat
-  pb_open_telemetry_lib
-  pb_neb_lib
   engine_conf)
 target_precompile_headers(cbmod_bbdo PRIVATE precomp_inc/precomp.hh)
 
