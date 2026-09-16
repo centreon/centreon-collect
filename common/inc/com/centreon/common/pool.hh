@@ -50,8 +50,7 @@ class pool {
   static std::unique_ptr<pool> _instance;
 
   const std::shared_ptr<boost::asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
-  ABSL_GUARDED_BY(_pool_m)
+  std::shared_ptr<spdlog::logger> _logger ABSL_GUARDED_BY(_pool_m);
   boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
       _worker;
   size_t _pool_size;

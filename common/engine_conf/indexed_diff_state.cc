@@ -234,9 +234,6 @@ void indexed_diff_state::add_state(
   assert(state.poller_id() != 0);
   SPDLOG_LOGGER_DEBUG(logger, "Adding full configuration for poller {}",
                       state.poller_id());
-  std::string state_debug;
-  ::google::protobuf::json::MessageToJsonString(state, &state_debug);
-  SPDLOG_LOGGER_TRACE(logger, "apply state {}", state_debug);
 
   _add_message<Timeperiod, std::string>(
       state.mutable_timeperiods(), _added_timeperiods, _modified_timeperiods,
