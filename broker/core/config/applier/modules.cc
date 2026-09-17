@@ -16,7 +16,10 @@
  * For more information : contact@centreon.com
  */
 
-#include "broker/core/config/applier/modules.hh"
+// #include "broker/core/config/applier/modules.hh"
+
+// #include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
@@ -190,6 +193,28 @@ bool modules::load_file(const std::string& filename, const void* arg) {
             if (!load_file(fmt::format("{}/{}", path, *p), arg))
               _logger->error("modules: impossible to load parent module '{}'",
                              *p);
+        }
+      }
+
+      /* Declare what this module reads from the global cache. Optional, like
+       * the parents above: a module without the symbol reads nothing from it.
+       * Done here and not when the stream is created, because the cache keeps
+       * only the sections somebody asked for and is filled once -- a
+       * declaration made after that fill is a section that stays empty for the
+       * life of the process. */
+      void* sections = dlsym(h, handle::cache_sections);
+      if (sections) {
+        union {
+          uint32_t (*code)();
+          void* data;
+        } sym;
+        sym.data = sections;
+        const uint32_t mask = (*(sym.code))();
+        if (mask) {
+          _logger->info("modules: '{}' needs these cache sections: {}",
+                        filename,
+                        cache::broker_cache::sections_to_string(mask));
+          state::instance().cache().enable_section(mask);
         }
       }
     } else {

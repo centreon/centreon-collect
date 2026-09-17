@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013, 2020-2024 Centreon
+ * Copyright 2011-2013, 2020-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,11 @@
  */
 
 #include "bbdo/storage/metric_mapping.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "com/centreon/broker/influxdb/factory.hh"
 #include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
@@ -35,6 +34,20 @@ extern "C" {
  *  Module version symbol. Used to check for version mismatch.
  */
 char const* broker_module_version = CENTREON_BROKER_VERSION;
+
+/**
+ * @brief The sections of the global cache this module reads.
+ *
+ * Names and metric mappings, to build the series names.
+ *
+ * @return A mask of cache::broker_cache::sections.
+ */
+uint32_t broker_module_cache_sections() {
+  return cache::broker_cache::CACHE_HOSTS |
+         cache::broker_cache::CACHE_SERVICES |
+         cache::broker_cache::CACHE_INSTANCES |
+         cache::broker_cache::CACHE_METRIC_MAPPINGS;
+}
 
 /**
  * @brief Return an array with modules needed for this one to work.

@@ -17,6 +17,7 @@
  */
 
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
@@ -24,12 +25,10 @@
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/lua/factory.hh"
 #include "com/centreon/broker/lua/internal.hh"
 #include "com/centreon/broker/lua/stream.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -43,6 +42,17 @@ extern "C" {
  *  Module version symbol. Used to check for version mismatch.
  */
 char const* broker_module_version = CENTREON_BROKER_VERSION;
+
+/**
+ * @brief The sections of the global cache this module reads.
+ *
+ * A Lua script can ask the cache for anything, so everything is kept.
+ *
+ * @return A mask of cache::broker_cache::sections.
+ */
+uint32_t broker_module_cache_sections() {
+  return cache::broker_cache::CACHE_ALL;
+}
 
 /**
  * @brief Return an array with modules needed for this one to work.

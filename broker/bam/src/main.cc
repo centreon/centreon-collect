@@ -17,6 +17,7 @@
  */
 
 #include "bbdo/bam/ba_duration_event.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
@@ -30,15 +31,11 @@
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
-#include "bbdo/events.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bam/factory.hh"
-#include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -60,6 +57,19 @@ extern "C" {
  *  Module version symbol. Used to check for version mismatch.
  */
 const char* broker_module_version = CENTREON_BROKER_VERSION;
+
+/**
+ * @brief The sections of the global cache this module reads.
+ *
+ * The host and service names, to resolve what the boolean expressions name
+ * and to tell whether the service a KPI points at still exists.
+ *
+ * @return A mask of cache::broker_cache::sections.
+ */
+uint32_t broker_module_cache_sections() {
+  return cache::broker_cache::CACHE_HOSTS |
+         cache::broker_cache::CACHE_SERVICES;
+}
 
 /**
  * @brief Return an array with modules needed for this one to work.

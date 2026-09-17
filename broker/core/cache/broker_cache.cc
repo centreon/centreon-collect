@@ -4815,4 +4815,53 @@ void broker_cache::remove_index_mapping(uint64_t host_id, uint64_t service_id) {
   index.erase(std::make_pair(host_id, service_id));
 }
 
+/**
+ * @brief Render a mask of cache_section as the names of the sections it holds.
+ *
+ * A mask is what a module declares and what the cache stores, but "0x36" tells
+ * a reader nothing. The names live next to the enum so that adding a section
+ * and forgetting to name it is visible here rather than in a log.
+ *
+ * @param sections The mask.
+ *
+ * @return "all", "none", or the section names separated by commas. Bits that
+ *         match no known section are appended as hexadecimal rather than
+ *         dropped, so an unnamed one is noticed instead of disappearing.
+ */
+std::string broker_cache::sections_to_string(uint32_t sections) {
+  if (sections == CACHE_ALL)
+    return "all";
+  if (sections == CACHE_NONE)
+    return "none";
+
+  static constexpr std::pair<uint32_t, std::string_view> names[]{
+      {CACHE_INSTANCES, "instances"},
+      {CACHE_HOSTS, "hosts"},
+      {CACHE_SERVICES, "services"},
+      {CACHE_GROUPS, "groups"},
+      {CACHE_METRIC_MAPPINGS, "metric mappings"},
+      {CACHE_SEVERITIES, "severities"},
+      {CACHE_BAM, "bam"},
+      {CACHE_TAGS, "tags"},
+      {CACHE_NOTIFICATIONS, "notifications"},
+  };
+
+  std::string retval;
+  uint32_t left = sections;
+  for (const auto& [bit, name] : names) {
+    if (sections & bit) {
+      if (!retval.empty())
+        retval += ", ";
+      retval += name;
+      left &= ~bit;
+    }
+  }
+  if (left) {
+    if (!retval.empty())
+      retval += ", ";
+    retval += fmt::format("unknown({:#x})", left);
+  }
+  return retval;
+}
+
 }  // namespace com::centreon::broker::cache

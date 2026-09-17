@@ -328,7 +328,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/broker_downtime_callbacks.cc
-    ${SRC_DIR}/broker_notification_callbacks.cc
     ${SRC_DIR}/broker_notification_dispatcher.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc

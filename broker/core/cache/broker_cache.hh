@@ -24,7 +24,7 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <chrono>
+// #include <chrono>
 #include <filesystem>
 #include <optional>
 
@@ -771,6 +771,17 @@ class broker_cache {
   broker_cache(const broker_cache&) = delete;
   broker_cache& operator=(const broker_cache&) = delete;
   ~broker_cache() noexcept;
+
+  /**
+   * @brief Render a mask of cache_section as the names of the sections it
+   * holds, for a log a human reads.
+   *
+   * @param sections The mask.
+   *
+   * @return "all", "none", or the section names separated by commas, followed
+   *         by any unknown bits as hexadecimal.
+   */
+  static std::string sections_to_string(uint32_t sections);
 
   void enable_section(uint32_t sections) noexcept {
     /* Notification data is meaningless without the instances/hosts/services it

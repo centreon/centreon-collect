@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/broker_notification_callbacks.hh"
+#include "broker/core/config/applier/broker_notification_callbacks.hh"
 
 
 #include <ctime>

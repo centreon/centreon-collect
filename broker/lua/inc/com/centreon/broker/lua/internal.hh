@@ -19,9 +19,6 @@
 #ifndef CCB_LUA_INTERNAL_HH
 #define CCB_LUA_INTERNAL_HH
 
-#include "bbdo/events.hh"
-#include "bbdo/storage.pb.h"
-#include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker::storage {

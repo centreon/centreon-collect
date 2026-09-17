@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/influxdb/stream.hh"
-#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
@@ -63,10 +62,6 @@ stream::stream(std::string const& user,
                                             metric_ts,
                                             metric_cols,
                                             _logger)} {
-  config::applier::state::instance().cache().enable_section(
-      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
-      cache::broker_cache::CACHE_INSTANCES |
-      cache::broker_cache::CACHE_METRIC_MAPPINGS);
   _logger->trace("influxdb::stream constructor {}", static_cast<void*>(this));
 }
 

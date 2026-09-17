@@ -28,7 +28,7 @@
 #include "bbdo/bbdo.pb.h"
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/broker_downtime_callbacks.hh"
-#include "com/centreon/broker/broker_notification_callbacks.hh"
+#include "broker/core/config/applier/broker_notification_callbacks.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
@@ -216,20 +216,36 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
    * depth. In centralized mode the resources are not known yet and the
    * re-injection is a no-op anyway (done later from _process_engine_state after
    * merge). */
+}
 
-  if (s.get_bbdo_version().major_v >= 3) {
-    /* The cache directory is set first, so that the watcher is started and the
-     * topology cache can be loaded. */
-    if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
-      set_pollers_config_dir(std::filesystem::path(cache_dir()) /
-                             "pollers-configuration/");
-      load_topology_cache();
-    } else
-      set_pollers_config_dir(s.pollers_config_dir());
+/**
+ * @brief Resolve the directories holding the stored poller configurations.
+ *
+ * Invoked from apply(), after the cache directory is known and before the
+ * endpoints are applied -- and the order is not free. Applying the endpoints is
+ * what declares the cache sections and then fills the global cache from these
+ * very directories; resolving them afterwards, as this used to do, meant the
+ * fill ran against an empty path, found nothing, and consumed its call_once.
+ * The cache then stayed empty for the life of the process.
+ *
+ * @param s The configuration being applied.
+ */
+void broker_state::_configure_cache_directories(
+    const com::centreon::broker::config::state& s) {
+  if (s.get_bbdo_version().major_v < 3)
+    return;
 
-    // Configuration cache directory (for broker, from php).
-    set_cache_config_dir(s.cache_config_dir());
-  }
+  /* The cache directory is set first, so that the watcher is started and the
+   * topology cache can be loaded. */
+  if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
+    set_pollers_config_dir(std::filesystem::path(cache_dir()) /
+                           "pollers-configuration/");
+    load_topology_cache();
+  } else
+    set_pollers_config_dir(s.pollers_config_dir());
+
+  // Configuration cache directory (for broker, from php).
+  set_cache_config_dir(s.cache_config_dir());
 }
 
 /**
@@ -240,20 +256,6 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
  * known yet; re-injected later from _process_engine_state after merge).
  */
 void broker_state::_on_barrier_released() {
-  /* Here and not at the end of apply(): the output streams are created
-   * asynchronously by their failover, and it is their constructors that declare
-   * which cache sections they need. Filling the cache from apply() therefore
-   * stored nothing at all on a cold start -- measured: "0 hosts and 0 services
-   * known" on the first run, 50 and 1000 on the next -- which is the very
-   * non-determinism this loading is meant to remove.
-   *
-   * The readiness barrier releases once every output endpoint has registered as
-   * ready, so by here they exist and have spoken. And it runs before the
-   * re-injections below, which need the cache to already know the resource. */
-  /* Net: on a platform where no poller connects, nothing else would pull the
-   * load, and the cache would stay empty for the re-injections below. */
-  _ensure_pollers_config_in_cache();
-
   if (_notification_mode == notification_mode_broker) {
     cache().reinject_pending_downtimes();
     cache().reinject_pending_notification_states();
@@ -473,27 +475,27 @@ bool broker_state::_merge_stored_config_in_cache(
 }
 
 /**
- * @brief Load the stored configurations into the cache, once, before anything
- * else touches it.
+ * @brief Fill the global cache from the stored poller configurations.
  *
- * Lazily and not from a fixed point in the startup, because there is no fixed
- * point that works. Two constraints pull in opposite directions:
+ * Invoked by the endpoint applier between the declaration of the cache sections
+ * and the creation of the endpoints -- the only moment that works, and the two
+ * neighbouring ones are both wrong:
  *
- *  - too early -- the end of apply() -- and nothing is stored at all: the
- *    output streams are created asynchronously by their failover, and it is
- *    their constructors that declare the cache sections, without which merge()
- *    keeps nothing;
- *  - too late -- the readiness barrier -- and it *overwrites* fresher data: a
- *    poller connects and acknowledges through its BBDO stream well before the
- *    multiplexing engine, hence before the barrier releases. Measured: the
- *    configuration acknowledged at 29.678 was undone by the load at 32.007.
+ *  - earlier, at the start of apply(), nothing is kept: the sections have not
+ *    been declared yet, and merge() stores nothing for a section nobody wants;
+ *  - later, at the readiness barrier, it is both too late and destructive. Too
+ *    late because a stream reads the cache while loading its own configuration:
+ *    measured, BAM finished loading 117 ms before the barrier released, so it
+ *    saw an empty cache. Destructive because a poller connects and acknowledges
+ *    through its BBDO stream well before the multiplexing engine starts, hence
+ *    before the barrier releases: the configuration acknowledged at 29.678 was
+ *    once undone by the load at 32.007.
  *
- * So the load is pulled by its first user instead of being pushed at a moment
- * chosen in advance. Whoever is about to read or update the cache calls this
- * first, and by then the sections have been declared -- otherwise there would
- * be nothing to read.
+ * The call_once is what keeps a reload from redoing it: apply() runs again on
+ * every reload, and loading the stored configurations a second time would
+ * overwrite whatever the pollers have acknowledged since.
  */
-void broker_state::_ensure_pollers_config_in_cache() {
+void broker_state::on_cache_sections_declared() {
   absl::call_once(_pollers_config_in_cache_once,
                   [this] { load_pollers_config_in_cache(); });
 }
@@ -513,10 +515,6 @@ void broker_state::_ensure_pollers_config_in_cache() {
 void broker_state::apply_poller_diff_in_cache(uint64_t poller_id) {
   if (!pollers_config_dir_usable())
     return;
-  /* The stored configurations first: a difference only means something applied
-   * to the state it was computed against. */
-  _ensure_pollers_config_in_cache();
-
   const auto path =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
   engine::configuration::DiffState diff;
@@ -835,10 +833,6 @@ void broker_state::add_peer(uint64_t poller_id,
  */
 bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   bool retval = true;
-  /* Same reason as in merge_poller_config_in_cache(): what this publishes ends
-   * up merged into the cache, so the stored configurations must already be
-   * there. */
-  _ensure_pollers_config_in_cache();
   if (!pollers_config_dir_usable()) {
     /* Nothing to feed the cache from, and no relative path to stumble into:
      * this instance simply does not hold poller configurations. */

@@ -37,11 +37,11 @@ class factory : public io::factory {
   factory(factory const&) = delete;
   ~factory() = default;
   factory& operator=(factory const&) = delete;
-  bool has_endpoint(config::endpoint& cfg, io::extension* ext);
+  bool has_endpoint(config::endpoint& cfg, io::extension* ext) override;
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const absl::btree_map<std::string, std::string>& global_params,
-      bool& is_acceptor) const;
+      bool& is_acceptor) const override;
 };
 
 }  // namespace com::centreon::broker::unified_sql

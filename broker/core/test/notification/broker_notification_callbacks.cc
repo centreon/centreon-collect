@@ -17,12 +17,11 @@
  *
  */
 
-#include "com/centreon/broker/broker_notification_callbacks.hh"
+#include "broker/core/config/applier/broker_notification_callbacks.hh"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <vector>
 
 #include "broker/core/bbdo/internal.hh"
 #include "broker/core/cache/broker_cache.hh"

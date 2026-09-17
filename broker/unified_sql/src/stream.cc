@@ -191,8 +191,6 @@ stream::stream(const database_config& dbcfg,
            "VALUES(value)",
            _logger_sql),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
-  config::applier::state::instance().cache().enable_section(
-      cache::broker_cache::CACHE_ALL);
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?

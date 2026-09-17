@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef CCB_BROKER_NOTIFICATION_CALLBACKS_HH
-#define CCB_BROKER_NOTIFICATION_CALLBACKS_HH
+#ifndef CCB_CONFIG_APPLIER_BROKER_NOTIFICATION_CALLBACKS_HH
+#define CCB_CONFIG_APPLIER_BROKER_NOTIFICATION_CALLBACKS_HH
 
 #include <spdlog/logger.h>
 
@@ -68,4 +68,4 @@ class broker_notification_callbacks
 
 }  // namespace com::centreon::broker
 
-#endif  // !CCB_BROKER_NOTIFICATION_CALLBACKS_HH
+#endif  // !CCB_CONFIG_APPLIER_BROKER_NOTIFICATION_CALLBACKS_HH

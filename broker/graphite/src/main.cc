@@ -17,11 +17,10 @@
  */
 
 #include "bbdo/storage/metric_mapping.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "com/centreon/broker/graphite/factory.hh"
 #include "com/centreon/broker/graphite/stream.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using log_v2 = com::centreon::common::log_v2::log_v2;
@@ -34,6 +33,20 @@ extern "C" {
  *  Module version symbol. Used to check for version mismatch.
  */
 char const* broker_module_version = CENTREON_BROKER_VERSION;
+
+/**
+ * @brief The sections of the global cache this module reads.
+ *
+ * Names and metric mappings, to build the series names.
+ *
+ * @return A mask of cache::broker_cache::sections.
+ */
+uint32_t broker_module_cache_sections() {
+  return cache::broker_cache::CACHE_HOSTS |
+         cache::broker_cache::CACHE_SERVICES |
+         cache::broker_cache::CACHE_INSTANCES |
+         cache::broker_cache::CACHE_METRIC_MAPPINGS;
+}
 
 /**
  * @brief Return an array with modules needed for this one to work.

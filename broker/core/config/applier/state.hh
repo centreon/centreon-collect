@@ -93,7 +93,26 @@ class state {
    */
   virtual void _on_barrier_released() {}
 
+  /* Hook invoked from apply(), once the cache directory is known and before the
+   * endpoints are applied. broker_state resolves the directories holding the
+   * stored poller configurations here, because the cache is filled during the
+   * endpoint pass and a directory set after it would arrive too late: the
+   * loading is guarded by a call_once, so an early attempt with no directory
+   * consumes it and leaves the cache empty for good. */
+  virtual void _configure_cache_directories(
+      const com::centreon::broker::config::state& s [[maybe_unused]]) {}
+
  public:
+  /* Hook invoked by the endpoint applier once every endpoint of the
+   * configuration has declared the cache sections it needs, and before a single
+   * endpoint is created. That is the only moment at which the global cache can
+   * be filled correctly: earlier and the sections are not known, so merge()
+   * would keep nothing; later and a poller may already have acknowledged a
+   * fresher configuration that the stored one would overwrite. The base does
+   * nothing -- cbmod has no stored poller configuration to load. */
+  virtual void on_cache_sections_declared() {}
+
+
   static state& instance();
   template <typename State>
   static void load(const std::string& engine_conf_version);
