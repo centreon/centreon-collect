@@ -342,3 +342,101 @@ def ctn_bench_git_branch() -> str:
     sys.path.insert(0, HERE)
     import benchenv
     return benchenv.git_info().get("git_branch") or "unnamed"
+
+
+# The steps reader_v2::read() announces, in the order it announces them. Each
+# line is logged *before* the step it names, so the duration of a step is the
+# gap between its own line and the next one -- which is why the list has to stay
+# ordered, and why the closing line is part of it.
+BAM_LOAD_STEPS = (
+    ("dimensions", "loading dimensions."),
+    ("bas", "loading BAs."),
+    ("kpis", "loading KPIs."),
+    ("boolexps", "loading boolean expressions."),
+    ("mapping", "loading mapping hosts <-> services."),
+    (None, "bam configuration loaded."),
+)
+
+
+def ctn_bench_bam_load_timings(log_path: str) -> dict:
+    """Read how long each step of the BAM configuration load took.
+
+    bam::configuration::reader_v2::read() already announces every step at info,
+    which is the whole instrumentation this benchmark needs: the gap between
+    "loading mapping hosts <-> services." and "bam configuration loaded."
+    isolates the one query that reads the entire service table, separated from
+    the four other steps. Measuring cbd from the outside would give a startup
+    duration and nothing else.
+
+    Only the *last complete* sequence is returned. cbd runs read() again on
+    every configuration reload, and a log that spans two of them would otherwise
+    mix a step of one with a step of the next. A sequence that started but never
+    reached its closing line is dropped for the same reason.
+
+    Args:
+        log_path (str): the central broker log file.
+
+    Returns:
+        A dict of "<step>_ms" to milliseconds, one per step, plus "total_ms",
+        the whole of read(). Empty if the log carries no complete sequence --
+        which means either that the bam logger is not at info, or that cbd never
+        loaded a BAM configuration at all. A test should treat that as a failure
+        rather than as a zero.
+    """
+    opening = BAM_LOAD_STEPS[0][1]
+    closing = BAM_LOAD_STEPS[-1][1]
+    last = {}
+    current = None
+    with open(log_path, "r", errors="replace") as f:
+        for line in f:
+            ts = _parse_log_timestamp(line)
+            if ts is None:
+                continue
+            if opening in line:
+                # A sequence that restarts before closing was a reload racing a
+                # failed load; the partial one is worth nothing, drop it.
+                current = {opening: ts}
+                continue
+            if current is None:
+                continue
+            for _, message in BAM_LOAD_STEPS[1:]:
+                if message in line:
+                    current[message] = ts
+                    break
+            if closing in line:
+                last = current
+                current = None
+    if not last or len(last) != len(BAM_LOAD_STEPS):
+        return {}
+
+    timings = {}
+    for (name, message), (_, following) in zip(BAM_LOAD_STEPS,
+                                               BAM_LOAD_STEPS[1:]):
+        timings[f"{name}_ms"] = (last[following]
+                                 - last[message]).total_seconds() * 1000
+    timings["total_ms"] = (last[closing]
+                           - last[opening]).total_seconds() * 1000
+    return timings
+
+
+def ctn_bench_process_rss_kb(pid) -> int:
+    """Return the resident set size of a process, in kilobytes.
+
+    The map reader_v2 fills is the other half of what the "load only the useful
+    services" change is about: a platform-sized mapping costs tens of megabytes
+    that are never read. A duration alone would miss it.
+
+    Args:
+        pid: the process id, as robot hands it over (a string or an int).
+
+    Returns:
+        The RSS in kB, or 0 if the process is already gone.
+    """
+    try:
+        with open(f"/proc/{int(pid)}/status", "r") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1])
+    except (OSError, ValueError):
+        return 0
+    return 0

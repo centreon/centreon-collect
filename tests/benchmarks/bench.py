@@ -88,6 +88,10 @@ ROBOT_BENCHES = {
     "rrd-retention": ("rrd_retention_bench.robot",
                       "Throughput and merge latency of the RRD retention "
                       "buffer, on back-dated metrics."),
+    "bam-startup": ("bam_startup_bench.robot",
+                    "How long cbd takes to load a BAM configuration, step by "
+                    "step, as the platform grows. No poller: the load reads "
+                    "the database, not the .cfg files."),
 }
 
 # The sentinels alloc_bench.robot synchronises on. Same paths, on purpose: they

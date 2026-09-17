@@ -8,6 +8,7 @@
   - [`load` — what the running daemons cost](#load--what-the-running-daemons-cost)
   - [`alloc` — heap allocations on the check path](#alloc--heap-allocations-on-the-check-path)
   - [`BENCH_RRD_METRIC_RETENTION` — the RRD retention buffer](#bench_rrd_metric_retention--the-rrd-retention-buffer)
+  - [`bam-startup` — loading a BAM configuration](#bam-startup--loading-a-bam-configuration)
 - [In more depth](#in-more-depth)
   - [The store, and what the metrics mean](#the-store-and-what-the-metrics-mean)
   - [Comparing two versions](#comparing-two-versions)
@@ -206,11 +207,12 @@ It ships with Engine. Without it the CPU totals stay comparable, but there is no
 | `load` | what the three daemons cost in steady state | ~15 min at the defaults | container |
 | `alloc` | heap allocations of centengine on the check path | ~5 min (EALLOC2/3), ~20 min (EALLOC1) | container |
 | `rrd-retention` | throughput and merge latency of the RRD retention buffer | ~5 min | container |
+| `bam-startup` | how long cbd takes to load a BAM configuration, step by step | ~1 min per point, plus the populating | container |
 
 Those are the names in both senses: what `./bench.py run <name>` takes, and what the `bench`
-column of the store holds. **All five go through the same entry point and land in the same
-store**, so `./bench.py compare` works the same way for all of them. Three of them are robot
-tests underneath — `engine-startup`, `load` and `rrd-retention` — and `bench.py run` simply
+column of the store holds. **All six go through the same entry point and land in the same
+store**, so `./bench.py compare` works the same way for all of them. Four of them are robot
+tests underneath — `engine-startup`, `load`, `rrd-retention` and `bam-startup` — and `bench.py run` simply
 launches robot for those, forwarding `--var` and `--test`. Running robot directly works just as
 well; going through `bench.py` only adds the campaign name and the refusal to measure a modified
 working tree.
@@ -588,6 +590,61 @@ merge latency on the console, and files them as `injection_events`, `injection_s
 `injection_events_per_s`, `merge_latency_s`, `merge_points_per_s` and `buffered_points`, with the
 sizes (`metrics`, `old_points`, `step`) as parameters so that two campaigns pair correctly.
 
+### `bam-startup` — loading a BAM configuration
+
+Pick **one**:
+
+```bash
+./bench.py run bam-startup                                                  # defaults: 10k services, 100 BAs
+./bench.py run bam-startup --var nb_hosts:10000 --var nb_ba:100             # 200k services
+LABEL=bam-before ./bench-bam.sh                                             # the whole campaign, both axes
+robot benchmarks/bam_startup_bench.robot                                    # straight through robot
+```
+
+At startup BAM reads its whole configuration from the Centreon database. Four of the five steps
+read BAM tables, whose size follows the number of BAs. The fifth, `loading mapping hosts <->
+services`, reads the **entire service table of the platform** through two joins and a `DISTINCT`,
+and keeps all of it in memory — in order to resolve the handful of names the boolean rules
+mention, and to check whether the KPI services are activated. On a large platform that is a
+hundred thousand rows read and held to answer a few hundred questions.
+
+So the benchmark varies two things **independently**, and the whole point is that they should not
+behave alike:
+
+- the **services axis** grows the platform and leaves the BAM configuration alone. Only
+  `mapping_ms` should move. If the other four move as well, something else scales with the
+  platform and the diagnosis is incomplete;
+- the **BA axis** grows the BAM configuration and leaves the platform alone. The four BAM steps
+  should move and `mapping_ms` should not — it reads the same table either way.
+
+`bench-bam.sh` walks both, one after the other. If `mapping_ms` does not separate from the rest
+along the services axis, the optimisation this campaign exists to justify is not worth writing;
+that is a result, and a cheap one.
+
+**No centengine, and that is not an omission.** `reader_v2` reads the database, never the `.cfg`
+files, so nothing being measured needs a poller — only a populated configuration database and a
+cbd. Leaving Engine out is what makes a 200k-service point fit on a laptop: at that size the
+memory would have gone to Engine, not to cbd, and cbd holds the mapping in some fifty megabytes.
+Only the central broker is started, `Ctn Start Broker only_central=True`.
+
+The figures come from cbd itself, which announces every step of `reader_v2::read()` at info.
+They are filed as `dimensions_ms`, `bas_ms`, `kpis_ms`, `boolexps_ms`, `mapping_ms` and
+`total_ms`, with `rss_kb` — the resident memory of cbd once loaded, which is the other half of
+what a mapping of every service costs — and with `hosts`, `services`, `bas`, `service_kpis` and
+`boolexps` as parameters, so that two campaigns pair correctly. A run whose log carries no
+complete sequence **fails on purpose**: it means the `bam` logger is not at info, and a missing
+step would otherwise be read as a fast one.
+
+`bam_config_gen.py` populates the database in batched inserts. `tests/resources/db_conf.py` does
+the same thing row by row, which is fine for a test with fifty hosts and would be a hundred
+thousand round-trips here. It is also the **one file in this directory that is not stdlib
+only**: talking to MariaDB needs `pymysql`, which the robot virtualenv already carries for
+`db_conf.py`. It can be run by hand, outside robot, to prepare or inspect a platform:
+
+```bash
+python bam_config_gen.py <hosts> <services_by_host> <bas> [kpis_per_ba] [boolexps_per_ba]
+```
+
 ## In more depth
 
 ### The store, and what the metrics mean
@@ -837,8 +894,11 @@ trusting it.
 | `robot_bench.py` | the keywords the robot benchmarks need: passive load, log parsing, store access |
 | `startup_bench.robot` | the three startup scenarios |
 | `collect_load_bench.robot` | the two load profiles, active and passive |
-| `alloc_bench.robot` | the three allocation profiles, EALLOC1 to EALLOC3 |
+| `alloc_bench.robot` | the allocation profiles, EALLOC1 to EALLOC4 |
 | `rrd_retention_bench.robot` | the RRD retention buffer benchmark |
+| `bam_config_gen.py` | a platform-sized BAM configuration in the database, in batched inserts |
+| `bam_startup_bench.robot` | the BAM configuration load of cbd, step by step |
+| `bench-bam.sh` | the two axes of the BAM startup campaign, services then BAs |
 | `results/` | the store and the per-run files, git-ignored |
 
-Python here is stdlib only and formatted with `autopep8`, like the rest of `tests/`.
+Python here is stdlib only — except `bam_config_gen.py`, which needs `pymysql` to reach the configuration database — and formatted with `autopep8`, like the rest of `tests/`.
