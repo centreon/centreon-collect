@@ -150,8 +150,6 @@ overrides:
   rpm:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
-      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
-      - centreon-engine-opentelemetry = ${VERSION}-${RELEASE}${DIST}
       - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-extcommands
@@ -172,8 +170,6 @@ overrides:
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-engine-opentelemetry (= ${VERSION}-${RELEASE}${DIST})
       - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-extcommands

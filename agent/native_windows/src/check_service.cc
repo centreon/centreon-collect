@@ -802,7 +802,7 @@ check_service::check_service(
       } else if (key != "filter-name" && key != "exclude-name" &&
                  key != "filter-display" && key != "exclude-display" &&
                  key != "start-auto" && key != "start-type" &&
-                 key != "delayed" && key != "type") {
+                 key != "delayed" && key != "type" && key != "timeout") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
                             get_command_name(), member_iter->name);
       }

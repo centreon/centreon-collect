@@ -90,6 +90,16 @@ configuration:
 | authorized_clients    | Table of string-formated JWK thumbprints of clients public key          |                                                |
 | proxy_name            | Name of the proxy module definition                                     | `proxy` (loaded internally)                    |
 
+### Note on id and uid
+
+initially, poller where identified by their id (an auto-incremented integer in the centreon.nagios_server.id database column). This is still supported, but the preferred method is to use the `uid` column (a unique 64 bit integer) for identification. The `uid` is more robust and avoids issues with id collisions or changes.
+
+Both `id` and `uid` are supported in the gorgonecore->id configuration directive. 
+
+the nodes modules, when reading the Centreon database, will send both id and uid information to other modules. in each module, both id and uid can be used to identify a node (for exemple in the rest api, both id and uid can be used interchangeably). 
+
+The `uid` is preferred, but the `id` is still supported for backward compatibility.
+
 #### Example
 
 ```yaml
@@ -153,7 +163,7 @@ Each higer level of precedence will override the previous one.
 
 the configuration files variables can be set with the format `GORGONE__GORGONE__MODULES__PULLWSS__ADDRESS=1.1.1.1` to set the address directive of the pullwss module for exemple. The format is `GORGONE__` followed by the path to the directive in the configuration file, with each level separated by 2 underscore `__`. for a complete list of available directives, see individual module documentation.
 
-you can use environment variable for the database configuration too : `gorgone__centreon__database__db_configuration__username='centreon'`
+you can use environment variable for the database configuration too : `GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__USERNAME='centreon'`
 
 some configuration can be made with shorter variable name : 
 

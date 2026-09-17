@@ -77,7 +77,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Generate selinux binaries
         if: ${{ matrix.package_extension == 'rpm' }}
@@ -131,7 +131,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Delivery
         uses: ./.github/actions/rpm-delivery
@@ -148,7 +148,6 @@ jobs:
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-rpm-pulp:
-    continue-on-error: true
     runs-on: centreon-ubuntu-22.04
     needs: [get-environment, package]
     if: |
@@ -170,12 +169,11 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Deliver packages on Pulp
         id: deliver_rpm_pulp
         uses: ./.github/actions/package-delivery-pulp
-        continue-on-error: true
         with:
           module_name: common
           distrib: ${{ matrix.distrib }}
@@ -188,12 +186,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp delivery failed
-        if: steps.deliver_rpm_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   deliver-deb:
     runs-on: ubuntu-24.04
@@ -212,7 +204,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Delivery
         uses: ./.github/actions/deb-delivery
@@ -227,7 +219,6 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb-pulp:
-    continue-on-error: true
     runs-on: centreon-ubuntu-22.04
     needs: [get-environment, package]
     if: |
@@ -249,12 +240,11 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Deliver packages on Pulp
         id: deliver_deb_pulp
         uses: ./.github/actions/package-delivery-pulp
-        continue-on-error: true
         with:
           module_name: common
           distrib: ${{ matrix.distrib }}
@@ -266,12 +256,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp delivery failed
-        if: steps.deliver_deb_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
@@ -290,7 +274,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -306,7 +290,6 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   promote-pulp:
-    continue-on-error: true
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -326,12 +309,11 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable on Pulp
         id: promote_pulp
         uses: ./.github/actions/promote-to-stable-pulp
-        continue-on-error: true
         with:
           module_name: common
           distrib: ${{ matrix.distrib }}
@@ -342,12 +324,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-      - name: Warn if the Pulp promotion failed
-        if: steps.promote_pulp.outcome == 'failure'
-        shell: bash
-        run: |
-          echo "::warning::Pulp promotion failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory promotion remains authoritative). See the 'Promote to stable on Pulp' step."
 
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, promote]

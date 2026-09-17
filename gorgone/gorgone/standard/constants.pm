@@ -45,8 +45,13 @@ BEGIN {
         GORGONE_MODULE_CENTREON_AUTODISCO_SVC_PROGRESS => 400,
 
         GORGONE_MODULE_CENTREON_AUDIT_PROGRESS         => 500,
+        GORGONE_MODULE_CENTREON_MBIETL_PROGRESS        => 600,
 
-        GORGONE_MODULE_CENTREON_MBIETL_PROGRESS        => 600
+        # Centreon database store poller communication type as an enum with these possibles values.
+        COMM_PULLWSS                                   => 4,
+        COMM_PULL                                      => 3,
+        COMM_PUSH_SSH                                  => 2,
+        COMM_PUSH_ZMQ                                  => 1,
     );
 }
 

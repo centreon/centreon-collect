@@ -165,7 +165,8 @@ script_child::~script_child() {
 std::string script_child::_write_loader_to_disk(
     const std::string_view& additional_code) {
   char script_path[_SCRIPT_PATH.length() + 1];
-  strcpy(script_path, _SCRIPT_PATH.data());
+  memcpy(script_path, _SCRIPT_PATH.data(), _SCRIPT_PATH.length());
+  script_path[_SCRIPT_PATH.length()] = '\0';
   int script_fd = mkstemp(script_path);
   if (script_fd < 0) {
     char const* msg(strerror(errno));

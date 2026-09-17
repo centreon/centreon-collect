@@ -66,8 +66,11 @@ set_property(TARGET centreon_hexdump PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_hexdump REUSE_FROM centreon_common)
 
+# file_system is cross platform (it provides the file_watcher, needed by the
+# agent on both Linux and Windows)
+add_subdirectory(file_system)
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_subdirectory(file_system)
   add_subdirectory(http)
   add_subdirectory(vault)
   add_subdirectory(process_stat)

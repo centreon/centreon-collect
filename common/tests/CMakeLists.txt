@@ -30,6 +30,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     crypto/aes256.cc
     engine_conf/expand_conf.cc
     file_system_test.cc
+    file_watcher_test.cc
     fork_test.cc
     grpc/grpc_test.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
@@ -51,6 +52,7 @@ else()
   add_executable(
     ut_common
     absl_flyweight_factory_test.cc
+    file_watcher_test.cc
     grpc/grpc_test.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc
@@ -148,6 +150,7 @@ else()
     PRIVATE centreon_common
             centreon_process
             centreon_hexdump
+            centreon_file_system
             ctncrypto
             centreon_grpc
             Boost::program_options

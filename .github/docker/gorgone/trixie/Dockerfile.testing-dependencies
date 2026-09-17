@@ -69,7 +69,7 @@ fi
 echo "deb https://packages.centreon.com/apt-plugins-stable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-stable.list
 echo "deb https://packages.centreon.com/apt-plugins-testing/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list
 echo "deb https://packages.centreon.com/apt-plugins-unstable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-unstable.list
-wget -O- https://packages.centreon.com/api/security/keypair/APT-GPG-KEY/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+wget -O- https://apt-key.centreon.com/ | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
 
 apt-get update
 
@@ -88,6 +88,13 @@ apt-get install -y \
   libssh-session-perl \
   libxml-simple-perl \
   libzmq-ffi-perl
+
+# centreon-engine-daemon (ships /usr/sbin/centenginestats, needed by
+# centreon/statistics.robot) used to be pulled in transitively via
+# centreon-gorgone-centreon-config -> centreon-common -> centreon-engine-daemon.
+# That link was removed to fix a packaging layer inversion (centreon-common no
+# longer depends on centreon-engine-daemon), so it must be installed explicitly here.
+apt-get install -y centreon-engine-daemon
 
 echo -e '[mysqld]\nskip_ssl\n[client]\nssl=false' > /etc/mysql/mariadb.conf.d/99-disable-ssl.cnf
 

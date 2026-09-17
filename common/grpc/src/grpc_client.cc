@@ -16,12 +16,27 @@
 ** For more information : contact@centreon.com
 */
 
+#include <cstdlib>
+
 #include <grpcpp/create_channel.h>
 #include "grpcpp/security/credentials.h"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 
 using namespace com::centreon::common::grpc;
+
+#ifdef _WIN32
+/**
+ * @brief Force gRPC to use the OS-native (getaddrinfo-based) DNS resolver
+ * instead of its default c-ares resolver.
+ *
+ */
+static void force_native_dns_resolver() {
+  if (!std::getenv("GRPC_DNS_RESOLVER")) {
+    _putenv_s("GRPC_DNS_RESOLVER", "native");
+  }
+}
+#endif
 
 /**
  * @brief Certificate verifier that unconditionally accepts any peer.
@@ -53,6 +68,10 @@ grpc_client_base::grpc_client_base(
     const grpc_config::pointer& conf,
     const std::shared_ptr<spdlog::logger>& logger)
     : _conf(conf), _logger(logger) {
+#ifdef _WIN32
+  force_native_dns_resolver();
+#endif
+
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
   args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,

@@ -79,7 +79,7 @@ add_library(
   # Main source.
   ${SRC_DIR}/broker.cc)
 
-add_dependencies(${NEB} nebbase)
+add_dependencies(${NEB} nebbase target_broker_message)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive fmt::fmt)
@@ -96,6 +96,7 @@ add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
                          ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
 
 set_target_properties(cbmod PROPERTIES PREFIX "" POSITION_INDEPENDENT_CODE ON)
+add_dependencies(cbmod target_state_proto)
 
 target_precompile_headers(cbmod REUSE_FROM nebbase)
 target_link_libraries(

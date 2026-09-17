@@ -6,7 +6,7 @@ gorgone:
     internal_com_path: /etc/centreon-gorgone/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/routing.ipc
     gorgone_db_type: SQLite
     gorgone_db_name: dbname=/etc/centreon-gorgone/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/history.sdb
-    id: 2
+    id: @POLLERID@
     external_com_type: tcp
     external_com_path: "*:5556"
     authorized_clients:

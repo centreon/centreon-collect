@@ -398,7 +398,8 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           if (val) {
             _use_nt_query_system_information = *val;
           }
-        } else if (member_iter->name != "cpu-detailed") {
+        } else if (member_iter->name != "cpu-detailed" &&
+                   member_iter->name != "timeout") {
           SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
                               get_command_name(), member_iter->name);
         }

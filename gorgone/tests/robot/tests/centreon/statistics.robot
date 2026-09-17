@@ -45,6 +45,7 @@ check statistic module add all centengine data in db ${communication_mode}
 
     Examples:    communication_mode   --
         ...    push_zmq
+        ...    push_zmq_uid
         ...    pullwss
         ...    pullwss_uid
         ...    pull
@@ -103,9 +104,15 @@ Set Centenginestat Binary
     ...    directory and make it executable. This allow to test the gorgone statistics module 
     ...    without installing centreon-engine and starting the service
 
-    Copy File    /usr/sbin/centenginestats    /usr/sbin/centenginestats-back
+    ${file_exists}=  Run Keyword and Return Status    File Should Exist  /usr/sbin/centenginestats
+    IF  ${file_exists}
+        Copy File    /usr/sbin/centenginestats    /usr/sbin/centenginestats-back
+    END
     Copy File    ${CURDIR}${/}centenginestats    /usr/sbin/centenginestats
     Run    chmod 755 /usr/sbin/centenginestats
     
 Suite Teardown Statistic Module
-    Copy File    /usr/sbin/centenginestats-back    /usr/sbin/centenginestats
+    ${file_exists}=  Run Keyword and Return Status    File Should Exist  /usr/sbin/centenginestats-back
+    IF  ${file_exists}
+        Copy File    /usr/sbin/centenginestats-back    /usr/sbin/centenginestats
+    END

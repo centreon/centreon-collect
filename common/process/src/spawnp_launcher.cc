@@ -112,6 +112,23 @@ com::centreon::common::detail::spawnp(asio::io_context& io_context,
     throw exceptions::msg_fmt(msg);
   }
 
+#if defined(SYS_pidfd_open)
+  int pidfd = static_cast<int>(::syscall(SYS_pidfd_open, pid, 0));
+  if (pidfd == -1) {
+    int pidfd_errno = errno;
+    // Orphan the child: kill it and reap the zombie so no resource is leaked.
+    ::kill(pid, SIGKILL);
+    int status;
+    while (::waitpid(pid, &status, 0) == -1 && errno == EINTR)
+      ;
+    throw exceptions::msg_fmt("pidfd_open({}) failed: {}", pid,
+                              strerror(pidfd_errno));
+  }
+  return boost::process::v2::basic_process<asio::io_context::executor_type>(
+      io_context.get_executor(), pid, pidfd);
+#else
   return boost::process::v2::basic_process<asio::io_context::executor_type>(
       io_context.get_executor(), pid);
+
+#endif
 }

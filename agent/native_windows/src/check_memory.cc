@@ -444,6 +444,9 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
         }
         continue;
       }
+      if (key == "timeout") {
+        continue;
+      }
 
       auto mem_to_status_search = _label_to_mem_to_status.find(key);
       if (mem_to_status_search != _label_to_mem_to_status.end()) {

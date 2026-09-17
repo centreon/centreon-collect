@@ -9,6 +9,10 @@
 # Also covers TYPE=poller boot and RSA key persistence across a restart.
 set -e
 
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=lib/centreon-docker-test-common.sh
+source "$REPO_ROOT/.github/scripts/lib/centreon-docker-test-common.sh"
+
 IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
 PLATFORM="${PLATFORM:-}"
 CONTAINER_NAME="gorgone-runtime-test-$$"
@@ -26,9 +30,11 @@ if [ -n "$PLATFORM" ]; then
 fi
 
 cleanup() {
+  local rc=$?
   docker logs "$CONTAINER_NAME" > /tmp/gorgone-boot-test.log 2>&1 || true
   docker rm -f "$CONTAINER_NAME" "$ENGINE_RW_CONTAINER" "$POLLER_CONTAINER" "$KEYS_CONTAINER" > /dev/null 2>&1 || true
   docker volume rm "$ENGINE_RW_VOLUME" "$POLLER_ENGINE_VOLUME" "$KEYS_VOLUME" > /dev/null 2>&1 || true
+  _summary_render "Boot test — centreon-gorgone${PLATFORM:+ ($PLATFORM)}" "$rc"
 }
 trap cleanup EXIT
 
@@ -61,13 +67,18 @@ wait_for_log() {
   return 1
 }
 
+summary_step_start "Container starts"
 echo "=== [boot] Starting $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
 docker run -d --name "$CONTAINER_NAME" "${platform_args[@]}" "$IMAGE"
+summary_step_pass
 
+summary_step_start "Reports readiness (/tmp/docker.ready)"
 echo "=== [boot] Waiting for /tmp/docker.ready (timeout: ${READY_TIMEOUT}s) ==="
 wait_ready "$CONTAINER_NAME" || exit 1
 echo "Container is ready."
+summary_step_pass
 
+summary_step_start "Still running after startup"
 echo "=== [boot] Checking container is still running ==="
 running=$(docker inspect -f '{{.State.Running}}' "$CONTAINER_NAME")
 if [ "$running" != "true" ]; then
@@ -75,14 +86,18 @@ if [ "$running" != "true" ]; then
   docker logs "$CONTAINER_NAME" || true
   exit 1
 fi
+summary_step_pass
 
+summary_step_start "Runs as non-root uid 903 (centreon-gorgone)"
 echo "=== [boot] Checking non-root user (expected uid 903, centreon-gorgone) ==="
 uid=$(docker exec "$CONTAINER_NAME" id -u)
 if [ "$uid" != "903" ]; then
   echo "::error::gorgone process runs as uid $uid, expected 903 (centreon-gorgone)"
   exit 1
 fi
+summary_step_pass
 
+summary_step_start "Passwordless sudo works"
 echo "=== [boot] Checking passwordless sudo ==="
 # /etc/sudoers.d only whitelists a handful of exact commands (apt, apt-get,
 # chown, gorgone_install_plugins.pl) - "sudo -n true" is NOT among them and
@@ -91,36 +106,35 @@ if ! docker exec "$CONTAINER_NAME" sh -c "sudo -n /usr/bin/apt-get --version > /
   echo "::error::sudo -n /usr/bin/apt-get failed inside the container: sudoers configuration is broken"
   exit 1
 fi
+summary_step_pass
 
+summary_step_start "No crash signature in logs"
 echo "=== [boot] Scanning logs for unambiguous crash signatures ==="
 if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Compilation failed|Can't locate|Segmentation fault|Out of memory"; then
   echo "::error::gorgone logs contain a crash signature, see above"
   exit 1
 fi
+summary_step_pass
 
-# buf (used as "buf curl") is built from source per-arch and the copied
-# .proto files must resolve for gRPC-based centengine management to work.
-echo "=== [boot] Checking buf runs for this architecture ==="
-if ! docker exec "$CONTAINER_NAME" buf --version; then
-  echo "::error::buf --version failed inside the container (binary/arch mismatch?)"
+# grpc-signal.pl (used by the systemctl shim for centengine SignalProcess
+# calls) needs Protocol::HTTP2::Client to be loadable and its own syntax valid.
+summary_step_start "grpc-signal.pl and Protocol::HTTP2::Client are loadable"
+echo "=== [boot] Checking grpc-signal.pl and its Perl dependencies ==="
+if ! docker exec "$CONTAINER_NAME" perl -e 'require Protocol::HTTP2::Client'; then
+  echo "::error::Protocol::HTTP2::Client failed to load inside the container"
   exit 1
 fi
-
-echo "=== [boot] Checking engine.proto resolves with buf ==="
-# engine.proto has a relative import ("process_stat.proto") copied alongside
-# it - "buf build" on the directory parses the whole schema without needing
-# to reach a live gRPC server.
-proto_check=$(docker exec "$CONTAINER_NAME" buf build /usr/share/centreon-engine/proto -o /dev/null 2>&1) || true
-if [ -n "$proto_check" ]; then
-  echo "::error::engine.proto failed to resolve with buf:"
-  echo "$proto_check"
+if ! docker exec "$CONTAINER_NAME" perl -c /usr/local/lib/centreon-gorgone/grpc-signal.pl; then
+  echo "::error::grpc-signal.pl failed its Perl syntax check"
   exit 1
 fi
+summary_step_pass
 
 # Docker named volumes can come back root:root-owned (e.g. reused from a previous
 # root-run container, or certain orchestrator volume plugins) regardless of the
 # ownership baked into the image by the Dockerfile. container.d/00-init.sh is
 # supposed to fix this up for /var/lib/centreon-engine/rw on every boot.
+summary_step_start "/var/lib/centreon-engine/rw ownership fix-up on a root-owned volume"
 echo "=== [boot:engine-rw-ownership] Checking /var/lib/centreon-engine/rw ownership fix-up on a root-owned volume ==="
 docker volume create "$ENGINE_RW_VOLUME" > /dev/null
 docker run --rm -v "$ENGINE_RW_VOLUME:/vol" "${platform_args[@]}" alpine:3.20 chown 0:0 /vol > /dev/null
@@ -132,12 +146,14 @@ if [ "$rw_uid" != "901" ]; then
   echo "::error::/var/lib/centreon-engine/rw is owned by uid $rw_uid after boot, expected 901 (centreon-engine): the 00-init.sh ownership fix-up is broken"
   exit 1
 fi
+summary_step_pass
 
 # TYPE=poller (config named "Poller-docker") is the actual primary customer
 # deployment mode - the default/central mode above is a comparatively
 # thin/placeholder path. Re-run the core health checks in poller mode so a
 # poller-specific regression (e.g. in the engine-secrets write) isn't masked
 # by only ever booting in central mode.
+summary_step_start "Boots in TYPE=poller mode (uid, sudo, no crash, still running)"
 echo "=== [boot:poller] Checking boot in TYPE=poller mode ==="
 docker volume create "$POLLER_ENGINE_VOLUME" > /dev/null
 docker run --rm --user root --entrypoint sh -v "$POLLER_ENGINE_VOLUME:/vol" "${platform_args[@]}" "$IMAGE" \
@@ -166,10 +182,12 @@ if [ "$poller_running" != "true" ]; then
   docker logs "$POLLER_CONTAINER" || true
   exit 1
 fi
+summary_step_pass
 
 # RSA node keys under /var/lib/centreon-gorgone/.keys must survive container
 # restarts (host reboot, image bump) - regenerating them on every boot would
 # silently break node identity/registration for customers.
+summary_step_start "RSA key persistence across a restart"
 echo "=== [boot:key-persistence] Checking RSA key persistence across a restart ==="
 docker volume create "$KEYS_VOLUME" > /dev/null
 docker run -d --name "$KEYS_CONTAINER" "${platform_args[@]}" \
@@ -194,11 +212,14 @@ if [ "$privkey_hash_before" != "$privkey_hash_after" ]; then
   echo "::error::RSA private key changed across a restart (was regenerated instead of reused): before=$privkey_hash_before after=$privkey_hash_after"
   exit 1
 fi
+summary_step_pass
 
+summary_step_start "Stops cleanly"
 echo "=== [boot] Stopping container (validates entrypoint cleanup trap) ==="
 if ! docker stop "$CONTAINER_NAME" > /dev/null; then
   echo "::error::gorgone container did not stop cleanly within the default timeout"
   exit 1
 fi
+summary_step_pass
 
 echo "=== [boot] PASSED for $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="

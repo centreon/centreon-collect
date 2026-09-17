@@ -212,7 +212,9 @@ sub run {
                 if ($status != 0
                     || !defined($results->{token})
                     || $results->{is_revoked}
-                    || str2time($results->{expiration_date}) < time()) {
+                    || (defined($results->{expiration_date})
+                    && $results->{expiration_date} ne ''
+                    && str2time($results->{expiration_date}) < time())) {
                         $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token: ' . $token_name);
                         $connector->{ws_clients}->{$ws_id}->{logged} = 0;
                         $self->close_websocket(
@@ -324,6 +326,15 @@ sub action_proxyaddnode {
         # this allow to transparently use both id and uid as key, without worrying about duplicate element.
         $temp_nodes->{$node->{uid}} = $temp_nodes->{$node->{id}};
 
+        # ack the node as registered, same as push mode in class.pm's action_proxyaddnode, so hooks.pm's
+        # routing() can use "channel_ready" uniformly regardless of node type to define if connection is ready.
+        $self->send_internal_action({
+            action => 'PROXYREADY',
+            data => {
+                node_id  => $node->{id},
+                node_uid => $node->{uid}
+            }
+        });
     }
     # disconnect every node that don't exist anymore.
     for my $delete_node (keys %{$self->{nodes}}){
@@ -462,7 +473,7 @@ sub is_empty {
     }
     return 0;
 }
-=head3 $self->is_token_ok(ws_id => $ws_id, data => $data)
+=head3 $self->is_logged_websocket(ws_id => $ws_id, data => $data)
 
 validate a client sent the correct token/node Id couple to authenticate.
 Authentication id done only once when websocket client send the first message, then the websocket session is considered authenticated.
@@ -497,7 +508,9 @@ sub is_logged_websocket {
             if ($results->{token} ne $token_value
                 || $results->{type} ne "poller"
                 || $results->{is_revoked} == 1
-                || str2time($results->{expiration_date}) < time()) {
+                || (defined($results->{expiration_date})
+                && $results->{expiration_date} ne ''
+                && str2time($results->{expiration_date}) < time())) {
                 $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token - ' . $token_name);
                 $self->close_websocket(
                     code    => 500,

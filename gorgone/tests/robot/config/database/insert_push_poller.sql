@@ -11,7 +11,7 @@ INSERT IGNORE INTO `nagios_server` (
   VALUES
   (
     2, 'pushpoller', '0', 0,
-    22, '1', 5556, 1991234,
+    22, '1', 5556, 299123456,
     NULL, '127.0.0.1',
     '1', '0', 'service centengine start',
     'service centengine stop', 'service centengine restart',

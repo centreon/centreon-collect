@@ -2,3 +2,6 @@ nodes:
   - id: 2
     type: pull
     prevail: 1
+  - id: 3
+    type: pull
+    prevail: 1

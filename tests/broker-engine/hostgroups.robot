@@ -364,3 +364,64 @@ EBNHG5
 
     ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    6    30
     Should Be True    ${result}    We should have 6 hosts members in the hostgroup 1.
+
+EBNHG6
+    [Documentation]    Scenario: Two pollers are connected, hostgroup 1 is defined on poller 0 with host_1 and
+    ...                host_2 as members. Both hosts are then moved from poller 0's configuration to poller 1's
+    ...                configuration, poller 1 is reloaded first, then poller 0. The hostgroup and its host
+    ...                memberships must not disappear from the database.
+    [Tags]    broker    engine    hostgroup    unified_sql    MON-169103
+    Ctn Config Engine    ${2}    ${5}    ${0}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Config BBDO3    ${2}
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+
+    ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    2    30
+    Should Be True    ${result}    We should have 2 hosts members in the hostgroup 1 before the move.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query    SELECT count(*) FROM hostgroups WHERE hostgroup_id = 1
+    Should Be Equal As Strings    ${output}    ((1,),)    The hostgroup 1 should exist before the move.
+
+    # Move host_1 and host_2 from poller 0's configuration to poller 1's configuration.
+    Ctn Engine Config Move Host To Engine    0    1    host_1
+    Ctn Engine Config Move Host To Engine    0    1    host_2
+
+    Ctn Add Host Group    ${1}    ${1}    ["host_1", "host_2"]
+
+    # Reload the second poller first, then the first poller.
+    Ctn Reload Engine    1
+    Sleep    1
+    Ctn Reload Engine    0
+
+    Sleep    5
+
+    ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    2    30
+    Should Be True
+    ...    ${result}
+    ...    host_1 and host_2 should still be members of hostgroup 1 in hosts_hostgroups after the move.
+
+    ${output}    Query    SELECT count(*) FROM hostgroups WHERE hostgroup_id = 1
+    Should Be Equal As Strings    ${output}    ((1,),)    The hostgroup 1 should still exist after the move.
+
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_1' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_1 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_2' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_2 should be enabled and owned by poller 1 (instance_id=2) after the move.

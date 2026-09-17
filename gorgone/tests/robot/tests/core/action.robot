@@ -48,9 +48,9 @@ action module with ${communication_mode} communcation mode
     Test Async Action Module    node_path=nodes/1/
     # check a distant poller can execute a command and send back the output
     ${start_date}    Get Current Date    increment=-10s
-    Test Async Action Module    node_path=nodes/2/    plugin_install=centreon-plugin-Operatingsystems-Linux-Snmp
+    Test Async Action Module    node_path=nodes/${poller_id}/    plugin_install=centreon-plugin-Operatingsystems-Linux-Snmp
     # we need to check it is the poller and not the central that have done the action.
-    ${log_poller2_query}    Create List    Robot test write with param: for node nodes/2/
+    ${log_poller2_query}    Create List    Robot test write with param: for node nodes/${poller_id}/
     # this can be long as the poller can install new packages before executing the command.
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query}    date=${start_date}    timeout=70
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file : ${logs_poller}
@@ -63,18 +63,26 @@ action module with ${communication_mode} communcation mode
     ${get_params}=    Set Variable    ?log_wait=3000000&sync_wait=500000
     Test Sync Action Module    get_params=${get_params}
     Test Sync Action Module    get_params=${get_params}    node_path=nodes/1/
-    Test Sync Action Module    get_params=${get_params}    node_path=nodes/2/
+    Test Sync Action Module    get_params=${get_params}    node_path=nodes/${poller_id}/
     # we need to check it is the poller and not the central that have done the action.
     ${start_date}    Get Current Date        increment=-10s
-    ${log_poller2_query_sync}    Create List    Robot test write with param:${get_params} for node nodes/2/
+    ${log_poller2_query_sync}    Create List    Robot test write with param:${get_params} for node nodes/${poller_id}/
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query_sync}    date=${start_date}    timeout=10
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file: ${logs_poller}
 
-    Examples:    communication_mode   --
-        ...    push_zmq
-        ...    pullwss
-        ...    pullwss_uid
-        ...    pull
+    Examples:    communication_mode    poller_id    --
+        ...    push_zmq        2
+        ...    push_zmq        299123456
+        ...    push_zmq_uid    2
+        ...    push_zmq_uid    299123456
+        ...    pull            2
+        ...    pull            299123456
+        ...    pull_uid        2
+        ...    pull_uid        299123456
+        ...    pullwss         2
+        ...    pullwss         299123456
+        ...    pullwss_uid     2
+        ...    pullwss_uid     299123456
 
 *** Keywords ***
 Test Sync Action Module
