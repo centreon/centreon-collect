@@ -16,8 +16,10 @@
  * For more information : contact@centreon.com
  */
 
-#include "file.hh"
+#include <system_error>
+
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "file.hh"
 
 namespace com::centreon::common {
 
@@ -76,7 +78,20 @@ std::string hash_directory(const std::filesystem::path& dir_path,
     if (ec)
       break;
     EVP_DigestUpdate(mdctx, fname.data(), fname.size());
-    std::string content = read_file_content(f);
+    std::string content;
+    try {
+      content = read_file_content(f);
+    } catch (const std::exception&) {
+      /* The directory changed under us: a file listed a moment ago is already
+       * gone, or is no longer readable. There is nothing to hash, and nothing
+       * this says about the content that was being hashed -- so it is reported
+       * the same way as any other failure here, and whoever asked for the hash
+       * is free to ask again later. Caught rather than let out: this function
+       * is noexcept, and an exception escaping it would terminate the
+       * process. */
+      ec = std::make_error_code(std::errc::no_such_file_or_directory);
+      break;
+    }
     EVP_DigestUpdate(mdctx, content.data(), content.size());
   }
 
