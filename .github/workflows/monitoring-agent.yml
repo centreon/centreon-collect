@@ -822,7 +822,6 @@ jobs:
         with:
           file_pattern: /tmp/promoted-packages/centreon-monitoring-agent${{ steps.parse-distrib.outputs.package_version_separator }}${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
-          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   promote-linux-pulp:
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
@@ -916,7 +915,6 @@ jobs:
         with:
           file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
-          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   # Blocking, like its delivery counterpart. Needs no installer file: the relative path carries
   # no stability, so promotion is a content add of the unit already in the testing repository.
@@ -949,6 +947,74 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+  # One job, after both promotions: every asset is on the github release by then, so this reads
+  # them back rather than reconstructing names, and a single writer needs no branch merging
+  # between the 8 promote jobs. Re-runnable on its own.
+  publish-cma-download-site:
+    needs: [get-environment, promote-linux, promote-windows]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.is_cloud == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+
+    env:
+      CMA_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # the target repo's own validator runs before anything is pushed; it needs pnpm >= 11,
+      # provisioned the way WebApp-download's own workflows do it (not corepack)
+      - name: Setup node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 11
+
+      - name: Install libatomic1
+        shell: bash
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libatomic1
+
+      - name: Build the download site entries
+        id: entries
+        shell: bash
+        env:
+          RELEASE_TAG: centreon-monitoring-agent-${{ env.CMA_VERSION }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AGENT_ENTRY_FILE: agent-entry.tsv
+        run: ./.github/scripts/cma-release-entries.sh > entries.tsv
+
+      - name: Publish to the download site
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+        run: |
+          set -euo pipefail
+          IFS=$'\t' read -r AGENT_VERSION AGENT_URL AGENT_MD5 AGENT_SIZE < agent-entry.tsv
+          ./.github/scripts/publish-download-release.sh \
+            --entries entries.tsv \
+            --out-name "${CMA_VERSION}.yaml" \
+            --branch "release/cma-${CMA_VERSION}" \
+            --commit-message "release: centreon-monitoring-agent ${CMA_VERSION}" \
+            --pr-title "release: centreon-monitoring-agent ${CMA_VERSION}" \
+            --agent-version "$AGENT_VERSION" \
+            --agent-file-url "$AGENT_URL" \
+            --agent-md5 "$AGENT_MD5" \
+            --agent-size "$AGENT_SIZE"
 
   set-skip-label:
     needs:
