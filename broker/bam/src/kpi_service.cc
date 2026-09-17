@@ -44,8 +44,8 @@ static constexpr bool time_is_undefined(uint64_t t) {
  */
 kpi_service::kpi_service(uint32_t kpi_id,
                          uint32_t ba_id,
-                         uint32_t host_id,
-                         uint32_t service_id,
+                         uint64_t host_id,
+                         uint64_t service_id,
                          const std::string& host_serv,
                          const std::shared_ptr<spdlog::logger>& logger)
     : kpi(kpi_id, ba_id, host_serv, logger),
@@ -66,7 +66,7 @@ kpi_service::kpi_service(uint32_t kpi_id,
  *
  *  @return Host ID.
  */
-uint32_t kpi_service::get_host_id() const {
+uint64_t kpi_service::get_host_id() const {
   return _host_id;
 }
 
@@ -102,7 +102,7 @@ double kpi_service::get_impact_warning() const {
  *
  *  @return Service ID.
  */
-uint32_t kpi_service::get_service_id() const {
+uint64_t kpi_service::get_service_id() const {
   return _service_id;
 }
 
@@ -260,7 +260,7 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_service>& status,
     _logger->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
         "{})",
-        _id, _host_id, _service_id, static_cast<uint32_t>(o.state()));
+        _id, _host_id, _service_id, static_cast<uint64_t>(o.state()));
 
     // Update information.
     if (o.last_check() == 0 || o.last_check() == -1) {
@@ -309,7 +309,7 @@ void kpi_service::service_update(
     _logger->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
         "{} hard state: {})",
-        _id, _host_id, _service_id, static_cast<uint32_t>(o.state()),
+        _id, _host_id, _service_id, static_cast<uint64_t>(o.state()),
         static_cast<uint32_t>(o.state_type()));
 
     // Update information.

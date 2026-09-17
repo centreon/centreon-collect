@@ -69,7 +69,7 @@ static std::string meta_node_id(uint32_t meta_id) {
  *
  *  @return Service identifier for circular path search.
  */
-static std::string service_node_id(uint32_t host_id, uint32_t service_id) {
+static std::string service_node_id(uint64_t host_id, uint64_t service_id) {
   return fmt::format("service ({}, {})", host_id, service_id);
 }
 

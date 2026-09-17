@@ -28,8 +28,8 @@ static constexpr double eps = 0.000001;
  */
 kpi::kpi(uint32_t id,
          short state_type,
-         uint32_t host_id,
-         uint32_t service_id,
+         uint64_t host_id,
+         uint64_t service_id,
          uint32_t ba_id,
          uint32_t indicator_ba,
          uint32_t meta_id,
@@ -149,7 +149,7 @@ short kpi::get_state_type() const {
  *
  *  @return  The host id.
  */
-uint32_t kpi::get_host_id() const {
+uint64_t kpi::get_host_id() const {
   return _host_id;
 }
 
@@ -158,7 +158,7 @@ uint32_t kpi::get_host_id() const {
  *
  *  @return  The service id.
  */
-uint32_t kpi::get_service_id() const {
+uint64_t kpi::get_service_id() const {
   return _service_id;
 }
 
@@ -329,7 +329,7 @@ void kpi::set_state_type(short s) {
  *
  *  @param[in] i Set the host id.
  */
-void kpi::set_host_id(uint32_t i) {
+void kpi::set_host_id(uint64_t i) {
   _host_id = i;
 }
 
@@ -338,7 +338,7 @@ void kpi::set_host_id(uint32_t i) {
  *
  *  @param[in] i The service id
  */
-void kpi::set_service_id(uint32_t i) {
+void kpi::set_service_id(uint64_t i) {
   _service_id = i;
 }
 

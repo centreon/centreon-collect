@@ -28,7 +28,7 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @return Host ID, 0 if it was not found.
  */
-uint32_t hst_svc_mapping::get_host_id(std::string const& hst) const {
+uint64_t hst_svc_mapping::get_host_id(std::string const& hst) const {
   return get_service_id(hst, "").first;
 }
 
@@ -41,7 +41,7 @@ uint32_t hst_svc_mapping::get_host_id(std::string const& hst) const {
  *  @return Pair of integers with host ID and service ID, (0, 0) if it
  *          was not found.
  */
-std::pair<uint32_t, uint32_t> hst_svc_mapping::get_service_id(
+std::pair<uint64_t, uint64_t> hst_svc_mapping::get_service_id(
     std::string const& hst,
     std::string const& svc) const {
   auto it{_mapping.find(std::make_pair(hst, svc))};
@@ -60,7 +60,7 @@ std::pair<uint32_t, uint32_t> hst_svc_mapping::get_service_id(
  *  @param[in] hst      Host name.
  *  @param[in] host_id  Host ID.
  */
-void hst_svc_mapping::set_host(std::string const& hst, uint32_t host_id) {
+void hst_svc_mapping::set_host(std::string const& hst, uint64_t host_id) {
   set_service(hst, "", host_id, 0u, true);
 }
 
@@ -74,8 +74,8 @@ void hst_svc_mapping::set_host(std::string const& hst, uint32_t host_id) {
  */
 void hst_svc_mapping::set_service(std::string const& hst,
                                   std::string const& svc,
-                                  uint32_t host_id,
-                                  uint32_t service_id,
+                                  uint64_t host_id,
+                                  uint64_t service_id,
                                   bool activated) {
   _mapping[std::make_pair(hst, svc)] = std::make_pair(host_id, service_id);
   _activated_mapping[std::make_pair(host_id, service_id)] = activated;
@@ -89,8 +89,8 @@ void hst_svc_mapping::set_service(std::string const& hst,
  *
  *  @return                 True if activated.
  */
-bool hst_svc_mapping::get_activated(uint32_t hst_id,
-                                    uint32_t service_id) const {
+bool hst_svc_mapping::get_activated(uint64_t hst_id,
+                                    uint64_t service_id) const {
   auto it{_activated_mapping.find(std::make_pair(hst_id, service_id))};
   return it == _activated_mapping.end() ? true : it->second;
 }
@@ -108,8 +108,8 @@ bool hst_svc_mapping::get_activated(uint32_t hst_id,
  * @param[in] service_id The service id.
  * @param[in] activated  True if the service is activated.
  */
-void hst_svc_mapping::set_activated(uint32_t host_id,
-                                    uint32_t service_id,
+void hst_svc_mapping::set_activated(uint64_t host_id,
+                                    uint64_t service_id,
                                     bool activated) {
   _activated_mapping[std::make_pair(host_id, service_id)] = activated;
 }

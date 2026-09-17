@@ -60,9 +60,9 @@ class service_book {
   ~service_book() noexcept = default;
   service_book(const service_book&) = delete;
   service_book& operator=(const service_book&) = delete;
-  void listen(uint32_t host_id, uint32_t service_id, service_listener* listnr);
-  void unlisten(uint32_t host_id,
-                uint32_t service_id,
+  void listen(uint64_t host_id, uint64_t service_id, service_listener* listnr);
+  void unlisten(uint64_t host_id,
+                uint64_t service_id,
                 service_listener* listnr);
   void update(const std::shared_ptr<neb::acknowledgement>& t,
               io::stream* visitor = nullptr);

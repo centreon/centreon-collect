@@ -46,8 +46,8 @@ constexpr double eps = 0.000001;
  *  @param[in] logger The logger to use in this BA.
  */
 ba_impact::ba_impact(uint32_t id,
-                     uint32_t host_id,
-                     uint32_t service_id,
+                     uint64_t host_id,
+                     uint64_t service_id,
                      bool generate_virtual_status,
                      const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,

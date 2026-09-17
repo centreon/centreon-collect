@@ -232,7 +232,7 @@ void applier::ba::visit(io::stream* visitor, bool seed_service_status) {
  *
  *  @return Virtual BA host.
  */
-std::shared_ptr<neb::host> applier::ba::_ba_host(uint32_t host_id) {
+std::shared_ptr<neb::host> applier::ba::_ba_host(uint64_t host_id) {
   std::shared_ptr<neb::host> h(new neb::host);
   h->poller_id =
       com::centreon::broker::config::applier::state::instance().poller_id();
@@ -249,7 +249,7 @@ std::shared_ptr<neb::host> applier::ba::_ba_host(uint32_t host_id) {
  *
  *  @return Virtual BA host.
  */
-std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint32_t host_id) {
+std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint64_t host_id) {
   auto h = std::make_shared<neb::pb_host>();
   auto& o = h->mut_obj();
   o.set_instance_id(
@@ -271,8 +271,8 @@ std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint32_t host_id) {
  *  @return Virtual BA service.
  */
 std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
-                                                       uint32_t host_id,
-                                                       uint32_t service_id,
+                                                       uint64_t host_id,
+                                                       uint64_t service_id,
                                                        bool in_downtime) {
   _logger->trace("_ba_service ba {}, service {}:{} with downtime {}", ba_id,
                  host_id, service_id, in_downtime);
@@ -297,10 +297,10 @@ std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
  */
 std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
     uint32_t ba_id,
-    uint32_t host_id,
+    uint64_t host_id,
     const std::string& ba_name,
     const std::string& host_name,
-    uint32_t service_id,
+    uint64_t service_id,
     bool in_downtime) {
   _logger->trace("_ba_pb_service ba {}, service {}:{} with downtime {}", ba_id,
                  host_id, service_id, in_downtime);

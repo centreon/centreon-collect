@@ -35,8 +35,8 @@ namespace com::centreon::broker::bam {
  *  Allows use of a service as a KPI that can impact a BA.
  */
 class kpi_service : public service_listener, public kpi {
-  const uint32_t _host_id;
-  const uint32_t _service_id;
+  const uint64_t _host_id;
+  const uint64_t _service_id;
 
  private:
   void _fill_impact(impact_values& impact, state state);
@@ -57,18 +57,18 @@ class kpi_service : public service_listener, public kpi {
  public:
   kpi_service(uint32_t kpi_id,
               uint32_t ba_id,
-              uint32_t host_id,
-              uint32_t service_id,
+              uint64_t host_id,
+              uint64_t service_id,
               const std::string& host_serv,
               const std::shared_ptr<spdlog::logger>& logger);
   ~kpi_service() noexcept = default;
   kpi_service(const kpi_service&) = delete;
   kpi_service& operator=(const kpi_service&) = delete;
-  uint32_t get_host_id() const;
+  uint64_t get_host_id() const;
   double get_impact_critical() const;
   double get_impact_unknown() const;
   double get_impact_warning() const;
-  uint32_t get_service_id() const;
+  uint64_t get_service_id() const;
   state get_state_hard() const;
   state get_state_soft() const;
   short get_state_type() const;

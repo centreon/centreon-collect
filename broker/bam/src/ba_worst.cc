@@ -44,8 +44,8 @@ using namespace com::centreon::broker::bam;
  *  @param[in] logger The logger to use in this BA.
  */
 ba_worst::ba_worst(uint32_t id,
-                   uint32_t host_id,
-                   uint32_t service_id,
+                   uint64_t host_id,
+                   uint64_t service_id,
                    bool generate_virtual_status,
                    const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,

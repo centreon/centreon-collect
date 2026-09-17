@@ -36,8 +36,8 @@ namespace configuration {
 class kpi {
   uint32_t _id;
   int16_t _state_type;
-  uint32_t _host_id;
-  uint32_t _service_id;
+  uint64_t _host_id;
+  uint64_t _service_id;
   uint32_t _ba_id;
   uint32_t _indicator_ba_id;
   uint32_t _meta_id;
@@ -56,8 +56,8 @@ class kpi {
  public:
   kpi(uint32_t id = 0,
       short state_type = 0,
-      uint32_t host_id = 0,
-      uint32_t service_id = 0,
+      uint64_t host_id = 0,
+      uint64_t service_id = 0,
       uint32_t ba_id = 0,
       uint32_t indicator_ba = 0,
       uint32_t meta_id = 0,
@@ -77,8 +77,8 @@ class kpi {
 
   uint32_t get_id() const;
   short get_state_type() const;
-  uint32_t get_host_id() const;
-  uint32_t get_service_id() const;
+  uint64_t get_host_id() const;
+  uint64_t get_service_id() const;
   bool is_service() const;
   bool is_ba() const;
   bool is_meta() const;
@@ -100,8 +100,8 @@ class kpi {
 
   void set_id(uint32_t id);
   void set_state_type(short state_type);
-  void set_host_id(uint32_t host_id);
-  void set_service_id(uint32_t service_id);
+  void set_host_id(uint64_t host_id);
+  void set_service_id(uint64_t service_id);
   void set_ba_id(uint32_t ba_id);
   void set_indicator_ba_id(uint32_t ba_id);
   void set_meta_id(uint32_t meta_id);

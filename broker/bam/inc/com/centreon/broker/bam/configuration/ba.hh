@@ -34,8 +34,8 @@ namespace configuration {
  */
 class ba {
   uint32_t _id;
-  uint32_t _host_id;
-  uint32_t _service_id;
+  uint64_t _host_id;
+  uint64_t _service_id;
 
  public:
   typedef enum {
@@ -70,8 +70,8 @@ class ba {
   bool operator!=(ba const& right) const;
 
   uint32_t get_id() const;
-  uint32_t get_host_id() const;
-  uint32_t get_service_id() const;
+  uint64_t get_host_id() const;
+  uint64_t get_service_id() const;
   const std::string& get_name() const;
   const std::string& get_host_name() const { return _host_name; }
   ba::state_source get_state_source() const;
@@ -82,8 +82,8 @@ class ba {
   std::vector<uint32_t> const& get_timeperiods() const;
   downtime_behaviour get_downtime_behaviour() const;
 
-  void set_host_id(uint32_t host_id);
-  void set_service_id(uint32_t service_id);
+  void set_host_id(uint64_t host_id);
+  void set_service_id(uint64_t service_id);
   void set_name(std::string const& name);
   void set_host_name(const std::string_view& host_name) {
     _host_name = host_name;

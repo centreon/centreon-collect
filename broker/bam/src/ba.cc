@@ -51,8 +51,8 @@ static bool time_is_undefined(uint64_t t) {
  *  @param[in] logger The logger used in this ba.
  */
 ba::ba(uint32_t id,
-       uint32_t host_id,
-       uint32_t service_id,
+       uint64_t host_id,
+       uint64_t service_id,
        configuration::ba::state_source source,
        bool generate_virtual_status,
        const std::shared_ptr<spdlog::logger>& logger)
@@ -110,7 +110,7 @@ uint32_t ba::get_id() const {
  *
  *  @return  An integer representing the value of this id.
  */
-uint32_t ba::get_host_id() const {
+uint64_t ba::get_host_id() const {
   return _host_id;
 }
 
@@ -119,7 +119,7 @@ uint32_t ba::get_host_id() const {
  *
  *  @return  An integer representing the value of this id.
  */
-uint32_t ba::get_service_id() const {
+uint64_t ba::get_service_id() const {
   return _service_id;
 }
 

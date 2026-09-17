@@ -51,17 +51,17 @@ class ba {
   };
   std::map<uint32_t, applied> _applied;
 
-  std::shared_ptr<neb::host> _ba_host(uint32_t host_id);
-  std::shared_ptr<neb::pb_host> _ba_pb_host(uint32_t host_id);
+  std::shared_ptr<neb::host> _ba_host(uint64_t host_id);
+  std::shared_ptr<neb::pb_host> _ba_pb_host(uint64_t host_id);
   std::shared_ptr<neb::service> _ba_service(uint32_t ba_id,
-                                            uint32_t host_id,
-                                            uint32_t service_id,
+                                            uint64_t host_id,
+                                            uint64_t service_id,
                                             bool in_downtime = false);
   std::shared_ptr<neb::pb_service> _ba_pb_service(uint32_t ba_id,
-                                                  uint32_t host_id,
+                                                  uint64_t host_id,
                                                   const std::string& ba_name,
                                                   const std::string& host_name,
-                                                  uint32_t service_id,
+                                                  uint64_t service_id,
                                                   bool in_downtime = false);
   void _internal_copy(ba const& other);
   std::shared_ptr<bam::ba> _new_ba(configuration::ba const& cfg,

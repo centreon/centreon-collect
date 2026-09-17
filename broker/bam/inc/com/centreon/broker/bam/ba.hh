@@ -40,8 +40,8 @@ class kpi;
 class ba : public computable, public service_listener {
   const uint32_t _id;
   const configuration::ba::state_source _state_source;
-  const uint32_t _host_id;
-  const uint32_t _service_id;
+  const uint64_t _host_id;
+  const uint64_t _service_id;
   const bool _generate_virtual_status;
   bool _in_downtime;
   timestamp _last_kpi_update;
@@ -106,8 +106,8 @@ class ba : public computable, public service_listener {
 
  public:
   ba(uint32_t id,
-     uint32_t host_id,
-     uint32_t service_id,
+     uint64_t host_id,
+     uint64_t service_id,
      configuration::ba::state_source source,
      bool generate_virtual_status,
      const std::shared_ptr<spdlog::logger>& logger);
@@ -120,8 +120,8 @@ class ba : public computable, public service_listener {
   int32_t get_ack_impact_hard() const;
   std::shared_ptr<pb_ba_event> get_ba_event();
   uint32_t get_id() const;
-  uint32_t get_host_id() const;
-  uint32_t get_service_id() const;
+  uint64_t get_host_id() const;
+  uint64_t get_service_id() const;
   bool in_downtime() const;
   timestamp get_last_kpi_update() const;
   std::string const& get_name() const;

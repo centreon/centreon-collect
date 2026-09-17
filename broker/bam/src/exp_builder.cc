@@ -127,7 +127,7 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
         std::string hst(_pop_string());
 
         // Find host and service IDs.
-        std::pair<uint32_t, uint32_t> ids(_mapping.get_service_id(hst, svc));
+        std::pair<uint64_t, uint64_t> ids(_mapping.get_service_id(hst, svc));
         if (!ids.first || !ids.second)
           throw msg_fmt("could not find ID of service '{}' and/or of host '{}'",
                         svc, hst);

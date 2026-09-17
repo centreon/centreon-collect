@@ -52,8 +52,8 @@ class ba_impact : public ba {
 
  public:
   ba_impact(uint32_t id,
-            uint32_t host_id,
-            uint32_t service_id,
+            uint64_t host_id,
+            uint64_t service_id,
             bool generate_virtual_status,
             const std::shared_ptr<spdlog::logger>& logger);
   state get_state_hard() const override;
