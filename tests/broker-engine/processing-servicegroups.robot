@@ -14,7 +14,7 @@ Test Teardown    Ctn Save Logs If Failed
 
 *** Test Cases ***
 BEPSG1
-    [Documentation]
+    [Documentation]    Scenario: Servicegroups added then removed one by one stay consistent between the database and the broker cache
     ...    Given a central broker, a rrd broker and 5 engine instances in centralized mode
     ...    With 50 hosts each (250 hosts total, numbered 1 to 250) and 20 services per host
     ...    (5000 services total, numbered 1 to 5000)
@@ -61,8 +61,8 @@ BEPSG1
         FOR    ${idx}    IN RANGE    5
             ${members}    Ctn Get Filtered Service Names    ${idx}    ${sg_id}
             Ctn Add Service Group    ${idx}    ${sg_id}    ${members}
-            Ctn Notify Broker Of Engine Config Change    ${idx}
         END
+        Ctn Notify Broker Of Engine Config Change    ${0}    ${1}    ${2}    ${3}    ${4}
         ${expected_count}    Evaluate    sum(1 for s in range(1, 5001) if s % ${sg_id} == 0)
         Log To Console    Expecting ${expected_count} services in servicegroup ${sg_id}
 
@@ -90,8 +90,8 @@ BEPSG1
         Log To Console    Removing servicegroup ${sg_id} from all 5 engine instances
         FOR    ${idx}    IN RANGE    5
             Ctn Remove Service Group    ${idx}    ${sg_id}
-            Ctn Notify Broker Of Engine Config Change    ${idx}
         END
+        Ctn Notify Broker Of Engine Config Change    ${0}    ${1}    ${2}    ${3}    ${4}
 
         # DB check: no remaining entries for this servicegroup
         ${result}    Ctn Check Number Of Relations Between Servicegroup And Services

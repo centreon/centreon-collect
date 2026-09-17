@@ -35,7 +35,7 @@ CTestBadUser
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
@@ -69,7 +69,7 @@ CTestBadPwd
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
@@ -118,7 +118,7 @@ CTest6Hosts
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     FOR    ${idx}    IN RANGE    1    7
         Sleep    1s    We don't want to be too brutal with sshd
@@ -186,7 +186,7 @@ CTestWhiteList
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     # ssh_linux_snmp forbidden
     Ctn Schedule Forced Host Check    host_1

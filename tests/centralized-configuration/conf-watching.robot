@@ -83,14 +83,15 @@ BECWATCH1
     ...    ${1}
     ...    the burst of 3 unchanged configurations became ${batches} batches instead of one
 
-BECWATCH2
+BECWATCH2_${lck_mode}
     [Documentation]    Scenario: the watched cache directory is moved out of the way and back
     ...    Given a centralized platform with 1 poller and Broker started
     ...    When the cache directory is renamed, so the inotify watch is lost
     ...    Then Broker reports the loss and cannot establish the watch again
     ...    When the directory is put back
     ...    Then Broker establishes the watch again without waiting for the slow period
-    ...    And a configuration pushed afterwards is detected
+    ...    And a configuration pushed afterwards is detected, whichever shape
+    ...    announces it -- pollers.lck or <ID>.lck
     [Tags]    broker    engine    config    centralized
     Ctn Clear Prot Files
     Ctn Clear Broker Cache
@@ -131,20 +132,33 @@ BECWATCH2
     # now has to be seen.
     ${pushed}    Ctn Get Round Current Date
     Ctn Engine Config Set Value    ${0}    log_level_events    debug
-    Ctn Notify Broker Of Engine Config Change    ${0}
-    ${content}    Create List    New Engine configuration available, change in '1.lck'
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
+    # The two shapes are reported by two different lines: a batch is announced as
+    # a whole, an individual lock file names the poller it belongs to.
+    IF    '${lck_mode}' == 'per_poller'
+        ${announced}    Set Variable    New Engine configuration available, change in '1.lck'
+    ELSE
+        ${announced}    Set Variable    A poller batch was announced in 'pollers.lck'
+    END
+    ${content}    Create List    ${announced}
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${pushed}    ${content}    60
     Should Be True    ${result}    The re-established watch did not report a new configuration
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
     # No RRD broker here: this test only needs the central one, and the suite
     # teardown would look for a b2 that was never started. And this test leaves
     # things behind that the shared setup does not clean: its poller is never
     # connected, so its .lck is deliberately kept -- and Ctn Clear Prot Files
     # only removes .prot files -- while a failure mid-way could leave the
-    # directory renamed.
+    # directory renamed. Both announcement files are removed: only one of them
+    # exists in a given run, and Remove File is fine with a missing one.
     [Teardown]    Run Keywords
     ...    Ctn Stop Engine Broker And Save Logs    only_central=True
     ...    AND    Remove File    ${VarRoot}/lib/centreon/config/1.lck
+    ...    AND    Remove File    ${VarRoot}/lib/centreon/config/pollers.lck
     ...    AND    Remove Directory    ${VarRoot}/lib/centreon/config-away    recursive=True
 
 BECWATCH3
@@ -215,11 +229,12 @@ BECWATCH3
     ...    ${1}
     ...    the directly written batch of 3 pollers became ${passes} passes instead of one
 
-BECWATCH4
+BECWATCH4_${lck_mode}
     [Documentation]    Scenario: two hosts swap pollers within a single export
     ...    Given a centralized platform with 2 pollers of 5 hosts each
     ...    When host_1 moves to poller 2 and host_6 moves to poller 1
-    ...    And both configurations are announced by one pollers.lck
+    ...    And both configurations are announced together, by one pollers.lck or
+    ...    by one <ID>.lck each
     ...    Then the global diff turns each move into a modification, not a removal
     ...    And both hosts stay enabled, each attached to its new poller
     [Tags]    broker    engine    config    centralized
@@ -256,10 +271,7 @@ BECWATCH4
     Ctn Engine Move Host    ${1}    ${0}    host_6
 
     ${swap}    Ctn Get Round Current Date
-    Create File    ${VarRoot}/lib/centreon/config/pollers.lck.tmp    1\n2\n
-    Move File
-    ...    ${VarRoot}/lib/centreon/config/pollers.lck.tmp
-    ...    ${VarRoot}/lib/centreon/config/pollers.lck
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}
 
     ${content}    Create List    All engine peers acknowledged? 2/2 acknowledged
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${swap}    ${content}    90
@@ -274,3 +286,7 @@ BECWATCH4
     ...    SELECT instance_id FROM hosts WHERE name = 'host_6' AND enabled = 1    ==    ${1}
     ...    retry_timeout=60s    retry_pause=2s
     Disconnect From Database
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller

@@ -17,7 +17,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
-BECSEV4
+BECSEV4_${lck_mode}
     [Documentation]    Feature: Severity presence in Broker gRPC cache with centralized configuration
     ...
     ...    Background:
@@ -71,7 +71,7 @@ BECSEV4
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Phase 1: verify both severities are present in the broker cache
     Log To Console    Phase 1: verifying severities in broker cache
@@ -86,7 +86,7 @@ BECSEV4
     Ctn Remove Severities From Hosts    ${3}
     Ctn Create Severities File    ${3}    ${0}
     ${start2}    Ctn Get Round Current Date
-    Ctn Push Configuration Per Poller And Wait    ${start2}    ${3}    ${4}
+    Ctn Push Configuration And Wait    ${start2}    ${3}    ${4}    lck_mode=${lck_mode}
 
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    1    60
     Should Be True    ${result}    Phase 2: severity (1, SERVICE) should persist after removing poller 3
@@ -99,7 +99,7 @@ BECSEV4
     Ctn Remove Severities From Hosts    ${2}
     Ctn Create Severities File    ${2}    ${0}
     ${start3}    Ctn Get Round Current Date
-    Ctn Push Configuration Per Poller And Wait    ${start3}    ${2}    ${3}
+    Ctn Push Configuration And Wait    ${start3}    ${2}    ${3}    lck_mode=${lck_mode}
 
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    1    60
     Should Be True    ${result}    Phase 3: severity (1, SERVICE) should persist after removing poller 2
@@ -112,12 +112,12 @@ BECSEV4
     Ctn Remove Severities From Hosts    ${0}
     Ctn Create Severities File    ${0}    ${0}
     ${start4}    Ctn Get Round Current Date
-    Ctn Push Configuration Per Poller And Wait    ${start4}    ${0}    ${1}
+    Ctn Push Configuration And Wait    ${start4}    ${0}    ${1}    lck_mode=${lck_mode}
     Ctn Remove Severities From Services    ${1}
     Ctn Remove Severities From Hosts    ${1}
     Ctn Create Severities File    ${1}    ${0}
     ${start5}    Ctn Get Round Current Date
-    Ctn Push Configuration Per Poller And Wait    ${start5}    ${1}    ${2}
+    Ctn Push Configuration And Wait    ${start5}    ${1}    ${2}    lck_mode=${lck_mode}
 
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    ${None}    60
     Should Be True    ${result}    Phase 4: severity (1, SERVICE) should be gone after removing all pollers
@@ -132,8 +132,12 @@ BECSEV4
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
-BECSEV5
+
+BECSEV5_${lck_mode}
     [Documentation]    Feature: Severity level change is reflected in the Broker gRPC cache
     ...
     ...    Background:
@@ -170,7 +174,7 @@ BECSEV5
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Verify initial state
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    1    60
@@ -180,8 +184,8 @@ BECSEV5
     Log To Console    Updating severity levels to 4 (SERVICE) and 5 (HOST) on all pollers
     FOR    ${i}    IN RANGE    4
         Ctn Create Severities File    ${i}    ${2}    ${1}    ${3}
-        Ctn Notify Broker Of Engine Config Change    ${i}
     END
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}    ${2}    ${3}
 
     # Broker cache must reflect the new levels
     ${result}    Ctn Check Severity In Cache With Timeout    51001    1    0    4    60
@@ -192,8 +196,12 @@ BECSEV5
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
-BECSEV6
+
+BECSEV6_${lck_mode}
     [Documentation]    Feature: GetSeverities gRPC returns correct content while severities are active
     ...
     ...    Background:
@@ -231,7 +239,7 @@ BECSEV6
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # GetSeverities must return exactly 2 entries with correct (id, type, level)
     ${result}    Ctn Check Severities Count With Timeout    51001    2    60
@@ -245,8 +253,12 @@ BECSEV6
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
-BECSEV7
+
+BECSEV7_${lck_mode}
     [Documentation]    Feature: Broker cache is repopulated after broker restart with severities active
     ...
     ...    Background:
@@ -284,7 +296,7 @@ BECSEV7
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Verify cache is correct before restart
     ${result}    Ctn Check Severities Count With Timeout    51001    2    60
@@ -302,7 +314,7 @@ BECSEV7
     Log To Console    Restarting broker
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Cache must be fully repopulated after restart
     ${result}    Ctn Check Severities Count With Timeout    51001    2    60
@@ -314,3 +326,7 @@ BECSEV7
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller

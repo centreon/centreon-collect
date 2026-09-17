@@ -103,7 +103,7 @@ BECPN0
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-BECPN1
+BECPN1_${lck_mode}
     [Documentation]    Feature: Parent Host Deletion Management
     ...    As a monitoring administrator
     ...    I want parent-child relationships to be cleaned up when parent hosts are deleted
@@ -169,7 +169,7 @@ BECPN1
     Ctn Engine Config Delete Value In Hosts    ${0}    host_2    parents
 
     ${start}    Get Current Date
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
     ${content}    Create List    Reload differential configuration finished
     ${result}    Ctn Find In Log With Timeout
     ...    ${ENGINE_LOG}/config0/centengine.log
@@ -196,7 +196,11 @@ BECPN1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-BECPN2
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECPN2_${lck_mode}
     [Documentation]    Feature: Child Host Deletion Management
     ...    As a monitoring administrator
     ...    I want parent-child relationships to be cleaned up when child hosts are deleted
@@ -264,7 +268,7 @@ BECPN2
     Ctn Engine Config Delete Value In Hosts    ${0}    host_2    parents
 
     ${start}    Ctn Get Round Current Date
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${content}    Create List    Reload differential configuration finished
     ${result}    Ctn Find In Log With Timeout
@@ -292,7 +296,11 @@ BECPN2
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-RENAME_PARENT
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+RENAME_PARENT_${lck_mode}
     [Documentation]    Feature: Parent Host Rename Management
     ...    As a monitoring administrator
     ...    I want parent-child relationships to be maintained when parent hosts are renamed
@@ -339,7 +347,7 @@ RENAME_PARENT
     Ctn Engine Config Replace Value In Services    ${0}    service_1    host_name    host_1_new
 
     ${start}    Ctn Get Round Current Date
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${content}    Create List    Reload differential configuration finished
         ${result}    Ctn Find In Log With Timeout
@@ -355,3 +363,7 @@ RENAME_PARENT
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller

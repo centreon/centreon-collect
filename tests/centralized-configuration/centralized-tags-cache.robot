@@ -11,7 +11,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
-BECNTAG1
+BECNTAG1_${lck_mode}
     [Documentation]    Feature: Tag associations in Broker gRPC cache with centralized configuration
     ...
     ...    Background:
@@ -98,7 +98,7 @@ BECNTAG1
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Phase 1: all 4 pollers tagged → exactly 20 hosts (IDs from all pollers) and 400 services
     Log To Console    Phase 1: verifying hosts and services identity in broker cache
@@ -115,7 +115,7 @@ BECNTAG1
     Log To Console    Phase 2: removing tags from poller 3
     Ctn Remove Tags From Hosts    ${3}
     Ctn Remove Tags From Services    ${3}
-    Ctn Notify Broker Of Engine Config Change    ${3}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${3}
 
     ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${host_ids_p0_p1_p2}    60
     Should Be True    ${result}    Phase 2: wrong host set with HOSTGROUP tag after removing poller 3
@@ -130,7 +130,7 @@ BECNTAG1
     Log To Console    Phase 3: removing tags from poller 2
     Ctn Remove Tags From Hosts    ${2}
     Ctn Remove Tags From Services    ${2}
-    Ctn Notify Broker Of Engine Config Change    ${2}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${2}
 
     ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${host_ids_p0_p1}    60
     Should Be True    ${result}    Phase 3: wrong host set with HOSTGROUP tag after removing pollers 2+3
@@ -145,10 +145,9 @@ BECNTAG1
     Log To Console    Phase 4: removing tags from all remaining pollers
     Ctn Remove Tags From Hosts    ${0}
     Ctn Remove Tags From Services    ${0}
-    Ctn Notify Broker Of Engine Config Change    ${0}
     Ctn Remove Tags From Hosts    ${1}
     Ctn Remove Tags From Services    ${1}
-    Ctn Notify Broker Of Engine Config Change    ${1}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}
 
     ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${no_host_ids}    60
     Should Be True    ${result}    Phase 4: expected 0 hosts with HOSTGROUP tag after removing all pollers
@@ -167,8 +166,12 @@ BECNTAG1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
-BECNTAG2
+
+BECNTAG2_${lck_mode}
     [Documentation]    Feature: Tag rename is reflected in the Broker gRPC cache
     ...
     ...    Background:
@@ -210,7 +213,7 @@ BECNTAG2
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Verify initial state: hosts are reachable by the original tag names
     ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${all_host_ids}    60
@@ -220,8 +223,8 @@ BECNTAG2
     Log To Console    Renaming tags to tag11..tag14 on all pollers
     FOR    ${i}    IN RANGE    4
         Ctn Create Tags File    ${i}    ${4}    ${11}
-        Ctn Notify Broker Of Engine Config Change    ${i}
     END
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}    ${2}    ${3}
 
     # GetTags must reflect the new names
     ${new_names}    Create List    tag11    tag12    tag13    tag14
@@ -237,8 +240,12 @@ BECNTAG2
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
-BECNTAG3
+
+BECNTAG3_${lck_mode}
     [Documentation]    Feature: GetTags gRPC returns correct content while tags are active
     ...
     ...    Background:
@@ -276,7 +283,7 @@ BECNTAG3
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # GetTags must return exactly 4 entries (one per TagType) with the expected names
     ${result}    Ctn Check Tags Count With Timeout    51001    4    60
@@ -289,8 +296,12 @@ BECNTAG3
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
-BECNTAG4
+
+BECNTAG4_${lck_mode}
     [Documentation]    Feature: Broker cache is repopulated after broker restart with tags active
     ...
     ...    Background:
@@ -332,7 +343,7 @@ BECNTAG4
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Verify cache is correct before restart
     ${result}    Ctn Check Tags Count With Timeout    51001    4    60
@@ -349,7 +360,7 @@ BECNTAG4
     Log To Console    Restarting broker
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
+    Ctn Push Configuration And Wait    ${start}    ${0}    ${4}    lck_mode=${lck_mode}
 
     # Cache must be fully repopulated after restart
     ${result}    Ctn Check Tags Count With Timeout    51001    4    60
@@ -367,3 +378,7 @@ BECNTAG4
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller

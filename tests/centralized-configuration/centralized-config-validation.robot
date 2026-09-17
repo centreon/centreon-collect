@@ -10,7 +10,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=True
 
 
 *** Test Cases ***
-BECFGVAL1
+BECFGVAL1_${lck_mode}
     [Documentation]    Scenario: PHP pushes an invalid poller configuration without asking for a CheckPollerConfig
     ...    Given a centralized engine configuration where contact U1 has no host_notification_commands
     ...    And Broker is started in centralized mode
@@ -29,7 +29,7 @@ BECFGVAL1
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -50,7 +50,11 @@ BECFGVAL1
     # Broker does not retry the invalid configuration forever.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL2
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL2_${lck_mode}
     [Documentation]    Scenario: PHP pushes a poller configuration with a contact group referencing an undefined contact
     ...    Given a centralized engine configuration with a contact group whose member does not exist
     ...    And Broker is started in centralized mode
@@ -69,7 +73,7 @@ BECFGVAL2
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -84,7 +88,11 @@ BECFGVAL2
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL3
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL3_${lck_mode}
     [Documentation]    Scenario: PHP pushes a poller configuration with a host dependency referencing an undefined host
     ...    Given a centralized engine configuration with a host dependency whose dependent host does not exist
     ...    And Broker is started in centralized mode
@@ -104,7 +112,7 @@ BECFGVAL3
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -119,7 +127,11 @@ BECFGVAL3
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL4
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL4_${lck_mode}
     [Documentation]    Scenario: PHP pushes a poller configuration with a service dependency referencing an undefined service
     ...    Given a centralized engine configuration with a service dependency whose dependent service does not exist
     ...    And Broker is started in centralized mode
@@ -139,7 +151,7 @@ BECFGVAL4
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -154,7 +166,11 @@ BECFGVAL4
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL5
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL5_${lck_mode}
     [Documentation]    Scenario: PHP pushes a poller configuration with a host escalation referencing an undefined contact group
     ...    Given a centralized engine configuration with a host escalation whose contact group does not exist
     ...    And Broker is started in centralized mode
@@ -174,7 +190,7 @@ BECFGVAL5
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -189,7 +205,11 @@ BECFGVAL5
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL6
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL6_${lck_mode}
     [Documentation]    Scenario: PHP pushes a poller configuration with a service escalation referencing an undefined contact group
     ...    Given a centralized engine configuration with a service escalation whose contact group does not exist
     ...    And Broker is started in centralized mode
@@ -209,7 +229,7 @@ BECFGVAL6
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -224,7 +244,11 @@ BECFGVAL6
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL7
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL7_${lck_mode}
     [Documentation]    Scenario: PHP pushes a poller configuration with a host referencing an undefined notification period
     ...    Given a centralized engine configuration where a host has a non-existing notification period
     ...    And Broker is started in centralized mode
@@ -243,7 +267,7 @@ BECFGVAL7
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -258,7 +282,11 @@ BECFGVAL7
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL8
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL8_${lck_mode}
     [Documentation]    Scenario: PHP pushes a poller configuration with a service referencing an undefined notification period
     ...    Given a centralized engine configuration where a service has a non-existing notification period
     ...    And Broker is started in centralized mode
@@ -277,7 +305,7 @@ BECFGVAL8
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
     # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # Broker must validate at ingestion and refuse to push the invalid configuration.
     ${content}    Create List    refusing to push it to the poller
@@ -292,7 +320,11 @@ BECFGVAL8
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
 
-BECFGVAL9
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECFGVAL9_${lck_mode}
     [Documentation]    Scenario: PHP pushes a valid configuration for a poller that is not connected
     ...    Given a valid centralized engine configuration for poller 1
     ...    And Broker is started in centralized mode while Engine is left stopped
@@ -308,7 +340,7 @@ BECFGVAL9
     Ctn Broker Config Log    central    config    debug
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True    only_central=True
-    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}
 
     # The configuration is valid, so Broker prepares it even though no poller
     # can receive it yet.
@@ -368,3 +400,7 @@ BECFGVAL9
     ${inotify}    Create List    Unable to read from inotify
     ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${inotify}    5
     Should Not Be True    ${found}    an empty inotify queue must not be reported as an error
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
