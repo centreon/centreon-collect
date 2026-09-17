@@ -302,6 +302,9 @@ render_entry() {
 # de-duplicates on.
 chunk_dir="$WORKDIR/chunks"
 mkdir -p "$chunk_dir"
+declare -A chunk_seen
+# set here, not only inside the merge branch: a first publication keeps nothing
+kept=0
 if [[ -f "$out_path" ]]; then
   awk -v dir="$chunk_dir" '
     /^- / { n++; f = sprintf("%s/%04d.existing", dir, n) }
@@ -331,7 +334,14 @@ if [[ -f "$out_path" ]]; then
 fi
 
 for i in "${!E_PRODUCT[@]}"; do
-  render_entry "$i" >"$chunk_dir/$(printf '%s|%s|%s' "${E_PRODUCT[$i]}" "${E_OS[$i]}" "${E_VERSION[$i]}").new"
+  chunk_key="$(printf '%s|%s|%s' "${E_PRODUCT[$i]}" "${E_OS[$i]}" "${E_VERSION[$i]}")"
+  # Two entries sharing a key would silently truncate one into the other. That is exactly how the
+  # inherited product|os key lost 5 of the agent's 14 rows: valid file, passing validation, missing
+  # data. Fail loudly instead, whatever new duplicate axis a future product introduces.
+  [[ -z "${chunk_seen[$chunk_key]:-}" ]] \
+    || die "two entries render to the same key '$chunk_key' - one would overwrite the other. Give them distinct versions, or extend the key."
+  chunk_seen[$chunk_key]=1
+  render_entry "$i" >"$chunk_dir/${chunk_key}.new"
 done
 
 mkdir -p "$(dirname "$out_path")"
@@ -350,7 +360,13 @@ done < <(
   done | LC_ALL=C sort -t$'\t' -k1,1 -k2,2 -k3,3 | cut -f4
 )
 
-log_ok "wrote $out_rel"
+# Belt and braces: whatever the keying, the file must hold every kept and every new entry.
+written=$(grep -c '^- product:' "$out_path" || true)
+expected=$((kept + entry_count))
+[[ "$written" -eq "$expected" ]] \
+  || die "$out_rel holds $written entry(ies) but $expected were expected ($kept kept + $entry_count new) - entries were lost while assembling the file"
+
+log_ok "wrote $out_rel ($written entry(ies))"
 
 # ---------------------------------------------------------------------------
 # The Agent tab: catalog.yaml is the only rendered surface for the monitoring agent
