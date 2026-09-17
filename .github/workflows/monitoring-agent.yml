@@ -24,6 +24,16 @@ on:
         required: false
         default: ""
         type: string
+      publish_cma_version:
+        description: "Publish only this CMA version to the download site, e.g. 25.10.9 (leave empty for a normal run)"
+        required: false
+        default: ""
+        type: string
+      publish_dry_run:
+        description: "Rehearse that publication without opening a pull request"
+        required: false
+        default: true
+        type: boolean
 
   pull_request:
     paths:
@@ -103,9 +113,12 @@ jobs:
           version: ${{ env.version }}
 
   changes:
+    # a publish-only dispatch skips this, which leaves every trigger_* output empty and so
+    # turns off the whole build / test / package / deliver chain that consumes them
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      inputs.publish_cma_version == ''
     needs: [get-environment]
     uses: ./.github/workflows/get-changes-triggers.yml
     with:
@@ -476,6 +489,7 @@ jobs:
   deliver-rpm:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      inputs.publish_cma_version == '' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
@@ -517,8 +531,11 @@ jobs:
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-rpm-pulp:
+    # the one delivery job not gated on a trigger_* output, so the publish-only dispatch
+    # condition has to be spelled out here or its cache restore fails the run
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      inputs.publish_cma_version == '' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
@@ -953,21 +970,31 @@ jobs:
   # between the 8 promote jobs. Re-runnable on its own.
   publish-cma-download-site:
     needs: [get-environment, promote-linux, promote-windows]
+    # Two ways in: the component tag, and an explicit dispatch naming a version. The dispatch is
+    # the retry path -- re-running a failed job replays the same commit, so it cannot pick up a
+    # fix, and re-tagging a released component is not an option.
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.is_cloud == 'false' &&
-      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      github.repository == 'centreon/centreon-collect' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+      (
+        (github.event_name != 'workflow_dispatch' &&
+         needs.get-environment.outputs.is_cloud == 'false' &&
+         contains(fromJson('["stable"]'), needs.get-environment.outputs.stability))
+        ||
+        (github.event_name == 'workflow_dispatch' && inputs.publish_cma_version != '')
+      )
 
     runs-on: centreon-ubuntu-22.04
     permissions:
       contents: read
 
     env:
-      CMA_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
+      # the dispatched version wins; otherwise the tag's, through get-environment
+      CMA_VERSION: ${{ inputs.publish_cma_version || format('{0}.{1}', needs.get-environment.outputs.cma_major_version, needs.get-environment.outputs.cma_minor_version) }}
+      PUBLISH_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_dry_run) && 'true' || 'false' }}
 
     steps:
       - name: Checkout sources
@@ -1005,7 +1032,11 @@ jobs:
         run: |
           set -euo pipefail
           IFS=$'\t' read -r AGENT_VERSION AGENT_URL AGENT_MD5 AGENT_SIZE < agent-entry.tsv
+          DRY_RUN_FLAG=()
+          [[ "$PUBLISH_DRY_RUN" == "true" ]] && DRY_RUN_FLAG=(--dry-run)
+
           ./.github/scripts/publish-download-release.sh \
+            "${DRY_RUN_FLAG[@]}" \
             --entries entries.tsv \
             --out-name "${CMA_VERSION}.yaml" \
             --branch "release/cma-${CMA_VERSION}" \
