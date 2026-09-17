@@ -975,9 +975,17 @@ define contact {
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
-            if centralized and create_lck:
-                lck_file = f"{VAR_ROOT}/lib/centreon/config/{inst + 1}.lck"
-                Path(lck_file).touch()
+        if centralized and create_lck:
+            # One `pollers.lck` naming every poller, not one `<ID>.lck` each:
+            # the initial configuration is a single export, and announcing it as
+            # such tells Broker where it ends instead of leaving it to guess
+            # from a burst of individual files. Written atomically so Broker
+            # never reads a half-written announcement.
+            batch = Path(f"{VAR_ROOT}/lib/centreon/config/pollers.lck")
+            tmp = batch.with_suffix(".lck.tmp")
+            tmp.write_text(
+                "".join(f"{inst + 1}\n" for inst in range(self.instances)))
+            tmp.replace(batch)
 
     def centengine_conf_add_bam(self):
         """
@@ -1035,8 +1043,9 @@ def ctn_update_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, b
         bash_checks: if True, services will use check.sh instead of check.pl, services will have some extra macros
     """
     ctn_prepare_engine_config(num, hosts, srv_by_host, bash_checks)
-    for idx in range(num):
-        Common.ctn_notify_broker_of_engine_config_change(idx)
+    # The whole platform is rebuilt here: that is one export, so one
+    # announcement naming every poller rather than one per poller.
+    Common.ctn_notify_broker_of_engine_config_change(*range(num))
 
 
 def ctn_prepare_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
@@ -5637,8 +5646,9 @@ def ctn_engine_config_add_service(idx: int, host_id: int, service_id: int, servi
     with open(filename, "a+") as f:
         f.write(engine.define_service(host_id, service_id,
                 service_description, command_name))
-        lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
-        Path(lck_file).touch()
+    # Announced once the configuration file is closed, not while it is still
+    # open: Broker reads the sources as soon as it is told about them.
+    Common.ctn_announce_pollers_batch([idx + 1])
 
 
 def ctn_engine_check_sh_command_output():

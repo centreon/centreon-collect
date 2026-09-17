@@ -79,7 +79,7 @@ BECSEV1
     ${start}    Ctn Get Round Current Date
     Ctn Create Severities File    ${0}    ${30}
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     # Check to verify the new severities have been added.
     Log To Console    Now, we should have 30 severities.
@@ -132,7 +132,7 @@ BECSEV2
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     Log To Console    Checking severity db_ids in cache before broker restart
     ${result}    Ctn Check Severity Db Id In Cache With Timeout    51001    11    0    30
@@ -146,7 +146,7 @@ BECSEV2
     Ctn Kindly Stop Broker
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     Log To Console    Checking severity db_ids in cache after broker restart
     ${result}    Ctn Check Severity Db Id In Cache With Timeout    51001    11    0    30
@@ -184,7 +184,7 @@ BECSEV3
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     Log To Console    Checking severity db_ids in cache before broker restart
     ${result}    Ctn Check Severity Db Id In Cache With Timeout    51001    11    0    30
@@ -199,7 +199,7 @@ BECSEV3
     Ctn Clear Prot Files    broker_only=True
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     Log To Console    Checking severity db_ids in cache after broker restart with lost prot files
     ${result}    Ctn Check Severity Db Id In Cache With Timeout    51001    11    0    30

@@ -14,7 +14,7 @@ Test Teardown    Ctn Save Logs If Failed
 
 *** Test Cases ***
 BEPHG1
-    [Documentation]
+    [Documentation]    Scenario: Hostgroups added then removed one by one stay consistent between the database and the broker cache
     ...    Given a central broker, a rrd broker and 5 engine instances in centralized mode
     ...    With 50 hosts each (250 hosts total, numbered 1 to 250) and 20 services per host
     ...    When broker and engines are started and the initial configuration is applied
@@ -58,8 +58,8 @@ BEPHG1
         FOR    ${idx}    IN RANGE    5
             ${members}    Ctn Get Filtered Host Names    ${idx}    ${hg_id}
             Ctn Add Host Group    ${idx}    ${hg_id}    ${members}
-            Ctn Notify Broker Of Engine Config Change    ${idx}
         END
+        Ctn Notify Broker Of Engine Config Change    ${0}    ${1}    ${2}    ${3}    ${4}
         ${expected_count}    Evaluate    sum(1 for h in range(1, 251) if h % ${hg_id} == 0)
         Log To Console    Expecting ${expected_count} hosts in hostgroup ${hg_id}
 
@@ -87,8 +87,8 @@ BEPHG1
         Log To Console    Removing hostgroup ${hg_id} from all 5 engine instances
         FOR    ${idx}    IN RANGE    5
             Ctn Remove Host Group    ${idx}    ${hg_id}
-            Ctn Notify Broker Of Engine Config Change    ${idx}
         END
+        Ctn Notify Broker Of Engine Config Change    ${0}    ${1}    ${2}    ${3}    ${4}
 
         # DB check: no remaining entries for this hostgroup
         ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts

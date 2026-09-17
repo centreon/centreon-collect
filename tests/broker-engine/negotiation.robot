@@ -197,8 +197,8 @@ BEDWENF
     [Documentation]    Scenario: Verify Broker configured with cache_config_directory creates the protobuf serialized configuration
     ...    Given the Central Broker is started with cache_config_directory set to a specific Directory
     ...    And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
-    ...    When a file of the form <poller_id>.lck is created after the <poller_id> directory is filled correctly
-    ...    Then Broker logs a message telling the file has been created
+    ...    When the export is announced by a pollers.lck naming the poller whose directory is filled correctly
+    ...    Then Broker logs a message telling the batch has been announced
     ...    And Broker dumps a file <poller_id>.prot in the pollers_conf directory
     [Tags]    broker    engine    MON-153802
     Ctn Clear Engine Logs
@@ -240,9 +240,9 @@ BEDWENF
     #Create File    ${VarRoot}/lib/centreon/config/1.lck
 
     Log To Console    Broker should detect the new Engine configuration
-    ${content}    Create List    New Engine configuration available, change in '1.lck' detected
+    ${content}    Create List    A poller batch was announced in 'pollers.lck'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
+    Should Be True    ${result}    Broker should log a message when the export is announced in the cache_config_directory
 
     Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
     Wait Until Removed    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot    timeout=30s

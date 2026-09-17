@@ -664,17 +664,19 @@ Ctn Push Configuration Per Poller And Wait
         ${idx_end}    Evaluate    ${idx_start} + 1
     END
     FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
-	${poller_id}    Evaluate	${idx} + 1
-	Ctn Notify Broker Of Engine Config Change    ${idx}
-	Append To List    ${content}
-	...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already has the latest configuration
+        ${poller_id}    Evaluate    ${idx} + 1
+        Ctn Notify Broker Of Engine Config Change Per Poller    ${idx}
+        Append To List    ${content}
+        ...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already has the latest configuration
     END
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result[0]}    The broker must receive a diff state ack from pollers in range [${idx_start}, ${idx_end}].
 
     #Lck files should disappear
     FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
-        Wait Until Keyword Succeeds    30 sec    2 sec    File Should Not Exist    ${VarRoot}/lib/centreon/config/${poller_id}.lck
+        ${poller_id}    Evaluate    ${idx} + 1
+        Wait Until Keyword Succeeds    30 sec    2 sec
+        ...    File Should Not Exist    ${VarRoot}/lib/centreon/config/${poller_id}.lck
     END
 
 Ctn Push Configuration Batch And Wait
@@ -705,6 +707,11 @@ Ctn Push Configuration Batch And Wait
     END
     ${body}    Catenate    SEPARATOR=\n    @{ids}
     ${batch}    Set Variable    ${VarRoot}/lib/centreon/config/pollers.lck
+    # There is one batch file for the whole platform, read at the start of a
+    # cycle and removed at its end: writing a new one in between would be lost,
+    # the removal closing the running cycle taking it away. PHP waits for it to
+    # disappear before announcing another batch, and so do we.
+    Ctn Wait For Pending Poller Batch
     IF    ${atomic}
         Create File    ${batch}.tmp    ${body}\n
         Move File    ${batch}.tmp    ${batch}
@@ -717,6 +724,57 @@ Ctn Push Configuration Batch And Wait
     ...    The broker must answer for every poller of the batch [${idx_start}, ${idx_end}).
     # Consumed as soon as read: its disappearance is Broker's acknowledgement.
     Wait Until Removed    ${batch}    30s
+
+Ctn Announce Poller Configurations
+    [Documentation]    Announce the configuration of the given pollers, in the
+    ...    shape ${lck_mode} asks for, and return without waiting for an answer.
+    ...
+    ...    The counterpart of Ctn Push Configuration And Wait for the tests that
+    ...    do not wait on the central log but on what the push eventually
+    ...    produces -- a row in the database, a line in an engine log. Same two
+    ...    shapes: batch writes a single pollers.lck naming them all, per_poller
+    ...    one <ID>.lck each.
+    ...
+    ...    Nothing is waited for afterwards, but a batch announcement still waits
+    ...    for a pending one to have been consumed before writing its own, as PHP
+    ...    does: there is a single pollers.lck for the whole platform, and
+    ...    overwriting one that Broker has not finished with loses it.
+    ...
+    ...    Indexes are configuration indexes (from 0), as everywhere else.
+    [Arguments]    ${lck_mode}    @{idx}
+    IF    '${lck_mode}' == 'per_poller'
+        FOR    ${i}    IN    @{idx}
+            Ctn Notify Broker Of Engine Config Change Per Poller    ${i}
+        END
+    ELSE IF    '${lck_mode}' == 'batch'
+        Ctn Notify Broker Of Engine Config Change    @{idx}
+    ELSE
+        Fail    Unknown lck_mode '${lck_mode}': expected 'batch' or 'per_poller'.
+    END
+
+Ctn Push Configuration And Wait
+    [Documentation]    Announce the configuration of one or several pollers and
+    ...    wait for every one of them to have answered, whichever shape the
+    ...    announcement takes.
+    ...
+    ...    ${lck_mode} picks the shape, both being supported by Broker:
+    ...    - batch (the default): a single pollers.lck naming the whole export,
+    ...      which is what PHP writes and what tells Broker where the export ends;
+    ...    - per_poller: one <ID>.lck per poller, the historical shape, which
+    ...      leaves Broker to guess where the export ends.
+    ...
+    ...    This is the keyword the tests parameterised with Examples: use, so
+    ...    that the same scenario runs against both shapes. A test that has no
+    ...    reason to care takes the default and so covers the shape that is meant
+    ...    to last.
+    [Arguments]    ${start}    ${idx_start}    ${idx_end}=0    ${timeout}=60    ${lck_mode}=batch
+    IF    '${lck_mode}' == 'per_poller'
+        Ctn Push Configuration Per Poller And Wait    ${start}    ${idx_start}    ${idx_end}    ${timeout}
+    ELSE IF    '${lck_mode}' == 'batch'
+        Ctn Push Configuration Batch And Wait    ${start}    ${idx_start}    ${idx_end}    ${timeout}
+    ELSE
+        Fail    Unknown lck_mode '${lck_mode}': expected 'batch' or 'per_poller'.
+    END
 
 Ctn Start Agent
     ${run_env}    Ctn Run Env

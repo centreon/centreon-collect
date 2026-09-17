@@ -30,7 +30,7 @@ CCONPERL
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
     Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
     VAR    @{content}    _recv_query_execute.*output='Host check.*: my check
     ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
@@ -59,7 +59,7 @@ CCONPERLM
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     FOR    ${idx}    IN RANGE    1    11
         Ctn Schedule Forced Host Check    host_${idx}    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd

@@ -34,7 +34,7 @@ CBESEV1
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
@@ -71,7 +71,7 @@ CBESEV2
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
@@ -109,7 +109,7 @@ CBEUSEV1
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
@@ -150,7 +150,7 @@ CBEUSEV2
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
@@ -195,7 +195,7 @@ CBEUSEV3
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
     ${result}    Ctn Check Service Severity With Timeout    1    1    11    60
     Should Be True    ${result}    Service (1, 1) should have severity_id=11
     ${result}    Ctn Check Service Severity In Cache With Timeout    51001    1    1    11    30
@@ -206,7 +206,7 @@ CBEUSEV3
     Ctn Add Severity To Services    0    7    [3]
 
     ${start}    Ctn Get Round Current Date
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     ${result}    Ctn Check Service Severity With Timeout    1    2    11    60
     Should Be True    ${result}    Service (1, 2) should have severity_id=11
@@ -261,7 +261,7 @@ CBEUSEV4
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0    2
+    Ctn Push Configuration And Wait    ${start}    0    2
 
     ${result}    Ctn Check Service Severity With Timeout    1    2    19    60
     Should Be True    ${result}    First step: Service (1, 2) should have severity_id=19
@@ -305,7 +305,7 @@ CBEUSEV4
     Ctn Add Severity To Services    1    17    [503]
 
     ${start}    Ctn Get Round Current Date
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     ${result}    Ctn Check Service Severity With Timeout    26    503    17    60
     Should Be True    ${result}    Second step: Service (26, 503) should have severity_id=17
@@ -370,7 +370,7 @@ CBETUSEV1
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     ${result}    Ctn Check Service Severity With Timeout    1    2    1    60
     Should Be True    ${result}    First step: Service (1, 2) should have severity_id=1

@@ -70,7 +70,8 @@ CBEUHSEV1
     Ctn Kindly Stop Broker
 
 CBEUHSEV2
-    [Documentation]    Given seven hosts configured with severities on two pollers,
+    [Documentation]    Scenario: Host severities removed on one poller and changed on another are applied poller by poller
+    ...    Given seven hosts configured with severities on two pollers,
     ...    When we remove severities from hosts on the first poller
     ...    And we change host 28's severity from 16 to 14 on the second poller,
     ...    Then host 26 should still have severity_id=18
@@ -102,8 +103,8 @@ CBEUHSEV2
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
 
-    Ctn Notify Broker Of Engine Config Change    0
-    Ctn Notify Broker Of Engine Config Change    1
+    # The two pollers are a single export: one announcement naming them both.
+    Ctn Notify Broker Of Engine Config Change    ${0}    ${1}
     ${content}    Create List    received diff state ack from poller 1    received diff state ack from poller 2
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    The broker must receive a diff state ack from each poller.
@@ -137,8 +138,8 @@ CBEUHSEV2
     Ctn Add Severity To Hosts    1    14    [28]
 
     ${start}    Ctn Get Round Current Date
-    Ctn Notify Broker Of Engine Config Change    0
-    Ctn Notify Broker Of Engine Config Change    1
+    # The two pollers are a single export: one announcement naming them both.
+    Ctn Notify Broker Of Engine Config Change    ${0}    ${1}
     ${content}    Create List    received diff state ack from poller 1    received diff state ack from poller 2
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    The broker must receive a diff state ack from both pollers.

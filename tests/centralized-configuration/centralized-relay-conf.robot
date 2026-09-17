@@ -42,8 +42,9 @@ CCCRC1
     Ctn Kindly Stop Broker
     Ctn Stop Relay    3
 
-CCCRC2
-    [Documentation]    Given a topology Poller1 -> Relay3 -> central cbd
+CCCRC2_${lck_mode}
+    [Documentation]    Scenario: The central answers a relay asking for a configuration it already holds
+    ...    Given a topology Poller1 -> Relay3 -> central cbd
     ...    And a poller configuration is pre-created before starting the central broker
     ...    When the central processes the configuration and the relay sends a ConfigRequest
     ...    Then the central sends a non-unknown DiffState to the relay.
@@ -61,7 +62,7 @@ CCCRC2
     Ctn Broker Config Log    rrd    bbdo    debug
     Ctn Broker Config Log    relay3    bbdo    debug
     Ctn Clear Retention
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -81,8 +82,13 @@ CCCRC2
     Ctn Kindly Stop Broker
     Ctn Stop Relay    3
 
-CCCRC3
-    [Documentation]    Given a topology Poller1 -> Relay3 -> central cbd
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+CCCRC3_${lck_mode}
+    [Documentation]    Scenario: A relay forwards the configuration to Engine and its acknowledgement back to the central
+    ...    Given a topology Poller1 -> Relay3 -> central cbd
     ...    And a poller configuration is pre-created before starting the central broker
     ...    When Engine connects through the relay and the central sends a DiffState
     ...    Then the relay forwards the DiffState to Engine
@@ -101,7 +107,7 @@ CCCRC3
     Ctn Broker Config Log    rrd    bbdo    debug
     Ctn Broker Config Log    relay3    bbdo    info
     Ctn Clear Retention
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -121,8 +127,13 @@ CCCRC3
     Ctn Kindly Stop Broker
     Ctn Stop Relay    3
 
-CCCRC4
-    [Documentation]    Given a topology Poller1 -> Relay3 -> central cbd
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+CCCRC4_${lck_mode}
+    [Documentation]    Scenario: A configuration pushed after the initial one reaches Engine through the relay
+    ...    Given a topology Poller1 -> Relay3 -> central cbd
     ...    And a poller configuration is pre-created before starting central
     ...    When Engine connects and gets the initial config via relay
     ...    And PHP pushes a new config for poller 1 (5 extra hosts)
@@ -142,7 +153,7 @@ CCCRC4
     Ctn Broker Config Log    rrd    bbdo    debug
     Ctn Broker Config Log    relay3    bbdo    info
     Ctn Clear Retention
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -155,7 +166,7 @@ CCCRC4
 
     Ctn Prepare Engine Config    ${1}    ${25}    ${20}
     ${start2}    Ctn Get Round Current Date
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${content2}    Create List    BBDO: sending DiffState to poller 1
     ${result2}    Ctn Find In Log With Timeout    ${centralLog}    ${start2}    ${content2}    30
@@ -169,8 +180,13 @@ CCCRC4
     Ctn Kindly Stop Broker
     Ctn Stop Relay    3
 
-CCCRC5
-    [Documentation]    Given Engine initially connected to central via Relay3 (poller_id=4)
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+CCCRC5_${lck_mode}
+    [Documentation]    Scenario: Engine migrating from one relay to another is served through the new one
+    ...    Given Engine initially connected to central via Relay3 (poller_id=4)
     ...    When Engine migrates to Relay4 (poller_id=5)
     ...    Then the central sends ConfigRevoke to Relay3
     ...    And serves the configuration to Engine via Relay4.
@@ -189,7 +205,7 @@ CCCRC5
     Ctn Broker Config Log    relay3    bbdo    info
     Ctn Broker Config Log    relay4    bbdo    info
     Ctn Clear Retention
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${relay3Log}    Set Variable    ${VarRoot}/log/centreon-broker/relay-broker-3.log
 
@@ -226,8 +242,13 @@ CCCRC5
     Ctn Stop Relay    3
     Ctn Stop Relay    4
 
-CCCRC6
-    [Documentation]    Given Engine connected via Relay3 with initial config established
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+CCCRC6_${lck_mode}
+    [Documentation]    Scenario: A configuration pushed while the central is down is served once it is back
+    ...    Given Engine connected via Relay3 with initial config established
     ...    When the central is stopped cleanly and a new config is pushed during the outage
     ...    Then after the central restarts, the relay reconnects and the new DiffState
     ...    is forwarded to Engine via the relay, and central receives a new DiffStateAck.
@@ -244,7 +265,7 @@ CCCRC6
     Ctn Broker Config Log    central    config    info
     Ctn Broker Config Log    relay3    bbdo    info
     Ctn Clear Retention
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -259,7 +280,7 @@ CCCRC6
     Ctn Kindly Stop Broker
 
     Ctn Prepare Engine Config    ${1}    ${25}    ${20}
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${start2}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -273,8 +294,13 @@ CCCRC6
     Ctn Kindly Stop Broker
     Ctn Stop Relay    3
 
-CCCRC7
-    [Documentation]    Given Engine connected via Relay3 with initial config established
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+CCCRC7_${lck_mode}
+    [Documentation]    Scenario: GetTopology reports the relay and the poller sitting behind it
+    ...    Given Engine connected via Relay3 with initial config established
     ...    When GetTopology is called on the central gRPC endpoint
     ...    Then the response contains Relay3 as a direct broker with poller 1 as its poller.
     [Tags]    broker    engine    relay
@@ -289,7 +315,7 @@ CCCRC7
     Ctn Broker Config Log    central    bbdo    info
     Ctn Broker Config Log    central    config    info
     Ctn Clear Retention
-    Ctn Notify Broker Of Engine Config Change    0
+    Ctn Announce Poller Configurations    ${lck_mode}    0
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -307,3 +333,7 @@ CCCRC7
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     Ctn Stop Relay    3
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller

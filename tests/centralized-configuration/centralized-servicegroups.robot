@@ -44,7 +44,7 @@ BECNSG1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new service groups not found in logs.
 
-BECNSG2
+BECNSG2_${lck_mode}
     [Documentation]    Feature: Service Groups Management with Unified SQL Database
     ...
     ...    Scenario: Create 4 service groups (3 services each) across 4 pollers, then progressively
@@ -55,6 +55,7 @@ BECNSG2
     ...    Then: Database should show 12 associations in services_servicegroups table
     ...    When: Remove servicegroups.cfg from pollers sequentially
     ...    Then: Associations should decrease by 3 for each removal (12→9→6→3→0)
+    ...    And: This holds whichever shape announces the export, pollers.lck or <ID>.lck
     ...
     ...    Validates: Service group associations are correctly maintained during config changes
     [Tags]    broker    engine    servicegroup    unified_sql    MON-153802
@@ -83,9 +84,8 @@ BECNSG2
     Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${3}    servicegroups.cfg
-    FOR    ${i}    IN RANGE    4
-        Ctn Notify Broker Of Engine Config Change    ${i}
-    END
+    # The four pollers are a single export: one announcement naming them all.
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}    ${2}    ${3}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT COUNT(*) FROM services_servicegroups WHERE servicegroup_id=1    ==    ${12}    retry_timeout=30s    retry_pause=2s
@@ -94,7 +94,9 @@ BECNSG2
     FOR    ${i}    IN RANGE    4
         Log To Console	  Remove hostgroup on poller ${i + 1}
         Ctn Config Engine Remove Cfg File    ${i}    servicegroups.cfg
-        Ctn Notify Broker Of Engine Config Change    ${i}
+        # One poller per export here, on purpose: the removals are checked one
+        # at a time, the count going 9 -> 6 -> 3 -> 0.
+        Ctn Announce Poller Configurations    ${lck_mode}    ${i}
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${expected}    Evaluate    9 - 3 * ${i}
@@ -102,8 +104,22 @@ BECNSG2
         Disconnect From Database
     END
 
-BECNSG3
-    [Documentation]    Test about lua cache. But the centralized configuration currently breaks the broker cache.
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
+
+BECNSG3_${lck_mode}
+    [Documentation]    Scenario: A servicegroup spread over three pollers is followed by the Lua cache through its whole life
+    ...    Given a central broker with a Lua output dumping the groups held in its cache
+    ...    And three pollers in centralized configuration
+    ...    When a servicegroup gathering services of the three pollers is added and announced
+    ...    Then the database holds its nine members and the Lua cache reports it by name
+    ...    When the servicegroup is renamed on the three pollers and announced again
+    ...    Then the database and the Lua cache both report the new name
+    ...    When the servicegroup is removed from the three pollers and announced again
+    ...    Then the database no longer holds any of its members
+    ...    And the Lua cache no longer reports any service group
+    ...    Note: the centralized configuration currently breaks the broker cache.
     [Tags]    broker    engine    servicegroup    MON-153802
     Ctn Config Centralized Engine    ${3}
     Ctn Engine Config Set Value    ${0}    log_level_config    debug
@@ -134,9 +150,8 @@ BECNSG3
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
     Ctn Config Engine Add Cfg File    ${2}    servicegroups.cfg
-    FOR    ${i}    IN RANGE    3
-        Ctn Notify Broker Of Engine Config Change    ${i}
-    END
+    # The three pollers are a single export: one announcement naming them all.
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}    ${2}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT COUNT(*) FROM services_servicegroups WHERE servicegroup_id=1    ==    ${9}    retry_timeout=30s    retry_pause=2s
@@ -153,9 +168,7 @@ BECNSG3
     Ctn Rename Service Group    ${0}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${2}    servicegroup_1    servicegroup_test
-    FOR    ${i}    IN RANGE    3
-        Ctn Notify Broker Of Engine Config Change    ${i}
-    END
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}    ${2}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT COUNT(*) FROM services_servicegroups WHERE servicegroup_id=1    ==    ${9}    retry_timeout=30s    retry_pause=2s
@@ -174,11 +187,9 @@ BECNSG3
 
     # remove servicegroup
     Ctn Remove Service Group    ${0}    ${1}
-    Ctn Notify Broker Of Engine Config Change    ${0}
     Ctn Remove Service Group    ${1}    ${1}
-    Ctn Notify Broker Of Engine Config Change    ${1}
     Ctn Remove Service Group    ${2}    ${1}
-    Ctn Notify Broker Of Engine Config Change    ${2}
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}    ${2}
 
     Log To Console    \nservice group 1 removed from poller 1 and 2, then 3
 
@@ -201,3 +212,7 @@ BECNSG3
     Log To Console    Checking if there is still no service group in broker cache
     ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_name:
     Should Be True    len("""${grep_result}""") == 0    The servicegroup 1 still exists
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller

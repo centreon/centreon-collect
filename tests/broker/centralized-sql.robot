@@ -11,7 +11,8 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 CBEDB1
-    [Documentation]    Given the broker and engine are started in new generation mode
+    [Documentation]    Scenario: Broker connects to MariaDB when the database is started after it
+    ...    Given the broker and engine are started in new generation mode
     ...    When MariaDB is started after them
     ...    Then the connection to the database should be established
     [Tags]    broker    sql    start-stop
@@ -25,7 +26,7 @@ CBEDB1
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
     ${content}    Create List    error while starting connection
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
@@ -52,7 +53,7 @@ CBEDB2
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     FOR    ${t}    IN RANGE    60
         ${result}    Ctn Check Sql Connections Count With Grpc    51001    ${3}
@@ -92,7 +93,7 @@ CBEDB3
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Push Configuration Per Poller And Wait    ${start}    0
+    Ctn Push Configuration And Wait    ${start}    0
 
     FOR    ${t}    IN RANGE    60
         ${result}    Ctn Check All Sql Connections Down With Grpc    51001
@@ -129,7 +130,7 @@ CBDBM1
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
 
-	Ctn Push Configuration Per Poller And Wait    ${start}    0
+	Ctn Push Configuration And Wait    ${start}    0
 
         ${content}    Create List    error while starting connection
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20

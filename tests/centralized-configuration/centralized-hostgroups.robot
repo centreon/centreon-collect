@@ -47,7 +47,7 @@ BECNHG1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-BECNHG3
+BECNHG3_${lck_mode}
     [Documentation]    Scenario: Host group synchronization across 4 pollers in centralized configuration
     ...    Given 4 pollers and Broker are started in centralized mode
     ...    When hostgroup_1 is added with 3 hosts per poller (12 total)
@@ -55,6 +55,7 @@ BECNHG3
     ...    When hostgroup configuration files are removed sequentially from each poller
     ...    Then Broker progressively removes corresponding hosts from database
     ...    And hostgroup_1 membership decreases from 12 → 9 → 6 → 3 → 0
+    ...    And this holds whichever shape announces the export, pollers.lck or <ID>.lck
 
     [Tags]    broker    engine    hostgroup    MON-153802
     Ctn Config Centralized Engine    ${4}
@@ -75,9 +76,8 @@ BECNHG3
     Ctn Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
     Ctn Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
     Ctn Add Host Group    ${3}    ${1}    ["host_41", "host_42", "host_43"]
-    FOR    ${i}    IN RANGE    4
-        Ctn Notify Broker Of Engine Config Change    ${i}
-    END
+    # The four pollers are a single export: one announcement naming them all.
+    Ctn Announce Poller Configurations    ${lck_mode}    ${0}    ${1}    ${2}    ${3}
 
     Log To Console    Verify that all 12 hosts are in hostgroup_1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -87,13 +87,19 @@ BECNHG3
     FOR    ${i}    IN RANGE    4
         Log To Console	  Remove hostgroup on poller ${i + 1}
         Ctn Config Engine Remove Cfg File    ${i}    hostgroups.cfg
-        Ctn Notify Broker Of Engine Config Change    ${i}
+        # One poller per export here, on purpose: the removals are checked one
+        # at a time, the count going 9 -> 6 -> 3 -> 0.
+        Ctn Announce Poller Configurations    ${lck_mode}    ${i}
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${expected}    Evaluate    9 - 3 * ${i}
         Check Query Result    SELECT COUNT(*) FROM hosts_hostgroups WHERE hostgroup_id=1    ==    ${expected}    retry_timeout=30s    retry_pause=2s
         Disconnect From Database
     END
+
+    Examples:    lck_mode    --
+    ...    batch
+    ...    per_poller
 
 BECNHG4
     [Documentation]    Scenario: Host group rename synchronization in centralized configuration
@@ -178,9 +184,8 @@ BECNHG5
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
     Ctn Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
     Ctn Add Host Group    ${2}    ${1}    ["host_35", "host_36", "host_37"]
-    Ctn Notify Broker Of Engine Config Change    0
-    Ctn Notify Broker Of Engine Config Change    1
-    Ctn Notify Broker Of Engine Config Change    2
+    # The three pollers are a single export: one announcement naming them all.
+    Ctn Notify Broker Of Engine Config Change    ${0}    ${1}    ${2}
 
     ${content}    Create List
     ...    enabling membership of host 1 to host group 1 on instance 1

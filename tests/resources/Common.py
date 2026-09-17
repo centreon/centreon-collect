@@ -2879,16 +2879,110 @@ def ctn_check_state_configurations_are_equal(file1, file2):
     return compare_dicts(dico1, dico2)
 
 
-def ctn_notify_broker_of_engine_config_change(idx: int):
+def ctn_wait_for_pending_poller_batch(timeout: int = 30):
+    """Wait for a pending `pollers.lck` to have been consumed by Broker.
+
+    There is one `pollers.lck` for the whole platform, and Broker both reads it
+    at the start of a cycle and removes it at the end. Writing a new one in
+    between is how an announcement gets lost: the removal that closes the
+    running cycle takes the new file away with it, and nothing is left to say
+    the export was ever announced.
+
+    So the file disappearing is what says the previous announcement has been
+    taken over, and waiting for it is what PHP does before announcing another
+    batch -- see _remove_poller_batch() in broker_state.cc. The tests announce
+    the same way.
+
+    Args:
+        timeout (int): How long to wait, in seconds.
+
+    Returns:
+        True if there is no pending announcement left, False on timeout -- which
+        is the ordinary answer when Broker is not running, since nothing
+        consumes the file then.
+    """
+    batch_file = Path(f"{VAR_ROOT}/lib/centreon/config/pollers.lck")
+    limit = time.time() + int(timeout)
+    while batch_file.exists():
+        if time.time() >= limit:
+            return False
+        time.sleep(0.2)
+    return True
+
+
+def ctn_announce_pollers_batch(poller_ids):
+    """Announce a whole export with a single `pollers.lck` naming every poller.
+
+    The file is written atomically -- a temporary, then a rename -- so Broker
+    only ever sees a complete announcement (IN_MOVED_TO), never a half-written
+    one.
+
+    A pending announcement is waited for first, as PHP does. When it is still
+    there afterwards -- Broker down, so nothing consumes it -- the ids are
+    merged into it instead of replacing it, so that an export announced while
+    Broker was stopped is not silently dropped by the next one.
+
+    Args:
+        poller_ids (list): The poller IDs of the export (from 1).
+    """
+    batch_file = Path(f"{VAR_ROOT}/lib/centreon/config/pollers.lck")
+    ids = set(int(i) for i in poller_ids)
+    if not ctn_wait_for_pending_poller_batch():
+        logger.console(
+            "A pollers.lck is still pending: merging the new ids into it")
+        try:
+            ids |= set(int(line) for line in
+                       batch_file.read_text().split() if line)
+        except (OSError, ValueError):
+            # Consumed while we were reading it: ours is then the only
+            # announcement, which is what we were waiting for anyway.
+            pass
+    body = "".join(f"{i}\n" for i in sorted(ids))
+    tmp = batch_file.with_suffix(".lck.tmp")
+    tmp.write_text(body)
+    tmp.replace(batch_file)
+
+
+def ctn_notify_broker_of_engine_config_change(*idx):
     """
     Notify the broker of a change in the engine configuration.
 
+    Announces the whole export at once through `pollers.lck`, which is the shape
+    PHP uses: Broker is told where the export ends instead of having to guess it
+    from a burst of individual files. The historical `<ID>.lck` shape stays
+    supported and is exercised by the tests that take lck_mode=per_poller.
+
+    Several indexes may be passed, and they must be when they belong to the same
+    export: one call naming them all is a single batch, where a call per index
+    would be as many batches -- and each would race the previous one's removal.
+
     Args:
-        idx (int): The index of the configuration to notify.
+        *idx (int): The indexes of the configurations to notify (from 0).
+    """
+    poller_ids = [int(i) + 1 for i in idx]
+    logger.console(
+        "Notify broker of engine config change for poller(s) "
+        f"{', '.join(str(i) for i in poller_ids)}")
+    ctn_announce_pollers_batch(poller_ids)
+
+
+def ctn_notify_broker_of_engine_config_change_per_poller(idx: int):
+    """
+    Notify the broker of a change in the engine configuration, the historical
+    way: one `<ID>.lck` for the poller, which leaves Broker to guess where the
+    export ends.
+
+    Kept for the tests that must keep covering that shape, still supported for
+    backward compatibility. Everything else goes through
+    ctn_notify_broker_of_engine_config_change().
+
+    Args:
+        idx (int): The index of the configuration to notify (from 0).
     """
     logger.console(
-        f"Notify broker of engine config change for poller {idx + 1}")
-    lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
+        f"Notify broker of engine config change for poller {int(idx) + 1} "
+        "through its own lck file")
+    lck_file = f"{VAR_ROOT}/lib/centreon/config/{int(idx) + 1}.lck"
     Path(lck_file).touch()
 
 
