@@ -844,9 +844,9 @@ sub substitute_host_macro {
     my $self = shift;
     my $str = $_[0];
     
-    if (defined($self->{ref_macro_hosts})) {
-        foreach my $macro_name (keys %{$self->{ref_macro_hosts}}) {
-            $str =~ s/\Q$macro_name\E/\Q$self->{ref_macro_hosts}->{$macro_name}\E/g;
+    if (defined($self->{trap_data}->{ref_macro_hosts})) {
+        foreach my $macro_name (keys %{$self->{trap_data}->{ref_macro_hosts}}) {
+            $str =~ s/\Q$macro_name\E/\Q$self->{trap_data}->{ref_macro_hosts}->{$macro_name}\E/g;
         }
     }
 
@@ -1131,8 +1131,14 @@ sub getTrapsInfos {
             
             #### Check if macro $_HOST*$ needed
             $self->{trap_data}->{ref_macro_hosts} = undef;
-            if (defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable}) && $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable} == 1 &&
-                defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command}) && $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command} =~ /\$_HOST.*?\$/) {
+            my $has_host_macro = defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable}) &&
+                $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable} == 1 &&
+                defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command}) &&
+                $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command} =~ /\$_HOST.*?\$/;
+            $has_host_macro ||= grep {
+                defined($_->{tpe_string}) && $_->{tpe_string} =~ /\$_HOST.*?\$/;
+            } @{$self->{trap_data}->{ref_oids}->{$trap_id}->{traps_preexec}};
+            if ($has_host_macro) {
                 ($fstatus, $self->{trap_data}->{ref_macro_hosts}) = centreon::trapd::lib::get_macros_host($self->{cdb}, $host_id);
                 return 0 if ($fstatus == -1);
             }
