@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include "broker/core/cache/broker_cache.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/otlp/factory.hh"
 #include "common/log_v2/log_v2.hh"
@@ -31,6 +32,20 @@ extern "C" {
  *  Module version symbol. Used to check for version mismatch.
  */
 char const* broker_module_version = CENTREON_BROKER_VERSION;
+
+/**
+ * @brief The sections of the global cache this module reads.
+ *
+ * The hosts and services to name the resources, and the OTel service identity
+ * of the hosts.
+ *
+ * @return A mask of cache::broker_cache::sections.
+ */
+uint32_t broker_module_cache_sections() {
+  return cache::broker_cache::CACHE_HOSTS |
+         cache::broker_cache::CACHE_SERVICES |
+         cache::broker_cache::CACHE_OTEL;
+}
 
 /**
  * @brief Return an array with modules needed for this one to work.

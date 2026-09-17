@@ -22,7 +22,6 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <vector>
 
 #include "broker/core/bbdo/internal.hh"
 #include "broker/core/cache/broker_cache.hh"

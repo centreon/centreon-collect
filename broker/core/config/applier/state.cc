@@ -154,6 +154,10 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   //      set_pollers_config_dir(s.pollers_config_dir());
   //  }
 
+  /* Before the modules: loading one declares the cache sections it reads, so
+   * the cache has to exist by then. */
+  initialize_cache();
+
   // Apply modules configuration.
   _modules.apply(s.module_list(), s.module_directory(), &s);
   static bool first_application(true);
@@ -169,7 +173,6 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
           "'module_directory' directory");
   }
 
-  initialize_cache();
   // Event queue max size (used to limit memory consumption).
   com::centreon::broker::multiplexing::muxer::event_queue_max_size(
       s.event_queue_max_size());
@@ -177,6 +180,13 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
       s.priority_age_threshold());
 
   com::centreon::broker::config::state st{s};
+
+  /* The sections have been declared by the modules just above, so the cache can
+   * be filled -- once the directories it reads from are resolved. Both before
+   * the endpoints, since a stream may read the cache while loading its own
+   * configuration. */
+  _configure_cache_directories(s);
+  on_cache_sections_declared();
 
   // Apply input and output configuration.
   endpoint::instance().apply(st.endpoints(), st.params());
@@ -298,8 +308,8 @@ void state::_maybe_release_barrier(bool forced) {
    * not_started (e.g. the BA virtual service definitions). */
   com::centreon::broker::multiplexing::engine::instance_ptr()->start();
 
-  /* Subclass-specific action ordered after the flushed definitions (broker_state
-   * re-injects persisted active downtimes here). */
+  /* Subclass-specific action ordered after the flushed definitions
+   * (broker_state re-injects persisted active downtimes here). */
   _on_barrier_released();
 }
 

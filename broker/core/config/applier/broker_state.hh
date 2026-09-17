@@ -261,7 +261,9 @@ class broker_state : public state {
   /* Guards the one-shot loading of the stored configurations: it is pulled by
    * whoever first needs the cache, from more than one thread. */
   absl::once_flag _pollers_config_in_cache_once;
-  void _ensure_pollers_config_in_cache();
+  void on_cache_sections_declared() override;
+  void _configure_cache_directories(
+      const com::centreon::broker::config::state& s) override;
   void load_pollers_config_in_cache();
   void apply_poller_diff_in_cache(uint64_t poller_id);
   void remove_poller_config(uint64_t poller_id) override;

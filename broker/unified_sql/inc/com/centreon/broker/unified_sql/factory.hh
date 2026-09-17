@@ -41,7 +41,7 @@ class factory : public io::factory {
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const absl::btree_map<std::string, std::string>& global_params,
-      bool& is_acceptor) const;
+      bool& is_acceptor) const override;
 };
 
 }  // namespace com::centreon::broker::unified_sql

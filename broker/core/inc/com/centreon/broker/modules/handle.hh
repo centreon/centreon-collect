@@ -53,6 +53,7 @@ class handle {
   static constexpr const char* updatization{"broker_module_update"};
   static constexpr const char* versionning{"broker_module_version"};
   static constexpr const char* parents_list{"broker_module_parents"};
+  static constexpr const char* cache_sections{"broker_module_cache_sections"};
 };
 }  // namespace com::centreon::broker::modules
 

@@ -167,9 +167,6 @@ void factory::set_default_values(config::endpoint& cfg) const {
 /**
  * @brief Create the connector of an OTLP output.
  *
- * When the applier state is loaded, the broker_cache sections it reads are
- * enabled, because host names are resolved from it.
- *
  * @param cfg endpoint configuration
  * @param global_params unused
  * @param is_acceptor set to false: an OTLP output is always a connector
@@ -196,13 +193,6 @@ io::endpoint* factory::new_endpoint(
         fmt::format("{}.cache.{}",
                     config::applier::state::instance().cache_dir(), cfg.name),
         log_v2::instance().get(log_v2::OTL));
-
-  /* host.name, service description and OTel identity come from broker_cache.
-   * Guarded because the applier state is not loaded under unit tests. */
-  if (config::applier::state::loaded())
-    config::applier::state::instance().cache().enable_section(
-        cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
-        cache::broker_cache::CACHE_OTEL);
 
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::OTL),
                      "otlp: endpoint '{}' exporting to {}", cfg.name,

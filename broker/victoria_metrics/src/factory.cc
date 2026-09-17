@@ -93,14 +93,6 @@ io::endpoint* factory::new_endpoint(
     account_id = it->second;
   }
 
-  /* Sections of the broker cache read by this output. */
-  if (config::applier::state::loaded())  // false only happens in UTs
-    config::applier::state::instance().cache().enable_section(
-      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
-      cache::broker_cache::CACHE_INSTANCES |
-      cache::broker_cache::CACHE_METRIC_MAPPINGS |
-      cache::broker_cache::CACHE_GROUPS | cache::broker_cache::CACHE_TAGS |
-      cache::broker_cache::CACHE_SEVERITIES);
 
   return new connector(conf, account_id);
 }
