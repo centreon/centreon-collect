@@ -93,13 +93,9 @@ Ctn Stop Vault
 Ctn Start Broker
     [Arguments]    ${only_central}=False
     # Currently we are in BBDO2 by default.
-    Log To Console    Start master cbd
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
-    Log To Console    Master cbd started
     IF    not ${only_central}
-        Log To Console    Start rrd cbd
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
-        Log To Console    rrd cbd started
     END
 
 Ctn Restart Broker
@@ -128,9 +124,7 @@ Ctn Kindly Stop Broker
     END
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
-    Log To Console    Before wait b1
     ${result}    Wait For Process    b1    timeout=${kill_timeout}
-    Log To Console    After wait b1 ${result}
     # In case of process not stopping
     IF    "${result}" == "${None}"
         Log To Console    "fail to stop central broker"
@@ -151,10 +145,7 @@ Ctn Kindly Stop Broker
                         Log To Console    We are in BBDO3, so we also check RRD duplicates
                         Log To Console    central broker stopped
                         # We have to check if central RRD logs contain errors about data sent in the past.
-                        ${ls_result}    Run    ls -l ${rrdLog}
-                        Log To Console    ${ls_result}
                         ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-                        Log To Console    End grep
                         IF    len("""${result}""") > 0
                             Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
                             Ctn Save Logs
@@ -171,9 +162,7 @@ Ctn Kindly Stop Broker
     END
 
     IF    not ${only_central}
-        Log To Console    Before wait b2
         ${result}    Wait For Process    b2    timeout=${kill_timeout}    on_timeout=kill
-        Log To Console    After wait b2 ${result}
         # In case of process not stopping
         IF    "${result}" == "${None}"
             Log To Console    "fail to stop rrd broker"
@@ -283,9 +272,7 @@ Ctn Stop Engine
     END
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
-        Log To Console    Bafore wait ${alias}
         ${result}    Wait For Process    ${alias}    timeout=60s
-        Log To Console    After wait ${alias} ${result}
         IF    "${result}" == "${None}"
             Log To Console    Failed to stop centengine
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}

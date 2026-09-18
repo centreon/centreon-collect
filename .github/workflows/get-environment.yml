@@ -829,11 +829,6 @@ jobs:
             };
 
             const getDailyConfig = (configs) => {
-
-              // TO REMOVE
-              return configs[0];
-
-
               const today = new Date();
               const dayOfWeek = today.getDay(); // 0=sunday, 1=monday, ..., 6=saturday
 
@@ -961,7 +956,11 @@ jobs:
                 if (
                   ['alma8', 'alma9', 'alma10'].includes(config.operating_system) &&
                   hasMysqlConfig === false &&
-                  config.arch === "amd64" 
+                  config.arch === "amd64" &&
+                  (
+                    ['unstable', 'testing', 'stable'].includes(process.env.STABILITY) ||
+                    process.env.HAS_DATABASE_LABEL === 'true'
+                  )
                 ) {
                   testConfigs.push({...config, "database_type": "mysql", "tests_params": "{}"});
                   hasMysqlConfig = true;
