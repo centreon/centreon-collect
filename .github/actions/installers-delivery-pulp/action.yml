@@ -1,0 +1,67 @@
+name: "installers-delivery-pulp"
+description: "Deliver a standalone installer to the pulp installers repositories"
+inputs:
+  module_name:
+    description: "The installer module name (the installers/<module> path segment)"
+    required: true
+  major_version:
+    description: "Centreon packaged major version"
+    required: true
+  stability:
+    description: "The installer stability (testing, unstable); stable is reached through promotion"
+    required: true
+  installer_path:
+    description: "Path to the installer file to deliver"
+    required: true
+  installer_name:
+    description: "Published file name, versioned (e.g. centreon-monitoring-agent-25.10.9.exe)"
+    required: true
+  release_type:
+    description: "Type of release (release, hotfix) - selects the split testing tier"
+    required: false
+    default: ""
+  installer_os:
+    description: "The os segment of the relative path inside the repository"
+    required: false
+    default: "windows"
+  pulp_url:
+    description: "The pulp server api url"
+    required: true
+  pulp_content_url:
+    description: "The pulp server content url"
+    required: true
+  audience:
+    description: "OIDC audience, must match the pulp server GITHUB_OIDC.audience"
+    required: true
+
+outputs:
+  content_href:
+    description: "Href of the delivered content unit"
+    value: ${{ steps.deliver.outputs.content_href }}
+
+runs:
+  using: "composite"
+  steps:
+    # the installers family is not edition-scoped, so it lives in "default" alongside repo-files
+    - name: Setup pulp-cli
+      uses: ./.github/actions/setup-pulp-cli
+      with:
+        pulp_url: ${{ inputs.pulp_url }}
+        audience: ${{ inputs.audience }}
+        domain: default
+
+    - name: Deliver the installer
+      id: deliver
+      shell: bash
+      env:
+        MODULE_NAME: ${{ inputs.module_name }}
+        MAJOR_VERSION: ${{ inputs.major_version }}
+        STABILITY: ${{ inputs.stability }}
+        INSTALLER_PATH: ${{ inputs.installer_path }}
+        INSTALLER_NAME: ${{ inputs.installer_name }}
+        INSTALLER_OS: ${{ inputs.installer_os }}
+        RELEASE_TYPE: ${{ inputs.release_type }}
+        PULP_URL: ${{ inputs.pulp_url }}
+        PULP_CONTENT_URL: ${{ inputs.pulp_content_url }}
+        PULP_TOKEN: ${{ env.PULP_TOKEN }}
+      run: ${{ github.action_path }}/deliver-installers.sh
