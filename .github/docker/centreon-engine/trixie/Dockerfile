@@ -1,43 +1,19 @@
 # syntax=docker/dockerfile:1
 
 #############################################
-# Stage 1: Extract files from .deb packages
+# Runtime - Minimal final image
 #############################################
-FROM debian:13-slim AS extractor
-
-ARG TARGETARCH
-
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    dpkg file
-
-# Extract .deb packages (mounted via --mount during build)
-# Smart extraction: skip broker-cbd, extract all others, then clean up junk files
-RUN --mount=type=bind,source=packages-centreon,target=/packages \
-    bash -e <<'EOF'
-mkdir -p /extracted
-cd /packages/${TARGETARCH}
-for deb in centreon*.deb; do
-    case "$deb" in
-        *broker-cbd*) continue ;;
-    esac
-    dpkg-deb -x "$deb" /extracted/
-done
-rm -rf /extracted/usr/share/doc/* \
-       /extracted/usr/share/man/* \
-       /extracted/usr/share/info/* \
-       /extracted/usr/share/locale/* \
-       /extracted/usr/share/licenses/* \
-       /extracted/var/cache/* \
-       /extracted/var/log/*
-EOF
-
-#############################################
-# Stage 2: Runtime - Minimal final image
-#############################################
+# No extractor stage: the runtime payload (binaries, libs, modules, configs)
+# is staged straight from the nfpm manifests by package-collect.yml's "Stage
+# centreon-engine package-less Docker payload" step
+# (.github/scripts/manifest_stage.py), which replays their contents: entries
+# against build/ - the same files nfpm itself would pack, no .deb ever
+# built or extracted for this image. collect.yml's dockerize-engine-broker
+# job restores that staged tree per-arch into staging-centreon/{amd64,arm64}/
+# before this Dockerfile builds.
 FROM debian:13-slim AS runtime
 
+ARG TARGETARCH
 ARG VERSION
 ARG IS_CLOUD
 ARG STABILITY
@@ -183,8 +159,7 @@ COPY --chown=centreon-engine:centreon-engine <<EOF /etc/centreon-engine/engine-c
 {"app_secret":"","salt":""}
 EOF
 
-# Copy runtime files from extractor in bulk
-# Batch copy binaries, libraries and modules to reduce layers and cherry-picking.
+# Copy the staged runtime payload in bulk.
 # NOTE: a single non-wildcard destination is required here — Docker does not
 # glob-expand COPY destinations, so a previous "/usr/lib*/ /usr/lib*/" form
 # literally created a directory named "lib*" instead of landing files in
@@ -192,12 +167,12 @@ EOF
 # never searches (centengine failed at runtime with "cannot open shared
 # object file", while the path-guessing verify RUN below still "passed"
 # because its shell glob matched that same bogus literal directory).
-COPY --from=extractor --link --chmod=755 \
-    /extracted/usr/ /usr/
+COPY --link --chmod=755 \
+    staging-centreon/${TARGETARCH}/usr/ /usr/
 
 # Configuration files (--chown prevents --link)
-COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
-     /extracted/etc/ /etc/
+COPY --chown=centreon-engine:centreon-engine --chmod=664 \
+     staging-centreon/${TARGETARCH}/etc/ /etc/
 
 # COPY --chmod applies the same mode to every copied entry, files and
 # directories alike. The 664 above (no execute bit) landed on

@@ -5,8 +5,6 @@ set -e
 
 rm -f /tmp/docker.ready
 
-export PATH="/opt/centreon/venv/bin:$PATH"
-
 touch /tmp/docker.ready
 echo "Centreon is ready"
 
