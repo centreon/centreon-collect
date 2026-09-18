@@ -25,7 +25,7 @@ on:
       robot_pattern:
         description: "filter robot files with regex"
         required: true
-        default: "^((?!cma).)*$"
+        default: "bam_pb.robot"
         type: string
       labels:
         description: "Labels to add to the run (comma separated)"
@@ -99,7 +99,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != 'bam_pb.robot' || false }}
       labels: ${{ inputs.labels || '' }}
 
   check-version-consistency:

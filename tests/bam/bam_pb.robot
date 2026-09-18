@@ -1497,15 +1497,25 @@ BAM_CORRUPTED_REPORTING_BA_EVENTS
 *** Keywords ***
 Ctn BAM Setup
     Ctn Stop Processes
+    Log To Console    Start Clean bam DB
     Connect To Database    pymysql    ${DBName}    ${DBUserRoot}    ${DBPassRoot}    ${DBHost}    ${DBPort}
+    Log To Console    Start Clean bam DB connected
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=0
+    Log To Console    1
     Execute SQL String    DELETE FROM mod_bam_reporting_kpi
+    Log To Console    2
     Execute SQL String    DELETE FROM mod_bam_reporting_timeperiods
+    Log To Console    3
     Execute SQL String    DELETE FROM mod_bam_reporting_relations_ba_timeperiods
+    Log To Console    4
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
+    Log To Console    5
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
+    Log To Console    6
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+    Log To Console    7
     Disconnect From Database
+    Log To Console    bam DB cleaned
 
 Ctn BAM Init
     Ctn Clear Commands Status
