@@ -23,6 +23,8 @@ use warnings;
 
 package gorgone::modules::centreon::mbi::libs::centstorage::Metrics;
 
+use gorgone::modules::centreon::mbi::libs::TableUtils;
+
 # Constructor
 # parameters:
 # $logger: instance of class CentreonLogger
@@ -61,8 +63,6 @@ sub getTimeColumn() {
 
 sub createTempTableMetricMinMaxAvgValues {
     my ($self, $useMemory, $granularity) = @_;
-    my $db = $self->{"centstorage"};
-    $db->query({ query => "DROP TABLE IF EXISTS `" . $self->{name_minmaxavg_tmp} . "`" });
     my $createTable = " CREATE TABLE `" . $self->{name_minmaxavg_tmp} . "` (";
     $createTable .= " id_metric INT NULL,";
     $createTable .= " avg_value FLOAT NULL,";
@@ -76,7 +76,8 @@ sub createTempTableMetricMinMaxAvgValues {
     }else {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
-    $db->query({ query => $createTable });
+    gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+        $self->{centstorage}, $self->{logger}, $self->{name_minmaxavg_tmp}, $createTable);
 }
 
 sub getMetricValueByHour {
@@ -138,8 +139,6 @@ sub getMetricsValueByDay {
 
 sub createTempTableMetricDayFirstLastValues {
     my ($self, $useMemory) = @_;
-    my $db = $self->{"centstorage"};
-    $db->query({ query => "DROP TABLE IF EXISTS `" . $self->{name_firstlast_tmp} . "`" });
     my $createTable = " CREATE TABLE `" . $self->{name_firstlast_tmp} . "` (";
     $createTable .= " `first_value` FLOAT NULL,";
     $createTable .= " `last_value` FLOAT NULL,";
@@ -149,7 +148,8 @@ sub createTempTableMetricDayFirstLastValues {
     } else {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
-    $db->query({ query => $createTable });
+    gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+        $self->{centstorage}, $self->{logger}, $self->{name_firstlast_tmp}, $createTable);
 }
 
 sub addIndexTempTableMetricDayFirstLastValues {
@@ -172,8 +172,6 @@ sub addIndexTempTableMetricMinMaxAvgValues {
 
 sub createTempTableCtimeMinMaxValues {
     my ($self, $useMemory) = @_;
-    my $db = $self->{"centstorage"};
-    $db->query({ query => "DROP TABLE IF EXISTS `" . $self->{name_minmaxctime_tmp} . "`" });
     my $createTable = " CREATE TABLE `" . $self->{name_minmaxctime_tmp} . "` (";
     $createTable .= " min_val INT NULL,";
     $createTable .= " max_val INT NULL,";
@@ -183,13 +181,14 @@ sub createTempTableCtimeMinMaxValues {
     } else {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
-    $db->query({ query => $createTable });
+    gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+        $self->{centstorage}, $self->{logger}, $self->{name_minmaxctime_tmp}, $createTable);
 }
 
 sub dropTempTableCtimeMinMaxValues {
     my $self = shift;
     my $db = $self->{"centstorage"};
-    $db->query({ query => "DROP TABLE `" . $self->{name_minmaxctime_tmp} . "`" });
+    $db->query({ query => "DROP TABLE IF EXISTS `" . $self->{name_minmaxctime_tmp} . "`" });
 }
 
 sub getFirstAndLastValues {

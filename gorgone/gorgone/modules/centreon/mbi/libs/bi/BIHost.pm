@@ -23,6 +23,8 @@ use warnings;
 
 package gorgone::modules::centreon::mbi::libs::bi::BIHost;
 
+use gorgone::modules::centreon::mbi::libs::TableUtils;
+
 # Constructor
 # parameters:
 # $logger: instance of class CentreonLogger
@@ -140,8 +142,6 @@ sub insertIntoTable {
 
 sub createTempComparisonTable {
 	my ($self, $useMemory) = @_;
-	my $db = $self->{"centstorage"};
-	$db->query({ query => "DROP TABLE IF EXISTS `" . $self->{"tmp_comp"} . "`" });
 	my $query = "CREATE TABLE `".$self->{"tmp_comp"}."` (";
 	$query .= "`host_id` int(11) NOT NULL,`host_name` varchar(255) NOT NULL,";
 	$query .= "`hc_id` int(11) DEFAULT NULL, `hc_name` varchar(255) NOT NULL,";
@@ -151,14 +151,12 @@ sub createTempComparisonTable {
 	}else {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
-	$db->query({ query => $query });
+	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+		$self->{centstorage}, $self->{logger}, $self->{tmp_comp}, $query);
 }
 
 sub createTempStorageTable {
 	my ($self,$useMemory) = @_;
-	my $db = $self->{"centstorage"};
-	
-	$db->query({ query => "DROP TABLE IF EXISTS `" . $self->{"tmp_comp_storage"} . "`" });
 	my $query = "CREATE TABLE `".$self->{"tmp_comp_storage"}."` (";
 	$query .= "`id` INT NOT NULL,";
 	$query .= "`host_id` int(11) NOT NULL,`host_name` varchar(255) NOT NULL,";
@@ -170,14 +168,12 @@ sub createTempStorageTable {
 	}else {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
-	$db->query({ query => $query });
+	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+		$self->{centstorage}, $self->{logger}, $self->{tmp_comp_storage}, $query);
 }
 
 sub createTempTodayTable {
 	my ($self,$useMemory) = @_;
-	my $db = $self->{"centstorage"};
-	
-	$db->query({ query => "DROP TABLE IF EXISTS `".$self->{"today_table"}."`" });
 	my $query = "CREATE TABLE `".$self->{"today_table"}."` (";
 	$query .= "`id` INT NOT NULL,";
 	$query .= "`host_id` int(11) NOT NULL,`host_name` varchar(255) NOT NULL,";
@@ -189,7 +185,8 @@ sub createTempTodayTable {
 	}else {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
-	$db->query({ query => $query });
+	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+		$self->{centstorage}, $self->{logger}, $self->{today_table}, $query);
 }
 
 sub joinNewAndCurrentEntries {

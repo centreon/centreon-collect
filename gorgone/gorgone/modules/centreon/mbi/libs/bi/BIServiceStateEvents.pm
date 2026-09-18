@@ -23,6 +23,8 @@ use warnings;
 
 package gorgone::modules::centreon::mbi::libs::bi::BIServiceStateEvents;
 
+use gorgone::modules::centreon::mbi::libs::TableUtils;
+
 # Constructor
 # parameters:
 # $logger: instance of class CentreonLogger
@@ -68,8 +70,6 @@ sub prepareQuery {
 
 sub createTempBIEventsTable {
 	my ($self) = @_;
-	my $db = $self->{"centstorage"};
-	$db->query({ query => "DROP TABLE IF EXISTS `mod_bi_servicestateevents_tmp`" });
 	my $createTable = " CREATE TABLE `mod_bi_servicestateevents_tmp` (";
 	$createTable .= " `host_id` int(11) NOT NULL,";
 	$createTable .= " `service_id` int(11) NOT NULL,";
@@ -83,7 +83,8 @@ sub createTempBIEventsTable {
 	$createTable .= " `last_update` tinyint(4) DEFAULT '0',";
 	$createTable .= " KEY `modbiservice_id` (`host_id`,`service_id`)";
 	$createTable .= " ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
-	$db->query({ query => $createTable });
+	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+		$self->{centstorage}, $self->{logger}, "mod_bi_servicestateevents_tmp", $createTable);
 }
 
 sub prepareTempQuery {
