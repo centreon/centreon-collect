@@ -21,6 +21,9 @@ TRAIN="${CMA_VERSION%.*}"
 STATE="stable"
 
 die() { echo "::error::cma-release-entries: $*" >&2; exit 1; }
+# classify() runs inside a command substitution, where `die` would only kill the subshell and
+# read back as "not an installer" -- a malformed name would silently drop an OS from the release.
+malformed() { echo "::error::cma-release-entries: $*" >&2; return 2; }
 
 [[ "$CMA_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "CMA_VERSION must be MAJOR.MINOR.PATCH (got '$CMA_VERSION')"
 
@@ -34,12 +37,12 @@ classify() {
       return 0
       ;;
     *.rpm)
-      [[ "$name" =~ \.(el[0-9]+)\. ]] || die "cannot read the el release from '$name'"
+      [[ "$name" =~ \.(el[0-9]+)\. ]] || malformed "cannot read the el release from '$name'"
       os="${BASH_REMATCH[1]}"
       case "$name" in
         *.x86_64.rpm) arch="amd64" ;;
         *.aarch64.rpm) arch="arm64" ;;
-        *) die "cannot read the arch from '$name'" ;;
+        *) malformed "cannot read the arch from '$name'" ;;
       esac
       printf '%s\t%s-%s-%s\n' "$os" "$CMA_VERSION" "$os" "$arch"
       return 0
@@ -48,7 +51,7 @@ classify() {
       case "$name" in
         *_amd64.deb) arch="amd64" ;;
         *_arm64.deb) arch="arm64" ;;
-        *) die "cannot read the arch from '$name'" ;;
+        *) malformed "cannot read the arch from '$name'" ;;
       esac
       # debian: "-1+deb12u1" up to 25.10.8, "-1.deb12u1" from 25.10.9 - accept both separators
       if [[ "$name" =~ -1[+.]deb([0-9]+)u[0-9]+_ ]]; then
@@ -62,13 +65,17 @@ classify() {
         printf '%s\t%s-ubuntu-%s-%s\n' "$os" "$CMA_VERSION" "${BASH_REMATCH[1]}" "$arch"
         return 0
       fi
-      die "cannot read the distribution from '$name'"
+      malformed "cannot read the distribution from '$name'"
       ;;
     *)
       return 1
       ;;
   esac
 }
+
+command -v gh >/dev/null 2>&1 \
+  || die "the gh cli is required to read the release assets but is not installed on this runner"
+command -v jq >/dev/null 2>&1 || die "jq is required but is not installed on this runner"
 
 mkdir -p "$WORKDIR/assets"
 
@@ -92,10 +99,12 @@ EMITTED=0
 
 while IFS=$'\t' read -r NAME URL SIZE; do
   [[ -n "$NAME" ]] || continue
-  if ! CLASSIFIED=$(classify "$NAME"); then
-    echo "[INFO] ignoring $NAME (not a published installer)" >&2
-    continue
-  fi
+  CLASSIFIED=$(classify "$NAME") || CLASSIFY_RC=$?
+  case "${CLASSIFY_RC:-0}" in
+    0) ;;
+    1) echo "[INFO] ignoring $NAME (not a published installer)" >&2; unset CLASSIFY_RC; continue ;;
+    *) die "$NAME is an installer but its name could not be parsed - refusing to publish a release with a missing row" ;;
+  esac
   OS="${CLASSIFIED%%$'\t'*}"
   VERSION="${CLASSIFIED#*$'\t'}"
 

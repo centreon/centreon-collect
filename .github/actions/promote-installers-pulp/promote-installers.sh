@@ -19,14 +19,14 @@ MAJOR_VERSION="${MAJOR_VERSION:?MAJOR_VERSION is not set}"
 INSTALLER_NAME="${INSTALLER_NAME:?INSTALLER_NAME is not set}"
 INSTALLER_OS="${INSTALLER_OS:-windows}"
 
-RELEASE_TYPE="${RELEASE_TYPE:?RELEASE_TYPE is not set}"
+RELEASE_TYPE="${RELEASE_TYPE:-}"
 
 # the pulp testing tier is split by release type (unlike artifactory's flat "testing"), so the
 # promotion has to read the tier the delivery of this very build wrote to
 case "$RELEASE_TYPE" in
   release | hotfix) SOURCE_STABILITY="testing-$RELEASE_TYPE" ;;
   *)
-    echo "::error::release_type must be 'release' or 'hotfix' to locate the source tier (got '${RELEASE_TYPE:-empty}')."
+    echo "::error::release_type must be 'release' or 'hotfix' to locate the source tier (got '${RELEASE_TYPE:-empty}'). It is derived from the annotated tag message, which has to mention 'release' or 'hotfix'."
     exit 1
     ;;
 esac
@@ -60,7 +60,10 @@ SOURCE_VERSION=$(content_curl -fsSL "$PULP_URL$SOURCE_HREF" | jq -r '.latest_ver
 # the unit is looked up by its relative path in the SOURCE repository version, so the
 # promoted file is provably the one that was tested, not a same-named rebuild
 CONTENT_HREF=$(
-  content_curl -fsSL "$PULP_URL/$PULP_DOMAIN/api/v3/content/file/files/?repository_version=$SOURCE_VERSION&relative_path=$RELATIVE_PATH" 2>/dev/null |
+  content_curl -fsSL -G \
+    --data-urlencode "repository_version=$SOURCE_VERSION" \
+    --data-urlencode "relative_path=$RELATIVE_PATH" \
+    "$PULP_URL/$PULP_DOMAIN/api/v3/content/file/files/" 2>/dev/null |
     jq -r '.results[0].pulp_href // empty'
 ) || CONTENT_HREF=""
 
@@ -76,23 +79,27 @@ echo "sha256:       $CONTENT_SHA256"
 # add_content_units is idempotent, so a re-run of a partially failed promotion is safe
 MODIFY_BODY=$(mktemp)
 jq -nc --arg href "$CONTENT_HREF" '{add_content_units: [$href]}' > "$MODIFY_BODY"
-TASK_HREF=$(start_modify_task "$PULP_URL${TARGET_HREF}modify/" "$MODIFY_BODY")
+for attempt in 1 2 3; do
+  TASK_HREF=$(start_modify_task "$PULP_URL${TARGET_HREF}modify/" "$MODIFY_BODY")
+  wait_task_race "$TASK_HREF" && break
+  # 2 is api.sh's "retryable"; add_content_units is idempotent so retrying is always safe
+  [[ $? -eq 2 && $attempt -lt 3 ]] || { rm -f "$MODIFY_BODY"; echo "::error::could not add $RELATIVE_PATH to $TARGET_REPOSITORY"; exit 1; }
+  echo "[WARN] retryable failure promoting, attempt $attempt/3" >&2
+done
 rm -f "$MODIFY_BODY"
-wait_task_race "$TASK_HREF" || { echo "::error::could not add $RELATIVE_PATH to $TARGET_REPOSITORY"; exit 1; }
 echo "::endgroup::"
 
 SERVED_URL="$PULP_CONTENT_URL/$PULP_DOMAIN/$TARGET_BASE_PATH/$RELATIVE_PATH"
 
 echo "::group::Verifying $SERVED_URL"
 VERIFY_STATUS="not served"
-for attempt in 1 2 3 4 5 6; do
-  HTTP_CODE=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 60 "$SERVED_URL" || echo 000)
+for attempt in $(seq 1 18); do
+  HTTP_CODE=$(content_curl -sL -o /dev/null -w '%{http_code}' --max-time 60 "$SERVED_URL" || echo 000)
   if [[ "$HTTP_CODE" == "200" ]]; then
     VERIFY_STATUS="served (HTTP 200)"
     break
   fi
-  echo "[INFO] attempt $attempt/6: HTTP $HTTP_CODE, retrying"
-  sleep 10
+  [[ $attempt -lt 18 ]] && { echo "[INFO] attempt $attempt/18: HTTP $HTTP_CODE, retrying"; sleep 10; }
 done
 echo "$VERIFY_STATUS"
 echo "::endgroup::"

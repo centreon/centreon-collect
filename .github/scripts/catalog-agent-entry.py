@@ -64,26 +64,53 @@ def find_list(lines, start, stop, name):
     )
     if header is None:
         fail(f"no `{name}:` list in the windows target")
+    header_indent = len(lines[header]) - len(lines[header].lstrip())
     entries = []
     for i in range(header + 1, stop):
         line = lines[i]
         if line.strip() == "" or line.lstrip().startswith("#"):
             continue
+        indent = len(line) - len(line.lstrip())
         if line.startswith(f"{ENTRY_INDENT}- version:"):
             entries.append(i)
         elif line.startswith(FIELD_INDENT):
             continue
+        elif line.startswith(f"{ENTRY_INDENT}- "):
+            fail(
+                f"`{name}:` has an entry whose first key is not `version` ({lines[i].strip()!r}). "
+                "This editor keys on version; fix the entry or teach it the new shape."
+            )
+        elif indent > header_indent or (indent == header_indent and line.lstrip().startswith("- ")):
+            # still inside the list but not a shape we handle (a differently indented sequence,
+            # a nested mapping): inserting here would duplicate or corrupt, so refuse
+            fail(
+                f"`{name}:` is laid out in a way this editor does not understand "
+                f"({lines[i].rstrip()!r}). Refusing to guess."
+            )
         else:
             break
     return header, entries
 
 
 def entry_end(lines, index, stop):
-    """Line after the last field of the entry beginning at `index`."""
+    """Line after the last field of the entry beginning at `index`.
+
+    Comments and blank lines inside an entry belong to it: stopping at the first of them
+    would leave the entry's remaining fields orphaned below the replacement, publishing a
+    file_url with the previous md5.
+    """
     end = index + 1
-    while end < stop and lines[end].startswith(FIELD_INDENT):
-        end += 1
-    return end
+    last_field = end
+    while end < stop:
+        line = lines[end]
+        if line.startswith(FIELD_INDENT):
+            end += 1
+            last_field = end
+        elif line.strip() == "" or line.lstrip().startswith("#"):
+            end += 1
+        else:
+            break
+    return last_field
 
 
 def version_of(line):
@@ -115,7 +142,6 @@ def main():
     changed = []
 
     # all_versions first: editing the lower list would shift the indices of the upper one
-    start, stop = find_windows_target(lines)
     for name, same_train_only in (("all_versions", False), ("downloads", True)):
         start, stop = find_windows_target(lines)
         header, entries = find_list(lines, start, stop, name)
@@ -132,6 +158,14 @@ def main():
 
         if replace_at is not None:
             end = entry_end(lines, replace_at, stop)
+            known = {"version", "file_url", "md5", "size"}
+            for line in lines[replace_at:end]:
+                key = re.match(r"\s*-?\s*([A-Za-z_][\w-]*):", line)
+                if key and key.group(1) not in known:
+                    fail(
+                        f"the `{name}:` entry being replaced carries `{key.group(1)}`, which this "
+                        "editor does not render - replacing it would drop that field."
+                    )
             if lines[replace_at:end] == new_entry:
                 changed.append(f"{name}: unchanged")
                 continue

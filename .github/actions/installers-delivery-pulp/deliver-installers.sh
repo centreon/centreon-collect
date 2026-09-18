@@ -79,7 +79,10 @@ REPOSITORY_HREF=$(pulp file repository show --name "$REPOSITORY_NAME" | jq -r '.
 # content identity is (sha256, relative_path): an identical re-delivery resolves to the
 # unit that is already there, so a re-run is a no-op rather than a duplicate
 EXISTING_HREF=$(
-  content_curl -fsSL "$PULP_URL/$PULP_DOMAIN/api/v3/content/file/files/?sha256=$INSTALLER_SHA256&relative_path=$RELATIVE_PATH" 2>/dev/null |
+  content_curl -fsSL -G \
+    --data-urlencode "sha256=$INSTALLER_SHA256" \
+    --data-urlencode "relative_path=$RELATIVE_PATH" \
+    "$PULP_URL/$PULP_DOMAIN/api/v3/content/file/files/" 2>/dev/null |
     jq -r '.results[0].pulp_href // empty'
 ) || EXISTING_HREF=""
 
@@ -88,9 +91,14 @@ if [[ -n "$EXISTING_HREF" ]]; then
   CONTENT_HREF="$EXISTING_HREF"
   MODIFY_BODY=$(mktemp)
   jq -nc --arg href "$CONTENT_HREF" '{add_content_units: [$href]}' > "$MODIFY_BODY"
-  TASK_HREF=$(start_modify_task "$PULP_URL${REPOSITORY_HREF}modify/" "$MODIFY_BODY")
+  for attempt in 1 2 3; do
+    TASK_HREF=$(start_modify_task "$PULP_URL${REPOSITORY_HREF}modify/" "$MODIFY_BODY")
+    wait_task_race "$TASK_HREF" && break
+    # 2 is api.sh's "retryable" (worker lost, repository-version race); anything else is real
+    [[ $? -eq 2 && $attempt -lt 3 ]] || { rm -f "$MODIFY_BODY"; echo "::error::could not add the existing unit to $REPOSITORY_NAME"; exit 1; }
+    echo "[WARN] retryable failure adding the unit, attempt $attempt/3" >&2
+  done
   rm -f "$MODIFY_BODY"
-  wait_task_race "$TASK_HREF" || { echo "::error::could not add the existing unit to $REPOSITORY_NAME"; exit 1; }
   CONTENT_ACTION="reused"
 else
   echo "[INFO] uploading $INSTALLER_NAME"
@@ -102,7 +110,7 @@ else
     -F "relative_path=$RELATIVE_PATH" \
     -F "repository=$REPOSITORY_HREF" \
     "$PULP_URL/$PULP_DOMAIN/api/v3/content/file/files/")
-  wait_task_race "$TASK_HREF" || { echo "::error::upload of $INSTALLER_NAME failed"; exit 1; }
+  wait_task_race "$TASK_HREF" || { rc=$?; [[ $rc -eq 2 ]] && echo "::error::upload of $INSTALLER_NAME hit a retryable Pulp failure; re-run the job"; echo "::error::upload of $INSTALLER_NAME failed"; exit 1; }
   CONTENT_HREF=$(
     content_curl -fsSL "$PULP_URL$TASK_HREF" | jq -r '.created_resources[] | select(contains("/content/file/files/"))' | head -1
   )
@@ -143,14 +151,14 @@ echo "::group::Verifying $SERVED_URL"
 # --autopublish makes the new repository version servable without an explicit publication,
 # but the content app needs a moment to pick it up
 VERIFY_STATUS="not served"
-for attempt in 1 2 3 4 5 6; do
-  HTTP_CODE=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 60 "$SERVED_URL" || echo 000)
+for attempt in $(seq 1 18); do
+  HTTP_CODE=$(content_curl -sL -o /dev/null -w '%{http_code}' --max-time 60 "$SERVED_URL" || echo 000)
   if [[ "$HTTP_CODE" == "200" ]]; then
     VERIFY_STATUS="served (HTTP 200)"
     break
   fi
-  echo "[INFO] attempt $attempt/6: HTTP $HTTP_CODE, retrying"
-  sleep 10
+  # the content app needs a moment after --autopublish; 3 minutes beats failing a release on it
+  [[ $attempt -lt 18 ]] && { echo "[INFO] attempt $attempt/18: HTTP $HTTP_CODE, retrying"; sleep 10; }
 done
 echo "$VERIFY_STATUS"
 echo "::endgroup::"

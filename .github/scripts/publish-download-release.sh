@@ -2,7 +2,8 @@
 # Publishes release metadata to download.centreon.com by committing to
 # centreon/WebApp-download and opening a PR against its default branch.
 #
-# Vendored from centreon/centreon-images (PR #379) and adapted for the monitoring agent: the S3
+# Vendored from centreon/centreon-images (PR #379, plus the merge-key guard of PR #382) and
+# adapted for the monitoring agent: the S3
 # sidecar is gone (CMA assets live on the GitHub releases, not in a bucket) and the catalog.yaml
 # agent block is edited alongside the release YAML, because the Agent tab renders only that block
 # -- the release rows are stored and validated but displayed nowhere.
@@ -296,26 +297,39 @@ render_entry() {
   printf -- '  enabled: true\n'
 }
 
-# Merge rather than truncate, the way rm-add-vm.mjs does: one file per build can
-# be written by several per-OS runs, and a re-run must replace its own rows
-# instead of duplicating them. Keyed on product+os, which is what the site
-# de-duplicates on.
+# Merge rather than truncate, the way rm-add-vm.mjs does: one file can be written by several
+# runs, and a re-run must replace its own rows instead of duplicating them.
+#
+# Keyed on product+os+VERSION. product+os alone is not an identity: the monitoring agent ships
+# amd64 and arm64 under one os, and keying on the pair silently dropped one of them. Version is
+# safe to add because it carries the disambiguating axis (the os for appliances, the arch for the
+# agent). The consequence to know: an existing row is replaced only when all three match, so if a
+# version format ever changes while the output filename stays the same, old rows are kept rather
+# than replaced -- the duplicate assertion below is what catches that.
+# quote-agnostic: an existing entry may be single-quoted or unquoted and still be valid YAML;
+# reading it as empty made it invisible to the supersede check and produced a duplicate row
+yaml_scalar() { sed -n "s/^$2[[:space:]]*[\"']\\?\\(.*[^\"']\\)[\"']\\?[[:space:]]*$/\\1/p" "$1" | head -1; }
+
 chunk_dir="$WORKDIR/chunks"
 mkdir -p "$chunk_dir"
 declare -A chunk_seen
 # set here, not only inside the merge branch: a first publication keeps nothing
 kept=0
 if [[ -f "$out_path" ]]; then
+  # the chunker starts at the first "- ", so anything above it would be dropped on rewrite
+  if head -1 "$out_path" | grep -qv '^- '; then
+    [[ -z "$(head -1 "$out_path" | tr -d '[:space:]')" ]] \
+      || die "$out_rel starts with $(head -1 "$out_path") rather than an entry; rewriting it would drop that line. Update this script for the target repo's new file shape."
+  fi
   awk -v dir="$chunk_dir" '
     /^- / { n++; f = sprintf("%s/%04d.existing", dir, n) }
     n     { print > f }
   ' "$out_path"
-  kept=0
   for chunk in "$chunk_dir"/*.existing; do
     [[ -e "$chunk" ]] || continue
-    c_product="$(sed -n 's/^- product: "\(.*\)"$/\1/p' "$chunk" | head -1)"
-    c_os="$(sed -n 's/^  os: "\(.*\)"$/\1/p' "$chunk" | head -1)"
-    c_version="$(sed -n 's/^  version: "\(.*\)"$/\1/p' "$chunk" | head -1)"
+    c_product="$(yaml_scalar "$chunk" '- product:')"
+    c_os="$(yaml_scalar "$chunk" '  os:')"
+    c_version="$(yaml_scalar "$chunk" '  version:')"
     superseded="false"
     for i in "${!E_PRODUCT[@]}"; do
       if [[ "$c_product" == "${E_PRODUCT[$i]}" && "$c_os" == "${E_OS[$i]}" && "$c_version" == "${E_VERSION[$i]}" ]]; then
@@ -353,9 +367,9 @@ done < <(
   for chunk in "$chunk_dir"/*.keep "$chunk_dir"/*.new; do
     [[ -e "$chunk" ]] || continue
     printf '%s\t%s\t%s\t%s\n' \
-      "$(sed -n 's/^- product: "\(.*\)"$/\1/p' "$chunk" | head -1)" \
-      "$(sed -n 's/^  os: "\(.*\)"$/\1/p' "$chunk" | head -1)" \
-      "$(sed -n 's/^  version: "\(.*\)"$/\1/p' "$chunk" | head -1)" \
+      "$(yaml_scalar "$chunk" '- product:')" \
+      "$(yaml_scalar "$chunk" '  os:')" \
+      "$(yaml_scalar "$chunk" '  version:')" \
       "$chunk"
   done | LC_ALL=C sort -t$'\t' -k1,1 -k2,2 -k3,3 | cut -f4
 )
@@ -364,7 +378,14 @@ done < <(
 written=$(grep -c '^- product:' "$out_path" || true)
 expected=$((kept + entry_count))
 [[ "$written" -eq "$expected" ]] \
-  || die "$out_rel holds $written entry(ies) but $expected were expected ($kept kept + $entry_count new) - entries were lost while assembling the file"
+  || die "$out_rel holds $written entry(ies) but $expected were expected ($kept kept + $entry_count new). Either entries were lost while assembling the file, or an existing entry does not start with '- product:' and the extractor needs updating for the target repo's rendering."
+
+# the count alone cannot see a kept entry duplicating a new one, which is what a mis-read
+# existing row produces; assert the identity is unique in the file that will be committed
+dupes=$(awk '
+  /^- product:/ { p = $0 } /^  os:/ { o = $0 } /^  version:/ { print p "|" o "|" $0 }
+' "$out_path" | sort | uniq -d | head -3)
+[[ -z "$dupes" ]] || die "$out_rel would hold duplicate entries: $dupes"
 
 log_ok "wrote $out_rel ($written entry(ies))"
 
@@ -495,7 +516,8 @@ if git diff --cached --quiet; then
 fi
 
 git commit --quiet -m "$COMMIT_MESSAGE"
-authed_git push --quiet origin "HEAD:refs/heads/$BRANCH"
+authed_git push --quiet origin "HEAD:refs/heads/$BRANCH" \
+  || die "could not push $BRANCH to ${WEBAPP_REPO}. If another run advanced the same branch, re-run this job: it merges into whatever is there."
 log_ok "pushed $BRANCH"
 
 if [[ -z "$PR_BODY_FILE" ]]; then
