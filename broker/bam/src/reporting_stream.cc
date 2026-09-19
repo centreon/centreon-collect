@@ -20,7 +20,7 @@
 
 #include "com/centreon/broker/bam/reporting_stream.hh"
 
-#include "bbdo/bam/ba_duration_event.hh"
+// #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
@@ -30,15 +30,11 @@
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/rebuild.hh"
-#include "bbdo/events.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/utf8.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/timeperiod_legacy.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -473,9 +469,8 @@ void reporting_stream::_load_timeperiods() {
   // Build the shared-library timeperiods, then resolve exclusions by name.
   ::timeperiod_map by_name;
   for (auto& [id, proto] : protos) {
-    auto tp =
-        std::make_shared<com::centreon::common::timeperiods::timeperiod>(
-            proto, _logger);
+    auto tp = std::make_shared<com::centreon::common::timeperiods::timeperiod>(
+        proto, _logger);
     _timeperiods.add_timeperiod(id, tp);
     by_name[tp->get_name()] = tp;
   }
@@ -1069,11 +1064,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
     _ba_event_update.bind_value_as_u64(
         5, static_cast<uint64_t>(be.start_time.get_time_t()));
 
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
-    _mysql.run_statement_and_get_int<int>(_ba_event_update, std::move(promise),
-                                          mysql_task::int_type::AFFECTED_ROWS);
-
+    _mysql.run_statement(_ba_event_update, database::mysql_error::update_ba);
   } else {
     // Event was not found, insert one.
     try {
@@ -1165,11 +1156,7 @@ void reporting_stream::_process_pb_ba_event(
     _ba_event_update.bind_value_as_i32(4, be.ba_id());
     _ba_event_update.bind_value_as_u64(5, be.start_time());
 
-    std::promise<int> promise;
-    std::future<int> future = promise.get_future();
-    _mysql.run_statement_and_get_int<int>(_ba_event_update, std::move(promise),
-                                          mysql_task::int_type::AFFECTED_ROWS);
-
+    _mysql.run_statement(_ba_event_update, database::mysql_error::update_ba);
   } else {
     // Event was not found, insert one.
     try {

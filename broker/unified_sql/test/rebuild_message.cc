@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "broker/core/bbdo/broker_stream.hh"
-#include "broker/core/config/applier/broker_state.hh"
+// #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -79,6 +79,15 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
     } catch (std::exception const& e) {
       (void)e;
     }
+    /* TearDown() deinit()s the applier, which destroys the state the global
+     * test environment had built -- and the cache with it. init() above brings
+     * the state back but not the cache, so the second test of the fixture
+     * would load a module, which declares the cache sections it reads, against
+     * a cache that no longer exists. The cache is created here and not in
+     * init() on purpose: its constructor reads cache_dir(), which only apply()
+     * knows, and a cache built too early would keep a wrong cache file for the
+     * life of the process. */
+    config::applier::state::instance().initialize_cache();
     std::shared_ptr<persistent_cache> pcache(std::make_shared<persistent_cache>(
         "/tmp/broker_test_cache", log_v2::instance().get(log_v2::SQL)));
   }

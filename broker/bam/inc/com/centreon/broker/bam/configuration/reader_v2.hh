@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2016, 2022-2024 Centreon
+ * Copyright 2014-2016, 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,17 +48,16 @@ class reader_v2 {
   void _load(state::kpis& kpis);
   void _load(state::bas& bas, ba_svc_mapping& mapping);
   void _load(state::bool_exps& bool_exps);
-  // void _load(state::meta_services& meta_services);
-  void _load(bam::hst_svc_mapping& mapping,
+  void _load(bam::local_hst_svc_mapping& mapping,
              const state::bool_exps& bool_exps,
              const state::kpis& kpis);
   void _load_dimensions();
   absl::flat_hash_set<std::pair<std::string, std::string>> _named_services(
       const state::bool_exps& bool_exps) const;
   void _resolve_named_services(
-      bam::hst_svc_mapping& mapping,
+      bam::local_hst_svc_mapping& mapping,
       const absl::flat_hash_set<std::pair<std::string, std::string>>& names);
-  void _load_kpi_services_activation(bam::hst_svc_mapping& mapping,
+  void _load_kpi_services_activation(bam::local_hst_svc_mapping& mapping,
                                      const state::kpis& kpis);
 
  public:

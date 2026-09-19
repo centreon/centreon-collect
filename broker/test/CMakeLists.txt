@@ -141,8 +141,54 @@ add_dependencies(
 
 target_precompile_headers(ut_broker PRIVATE precomp_inc/precomp.hh)
 
+# Measurements, not assertions: they build platforms on disk, weigh hundreds of
+# megabytes and take minutes. Kept out of ut_broker so that the suite neither
+# runs them by accident nor reports them as disabled tests, and built from the
+# very code they measure -- which is what tells them apart from the models of
+# broker/test/google-benchmark. No add_test(): ctest must not pick them up.
+add_executable(
+  ut_broker_bench
+  main.cc
+  ${PROJECT_SOURCE_DIR}/core/config/applier/test/broker_state_foreign_bench.cc)
+
+set_property(TARGET ut_broker_bench PROPERTY ENABLE_EXPORTS ON)
+
+target_link_libraries(
+  ut_broker_bench
+  PRIVATE
+    -Wl,--whole-archive
+    broker_applier_state
+    rokerbase
+    broker_bbdo
+    nebbase
+    -Wl,--no-whole-archive
+    brokerrpc
+    centreon_common
+    centreon_grpc
+    stdc++fs
+    nlohmann_json::nlohmann_json
+    multiplexing
+    ${TESTS_LIBRARIES}
+    GTest::gtest
+    log_v2
+    test_util
+    fmt::fmt
+    protobuf::libprotobuf
+    gRPC::grpc++)
+
+add_dependencies(
+  ut_broker_bench
+  test_util
+  broker_applier_state
+  rokerbase
+  broker_bbdo
+  multiplexing
+  centreon_common)
+
+target_precompile_headers(ut_broker_bench PRIVATE precomp_inc/precomp.hh)
+
 set_target_properties(
-  ut_broker rpc_client
+  ut_broker rpc_client ut_broker_bench
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 
 # keys used by ut_broker grpc

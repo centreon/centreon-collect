@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015, 2022-2024 Centreon
+ * Copyright 2014-2015, 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #ifndef CCB_BAM_CONFIGURATION_STATE_HH
 #define CCB_BAM_CONFIGURATION_STATE_HH
+
+#include <memory>
 
 #include "com/centreon/broker/bam/ba_svc_mapping.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
@@ -42,8 +44,7 @@ class state {
   using kpis = std::unordered_map<uint32_t, kpi>;
   using bool_exps = std::unordered_map<uint32_t, bool_expression>;
 
-  state(const std::shared_ptr<spdlog::logger>& logger)
-      : _hst_svc_mapping(logger) {}
+  state(const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
   state(const state&) = delete;
   state& operator=(const state&) = delete;
@@ -60,6 +61,7 @@ class state {
   kpis& get_kpis();
   bool_exps& get_bool_exps();
   hst_svc_mapping& get_hst_svc_mapping();
+  local_hst_svc_mapping* get_local_hst_svc_mapping();
   ba_svc_mapping& get_ba_svc_mapping();
   ba_svc_mapping& get_meta_svc_mapping();
 
@@ -68,7 +70,12 @@ class state {
   bas _bas;
   kpis _kpis;
   bool_exps _bool_expressions;
-  hst_svc_mapping _hst_svc_mapping;
+  /* Which of the two regimes answers the host/service questions is decided
+   * once, here, and nowhere else. */
+  std::unique_ptr<hst_svc_mapping> _hst_svc_mapping;
+  /* The same object as above when it is the one BAM fills itself, null when the
+   * global cache answers -- there is then nothing to fill. Not owning. */
+  local_hst_svc_mapping* _local_hst_svc_mapping = nullptr;
 };
 }  // namespace configuration
 }  // namespace bam

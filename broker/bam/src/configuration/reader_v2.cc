@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2017, 2021 Centreon
+ * Copyright 2014-2017, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,8 +73,15 @@ void reader_v2::read(state& st) {
     _load(st.get_kpis());
     SPDLOG_LOGGER_INFO(_logger, "loading boolean expressions.");
     _load(st.get_bool_exps());
-    SPDLOG_LOGGER_INFO(_logger, "loading mapping hosts <-> services.");
-    _load(st.get_hst_svc_mapping(), st.get_bool_exps(), st.get_kpis());
+    /* In centralized configuration the global cache answers the host/service
+     * questions on its own, so there is no mapping to fill and none of the
+     * queries below has to be made. */
+    if (auto* mapping = st.get_local_hst_svc_mapping()) {
+      SPDLOG_LOGGER_INFO(_logger, "loading mapping hosts <-> services.");
+      _load(*mapping, st.get_bool_exps(), st.get_kpis());
+    } else
+      SPDLOG_LOGGER_INFO(_logger,
+                         "host/service ids are taken from the global cache.");
     SPDLOG_LOGGER_INFO(_logger, "bam configuration loaded.");
   } catch (std::exception const& e) {
     SPDLOG_LOGGER_ERROR(_logger, "Error while reading bam configuration: {}",
@@ -482,7 +489,7 @@ reader_v2::_named_services(const state::bool_exps& bool_exps) const {
  *  @param[in]  names   The couples to resolve.
  */
 void reader_v2::_resolve_named_services(
-    bam::hst_svc_mapping& mapping,
+    bam::local_hst_svc_mapping& mapping,
     const absl::flat_hash_set<std::pair<std::string, std::string>>& names) {
   if (names.empty())
     return;
@@ -536,8 +543,9 @@ void reader_v2::_resolve_named_services(
  *  @param[out] mapping The mapping to fill.
  *  @param[in]  kpis    The KPIs, already loaded.
  */
-void reader_v2::_load_kpi_services_activation(bam::hst_svc_mapping& mapping,
-                                              const state::kpis& kpis) {
+void reader_v2::_load_kpi_services_activation(
+    bam::local_hst_svc_mapping& mapping,
+    const state::kpis& kpis) {
   /* The couples, and not a service id to host id map: the same service can be
    * attached to several hosts, and each of those couples is a KPI of its own
    * whose activation has to be recorded. Keying by service id alone would
@@ -599,7 +607,7 @@ void reader_v2::_load_kpi_services_activation(bam::hst_svc_mapping& mapping,
  *  @param[in]  bool_exps  The boolean expressions, already loaded.
  *  @param[in]  kpis       The KPIs, already loaded.
  */
-void reader_v2::_load(bam::hst_svc_mapping& mapping,
+void reader_v2::_load(bam::local_hst_svc_mapping& mapping,
                       const state::bool_exps& bool_exps,
                       const state::kpis& kpis) {
   try {
