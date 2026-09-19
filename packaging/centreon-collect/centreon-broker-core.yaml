@@ -26,6 +26,8 @@ contents:
   - src: "../../broker/script/centreon-broker.logrotate"
     dst: "/etc/logrotate.d/cbd"
     type: config|noreplace
+    file_info:
+      mode: 0644
 
   - dst: /usr/share/centreon-broker
     type: dir
