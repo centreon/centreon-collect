@@ -1366,16 +1366,19 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     Ctn Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
+    # One connection for the whole test, closed by the teardown whatever
+    # happens. Opening it inside the loop left it open on the BREAK -- the
+    # nominal path -- and the query after the reload below then worked only
+    # because of that leak.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    10
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
-	Log To Console    ${output}
+        Log To Console    ${output}
         IF    ${output} == (('test', '_Module_BAM_1'),)
-	    BREAK
-	END
-        Disconnect From Database
-	Sleep    5s
+            BREAK
+        END
+        Sleep    5s
     END
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    Name or parent name of ba ${ba[1]} is not as expected
 
@@ -1387,10 +1390,75 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine
+    ...    AND    Ctn Kindly Stop Broker
+    ...    AND    Disconnect From Database
+
+
+BA_DEACTIVATED_SERVICE
+    [Documentation]    Scenario: A KPI whose service is deactivated is dropped, the activation column saying so
+    ...    Given a non centralized platform, where BAM builds its own host/service mapping from the database
+    ...    And a BA of type "worst" with two service KPIs, service_302 and service_303
+    ...    When service_303 is deactivated -- its row says so and the configuration does not carry it
+    ...    Then BAM loads the mapping from the database
+    ...    And the KPI of service_303 is dropped
+    ...    And the BA still follows service_302
+    [Tags]    broker    engine    bam
+    # Ctn BAM Init already clones the configuration into the database and adds
+    # the BAM configuration to Engine; doing it again defines the BAM commands
+    # twice and Engine refuses to start.
+    Ctn Bam Init
+
+    ${id_ba__sid}    Ctn Create Ba    test    worst    100    100
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+
+    # The counterpart of CBABOODEACTIVATEDSVC, which does exactly the same in
+    # centralized configuration: both regimes have to drop the same KPI, the
+    # one reading the activation column, the other seeing nothing in the cache.
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    UPDATE service SET service_activate='0' WHERE service_description='service_303'
+    Disconnect From Database
+    Ctn Engine Config Remove Service    ${0}    host_16    service_303
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${content}    Create List    loading mapping hosts <-> services.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    BAM did not build its own host/service mapping
+
+    ${content}    Create List    linked to a deactivated service
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The KPI of the deactivated service_303 was not dropped
+
+    Ctn Process Service Result Hard    host_16    service_302    0    output ok for service_302
+    ${result}    Ctn Check Ba Status With Timeout    test    0    60
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The BA test is not OK as expected
+
+    Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The BA test did not follow service_302
+
+    # Leave the platform as it was found: the row and the configuration file
+    # are shared by every test that follows.
+    [Teardown]    Run Keywords
+    ...    Ctn Stop Engine Broker And Save Logs
+    ...    AND    Ctn Reactivate Service 303
 
 
 *** Keywords ***
+Ctn Reactivate Service 303
+    [Documentation]    Undo what BA_DEACTIVATED_SERVICE did to the shared platform.
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    UPDATE service SET service_activate='1' WHERE service_description='service_303'
+    Disconnect From Database
+    Ctn Clear Broker Cache
+
 Ctn BAM Setup
     Ctn Stop Processes
     Connect To Database    pymysql    ${DBName}    ${DBUserRoot}    ${DBPassRoot}    ${DBHost}    ${DBPort}

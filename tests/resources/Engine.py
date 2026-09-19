@@ -1735,6 +1735,56 @@ def ctn_engine_config_remove_all_services_from_host(idx: int, host: str):
         f.writelines(lines)
 
 
+def ctn_engine_config_remove_service(idx: int, host: str, service: str):
+    """
+    Remove one service definition from the services.cfg file.
+
+    This is what deactivating a service looks like in the exported
+    configuration: PHP does not write an object the user has disabled. The
+    database keeps its row, with service_activate='0' -- so a test that
+    deactivates a service has to do both, the row being what the non
+    centralized regime reads and the absence what the centralized one sees.
+
+    Args:
+        idx (int): index of the configuration (from 0)
+        host (str): Host name
+        service (str): Service description
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
+    description = re.compile(rf"^\s*service_description\s+{service}\s*$")
+    serv_begin = re.compile(r"^define service {$")
+    serv_end = re.compile(r"^}$")
+
+    idx_line = 0
+    while idx_line < len(lines):
+        if not serv_begin.match(lines[idx_line]):
+            idx_line += 1
+            continue
+        # The block is the service we are after only if both its host and its
+        # description match; a service description alone is shared by every
+        # host carrying it.
+        end = idx_line
+        seen_host = seen_description = False
+        while end < len(lines) and not serv_end.match(lines[end]):
+            if host_name.match(lines[end]):
+                seen_host = True
+            elif description.match(lines[end]):
+                seen_description = True
+            end += 1
+        if seen_host and seen_description:
+            del lines[idx_line:end + 1]
+            break
+        idx_line = end + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_engine_config_remove_host(idx: int, host: str):
     """
     Remove a host from the hosts.cfg configuration file.

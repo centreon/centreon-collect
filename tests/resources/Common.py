@@ -2879,6 +2879,23 @@ def ctn_check_state_configurations_are_equal(file1, file2):
     return compare_dicts(dico1, dico2)
 
 
+def ctn_is_broker_running():
+    """Tell whether a cbd is running, whatever its role.
+
+    Returns:
+        True if at least one cbd process is alive.
+    """
+    for proc in psutil.process_iter():
+        try:
+            if proc.name() == "cbd":
+                return True
+        except psutil.Error:
+            # The process died while we were walking the list; it is not the
+            # one we are looking for anyway.
+            continue
+    return False
+
+
 def ctn_wait_for_pending_poller_batch(timeout: int = 30):
     """Wait for a pending `pollers.lck` to have been consumed by Broker.
 
@@ -2893,15 +2910,25 @@ def ctn_wait_for_pending_poller_batch(timeout: int = 30):
     batch -- see _remove_poller_batch() in broker_state.cc. The tests announce
     the same way.
 
+    Nothing consumes the file while no Broker runs, so waiting for it to
+    disappear can then only end on the timeout. That case is told apart and
+    answered at once: many tests announce a configuration before starting
+    Broker, and each of those waits cost the whole timeout for an answer known
+    beforehand.
+
     Args:
         timeout (int): How long to wait, in seconds.
 
     Returns:
-        True if there is no pending announcement left, False on timeout -- which
+        True if there is no pending announcement left, False otherwise -- which
         is the ordinary answer when Broker is not running, since nothing
         consumes the file then.
     """
     batch_file = Path(f"{VAR_ROOT}/lib/centreon/config/pollers.lck")
+    if not batch_file.exists():
+        return True
+    if not ctn_is_broker_running():
+        return False
     limit = time.time() + int(timeout)
     while batch_file.exists():
         if time.time() >= limit:
