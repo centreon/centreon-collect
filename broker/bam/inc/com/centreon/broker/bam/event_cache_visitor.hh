@@ -21,14 +21,21 @@
 
 #include "com/centreon/broker/io/stream.hh"
 
-namespace com::centreon::broker::bam {
+namespace com::centreon::broker {
+namespace multiplexing {
+class publisher;
+}
+
+namespace bam {
 /**
  *  @class event_cache_visitor event_cache_visitor.hh
  * "com/centreon/broker/bam/event_cache_visitor.hh"
  *  @brief event_cache_visitor cache the events
  *
- *  This class caches the events and commit them to the multiplexing in
- *  this order: others, ba_events, kpi_events.
+ *  This class caches the events and commits them to the multiplexing in
+ *  this order: others, ba_events, kpi_events -- as one batch, so that a
+ *  service status that produces a KPI status, a BA status and their events
+ *  costs one pass through the multiplexing engine rather than one per event.
  */
 class event_cache_visitor : public io::stream {
   std::vector<std::shared_ptr<io::data>> _others;
@@ -40,11 +47,12 @@ class event_cache_visitor : public io::stream {
   ~event_cache_visitor() noexcept = default;
   event_cache_visitor(const event_cache_visitor&) = delete;
   event_cache_visitor& operator=(const event_cache_visitor&) = delete;
-  void commit_to(io::stream& to);
+  void commit_to(multiplexing::publisher& to);
   virtual bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   virtual uint32_t write(std::shared_ptr<io::data> const& d) override;
   uint32_t stop() override { return 0; }
 };
-}  // namespace com::centreon::broker::bam
+}  // namespace bam
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_EVENT_CACHE_VISITOR_HH
