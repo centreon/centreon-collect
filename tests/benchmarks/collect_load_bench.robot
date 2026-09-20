@@ -88,7 +88,7 @@ BENCH_LOAD_ACTIVE
     ...    When the collect daemons are measured for ${duration}s after a ${warmup}s warm-up
     ...    Then the CPU, the memory and the cost per check are filed in the store
     ...    And the run is rejected if no check was actually running
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Load Bench Configure    active
     Ctn Load Bench Start
     ${metrics}    Ctn Load Bench Measure    active
@@ -106,7 +106,7 @@ BENCH_LOAD_PASSIVE
     ...    When the collect daemons are measured for ${duration}s after a ${warmup}s warm-up
     ...    Then the cost of the chain is filed with the exact number of results submitted
     ...    And the run is rejected if the results never reached the database
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Load Bench Configure    passive
     Ctn Load Bench Start
     ${metrics}    Ctn Load Bench Measure    passive

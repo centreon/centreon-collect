@@ -9,6 +9,7 @@
   - [`alloc` — heap allocations on the check path](#alloc--heap-allocations-on-the-check-path)
   - [`BENCH_RRD_METRIC_RETENTION` — the RRD retention buffer](#bench_rrd_metric_retention--the-rrd-retention-buffer)
   - [`bam-startup` — loading a BAM configuration](#bam-startup--loading-a-bam-configuration)
+  - [`bam-rebuild` — rebuilding the BI event durations](#bam-rebuild--rebuilding-the-bi-event-durations)
 - [In more depth](#in-more-depth)
   - [The store, and what the metrics mean](#the-store-and-what-the-metrics-mean)
   - [Comparing two versions](#comparing-two-versions)
@@ -22,9 +23,12 @@ documentation. Do not overwrite this one with a generated file.
 
 These benchmarks **measure**, they do not assert. A run that fails tells you the benchmark
 broke, not that the product regressed; the verdict is always a comparison between two
-campaigns. That is also why every robot test here carries the `unstable` tag: the default
+campaigns. That is also why every robot test here is tagged `bench` and `unstable`: the default
 selection is `robot -e unstable .`, which leaves them out — they take minutes to tens of
-minutes and would say nothing useful in CI.
+minutes and would say nothing useful in CI. The tags are set once for the whole directory, in
+`__init__.robot`, so that a suite cannot forget them: one did, and its benchmark ran in every
+campaign until 2026-09-20. `-e bench` excludes the benchmarks alone, for a run that wants the
+other `unstable` tests.
 
 Everything lands in one SQLite store, `results/bench.db`, so two campaigns can be compared
 months apart. A campaign is named by its **label**, which defaults to the current git branch.
@@ -645,6 +649,55 @@ only**: talking to MariaDB needs `pymysql`, which the robot virtualenv already c
 python bam_config_gen.py <hosts> <services_by_host> <bas> [kpis_per_ba] [boolexps_per_ba]
 ```
 
+### `bam-rebuild` — rebuilding the BI event durations
+
+Pick **one**:
+
+```bash
+./bench.py run bam-rebuild                                   # defaults: 10 BAs x 2000 closed events
+./bench.py run bam-rebuild --var events_per_ba:10000         # a longer history
+robot benchmarks/bam_rebuild_bench.robot                     # straight through robot
+```
+
+When a BA is flagged `must_be_rebuild` — after its reporting periods changed, typically — the
+BI stream deletes every duration of its events, reads its closed events back and recomputes one
+duration per (event, reporting period), writing each one as it goes. All of it runs under the
+availability thread's lock, and while it runs the BI stream consumes nothing else. On a BA with
+years of history that is tens of thousands of statements, so how each one is written matters.
+
+The benchmark builds a small configuration with `bam_config_gen.py` (the configuration load is
+`bam-startup`'s business), then a **reporting history**: `events_per_ba` closed events per BA,
+back to back, `event_duration` seconds long, ending an hour ago, under one 24x7 reporting
+period. Every BA is flagged, the central cbd is started alone, and the time between `BAM-BI: will
+now rebuild the event durations` and `BAM-BI: event durations rebuild finished` in its log is
+filed as `rebuild_ms`. The availabilities, recomputed afterwards in their own thread, are not
+part of it.
+
+`durations` — the row count of `mod_bam_reporting_ba_events_durations` once the rebuild is
+done — is filed with it and **checked** against the number of closed events: a run that was fast
+because it wrote nothing would otherwise pass as an improvement. The parameters are
+`rebuilt_bas`, `events_per_ba` and `events`, plus those of the configuration.
+
+Like the others, this is an A/B benchmark: run it on the installed cbd *before* installing a
+change to the rebuild, then again after, under two labels, and let `./bench.py compare` speak.
+The figure of one campaign alone says nothing.
+
+**What the first campaign taught (2026-09-20, 20000 durations).** Removing the synchronous
+UPDATE that preceded every INSERT gained 17 %. Sending the rows by batches on top of it seemed
+to add only 10 points -- but the batch was flushed once its row count reached
+`queries_per_transaction`, which both BAM outputs set to 0, so every row was still sent alone.
+A gdb sampling of the rebuild thread then found it waiting for the database in 22 samples out
+of 25: with `queries_per_transaction` at 0 the connection is in autocommit, every statement is a
+transaction, and its commit (`innodb_flush_log_at_trx_commit=1`) was the 0.3 ms per row.
+Batches of 1000 rows, one statement each, brought the rebuild from 9.9 s to 0.18 s.
+
+Checked on the side, with a small C program against the container's MariaDB, because it
+decides how the other autocommit connections of cbd should be read: a bulk execute of 2000 rows
+commits **once** in autocommit, in the same 2.5 ms as inside an explicit transaction, while 2000
+single executes in autocommit take 600 ms. Autocommit is not the enemy; one statement per row
+is. `unified_sql`'s dedicated connection for `logs` and `data_bin`, autocommit by design, sends
+bulks and is therefore fine.
+
 ## In more depth
 
 ### The store, and what the metrics mean
@@ -898,6 +951,7 @@ trusting it.
 | `rrd_retention_bench.robot` | the RRD retention buffer benchmark |
 | `bam_config_gen.py` | a platform-sized BAM configuration in the database, in batched inserts |
 | `bam_startup_bench.robot` | the BAM configuration load of cbd, step by step |
+| `bam_rebuild_bench.robot` | the BI rebuild of the event durations of a BA history |
 | `bench-bam.sh` | the two axes of the BAM startup campaign, services then BAs |
 | `results/` | the store and the per-run files, git-ignored |
 

@@ -58,7 +58,7 @@ BENCH_START_LEGACY
     ...    And no state.prot, so the text files are what gets read
     ...    When engine is started and reaches its event loop
     ...    Then the duration of every startup phase is filed in the store
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Startup Bench Configure
     # No state.prot: this is what makes Engine take the text path rather than
     # deserializing a State, and it is the whole difference with the next test.
@@ -82,7 +82,7 @@ BENCH_START_PROTO
     ...    The first start has to go through the centralized path: a plain BBDO3 engine
     ...    configured from .cfg files never writes a state.prot, so a legacy first start
     ...    would leave nothing to measure and the test would time out waiting for it.
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Clear Logs
@@ -133,7 +133,7 @@ BENCH_START_CENTRALIZED_COLD
     ...    And no state.prot on the engine side, so nothing local to start from
     ...    When broker and engine are started in new generation
     ...    Then the cost of receiving and applying the whole configuration is filed
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Clear Logs

@@ -92,6 +92,11 @@ ROBOT_BENCHES = {
                     "How long cbd takes to load a BAM configuration, step by "
                     "step, as the platform grows. No poller: the load reads "
                     "the database, not the .cfg files."),
+    "bam-rebuild": ("bam_rebuild_bench.robot",
+                    "How long the BI stream takes to rebuild the event "
+                    "durations of a BA history, as that history grows. No "
+                    "poller either: the rebuild reads and rewrites the "
+                    "reporting tables."),
 }
 
 # The sentinels alloc_bench.robot synchronises on. Same paths, on purpose: they

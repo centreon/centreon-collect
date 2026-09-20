@@ -65,6 +65,7 @@ DB_PORT = 3306
 DB_USER = "centreon"
 DB_PASS = "centreon"
 DB_NAME_CONF = "centreon"
+DB_NAME_STORAGE = "centreon_storage"
 
 
 def _load_db_settings():
@@ -81,7 +82,7 @@ def _load_db_settings():
     are already in scope by the time a keyword runs, since the suite imports
     ../resources/import.resource.
     """
-    global DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_CONF
+    global DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_CONF, DB_NAME_STORAGE
     if BuiltIn is None:
         return
     try:
@@ -92,6 +93,7 @@ def _load_db_settings():
             "DB_USER": builtin.get_variable_value("${DBUser}"),
             "DB_PASS": builtin.get_variable_value("${DBPass}"),
             "DB_NAME_CONF": builtin.get_variable_value("${DBNameConf}"),
+            "DB_NAME_STORAGE": builtin.get_variable_value("${DBName}"),
         }
     except Exception:  # noqa: BLE001 - outside robot, or variables not in scope
         return
@@ -107,6 +109,8 @@ def _load_db_settings():
         DB_PASS = settings["DB_PASS"]
     if settings["DB_NAME_CONF"] is not None:
         DB_NAME_CONF = settings["DB_NAME_CONF"]
+    if settings["DB_NAME_STORAGE"] is not None:
+        DB_NAME_STORAGE = settings["DB_NAME_STORAGE"]
 
 # Emptied before every run, in dependency order. DELETE and not TRUNCATE: the
 # foreign keys of a real Centreon schema make TRUNCATE fail on several of these
@@ -116,10 +120,10 @@ _TABLES = ("mod_bam_kpi", "mod_bam_boolean", "mod_bam_poller_relations",
            "ns_host_relation", "nagios_server", "timeperiod", "meta_service")
 
 
-def _connect():
-    """Open a connection to the configuration database."""
+def _connect(database: str = ""):
+    """Open a connection to a database, the configuration one by default."""
     return pymysql.connect(host=DB_HOST, port=int(DB_PORT), user=DB_USER,
-                           password=DB_PASS, database=DB_NAME_CONF,
+                           password=DB_PASS, database=database or DB_NAME_CONF,
                            charset='utf8mb4',
                            cursorclass=pymysql.cursors.DictCursor)
 
@@ -136,7 +140,7 @@ _ANALYZED = ("host", "service", "host_service_relation", "mod_bam",
              "mod_bam_kpi", "mod_bam_boolean")
 
 
-def _settle(connection, max_wait: int = 180) -> int:
+def _settle(connection, max_wait: int = 180, tables=_ANALYZED) -> int:
     """Wait until the server has digested the inserts, and refresh statistics.
 
     Measured, and it cost a wrong conclusion before it was: a cbd started right
@@ -151,14 +155,16 @@ def _settle(connection, max_wait: int = 180) -> int:
     threshold picked here would either never be reached or be reached at once.
 
     Args:
-        connection: an open connection to the configuration database.
+        connection: an open connection to the database the tables live in.
         max_wait (int, optional): seconds to wait at most. Defaults to 180.
+        tables (optional): the tables whose statistics to refresh. Defaults to
+            the configuration tables BAM queries at startup.
 
     Returns:
         The number of dirty pages left, for the record.
     """
     with connection.cursor() as cursor:
-        for table in _ANALYZED:
+        for table in tables:
             cursor.execute(f"ANALYZE TABLE {table}")
             cursor.fetchall()
     # No FLUSH TABLES here: it needs the RELOAD privilege, which the suite's
@@ -407,6 +413,104 @@ def ctn_bam_bench_populate(hosts: int, services_by_host: int, bas: int,
             "service_kpis": bas * service_kpis_per_ba,
             "boolexps": bas * boolexps_per_ba,
             "metas": metas}
+
+
+# The reporting tables a rebuild reads and rewrites, emptied before every run.
+_REPORTING_TABLES = ("mod_bam_reporting_ba_events_durations",
+                     "mod_bam_reporting_ba_availabilities",
+                     "mod_bam_reporting_ba_events",
+                     "mod_bam_reporting_kpi_events",
+                     "mod_bam_reporting_relations_ba_timeperiods",
+                     "mod_bam_reporting_timeperiods")
+
+
+def ctn_bam_bench_populate_ba_events(bas: int, events_per_ba: int,
+                                     event_duration: int = 300) -> dict:
+    """Fill the BI history a rebuild has to recompute, and ask for the rebuild.
+
+    A rebuild of BA <n> deletes every duration of its events, then recomputes
+    one duration per (closed event, reporting period) and inserts it. What it
+    costs is therefore a function of the number of closed events, and this is
+    what is generated here: a contiguous history of closed events for each BA,
+    ending in the past, all under one 24x7 reporting period. The configuration
+    itself -- BAs, KPIs, services -- is ctn_bam_bench_populate's business and
+    has to exist already: the rebuild is triggered by mod_bam.must_be_rebuild,
+    which the monitoring stream reads at startup for the BAs it knows.
+
+    Args:
+        bas (int): how many BAs get a history; BA ids 1..bas, as the
+            configuration generator numbers them.
+        events_per_ba (int): closed events per BA.
+        event_duration (int, optional): seconds between two consecutive events
+            of a BA. Defaults to 300.
+
+    Returns:
+        A dict of what was created, to be filed as the parameters of the run.
+    """
+    bas = int(bas)
+    events_per_ba = int(events_per_ba)
+    event_duration = int(event_duration)
+    if bas <= 0 or events_per_ba <= 0:
+        raise ValueError("a rebuild benchmark needs at least one BA and one "
+                         "event")
+
+    _load_db_settings()
+    # The history ends an hour ago: a rebuild only takes closed events, and an
+    # event closing in the future would confuse the availability thread.
+    end = int(time.time()) - 3600
+    first_start = end - events_per_ba * event_duration
+
+    connection = _connect(DB_NAME_STORAGE)
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SET FOREIGN_KEY_CHECKS=0")
+            cursor.execute("SET UNIQUE_CHECKS=0")
+            for table in _REPORTING_TABLES:
+                cursor.execute(f"DELETE FROM {table}")
+            cursor.execute("ALTER TABLE mod_bam_reporting_ba_events "
+                           "AUTO_INCREMENT = 1")
+            cursor.execute("ALTER TABLE mod_bam_reporting_ba_events_durations "
+                           "AUTO_INCREMENT = 1")
+
+            cursor.execute(
+                "INSERT INTO mod_bam_reporting_timeperiods (timeperiod_id, "
+                "name, sunday, monday, tuesday, wednesday, thursday, friday, "
+                "saturday) VALUES (1, '24x7', '00:00-24:00', '00:00-24:00', "
+                "'00:00-24:00', '00:00-24:00', '00:00-24:00', '00:00-24:00', "
+                "'00:00-24:00')")
+            _insert_many(cursor,
+                         "INSERT INTO mod_bam_reporting_relations_ba_timeperiods "
+                         "(ba_id, timeperiod_id, is_default) VALUES (%s, 1, 1)",
+                         [(ba,) for ba in range(1, bas + 1)])
+
+            # Alternating OK / CRITICAL, so that the history looks like one.
+            rows = []
+            for ba in range(1, bas + 1):
+                start = first_start
+                for i in range(events_per_ba):
+                    rows.append((ba, start, start + event_duration,
+                                 2 if i % 2 else 0))
+                    start += event_duration
+            _insert_many(cursor,
+                         "INSERT INTO mod_bam_reporting_ba_events (ba_id, "
+                         "start_time, end_time, status, in_downtime, "
+                         "first_level) VALUES (%s, %s, %s, %s, 0, 100)",
+                         rows)
+        connection.commit()
+        dirty = _settle(connection,
+                        tables=("mod_bam_reporting_ba_events",
+                                "mod_bam_reporting_ba_events_durations"))
+        print(f"reporting history settled with {dirty} dirty pages left")
+
+    connection = _connect(DB_NAME_CONF)
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("UPDATE mod_bam SET must_be_rebuild='1' "
+                           "WHERE ba_id <= %s", (bas,))
+        connection.commit()
+
+    return {"rebuilt_bas": bas, "events_per_ba": events_per_ba,
+            "events": bas * events_per_ba}
 
 
 if __name__ == "__main__":
