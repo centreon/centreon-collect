@@ -102,8 +102,8 @@ them. Each section is introduced by its number of tests.
 
 ## Table of contents
 
-- [Bam](#bam) (76 tests)
-- [Benchmarks](#benchmarks) (10 tests)
+- [Bam](#bam) (79 tests)
+- [Benchmarks](#benchmarks) (12 tests)
 - [Broker](#broker) (94 tests)
 - [Broker/database](#brokerdatabase) (15 tests)
 - [Broker/engine](#brokerengine) (392 tests)
@@ -117,7 +117,7 @@ them. Each section is introduced by its number of tests.
 
 ### Bam
 
-This chapter contains 76 tests.
+This chapter contains 79 tests.
 
 1. **BABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
 2. **BABOO**: With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
@@ -144,9 +144,17 @@ This chapter contains 76 tests.
      * **WHEN** the service KPI is replaced by a boolean rule KPI
      * **AND** Broker is reloaded
      * **THEN** the BA is correctly updated with the new KPI configuration
-14. **BA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
-15. **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
-16. **BA_IMPACT_IMPACT**:
+14. **BA_DEACTIVATED_SERVICE**:
+     * **SCENARIO:** A KPI whose service is deactivated is dropped, the activation column saying so
+     * **GIVEN** a non centralized platform, where BAM builds its own host/service mapping from the database
+     * **AND** a BA of type "worst" with two service KPIs, service_302 and service_303
+     * **WHEN** service_303 is deactivated -- its row says so and the configuration does not carry it
+     * **THEN** BAM loads the mapping from the database
+     * **AND** the KPI of service_303 is dropped
+     * **AND** the BA still follows service_302
+15. **BA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
+16. **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
+17. **BA_IMPACT_IMPACT**:
      * **GIVEN** a Business Activity (BA) of type "impact"
      * **AND** it has two child BAs of type "impact"
      * **AND** the first child has an impact of 90
@@ -155,25 +163,25 @@ This chapter contains 76 tests.
      * **THEN** the parent BA should be "critical"
      * **WHEN** both child BAs are not impacting
      * **THEN** the parent BA should be "ok"
-17. **BA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-18. **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
-19. **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-20. **BA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
-21. **BA_SERVICE_PNAME_AFTER_RELOAD**:
+18. **BA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+19. **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
+20. **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+21. **BA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
+22. **BA_SERVICE_PNAME_AFTER_RELOAD**:
      * **SCENARIO:** Verify that the parent_name of a BA service is not erased after a broker reload
      * **GIVEN** a BA "test" of type "worst" with its service "host_16:service_302"
      * **WHEN** I start broker and engine
      * **THEN** the BA service "test" should have a status of 0 within 30 seconds
      * **WHEN** I reload the broker
      * **THEN** the database should still contain a BA service with name "test" and parent_name "_Module_BAM_1"
-22. **BEBAMIDT1**:
+23. **BEBAMIDT1**:
      * **GIVEN** a BA of type 'worst' with one service is configured
      * **AND** The BA is in critical state due to its service
      * **WHEN** a downtime is set on this service
      * **THEN** an inherited downtime is set to the BA
      * **WHEN** the downtime is removed from the service
      * **THEN** the inherited downtime is deleted from the BA
-23. **BEBAMIDT2**:
+24. **BEBAMIDT2**:
      * **GIVEN** a BA of type 'worst' with one service is configured
      * **AND** the BA is in critical state due to its service
      * **AND** a downtime is set on this service
@@ -183,7 +191,7 @@ This chapter contains 76 tests.
      * **THEN** both downtimes are still present with no duplicates
      * **WHEN** the downtime is removed from the service
      * **THEN** the inherited downtime is deleted
-24. **BEBAMIDTU1**:
+25. **BEBAMIDTU1**:
      * **GIVEN** BBDO version 3.0.1 is running
      * **AND** a BA of type 'worst' with one service is configured
      * **AND** The BA is in critical state due to its service
@@ -191,7 +199,7 @@ This chapter contains 76 tests.
      * **THEN** an inherited downtime is set to the BA
      * **WHEN** the downtime is removed from the service
      * **THEN** the inherited downtime is deleted from the BA
-25. **BEBAMIDTU2**:
+26. **BEBAMIDTU2**:
      * **GIVEN** BBDO version 3.0.1 is in use
      * **AND** a 'worst' type BA with one service is configured
      * **AND** The BA is in critical state due to its service
@@ -202,10 +210,10 @@ This chapter contains 76 tests.
      * **THEN** both downtimes are still present with no duplicates
      * **WHEN** the downtime is removed from the service
      * **THEN** the inherited downtime is deleted
-26. **BEBAMIGNDT1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
-27. **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
-28. **BEBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
-29. **BEBAMIGNDTU2**:
+27. **BEBAMIGNDT1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+28. **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
+29. **BEBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+30. **BEBAMIGNDTU2**:
      * **GIVEN** BBDO version 3.0.1 is configured
      * **AND** a BA of type "worst" with two services is set up
      * **AND** the downtime policy on this BA is "Ignore the indicator in the calculation"
@@ -216,21 +224,21 @@ This chapter contains 76 tests.
      * **THEN** the BA state should still be OK
      * **WHEN** the second downtime reaches its end
      * **THEN** the BA should be in a critical state
-30. **BECBAMBRKIDT1**:
+31. **BECBAMBRKIDT1**:
      * **GIVEN** BBDO3 / centralized config with notification_mode = broker
      * **AND** a 'worst' BA with one service in critical state
      * **AND** a downtime scheduled on the service via Broker gRPC sets an inherited downtime on the BA
      * **WHEN** the KPI service recovers (becomes OK) while still under downtime
      * **THEN** BAM removes the inherited downtime from the BA via the Broker downtime_manager
      (the inherited downtime removal is driven by BAM state recomputation, not by a gRPC delete)
-31. **BECBAMBRKIDT2**:
+32. **BECBAMBRKIDT2**:
      * **GIVEN** BBDO3 / centralized config with notification_mode = broker
      * **AND** a 'worst' BA with one service in critical state
      * **AND** a downtime scheduled on the service via Broker gRPC sets an inherited downtime on the BA
      * **WHEN** Engine is restarted (Broker stays up and remains the downtime authority)
      * **THEN** both the KPI downtime and the inherited downtime are still present
      (Engine, being aware that Broker owns downtimes, does not reset the depth on reload)
-32. **BECBAMBRKIDT3**:
+33. **BECBAMBRKIDT3**:
      * **GIVEN** BBDO3 / centralized config with notification_mode = broker
      * **AND** a 'worst' BA with one service in critical state
      * **AND** the BA is in critical state because of its service
@@ -238,7 +246,7 @@ This chapter contains 76 tests.
      * **THEN** Broker (not Engine) sets an inherited downtime on the BA virtual service
      * **WHEN** the downtime is removed from the service via Broker gRPC
      * **THEN** the inherited downtime is removed from the BA
-33. **BECBAMBRKIDT4**:
+34. **BECBAMBRKIDT4**:
      * **GIVEN** BBDO3 / centralized config with notification_mode = broker
      * **AND** a 'worst' BA with one service in critical state
      * **AND** a downtime scheduled on the service via Broker gRPC sets an inherited downtime on the BA
@@ -246,7 +254,7 @@ This chapter contains 76 tests.
      * **THEN** the started downtimes (the KPI downtime and the inherited BA downtime) are
      re-injected from the Broker cache and the scheduled_downtime_depth is restored to 1
      (started downtimes survive a Broker restart; depth is re-derived idempotently)
-34. **BECBAMIDTU1**:
+35. **BECBAMIDTU1**:
      * **GIVEN** BBDO version 3.0.1 is running with centralized configuration enabled
      * **AND** a BA of type 'worst' with one service is configured
      * **AND** The BA is in critical state due to its service
@@ -254,7 +262,7 @@ This chapter contains 76 tests.
      * **THEN** an inherited downtime is set to the BA
      * **WHEN** the downtime is removed from the service
      * **THEN** the inherited downtime is deleted from the BA
-35. **BECBAMIDTU2**:
+36. **BECBAMIDTU2**:
      * **GIVEN** BBDO version 3.0.1 is in use
      * **AND** a 'worst' type BA with one service is configured
      * **AND** The BA is in critical state due to its service
@@ -265,8 +273,8 @@ This chapter contains 76 tests.
      * **THEN** both downtimes are still present with no duplicates
      * **WHEN** the downtime is removed from the service
      * **THEN** the inherited downtime is deleted
-36. **BECBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
-37. **BECBAMIGNDTU2**:
+37. **BECBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+38. **BECBAMIGNDTU2**:
      * **GIVEN** BBDO version 3.0.1 is configured
      * **AND** a BA of type "worst" with two services is set up
      * **AND** the downtime policy on this BA is "Ignore the indicator in the calculation"
@@ -277,26 +285,26 @@ This chapter contains 76 tests.
      * **THEN** the BA state should still be OK
      * **WHEN** the second downtime reaches its end
      * **THEN** the BA should be in a critical state
-38. **BECPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
-39. **BECPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
-40. **BECPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
-41. **BECPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
-42. **BECPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
-43. **BECPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
-44. **BECPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
-45. **BECPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
-46. **BECPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
-47. **BEPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
-48. **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
-49. **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
-50. **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
-51. **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
-52. **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
-53. **BEPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
-54. **BEPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
-55. **BEPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
-56. **CBABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
-57. **CBABOO**:
+39. **BECPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
+40. **BECPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+41. **BECPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
+42. **BECPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
+43. **BECPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
+44. **BECPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
+45. **BECPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
+46. **BECPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
+47. **BECPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
+48. **BEPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
+49. **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+50. **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
+51. **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
+52. **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
+53. **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
+54. **BEPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
+55. **BEPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
+56. **BEPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
+57. **CBABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
+58. **CBABOO**:
      * **SCENARIO:** A "worst" BA and an impact BA with an OR boolean rule built on the same 2 services behave identically when a service becomes CRITICAL
      * **GIVEN** a BA of type "worst" with service_302 and service_303 as KPIs
      * **AND** a BA of type "impact" with a boolean rule "{service_302} IS CRITICAL OR {service_303} IS CRITICAL"
@@ -305,13 +313,13 @@ This chapter contains 76 tests.
      * **WHEN** service_302 recovers to OK
      * **THEN** both BAs return to OK
      * **AND** this cycle is repeated 10 times
-58. **CBABOOAND**:
+59. **CBABOOAND**:
      * **SCENARIO:** An AND boolean rule evaluates to CRITICAL as soon as one operand is false, even when the other service is UNKNOWN
      * **GIVEN** a BA of type "impact" with boolean rule "{service_302} IS OK AND {service_303} IS OK"
      * **AND** service_303 is passive and starts UNKNOWN
      * **WHEN** service_302 becomes CRITICAL
      * **THEN** the BA is CRITICAL (AND short-circuits on the first false operand)
-59. **CBABOOCOMPL**:
+60. **CBABOOCOMPL**:
      * **SCENARIO:** A BA with a complex AND/OR boolean rule over 20 services becomes OK only when at least one service in each AND group is OK
      * **GIVEN** a BA of type "impact" with a rule of 10 AND groups, each requiring at least one of 2 services to be OK
      * **WHEN** all 20 services are CRITICAL
@@ -319,7 +327,7 @@ This chapter contains 76 tests.
      * **WHEN** odd-indexed services are set to OK one by one
      * **THEN** the BA remains CRITICAL until all AND groups have at least one OK service
      * **AND** the BA becomes OK once all AND groups are satisfied
-60. **CBABOOCOMPL_RELOAD**:
+61. **CBABOOCOMPL_RELOAD**:
      * **SCENARIO:** A broker reload does not alter a complex boolean rule state
      * **GIVEN** a BA of type "impact" with a complex AND/OR boolean rule over 20 services
      * **AND** all 20 services are CRITICAL, then odd-indexed services 1-13 are set to OK
@@ -327,7 +335,7 @@ This chapter contains 76 tests.
      * **WHEN** broker is reloaded at each remaining step (services 15, 17, 19 set to OK one by one)
      * **THEN** the BA state is identical before and after each broker reload
      * **AND** the BA becomes OK once all AND groups are satisfied
-61. **CBABOOCOMPL_RESTART**:
+62. **CBABOOCOMPL_RESTART**:
      * **SCENARIO:** A broker restart does not alter a complex boolean rule state
      * **GIVEN** a BA of type "impact" with a complex AND/OR boolean rule over 20 services
      * **AND** all 20 services are CRITICAL, then odd-indexed services 1-13 are set to OK
@@ -335,13 +343,35 @@ This chapter contains 76 tests.
      * **WHEN** broker is restarted at each remaining step (services 15, 17, 19 set to OK one by one)
      * **THEN** the BA state is identical before and after each broker restart
      * **AND** the BA becomes OK once all AND groups are satisfied
-62. **CBABOOOR**:
+63. **CBABOODEACTIVATEDSVC**:
+     * **SCENARIO:** A KPI whose service is deactivated is dropped once the global cache knows the poller
+     * **GIVEN** a centralized platform, where Broker answers the host/service questions from its global cache
+     * **AND** a BA of type "worst" with two service KPIs, service_302 and service_303
+     * **WHEN** the configuration is acknowledged, so that the cache holds the poller
+     * **AND** service_303 is then deactivated -- its row says so and the export no longer carries it
+     * **THEN** the cache no longer holds service_303
+     * **AND** on the next start, where the cache is filled from the stored configuration, the KPI of service_303 is dropped
+     * **AND** the KPI of service_302 is kept, the BA still following it
+64. **CBABOOKPIKINDS**:
+     * **SCENARIO:** A BA keeps its three kinds of KPI when the host/service ids come from the global cache
+     * **GIVEN** a centralized platform, where Broker answers the host/service questions from its global cache
+     * **AND** a child BA of type "worst" built on service_314
+     * **AND** a parent BA of type "worst" holding one KPI of each kind: service_303, a boolean rule on service_302 and the child BA
+     * **WHEN** the three services are OK
+     * **THEN** the parent BA is OK
+     * **WHEN** service_314 alone becomes CRITICAL
+     * **THEN** the parent BA is CRITICAL, which its BA KPI alone can explain
+     * **WHEN** service_302 alone becomes CRITICAL
+     * **THEN** the parent BA is CRITICAL, which its boolean KPI alone can explain
+     * **WHEN** service_303 alone becomes CRITICAL
+     * **THEN** the parent BA is CRITICAL, which its service KPI alone can explain
+65. **CBABOOOR**:
      * **SCENARIO:** An OR boolean rule evaluates to CRITICAL as soon as one operand is true, even when the other service is UNKNOWN
      * **GIVEN** a BA of type "impact" with boolean rule "{service_302} IS CRITICAL OR {service_303} IS CRITICAL"
      * **AND** service_303 is passive and starts UNKNOWN
      * **WHEN** service_302 becomes CRITICAL
      * **THEN** the BA is CRITICAL (OR short-circuits on the first true operand)
-63. **CBABOOORREL**:
+66. **CBABOOORREL**:
      * **SCENARIO:** Updating a boolean rule and reloading broker and engine takes effect correctly
      * **GIVEN** a BA of type "impact" with boolean rule "{service_302} IS OK OR {service_303} IS OK"
      * **WHEN** service_302 and service_303 are CRITICAL
@@ -352,7 +382,7 @@ This chapter contains 76 tests.
      * **WHEN** the boolean rule is restored to "{service_302} IS OK OR {service_303} IS OK" and broker and engine are reloaded
      * **AND** service_302 and service_303 are CRITICAL
      * **THEN** the BA is CRITICAL again
-64. **CBAWORST**:
+67. **CBAWORST**:
      * **SCENARIO:** A BA of type "worst" reacts to KPI state changes and broker stats are valid after reload
      * **GIVEN** BBDO version is 3.0.1
      * **AND** a Business Activity of type "worst" is configured with two services
@@ -368,7 +398,7 @@ This chapter contains 76 tests.
      * **WHEN** broker and engine are reloaded
      * **THEN** broker stats still show expected endpoints state
      * **AND** the GetBa gRPC command returns a valid digraph output
-65. **CBAWORST2**:
+68. **CBAWORST2**:
      * **SCENARIO:** A BA of type "worst" with a boolean KPI and a child BA KPI reacts correctly to state changes
      * **GIVEN** BBDO version is 3.0.1
      * **AND** a Business Activity of type "worst" is configured with a boolean KPI and a child BA KPI
@@ -380,7 +410,7 @@ This chapter contains 76 tests.
      * **THEN** the Business Activity is still CRITICAL with both KPIs reported
      * **WHEN** the boolean rule recovers to OK
      * **THEN** the Business Activity remains CRITICAL due to the child BA KPI
-66. **CBAWORST_ACK**:
+69. **CBAWORST_ACK**:
      * **SCENARIO:** Acknowledging a service acknowledges the BA, and removing it unacknowledges the BA
      * **GIVEN** BBDO version is 3.0.1
      * **AND** a Business Activity of type "worst" is configured with two services
@@ -388,16 +418,16 @@ This chapter contains 76 tests.
      * **THEN** the Business Activity is acknowledged
      * **WHEN** the acknowledgement is removed from the service
      * **THEN** the Business Activity is no longer acknowledged
-67. **CBA_BOOL_KPI**: With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
-68. **CBA_CHANGED**:
+70. **CBA_BOOL_KPI**: With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
+71. **CBA_CHANGED**:
      * **SCENARIO:** Replace Service KPI with Boolean Rule KPI in Worst-type BA
      * **GIVEN** a BA of type "worst" is configured with one service KPI
      * **WHEN** the service KPI is replaced by a boolean rule KPI
      * **AND** Broker is reloaded
      * **THEN** the BA is correctly updated with the new KPI configuration
-69. **CBA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
-70. **CBA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
-71. **CBA_IMPACT_IMPACT**:
+72. **CBA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
+73. **CBA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
+74. **CBA_IMPACT_IMPACT**:
      * **GIVEN** a Business Activity (BA) of type "impact"
      * **AND** it has two child BAs of type "impact"
      * **AND** the first child has an impact of 90
@@ -406,11 +436,11 @@ This chapter contains 76 tests.
      * **THEN** the parent BA should be "critical"
      * **WHEN** both child BAs are not impacting
      * **THEN** the parent BA should be "ok"
-72. **CBA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-73. **CBA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
-74. **CBA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-75. **CBA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
-76. **CBA_SERVICE_PNAME_AFTER_RELOAD**:
+75. **CBA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+76. **CBA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
+77. **CBA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+78. **CBA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
+79. **CBA_SERVICE_PNAME_AFTER_RELOAD**:
      * **SCENARIO:** Verify that the parent_name of a BA service is not erased after a broker reload
      * **GIVEN** a BA "test" of type "worst" with its service "host_16:service_302"
      * **WHEN** I start broker and engine
@@ -420,36 +450,52 @@ This chapter contains 76 tests.
 
 ### Benchmarks
 
-This chapter contains 10 tests.
+This chapter contains 12 tests.
 
-1. **BENCH_LOAD_ACTIVE**:
+1. **BENCH_BAM_REBUILD**:
+     * **SCENARIO:** measure the BI rebuild of the event durations
+     * **GIVEN** a configuration database holding ${nb_ba} BAs
+     * **AND** a reporting history of ${events_per_ba} closed events per BA, under one 24x7 reporting period
+     * **AND** every BA flagged must_be_rebuild
+     * **WHEN** the central cbd is started alone, with no poller at all
+     * **THEN** the time reporting_stream spends recomputing the durations is filed in the store
+     * **AND** the number of durations written is filed alongside it
+2. **BENCH_BAM_STARTUP**:
+     * **SCENARIO:** measure the BAM configuration load of a central cbd
+     * **GIVEN** a configuration database holding ${nb_hosts} hosts and their services
+     * **AND** ${nb_ba} BAs, each with ${kpi_per_ba} service KPIs and ${boolexp_per_ba} boolean rules
+     * **AND** ${nb_meta} meta-service KPIs
+     * **WHEN** the central cbd is started alone, with no poller at all
+     * **THEN** the duration of every step of reader_v2::read() is filed in the store
+     * **AND** the resident memory of cbd once loaded is filed alongside them
+3. **BENCH_LOAD_ACTIVE**:
      * **SCENARIO:** measure what a nominal poller costs its machine
      * **GIVEN** an engine with ${nb_hosts} hosts and their services, actively checked
      * **AND** the two cbd running in BBDO3 with unified_sql
      * **WHEN** the collect daemons are measured for ${duration}s after a ${warmup}s warm-up
      * **THEN** the CPU, the memory and the cost per check are filed in the store
      * **AND** the run is rejected if no check was actually running
-2. **BENCH_LOAD_PASSIVE**:
+4. **BENCH_LOAD_PASSIVE**:
      * **SCENARIO:** measure what processing one check result costs
      * **GIVEN** an engine whose services are all passive, so no plugin is ever forked
      * **AND** ${passive_rate} results submitted every second, at a steady rate
      * **WHEN** the collect daemons are measured for ${duration}s after a ${warmup}s warm-up
      * **THEN** the cost of the chain is filed with the exact number of results submitted
      * **AND** the run is rejected if the results never reached the database
-3. **BENCH_RRD_METRIC_RETENTION**: Benchmark: inject 12 h of back-fill data through the retention buffer and measure merge latency.  Injects ${N_OLD_POINTS} old-timestamped pb_metric events per metric (${N_METRICS} metrics) via BBDO v3 directly to the central broker, then one current-time event per metric to trigger the junction merge. Reports injection throughput and end-to-end merge latency.
-4. **BENCH_START_CENTRALIZED_COLD**:
+5. **BENCH_RRD_METRIC_RETENTION**: Benchmark: inject 12 h of back-fill data through the retention buffer and measure merge latency.  Injects ${N_OLD_POINTS} old-timestamped pb_metric events per metric (${N_METRICS} metrics) via BBDO v3 directly to the central broker, then one current-time event per metric to trigger the junction merge. Reports injection throughput and end-to-end merge latency.
+6. **BENCH_START_CENTRALIZED_COLD**:
      * **SCENARIO:** measure a startup where Broker owns the configuration
      * **GIVEN** a poller whose configuration lives on the broker side
      * **AND** no state.prot on the engine side, so nothing local to start from
      * **WHEN** broker and engine are started in new generation
      * **THEN** the cost of receiving and applying the whole configuration is filed
-5. **BENCH_START_LEGACY**:
+7. **BENCH_START_LEGACY**:
      * **SCENARIO:** measure a startup that parses the text configuration
      * **GIVEN** an engine configured with ${nb_hosts} hosts and their services as .cfg files
      * **AND** no state.prot, so the text files are what gets read
      * **WHEN** engine is started and reaches its event loop
      * **THEN** the duration of every startup phase is filed in the store
-6. **BENCH_START_PROTO**:
+8. **BENCH_START_PROTO**:
      * **SCENARIO:** measure a startup that reads a serialized configuration
      * **GIVEN** a poller that has already received its configuration from the broker once
      * **AND** therefore left a state.prot behind
@@ -458,19 +504,19 @@ This chapter contains 10 tests.
      The first start has to go through the centralized path: a plain BBDO3 engine
      configured from .cfg files never writes a state.prot, so a legacy first start
      would leave nothing to measure and the test would time out waiting for it.
-7. **EALLOC1**:
+9. **EALLOC1**:
      * **SCENARIO:** count the heap allocations done while processing check results
      * **GIVEN** an engine with 50 hosts and 1000 services, all of them passive
      * **AND** heaptrack attached to the running centengine
      * **THEN** ${nb_checks} check results carrying a realistic output are processed
      * **AND** the trace is complete once heaptrack has been detached
-8. **EALLOC2**:
+10. **EALLOC2**:
      * **SCENARIO:** count the heap allocations of the nominal, active check profile
      * **GIVEN** an engine with 50 hosts and 1000 services, all actively checked once a second
      * **AND** heaptrack attached to the running centengine
      * **THEN** checks run for ${duration} and the allocations are attributed per stack
      * **AND** the count per check is derived from the parse_check_output ratio
-9. **EALLOC3**:
+11. **EALLOC3**:
      * **SCENARIO:** same as EALLOC2, with a command line the length of a real check
      * **GIVEN** an engine with 50 hosts and 1000 services, all actively checked once a second
      * **AND** every check command carrying ten arguments instead of none
@@ -486,7 +532,7 @@ This chapter contains 10 tests.
      expansion produce a longer string, so the two runs differ in more than argv.
      Attribution per stack separates them — misc::command_line::parse on one side,
      the macro functions on the other — a comparison of totals would not.
-10. **EALLOC4**:
+12. **EALLOC4**:
      * **SCENARIO:** count the heap allocations of cbd while it stores results
      * **GIVEN** an engine with 50 hosts and 1000 services, all actively checked once a second
      * **AND** heaptrack attached to the central cbd instead of to centengine
@@ -3768,4 +3814,4 @@ This chapter contains 22 tests.
      * **THEN** broker logs an error about the bad base64 encoding
 
 
-907 tests currently implemented.
+912 tests currently implemented.
