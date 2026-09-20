@@ -115,31 +115,20 @@ class reporting_stream : public io::stream {
   void _load_kpi_ba_events();
   void _prepare();
   void _commit();
-  void _process_ba_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
-  void _process_ba_duration_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_duration_event(std::shared_ptr<io::data> const& e);
   void _insert_ba_duration_event(const BaDurationEvent& bde, int thread_id);
-  void _process_kpi_event(std::shared_ptr<io::data> const& e);
   void _process_pb_kpi_event(std::shared_ptr<io::data> const& e);
-  void _process_dimension(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension(std::shared_ptr<io::data> const& e);
   void _dimension_dispatch(std::shared_ptr<io::data> const& e);
-  void _process_dimension_ba(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_ba(std::shared_ptr<io::data> const& e);
-  void _process_dimension_bv(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_bv(std::shared_ptr<io::data> const& e);
-  void _process_dimension_ba_bv_relation(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_ba_bv_relation(std::shared_ptr<io::data> const& e);
-  void _process_dimension_truncate_signal(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_truncate_signal(
       std::shared_ptr<io::data> const& e);
   void _process_dimension_truncate_signal(bool updates_tarted);
   void _process_dimension_kpi(std::shared_ptr<io::data> const& e);
-  void _process_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_timeperiod(std::shared_ptr<io::data> const& e);
-  void _process_dimension_ba_timeperiod_relation(
-      std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_ba_timeperiod_relation(
       std::shared_ptr<io::data> const& e);
   void _process_rebuild(std::shared_ptr<io::data> const& e);

@@ -21,11 +21,17 @@
 
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 
+#include "bbdo/bam/ba_duration_event.hh"
+#include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_timeperiod.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/bam/inherited_downtime.hh"
+#include "bbdo/bam/kpi_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/bam/internal.hh"
@@ -38,7 +44,6 @@
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
-#include "com/centreon/broker/neb/service_status.hh"
 
 using namespace com::centreon::broker;
 
@@ -644,4 +649,170 @@ TEST(bbdo2_to_bbdo3, inherited_downtime) {
   EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
 
   BOOST_PP_SEQ_FOR_EACH(comp_pb, , (ba_id)(in_downtime));
+}
+
+TEST(bbdo2_to_bbdo3, ba_event) {
+  auto bbdo2 = std::make_shared<bam::ba_event>();
+  bbdo2->destination_id = rand();
+  bbdo2->source_id = rand();
+  bbdo2->ba_id = rand();
+  bbdo2->first_level = static_cast<double>(rand()) / RAND_MAX;
+  bbdo2->start_time = time(nullptr) - 100;
+  /* Left null: an event still open. */
+  bbdo2->in_downtime = rand() % 2;
+  bbdo2->status = 2;
+
+  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+
+  ASSERT_NE(bbdo3, nullptr);
+  ASSERT_EQ(bbdo3->type(), bam::pb_ba_event::static_type());
+  const auto& pb_bbdo3 = *static_cast<bam::pb_ba_event*>(bbdo3.get());
+  const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
+  EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
+  BOOST_PP_SEQ_FOR_EACH(comp_pb, , (ba_id)(first_level)(in_downtime));
+  EXPECT_EQ(pb.start_time(), static_cast<uint64_t>(bbdo2->start_time));
+  /* A null legacy end_time stays what BAM itself sends for an open event. */
+  EXPECT_LE(static_cast<int64_t>(pb.end_time()), 0);
+  EXPECT_EQ(pb.status(), State::CRITICAL);
+}
+
+TEST(bbdo2_to_bbdo3, kpi_event) {
+  auto bbdo2 = std::make_shared<bam::kpi_event>(static_cast<uint32_t>(rand()),
+                                                static_cast<uint32_t>(rand()),
+                                                time(nullptr) - 200);
+  bbdo2->destination_id = rand();
+  bbdo2->source_id = rand();
+  bbdo2->impact_level = rand() % 100;
+  bbdo2->in_downtime = rand() % 2;
+  bbdo2->output = "kpi output";
+  bbdo2->perfdata = "metric=1;2;3";
+  bbdo2->end_time = time(nullptr) - 100;
+  bbdo2->status = 1;
+
+  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+
+  ASSERT_NE(bbdo3, nullptr);
+  ASSERT_EQ(bbdo3->type(), bam::pb_kpi_event::static_type());
+  const auto& pb_bbdo3 = *static_cast<bam::pb_kpi_event*>(bbdo3.get());
+  const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
+  EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
+  BOOST_PP_SEQ_FOR_EACH(
+      comp_pb, , (ba_id)(kpi_id)(impact_level)(in_downtime)(output)(perfdata));
+  EXPECT_EQ(pb.start_time(), static_cast<uint64_t>(bbdo2->start_time));
+  EXPECT_EQ(pb.end_time(), static_cast<int64_t>(bbdo2->end_time));
+  EXPECT_EQ(pb.status(), State::WARNING);
+}
+
+TEST(bbdo2_to_bbdo3, ba_duration_event) {
+  auto bbdo2 = std::make_shared<bam::ba_duration_event>();
+  bbdo2->destination_id = rand();
+  bbdo2->source_id = rand();
+  bbdo2->ba_id = rand();
+  bbdo2->real_start_time = time(nullptr) - 300;
+  bbdo2->start_time = time(nullptr) - 200;
+  bbdo2->end_time = time(nullptr) - 100;
+  bbdo2->duration = 100;
+  bbdo2->sla_duration = 50;
+  bbdo2->timeperiod_id = rand();
+  bbdo2->timeperiod_is_default = rand() % 2;
+
+  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+
+  ASSERT_NE(bbdo3, nullptr);
+  ASSERT_EQ(bbdo3->type(), bam::pb_ba_duration_event::static_type());
+  const auto& pb_bbdo3 = *static_cast<bam::pb_ba_duration_event*>(bbdo3.get());
+  const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
+  EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
+  BOOST_PP_SEQ_FOR_EACH(
+      comp_pb, ,
+      (ba_id)(duration)(sla_duration)(timeperiod_id)(timeperiod_is_default));
+  EXPECT_EQ(pb.real_start_time(), static_cast<int64_t>(bbdo2->real_start_time));
+  EXPECT_EQ(pb.start_time(), static_cast<int64_t>(bbdo2->start_time));
+  EXPECT_EQ(pb.end_time(), static_cast<int64_t>(bbdo2->end_time));
+}
+
+TEST(bbdo2_to_bbdo3, dimension_kpi_event) {
+  auto bbdo2 =
+      std::make_shared<bam::dimension_kpi_event>(static_cast<uint32_t>(rand()));
+  bbdo2->destination_id = rand();
+  bbdo2->source_id = rand();
+  bbdo2->ba_id = rand();
+  bbdo2->ba_name = "ba name";
+  bbdo2->host_id = rand();
+  bbdo2->host_name = "host name";
+  bbdo2->service_id = rand();
+  bbdo2->service_description = "service description";
+  bbdo2->kpi_ba_id = rand();
+  bbdo2->kpi_ba_name = "kpi ba name";
+  bbdo2->meta_service_id = rand();
+  bbdo2->meta_service_name = "meta name";
+  bbdo2->boolean_id = rand();
+  bbdo2->boolean_name = "boolean name";
+  bbdo2->impact_warning = static_cast<double>(rand()) / RAND_MAX;
+  bbdo2->impact_critical = static_cast<double>(rand()) / RAND_MAX;
+  bbdo2->impact_unknown = static_cast<double>(rand()) / RAND_MAX;
+
+  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+
+  ASSERT_NE(bbdo3, nullptr);
+  ASSERT_EQ(bbdo3->type(), bam::pb_dimension_kpi_event::static_type());
+  const auto& pb_bbdo3 =
+      *static_cast<bam::pb_dimension_kpi_event*>(bbdo3.get());
+  const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
+  EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
+  BOOST_PP_SEQ_FOR_EACH(
+      comp_pb, ,
+      (kpi_id)(ba_id)(ba_name)(host_id)(host_name)(service_id)(service_description)(kpi_ba_id)(kpi_ba_name)(meta_service_id)(meta_service_name)(boolean_id)(boolean_name)(impact_warning)(impact_critical)(impact_unknown));
+}
+
+TEST(bbdo2_to_bbdo3, dimension_timeperiod) {
+  auto bbdo2 = std::make_shared<bam::dimension_timeperiod>(
+      static_cast<uint32_t>(rand()), "24x7");
+  bbdo2->destination_id = rand();
+  bbdo2->source_id = rand();
+  bbdo2->monday = "00:00-24:00";
+  bbdo2->tuesday = "01:00-23:00";
+  bbdo2->wednesday = "02:00-22:00";
+  bbdo2->thursday = "03:00-21:00";
+  bbdo2->friday = "04:00-20:00";
+  bbdo2->saturday = "05:00-19:00";
+  bbdo2->sunday = "06:00-18:00";
+
+  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+
+  ASSERT_NE(bbdo3, nullptr);
+  ASSERT_EQ(bbdo3->type(), bam::pb_dimension_timeperiod::static_type());
+  const auto& pb_bbdo3 =
+      *static_cast<bam::pb_dimension_timeperiod*>(bbdo3.get());
+  const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
+  EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
+  BOOST_PP_SEQ_FOR_EACH(
+      comp_pb, ,
+      (id)(name)(monday)(tuesday)(wednesday)(thursday)(friday)(saturday)(sunday));
+}
+
+TEST(bbdo2_to_bbdo3, dimension_ba_timeperiod_relation) {
+  auto bbdo2 = std::make_shared<bam::dimension_ba_timeperiod_relation>();
+  bbdo2->destination_id = rand();
+  bbdo2->source_id = rand();
+  bbdo2->ba_id = rand();
+  bbdo2->timeperiod_id = rand();
+  bbdo2->is_default = rand() % 2;
+
+  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+
+  ASSERT_NE(bbdo3, nullptr);
+  ASSERT_EQ(bbdo3->type(),
+            bam::pb_dimension_ba_timeperiod_relation::static_type());
+  const auto& pb_bbdo3 =
+      *static_cast<bam::pb_dimension_ba_timeperiod_relation*>(bbdo3.get());
+  const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
+  EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
+  BOOST_PP_SEQ_FOR_EACH(comp_pb, , (ba_id)(timeperiod_id)(is_default));
 }

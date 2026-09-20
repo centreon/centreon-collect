@@ -18,11 +18,17 @@
 
 #include <boost/preprocessor/seq/for_each.hpp>
 
+#include "bbdo/bam/ba_duration_event.hh"
+#include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_timeperiod.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/bam/inherited_downtime.hh"
+#include "bbdo/bam/kpi_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
@@ -416,6 +422,101 @@ static std::shared_ptr<io::data> _inherited_downtime_to_pb(
   return pb;
 }
 
+/* The BAM BI events. A legacy timestamp that is null is (time_t)-1, which is
+ * also what BAM itself puts in the protobuf end_time of an event still open:
+ * the reporting stream tests them as signed and takes anything <= 0 as null, so
+ * the raw time_t goes through unchanged. */
+static std::shared_ptr<io::data> _ba_event_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<bam::ba_event>(d).get();
+  auto pb = std::make_shared<bam::pb_ba_event>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(translate, , (ba_id)(first_level)(in_downtime));
+  obj.set_start_time(in.start_time.get_time_t());
+  obj.set_end_time(in.end_time.get_time_t());
+  obj.set_status(static_cast<State>(in.status));
+
+  return pb;
+}
+
+static std::shared_ptr<io::data> _kpi_event_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<bam::kpi_event>(d).get();
+  auto pb = std::make_shared<bam::pb_kpi_event>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(
+      translate, ,
+      (ba_id)(kpi_id)(impact_level)(in_downtime)(output)(perfdata));
+  obj.set_start_time(in.start_time.get_time_t());
+  obj.set_end_time(in.end_time.get_time_t());
+  obj.set_status(static_cast<State>(in.status));
+
+  return pb;
+}
+
+static std::shared_ptr<io::data> _ba_duration_event_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<bam::ba_duration_event>(d).get();
+  auto pb = std::make_shared<bam::pb_ba_duration_event>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(
+      translate, ,
+      (ba_id)(duration)(sla_duration)(timeperiod_id)(timeperiod_is_default));
+  obj.set_real_start_time(in.real_start_time.get_time_t());
+  obj.set_start_time(in.start_time.get_time_t());
+  obj.set_end_time(in.end_time.get_time_t());
+
+  return pb;
+}
+
+static std::shared_ptr<io::data> _dimension_kpi_event_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<bam::dimension_kpi_event>(d).get();
+  auto pb = std::make_shared<bam::pb_dimension_kpi_event>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(
+      translate, ,
+      (kpi_id)(ba_id)(ba_name)(host_id)(host_name)(service_id)(service_description)(kpi_ba_id)(kpi_ba_name)(meta_service_id)(meta_service_name)(boolean_id)(boolean_name)(impact_warning)(impact_critical)(impact_unknown));
+
+  return pb;
+}
+
+static std::shared_ptr<io::data> _dimension_timeperiod_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in =
+      *std::static_pointer_cast<bam::dimension_timeperiod>(d).get();
+  auto pb = std::make_shared<bam::pb_dimension_timeperiod>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(
+      translate, ,
+      (id)(name)(monday)(tuesday)(wednesday)(thursday)(friday)(saturday)(sunday));
+
+  return pb;
+}
+
+static std::shared_ptr<io::data> _dimension_ba_timeperiod_relation_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in =
+      *std::static_pointer_cast<bam::dimension_ba_timeperiod_relation>(d).get();
+  auto pb = std::make_shared<bam::pb_dimension_ba_timeperiod_relation>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(translate, , (ba_id)(timeperiod_id)(is_default));
+
+  return pb;
+}
+
 static std::shared_ptr<io::data> _downtime_to_pb(
     const std::shared_ptr<io::data>& d) {
   const auto& in = *std::static_pointer_cast<neb::downtime>(d).get();
@@ -460,7 +561,8 @@ static std::shared_ptr<io::data> _acknowledgement_to_pb(
   obj.set_host_id(in.host_id);
   obj.set_service_id(in.service_id);
   obj.set_instance_id(in.poller_id);
-  obj.set_type(static_cast<Acknowledgement_ResourceType>(in.acknowledgement_type));
+  obj.set_type(
+      static_cast<Acknowledgement_ResourceType>(in.acknowledgement_type));
   obj.set_author(in.author);
   obj.set_comment_data(in.comment);
   obj.set_sticky(in.is_sticky);
@@ -518,6 +620,18 @@ std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
       return _dimension_truncate_table_signal_to_pb(d);
     case bam::inherited_downtime::static_type():
       return _inherited_downtime_to_pb(d);
+    case bam::ba_event::static_type():
+      return _ba_event_to_pb(d);
+    case bam::kpi_event::static_type():
+      return _kpi_event_to_pb(d);
+    case bam::ba_duration_event::static_type():
+      return _ba_duration_event_to_pb(d);
+    case bam::dimension_kpi_event::static_type():
+      return _dimension_kpi_event_to_pb(d);
+    case bam::dimension_timeperiod::static_type():
+      return _dimension_timeperiod_to_pb(d);
+    case bam::dimension_ba_timeperiod_relation::static_type():
+      return _dimension_ba_timeperiod_relation_to_pb(d);
     case neb::downtime::static_type():
       return _downtime_to_pb(d);
     case neb::acknowledgement::static_type():
