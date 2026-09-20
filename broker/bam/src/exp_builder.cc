@@ -58,7 +58,11 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
     if (exp_parser::is_operator(*it)) {
       // Unary operators.
       if (*it == "-u") {
-        // XXX
+        /* Accepted by the parser, never implemented here: the sign used to be
+         * dropped silently, "IS - OK" meaning "IS OK". Refusing is what lets
+         * the applier report the expression instead of applying a wrong one. */
+        throw msg_fmt(
+            "the unary minus is not supported in boolean expressions");
       } else if (*it == "!") {
         bool_value::ptr arg(_pop_operand());
         any_operand exp(std::make_shared<bool_not>(arg, _logger), "");
@@ -111,16 +115,16 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
             "name in postfix notation");
       int arity(std::strtol(it->c_str(), nullptr, 0));
 
-      // Host status.
-      if (func == "HOSTSTATUS") {
-        // Arity check.
-        _check_arity("HOSTSTATUS()", 1, arity);
-
-        // XXX
-        _pop_string();
-      }
+      /* Only SERVICESTATUS() is implemented. The others were parsed, their
+       * arguments popped and nothing pushed back, so the enclosing operator
+       * then failed on "operand is missing" or consumed the wrong operand.
+       * Refused by name instead. */
+      if (func == "HOSTSTATUS" || func == "METRIC" || func == "METRICS" ||
+          func == "CALL")
+        throw msg_fmt(
+            "the function {}() is not supported in boolean expressions", func);
       // Service status.
-      else if (func == "SERVICESTATUS") {
+      if (func == "SERVICESTATUS") {
         // Arity check.
         _check_arity("SERVICESTATUS()", 2, arity);
         std::string svc(_pop_string());
@@ -139,32 +143,6 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
         // Store it in the operand stack and within the service list.
         _operands.push(any_operand(obj, ""));
         _services.push_back(obj);
-      }
-      // Single metric.
-      else if (func == "METRIC") {
-        // Arity check.
-        _check_arity("METRIC()", 3, arity);
-
-        // XXX
-        _pop_string();
-        _pop_string();
-        _pop_string();
-      }
-      // Multiple metrics.
-      else if (func == "METRICS") {
-        // Arity check.
-        _check_arity("METRICS()", 1, arity);
-
-        // XXX
-        _pop_string();
-      }
-      // Call.
-      else if (func == "CALL") {
-        // Arity check.
-        _check_arity("CALL()", 1, arity);
-
-        // XXX
-        _pop_string();
       }
       // Unsupported function.
       else
@@ -190,15 +168,6 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
   _tree = _pop_operand();
   if (!_operands.empty())
     throw msg_fmt("unable to build an expression: incorrect syntax");
-}
-
-/**
- *  Get calls existing in the expression.
- *
- *  @return The call list.
- */
-exp_builder::list_call const& exp_builder::get_calls() const {
-  return _calls;
 }
 
 /**

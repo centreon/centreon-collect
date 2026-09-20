@@ -58,7 +58,6 @@ class state {
 
   void _circular_check(configuration::state const& my_state);
   void _circular_check(circular_check_node& n);
-  void _internal_copy(state const& other);
 
  public:
   state(const std::shared_ptr<spdlog::logger>& logger);

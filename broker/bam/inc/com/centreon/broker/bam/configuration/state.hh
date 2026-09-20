@@ -55,7 +55,6 @@ class state {
   bool_exps const& get_bool_exps() const;
   hst_svc_mapping const& get_hst_svc_mapping() const;
   ba_svc_mapping const& get_ba_svc_mapping() const;
-  ba_svc_mapping const& get_meta_svc_mapping() const;
 
   bas& get_bas();
   kpis& get_kpis();
@@ -63,7 +62,6 @@ class state {
   hst_svc_mapping& get_hst_svc_mapping();
   local_hst_svc_mapping* get_local_hst_svc_mapping();
   ba_svc_mapping& get_ba_svc_mapping();
-  ba_svc_mapping& get_meta_svc_mapping();
 
  private:
   ba_svc_mapping _ba_svc_mapping;

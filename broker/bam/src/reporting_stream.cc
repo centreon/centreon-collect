@@ -485,7 +485,7 @@ void reporting_stream::_load_kpi_ba_events() {
 
   // Load ba events.
   std::string query(
-      "SELECT ba_event_id, ba_id, start_time FROM mod_bam_reporting_ba_events");
+      "SELECT ba_id, start_time FROM mod_bam_reporting_ba_events");
   std::promise<mysql_result> promise;
   std::future<database::mysql_result> future = promise.get_future();
   SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
@@ -493,9 +493,7 @@ void reporting_stream::_load_kpi_ba_events() {
   try {
     mysql_result res(future.get());
     while (_mysql.fetch_row(res)) {
-      _ba_event_cache.emplace(
-          std::make_pair(res.value_as_u32(1), res.value_as_u64(2)),
-          res.value_as_u32(0));
+      _ba_event_cache.emplace(res.value_as_u32(0), res.value_as_u64(1));
     }
   } catch (std::exception const& e) {
     throw msg_fmt("BAM-BI: could not load ba events from DB: {}", e.what());
@@ -503,7 +501,7 @@ void reporting_stream::_load_kpi_ba_events() {
 
   // load kpi events
   query =
-      "SELECT kpi_event_id, kpi_id, start_time FROM "
+      "SELECT kpi_id, start_time FROM "
       "mod_bam_reporting_kpi_events";
   std::promise<mysql_result> kpi_promise;
   std::future<database::mysql_result> kpi_future = kpi_promise.get_future();
@@ -512,9 +510,7 @@ void reporting_stream::_load_kpi_ba_events() {
   try {
     mysql_result res(kpi_future.get());
     while (_mysql.fetch_row(res)) {
-      _kpi_event_cache.emplace(
-          std::make_pair(res.value_as_u32(1), res.value_as_u64(2)),
-          res.value_as_u32(0));
+      _kpi_event_cache.emplace(res.value_as_u32(0), res.value_as_u64(1));
     }
   } catch (std::exception const& e) {
     throw msg_fmt("BAM-BI: could not load kpi events from DB: {}", e.what());
@@ -919,7 +915,7 @@ void reporting_stream::_process_pb_ba_event(
           _ba_full_event_insert, std::move(result), mysql_task::LAST_INSERT_ID,
           -1);
       uint32_t newba = future_r.get();
-      _ba_event_cache[ba_key] = newba;
+      _ba_event_cache.insert(ba_key);
       // check events for BA
       if (_last_inserted_kpi.find(be.ba_id()) != _last_inserted_kpi.end()) {
         absl::btree_map<std::time_t, uint64_t>& m_events =
@@ -1065,7 +1061,9 @@ void reporting_stream::_process_pb_kpi_event(
       int thread_id(_mysql.run_statement_and_get_int<uint64_t>(
           _kpi_full_event_insert, std::move(result_kpi_insert),
           mysql_task::LAST_INSERT_ID));
-      _kpi_event_cache[kpi_key] = future_kpi_insert.get();
+      /* Waited for: the link statement below must find the row. */
+      future_kpi_insert.get();
+      _kpi_event_cache.insert(kpi_key);
 
       // Insert kpi event link.
       _kpi_event_link.bind_value_as_i32(0, ke.kpi_id());

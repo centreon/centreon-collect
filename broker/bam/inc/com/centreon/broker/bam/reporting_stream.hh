@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_REPORTING_STREAM_HH
 #define CCB_BAM_REPORTING_STREAM_HH
 
+#include <absl/container/flat_hash_set.h>
 #include <functional>
 
 #include "bbdo/bam/ba_event.hh"
@@ -48,10 +49,8 @@ class dimension_timeperiod;
 class reporting_stream : public io::stream {
   uint32_t _ack_events;
   uint32_t _pending_events;
-  uint32_t _queries_per_transaction;
   std::string _status;
   mutable std::mutex _statusm;
-  uint32_t _transaction_queries;
   mysql _mysql;
   database::mysql_stmt _ba_full_event_insert;
   database::mysql_stmt _ba_event_update;
@@ -84,11 +83,11 @@ class reporting_stream : public io::stream {
 
   using id_start =
       std::pair<uint32_t /*ba_id or kpi_id */, uint64_t /*start_time*/>;
-  using id_start_to_event_id =
-      absl::flat_hash_map<id_start, uint32_t /*event_id*/>;
-
-  id_start_to_event_id _ba_event_cache;
-  id_start_to_event_id _kpi_event_cache;
+  /* The events already in the DB, by (id, start_time): what write() needs is
+   * whether to UPDATE or INSERT. The row ids used to be kept as values and
+   * were never read. */
+  absl::flat_hash_set<id_start> _ba_event_cache;
+  absl::flat_hash_set<id_start> _kpi_event_cache;
 
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
@@ -97,8 +96,8 @@ class reporting_stream : public io::stream {
   reporting_stream(database_config const& db_cfg,
                    const std::shared_ptr<spdlog::logger>& logger);
   ~reporting_stream();
-  reporting_stream(const reporting_stream&);
-  reporting_stream& operator=(const reporting_stream&);
+  reporting_stream(const reporting_stream&) = delete;
+  reporting_stream& operator=(const reporting_stream&) = delete;
   uint32_t flush() override;
   uint32_t stop() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;

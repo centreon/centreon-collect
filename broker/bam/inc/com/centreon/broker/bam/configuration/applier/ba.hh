@@ -63,15 +63,14 @@ class ba {
                                                   const std::string& host_name,
                                                   uint64_t service_id,
                                                   bool in_downtime = false);
-  void _internal_copy(ba const& other);
   std::shared_ptr<bam::ba> _new_ba(configuration::ba const& cfg,
                                    service_book& book);
 
  public:
   ba(const std::shared_ptr<spdlog::logger>& logger);
-  ba(const ba& other);
-  ~ba();
-  ba& operator=(ba const& other);
+  ba(const ba&) = delete;
+  ~ba() noexcept = default;
+  ba& operator=(const ba&) = delete;
   void apply(configuration::state::bas const& my_bas, service_book& book);
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
   void visit(io::stream* visitor, bool seed_service_status);

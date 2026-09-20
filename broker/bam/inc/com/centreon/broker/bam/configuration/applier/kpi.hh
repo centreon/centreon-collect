@@ -56,7 +56,6 @@ class kpi {
   bool_expression* _boolexps;
   hst_svc_mapping const* _mapping;
 
-  void _internal_copy(kpi const& other);
   std::shared_ptr<bam::kpi> _new_kpi(configuration::kpi const& cfg);
   void _invalidate_ba(configuration::kpi const& cfg);
   std::map<uint32_t, applied>::iterator _remove_kpi(
@@ -66,9 +65,9 @@ class kpi {
 
  public:
   kpi(const std::shared_ptr<spdlog::logger>& logger);
-  kpi(kpi const& other);
+  kpi(const kpi&) = delete;
   ~kpi() noexcept = default;
-  kpi& operator=(kpi const& other);
+  kpi& operator=(const kpi&) = delete;
   void apply(configuration::state::kpis const& my_kpis,
              hst_svc_mapping const& mapping,
              ba& my_bas,

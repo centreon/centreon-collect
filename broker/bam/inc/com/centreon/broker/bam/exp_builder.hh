@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_EXP_BUILDER_HH
 #define CCB_BAM_EXP_BUILDER_HH
 
-#include "com/centreon/broker/bam/bool_call.hh"
 #include "com/centreon/broker/bam/bool_service.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
 #include "com/centreon/broker/bam/hst_svc_mapping.hh"
@@ -34,14 +33,12 @@ namespace com::centreon::broker::bam {
  */
 class exp_builder {
  public:
-  using list_call = std::list<bool_call::ptr>;
   using list_service = std::list<bool_service::ptr>;
   using any_operand = std::pair<bool_value::ptr, std::string>;
 
  private:
   std::shared_ptr<spdlog::logger> _logger;
   hst_svc_mapping const& _mapping;
-  list_call _calls;
   list_service _services;
   std::stack<any_operand> _operands;
   bool_value::ptr _tree;
@@ -56,9 +53,8 @@ class exp_builder {
               hst_svc_mapping const& mapping,
               const std::shared_ptr<spdlog::logger>& logger);
   exp_builder(const exp_builder&) = delete;
-  exp_builder& operator=(const exp_builder&);
+  exp_builder& operator=(const exp_builder&) = delete;
   ~exp_builder() noexcept = default;
-  list_call const& get_calls() const;
   list_service const& get_services() const;
   bool_value::ptr get_tree() const;
 };

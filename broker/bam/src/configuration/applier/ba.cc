@@ -43,33 +43,6 @@ applier::ba::ba(const std::shared_ptr<spdlog::logger>& logger)
     : _logger{logger} {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-applier::ba::ba(applier::ba const& other) {
-  _internal_copy(other);
-}
-
-/**
- *  Destructor.
- */
-applier::ba::~ba() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-applier::ba& applier::ba::operator=(applier::ba const& other) {
-  if (this != &other)
-    _internal_copy(other);
-  return *this;
-}
-
-/**
  *  Apply configuration.
  *
  *  @param[in] my_bas  BAs to apply.
@@ -318,15 +291,6 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   o.set_max_check_attempts(1);
   o.set_enabled(true);
   return s;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] other  Object to copy.
- */
-void applier::ba::_internal_copy(applier::ba const& other) {
-  _applied = other._applied;
 }
 
 /**
