@@ -23,6 +23,7 @@
 #include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/kpi_event.hh"
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/stream.hh"
 
@@ -81,6 +82,9 @@ class test_visitor : public io::stream {
 
  private:
   std::deque<test_event> _queue;
+  /* KpiStatus events are not kept, only counted: what the tests check is
+   * whether a status was emitted at all. */
+  uint32_t _kpi_status_count = 0;
 
  public:
   test_visitor(const std::string& name) : io::stream(name) {}
@@ -115,6 +119,9 @@ class test_visitor : public io::stream {
         _queue.emplace_back(
             *std::static_pointer_cast<bam::pb_inherited_downtime>(d));
         break;
+      case bam::pb_kpi_status::static_type():
+        ++_kpi_status_count;
+        break;
 
       default:
         break;
@@ -124,7 +131,12 @@ class test_visitor : public io::stream {
 
   const std::deque<test_event>& queue() const { return _queue; }
 
-  void clear() { _queue.clear(); }
+  void clear() {
+    _queue.clear();
+    _kpi_status_count = 0;
+  }
+
+  uint32_t kpi_status_count() const { return _kpi_status_count; }
 
   void print_events() const {
     for (auto& e : _queue) {
@@ -148,6 +160,6 @@ class test_visitor : public io::stream {
     }
   }
 };
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEST_VISITOR_HH

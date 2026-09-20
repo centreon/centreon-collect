@@ -57,7 +57,7 @@ ba_ratio_percent::ba_ratio_percent(
          configuration::ba::state_source_ratio_percent,
          generate_virtual_status,
          logger) {
-  _level_hard = _level_soft = 0;
+  _level_hard = 0;
 }
 
 /**
@@ -67,21 +67,6 @@ ba_ratio_percent::ba_ratio_percent(
  */
 state ba_ratio_percent::get_state_hard() const {
   double num_critical = _level_hard / _impacts.size() * 100;
-  if (num_critical >= _level_critical)
-    return state_critical;
-  else if (num_critical >= _level_warning)
-    return state_warning;
-  else
-    return state_ok;
-}
-
-/**
- *  Get BA soft state.
- *
- *  @return BA soft state.
- */
-state ba_ratio_percent::get_state_soft() const {
-  float num_critical = _level_soft / _impacts.size() * 100;
   if (num_critical >= _level_critical)
     return state_critical;
   else if (num_critical >= _level_warning)
@@ -103,8 +88,6 @@ void ba_ratio_percent::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
 
-  if (impact.soft_impact.get_state() == state_critical)
-    _level_soft++;
   if (impact.hard_impact.get_state() == state_critical)
     _level_hard++;
 }
@@ -120,7 +103,6 @@ void ba_ratio_percent::_unapply_impact(kpi* kpi_ptr,
   // Adjust values.
   _acknowledgement_count -= impact.hard_impact.get_acknowledgement();
 
-  _level_soft = 0.0;
   _level_hard = 0.0;
 
   // We recompute all impact, except the one to unapply...
@@ -144,10 +126,8 @@ void ba_ratio_percent::_unapply_impact(kpi* kpi_ptr,
  */
 bool ba_ratio_percent::_apply_changes(kpi* child,
                                       const impact_values& new_hard_impact,
-                                      const impact_values& new_soft_impact,
                                       bool in_downtime) {
   double previous_level = _level_hard;
-  _level_soft = 0.;
   _level_hard = 0.;
 
   // We recompute all impact, except the one to unapply...
@@ -156,7 +136,6 @@ bool ba_ratio_percent::_apply_changes(kpi* child,
        it != end; ++it) {
     if (it->first == child) {
       it->second.hard_impact = new_hard_impact;
-      it->second.soft_impact = new_soft_impact;
       it->second.in_downtime = in_downtime;
     }
     _apply_impact(it->first, it->second);

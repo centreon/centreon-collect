@@ -78,7 +78,6 @@ void ba::add_impact(std::shared_ptr<kpi> const& impact) {
     impact_info& ii = _impacts[impact.get()];
     ii.kpi_ptr = impact;
     impact->impact_hard(ii.hard_impact);
-    impact->impact_soft(ii.soft_impact);
     ii.in_downtime = impact->in_downtime();
     _apply_impact(impact.get(), ii);
     timestamp last_state_change(impact->get_last_state_change());
@@ -589,10 +588,8 @@ void ba::update_from(computable* child, io::stream* visitor) {
   _logger->trace("ba::update_from (BA {})", _id);
   // Get impact.
   impact_values new_hard_impact;
-  impact_values new_soft_impact;
   kpi* kpi_child = static_cast<kpi*>(child);
   kpi_child->impact_hard(new_hard_impact);
-  kpi_child->impact_soft(new_soft_impact);
   bool kpi_in_downtime(kpi_child->in_downtime());
   bool previous_in_downtime = _in_downtime;
 
@@ -611,8 +608,7 @@ void ba::update_from(computable* child, io::stream* visitor) {
   // Apply new data.
   SPDLOG_LOGGER_TRACE(_logger, "BAM: BA {} updated from KPI {}", _id,
                       kpi_child->get_id());
-  bool changed = _apply_changes(kpi_child, new_hard_impact, new_soft_impact,
-                                kpi_in_downtime);
+  bool changed = _apply_changes(kpi_child, new_hard_impact, kpi_in_downtime);
   SPDLOG_LOGGER_TRACE(_logger, "BA {} has changed: {}", _id, changed);
 
   // Check for inherited downtimes.

@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015, 2021-2025 Centreon
+ * Copyright 2014-2015, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,6 @@ class ba : public computable, public service_listener {
   struct impact_info {
     std::shared_ptr<kpi> kpi_ptr;
     impact_values hard_impact;
-    impact_values soft_impact;
     bool in_downtime;
   };
 
@@ -82,10 +81,9 @@ class ba : public computable, public service_listener {
   double _level_critical{0.0};
   double _level_warning{0.0};
 
-  /* _level_hard and _level_soft are the current levels of the ba, the soft one
-   * and the hard one. */
+  /* The current level of the BA. Only the hard state of the KPIs takes part
+   * in it: a soft state never decided anything here. */
   double _level_hard{100.0};
-  double _level_soft{100.0};
 
   std::unordered_map<kpi*, impact_info> _impacts;
   bool _valid{true};
@@ -98,7 +96,6 @@ class ba : public computable, public service_listener {
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual bool _apply_changes(kpi* child,
                               const impact_values& new_hard_impact,
-                              const impact_values& new_soft_impact,
                               bool in_downtime) = 0;
   virtual std::shared_ptr<pb_ba_status> _generate_ba_status(
       bool state_changed) const = 0;
@@ -116,7 +113,6 @@ class ba : public computable, public service_listener {
   ba& operator=(ba const& other) = delete;
   void add_impact(std::shared_ptr<kpi> const& impact);
   virtual double get_downtime_impact_hard() { return 0.0; }
-  virtual double get_downtime_impact_soft() { return 0.0; }
   int32_t get_ack_impact_hard() const;
   std::shared_ptr<pb_ba_event> get_ba_event();
   uint32_t get_id() const;
@@ -128,7 +124,6 @@ class ba : public computable, public service_listener {
   virtual std::string get_output() const = 0;
   virtual std::string get_perfdata() const = 0;
   virtual state get_state_hard() const = 0;
-  virtual state get_state_soft() const = 0;
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
   void set_initial_event(const pb_ba_event& event);

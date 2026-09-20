@@ -63,16 +63,6 @@ void kpi_ba::impact_hard(impact_values& hard_impact) {
 }
 
 /**
- *  Get the soft impact introduced by the BA.
- *
- *  @param[out] soft_impact Soft impacts.
- */
-void kpi_ba::impact_soft(impact_values& soft_impact) {
-  _fill_impact(soft_impact, _ba->get_state_soft(), 0,
-               _ba->get_downtime_impact_soft());
-}
-
-/**
  *  Link the kpi_ba with a specific BA (class ba).
  *
  *  @param[in] my_ba Linked BA.
@@ -131,9 +121,7 @@ void kpi_ba::visit(io::stream* visitor) {
 
     // Get information.
     impact_values hard_values;
-    impact_values soft_values;
     impact_hard(hard_values);
-    impact_soft(soft_values);
 
     // Generate BI events.
     {
@@ -167,14 +155,16 @@ void kpi_ba::visit(io::stream* visitor) {
       KpiStatus& ev(status->mut_obj());
       ev.set_kpi_id(_id);
       ev.set_in_downtime(in_downtime());
+      /* The *_soft fields are kept in the BBDO message for compatibility and
+       * mirror the hard values: BAM no longer computes a soft state. */
       ev.set_level_acknowledgement_hard(hard_values.get_acknowledgement());
-      ev.set_level_acknowledgement_soft(soft_values.get_acknowledgement());
+      ev.set_level_acknowledgement_soft(hard_values.get_acknowledgement());
       ev.set_level_downtime_hard(hard_values.get_downtime());
-      ev.set_level_downtime_soft(soft_values.get_downtime());
+      ev.set_level_downtime_soft(hard_values.get_downtime());
       ev.set_level_nominal_hard(hard_values.get_nominal());
-      ev.set_level_nominal_soft(soft_values.get_nominal());
+      ev.set_level_nominal_soft(hard_values.get_nominal());
       ev.set_state_hard(State(_ba->get_state_hard()));
-      ev.set_state_soft(State(_ba->get_state_soft()));
+      ev.set_state_soft(State(_ba->get_state_hard()));
       ev.set_last_state_change(get_last_state_change().get_time_t());
       ev.set_last_impact(hard_values.get_nominal());
       visitor->write(std::static_pointer_cast<io::data>(status));

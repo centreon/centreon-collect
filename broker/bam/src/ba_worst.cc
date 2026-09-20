@@ -86,15 +86,6 @@ state ba_worst::get_state_hard() const {
 }
 
 /**
- *  Get BA soft state.
- *
- *  @return BA soft state.
- */
-state ba_worst::get_state_soft() const {
-  return _computed_soft_state;
-}
-
-/**
  *  Apply some impact.
  *
  *  @param[in] impact Impact information.
@@ -114,8 +105,6 @@ void ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
 
-  if (is_state_worse(_computed_soft_state, impact.soft_impact.get_state()))
-    _computed_soft_state = impact.soft_impact.get_state();
   if (is_state_worse(_computed_hard_state, impact.hard_impact.get_state()))
     _computed_hard_state = impact.hard_impact.get_state();
 }
@@ -130,25 +119,22 @@ void ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
  *
  * @param child The kpi that changed
  * @param new_hard_impact The new hard impact for this child.
- * @param new_soft_impact The new soft impact for this child.
  * @param child_in_downtime The child is in downtime (or not).
  *
  * @return True if the BA changes, False otherwise.
  */
 bool ba_worst::_apply_changes(kpi* child,
                               const impact_values& new_hard_impact,
-                              const impact_values& new_soft_impact,
                               bool child_in_downtime) {
   state previous_state = _computed_hard_state;
 
-  _computed_soft_state = _computed_hard_state = state_ok;
+  _computed_hard_state = state_ok;
 
   // We recompute all impacts...
   for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {
     /* The changed child is updated in _impacts */
     if (it->first == child) {
       it->second.hard_impact = new_hard_impact;
-      it->second.soft_impact = new_soft_impact;
       it->second.in_downtime = child_in_downtime;
     }
     _apply_impact(it->first, it->second);
@@ -165,7 +151,7 @@ bool ba_worst::_apply_changes(kpi* child,
 void ba_worst::_unapply_impact(kpi* kpi_ptr,
                                ba::impact_info& impact [[maybe_unused]]) {
   // Prevent derive of values.
-  _computed_soft_state = _computed_hard_state = state_ok;
+  _computed_hard_state = state_ok;
 
   // Adjust values.
   _acknowledgement_count -= impact.hard_impact.get_acknowledgement();

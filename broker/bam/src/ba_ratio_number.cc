@@ -56,7 +56,7 @@ ba_ratio_number::ba_ratio_number(uint32_t id,
          configuration::ba::state_source_ratio_number,
          generate_virtual_status,
          logger) {
-  _level_hard = _level_soft = 0;
+  _level_hard = 0;
 }
 
 /**
@@ -68,20 +68,6 @@ state ba_ratio_number::get_state_hard() const {
   if (_level_hard >= _level_critical)
     return state_critical;
   else if (_level_hard >= _level_warning)
-    return state_warning;
-  else
-    return state_ok;
-}
-
-/**
- *  Get BA soft state.
- *
- *  @return BA soft state.
- */
-state ba_ratio_number::get_state_soft() const {
-  if (_level_soft >= _level_critical)
-    return state_critical;
-  else if (_level_soft >= _level_warning)
     return state_warning;
   else
     return state_ok;
@@ -100,8 +86,6 @@ void ba_ratio_number::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
 
-  if (impact.soft_impact.get_state() == state_critical)
-    _level_soft++;
   if (impact.hard_impact.get_state() == state_critical)
     _level_hard++;
 }
@@ -114,7 +98,6 @@ void ba_ratio_number::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
 void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
                                       ba::impact_info& impact
                                       [[maybe_unused]]) {
-  _level_soft = 0.;
   _level_hard = 0.;
 
   // Adjust values.
@@ -141,10 +124,8 @@ void ba_ratio_number::_unapply_impact(kpi* kpi_ptr,
  */
 bool ba_ratio_number::_apply_changes(kpi* child,
                                      const impact_values& new_hard_impact,
-                                     const impact_values& new_soft_impact,
                                      bool in_downtime) {
   double previous_level = _level_hard;
-  _level_soft = 0.;
   _level_hard = 0.;
 
   // We recompute all impact, except the one to unapply...
@@ -153,7 +134,6 @@ bool ba_ratio_number::_apply_changes(kpi* child,
        it != end; ++it) {
     if (it->first == child) {
       it->second.hard_impact = new_hard_impact;
-      it->second.soft_impact = new_soft_impact;
       it->second.in_downtime = in_downtime;
     }
     _apply_impact(it->first, it->second);

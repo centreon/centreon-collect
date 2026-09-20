@@ -20,7 +20,6 @@
 #define CCB_BAM_KPI_SERVICE_HH
 
 #include <absl/container/flat_hash_set.h>
-#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
@@ -40,7 +39,7 @@ class kpi_service : public service_listener, public kpi {
 
  private:
   void _fill_impact(impact_values& impact, state state);
-  void _internal_copy(kpi_service const& right);
+  bool _needs_visit(bool changed) const;
   void _open_new_event(io::stream* visitor, impact_values const& impacts);
 
   bool _acknowledged;
@@ -51,7 +50,6 @@ class kpi_service : public service_listener, public kpi {
   std::string _output;
   std::string _perfdata;
   state _state_hard;
-  state _state_soft;
   short _state_type;
 
  public:
@@ -70,10 +68,8 @@ class kpi_service : public service_listener, public kpi {
   double get_impact_warning() const;
   uint64_t get_service_id() const;
   state get_state_hard() const;
-  state get_state_soft() const;
   short get_state_type() const;
   void impact_hard(impact_values& impact) override;
-  void impact_soft(impact_values& impact) override;
   bool in_downtime() const override;
   bool is_acknowledged() const;
   void service_update(const service_state& state) override;
@@ -98,7 +94,6 @@ class kpi_service : public service_listener, public kpi {
   void set_impact_unknown(double impact);
   void set_impact_warning(double impact);
   void set_state_hard(state state);
-  void set_state_soft(state state);
   void set_state_type(short type);
   void visit(io::stream* visitor) override;
   virtual void set_initial_event(const KpiEvent& e) override;

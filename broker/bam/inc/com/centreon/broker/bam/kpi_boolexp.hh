@@ -56,7 +56,6 @@ class kpi_boolexp : public kpi {
   bool in_downtime() const override;
   double get_impact() const;
   void impact_hard(impact_values& hard_impact) override;
-  void impact_soft(impact_values& soft_impact) override;
   void link_boolexp(std::shared_ptr<bool_expression>& my_boolexp);
   void set_impact(double impact);
   void unlink_boolexp();

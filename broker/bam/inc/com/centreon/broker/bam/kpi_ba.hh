@@ -65,7 +65,6 @@ class kpi_ba : public kpi {
   double get_impact_critical() const;
   double get_impact_warning() const;
   void impact_hard(impact_values& hard_impact) override;
-  void impact_soft(impact_values& soft_impact) override;
   void link_ba(std::shared_ptr<ba>& my_ba);
   void set_impact_critical(double impact);
   void set_impact_warning(double impact);

@@ -21,9 +21,7 @@
 
 #include <cassert>
 
-#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -56,7 +54,6 @@ kpi_service::kpi_service(uint32_t kpi_id,
       _impacts{0.0},
       _last_check(0),
       _state_hard{state_ok},
-      _state_soft{state_ok},
       _state_type(0) {
   assert(_host_id);
 }
@@ -116,15 +113,6 @@ state kpi_service::get_state_hard() const {
 }
 
 /**
- *  Get the soft state of the service.
- *
- *  @return Soft state of the service.
- */
-state kpi_service::get_state_soft() const {
-  return _state_soft;
-}
-
-/**
  *  Get current state type.
  *
  *  @return State type.
@@ -140,15 +128,6 @@ short kpi_service::get_state_type() const {
  */
 void kpi_service::impact_hard(impact_values& impact) {
   _fill_impact(impact, _state_hard);
-}
-
-/**
- *  Compute impact implied by the soft service state.
- *
- *  @param[out] impact Impacts implied by the soft service state.
- */
-void kpi_service::impact_soft(impact_values& impact) {
-  _fill_impact(impact, _state_soft);
 }
 
 /**
@@ -181,11 +160,9 @@ void kpi_service::service_update(const service_state& s) {
         s.last_check);
   }
   bool changed = _state_hard != static_cast<state>(s.last_hard_state) ||
-                 _state_soft != static_cast<state>(s.current_state) ||
                  _state_type != s.state_type || _acknowledged != s.acknowledged;
 
   _state_hard = static_cast<state>(s.last_hard_state);
-  _state_soft = static_cast<state>(s.current_state);
   _state_type = s.state_type;
   _acknowledged = s.acknowledged;
 
@@ -227,17 +204,16 @@ void kpi_service::service_update(
           static_cast<time_t>(status->last_check));
     }
     bool changed = _state_hard != static_cast<state>(status->last_hard_state) ||
-                   _state_soft != static_cast<state>(status->current_state) ||
                    _state_type != status->state_type;
 
     _output = status->output;
     _perfdata = status->perf_data;
     _state_hard = static_cast<state>(status->last_hard_state);
-    _state_soft = static_cast<state>(status->current_state);
     _state_type = status->state_type;
 
     // Generate status event.
-    visit(visitor);
+    if (_needs_visit(changed))
+      visit(visitor);
 
     // Propagate change.
     if (changed)
@@ -277,16 +253,15 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_service>& status,
           o.last_check());
     }
     bool changed = _state_hard != static_cast<state>(o.last_hard_state()) ||
-                   _state_soft != static_cast<state>(o.state()) ||
                    _state_type != o.state_type();
     _output = o.output();
     _perfdata = o.perfdata();
     _state_hard = static_cast<state>(o.last_hard_state());
-    _state_soft = static_cast<state>(o.state());
     _state_type = o.state_type();
 
     // Generate status event.
-    visit(visitor);
+    if (_needs_visit(changed))
+      visit(visitor);
 
     if (changed)
       notify_parents_of_change(visitor);
@@ -328,17 +303,16 @@ void kpi_service::service_update(
     }
 
     bool changed = _state_hard != static_cast<state>(o.last_hard_state()) ||
-                   _state_soft != static_cast<state>(o.state()) ||
                    _state_type != o.state_type();
 
     _output = o.output();
     _perfdata = o.perfdata();
     _state_hard = static_cast<state>(o.last_hard_state());
-    _state_soft = static_cast<state>(o.state());
     _state_type = o.state_type();
 
     // Generate status event.
-    visit(visitor);
+    if (_needs_visit(changed))
+      visit(visitor);
 
     // Propagate change.
     if (changed)
@@ -603,15 +577,6 @@ void kpi_service::set_state_hard(state state) {
 }
 
 /**
- *  Set soft state.
- *
- *  @param[in] state Service soft state.
- */
-void kpi_service::set_state_soft(state state) {
-  _state_soft = state;
-}
-
-/**
  *  Set state type.
  *
  *  @param[in] type Current state type.
@@ -632,9 +597,7 @@ void kpi_service::visit(io::stream* visitor) {
 
     // Get information.
     impact_values hard_values;
-    impact_values soft_values;
     impact_hard(hard_values);
-    impact_soft(soft_values);
 
     // Generate BI events.
     {
@@ -668,14 +631,16 @@ void kpi_service::visit(io::stream* visitor) {
       KpiStatus& ev(status->mut_obj());
       ev.set_kpi_id(_id);
       ev.set_in_downtime(in_downtime());
+      /* The *_soft fields are kept in the BBDO message for compatibility and
+       * mirror the hard values: BAM no longer computes a soft state. */
       ev.set_level_acknowledgement_hard(hard_values.get_acknowledgement());
-      ev.set_level_acknowledgement_soft(soft_values.get_acknowledgement());
+      ev.set_level_acknowledgement_soft(hard_values.get_acknowledgement());
       ev.set_level_downtime_hard(hard_values.get_downtime());
-      ev.set_level_downtime_soft(soft_values.get_downtime());
+      ev.set_level_downtime_soft(hard_values.get_downtime());
       ev.set_level_nominal_hard(hard_values.get_nominal());
-      ev.set_level_nominal_soft(soft_values.get_nominal());
+      ev.set_level_nominal_soft(hard_values.get_nominal());
       ev.set_state_hard(State(_state_hard));
-      ev.set_state_soft(State(_state_soft));
+      ev.set_state_soft(State(_state_hard));
       ev.set_last_state_change(get_last_state_change());
       ev.set_last_impact(_downtimed ? hard_values.get_downtime()
                                     : hard_values.get_nominal());
@@ -687,6 +652,31 @@ void kpi_service::visit(io::stream* visitor) {
       visitor->write(status);
     }
   }
+}
+
+/**
+ *  Tell whether a status update has to go through visit().
+ *
+ *  A service status that leaves the KPI as it was carries nothing new: the
+ *  KpiStatus it would produce is identical to the previous one, and so is the
+ *  UPDATE it turns into in the monitoring stream. It used to be emitted for
+ *  every check result anyway, i.e. one BBDO event and one SQL statement per
+ *  check of every KPI service. The visit is still owed when:
+ *  - the KPI changed (state, state type);
+ *  - initial events restored from the DB are still waiting to be committed;
+ *  - there is no open event yet, or the open one no longer matches the
+ *    current state/downtime (the cache restore path updates the state
+ *    without visiting, so the mismatch may be pending).
+ *
+ *  @param[in] changed  Whether this update changed the KPI.
+ *
+ *  @return True if visit() has to be called.
+ */
+bool kpi_service::_needs_visit(bool changed) const {
+  if (changed || !_initial_events.empty() || !_event)
+    return true;
+  return _downtimed != _event->in_downtime() ||
+         static_cast<State>(_state_hard) != _event->status();
 }
 
 /**

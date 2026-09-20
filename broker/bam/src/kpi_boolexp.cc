@@ -63,15 +63,6 @@ void kpi_boolexp::impact_hard(impact_values& hard_impact) {
 }
 
 /**
- *  Get the soft impact introduced by the boolean expression.
- *
- *  @param[out] soft_impact  Soft impacts.
- */
-void kpi_boolexp::impact_soft(impact_values& soft_impact) {
-  _fill_impact(soft_impact);
-}
-
-/**
  *  Link the kpi_boolexp with a specific boolean expression (class
  *  bool_expression).
  *
