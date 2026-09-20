@@ -1450,6 +1450,56 @@ BA_DEACTIVATED_SERVICE
     ...    Ctn Stop Engine Broker And Save Logs
     ...    AND    Ctn Reactivate Service 303
 
+BAM_CIRCULAR
+    [Documentation]    Scenario: A circular BA definition invalidates the BAs of the cycle and nothing else
+    ...    Given a BA "test" of type "worst" on two services
+    ...    And a BA "child1" that is a KPI of "test", and "test" that is a KPI of "child1"
+    ...    And a BA "sane" of type "worst" on service_302, outside of the cycle
+    ...    When the central cbd starts
+    ...    Then the circular definition is reported once in its log, for BA "test"
+    ...    And the comment of BA "test" in mod_bam carries the same message
+    ...    And the error is not reported again: BAM keeps running instead of reconnecting
+    ...    And BA "sane" follows service_302 as if nothing had happened
+    [Tags]    broker    engine    bam    MON-24862
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${child1_ba}    Ctn Create Ba    child1    impact    20    99
+    # child1 is a KPI of test...
+    Ctn Add Ba Kpi    ${child1_ba[0]}    ${ba__svc[0]}    90    2    3
+    # ... and test is a KPI of child1: the cycle.
+    Ctn Add Ba Kpi    ${ba__svc[0]}    ${child1_ba[0]}    90    2    3
+
+    @{sane_svc}    Set Variable    ${{ [("host_16", "service_302")] }}
+    ${sane_ba}    Ctn Create Ba With Services    sane    worst    ${sane_svc}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${content}    Create List    Circular definition detected. BA test includes itself as a KPI.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    The circular definition of BA test was not reported
+
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(ba_id) FROM mod_bam WHERE name='test' AND comment='Circular definition detected. BA test includes itself as a KPI.'    ==    ${1}    retry_timeout=30s    retry_pause=2s
+    Disconnect From Database
+
+    # BAM went on with the rest of the configuration.
+    Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
+    ${result}    Ctn Check Ba Status With Timeout    sane    2    60
+    Ctn Dump Ba On Error    ${result}    ${sane_ba[0]}
+    Should Be True    ${result}    The BA sane, outside of the cycle, did not follow service_302
+
+    # The error was reported once: the stream did not fail and reconnect.
+    ${start}    Ctn Get Round Current Date
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+    Should Not Be True    ${result}    The circular definition was reported again: the BAM stream is reconnecting
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
 
 *** Keywords ***
 Ctn Reactivate Service 303
