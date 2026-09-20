@@ -1034,6 +1034,24 @@ void reporting_stream::_prepare() {
         " VALUES ",
         "");
   }
+
+  // BA duration insertion by the rebuild, by batches.
+  if (_mysql.support_bulk_statement()) {
+    _ba_duration_event_rebuild_insert = std::make_unique<bulk_or_multi>(
+        _mysql,
+        "INSERT INTO mod_bam_reporting_ba_events_durations (ba_event_id,"
+        " start_time, end_time, duration, sla_duration, timeperiod_id,"
+        " timeperiod_is_default)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?)",
+        _mysql.get_config().get_queries_per_transaction());
+  } else {
+    _ba_duration_event_rebuild_insert = std::make_unique<bulk_or_multi>(
+        "INSERT INTO mod_bam_reporting_ba_events_durations (ba_event_id,"
+        " start_time, end_time, duration, sla_duration, timeperiod_id,"
+        " timeperiod_is_default)"
+        " VALUES ",
+        "");
+  }
 }
 
 /**
@@ -1304,26 +1322,35 @@ void reporting_stream::_process_pb_ba_duration_event(
       mysql_task::int_type::AFFECTED_ROWS));
   try {
     // Insert if no rows was updated.
-    if (future.get() == 0) {
-      _ba_duration_event_insert.bind_value_as_u64(0, bde.start_time());
-      _ba_duration_event_insert.bind_value_as_u64(1, bde.end_time());
-      _ba_duration_event_insert.bind_value_as_i32(2, bde.duration());
-      _ba_duration_event_insert.bind_value_as_i32(3, bde.sla_duration());
-      _ba_duration_event_insert.bind_value_as_i32(4, bde.timeperiod_id());
-      _ba_duration_event_insert.bind_value_as_f64(5,
-                                                  bde.timeperiod_is_default());
-      _ba_duration_event_insert.bind_value_as_i32(6, bde.ba_id());
-      _ba_duration_event_insert.bind_value_as_u64(7, bde.real_start_time());
-
-      _mysql.run_statement(_ba_duration_event_insert,
-                           database::mysql_error::empty, thread_id);
-    }
+    if (future.get() == 0)
+      _insert_ba_duration_event(bde, thread_id);
   } catch (std::exception const& e) {
     throw msg_fmt(
         "BAM-BI: could not insert duration event of BA {}"
         " starting at {} : {}",
         bde.ba_id(), bde.start_time(), e.what());
   }
+}
+
+/**
+ *  Insert a BA duration event, known not to exist yet.
+ *
+ *  @param[in] bde        The duration event.
+ *  @param[in] thread_id  The connection to use, -1 for any.
+ */
+void reporting_stream::_insert_ba_duration_event(const BaDurationEvent& bde,
+                                                 int thread_id) {
+  _ba_duration_event_insert.bind_value_as_u64(0, bde.start_time());
+  _ba_duration_event_insert.bind_value_as_u64(1, bde.end_time());
+  _ba_duration_event_insert.bind_value_as_i32(2, bde.duration());
+  _ba_duration_event_insert.bind_value_as_i32(3, bde.sla_duration());
+  _ba_duration_event_insert.bind_value_as_i32(4, bde.timeperiod_id());
+  _ba_duration_event_insert.bind_value_as_f64(5, bde.timeperiod_is_default());
+  _ba_duration_event_insert.bind_value_as_i32(6, bde.ba_id());
+  _ba_duration_event_insert.bind_value_as_u64(7, bde.real_start_time());
+
+  _mysql.run_statement(_ba_duration_event_insert, database::mysql_error::empty,
+                       thread_id);
 }
 
 /**
@@ -2089,19 +2116,25 @@ void reporting_stream::_process_pb_dimension_ba_timeperiod_relation(
 }
 
 /**
- *  @brief Compute and write the duration events associated with a ba event.
+ *  @brief Compute the duration events associated with a ba event.
  *
- *  The event durations are computed from the associated timeperiods of the
- *  BA and written to the DB directly. They used to go through write(), as if
- *  they had come from the muxer: each one was then counted in _pending_events
- *  and acknowledged to the muxer, which had never sent it, and the nested
- *  write() reset _ack_events in the middle of the event being processed.
+ *  One duration per reporting period of the BA, handed to the sink. The
+ *  nominal path writes each one to the DB as it comes (see the overload
+ *  below); the rebuild collects them into batches.
  *
- *  @param[in] ev  The ba_event generating the durations.
+ *  They used to go through write(), as if they had come from the muxer: each
+ *  one was then counted in _pending_events and acknowledged to the muxer,
+ *  which had never sent it, and the nested write() reset _ack_events in the
+ *  middle of the event being processed.
  *
- *  @return The number of duration events written.
+ *  @param[in] ev    The ba_event generating the durations.
+ *  @param[in] sink  What to do with each duration.
+ *
+ *  @return The number of durations handed to the sink.
  */
-uint32_t reporting_stream::_compute_event_durations(const BaEvent& ev) {
+uint32_t reporting_stream::_compute_event_durations(
+    const BaEvent& ev,
+    const std::function<void(const BaDurationEvent&)>& sink) {
   SPDLOG_LOGGER_INFO(
       _logger,
       "BAM-BI: computing durations of event started at {} and ended at {} on "
@@ -2126,9 +2159,7 @@ uint32_t reporting_stream::_compute_event_durations(const BaEvent& ev) {
     const timeperiod_ptr& tp = entry.tp;
     bool is_default = entry.is_default;
 
-    std::shared_ptr<pb_ba_duration_event> to_write{
-        std::make_shared<pb_ba_duration_event>()};
-    BaDurationEvent& dur_ev(to_write->mut_obj());
+    BaDurationEvent dur_ev;
     dur_ev.set_ba_id(ev.ba_id());
     dur_ev.set_real_start_time(ev.start_time());
     dur_ev.set_start_time(tp->get_next_valid_time(ev.start_time(), true));
@@ -2147,7 +2178,7 @@ uint32_t reporting_stream::_compute_event_durations(const BaEvent& ev) {
           "{}",
           ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name(),
           dur_ev.duration(), dur_ev.sla_duration());
-      _process_pb_ba_duration_event(to_write);
+      sink(dur_ev);
       ++written;
     } else
       SPDLOG_LOGGER_DEBUG(
@@ -2157,6 +2188,21 @@ uint32_t reporting_stream::_compute_event_durations(const BaEvent& ev) {
           ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name());
   }
   return written;
+}
+
+/**
+ *  @brief Compute and write the duration events associated with a ba event.
+ *
+ *  The nominal path, when a BA event closes: each duration is written on its
+ *  own, UPDATE first then INSERT, since it may already exist.
+ *
+ *  @param[in] ev  The ba_event generating the durations.
+ */
+void reporting_stream::_compute_event_durations(const BaEvent& ev) {
+  _compute_event_durations(ev, [this](const BaDurationEvent& dur_ev) {
+    _process_pb_ba_duration_event(
+        std::make_shared<pb_ba_duration_event>(dur_ev));
+  });
 }
 
 /**
@@ -2178,6 +2224,11 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
   try {
     std::lock_guard<availability_thread> lock(*_availabilities);
 
+    /* Everything the rebuild sends goes through one connection: its tasks are
+     * then executed in order, which is what makes an explicit transaction and
+     * the final barrier below meaningful. */
+    const int conn = _mysql.choose_best_connection(-1);
+
     // Delete obsolete ba events durations.
     {
       std::string query(
@@ -2187,35 +2238,37 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
                       r.bas_to_rebuild));
 
       SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
-      _mysql.run_query(query, database::mysql_error::delete_ba_durations);
+      _mysql.run_query(query, database::mysql_error::delete_ba_durations,
+                       conn);
     }
 
-    // Get the ba events.
-    std::vector<std::shared_ptr<pb_ba_event>> ba_events;
+    // Get the ba events, with their ids: the durations are inserted against
+    // them directly, without the sub-select the nominal insert needs.
+    std::vector<std::pair<uint32_t, BaEvent>> ba_events;
     {
       std::string query(
           fmt::format("SELECT ba_id, start_time, end_time, status, in_downtime "
-                      "boolean FROM mod_bam_reporting_ba_events WHERE end_time "
-                      "IS NOT NULL AND ba_id IN ({})",
+                      "boolean, ba_event_id FROM mod_bam_reporting_ba_events "
+                      "WHERE end_time IS NOT NULL AND ba_id IN ({})",
                       r.bas_to_rebuild));
       std::promise<mysql_result> promise;
       std::future<mysql_result> future = promise.get_future();
       SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
-      _mysql.run_query_and_get_result(query, std::move(promise));
+      _mysql.run_query_and_get_result(query, std::move(promise), conn);
       try {
         mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
-          std::shared_ptr<pb_ba_event> baev(new pb_ba_event);
-          baev->mut_obj().set_ba_id(res.value_as_i32(0));
-          baev->mut_obj().set_start_time(res.value_as_i64(1));
-          baev->mut_obj().set_end_time(res.value_as_i64(2));
-          baev->mut_obj().set_status(com::centreon::broker::State(
+          BaEvent baev;
+          baev.set_ba_id(res.value_as_i32(0));
+          baev.set_start_time(res.value_as_i64(1));
+          baev.set_end_time(res.value_as_i64(2));
+          baev.set_status(com::centreon::broker::State(
               (com::centreon::broker::bam::state)res.value_as_i32(3)));
-          baev->mut_obj().set_in_downtime(res.value_as_bool(4));
-          ba_events.push_back(baev);
+          baev.set_in_downtime(res.value_as_bool(4));
           SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: got events of BA {}",
-                              baev->obj().ba_id());
+                              baev.ba_id());
+          ba_events.emplace_back(res.value_as_u32(5), std::move(baev));
         }
       } catch (std::exception const& e) {
         throw msg_fmt("BAM-BI: could not get BA events of {} : {}",
@@ -2228,25 +2281,65 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
     size_t ba_events_num = ba_events.size();
     size_t ba_events_curr = 0;
 
-    // Generate new ba events durations for each ba events. The durations are
-    // written directly, so the transaction is committed here, every
-    // queries_per_transaction statements, as write() would have done.
+    // Generate new ba events durations for each ba events. Every duration is
+    // known not to exist -- they were all deleted above -- and its ba_event_id
+    // is known, so they are inserted by batches of rebuild_batch_rows rows.
+    //
+    // Measured on 20000 durations (tests/benchmarks/bam_rebuild_bench.robot):
+    // one statement per duration, UPDATE then INSERT with a sub-select, cost
+    // 9.9 s; by batches of 1000, 0.18 s. The BAM outputs run with
+    // queries_per_transaction=0, i.e. autocommit, so each of those statements
+    // was a transaction and paid its fsync. A batch is one statement, hence
+    // one commit, whatever the autocommit setting: measured, a bulk of 2000
+    // rows commits once in autocommit too. No explicit transaction is needed.
+    // All of it under the availability thread's lock.
     {
-      const uint32_t per_transaction =
-          _mysql.get_config().get_queries_per_transaction();
-      uint32_t uncommitted = 0;
-      for (const auto& ev : ba_events) {
+      const uint32_t qps = _mysql.get_config().get_queries_per_transaction();
+      /* Rows per statement: large enough to amortise the commit, small enough
+       * to keep a batch of bound values reasonable. In transactional mode the
+       * connection's own transaction size is kept. */
+      constexpr uint32_t rebuild_batch_rows = 1000;
+      const uint32_t batch_rows = qps > 1 ? qps : rebuild_batch_rows;
+      bulk_or_multi& batch = *_ba_duration_event_rebuild_insert;
+      auto flush = [this, &batch, qps, conn]() {
+        batch.execute(_mysql, database::mysql_error::insert_ba_durations,
+                      conn);
+        if (qps > 1)
+          _commit();
+      };
+      for (const auto& [ba_event_id, ev] : ba_events) {
         std::string s(fmt::format("rebuilding: ba event {}/{}",
                                   ba_events_curr++, ba_events_num));
         _update_status(s);
-        uncommitted += _compute_event_durations(ev->obj());
-        if (uncommitted >= per_transaction) {
-          _commit();
-          uncommitted = 0;
-        }
+        _compute_event_durations(
+            ev, [&batch, ba_event_id](const BaDurationEvent& d) {
+              if (batch.is_bulk())
+                batch.add_bulk_row([&](database::mysql_bulk_bind& b) {
+                  b.set_value_as_u32(0, ba_event_id);
+                  b.set_value_as_i64(1, d.start_time());
+                  b.set_value_as_i64(2, d.end_time());
+                  b.set_value_as_u32(3, d.duration());
+                  b.set_value_as_u32(4, d.sla_duration());
+                  b.set_value_as_u32(5, d.timeperiod_id());
+                  b.set_value_as_bool(6, d.timeperiod_is_default());
+                  b.next_row();
+                });
+              else
+                batch.add_multi_row(fmt::format(
+                    "({},{},{},{},{},{},{})", ba_event_id, d.start_time(),
+                    d.end_time(), d.duration(), d.sla_duration(),
+                    d.timeperiod_id(), int(d.timeperiod_is_default())));
+            });
+        if (batch.row_count() >= batch_rows)
+          flush();
       }
-      if (uncommitted)
-        _commit();
+      if (batch.row_count())
+        flush();
+      /* The statements above were only queued. Wait for the connection to be
+       * through with them before announcing the rebuild done and letting the
+       * availability thread read the durations: a commit on a connection is
+       * a barrier, its promise is set once every task queued before it ran. */
+      _mysql.commit(conn);
     }
   } catch (...) {
     _update_status("");

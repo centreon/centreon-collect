@@ -118,6 +118,7 @@ class mysql_error {
     disable_pollers = 82,
     disable_hosts = 83,
     delete_severities = 84,
+    insert_ba_durations = 85,
   };
 
   static constexpr const char* msg[]{
@@ -206,7 +207,8 @@ class mysql_error {
       "could not insert or update agent_information table: ",
       "could not disable pollers: ",
       "could not disable hosts: ",
-      "could not delete severities: "};
+      "could not delete severities: ",
+      "could not insert BA durations: "};
 
   mysql_error() : _active(false) {}
   mysql_error(mysql_error const& other) = delete;

@@ -19,6 +19,8 @@
 #ifndef CCB_BAM_REPORTING_STREAM_HH
 #define CCB_BAM_REPORTING_STREAM_HH
 
+#include <functional>
+
 #include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/bam/availability_thread.hh"
 #include "com/centreon/broker/bam/internal.hh"
@@ -54,6 +56,10 @@ class reporting_stream : public io::stream {
   database::mysql_stmt _ba_full_event_insert;
   database::mysql_stmt _ba_event_update;
   database::mysql_stmt _ba_duration_event_insert;
+  /* The rebuild's own insert: it knows the ba_event_id of every duration it
+   * writes, so it does not need the sub-select of the statement above and can
+   * send its rows by batches. */
+  std::unique_ptr<database::bulk_or_multi> _ba_duration_event_rebuild_insert;
   database::mysql_stmt _ba_duration_event_update;
   database::mysql_stmt _kpi_full_event_insert;
   std::unique_ptr<database::bulk_or_multi> _kpi_event_update;
@@ -113,6 +119,7 @@ class reporting_stream : public io::stream {
   void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
   void _process_ba_duration_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_duration_event(std::shared_ptr<io::data> const& e);
+  void _insert_ba_duration_event(const BaDurationEvent& bde, int thread_id);
   void _process_kpi_event(std::shared_ptr<io::data> const& e);
   void _process_pb_kpi_event(std::shared_ptr<io::data> const& e);
   void _process_dimension(std::shared_ptr<io::data> const& e);
@@ -137,7 +144,10 @@ class reporting_stream : public io::stream {
       std::shared_ptr<io::data> const& e);
   void _process_rebuild(std::shared_ptr<io::data> const& e);
   void _update_status(std::string_view status);
-  uint32_t _compute_event_durations(const BaEvent& ev);
+  uint32_t _compute_event_durations(
+      const BaEvent& ev,
+      const std::function<void(const BaDurationEvent&)>& sink);
+  void _compute_event_durations(const BaEvent& ev);
 };
 }  // namespace bam
 }  // namespace com::centreon::broker
