@@ -138,6 +138,7 @@ class ba : public computable, public service_listener {
                       io::stream* visitor) override;
   void set_inherited_downtime(inherited_downtime const& dwn);
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
+  void restore_inherited_downtime();
   void set_level_critical(double level);
   void set_level_warning(double level);
   void update_from(computable* child, io::stream* visitor) override;

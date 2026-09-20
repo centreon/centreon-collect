@@ -408,3 +408,13 @@ void applier::ba::apply_inherited_downtime(const pb_inherited_downtime& dwn) {
     multiplexing::publisher().write(s);
   }
 }
+
+/**
+ *  Rebuild the inherited downtimes of the applied BAs after a restart.
+ *
+ *  See bam::ba::restore_inherited_downtime().
+ */
+void applier::ba::restore_inherited_downtimes() {
+  for (auto& [id, a] : _applied)
+    a.obj->restore_inherited_downtime();
+}

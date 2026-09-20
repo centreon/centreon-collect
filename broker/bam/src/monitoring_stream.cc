@@ -210,6 +210,10 @@ void monitoring_stream::update() {
     configuration::reader_v2 r(_mysql, _storage_db_cfg);
     r.read(s);
     _applier.apply(s);
+    /* A restart only: the DB knows that a BA is in downtime, not that the
+     * downtime was inherited. On a reload the objects are still there. */
+    if (_first_update)
+      _applier.restore_inherited_downtimes();
     _ba_mapping = s.get_ba_svc_mapping();
     _rebuild();
     /* Restore the runtime state (service states + pending external commands)

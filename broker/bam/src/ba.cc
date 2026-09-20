@@ -397,6 +397,39 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
 }
 
 /**
+ *  Rebuild the inherited downtime of this BA after a restart.
+ *
+ *  The inherited downtime is not persisted: neither in the DB (mod_bam only
+ *  says the BA is in downtime, not why) nor in the BAM cache. Until 2026-09
+ *  it was rebuilt by accident: the KPI soft state was never initialised from
+ *  the configuration, so restoring the cache always looked like a change,
+ *  which notified the BA, which recomputed its inherited downtime with a null
+ *  visitor. With the soft state gone, the rebuild has to be asked for.
+ *
+ *  Only the silent side of that recomputation is reproduced: when the DB says
+ *  the BA is in downtime and every impacting KPI is still in downtime, the
+ *  in-memory object is recreated so that the day the KPIs leave downtime, the
+ *  removal is emitted. Nothing is published here: the downtime already exists
+ *  on the virtual service, publishing it again would duplicate it.
+ */
+void ba::restore_inherited_downtime() {
+  if (_dt_behaviour != configuration::ba::dt_inherit || _inherited_downtime ||
+      !_in_downtime || _impacts.empty() || get_state_hard() == state_ok)
+    return;
+  for (const auto& [k, info] : _impacts) {
+    if (!k->ok_state() && !k->in_downtime())
+      return;
+  }
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "BAM: BA {} was in downtime with every KPI in downtime: "
+                      "its inherited downtime is restored",
+                      _id);
+  _inherited_downtime = std::make_unique<pb_inherited_downtime>();
+  _inherited_downtime->mut_obj().set_ba_id(_id);
+  _inherited_downtime->mut_obj().set_in_downtime(true);
+}
+
+/**
  *  Open a new event for this BA.
  *
  *  @param[out] visitor             Visitor that will receive events.

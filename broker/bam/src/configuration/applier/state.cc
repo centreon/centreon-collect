@@ -316,3 +316,12 @@ void applier::state::load_from_cache(
 std::shared_ptr<bam::ba> applier::state::find_ba(uint32_t id) const {
   return _ba_applier.find_ba(id);
 }
+
+/**
+ *  Rebuild the inherited downtimes of the BAs after a restart.
+ *
+ *  See bam::ba::restore_inherited_downtime().
+ */
+void applier::state::restore_inherited_downtimes() {
+  _ba_applier.restore_inherited_downtimes();
+}

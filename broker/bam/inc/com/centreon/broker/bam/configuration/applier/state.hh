@@ -73,6 +73,7 @@ class state {
   void load_from_cache(const std::string& name,
                        std::deque<std::string>& pending_ext_cmds);
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
+  void restore_inherited_downtimes();
 };
 }  // namespace applier
 }  // namespace configuration

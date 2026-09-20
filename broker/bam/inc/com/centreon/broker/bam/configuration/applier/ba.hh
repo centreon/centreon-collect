@@ -76,6 +76,7 @@ class ba {
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
   void visit(io::stream* visitor, bool seed_service_status);
   void apply_inherited_downtime(const pb_inherited_downtime& dwn);
+  void restore_inherited_downtimes();
 };
 }  // namespace bam::configuration::applier
 

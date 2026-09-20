@@ -2009,3 +2009,67 @@ TEST_F(BamBA, KpiServiceUnchangedStatusEmitsNothing) {
   ASSERT_EQ(_visitor->kpi_status_count(), 1u);
   ASSERT_EQ(test_ba->get_state_hard(), bam::state_ok);
 }
+
+/**
+ * After a restart, the DB says the BA is in downtime and its KPI is in
+ * downtime too, but the inherited downtime object is not persisted. Without
+ * restoring it, the end of the KPI downtime can never lift the BA downtime
+ * (this is what BECBAMIDTU2 and BEBAMIDT2 caught).
+ */
+TEST_F(BamBA, KpiServiceDtInheritedRestoredAfterRestart) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_worst>(1, 1, 1, true, _logger)};
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  time_t now = time(nullptr);
+  /* What the DB gives back at startup: BA critical and in downtime... */
+  bam::pb_ba_event ba_ev;
+  ba_ev.mut_obj().set_ba_id(1);
+  ba_ev.mut_obj().set_start_time(now - 100);
+  ba_ev.mut_obj().set_status(com::centreon::broker::State::CRITICAL);
+  ba_ev.mut_obj().set_in_downtime(true);
+  test_ba->set_initial_event(ba_ev);
+
+  /* ... and its only KPI critical, in downtime. */
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 1, 1, "host_1/serv_1", _logger);
+  kpi->set_state_hard(bam::state_critical);
+  kpi->set_downtimed(true);
+  KpiEvent kpi_ev;
+  kpi_ev.set_kpi_id(1);
+  kpi_ev.set_ba_id(1);
+  kpi_ev.set_start_time(now - 100);
+  kpi_ev.set_end_time(-1);
+  kpi_ev.set_status(com::centreon::broker::State::CRITICAL);
+  kpi_ev.set_in_downtime(true);
+  kpi->set_initial_event(kpi_ev);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+  ASSERT_TRUE(test_ba->in_downtime());
+
+  test_ba->restore_inherited_downtime();
+  _visitor->clear();
+
+  /* The downtime on the KPI service ends. */
+  auto dt = std::make_shared<neb::pb_downtime>();
+  auto& d = dt->mut_obj();
+  d.set_id(1);
+  d.set_host_id(1);
+  d.set_service_id(1);
+  d.set_started(true);
+  d.set_cancelled(true);
+  d.set_actual_start_time(now - 100);
+  d.set_actual_end_time(now);
+  kpi->service_update(dt, _visitor.get());
+
+  ASSERT_FALSE(kpi->in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
+  /* And the removal of the inherited downtime was published. */
+  bool removal_seen = false;
+  for (const auto& e : _visitor->queue()) {
+    if (e.typ == test_visitor::test_event::idt && e.ba_id == 1 &&
+        !e.in_downtime)
+      removal_seen = true;
+  }
+  ASSERT_TRUE(removal_seen);
+}
