@@ -1122,7 +1122,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
     pb_ba_ev.set_ba_id(be.ba_id);
     pb_ba_ev.set_start_time(be.start_time.get_time_t());
     pb_ba_ev.set_end_time(be.end_time.get_time_t());
-    _compute_event_durations(pb_ba_ev, this);
+    _compute_event_durations(pb_ba_ev);
   }
 }
 
@@ -1207,7 +1207,7 @@ void reporting_stream::_process_pb_ba_event(
   }
   // Compute the associated event durations.
   if (be.end_time() > 0 && be.start_time() != be.end_time())
-    _compute_event_durations(be, this);
+    _compute_event_durations(be);
 }
 
 /**
@@ -2092,16 +2092,16 @@ void reporting_stream::_process_pb_dimension_ba_timeperiod_relation(
  *  @brief Compute and write the duration events associated with a ba event.
  *
  *  The event durations are computed from the associated timeperiods of the
- * BA.
+ *  BA and written to the DB directly. They used to go through write(), as if
+ *  they had come from the muxer: each one was then counted in _pending_events
+ *  and acknowledged to the muxer, which had never sent it, and the nested
+ *  write() reset _ack_events in the middle of the event being processed.
  *
- *  @param[in] ev       The ba_event generating the durations.
- *  @param[in] visitor  A visitor stream.
+ *  @param[in] ev  The ba_event generating the durations.
+ *
+ *  @return The number of duration events written.
  */
-void reporting_stream::_compute_event_durations(const BaEvent& ev,
-                                                io::stream* visitor) {
-  if (!visitor)
-    return;
-
+uint32_t reporting_stream::_compute_event_durations(const BaEvent& ev) {
   SPDLOG_LOGGER_INFO(
       _logger,
       "BAM-BI: computing durations of event started at {} and ended at {} on "
@@ -2118,9 +2118,10 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
                         "started at {} and ended "
                         "at {} on BA {}",
                         ev.start_time(), ev.end_time(), ev.ba_id());
-    return;
+    return 0;
   }
 
+  uint32_t written = 0;
   for (const ba_timeperiod& entry : timeperiods) {
     const timeperiod_ptr& tp = entry.tp;
     bool is_default = entry.is_default;
@@ -2146,7 +2147,8 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
           "{}",
           ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name(),
           dur_ev.duration(), dur_ev.sla_duration());
-      visitor->write(to_write);
+      _process_pb_ba_duration_event(to_write);
+      ++written;
     } else
       SPDLOG_LOGGER_DEBUG(
           _logger,
@@ -2154,6 +2156,7 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
           "duration on timeperiod {}",
           ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name());
   }
+  return written;
 }
 
 /**
@@ -2225,14 +2228,25 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
     size_t ba_events_num = ba_events.size();
     size_t ba_events_curr = 0;
 
-    // Generate new ba events durations for each ba events.
+    // Generate new ba events durations for each ba events. The durations are
+    // written directly, so the transaction is committed here, every
+    // queries_per_transaction statements, as write() would have done.
     {
+      const uint32_t per_transaction =
+          _mysql.get_config().get_queries_per_transaction();
+      uint32_t uncommitted = 0;
       for (const auto& ev : ba_events) {
         std::string s(fmt::format("rebuilding: ba event {}/{}",
                                   ba_events_curr++, ba_events_num));
         _update_status(s);
-        _compute_event_durations(ev->obj(), this);
+        uncommitted += _compute_event_durations(ev->obj());
+        if (uncommitted >= per_transaction) {
+          _commit();
+          uncommitted = 0;
+        }
       }
+      if (uncommitted)
+        _commit();
     }
   } catch (...) {
     _update_status("");

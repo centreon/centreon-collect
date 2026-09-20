@@ -137,7 +137,7 @@ class reporting_stream : public io::stream {
       std::shared_ptr<io::data> const& e);
   void _process_rebuild(std::shared_ptr<io::data> const& e);
   void _update_status(std::string_view status);
-  void _compute_event_durations(const BaEvent& ev, io::stream* visitor);
+  uint32_t _compute_event_durations(const BaEvent& ev);
 };
 }  // namespace bam
 }  // namespace com::centreon::broker
