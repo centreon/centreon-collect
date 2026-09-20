@@ -78,7 +78,7 @@ EALLOC1
     ...    And heaptrack attached to the running centengine
     ...    Then ${nb_checks} check results carrying a realistic output are processed
     ...    And the trace is complete once heaptrack has been detached
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Clear Retention
     Ctn Clear Logs
 
@@ -122,7 +122,7 @@ EALLOC2
     ...    And heaptrack attached to the running centengine
     ...    Then checks run for ${duration} and the allocations are attributed per stack
     ...    And the count per check is derived from the parse_check_output ratio
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Run Active Check Bench    ${bench_plugin}
 
 EALLOC3
@@ -143,7 +143,7 @@ EALLOC3
     ...    expansion produce a longer string, so the two runs differ in more than argv.
     ...    Attribution per stack separates them — misc::command_line::parse on one side,
     ...    the macro functions on the other — a comparison of totals would not.
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Run Active Check Bench    ${bench_plugin} ${bench_args}
 
 EALLOC4
@@ -162,7 +162,7 @@ EALLOC4
     ...
     ...    Same workload as EALLOC2 on purpose -- same plugin, same bare command line -- so
     ...    that the two traces answer "who allocates on this workload, Engine or Broker?"
-    [Tags]    broker    engine    bench    unstable
+    [Tags]    broker    engine    bench
     Ctn Run Active Check Bench    ${bench_plugin}    traced=broker
 
 

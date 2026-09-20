@@ -69,7 +69,7 @@ BENCH_BAM_STARTUP
     ...    When the central cbd is started alone, with no poller at all
     ...    Then the duration of every step of reader_v2::read() is filed in the store
     ...    And the resident memory of cbd once loaded is filed alongside them
-    [Tags]    broker    bam    bench    unstable
+    [Tags]    broker    bam    bench
 
     ${params}    Ctn Bam Bench Populate    ${nb_hosts}    ${svc_by_host}    ${nb_ba}
     ...    ${kpi_per_ba}    ${boolexp_per_ba}    ${nb_meta}

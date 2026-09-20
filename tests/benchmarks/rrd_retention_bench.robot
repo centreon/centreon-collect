@@ -69,7 +69,7 @@ BENCH_RRD_METRIC_RETENTION
     ...    (${N_METRICS} metrics) via BBDO v3 directly to the central broker, then
     ...    one current-time event per metric to trigger the junction merge.
     ...    Reports injection throughput and end-to-end merge latency.
-    [Tags]    rrd    retention    benchmark    bbdo3    performance
+    [Tags]    rrd    retention    bbdo3    performance
 
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd

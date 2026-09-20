@@ -419,6 +419,45 @@ def ctn_bench_bam_load_timings(log_path: str) -> dict:
     return timings
 
 
+BAM_REBUILD_OPENING = "BAM-BI: will now rebuild the event durations"
+BAM_REBUILD_CLOSING = "BAM-BI: event durations rebuild finished"
+
+
+def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
+    """Read how long the BI rebuild of the event durations took.
+
+    reporting_stream::_process_rebuild announces, at info, the moment it starts
+    recomputing the durations and the moment it is done with them. Everything
+    between the two is the loop this benchmark is about: one duration computed
+    and written per (closed BA event, reporting period). What follows -- the
+    availabilities -- runs in its own thread and is not measured here.
+
+    The last complete pair wins, for the same reason as in
+    ctn_bench_bam_load_timings.
+
+    Args:
+        log_path (str): the central broker log file.
+
+    Returns:
+        A dict with "rebuild_ms". Empty if the log carries no complete pair,
+        which a test should treat as a failure: either the bam logger is not at
+        info, or no rebuild happened.
+    """
+    last = {}
+    opening = None
+    with open(log_path, "r", errors="replace") as f:
+        for line in f:
+            ts = _parse_log_timestamp(line)
+            if ts is None:
+                continue
+            if BAM_REBUILD_OPENING in line:
+                opening = ts
+            elif BAM_REBUILD_CLOSING in line and opening is not None:
+                last = {"rebuild_ms": (ts - opening).total_seconds() * 1000}
+                opening = None
+    return last
+
+
 def ctn_bench_process_rss_kb(pid) -> int:
     """Return the resident set size of a process, in kilobytes.
 
