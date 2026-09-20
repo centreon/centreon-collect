@@ -131,6 +131,10 @@ void ba_impact::_unapply_impact(kpi* kpi_ptr [[maybe_unused]],
  *  @return Service output.
  */
 std::string ba_impact::get_output() const {
+  if (!_valid)
+    return _invalid_reason.empty()
+               ? std::string("Status is UNKNOWN - invalid BA")
+               : _invalid_reason;
   auto impacting_kpis = [this]() {
     std::list<std::string> lst;
     for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {

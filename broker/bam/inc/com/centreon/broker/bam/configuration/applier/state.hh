@@ -19,6 +19,9 @@
 #ifndef CCB_BAM_CONFIGURATION_APPLIER_STATE_HH
 #define CCB_BAM_CONFIGURATION_APPLIER_STATE_HH
 
+#include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_set.h>
+
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
@@ -44,20 +47,36 @@ class state {
   std::shared_ptr<spdlog::logger> _logger;
 
   struct circular_check_node {
+    enum kind { other, ba, kpi };
     circular_check_node();
 
     bool in_visit;
     bool visited;
+    /* What the node stands for, so that a cycle can be turned into the KPIs
+     * to drop and the BAs to invalidate. */
+    kind what;
+    uint32_t id;
     std::set<std::string> targets;
+  };
+  /* What a run of _circular_check found: the KPIs that take part in a cycle
+   * and the BAs that do. Dropping the former breaks every cycle whatever the
+   * order the graph was walked in; the latter are reported as invalid. */
+  struct circular_report {
+    absl::flat_hash_set<uint32_t> kpis;
+    absl::btree_set<uint32_t> bas;
   };
   ba _ba_applier;
   service_book _book_service;
   kpi _kpi_applier;
   bool_expression _bool_exp_applier;
   std::unordered_map<std::string, circular_check_node> _nodes;
+  /* The nodes on the current path of the depth-first walk. */
+  std::vector<std::string> _path;
 
-  void _circular_check(configuration::state const& my_state);
-  void _circular_check(circular_check_node& n);
+  circular_report _circular_check(configuration::state const& my_state);
+  void _circular_check(const std::string& name,
+                       circular_check_node& n,
+                       circular_report& report);
 
  public:
   state(const std::shared_ptr<spdlog::logger>& logger);

@@ -61,6 +61,8 @@ ba_worst::ba_worst(uint32_t id,
  *  @return BA hard state.
  */
 state ba_worst::get_state_hard() const {
+  if (!_valid)
+    return state_unknown;
   bam::state state;
 
   auto every_kpi_in_dt =
@@ -168,6 +170,10 @@ void ba_worst::_unapply_impact(kpi* kpi_ptr,
  *  @return Service output.
  */
 std::string ba_worst::get_output() const {
+  if (!_valid)
+    return _invalid_reason.empty()
+               ? std::string("Status is UNKNOWN - invalid BA")
+               : _invalid_reason;
   std::string retval;
   auto not_ok_kpis = [this]() {
     std::list<std::string> retval;

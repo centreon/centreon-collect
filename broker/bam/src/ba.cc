@@ -218,12 +218,15 @@ void ba::set_name(std::string const& name) {
 /**
  *  @brief Set whether or not BA is valid.
  *
- *  An invalid BA will return an UNKNOWN state.
+ *  An invalid BA is UNKNOWN whatever its type computes, and its output says
+ *  why: a KPI whose target does not exist, a BA that is its own ancestor.
  *
- *  @param[in] valid  Whether or not BA is valid.
+ *  @param[in] valid   Whether or not BA is valid.
+ *  @param[in] reason  Why it is not, ignored when it is.
  */
-void ba::set_valid(bool valid) {
+void ba::set_valid(bool valid, const std::string& reason) {
   _valid = valid;
+  _invalid_reason = valid ? std::string() : reason;
 }
 
 /**

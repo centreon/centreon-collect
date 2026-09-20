@@ -18,6 +18,9 @@
 
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 
+#include <algorithm>
+#include <fmt/ranges.h>
+
 #include "com/centreon/broker/bam/internal.hh"
 
 #include "broker/core/config/applier/state.hh"
@@ -91,15 +94,41 @@ applier::state::state(const std::shared_ptr<spdlog::logger>& logger)
  *  @param[in] my_state  Configuration state.
  */
 void applier::state::apply(bam::configuration::state const& my_state) {
-  // Search for circular path in object graph.
-  _circular_check(my_state);
+  /* Search for circular paths in the object graph. A BA that is its own
+   * ancestor is a configuration error, and a configuration error must cost
+   * what is wrong and nothing else: this used to throw, which took the whole
+   * BAM configuration down and left the failover reconnecting for ever. The
+   * KPIs of a cycle are left out instead, which breaks it, and the BAs of the
+   * cycle are applied invalid, UNKNOWN with the reason as output -- the
+   * output lands in the comment column of mod_bam, where the user sees it. */
+  circular_report cycles = _circular_check(my_state);
 
   // Really apply objects.
   _ba_applier.apply(my_state.get_bas(), _book_service);
   _bool_exp_applier.apply(my_state.get_bool_exps(),
                           my_state.get_hst_svc_mapping(), _book_service);
-  _kpi_applier.apply(my_state.get_kpis(), my_state.get_hst_svc_mapping(),
-                     _ba_applier, _bool_exp_applier, _book_service);
+  if (cycles.kpis.empty())
+    _kpi_applier.apply(my_state.get_kpis(), my_state.get_hst_svc_mapping(),
+                       _ba_applier, _bool_exp_applier, _book_service);
+  else {
+    configuration::state::kpis kpis(my_state.get_kpis());
+    for (uint32_t kpi_id : cycles.kpis)
+      kpis.erase(kpi_id);
+    _kpi_applier.apply(kpis, my_state.get_hst_svc_mapping(), _ba_applier,
+                       _bool_exp_applier, _book_service);
+  }
+
+  /* After the BA applier, which sets every BA valid again on each apply. */
+  for (uint32_t ba_id : cycles.bas) {
+    std::shared_ptr<bam::ba> b = _ba_applier.find_ba(ba_id);
+    if (!b)
+      continue;
+    std::string reason = fmt::format(
+        "Circular definition detected. BA {} includes itself as a KPI.",
+        b->get_name());
+    _logger->error("BAM: {}", reason);
+    b->set_valid(false, reason);
+  }
 }
 
 /**
@@ -127,14 +156,15 @@ void applier::state::visit(io::stream* visitor, bool seed_service_status) {
  *  Circular check node constructor.
  */
 applier::state::circular_check_node::circular_check_node()
-    : in_visit(false), visited(false) {}
+    : in_visit(false), visited(false), what(other), id(0) {}
 
 /**
  *  Check BA computation graph for circular paths.
  *
  *  @param[in] my_state  Configuration state.
  */
-void applier::state::_circular_check(configuration::state const& my_state) {
+applier::state::circular_report applier::state::_circular_check(
+    configuration::state const& my_state) {
   // In this method, nodes are referenced by an internal ID named after
   // object type and ID.
 
@@ -142,12 +172,15 @@ void applier::state::_circular_check(configuration::state const& my_state) {
   // Populate graph with all objects.
   //
   _nodes.clear();
+  _path.clear();
 
   // Add BAs.
   for (configuration::state::bas::const_iterator it(my_state.get_bas().begin()),
        end(my_state.get_bas().end());
        it != end; ++it) {
     circular_check_node& n(_nodes[ba_node_id(it->first)]);
+    n.what = circular_check_node::ba;
+    n.id = it->first;
     n.targets.insert(
         service_node_id(it->second.get_host_id(), it->second.get_service_id()));
   }
@@ -183,6 +216,8 @@ void applier::state::_circular_check(configuration::state const& my_state) {
        it != end; ++it) {
     std::string kpi_id(kpi_node_id(it->first));
     circular_check_node& n(_nodes[kpi_id]);
+    n.what = circular_check_node::kpi;
+    n.id = it->first;
     n.targets.insert(ba_node_id(it->second.get_ba_id()));
     std::string node_id;
     if (it->second.is_ba())
@@ -200,36 +235,54 @@ void applier::state::_circular_check(configuration::state const& my_state) {
   }
 
   // Process all nodes.
-  for (std::unordered_map<std::string, circular_check_node>::iterator
-           it(_nodes.begin()),
-       end(_nodes.end());
-       it != end; ++it)
-    if (!it->second.visited)
-      _circular_check(it->second);
+  circular_report report;
+  for (auto& [name, node] : _nodes)
+    if (!node.visited)
+      _circular_check(name, node, report);
   _nodes.clear();
+  return report;
 }
 
 /**
  *  Check a node for circular path.
  *
- *  @param[in,out] n      Target node.
+ *  A depth-first walk: a node met again while still on the path closes a
+ *  cycle, which is the path from that node to here. Its KPIs and BAs are
+ *  added to the report and the walk goes on, so that every cycle of the
+ *  graph is found in one pass.
+ *
+ *  @param[in]     name    The node identifier.
+ *  @param[in,out] n       Target node.
+ *  @param[out]    report  Where the cycles are collected.
  */
-void applier::state::_circular_check(applier::state::circular_check_node& n) {
-  if (n.in_visit)
-    throw msg_fmt("BAM: loop found in BA graph");
-  if (!n.visited) {
-    n.in_visit = true;
-    for (std::set<std::string>::const_iterator it(n.targets.begin()),
-         end(n.targets.end());
-         it != end; ++it) {
-      std::unordered_map<std::string, circular_check_node>::iterator it_node(
-          _nodes.find(*it));
-      if (it_node != _nodes.end())
-        _circular_check(it_node->second);
+void applier::state::_circular_check(const std::string& name,
+                                     applier::state::circular_check_node& n,
+                                     circular_report& report) {
+  if (n.in_visit) {
+    auto from = std::find(_path.begin(), _path.end(), name);
+    _logger->error("BAM: circular definition: {} -> {}",
+                   fmt::join(from, _path.end(), " -> "), name);
+    for (; from != _path.end(); ++from) {
+      const circular_check_node& m = _nodes.find(*from)->second;
+      if (m.what == circular_check_node::kpi)
+        report.kpis.insert(m.id);
+      else if (m.what == circular_check_node::ba)
+        report.bas.insert(m.id);
     }
-    n.visited = true;
-    n.in_visit = false;
+    return;
   }
+  if (n.visited)
+    return;
+  n.in_visit = true;
+  _path.push_back(name);
+  for (const std::string& target : n.targets) {
+    auto it_node = _nodes.find(target);
+    if (it_node != _nodes.end())
+      _circular_check(target, it_node->second, report);
+  }
+  _path.pop_back();
+  n.visited = true;
+  n.in_visit = false;
 }
 
 /**

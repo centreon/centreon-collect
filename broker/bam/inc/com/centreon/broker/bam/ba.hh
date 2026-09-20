@@ -87,6 +87,8 @@ class ba : public computable, public service_listener {
 
   std::unordered_map<kpi*, impact_info> _impacts;
   bool _valid{true};
+  /* Why the BA is invalid, shown as its output while it is. */
+  std::string _invalid_reason;
   configuration::ba::downtime_behaviour _dt_behaviour{
       configuration::ba::dt_ignore};
   int _recompute_count{0};
@@ -128,7 +130,7 @@ class ba : public computable, public service_listener {
   void remove_impact(std::shared_ptr<kpi> const& impact);
   void set_initial_event(const pb_ba_event& event);
   void set_name(std::string const& name);
-  void set_valid(bool valid);
+  void set_valid(bool valid, const std::string& reason = "");
   void set_downtime_behaviour(configuration::ba::downtime_behaviour value);
   void set_state_source(configuration::ba::state_source source);
   void visit(io::stream* visitor, bool seed_service_status = false);

@@ -61,6 +61,8 @@ ba_best::ba_best(uint32_t id,
  *  @return BA hard state.
  */
 state ba_best::get_state_hard() const {
+  if (!_valid)
+    return state_unknown;
   bam::state state;
 
   auto every_kpi_in_dt =
@@ -164,6 +166,10 @@ void ba_best::_unapply_impact(kpi* kpi_ptr,
  *  @return Service output.
  */
 std::string ba_best::get_output() const {
+  if (!_valid)
+    return _invalid_reason.empty()
+               ? std::string("Status is UNKNOWN - invalid BA")
+               : _invalid_reason;
   state state = get_state_hard();
   std::string retval;
   switch (state) {

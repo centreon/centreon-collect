@@ -66,6 +66,8 @@ ba_ratio_percent::ba_ratio_percent(
  *  @return BA hard state.
  */
 state ba_ratio_percent::get_state_hard() const {
+  if (!_valid)
+    return state_unknown;
   double num_critical = _level_hard / _impacts.size() * 100;
   if (num_critical >= _level_critical)
     return state_critical;
@@ -149,6 +151,10 @@ bool ba_ratio_percent::_apply_changes(kpi* child,
  *  @return Service output.
  */
 std::string ba_ratio_percent::get_output() const {
+  if (!_valid)
+    return _invalid_reason.empty()
+               ? std::string("Status is UNKNOWN - invalid BA")
+               : _invalid_reason;
   state state = get_state_hard();
   std::string retval;
   switch (state) {

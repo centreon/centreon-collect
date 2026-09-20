@@ -65,6 +65,8 @@ ba_ratio_number::ba_ratio_number(uint32_t id,
  *  @return BA hard state.
  */
 state ba_ratio_number::get_state_hard() const {
+  if (!_valid)
+    return state_unknown;
   if (_level_hard >= _level_critical)
     return state_critical;
   else if (_level_hard >= _level_warning)
@@ -147,6 +149,10 @@ bool ba_ratio_number::_apply_changes(kpi* child,
  *  @return Service output.
  */
 std::string ba_ratio_number::get_output() const {
+  if (!_valid)
+    return _invalid_reason.empty()
+               ? std::string("Status is UNKNOWN - invalid BA")
+               : _invalid_reason;
   state state = get_state_hard();
   uint32_t s = _impacts.size();
   std::string retval;

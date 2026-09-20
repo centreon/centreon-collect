@@ -160,6 +160,7 @@ if(WITH_TESTING)
       ${TEST_DIR}/ba/kpi_service.cc
       ${TEST_DIR}/ba/kpi_ba.cc
       ${TEST_DIR}/configuration/applier-boolexp.cc
+      ${TEST_DIR}/configuration/applier-circular.cc
       ${TEST_DIR}/exp_builder/exp_builder.cc
       ${TEST_DIR}/exp_builder/availability_builder.cc
       ${TEST_DIR}/exp_parser/get_postfix.cc
