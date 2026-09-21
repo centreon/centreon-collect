@@ -50,13 +50,21 @@ void computable::remove_parent(std::shared_ptr<computable> const& parent) {
 /**
  * @brief Notify parents of this object because of a change made in this.
  *
+ * A parent that is gone -- a KPI the applier removed at a reload while this
+ * object, its source, stayed -- is dropped from the list on the way: nothing
+ * calls remove_parent() today, so the expired entries used to pile up, one per
+ * removed KPI, each costing a lock() at every notification for ever.
+ *
  * @param visitor Used to handle events.
  */
 void computable::notify_parents_of_change(io::stream* visitor) {
   _logger->trace("{}::notify_parents_of_change: ", typeid(*this).name());
-  for (auto& p : _parents) {
-    if (std::shared_ptr<computable> parent = p.lock())
+  for (auto it = _parents.begin(); it != _parents.end();) {
+    if (std::shared_ptr<computable> parent = it->lock()) {
       parent->update_from(this, visitor);
+      ++it;
+    } else
+      it = _parents.erase(it);
   }
 }
 

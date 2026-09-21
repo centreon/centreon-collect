@@ -41,6 +41,7 @@ class computable {
   computable& operator=(const computable&) = delete;
   void add_parent(const std::shared_ptr<computable>& parent);
   void notify_parents_of_change(io::stream* visitor);
+  size_t parents_count() const { return _parents.size(); }
   /**
    *  @brief Update this object because there was a change in the given child.
    *

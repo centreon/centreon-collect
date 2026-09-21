@@ -1154,3 +1154,27 @@ TEST_F(KpiBA, KpiBaWorstImpactPb) {
             << std::endl;
   std::cout << "ba perfdata: " << test_ba->get_perfdata() << std::endl;
 }
+
+/**
+ * A reload that removes a BA-of-BA KPI leaves its indicator BA in place, with
+ * a dead entry among its parents: nothing calls remove_parent(). The entry
+ * used to stay for ever, one more lock() at every notification. It is dropped
+ * the first time the BA notifies.
+ */
+TEST_F(KpiBA, ExpiredParentIsDroppedOnNotify) {
+  std::shared_ptr<bam::ba> indicator =
+      std::make_shared<bam::ba_worst>(1, 1, 1, true, _logger);
+
+  auto kpi = std::make_shared<bam::kpi_ba>(4, 2, "ba 1", _logger);
+  kpi->link_ba(indicator);
+  indicator->add_parent(kpi);
+  ASSERT_EQ(indicator->parents_count(), 1u);
+
+  /* The applier drops the KPI: its last owner goes away. */
+  kpi.reset();
+  ASSERT_EQ(indicator->parents_count(), 1u);
+
+  /* A notification must neither crash nor keep the dead entry. */
+  indicator->notify_parents_of_change(nullptr);
+  EXPECT_EQ(indicator->parents_count(), 0u);
+}
