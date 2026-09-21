@@ -675,7 +675,11 @@ part of it.
 
 `durations` — the row count of `mod_bam_reporting_ba_events_durations` once the rebuild is
 done — is filed with it and **checked** against the number of closed events: a run that was fast
-because it wrote nothing would otherwise pass as an improvement. The parameters are
+because it wrote nothing would otherwise pass as an improvement. The same run also files
+`bi_cache_load_ms`, `bi_open_ba_events` and `bi_open_kpi_events`, read from the line the
+reporting stream writes when it has loaded its event caches at startup: with a history of
+20000 closed events, a cbd that reads the whole tables and one that reads the open events
+only give very different figures here, for the same rebuild. The parameters are
 `rebuilt_bas`, `events_per_ba` and `events`, plus those of the configuration.
 
 Like the others, this is an A/B benchmark: run it on the installed cbd *before* installing a

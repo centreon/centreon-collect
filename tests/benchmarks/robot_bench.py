@@ -421,6 +421,13 @@ def ctn_bench_bam_load_timings(log_path: str) -> dict:
 
 BAM_REBUILD_OPENING = "BAM-BI: will now rebuild the event durations"
 BAM_REBUILD_CLOSING = "BAM-BI: event durations rebuild finished"
+# "BAM-BI: 3 open BA events and 12 open KPI events loaded in 7 ms"
+BAM_BI_CACHE_LOAD = re.compile(
+    r"BAM-BI: (\d+) open BA events and (\d+) open KPI events loaded in (\d+) ms")
+# A cbd from before that line: the load is framed by two trace lines, the
+# second being the first thing the constructor does once the caches are in.
+BAM_BI_CACHE_LOAD_OPENING = "reporting stream _load_kpi_ba_events"
+BAM_BI_CACHE_LOAD_CLOSING = "reporting stream _close_inconsistent events (type BA"
 
 
 def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
@@ -438,13 +445,23 @@ def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
     Args:
         log_path (str): the central broker log file.
 
+    The startup of the reporting stream is read from the same log: the time it
+    took to load its event caches, and how many open events it found. Until
+    2026-09 the caches were the whole of the two event tables; a history that
+    grows for years was read at every start. Filed as "bi_cache_load_ms",
+    "bi_open_ba_events" and "bi_open_kpi_events" when the line is there -- an
+    older cbd does not write it, and the rebuild figure stands on its own.
+
     Returns:
-        A dict with "rebuild_ms". Empty if the log carries no complete pair,
-        which a test should treat as a failure: either the bam logger is not at
-        info, or no rebuild happened.
+        A dict with "rebuild_ms", plus the cache figures above when available.
+        Empty if the log carries no complete rebuild pair, which a test should
+        treat as a failure: either the bam logger is not at info, or no rebuild
+        happened.
     """
     last = {}
+    cache = {}
     opening = None
+    load_opening = None
     with open(log_path, "r", errors="replace") as f:
         for line in f:
             ts = _parse_log_timestamp(line)
@@ -455,6 +472,22 @@ def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
             elif BAM_REBUILD_CLOSING in line and opening is not None:
                 last = {"rebuild_ms": (ts - opening).total_seconds() * 1000}
                 opening = None
+            elif BAM_BI_CACHE_LOAD_OPENING in line:
+                load_opening = ts
+            elif BAM_BI_CACHE_LOAD_CLOSING in line and load_opening is not None:
+                # Only a fallback, for a cbd that does not write the info line:
+                # the bam logger has to be at trace for these two to be there.
+                cache.setdefault("bi_cache_load_ms",
+                                 (ts - load_opening).total_seconds() * 1000)
+                load_opening = None
+            else:
+                match = BAM_BI_CACHE_LOAD.search(line)
+                if match:
+                    cache = {"bi_open_ba_events": float(match.group(1)),
+                             "bi_open_kpi_events": float(match.group(2)),
+                             "bi_cache_load_ms": float(match.group(3))}
+    if last:
+        last.update(cache)
     return last
 
 
