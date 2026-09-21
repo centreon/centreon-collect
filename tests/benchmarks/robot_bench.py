@@ -156,6 +156,49 @@ def ctn_bench_sustain_passive_load(rate: int, duration: int, hosts: int = 50,
     return total
 
 
+def ctn_bench_bam_kpi_services(nb_ba: int, kpi_per_ba: int, hosts: int = 50,
+                               services_by_host: int = 20) -> list:
+    """Pick the services of each BA of the steady-state BAM benchmark.
+
+    The BAs share nothing: BA 1 takes the first kpi_per_ba services of the
+    configuration, BA 2 the next ones, and so on, so that every passive result
+    submitted to those services reaches exactly one KPI. The services are named
+    as the generated configuration names them.
+
+    Args:
+        nb_ba (int): how many BAs.
+        kpi_per_ba (int): service KPIs per BA.
+        hosts (int, optional): hosts in the configuration. Defaults to 50.
+        services_by_host (int, optional): services per host. Defaults to 20.
+
+    Returns:
+        A list of nb_ba lists of (host name, service description) couples.
+
+    Raises:
+        ValueError: when the configuration has fewer services than the BAs need.
+    """
+    nb_ba = int(nb_ba)
+    kpi_per_ba = int(kpi_per_ba)
+    hosts = int(hosts)
+    services_by_host = int(services_by_host)
+    if nb_ba * kpi_per_ba > hosts * services_by_host:
+        raise ValueError(f"{nb_ba} BAs of {kpi_per_ba} KPIs need "
+                         f"{nb_ba * kpi_per_ba} services, the configuration "
+                         f"has {hosts * services_by_host}")
+    result = []
+    slot = 0
+    for _ in range(nb_ba):
+        services = []
+        for _ in range(kpi_per_ba):
+            host = slot // services_by_host + 1
+            service = _service_of(host, slot % services_by_host + 1,
+                                  services_by_host)
+            services.append((f"host_{host}", f"service_{service}"))
+            slot += 1
+        result.append(services)
+    return result
+
+
 def ctn_bench_last_run_metrics(label: str, bench: str = "load",
                                variant: str = "", db_path: str = "") -> dict:
     """Read back the metrics of the most recent matching run.

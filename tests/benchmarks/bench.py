@@ -92,6 +92,10 @@ ROBOT_BENCHES = {
                     "How long cbd takes to load a BAM configuration, step by "
                     "step, as the platform grows. No poller: the load reads "
                     "the database, not the .cfg files."),
+    "bam-steady": ("bam_steady_bench.robot",
+                   "How many UPDATE statements a passive result costs the "
+                   "database in steady state, with and without the BAM "
+                   "outputs: the share of BAM is the difference."),
     "bam-rebuild": ("bam_rebuild_bench.robot",
                     "How long the BI stream takes to rebuild the event "
                     "durations of a BA history, as that history grows. No "

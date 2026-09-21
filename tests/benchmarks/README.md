@@ -10,6 +10,8 @@
   - [`BENCH_RRD_METRIC_RETENTION` — the RRD retention buffer](#bench_rrd_metric_retention--the-rrd-retention-buffer)
   - [`bam-startup` — loading a BAM configuration](#bam-startup--loading-a-bam-configuration)
   - [`bam-rebuild` — rebuilding the BI event durations](#bam-rebuild--rebuilding-the-bi-event-durations)
+  - [`bam-steady` — what BAM costs the database per check result](#bam-steady--what-bam-costs-the-database-per-check-result)
+- [State of play: the reference figures](#state-of-play-the-reference-figures)
 - [In more depth](#in-more-depth)
   - [The store, and what the metrics mean](#the-store-and-what-the-metrics-mean)
   - [Comparing two versions](#comparing-two-versions)
@@ -706,6 +708,67 @@ single executes in autocommit take 600 ms. Autocommit is not the enemy; one stat
 is. `unified_sql`'s dedicated connection for `logs` and `data_bin`, autocommit by design, sends
 bulks and is therefore fine.
 
+### `bam-steady` — what BAM costs the database per check result
+
+Pick **one**:
+
+```bash
+./bench.py run bam-steady                                      # both variants, 200 results/s for 120 s
+./bench.py run bam-steady --var passive_rate:500 --var duration:300
+robot benchmarks/bam_steady_bench.robot                        # straight through robot
+```
+
+Most of the time, a check result changes nothing: the service was OK, it still is. What does
+such a result cost the database once BAM is in the picture? Until 2026-09 the answer was one
+`UPDATE mod_bam_kpi` per result of every KPI service, identical to the previous one — the KPI
+produced a `KpiStatus` at every visit, changed or not. The visit is now owed only when
+something changed, and this benchmark is what says so in numbers.
+
+The platform is 50 hosts × 20 services, all passive, and **every** service is the KPI of
+exactly one of 100 `worst` BAs, so that every submitted result reaches BAM. One OK result per
+service settles the KPIs and the BAs, then the load runs: OK results at a steady rate on
+services already OK. MariaDB's `Com_update` counter — the number of `UPDATE` statements run,
+which counts the rows of a bulk one by one, checked — is read before and after the window,
+and the delta is filed as `updates`, with `results` and `updates_per_result`.
+
+The suite runs the same load **twice**: with the BAM outputs configured on the central broker
+(variant `with-bam`) and without them (variant `no-bam`). `unified_sql` writes statuses too,
+and what it costs per result has nothing to do with BAM; the share of BAM is the difference
+between the two variants, and it is that difference the campaigns should compare. An exact
+count rather than a CPU figure, on purpose: the CPU of one `UPDATE` per result is lost in the
+noise of the whole chain, the count is not.
+
+## State of play: the reference figures
+
+Every benchmark here exists because something was measured, changed, and measured again. This
+section keeps the figures, so that a later change to collect can be checked against them:
+run the benchmark named in the row with the same parameters, under a new label, and
+`./bench.py compare` it with a run of the current code under another label — the store is
+local and git-ignored, so the old runs are not there to compare with, the figures below are.
+A figure that moved the wrong way is a regression to explain; one that moved the right way
+is worth writing here.
+
+All figures were taken in the test container (podman, MariaDB with
+`innodb_flush_log_at_trx_commit=1`), Release build, on a 22-core laptop. They are **run to
+run within 5-6 %**, so a difference smaller than that is noise. Where the "before" run had to
+log at debug or trace to be measurable at all, the row says so: part of the "before" is then
+spdlog, and the real ratio is a little less than shown.
+
+| subject | benchmark, parameters | before | after | what changed, when |
+|---|---|---|---|---|
+| BI rebuild of the event durations | `bam-rebuild`, 10 BAs × 2000 events (20 000 durations), `rebuild_ms` | 9 864 ms | 182 ms | one statement per duration, each a transaction under autocommit → batches of 1000 rows on one connection; 2026-09-20, `d8d1b6fb61` |
+| BI event caches at startup | `bam-rebuild --var events_per_ba:10000`, `bi_cache_load_ms` | 600 ms (100 000 events, both tables read whole) | 7 ms (open events only) | events looked up on demand before an insert; 2026-09-21, `7d0c9f9d5b` |
+| daily availabilities of a rebuild | `bam-rebuild --var event_duration:3600`, `availability_ms` (83 days) | 752 ms (before at debug) | 207 ms | two queries and one insert per BA/period **per day** → by chunks of 31 days; 2026-09-21, `256cad33d6` |
+| BAM configuration load, `mapping` step | `bam-startup`, services axis (`bench-bam.sh`) | 3 418 ms at 200 000 services, 99 % of the load (campaign of 2026-09-15, biased by ~300 ms of populating not yet settled) | 10 ms of mapping, 36 ms in all, at 200 000 services | only the couples the boolean rules name are resolved, instead of the whole service table (`7170f289b8`); the populating now settles first |
+| UPDATE statements per unchanged check result | `bam-steady`, 1000 KPI services, 200 results/s for 120 s, `updates_per_result` | `with-bam` 3.002, `no-bam` 2.002: BAM adds **1** per result (measured on `d4442094e6`, the parent of the change) | `with-bam` 2.001, `no-bam` 2.002: BAM adds **0**; 24 000 identical `UPDATE mod_bam_kpi` gone from the window | a KPI visits itself only when it changed; 2026-09-20, `66b5cfa0ab`. The 2 that remain are `unified_sql`'s, on `services` and `resources` |
+| Engine startup, 10 000 services | `engine-startup`, legacy vs `state.prot` | 286 / 282 ms | 153 / 157 ms | reading the serialized state instead of the `.cfg` files: `config-read` 27-44 → 8 ms, `expand` and `resolve` gone; 2026-08-21 |
+| Engine configuration load | `engine-config-load`, 1k / 10k / 50k services | 0.03 / 0.13 / 1.22 s CPU | — | reference only; `cpu_ms_per_service` grows from 0.013 (10k) to 0.024 (50k): the `objects` phase is super-linear (~N^1.7), still open |
+| steady-state cost of a check | `load`, 50 hosts × 20 services | active ≈ 15.8 ms of collect CPU per check, passive ≈ 0.77 ms per result | — | reference only; the gap is the fork of the plugin |
+| allocations of cbd on the check path | `alloc`, profile EALLOC4 | 1 006 877 `alloc_calls` | 761 039 (−24.4 %), then 688 332 (−9.6 % more) | debug strings built with the log off and `const std::string&` taking literals, then the perfdata parser; 2026-08-22. Compare allocations **per call**, never totals |
+
+Two figures above are marked *reference only*: nothing was changed against them, they are
+where the code stands, to be compared with after a change touching that path.
+
 ## In more depth
 
 ### The store, and what the metrics mean
@@ -960,6 +1023,7 @@ trusting it.
 | `bam_config_gen.py` | a platform-sized BAM configuration in the database, in batched inserts |
 | `bam_startup_bench.robot` | the BAM configuration load of cbd, step by step |
 | `bam_rebuild_bench.robot` | the BI rebuild of the event durations of a BA history |
+| `bam_steady_bench.robot` | the UPDATE statements a check result costs, with and without BAM |
 | `bench-bam.sh` | the two axes of the BAM startup campaign, services then BAs |
 | `results/` | the store and the per-run files, git-ignored |
 
