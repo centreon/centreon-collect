@@ -18,6 +18,8 @@
 
 #include <spdlog/fmt/ostr.h>
 
+#include <chrono>
+
 #include "com/centreon/broker/bam/reporting_stream.hh"
 
 // #include "bbdo/bam/ba_duration_event.hh"
@@ -480,12 +482,18 @@ void reporting_stream::_load_timeperiods() {
  */
 void reporting_stream::_load_kpi_ba_events() {
   SPDLOG_LOGGER_TRACE(_logger, "reporting stream _load_kpi_ba_events");
+  auto started = std::chrono::steady_clock::now();
   _ba_event_cache.clear();
   _kpi_event_cache.clear();
 
+  /* Open events only: they are the ones an UPDATE can reach -- closing, or the
+   * re-emission by BAM at startup of the event _close_all_events() is about to
+   * close. Anything else that shows up is looked up on demand, see
+   * _event_known(). Before 2026-09 both tables were read whole. */
   // Load ba events.
   std::string query(
-      "SELECT ba_id, start_time FROM mod_bam_reporting_ba_events");
+      "SELECT ba_id, start_time FROM mod_bam_reporting_ba_events WHERE "
+      "end_time IS NULL");
   std::promise<mysql_result> promise;
   std::future<database::mysql_result> future = promise.get_future();
   SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
@@ -501,8 +509,8 @@ void reporting_stream::_load_kpi_ba_events() {
 
   // load kpi events
   query =
-      "SELECT kpi_id, start_time FROM "
-      "mod_bam_reporting_kpi_events";
+      "SELECT kpi_id, start_time FROM mod_bam_reporting_kpi_events WHERE "
+      "end_time IS NULL";
   std::promise<mysql_result> kpi_promise;
   std::future<database::mysql_result> kpi_future = kpi_promise.get_future();
   SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
@@ -515,6 +523,45 @@ void reporting_stream::_load_kpi_ba_events() {
   } catch (std::exception const& e) {
     throw msg_fmt("BAM-BI: could not load kpi events from DB: {}", e.what());
   }
+  SPDLOG_LOGGER_INFO(
+      _logger,
+      "BAM-BI: {} open BA events and {} open KPI events loaded in {} ms",
+      _ba_event_cache.size(), _kpi_event_cache.size(),
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - started)
+          .count());
+}
+
+/**
+ *  Tell whether an event is already in the DB, and remember it.
+ *
+ *  The cache holds what was open at startup and what this stream wrote since.
+ *  A miss is normally a new event; it can also be one that was closed long ago
+ *  and comes back from a retention file, and inserting it again would leave
+ *  two rows for one event. So the DB is asked once, through the (id,
+ *  start_time) index, before the insert; a hit is cached for next time.
+ *
+ *  @param[in,out] cache   The cache of the table.
+ *  @param[in]     exists  The prepared existence query of the table.
+ *  @param[in]     key     The (id, start_time) of the event.
+ *
+ *  @return True if the event has a row in the DB.
+ */
+bool reporting_stream::_event_known(absl::flat_hash_set<id_start>& cache,
+                                    database::mysql_stmt& exists,
+                                    const id_start& key) {
+  if (cache.contains(key))
+    return true;
+  exists.bind_value_as_u32(0, key.first);
+  exists.bind_value_as_u64(1, key.second);
+  std::promise<mysql_result> promise;
+  std::future<mysql_result> future = promise.get_future();
+  _mysql.run_statement_and_get_result(exists, std::move(promise), -1, 1);
+  mysql_result res(future.get());
+  if (!_mysql.fetch_row(res))
+    return false;
+  cache.insert(key);
+  return true;
 }
 
 // When bulk statements are available.
@@ -702,6 +749,16 @@ void reporting_stream::_prepare() {
   _ba_full_event_insert = _mysql.prepare_query(query);
 
   query =
+      "SELECT 1 FROM mod_bam_reporting_ba_events"
+      "  WHERE ba_id=? AND start_time=? LIMIT 1";
+  _ba_event_exists = _mysql.prepare_query(query);
+
+  query =
+      "SELECT 1 FROM mod_bam_reporting_kpi_events"
+      "  WHERE kpi_id=? AND start_time=? LIMIT 1";
+  _kpi_event_exists = _mysql.prepare_query(query);
+
+  query =
       "UPDATE mod_bam_reporting_ba_events"
       "  SET end_time=?, first_level=?,"
       "      status=?, in_downtime=?"
@@ -883,7 +940,7 @@ void reporting_stream::_process_pb_ba_event(
 
   id_start ba_key = std::make_pair(be.ba_id(), be.start_time());
   // event exists?
-  if (_ba_event_cache.find(ba_key) != _ba_event_cache.end()) {
+  if (_event_known(_ba_event_cache, _ba_event_exists, ba_key)) {
     if (static_cast<int64_t>(be.end_time()) <= 0)
       _ba_event_update.bind_null_u64(0);
     else
@@ -1037,7 +1094,7 @@ void reporting_stream::_process_pb_kpi_event(
 
   id_start kpi_key = std::make_pair(ke.kpi_id(), ke.start_time());
   // event exists?
-  if (_kpi_event_cache.find(kpi_key) != _kpi_event_cache.end()) {
+  if (_event_known(_kpi_event_cache, _kpi_event_exists, kpi_key)) {
     if (_kpi_event_update->is_bulk())
       _kpi_event_update->add_bulk_row(bulk_kpi_event_update_binder{e});
     else

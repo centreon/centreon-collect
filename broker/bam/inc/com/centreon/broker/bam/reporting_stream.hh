@@ -53,6 +53,8 @@ class reporting_stream : public io::stream {
   mutable std::mutex _statusm;
   mysql _mysql;
   database::mysql_stmt _ba_full_event_insert;
+  database::mysql_stmt _ba_event_exists;
+  database::mysql_stmt _kpi_event_exists;
   database::mysql_stmt _ba_event_update;
   database::mysql_stmt _ba_duration_event_insert;
   /* The rebuild's own insert: it knows the ba_event_id of every duration it
@@ -83,9 +85,13 @@ class reporting_stream : public io::stream {
 
   using id_start =
       std::pair<uint32_t /*ba_id or kpi_id */, uint64_t /*start_time*/>;
-  /* The events already in the DB, by (id, start_time): what write() needs is
-   * whether to UPDATE or INSERT. The row ids used to be kept as values and
-   * were never read. */
+  /* The events known to be in the DB, by (id, start_time): what write() needs
+   * is whether to UPDATE or INSERT. Loaded at startup with the open events
+   * only -- the ones that will be updated -- and completed on the way: a key
+   * that is not here is looked up in the DB before being inserted, so an old
+   * event replayed from a retention file is updated rather than duplicated.
+   * The two tables used to be loaded whole, years of history for a yes/no
+   * question. The row ids used to be kept as values and were never read. */
   absl::flat_hash_set<id_start> _ba_event_cache;
   absl::flat_hash_set<id_start> _kpi_event_cache;
 
@@ -112,6 +118,9 @@ class reporting_stream : public io::stream {
   void _close_all_events();
   void _load_timeperiods();
   void _load_kpi_ba_events();
+  bool _event_known(absl::flat_hash_set<id_start>& cache,
+                    database::mysql_stmt& exists,
+                    const id_start& key);
   void _prepare();
   void _commit();
   void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
