@@ -4486,7 +4486,12 @@ bibliothèque partagée, et écrit dans `mod_bam_reporting_ba_events_durations`.
 pour les tables de reporting ; ils arrivent encadrés par une paire de
 `DimensionTruncateTableSignal`, sont retenus jusqu'au signal de fermeture, puis les tables
 sont vidées et remplies d'un coup. Un `availability_thread` se réveille à minuit et calcule
-les disponibilités de la veille à partir des durées.
+les disponibilités de la veille à partir des durées. Quand un rebuild couvre des années, il
+fait de même jour par jour, mais lit et écrit par lots d'un mois : une requête pour les
+durées du lot, une pour les événements encore ouverts, une insertion multi-lignes pour ses
+disponibilités. Il faisait auparavant deux requêtes et une insertion par BA et période pour
+chaque jour, sous le verrou que le reporting stream attend aussi : 752 ms ramenés à 207 ms
+mesurés sur 83 jours.
 
 Au démarrage, le reporting stream charge les périodes et les événements **ouverts** de la
 base — ceux qu'un UPDATE peut encore atteindre — les ferme, puisque l'exécution précédente
