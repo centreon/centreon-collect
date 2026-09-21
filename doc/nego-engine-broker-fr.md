@@ -4488,9 +4488,13 @@ pour les tables de reporting ; ils arrivent encadrés par une paire de
 sont vidées et remplies d'un coup. Un `availability_thread` se réveille à minuit et calcule
 les disponibilités de la veille à partir des durées.
 
-Au démarrage, le reporting stream charge les périodes et l'ensemble des événements déjà en
-base, ferme les événements laissés ouverts par une exécution précédente, et lance son
-thread.
+Au démarrage, le reporting stream charge les périodes et les événements **ouverts** de la
+base — ceux qu'un UPDATE peut encore atteindre — les ferme, puisque l'exécution précédente
+les a laissés ainsi, et lance son thread. Un événement qu'il ne connaît pas quand il
+arrive est cherché en base, par l'index `(id, start_time)`, avant d'être inséré : un vieil
+événement rejoué depuis un fichier de rétention est mis à jour, pas dupliqué. Les deux
+tables d'événements étaient lues en entier à chaque démarrage, des années d'historique pour
+une question à oui ou non.
 
 Depuis 2026-09 le stream ne traite que la forme protobuf de chaque événement. Plus rien dans
 BAM n'émet les structures legacy BBDO2 ; un pair plus ancien ou un vieux fichier de

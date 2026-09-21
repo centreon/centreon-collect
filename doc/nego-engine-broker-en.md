@@ -4129,8 +4129,12 @@ closing signal, then the tables are truncated and refilled in one go. An
 `availability_thread` wakes up at midnight and computes the availabilities of the day
 before, from the durations.
 
-At startup the reporting stream loads the timeperiods and the set of events already in
-the database, closes the events left open by a previous run, and starts its thread.
+At startup the reporting stream loads the timeperiods and the **open** events of the
+database — the ones an UPDATE can still reach — closes them, since the previous run left
+them so, and starts its thread. An event it does not know when one arrives is looked up
+in the database, through the `(id, start_time)` index, before being inserted: an old
+event replayed from a retention file is updated, not duplicated. The two event tables
+used to be read whole at every start, years of history for a yes-or-no question.
 
 Since 2026-09 the stream handles the protobuf form of every event only. Nothing in BAM
 emits the legacy BBDO2 structures any more; an older peer or an old retention file can
