@@ -221,6 +221,13 @@ void monitoring_stream::update() {
      * fully-restored, coherent state once, instead of first publishing a
      * partial DB-only state and then overwriting it from the cache. */
     _read_cache();
+    /* When Broker owns the downtimes, nobody replays them to us: ask the
+     * downtime_manager which BAs carry the inherited downtime on their virtual
+     * service, so that a BA whose KPIs left downtime while cbd was down lifts
+     * it (see ba::adopt_inherited_downtime). Engine-owned downtimes reach the
+     * BAs by the usual events when the poller connects. */
+    if (_first_update)
+      _adopt_inherited_downtimes(s);
     initialize();
     /* Subsequent update() calls are reloads: the virtual service statuses must
      * not be republished (see _first_update). */
@@ -858,6 +865,37 @@ void monitoring_stream::_write_external_command(const std::string& cmd) {
 }
 
 /**
+ *  Hand the BAs the inherited downtimes the Broker downtime_manager holds.
+ *
+ *  @param[in] s  The configuration just applied, for the list of BAs.
+ */
+void monitoring_stream::_adopt_inherited_downtimes(
+    const configuration::state& s) {
+  namespace dt = com::centreon::common::downtimes;
+  if (!dt::downtime_manager::is_loaded())
+    return;
+  multiplexing::publisher pblshr;
+  event_cache_visitor ev_cache;
+  for (const auto& [ba_id, cfg] : s.get_bas()) {
+    std::shared_ptr<ba> b = _applier.find_ba(ba_id);
+    if (!b || !b->in_downtime() || b->has_inherited_downtime())
+      continue;
+    for (const auto& [start, d] :
+         dt::downtime_manager::instance().get_scheduled_downtimes()) {
+      if (d->get_type() == dt::downtime::service_downtime &&
+          d->host_id() == b->get_host_id() &&
+          d->service_id() == b->get_service_id() && d->is_in_effect() &&
+          d->get_author() == inherited_downtime_author &&
+          d->get_comment() == inherited_downtime_comment) {
+        b->adopt_inherited_downtime(&ev_cache);
+        break;
+      }
+    }
+  }
+  ev_cache.commit_to(pblshr);
+}
+
+/**
  * @brief Apply (or remove) the inherited downtime of a BA on its virtual
  * service.
  *
@@ -874,9 +912,8 @@ void monitoring_stream::_write_external_command(const std::string& cmd) {
 void monitoring_stream::_handle_inherited_downtime(uint32_t ba_id,
                                                    bool in_downtime) {
   namespace dt = com::centreon::common::downtimes;
-  static const std::string author{"Centreon Broker BAM Module"};
-  static const std::string comment{
-      "Automatic downtime triggered by BA downtime inheritance"};
+  const std::string& author = inherited_downtime_author;
+  const std::string& comment = inherited_downtime_comment;
 
   if (!dt::downtime_manager::is_loaded()) {
     // Mode 1: Engine owns downtimes -> external command path.

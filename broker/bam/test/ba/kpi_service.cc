@@ -2073,3 +2073,89 @@ TEST_F(BamBA, KpiServiceDtInheritedRestoredAfterRestart) {
   }
   ASSERT_TRUE(removal_seen);
 }
+
+/**
+ * After a restart, the DB says the BA is in downtime, but its KPI is not any
+ * more: it left downtime while cbd was down. restore_inherited_downtime()
+ * cannot help -- not every KPI is in downtime -- and the downtime BAM had put
+ * on the virtual service would stay for ever. The downtime itself says it is
+ * BAM's, by its author and comment: replayed on the virtual service, it is
+ * adopted and, the KPI being out of downtime, lifted at once.
+ */
+TEST_F(BamBA, KpiServiceDtInheritedAdoptedAndLifted) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_worst>(1, 1, 1, true, _logger)};
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  time_t now = time(nullptr);
+  bam::pb_ba_event ba_ev;
+  ba_ev.mut_obj().set_ba_id(1);
+  ba_ev.mut_obj().set_start_time(now - 100);
+  ba_ev.mut_obj().set_status(com::centreon::broker::State::CRITICAL);
+  ba_ev.mut_obj().set_in_downtime(true);
+  test_ba->set_initial_event(ba_ev);
+
+  /* The KPI: critical, and NOT in downtime any more. */
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 2, 5, "host_2/serv_5", _logger);
+  kpi->set_state_hard(bam::state_critical);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+  ASSERT_TRUE(test_ba->in_downtime());
+  ASSERT_FALSE(test_ba->has_inherited_downtime());
+
+  /* Engine replays the downtime BAM set on the virtual service (1, 1). */
+  auto dt = std::make_shared<neb::pb_downtime>();
+  auto& d = dt->mut_obj();
+  d.set_id(7);
+  d.set_host_id(1);
+  d.set_service_id(1);
+  d.set_started(true);
+  d.set_actual_start_time(now - 90);
+  d.set_actual_end_time(0);
+  d.set_author(bam::inherited_downtime_author);
+  d.set_comment_data(bam::inherited_downtime_comment);
+  test_ba->service_update(dt, _visitor.get());
+
+  EXPECT_FALSE(test_ba->in_downtime());
+  bool removal_seen = false;
+  for (const auto& e : _visitor->queue())
+    if (e.typ == test_visitor::test_event::idt && e.ba_id == 1 &&
+        !e.in_downtime)
+      removal_seen = true;
+  EXPECT_TRUE(removal_seen);
+}
+
+/**
+ * Same restart, but the downtime on the virtual service was set by a user: it
+ * is not BAM's to lift. The BA stays in downtime and nothing is published.
+ */
+TEST_F(BamBA, KpiServiceManualDowntimeIsNotAdopted) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_worst>(1, 1, 1, true, _logger)};
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 2, 5, "host_2/serv_5", _logger);
+  kpi->set_state_hard(bam::state_critical);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+
+  time_t now = time(nullptr);
+  auto dt = std::make_shared<neb::pb_downtime>();
+  auto& d = dt->mut_obj();
+  d.set_id(8);
+  d.set_host_id(1);
+  d.set_service_id(1);
+  d.set_started(true);
+  d.set_actual_start_time(now - 90);
+  d.set_actual_end_time(0);
+  d.set_author("admin");
+  d.set_comment_data("Maintenance");
+  _visitor->clear();
+  test_ba->service_update(dt, _visitor.get());
+
+  EXPECT_TRUE(test_ba->in_downtime());
+  EXPECT_FALSE(test_ba->has_inherited_downtime());
+  for (const auto& e : _visitor->queue())
+    EXPECT_NE(e.typ, test_visitor::test_event::idt);
+}

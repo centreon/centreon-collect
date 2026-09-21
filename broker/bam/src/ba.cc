@@ -19,6 +19,7 @@
 #include "com/centreon/broker/bam/ba.hh"
 
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -329,6 +330,9 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
 
       notify_parents_of_change(visitor);
     }
+    if (in_downtime && dt->author == inherited_downtime_author &&
+        dt->comment == inherited_downtime_comment)
+      adopt_inherited_downtime(visitor);
   } else
     SPDLOG_LOGGER_DEBUG(
         _logger,
@@ -373,6 +377,9 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
 
     notify_parents_of_change(visitor);
   }
+  if (in_downtime && downtime.author() == inherited_downtime_author &&
+      downtime.comment_data() == inherited_downtime_comment)
+    adopt_inherited_downtime(visitor);
 }
 
 /**
@@ -430,6 +437,41 @@ void ba::restore_inherited_downtime() {
   _inherited_downtime = std::make_unique<pb_inherited_downtime>();
   _inherited_downtime->mut_obj().set_ba_id(_id);
   _inherited_downtime->mut_obj().set_in_downtime(true);
+}
+
+/**
+ *  Take an inherited downtime found on the virtual service as this BA's own.
+ *
+ *  The inherited downtime is not persisted, see restore_inherited_downtime().
+ *  That restoration only covers the BA whose KPIs are all still in downtime;
+ *  when they left downtime while cbd was down, nothing in memory says the
+ *  downtime on the virtual service is BAM's, and nothing ever removes it. The
+ *  downtime itself says so, by its author and comment: whoever sees it active
+ *  on the service -- Engine replaying its downtimes at connection, or the
+ *  Broker downtime_manager asked at startup -- calls this. The object is
+ *  recreated, then the usual computation runs: if the KPIs no longer justify
+ *  the downtime, its removal is published right away.
+ *
+ *  @param[out] visitor  Where the removal goes, if there is one.
+ */
+void ba::adopt_inherited_downtime(io::stream* visitor) {
+  if (_dt_behaviour != configuration::ba::dt_inherit)
+    return;
+  if (!_inherited_downtime) {
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "BAM: BA {} finds its inherited downtime on its "
+                        "virtual service and takes it back",
+                        _id);
+    _inherited_downtime = std::make_unique<pb_inherited_downtime>();
+    _inherited_downtime->mut_obj().set_ba_id(_id);
+    _inherited_downtime->mut_obj().set_in_downtime(true);
+  }
+  const bool before = _in_downtime;
+  _compute_inherited_downtime(visitor);
+  if (before != _in_downtime) {
+    visit(visitor);
+    notify_parents_of_change(visitor);
+  }
 }
 
 /**

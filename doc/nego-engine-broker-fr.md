@@ -4624,6 +4624,16 @@ KPI impactants sont en downtime, retrouve son objet, silencieusement, puisque la
 existe déjà sur son service virtuel. `BECBAMIDTU2` et `BEBAMIDT2` sont les tests qui ont
 attrapé la régression.
 
+Cette restauration a un angle mort : quand les KPI sont sortis de downtime pendant que cbd
+était arrêté, tous les KPI ne sont pas en downtime au démarrage, l'objet n'est pas recréé, et
+la downtime que BAM avait posée sur le service virtuel resterait pour toujours. C'est la
+downtime elle-même qui le comble : elle porte l'auteur et le commentaire de BAM, constantes
+partagées d'`internal.hh`. Un BA qui voit une telle downtime active sur son service virtuel —
+rejouée par Engine à la connexion du poller, ou trouvée dans le `downtime_manager` de Broker à
+la première application quand Broker possède les downtimes — la reprend comme sa downtime
+héritée et recalcule aussitôt, ce qui la lève si les KPI ne la justifient plus
+(`ba::adopt_inherited_downtime` ; `BEBAMIDT3`, `BECBAMIDTU3`).
+
 ## Les définitions circulaires
 
 Un BA peut être KPI d'un autre BA, et une règle booléenne peut lire n'importe quel service,
