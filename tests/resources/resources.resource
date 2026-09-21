@@ -193,6 +193,7 @@ Ctn Stop Processes
     Terminate All Processes    kill=True
     Ctn Kill Broker
     Ctn Kill Engine
+    Remove Files    ${rrdLog}    ${centralLog}    ${engineLog0}    ${engineLog1}    ${engineLog2}    ${engineLog3}    ${engineLog4}
 
 Ctn Start Engine
     [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False

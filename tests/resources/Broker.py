@@ -235,12 +235,12 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "trace",
+                "core": "info",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
                 "perfdata": "error",
-                "bbdo": "info",
+                "bbdo": "error",
                 "tcp": "info",
                 "tls": "trace",
                 "lua": "error",
@@ -2320,8 +2320,6 @@ def ctn_restore_tcp_wmem():
         )
         logger.console(f"tcp_wmem restored to: {_saved_tcp_wmem}")
         _saved_tcp_wmem = None
-
-
 
 
 def ctn_start_slow_map():
