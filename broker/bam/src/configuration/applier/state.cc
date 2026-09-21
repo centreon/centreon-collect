@@ -295,7 +295,6 @@ void applier::state::load_from_cache(
   }
   ifs.close();
   _book_service.apply(cache);
-  //_ba_applier.apply(cache);
   for (auto& cmd : cache.pending_external_commands()) {
     pending_ext_cmds.push_back(cmd);
   }

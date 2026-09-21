@@ -235,7 +235,11 @@ class stream : public io::stream {
 
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resources_cache;
+  absl::flat_hash_map<
+      std::pair<uint64_t /*service_id if service, host_id whereas*/,
+                uint64_t /*host_id if service, 0 whereas*/>,
+      uint64_t /*resource id*/>
+      _resources_cache;
 
   mutable absl::Mutex _timer_m;
   /* This is a barrier for timers. It must be locked in shared mode in the
@@ -473,7 +477,7 @@ class stream : public io::stream {
   void _finish_actions();
   void _update_metrics() ABSL_LOCKS_EXCLUDED(_metrics_m);
   void _clear_instances_cache(const std::list<uint64_t>& ids);
-  bool _host_instance_known(uint64_t host_id) const;
+  std::shared_ptr<neb::pb_host> _host_instance_known(uint64_t host_id) const;
 
   void _start_loop_timer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_timer_m);
 
@@ -517,7 +521,10 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& tags_cache() {
     return _tags_cache;
   }
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>&
+  absl::flat_hash_map<
+      std::pair<uint64_t /*service_id if service, host_id whereas*/,
+                uint64_t /*host_id if service, 0 whereas*/>,
+      uint64_t /*resource id*/>&
   resources_cache() {
     return _resources_cache;
   }

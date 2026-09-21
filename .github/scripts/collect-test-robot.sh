@@ -67,8 +67,8 @@ fi
 ulimit -c unlimited
 
 #only privileged container can write core files
-if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then
-  echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
+if [ $test_file != 'connector_ssh/connector_ssh.robot' && $test_file != 'connector_ssh/centralized-connector_ssh.robot' ] ; then
+  echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern 
 fi
 
 #remove git dubious ownership

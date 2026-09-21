@@ -138,6 +138,9 @@ void check_exec::start_check(const duration& timeout) {
                                   me->get_command_line(), e.code().message())});
                });
   } catch (const std::exception& e) {
+    if (_credentials_decrypt) {
+      _process_args->clear_unencrypted_args();
+    }
     std::string output =
         fmt::format("Fail to execute {} : {}", get_command_line(), e.what());
     SPDLOG_LOGGER_ERROR(_logger, " serv {} {}", get_service(), output);

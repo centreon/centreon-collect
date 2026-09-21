@@ -99,8 +99,7 @@ set_target_properties("${RRD}" PROPERTIES PREFIX ""
 target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hh)
 target_include_directories("${RRD}" PRIVATE
   $<TARGET_PROPERTY:pb_rrd_retention_lib,INTERFACE_INCLUDE_DIRECTORIES>)
-add_dependencies("${RRD}" pb_rebuild_message_lib pb_remove_graph_message_lib
-  pb_rrd_retention_lib process_stat)
+add_dependencies("${RRD}" pb_all_libs process_stat)
 
 # Compile with librrd flags.
 if(LIBRRD_CFLAGS)

@@ -25,6 +25,8 @@
 
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
+#include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -40,6 +42,7 @@
 #include "com/centreon/broker/neb/service_check.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
+#include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -54,13 +57,19 @@ class DatabaseStorageTest : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
-                            0);
+      config::applier::state::load<
+          com::centreon::broker::config::applier::broker_state>("unittest");
+      io::protocols::load();
+      io::events::load();
+      mysql_manager::load();
     } catch (std::exception const& e) {
       (void)e;
     }
   }
-  void TearDown() override { config::applier::deinit(); }
+  void TearDown() override {
+    mysql_manager::unload();
+    config::applier::deinit();
+  }
 };
 
 // When there is no database

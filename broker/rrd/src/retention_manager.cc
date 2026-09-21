@@ -863,35 +863,40 @@ uint64_t retention_manager::last_status_time(uint64_t index_id) {
 }
 
 /**
- * @brief Check if a partial merge should be triggered for a metric (Step 3.3).
+ * @brief Check if a partial merge should be triggered for a metric or a status
+ * index (Step 3.3).
  *
- * Returns true when
+ * Shared implementation behind check_metric_partial_merge() and
+ * check_status_partial_merge(). Returns true when the buffer has accumulated at
+ * least @c partial_merge_interval seconds of data since the previous (partial)
+ * merge:
  *   last_retention_time - last_partial_merge_ts >= partial_merge_interval
- * and @c last_partial_merge_ts is already initialised (non-zero).
+ *
+ * Returns false when:
+ *   - the id is unknown to @a state,
+ *   - @c last_partial_merge_ts or @c last_retention_time is still 0, i.e.
+ *     nothing has been merged or buffered yet — this avoids a spurious trigger
+ *     on the very first write,
+ *   - @c last_retention_time is older than @c last_partial_merge_ts, which
+ *     guards the unsigned subtraction against wrapping.
+ *
+ * @tparam StateT Map type holding the retention states (@c _metrics or
+ *                @c _statuses).
+ *
+ * @param metric_id_or_index_id Metric id or status index id to look up.
+ * @param state The matching state map. The caller must already hold its mutex
+ *              (@c _metrics_m / @c _statuses_m), at least in read mode; the
+ *              per-state mutex is taken here.
+ *
+ * @return true if a partial merge should be triggered now.
  */
-bool retention_manager::check_metric_partial_merge(uint64_t metric_id) {
-  absl::ReaderMutexLock lk(&_metrics_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
+template <typename StateT>
+bool retention_manager::_check_partial_merge(uint64_t metric_id_or_index_id,
+                                             const StateT& state) const {
+  auto it = state.find(metric_id_or_index_id);
+  if (it == state.end())
     return false;
-  metric_retention_state& s = *it->second;
-  absl::ReaderMutexLock slk(&s.mutex);
-  if (s.last_partial_merge_ts == 0 || s.last_retention_time == 0)
-    return false;
-  return s.last_retention_time >= s.last_partial_merge_ts &&
-         s.last_retention_time - s.last_partial_merge_ts >=
-             _config.partial_merge_interval;
-}
-
-/**
- * @brief Check if a partial merge should be triggered for a status index.
- */
-bool retention_manager::check_status_partial_merge(uint64_t index_id) {
-  absl::ReaderMutexLock lk(&_statuses_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return false;
-  status_retention_state& s = *it->second;
+  const auto& s = *it->second;
   absl::ReaderMutexLock slk(&s.mutex);
   if (s.last_partial_merge_ts == 0 || s.last_retention_time == 0)
     return false;
@@ -914,3 +919,8 @@ template void retention_manager::_clear_merge(status_retention_state&);
 
 template void retention_manager::_remove_state(metric_retention_state&);
 template void retention_manager::_remove_state(status_retention_state&);
+
+template bool retention_manager::_check_partial_merge(uint64_t,
+                                                      const metric_cont&) const;
+template bool retention_manager::_check_partial_merge(uint64_t,
+                                                      const status_cont&) const;
