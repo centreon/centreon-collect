@@ -4127,7 +4127,11 @@ describe the configuration (BAs, BVs, KPIs, timeperiods, relations) for the repo
 tables; they arrive framed by a `DimensionTruncateTableSignal` pair, are held until the
 closing signal, then the tables are truncated and refilled in one go. An
 `availability_thread` wakes up at midnight and computes the availabilities of the day
-before, from the durations.
+before, from the durations. When a rebuild spans years, it does the same day by day, but
+reads and writes by chunks of a month: one query for the durations of the chunk, one for
+the events still open, one multi-row insert for its availabilities. It used to run two
+queries and one insert per BA and period for every single day, under the lock the
+reporting stream also waits for: 752 ms to 207 ms measured on 83 days.
 
 At startup the reporting stream loads the timeperiods and the **open** events of the
 database — the ones an UPDATE can still reach — closes them, since the previous run left
