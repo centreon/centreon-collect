@@ -1,38 +1,39 @@
 *** Settings ***
-Documentation       How long the BI stream of cbd takes to rebuild the event durations of a
-...                 BA history. The rebuild deletes every duration of the BAs concerned,
-...                 then recomputes one per (closed event, reporting period) and writes it
-...                 back, under the availability thread's lock. Its cost follows the size of
-...                 the history, which is what the benchmark grows.
+Documentation     How long the BI stream of cbd takes to rebuild the event durations of a
+...               BA history. The rebuild deletes every duration of the BAs concerned,
+...               then recomputes one per (closed event, reporting period) and writes it
+...               back, under the availability thread's lock. Its cost follows the size of
+...               the history, which is what the benchmark grows.
 
-Resource            ../resources/import.resource
-Library             robot_bench.py
-Library             bam_config_gen.py
+Resource          ../resources/import.resource
+Library           robot_bench.py
+Library           bam_config_gen.py
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Bam Rebuild Bench Teardown
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn Stop Processes
+Test Teardown     Ctn Bam Rebuild Bench Teardown
 
 
 *** Variables ***
-${label}                ${EMPTY}    # defaults to the git branch, like ./bench.py does
+${label}             ${EMPTY}    # defaults to the git branch, like ./bench.py does
 # A small platform: the configuration load is bam-startup's business, it only has to
 # exist here. What is grown is the history below.
-${nb_hosts}             ${10}
-${svc_by_host}          ${20}
-${nb_ba}                ${10}
-${kpi_per_ba}           ${2}
+${nb_hosts}          ${10}
+${svc_by_host}       ${20}
+${nb_ba}             ${10}
+${kpi_per_ba}        ${2}
 # The history: closed events per BA, and their length in seconds. 2000 events per BA
 # over 10 BAs is 20000 durations to recompute -- about a week of a BA flapping every
 # five minutes, ten times over.
-${events_per_ba}        ${2000}
-${event_duration}       ${300}
-${ready_timeout}        1800
+${events_per_ba}     ${2000}
+${event_duration}    ${300}
+${ready_timeout}     1800
 # Level of the bam logger. info is enough for every figure of this benchmark on a
-# current cbd; trace is only for a cbd older than the "open events loaded in" line, whose
-# cache load time is then read between two trace lines instead.
-${bam_log_level}        info
+# current cbd. debug is for a cbd older than the "availabilities of N days written in"
+# line, trace for one older than the "open events loaded in" line: their figures are
+# then read between two lines of that level instead.
+${bam_log_level}     info
 
 
 *** Test Cases ***
@@ -62,6 +63,20 @@ BENCH_BAM_REBUILD
     ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}
     ...    ${ready_timeout}
     Should Be True    ${found}    cbd never finished rebuilding the event durations
+
+    # The availabilities follow, in their own thread. Wait for them too. A cbd
+    # older than the "availabilities of N days written in" line does not write
+    # it, and waiting for it would eat the whole timeout: at debug or trace, the
+    # line the thread ends with is waited for instead -- both old and new cbd
+    # write it at that level.
+    IF    "${bam_log_level}" == "info"
+        ${content}    Create List    availabilities of
+    ELSE
+        ${content}    Create List    BAM-BI: database closed
+    END
+    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}
+    ...    ${ready_timeout}
+    Should Be True    ${found}    cbd never finished rebuilding the availabilities
 
     ${timings}    Ctn Bench Bam Rebuild Timings    ${centralLog}
     Should Not Be Empty    ${timings}
