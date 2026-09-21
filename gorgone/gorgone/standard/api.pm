@@ -94,35 +94,30 @@ sub root {
 sub stop_ev {
     $module->{loop}->break();
 }
+# set_secure_command_execution(
+#   module => $options{config},
+#   action => "COMMAND",
+#   data => {data => content => [{command => 'ls -lha'}, {command => 'cat /tmp/t' }]});
+# take an array of command and add the "no_shell_interpretation" option to true if the global module configuration allows it.
+# this does in place manipulation of the data hashmap.
 sub set_secure_command_execution {
     my (%options) = @_;
-    return if !$options{module};
+    return if !$options{config};
     return if $options{action} ne "COMMAND";
-    return if !$options{data} or !$options{data}->{content} or ref($options{data}->{content}) eq "ARRAY";
+    return if !$options{data} or !$options{data}->{content} or ref($options{data}->{content}) ne "ARRAY";
+    return if $options{config}->{no_shell_interpretation} =~ /0|false/i;
 
-    if ($options{config}->{no_shell_interpretation} =~ /0|false/i){
-        return;
-    }
     for my $command (@{$options{data}->{content}}) {
         $command->{no_shell_interpretation} = 1;
     }
-
+    return 1;
 }
 sub call_action {
     my (%options) = @_;
 
     $action_token = gorgone::standard::library::generate_token() if (!defined($options{token}));
-    use Data::Dumper;
-    print("\n\nEVAN - start of call action : " . Dumper($options{data}));
-    set_secure_command_execution(module => $options{module}, action => $options{action}, data => $options{data});
-    if ($options{action} eq "COMMAND" and $options{data} and $options{data}->{content} and ref($options{data}->{content}) eq "ARRAY") {
-        # as this is called only by the Rest api to forward order, add no_shell_interpretation on every action modules command that have to run.
-        print("\n\n condition is TRUE\n\n");
-        for my $command (@{$options{data}->{content}}) {
-            $command->{no_shell_interpretation} = 1;
-        }
-    }
-    print("\n\nEVAN - call action internal : " . Dumper($options{module}));
+    set_secure_command_execution(config => $options{module}->{config}, action => $options{action}, data => $options{data});
+
     $options{module}->send_internal_action({
         socket => $socket,
         action => $options{action},
