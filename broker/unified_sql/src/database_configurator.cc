@@ -218,8 +218,6 @@ void database_configurator::_wake_up_resources_mariadb(
 
 void database_configurator::_wake_up_resources_mysql(
     const engine::configuration::State& state) {
-  // FIXME DBO
-  // auto& cache = _stream->hosts_instances_cache();
   if (state.hosts().empty())
     return;
   auto& mysql = _stream->get_mysql();
@@ -249,7 +247,6 @@ void database_configurator::_wake_up_resources_mysql(
     _wake_up_host_resources_stmt->bind_value_as_u32(0, host.host_id());
     _wake_up_host_resources_stmt->bind_value_as_u32(1, host.poller_id());
     mysql.run_statement(*_wake_up_host_resources_stmt);
-    // cache.insert_or_assign(host.host_id(), host.poller_id());
   }
 
   /* Enable services */
@@ -2283,8 +2280,7 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_null_u64(2);
     bind->set_value_as_u32(3, get_service_type(msg));
     bind->set_value_as_u32(4, msg.max_check_attempts());
-    auto h = global_cache.host(msg.host_id());
-    bind->set_value_as_u64(5, h->obj().instance_id());
+    bind->set_value_as_u64(5, msg.poller_id());
     if (msg.has_severity_id()) {
       uint64_t db_sid =
           global_cache.get_db_id_for_severity(msg.severity_id(), 0);
@@ -2380,7 +2376,6 @@ void database_configurator::_add_service_resources_mysql(
     auto key = std::make_pair(msg.service_id(), msg.host_id());
     keys.push_back(key);
 
-    auto h = global_cache.host(msg.host_id());
     uint64_t svc_sid = 0;
     if (msg.has_severity_id())
       svc_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
@@ -2389,7 +2384,7 @@ void database_configurator::_add_service_resources_mysql(
         "1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), get_service_type(msg),
-        msg.max_check_attempts(), h->obj().instance_id(),
+        msg.max_check_attempts(), msg.poller_id(),
         svc_sid ? fmt::to_string(svc_sid) : "NULL",
         misc::string::escape(msg.display_name().empty()
                                  ? msg.service_description()
@@ -2512,8 +2507,7 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     bind->set_null_u64(2);
     bind->set_value_as_u32(3, 4);
     bind->set_value_as_u32(4, msg.max_check_attempts());
-    auto h = global_cache.host(msg.host_id());
-    bind->set_value_as_u64(5, h->obj().instance_id());
+    bind->set_value_as_u64(5, msg.poller_id());
     if (msg.has_severity_id()) {
       uint64_t db_sid =
           global_cache.get_db_id_for_severity(msg.severity_id(), 0);
@@ -2605,7 +2599,6 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     auto key = std::make_pair(msg.service_id(), msg.host_id());
     keys.push_back(key);
 
-    auto h = global_cache.host(msg.host_id());
     uint64_t ad_sid = 0;
     if (msg.has_severity_id())
       ad_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
@@ -2613,7 +2606,7 @@ void database_configurator::_add_anomalydetection_resources_mysql(
         "({},{},NULL,{},4,1,1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), 4, msg.max_check_attempts(),
-        h->obj().instance_id(), ad_sid ? fmt::to_string(ad_sid) : "NULL",
+        msg.poller_id(), ad_sid ? fmt::to_string(ad_sid) : "NULL",
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),

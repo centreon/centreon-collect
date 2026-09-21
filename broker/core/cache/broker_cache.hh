@@ -405,6 +405,9 @@ class broker_cache {
       Service* service,
       const com::centreon::engine::configuration::Anomalydetection& cfg)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+
+  void _clean_empty_groups() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
