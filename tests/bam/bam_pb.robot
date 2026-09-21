@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Centreon Broker and BAM with bbdo version 3.0.1
+Documentation     Centreon Broker and BAM with bbdo version 3.0.1
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn BAM Setup
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn BAM Setup
+Test Teardown     Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -18,8 +18,8 @@ BAWORST_ACK
     ...    Then the Business Activity is acknowledged
     ...    When the acknowledgement is removed from the service
     ...    Then the Business Activity is no longer acknowledged
-
     [Tags]    broker    downtime    engine    bam    MON-160249
+
     Ctn BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
@@ -56,13 +56,23 @@ BAWORST_ACK
     Ctn Acknowledge Service Problem    host_16    service_303
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    >    ${0.5}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303
+    ...    >
+    ...    ${0.5}
+    ...    retry_timeout=30s
+    ...    retry_pause=1s
     Disconnect From Database
 
     # The acknowledgement is removed.
     Ctn Remove Service Acknowledgement    host_16    service_303
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    <    ${0.01}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303
+    ...    <
+    ...    ${0.01}
+    ...    retry_timeout=30s
+    ...    retry_pause=1s
     Disconnect From Database
 
 BAWORST
@@ -975,7 +985,9 @@ BEPB_BA_DURATION_EVENT
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations
         Log To Console    ${output}
     END
-    Should Be True    "${output}" != "()"    No row recorded in mod_bam_reporting_ba_events_durations with ba_event_id=1
+    Should Be True
+    ...    "${output}" != "()"
+    ...    No row recorded in mod_bam_reporting_ba_events_durations with ba_event_id=1
     Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
     Should Be True    ${output[0][3]} == ${output[0][1]} - ${output[0][0]}
     Should Be True    ${output[0][4]} == 1
@@ -1262,9 +1274,9 @@ BA_IMPACT_IMPACT
         ...    ${value}
         ...    output ${state} for service 302
 
-	# Sometimes the parent BA emits two status with less than one second between them
-	# So we wait for 1s here to avoid the duplicate status in RRD.
-	Sleep    1s
+        # Sometimes the parent BA emits two status with less than one second between them
+        # So we wait for 1s here to avoid the duplicate status in RRD.
+        Sleep    1s
         Ctn Process Service Result Hard
         ...    host_16
         ...    service_303
@@ -1343,8 +1355,8 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ...    Then the BA service "test" should have a status of 0 within 30 seconds
     ...    When I reload the broker
     ...    Then the database should still contain a BA service with name "test" and parent_name "_Module_BAM_1"
-
     [Tags]    broker    engine    bam    MON-153476
+
     Ctn Bam Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
@@ -1375,12 +1387,13 @@ BA_SERVICE_PNAME_AFTER_RELOAD
         ${output}    Query
         ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
         Log To Console    ${output}
-        IF    ${output} == (('test', '_Module_BAM_1'),)
-            BREAK
-        END
+        IF    ${output} == (('test', '_Module_BAM_1'),)    BREAK
         Sleep    5s
     END
-    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    Name or parent name of ba ${ba[1]} is not as expected
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    (('test', '_Module_BAM_1'),)
+    ...    Name or parent name of ba ${ba[1]} is not as expected
 
     Ctn Reload Broker
 
@@ -1388,12 +1401,14 @@ BA_SERVICE_PNAME_AFTER_RELOAD
 
     ${output}    Query
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
-    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    (('test', '_Module_BAM_1'),)
+    ...    name or parent name of ba ${ba[1]} is not as expected
 
     [Teardown]    Run Keywords    Ctn Stop Engine
     ...    AND    Ctn Kindly Stop Broker
     ...    AND    Disconnect From Database
-
 
 BA_DEACTIVATED_SERVICE
     [Documentation]    Scenario: A KPI whose service is deactivated is dropped, the activation column saying so
@@ -1484,7 +1499,12 @@ BAM_CIRCULAR
     Should Be True    ${result}    The circular definition of BA test was not reported
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Check Query Result    SELECT COUNT(ba_id) FROM mod_bam WHERE name='test' AND comment='Circular definition detected. BA test includes itself as a KPI.'    ==    ${1}    retry_timeout=30s    retry_pause=2s
+    Check Query Result
+    ...    SELECT COUNT(ba_id) FROM mod_bam WHERE name='test' AND comment='Circular definition detected. BA test includes itself as a KPI.'
+    ...    ==
+    ...    ${1}
+    ...    retry_timeout=30s
+    ...    retry_pause=2s
     Disconnect From Database
 
     # BAM went on with the rest of the configuration.
@@ -1499,6 +1519,64 @@ BAM_CIRCULAR
     Should Not Be True    ${result}    The circular definition was reported again: the BAM stream is reconnecting
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+BA_RELOAD_KEEPS_KPI
+    [Documentation]    Scenario: A reload keeps the KPIs whose configuration did not change
+    ...    Given a BA of type "worst" with one service KPI, service_302
+    ...    And service_302 is CRITICAL, so the BA is CRITICAL
+    ...    When Broker is reloaded, the KPI state in the database having moved but not its configuration
+    ...    Then the KPI is neither removed nor created again
+    ...    And the BA is still CRITICAL
+    ...    And no KPI event was added to the reporting history by the reload
+    [Tags]    broker    engine    bam
+    Ctn Bam Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
+    ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
+
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba[0]}
+    Should Be True    ${result}    The BA test is not CRITICAL as expected
+
+    # The state the reload will read back from mod_bam_kpi is now CRITICAL, with
+    # a last_state_change the first apply did not know. Only the state moved.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${before}    Query    SELECT COUNT(*) FROM mod_bam_reporting_kpi_events
+    Disconnect From Database
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+    ${content}    Create List    bam configuration loaded.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    BAM did not reload its configuration
+
+    ${content}    Create List    BAM: removing KPI
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The reload removed a KPI whose configuration did not change
+    ${content}    Create List    BAM: creating new KPI
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The reload created a KPI again although its configuration did not change
+
+    ${result}    Ctn Check Ba Status With Timeout    test    2    30
+    Ctn Dump Ba On Error    ${result}    ${ba[0]}
+    Should Be True    ${result}    The BA test is no longer CRITICAL after the reload
+
+    Sleep    2s
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${after}    Query    SELECT COUNT(*) FROM mod_bam_reporting_kpi_events
+    Disconnect From Database
+    Should Be Equal
+    ...    ${before}
+    ...    ${after}
+    ...    The reload added KPI events to the reporting history: ${before} -> ${after}
+
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 *** Keywords ***

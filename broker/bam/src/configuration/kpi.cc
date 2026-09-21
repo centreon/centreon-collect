@@ -1,20 +1,20 @@
 /**
-* Copyright 2014 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 
@@ -66,44 +66,31 @@ kpi::kpi(uint32_t id,
 }
 
 /**
- * @brief more efficient than MessageDifferencier
+ *  Equality comparison operator: same *configuration*.
  *
- * @param left
- * @param right
- * @return true if left and right are equals
- * @return false
- */
-static bool is_equal(const KpiEvent& left, const KpiEvent& right) {
-  return left.ba_id() == right.ba_id() &&
-         left.start_time() == right.start_time() &&
-         left.end_time() == right.end_time() &&
-         left.kpi_id() == right.kpi_id() &&
-         left.impact_level() == right.impact_level() &&
-         left.in_downtime() == right.in_downtime() &&
-         left.status() == right.status() &&
-         left.perfdata() == right.perfdata() && left.output() == right.output();
-}
-
-/**
- *  Equality comparison operator.
+ *  The status, the downtime and acknowledgement flags and the opened event
+ *  are also carried by this class, read from the DB to seed a KPI when it is
+ *  created; they are not compared. They are the state the KPI was last seen
+ *  in, and the object already applied knows it better than the DB does. They
+ *  used to be compared, and a reload then destroyed and recreated every KPI
+ *  whose state had moved since the previous one -- with the BA recomputed
+ *  twice and a KpiEvent closed and reopened for nothing.
  *
  *  @param[in] other Object to compare to.
  *
- *  @return True if both objects are equal.
+ *  @return True if both objects describe the same KPI.
  */
 bool kpi::operator==(kpi const& other) const {
   return _id == other._id && _state_type == other._state_type &&
          _host_id == other._host_id && _service_id == other._service_id &&
          _ba_id == other._ba_id && _indicator_ba_id == other._indicator_ba_id &&
          _meta_id == other._meta_id && _boolexp_id == other._boolexp_id &&
-         _status == other._status && _downtimed == other._downtimed &&
-         _acknowledged == other._acknowledged &&
          _ignore_downtime == other._ignore_downtime &&
          _ignore_acknowledgement == other._ignore_acknowledgement &&
          std::abs(_impact_warning - other._impact_warning) < eps &&
          std::abs(_impact_critical - other._impact_critical) < eps &&
          std::abs(_impact_unknown - other._impact_unknown) < eps &&
-         is_equal(_event, other._event);
+         _name == other._name;
 }
 
 /**

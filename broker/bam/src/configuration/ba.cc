@@ -50,11 +50,14 @@ ba::ba(uint32_t id,
       _dt_behaviour(dt_behaviour) {}
 
 /**
- *  Equality comparison operator.
+ *  Equality comparison operator: same *configuration*.
+ *
+ *  The opened event, read from the DB to seed the BA when it is created, is
+ *  not compared: see configuration::kpi::operator==.
  *
  *  @param[in] right Object to compare to.
  *
- *  @return True if this object and right are totally equal.
+ *  @return True if this object and right describe the same BA.
  */
 bool ba::operator==(const ba& right) const {
   return _id == right._id && _host_id == right._host_id &&
@@ -63,7 +66,7 @@ bool ba::operator==(const ba& right) const {
          _state_source == right._state_source &&
          std::abs(_warning_level - right._warning_level) < eps &&
          std::abs(_critical_level - right._critical_level) < eps &&
-         _event == right._event && _dt_behaviour == right._dt_behaviour;
+         _dt_behaviour == right._dt_behaviour;
 }
 
 /**
