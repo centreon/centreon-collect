@@ -29,6 +29,10 @@ ${kpi_per_ba}           ${2}
 ${events_per_ba}        ${2000}
 ${event_duration}       ${300}
 ${ready_timeout}        1800
+# Level of the bam logger. info is enough for every figure of this benchmark on a
+# current cbd; trace is only for a cbd older than the "open events loaded in" line, whose
+# cache load time is then read between two trace lines instead.
+${bam_log_level}        info
 
 
 *** Test Cases ***
@@ -91,7 +95,7 @@ Ctn Bam Rebuild Bench Configure
     # The two lines framing the rebuild are logged by the bam logger at info. The others
     # are turned down: a rebuild that writes its statements out would be measuring
     # spdlog, and it sends one statement per duration.
-    Ctn Broker Config Log    central    bam    info
+    Ctn Broker Config Log    central    bam    ${bam_log_level}
     Ctn Broker Config Log    central    sql    error
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    perfdata    error
