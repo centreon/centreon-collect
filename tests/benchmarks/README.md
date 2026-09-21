@@ -679,7 +679,11 @@ because it wrote nothing would otherwise pass as an improvement. The same run al
 `bi_cache_load_ms`, `bi_open_ba_events` and `bi_open_kpi_events`, read from the line the
 reporting stream writes when it has loaded its event caches at startup: with a history of
 20000 closed events, a cbd that reads the whole tables and one that reads the open events
-only give very different figures here, for the same rebuild. The parameters are
+only give very different figures here, for the same rebuild. And `availability_ms` with
+`availability_days`: the recomputation of the daily availabilities that follows the
+durations, in the availability thread, read from its closing line. Its cost follows the
+number of days the history spans, not the number of events: `--var event_duration:3600`
+turns the default 2000 events per BA into 83 days rather than 7. The parameters are
 `rebuilt_bas`, `events_per_ba` and `events`, plus those of the configuration.
 
 Like the others, this is an A/B benchmark: run it on the installed cbd *before* installing a

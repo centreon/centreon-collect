@@ -428,6 +428,11 @@ BAM_BI_CACHE_LOAD = re.compile(
 # second being the first thing the constructor does once the caches are in.
 BAM_BI_CACHE_LOAD_OPENING = "reporting stream _load_kpi_ba_events"
 BAM_BI_CACHE_LOAD_CLOSING = "reporting stream _close_inconsistent events (type BA"
+# "BAM-BI: availabilities of 83 days written in 412 ms", and for a cbd from
+# before that line, the two debug lines that frame the same work.
+BAM_AVAIL = re.compile(r"BAM-BI: availabilities of (\d+) days written in (\d+) ms")
+BAM_AVAIL_OPENING = "BAM-BI: availability thread writing availabilities from"
+BAM_AVAIL_CLOSING = "BAM-BI: database closed"
 
 
 def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
@@ -462,6 +467,7 @@ def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
     cache = {}
     opening = None
     load_opening = None
+    avail_opening = None
     with open(log_path, "r", errors="replace") as f:
         for line in f:
             ts = _parse_log_timestamp(line)
@@ -480,6 +486,16 @@ def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
                 cache.setdefault("bi_cache_load_ms",
                                  (ts - load_opening).total_seconds() * 1000)
                 load_opening = None
+            elif BAM_AVAIL_OPENING in line:
+                avail_opening = ts
+            elif BAM_AVAIL_CLOSING in line and avail_opening is not None:
+                # Same fallback for the availabilities, at debug.
+                cache["availability_ms"] = (ts - avail_opening).total_seconds() * 1000
+                avail_opening = None
+            elif BAM_AVAIL.search(line):
+                match = BAM_AVAIL.search(line)
+                cache["availability_days"] = float(match.group(1))
+                cache["availability_ms"] = float(match.group(2))
             else:
                 match = BAM_BI_CACHE_LOAD.search(line)
                 if match:
