@@ -825,3 +825,56 @@ TEST_F(ApplierService, PbServicesCheckValidityTags) {
   host_map const& hm(engine::host::hosts);
   ASSERT_EQ(sm.begin()->second->get_host_ptr(), hm.begin()->second.get());
 }
+
+// Given a host and a service on it
+// When the host is resolved, then the service
+// Then the host holds the service in its services backlink
+// And resolving the host again -- a reload -- then the service leaves exactly
+// one entry: the host clears the backlink, the service resolver rebuilds it.
+// The host resolver used to rebuild it too, walking every service of the
+// platform per host; this is what the reload of a large configuration paid for.
+TEST_F(ApplierService, PbHostServicesBacklinkIsBuiltByTheServiceResolver) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::applier::command cmd_aply;
+
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd_aply.add_object(cmd);
+
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  hst_aply.add_object(hst);
+
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_host_name("test_host");
+  svc.set_service_description("test_description");
+  svc.set_host_id(1);
+  svc.set_service_id(3);
+  svc.set_check_command("cmd");
+  svc_aply.add_object(svc);
+
+  auto host = engine::host::hosts_by_id.find(1);
+  ASSERT_NE(host, engine::host::hosts_by_id.end());
+  ASSERT_TRUE(host->second->services.empty());
+
+  hst_aply.resolve_object(hst);
+  ASSERT_TRUE(host->second->services.empty())
+      << "the host resolver must not build the services backlink itself";
+  svc_aply.resolve_object(svc);
+  ASSERT_EQ(host->second->services.size(), 1u);
+  auto link = host->second->services.find({"test_host", "test_description"});
+  ASSERT_NE(link, host->second->services.end());
+  ASSERT_EQ(link->second, engine::service::services_by_id.at({1, 3}).get());
+
+  /* A reload resolves everything again. */
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
+  ASSERT_EQ(host->second->services.size(), 1u);
+}

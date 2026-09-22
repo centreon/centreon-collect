@@ -65,9 +65,9 @@ void applier::host::add_object(const configuration::Host& obj) {
 
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
-      obj.host_id(), host_name, display_name, obj.alias(),
-      obj.address(), obj.check_period(), obj.check_interval(),
-      obj.retry_interval(), obj.max_check_attempts(),
+      obj.host_id(), host_name, display_name, obj.alias(), obj.address(),
+      obj.check_period(), obj.check_interval(), obj.retry_interval(),
+      obj.max_check_attempts(),
       static_cast<bool>(obj.notification_options() & action_hst_up),
       static_cast<bool>(obj.notification_options() & action_hst_down),
       static_cast<bool>(obj.notification_options() & action_hst_unreachable),
@@ -485,7 +485,13 @@ void applier::host::resolve_object(const configuration::Host& obj) {
     throw engine_error() << fmt::format("Cannot resolve non-existing host '{}'",
                                         obj.host_name());
 
-  // Remove service backlinks.
+  // Remove service backlinks. They are rebuilt by the service and
+  // anomalydetection resolvers, which run after this one on every service:
+  // each of them inserts itself into its host's services map. Doing it here
+  // too used to cost a walk of every service of the platform per host, with a
+  // string comparison of the host name at each step -- hosts x services, which
+  // made the objects phase of the configuration load grow in N^1.7 and carry
+  // 73% of it at 20000 services (callgrind, 2026-09-21).
   it->second->services.clear();
 
   // Remove host group links.
@@ -504,12 +510,6 @@ void applier::host::resolve_object(const configuration::Host& obj) {
   // commands, periods) and clear the escalations (refilled by the escalation
   // appliers, which run afterwards).
   h->resolve_pointers();
-
-  // Associate the services carried by this host (reverse backlink).
-  for (auto& [key, svc] : engine::service::services) {
-    if (h->name() == key.first)
-      h->services.insert({key, svc.get()});
-  }
 
   // Wire the parent hosts and the reverse (child) links; a parent that does not
   // exist has already been reported and is left unwired.
