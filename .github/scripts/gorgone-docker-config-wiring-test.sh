@@ -6,13 +6,20 @@
 # assert its own exit code / logs / files independently.
 set -e
 
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=lib/centreon-docker-test-common.sh
+source "$REPO_ROOT/.github/scripts/lib/centreon-docker-test-common.sh"
+
 export GORGONE_IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
 
 COMPOSE_FILE="$(dirname "$0")/../docker/centreon-gorgone/docker-compose.config-wiring-test.yml"
 COMPOSE="docker compose -f $COMPOSE_FILE -p gorgone-config-wiring-test"
 
 cleanup() {
+  local rc=$?
+  $COMPOSE logs > /tmp/gorgone-config-wiring-test.log 2>&1 || true
   $COMPOSE down -v --remove-orphans > /dev/null 2>&1 || true
+  _summary_render "Config/wiring test — centreon-gorgone" "$rc"
 }
 trap cleanup EXIT
 
@@ -44,6 +51,7 @@ wait_for_log() {
   return 1
 }
 
+summary_step_start "TYPE=poller without APP_SECRET/SALT fails fast"
 echo "=== [config:missing-secrets] TYPE=poller without APP_SECRET/SALT must fail fast ==="
 set +e
 output=$(timeout 20 $COMPOSE run --rm poller-missing-secrets 2>&1)
@@ -60,7 +68,9 @@ if ! grep -qi "APP_SECRET" <<< "$output"; then
 fi
 echo "OK: container failed fast with a clear APP_SECRET error."
 $COMPOSE rm -f poller-missing-secrets > /dev/null 2>&1 || true
+summary_step_pass
 
+summary_step_start "TYPE=poller with APP_SECRET/SALT writes engine-context.json"
 echo "=== [config:engine-context] TYPE=poller with APP_SECRET/SALT writes engine-context.json ==="
 $COMPOSE run --rm engine-context-init
 $COMPOSE up -d poller-with-secrets
@@ -77,7 +87,9 @@ if ! grep -q "runtime-test-app-secret" <<< "$content" || ! grep -q "runtime-test
 fi
 echo "OK: engine-context.json created with mode 640 and expected content."
 $COMPOSE down poller-with-secrets > /dev/null 2>&1 || true
+summary_step_pass
 
+summary_step_start "Generic GORGONE__... env override is applied"
 echo "=== [config:env-override] Generic GORGONE__... env override is applied ==="
 $COMPOSE up -d poller-env-override
 wait_ready poller-env-override || exit 1
@@ -88,7 +100,9 @@ if ! wait_for_log poller-env-override "gorgone__gorgone__gorgonecore__id environ
 fi
 echo "OK: generic env override mechanism applied."
 $COMPOSE down poller-env-override > /dev/null 2>&1 || true
+summary_step_pass
 
+summary_step_start "CENTRAL_HOST/CENTRAL_PORT/GORGONE_TOKEN wiring reaches pullwss"
 echo "=== [wiring:central-endpoint] CENTRAL_HOST/CENTRAL_PORT/GORGONE_TOKEN wiring reaches pullwss ==="
 $COMPOSE up -d central-stub
 sleep 2
@@ -101,5 +115,6 @@ if ! wait_for_log central-stub "starting data transfer loop" 15; then
   exit 1
 fi
 echo "OK: poller dialed out to CENTRAL_HOST:CENTRAL_PORT as configured via env vars."
+summary_step_pass
 
 echo "=== [config/wiring] PASSED ==="
