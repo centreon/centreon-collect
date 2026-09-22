@@ -96,7 +96,7 @@ BEBAMIDTU2
     Ctn Config Broker    rrd
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    bam    trace
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Config BBDO3    1
     Ctn Config Engine    ${1}
 
