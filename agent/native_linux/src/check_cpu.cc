@@ -48,7 +48,7 @@ per_cpu_time::per_cpu_time(const std::string_view& line) {
   auto to_fill = _metrics.begin();
   auto end = _metrics.end();
   for (++field_iter; field_iter != split_res.end(); ++field_iter, ++to_fill) {
-    unsigned counter;
+    uint64_t counter;
     if (!absl::SimpleAtoi(*field_iter, &counter)) {
       throw std::invalid_argument("not a number");
     }

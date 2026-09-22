@@ -125,6 +125,43 @@ softirq 166407220 66442046 14763247 1577070 4447556 33 0 18081353 30219191 75659
 
 using namespace std::string_literals;
 
+/**
+ * @brief On a host with a long uptime, the aggregated idle counter of
+ * /proc/stat exceeds 2^32. Counters must be parsed as 64 bits, otherwise the
+ * whole line is rejected and the check returns no perfdata.
+ */
+TEST(proc_stat_file_test, counter_over_32_bits) {
+  constexpr const char* test_file_path = "/tmp/proc_stat_test";
+
+  const char* big_sample =
+      R"(cpu  79369748 192835 14392236 4442583325 1142700 0 150227 0 0 0
+cpu0 2950168 3665 601588 202451621 68071 0 30132 0 0 0
+cpu1 6616664 37658 1684881 197279689 140860 0 8712 0 0 0
+intr 213853764 0 35
+ctxt 529237135
+)";
+
+  {
+    ::remove(test_file_path);
+    std::ofstream f(test_file_path);
+    f.write(big_sample, strlen(big_sample));
+  }
+
+  check_cpu_detail::proc_stat_file to_compare(test_file_path, 2);
+
+  ASSERT_EQ(to_compare.get_values().size(), 3);
+  const auto& average =
+      to_compare.get_values().at(check_cpu_detail::average_cpu_index);
+  ASSERT_EQ(average.get_total(), 4537831071ULL);
+  ASSERT_DOUBLE_EQ(average.get_proportional_value(
+                       check_cpu_detail::e_proc_stat_index::idle),
+                   4442583325.0 / 4537831071.0);
+  ASSERT_DOUBLE_EQ(average.get_proportional_used(),
+                   (4537831071.0 - 4442583325.0) / 4537831071.0);
+  ASSERT_EQ(to_compare.get_values().at(0).get_total(), 206105245ULL);
+  ASSERT_EQ(to_compare.get_values().at(1).get_total(), 205768464ULL);
+}
+
 TEST(proc_stat_file_test, no_threshold) {
   constexpr const char* test_file_path = "/tmp/proc_stat_test";
   {
