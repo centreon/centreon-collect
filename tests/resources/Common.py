@@ -1701,6 +1701,17 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
             if retval:
                 logger.console("We get the expected number of downtimes")
             else:
+                cursor.execute("SELECT * from downtimes")
+                logger.console(
+                    "------------------------------- downtimes -----------------------")
+                logger.console(json.dumps(
+                    cursor.fetchall(), indent=4, sort_keys=True))
+                cursor.execute(
+                    "SELECT * from services where service_id=1001 or service_id=314")
+                logger.console(
+                    "------------------------------- services -----------------------")
+                logger.console(json.dumps(
+                    cursor.fetchall(), indent=4, sort_keys=True))
                 logger.console("Not the expected number of downtimes")
             logger.console(json.dumps(result, indent=4, sort_keys=True))
     return retval
