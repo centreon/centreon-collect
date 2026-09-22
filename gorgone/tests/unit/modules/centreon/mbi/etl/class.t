@@ -9,6 +9,11 @@ use FindBin;
 use lib "$FindBin::Bin/../../../../../../";
 use gorgone::modules::centreon::mbi::etl::class;
 
+package TestLogger;
+sub new { bless {}, shift }
+sub writeLogDebug {}
+package main;
+
 sub write_profile_xml {
     my ($oda_url_centreon, $oda_url_censtorage) = @_;
     my ($fh, $filename) = tempfile(SUFFIX => '.xml', UNLINK => 1);
@@ -122,9 +127,68 @@ sub test_db_parse_xml {
     }
 }
 
+
+# The scheduler builds the worker payload from an explicit list of keys, so a key added to an
+# action is silently dropped unless it is listed there as well.
+sub test_watch_etl_import_forwards_action_keys {
+    my @dispatched;
+    my $mock = mock 'gorgone::modules::centreon::mbi::etl::class' => (
+        override => [
+            check_stopped_ko => sub { return 1; },
+            execute_action => sub { my ($self, %options) = @_; push @dispatched, \%options; }
+        ]
+    );
+
+    my $etl = bless(
+        {
+            logger => TestLogger->new(),
+            run => {
+                schedule => {
+                    import => {
+                        substeps_executed => 0,
+                        substeps_execute => 0,
+                        substeps_total => 2,
+                        actions => [
+                            {
+                                type => 1, db => 'centstorage', continue_on_error => 1, actions => [],
+                                sql => [ ['[COLLATION] convert table [mod_bi_hostgroups]', 'ALTER TABLE `mod_bi_hostgroups`'] ]
+                            },
+                            {
+                                type => 1, db => 'centstorage', actions => [],
+                                sql => [ ['[CREATE] add table [mod_bi_hosts]', 'CREATE TABLE `mod_bi_hosts`'] ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        'gorgone::modules::centreon::mbi::etl::class'
+    );
+
+    $etl->watch_etl_import();
+
+    is(scalar(@dispatched), 2, 'every pending action should be dispatched to a worker.');
+    is(
+        $dispatched[0]->{params}->{continue_on_error},
+        1,
+        'an action declared as opportunistic should carry continue_on_error to the worker.'
+    );
+    is(
+        $dispatched[0]->{params}->{sql},
+        $etl->{run}->{schedule}->{import}->{actions}->[0]->{sql},
+        'the statements of the action should be forwarded as they are.'
+    );
+    is(
+        $dispatched[1]->{params}->{continue_on_error},
+        undef,
+        'an action that does not declare it should leave continue_on_error unset.'
+    );
+}
+
 sub main {
     test_missing_file();
     test_db_parse_xml();
+    test_watch_etl_import_forwards_action_keys();
     done_testing();
 }
 
