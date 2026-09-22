@@ -809,9 +809,9 @@ not18
 not19
     [Documentation]    notification delay where first notification delay greater than retry check 
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Retention
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
-    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -853,7 +853,7 @@ not19
     Ctn Kindly Stop Broker
 
 not20
-    [Documentation]    notification delay where first notification delay samller than retry check
+    [Documentation]    notification delay where first notification delay smaller than retry check
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
