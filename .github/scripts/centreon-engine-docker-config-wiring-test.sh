@@ -52,12 +52,16 @@ PLUGIN_PKG="centreon-plugin-applications-monitoring-centreon-poller"
 
 declare -a CONTAINERS=()
 declare -a TMPFILES=()
+declare -a NETWORKS=()
 
 cleanup() {
-  local c
+  local c n
   for c in "${CONTAINERS[@]}"; do
     { echo "=== docker logs $c ==="; docker logs "$c"; } >> "$LOG_FILE" 2>&1 || true
     docker rm -f "$c" > /dev/null 2>&1 || true
+  done
+  for n in "${NETWORKS[@]}"; do
+    docker network rm "$n" > /dev/null 2>&1 || true
   done
   rm -f "${TMPFILES[@]}" 2>/dev/null || true
 }
@@ -232,7 +236,6 @@ if ! echo "$grpc_output" | grep -q '"major"'; then
 fi
 echo "OK: engine gRPC management API answered GetVersion on port 50155."
 
-summary_step_start "Email notifications reach an SMTP relay (native mail command + connector plugin)"
 echo "=== [wiring:mail-notifications] both notify-*-by-email (native msmtp/mail) and notify-*-by-email-plugin (centreon-plugin-notification-email) actually deliver mail ==="
 MAIL_NET="engine-mail-wiring-net-$$"
 docker network create "$MAIL_NET" > /dev/null
@@ -295,6 +298,5 @@ if ! echo "$messages_json" | grep -q "admin-plugin@example.test"; then
   exit 1
 fi
 echo "OK: a real custom notification, resolved and dispatched by centengine itself, delivered mail via both the native SMTP command and the notification-email connector."
-summary_step_pass
 
 echo "=== [config/wiring] PASSED ==="
