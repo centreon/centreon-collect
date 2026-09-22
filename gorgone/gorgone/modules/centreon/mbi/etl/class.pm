@@ -367,7 +367,8 @@ sub watch_etl_import {
                     db => $val->{db},
                     sql => $val->{sql},
                     command => $val->{command},
-                    message => $val->{message}
+                    message => $val->{message},
+                    continue_on_error => $val->{continue_on_error}
                 }
             );
         } elsif ($val->{status} == FINISHED) {

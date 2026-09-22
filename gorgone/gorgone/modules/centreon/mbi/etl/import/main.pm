@@ -25,6 +25,8 @@ use warnings;
 
 use gorgone::modules::centreon::mbi::libs::bi::MySQLTables;
 use gorgone::modules::centreon::mbi::libs::Utils;
+use gorgone::standard::constants qw(:all);
+use Try::Tiny;
 
 my ($biTables, $monTables, $utils);
 my ($argsMon, $argsBi);
@@ -54,6 +56,46 @@ sub createTables {
                     type => 1, db => 'centstorage', sql => [ ["[CREATE] add table [$name]", $structure] ], actions => []
                 };
         }
+    }
+
+    # The tables above are only created when they are missing, so a table that already exists keeps
+    # the collation it was created with. Realign the ones that deviate from utf8mb3_general_ci:
+    # comparing two different collations of the same character set breaks the dimension joins with
+    # error 1267 (see MySQLTables::getCollationRealignStatements). Tables created by the actions
+    # queued above are not covered by this run, as they do not exist yet when the schedule is built;
+    # they are born correct anyway once the monitoring server carries the fixed structure.
+    #
+    # The whole realignment is opportunistic: it repairs what it can and must never be the reason
+    # an ETL run does not happen, hence the guard here and the continue_on_error flag below.
+    my ($collationStatements, $collationWarnings) = ([], []);
+    try {
+        ($collationStatements, $collationWarnings) = $biTables->getCollationRealignStatements();
+    } catch {
+        $etl->{logger}->writeLogError('[mbi-etl] cannot check the collation of the reporting tables: ' . $_);
+        $etl->send_log(
+            code => GORGONE_MODULE_CENTREON_MBIETL_PROGRESS,
+            token => $etl->{run}->{token},
+            data => { messages => [ ['I', '[SCHEDULER][IMPORT] collation check skipped: ' . $_ ] ] }
+        );
+    };
+
+    # Reported through the connector: this phase runs in the scheduler process, whose message
+    # collector is never drained, so a message pushed there would reach nobody.
+    foreach my $warning (@$collationWarnings) {
+        $etl->{logger}->writeLogError('[mbi-etl] [COLLATION] ' . $warning);
+        $etl->send_log(
+            code => GORGONE_MODULE_CENTREON_MBIETL_PROGRESS,
+            token => $etl->{run}->{token},
+            data => { messages => [ ['I', '[SCHEDULER][IMPORT] [COLLATION] ' . $warning ] ] }
+        );
+    }
+
+    if (scalar(@$collationStatements) > 0) {
+        push @{$etl->{run}->{schedule}->{import}->{actions}},
+            {
+                type => 1, db => 'centstorage', sql => $collationStatements,
+                continue_on_error => 1, actions => []
+            };
     }
 
     # Manage centreonAcl
