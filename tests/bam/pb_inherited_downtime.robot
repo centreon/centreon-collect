@@ -142,15 +142,16 @@ BEBAMIDTU2
     Should Be True    ${result}    We should only have two downtimes
 
     FOR    ${i}    IN RANGE    2
+        Sleep    5
         # Engine is restarted
         Ctn Stop Engine
         ${start}    Ctn Get Round Current Date
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}    1
+        Ctn Wait For Engine To Be Ready    ${start}    1
 
         Log To Console    We should have two downtimes (2)
-	${result}    Ctn Number Of Downtimes Is    2    30
-	Should Be True    ${result}    We should only have two downtimes
+        ${result}    Ctn Number Of Downtimes Is    2    30
+        Should Be True    ${result}    We should only have two downtimes
 
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
@@ -159,8 +160,8 @@ BEBAMIDTU2
         Ctn Start Broker
 
         Log To Console    We should have two downtimes (3)
-	${result}    Ctn Number Of Downtimes Is    2    30
-	Should Be True    ${result}    We should only have two downtimes
+        ${result}    Ctn Number Of Downtimes Is    2    30
+        Should Be True    ${result}    We should only have two downtimes
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
