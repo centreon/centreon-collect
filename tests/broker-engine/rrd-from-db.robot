@@ -103,8 +103,8 @@ BRRDRBDB1
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
-    Ctn Broker Config Log    rrd    rrd    trace
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
@@ -161,8 +161,8 @@ BRRDRBUDB1
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
-    Ctn Broker Config Log    rrd    rrd    trace
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Config BBDO3    1
@@ -220,8 +220,8 @@ BRRDUPLICATE
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker    module
-    Ctn Broker Config Log    rrd    rrd    trace
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
