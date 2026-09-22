@@ -303,6 +303,8 @@ fi
 log_header "Processing assets"
 uploaded=0; skipped=0; failed=0
 
+SUMMARY_ROWS=""
+
 for file in "${FILES[@]}"; do
   filename=$(basename "$file")
   log_file "$filename"
@@ -314,18 +316,22 @@ for file in "${FILES[@]}"; do
   if [[ -n "$on_release" && "$FORCE_REUPLOAD" != "true" ]]; then
     download_url="https://github.com/${REPO}/releases/download/${GITHUB_RELEASE}/${filename}"
     log_skip "Already on release — skipping upload"
+    SUMMARY_ROWS+="| \`$filename\` | already present | [link]($download_url) |"$'\n'
     (( skipped++ )) || true
   elif [[ "$DRY_RUN" == "true" ]]; then
     download_url="https://github.com/${REPO}/releases/download/${GITHUB_RELEASE}/${filename}"
     log_skip "[dry-run] Would upload to GitHub release"
+    SUMMARY_ROWS+="| \`$filename\` | would upload (dry run) | — |"$'\n'
     (( uploaded++ )) || true
   else
     log_upload "Uploading to GitHub release…"
     if download_url=$(upload_asset "$release_id" "$file"); then
       log_ok "Uploaded → ${download_url}"
+      SUMMARY_ROWS+="| \`$filename\` | uploaded | [link]($download_url) |"$'\n'
       (( uploaded++ )) || true
     else
       log_error "Upload failed for ${filename}"
+      SUMMARY_ROWS+="| \`$filename\` | **upload failed** | — |"$'\n'
       (( failed++ )) || true
       continue
     fi
@@ -343,6 +349,17 @@ for file in "${FILES[@]}"; do
 done
 
 # 5. Summary
+{
+  echo "## GitHub release assets — ${GITHUB_RELEASE}"
+  echo ""
+  echo "| Asset | Result | Download |"
+  echo "|---|---|---|"
+  printf '%s' "$SUMMARY_ROWS"
+  echo ""
+  echo "Uploaded ${uploaded} · skipped ${skipped} · failed ${failed}"
+  echo ""
+} | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" > /dev/null
+
 echo -e "\n${BOLD}Summary${RESET}"
 echo -e "  Uploaded : ${GREEN}${uploaded}${RESET}"
 echo -e "  Skipped  : ${DIM}${skipped}${RESET}"
