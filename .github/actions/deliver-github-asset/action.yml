@@ -1,5 +1,5 @@
 name: "deliver-github-asset"
-description: "Deliver CMA asset to GitHub release and register on download.centreon.com"
+description: "Deliver CMA asset to GitHub release"
 inputs:
   file_pattern:
     description: "Glob pattern matching local asset files (required in local mode)"
@@ -7,9 +7,6 @@ inputs:
   github_release:
     description: "Target GitHub release tag (e.g. centreon-monitoring-agent-27.08.3)"
     required: true
-  token_download_centreon_com:
-    description: "Token for download.centreon.com registration"
-    required: false
   mode:
     description: "Delivery mode: local (default) or action (fetches from Artifactory)"
     required: false
@@ -35,7 +32,6 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
-        TOKEN_DOWNLOAD_CENTREON_COM: ${{ inputs.token_download_centreon_com }}
         ARTIFACTORY_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
         DELIVER_MODE: ${{ inputs.mode }}
         DELIVER_FILE_PATTERN: ${{ inputs.file_pattern }}
