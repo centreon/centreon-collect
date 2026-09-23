@@ -19,6 +19,7 @@
 #include "broker/core/bbdo/stream.hh"
 
 #include <arpa/inet.h>
+#include <google/protobuf/json/json.h>
 
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
@@ -74,14 +75,14 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Send our own packet if we should be first.
   if (neg == negotiate_first) {
-    SPDLOG_LOGGER_DEBUG(
-        _logger, "BBDO: sending welcome packet (available extensions: {})",
-        extensions);
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
     if (my_bbdo_version.total_version <= v300.total_version) {
       auto welcome_packet{
           std::make_shared<version_response>(my_bbdo_version, extensions)};
+      SPDLOG_LOGGER_DEBUG(
+          _logger, "BBDO: sending welcome packet (available extensions: {})",
+          extensions);
       _write(welcome_packet);
     } else {
       auto welcome{std::make_shared<pb_welcome>()};
@@ -96,6 +97,13 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* If I'm Engine or Broker, I have some specific negotiation to do. */
       specific_negotiate(obj);
+
+      std::string json_content;
+      auto dummy [[maybe_unused]] =
+          ::google::protobuf::json::MessageToJsonString(obj, &json_content);
+
+      SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending welcome packet: {}",
+                          json_content);
 
       _write(welcome);
     }

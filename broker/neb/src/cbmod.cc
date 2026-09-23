@@ -80,8 +80,10 @@ cbmod::cbmod(const std::string& config_file,
     log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
   }
 
-  cbmod_state.apply(s);
+  /* proto_conf must be set before apply(): apply() starts the endpoints and
+   * the BBDO negotiation uses it to fill the welcome packet. */
   cbmod_state.set_proto_conf(proto_conf);
+  cbmod_state.apply(s);
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
   _use_protobuf = cbmod_state.get_bbdo_version().major_v > 2;
@@ -106,8 +108,8 @@ cbmod::cbmod(const std::filesystem::path& proto_conf)
 
   _use_protobuf = cbmod_state.get_bbdo_version().major_v > 2;
 
-  cbmod_state.apply(s, false);
   cbmod_state.set_proto_conf(proto_conf);
+  cbmod_state.apply(s, false);
 }
 
 cbmod::~cbmod() noexcept {

@@ -193,19 +193,24 @@ BEPS3R
     Ctn Config BBDO3    ${5}
     Ctn Broker Config Source Log    central    1
     Ctn Broker Config Log    central    sql    debug
-    # Ctn Broker Config Log    central    bbdo    trace
-    # Ctn Broker Config Log    central    config    trace
-    # Ctn Broker Config Log    central    cache    trace
-    # Ctn Broker Config Log    module0    core    trace
-    # Ctn Broker Config Log    module1    core    trace
-    # Ctn Broker Config Log    module2    core    trace
-    # Ctn Broker Config Log    module3    core    trace
-    # Ctn Broker Config Log    module4    core    trace
-    # Ctn Broker Config Log    module0    bbdo    trace
-    # Ctn Broker Config Log    module1    bbdo    trace
-    # Ctn Broker Config Log    module2    bbdo    trace
-    # Ctn Broker Config Log    module3    bbdo    trace
-    # Ctn Broker Config Log    module4    bbdo    trace
+    Ctn Broker Config Log    central    bbdo    trace
+    Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    central    cache    trace
+    Ctn Broker Config Log    module0    core    trace
+    Ctn Broker Config Log    module1    core    trace
+    Ctn Broker Config Log    module2    core    trace
+    Ctn Broker Config Log    module3    core    trace
+    Ctn Broker Config Log    module4    core    trace
+    Ctn Broker Config Log    module0    bbdo    trace
+    Ctn Broker Config Log    module1    bbdo    trace
+    Ctn Broker Config Log    module2    bbdo    trace
+    Ctn Broker Config Log    module3    bbdo    trace
+    Ctn Broker Config Log    module4    bbdo    trace
+    Ctn Broker Config Log    module0    config    trace
+    Ctn Broker Config Log    module1    config    trace
+    Ctn Broker Config Log    module2    config    trace
+    Ctn Broker Config Log    module3    config    trace
+    Ctn Broker Config Log    module4    config    trace
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
