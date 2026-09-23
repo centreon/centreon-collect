@@ -223,13 +223,26 @@ log_ok "cloned ${WEBAPP_REPO}@${WEBAPP_BASE}"
 # Reuse an open release branch so each per-OS run of one build accumulates into
 # the same file and PR; the site only shows the newest build per product, so a
 # build has to land complete or its other OS rows disappear.
+# Asked from inside the fresh clone, not the caller's cwd: actions/checkout leaves a url-scoped
+# http.https://github.com/.extraheader in the calling repository's config, and that ambient
+# credential competes with ours. Errors are reported, never swallowed: "absent" (exit 2) and
+# "could not ask" must not look the same, or a re-run silently stops being idempotent.
 branch_exists="false"
-if authed_git ls-remote --exit-code --heads "$clone_url" "$BRANCH" >/dev/null 2>&1; then
+ls_remote_err="$WORKDIR/ls-remote.err"
+if authed_git -C "$repo_dir" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>"$ls_remote_err"; then
   branch_exists="true"
+elif [[ $? -ne 2 ]]; then
+  cat "$ls_remote_err" >&2
+  die "cannot tell whether $BRANCH already exists on ${WEBAPP_REPO}. Refusing to continue: creating it blindly would fail the push if it is already there."
+fi
+
+if [[ "$branch_exists" == "true" ]]; then
   authed_git -C "$repo_dir" fetch --quiet --depth 1 origin "$BRANCH" \
     || die "branch $BRANCH exists on ${WEBAPP_REPO} but could not be fetched"
   authed_git -C "$repo_dir" checkout --quiet -B "$BRANCH" FETCH_HEAD
   log_ok "reusing existing branch $BRANCH"
+else
+  log "→ $BRANCH does not exist yet on ${WEBAPP_REPO}, it will be created"
 fi
 
 catalog="$repo_dir/src/data/catalog.yaml"
