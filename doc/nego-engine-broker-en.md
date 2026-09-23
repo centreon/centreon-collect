@@ -3824,6 +3824,18 @@ never informed of this setting.
 access to the downtime store. The synchronisation problem described above disappears — there
 is no longer any Engine-side copy to fall out of sync with.
 
+> Acknowledgements follow this model since ticket T3: the `AcknowledgeHostProblem`,
+> `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement` and `RemoveServiceAcknowledgement` RPCs
+> are served by `broker_acknowledgement_manager`, which replays Engine's flow (comment, event,
+> status, notification, `logs` row) and applies the clearing rule on statuses itself. Details in
+> [Acknowledgements — Engine ↔ Broker integration](./acknowledgements-integration-en.md#notification_mode--broker-broker-is-the-acknowledgement-authority).
+>
+> **Two side effects to address**: since Engine knows neither the downtimes nor the
+> acknowledgements, its `$TOTAL*UNHANDLED$` macros over-count unhandled problems (decided fix: a
+> downward mirror `(host_id, service_id, scheduled_downtime_depth, acknowledgement_type)` pushed to
+> the owning poller, with a resync when it connects); and expiration through
+> `acknowledgement_timeout`, an Engine timer, no longer fires (not ported to Broker at this stage).
+
 ## Persistence
 
 Broker stores downtimes and acknowledgements in its persistent database, including future

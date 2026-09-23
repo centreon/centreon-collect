@@ -113,11 +113,15 @@ Example layout PHP must produce:
 * **Where:** top-level key of `centreonBroker` (stored in the Broker `params` map)
 * **Default:** `engine` (absent ⇒ `engine`)
 * **Meaning:** decides who manages downtimes and acknowledgements:
-  * `broker` → Broker loads the `downtime_manager`, owns downtimes, schedules BAM
-    inherited downtimes in-process and is the sole writer of
-    `scheduled_downtime_depth`.
-  * `engine` → Engine manages downtimes, BAM sends `SCHEDULE_SVC_DOWNTIME` to
-    Engine (legacy behaviour).
+  * `broker` → Broker loads the `downtime_manager` and the acknowledgement
+    manager, owns downtimes **and acknowledgements**, schedules BAM inherited
+    downtimes in-process and is the sole writer of `scheduled_downtime_depth`,
+    `acknowledged` and `acknowledgement_type`. Engine is never told about
+    downtimes nor acknowledgements: an acknowledgement command sent to Engine in
+    this mode is **lost** for Broker (the flag is overwritten by the next status
+    and no row is written to the database).
+  * `engine` → Engine manages downtimes and acknowledgements, BAM sends
+    `SCHEDULE_SVC_DOWNTIME` to Engine (legacy behaviour).
 * **PHP impact:** this value also decides where downtime/acknowledgement external
   commands must be sent (see [Routing rule](#routing-rule-engine-vs-broker)).
 
@@ -176,7 +180,7 @@ Example layout PHP must produce:
 |---|---|---|---|
 | Centralized Engine configuration | `cache_config_directory` (Broker) + `bbdo_version ≥ 3` (Broker) + start Engine with `-p` | Broker + Engine launch | Set ⇒ **Broker** owns the Engine config |
 | Central vs relay | `pollers_config_directory` (Broker) | Broker | Set ⇒ **central**; empty ⇒ **relay** |
-| Downtime/ack ownership | `notification_mode` (Broker) | Broker | `broker` ⇒ **Broker** owns downtimes |
+| Downtime/ack ownership | `notification_mode` (Broker) | Broker | `broker` ⇒ **Broker** owns downtimes and acks |
 | gRPC endpoints (Evolution 2) | `grpc.rpc_port` (Broker), `grpc_port` (Engine) | Both | where external commands are sent |
 | Engine ↔ Broker module link | `broker_module_cfg_file` (Engine) | Engine | replaces legacy `broker_module` line |
 
@@ -207,8 +211,12 @@ Both Engine and Broker expose a gRPC service. PHP must send external commands as
   `ProcessServiceCheckResult`, `ScheduleServiceCheck`, etc. Each returns a
   `CommandSuccess`, so PHP gets a synchronous result.
 * **Broker** — `brokerrpc` service (`broker/core/brokerrpc/broker.proto`). It
-  exposes `ScheduleDowntime` (returning the new `downtime_id`) and `DeleteDowntime`.
-  These RPCs are **only available when `notification_mode = broker`**.
+  exposes `ScheduleDowntime` (returning the new `downtime_id`), `DeleteDowntime`,
+  and the four acknowledgement RPCs `AcknowledgeHostProblem`,
+  `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`,
+  `RemoveServiceAcknowledgement`. These RPCs are **only available when
+  `notification_mode = broker`** (gRPC status `UNAVAILABLE` otherwise); failures
+  are reported through the gRPC status, there is no `CommandSuccess`.
 
 ## Routing rule: Engine vs Broker
 
@@ -224,14 +232,16 @@ flowchart TD
     CMD --> Q1{"Downtime or acknowledgement?"}
     Q1 -- "no (check result, comment,<br/>enable/disable, change var…)" --> ENG["Engine enginerpc"]:::engine
     Q1 -- "yes" --> Q2{"Broker notification_mode = broker?"}
-    Q2 -- "yes" --> BRK["Broker brokerrpc<br/>ScheduleDowntime / DeleteDowntime"]:::broker
-    Q2 -- "no (engine / absent)" --> ENG2["Engine enginerpc<br/>Schedule*Downtime / DeleteDowntime*"]:::engine
+    Q2 -- "yes" --> BRK["Broker brokerrpc<br/>ScheduleDowntime / DeleteDowntime<br/>Acknowledge*Problem / Remove*Acknowledgement"]:::broker
+    Q2 -- "no (engine / absent)" --> ENG2["Engine enginerpc<br/>Schedule*Downtime / DeleteDowntime*<br/>Acknowledgement*Problem / Remove*Acknowledgement"]:::engine
 ```
 
 * **Downtimes and acknowledgements** follow `notification_mode`:
   * `notification_mode = broker` → call **Broker**'s `ScheduleDowntime` /
-    `DeleteDowntime`.
-  * otherwise → call **Engine**'s downtime RPCs (legacy).
+    `DeleteDowntime` and `AcknowledgeHostProblem` / `AcknowledgeServiceProblem` /
+    `RemoveHostAcknowledgement` / `RemoveServiceAcknowledgement`. Engine's
+    acknowledgement RPCs must **no longer** be called in this mode.
+  * otherwise → call **Engine**'s downtime and acknowledgement RPCs (legacy).
 * **All other commands** (check results, comments, notification toggles, object
   variable changes, forced checks…) always go to **Engine**.
 
@@ -269,13 +279,58 @@ For the same operation in legacy mode (`notification_mode = engine`), PHP keeps
 calling Engine's `ScheduleHostDowntime` / `ScheduleServiceDowntime` /
 `ScheduleAndPropagateHostDowntime` / etc.
 
+## Acknowledgement example
+
+When `notification_mode = broker`, acknowledging a problem is an
+`AcknowledgeHostProblem` or `AcknowledgeServiceProblem` gRPC call on Broker. The
+request copies Engine's `EngineAcknowledgement` **field for field**: PHP switches
+the target and the RPC name, not the payload.
+
+```protobuf
+message AcknowledgementRequest {
+  string host_name    = 1;
+  string service_desc = 2;   // empty for a host acknowledgement
+  string ack_author   = 3;
+  string ack_data     = 4;
+  enum Type { NORMAL = 0; STICKY = 1; }
+  Type   type         = 5;   // NORMAL: cleared on any state change; STICKY: cleared on return to UP/OK
+  bool   notify       = 6;   // send the acknowledgement notification
+  bool   persistent   = 7;   // keep the comment once the acknowledgement is cleared
+}
+
+rpc AcknowledgeHostProblem(AcknowledgementRequest) returns (google.protobuf.Empty) {}
+rpc AcknowledgeServiceProblem(AcknowledgementRequest) returns (google.protobuf.Empty) {}
+```
+
+Broker resolves the resource against its cache, refuses with `FAILED_PRECONDITION`
+when it is UP/OK (like Engine: "cannot acknowledge a non-existent problem"), then
+writes the `acknowledgements` row, the comment, the `acknowledged` flags of
+`hosts`/`services`/`resources`, the `logs` entry, and triggers the acknowledgement
+notification when asked. Automatic clearing (recovery, state change of a non-sticky
+ack) is done by Broker, without any PHP action.
+
+Explicit removal uses `RemoveHostAcknowledgement(HostIdentifier)` and
+`RemoveServiceAcknowledgement(ServiceIdentifier)`:
+
+```protobuf
+message HostIdentifier    { oneof host { string host_name = 1; uint64 host_id = 2; } }
+message ServiceIdentifier {
+  oneof host    { string host_name = 1;   uint64 host_id = 2; }
+  oneof service { string description = 3; uint64 service_id = 4; }
+}
+```
+
+In legacy mode (`notification_mode = engine`), PHP keeps calling Engine's
+`AcknowledgementHostProblem` / `AcknowledgementServiceProblem` /
+`RemoveHostAcknowledgement` / `RemoveServiceAcknowledgement`.
+
 ## Command catalogue
 
 | Command family | Engine (`enginerpc`) | Broker (`brokerrpc`) |
 |---|---|---|
 | Schedule downtime | `ScheduleHostDowntime`, `ScheduleServiceDowntime`, `ScheduleHostServicesDowntime`, `ScheduleHostGroupHostsDowntime`, `ScheduleHostGroupServicesDowntime`, `ScheduleServiceGroupHostsDowntime`, `ScheduleServiceGroupServicesDowntime`, `ScheduleAndPropagateHostDowntime`, `ScheduleAndPropagateTriggeredHostDowntime` | `ScheduleDowntime` |
 | Delete downtime | `DeleteDowntime`, `DeleteHostDowntimeFull`, `DeleteServiceDowntimeFull`, `DeleteDowntimeByHostName`, `DeleteDowntimeByHostGroupName`, `DeleteDowntimeByStartTimeComment` | `DeleteDowntime` |
-| Acknowledgements | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` | (routed to Engine for now) |
+| Acknowledgements | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (when `notification_mode = broker`) |
 | Comments | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments` | — |
 | Checks | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck` | — |
 | Notifications / toggles | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, … | — |
@@ -284,8 +339,12 @@ calling Engine's `ScheduleHostDowntime` / `ScheduleServiceDowntime` /
 > The list of which downtime/acknowledgement families will progressively move to
 > Broker is tracked under
 > [Moving external command sending to Broker](./nego-engine-broker-en.md#moving-external-command-sending-to-broker).
-> Today only `ScheduleDowntime` / `DeleteDowntime` exist on the Broker side; the
-> others remain on Engine even when `notification_mode = broker`.
+> Today `ScheduleDowntime` / `DeleteDowntime` and the four acknowledgement RPCs exist
+> on the Broker side: `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`
+> (`AcknowledgementRequest`, same fields as `EngineAcknowledgement`),
+> `RemoveHostAcknowledgement` (`HostIdentifier`) and `RemoveServiceAcknowledgement`
+> (Broker's `ServiceIdentifier`). The other families remain on Engine even when
+> `notification_mode = broker`.
 
 ## Discovery and ports
 

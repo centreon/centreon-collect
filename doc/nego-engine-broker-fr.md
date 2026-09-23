@@ -4176,6 +4176,18 @@ Engine n'est jamais informé de ce paramètre.
 d'un accès direct au store de downtimes. Le problème de synchronisation décrit ci-dessus
 disparaît — il n'existe plus de copie côté Engine susceptible de se désynchroniser.
 
+> Les acquittements suivent ce modèle depuis le ticket T3 : les RPC `AcknowledgeHostProblem`,
+> `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement` et `RemoveServiceAcknowledgement` sont
+> servis par `broker_acknowledgement_manager`, qui rejoue le flux d'Engine (commentaire, événement,
+> statut, notification, ligne `logs`) et applique lui-même la règle de levée sur les status. Détail
+> dans [Acquittements — intégration Engine ↔ Broker](./acknowledgements-integration-fr.md#mode-notification_mode--broker--broker-est-lautorité-dacquittement).
+>
+> **Deux effets de bord à traiter** : Engine ne connaissant ni les downtimes ni les acquittements,
+> ses macros `$TOTAL*UNHANDLED$` surcomptent les problèmes non traités (correction décidée : un
+> miroir descendant `(host_id, service_id, scheduled_downtime_depth, acknowledgement_type)` poussé
+> au poller propriétaire, avec resynchronisation à sa connexion) ; et l'expiration par
+> `acknowledgement_timeout`, timer Engine, ne se déclenche plus (non portée côté Broker à ce stade).
+
 ## Persistance
 
 Broker stocke les downtimes et acquittements dans sa base de données persistante, y compris les
