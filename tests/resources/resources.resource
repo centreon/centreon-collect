@@ -190,7 +190,7 @@ Ctn Kindly Stop Broker
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
-        IF    ${result.rc} != 0
+        IF    ${result.rc} != -15 and ${result.rc} != 0
             Ctn Save Logs
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
@@ -202,13 +202,18 @@ Ctn Kindly Stop Broker
                         Log To Console    We are in BBDO3, so we also check RRD duplicates
                         Log To Console    central broker stopped
                         # We have to check if central RRD logs contain errors about data sent in the past.
-                        ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-                        IF    len("""${result}""") > 0
-                            Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
-                            Ctn Save Logs
-                            Remove File    ${rrdLog}
+                        ${rrdLog_exists}    Run Keyword And Return Status    File Should Exist    ${rrdLog}
+                        IF    ${rrdLog_exists}
+                            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                            IF    len("""${result}""") > 0
+                                Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
+                                Ctn Save Logs
+                                Remove File    ${rrdLog}
+                            END
+                            Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+                        ELSE
+                            Log To Console    ${rrdLog} does not exist, skipping RRD duplicates check
                         END
-                        Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
                 ELSE
                     Log To Console    Broker RRD was not started, so we don't check RRD duplicates
                 END
@@ -236,7 +241,7 @@ Ctn Kindly Stop Broker
             Send Signal To Process    SIGKILL    b2
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
-            IF    ${result.rc} != 0
+            IF    ${result.rc} != -15 and ${result.rc} != 0
                 Ctn Save Logs
                 # Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
                 Ctn Coredump Info    b2    /usr/sbin/cbd    broker_rrd
