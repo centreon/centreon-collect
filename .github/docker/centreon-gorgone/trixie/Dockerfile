@@ -98,13 +98,13 @@ ARG STABILITY
 RUN bash -e <<EOF
 groupadd -g 33 www-data 2>/dev/null || true
 groupadd -g 900 centreon
-useradd -u 900 -g centreon -m -r -d /var/spool/centreon -s /bin/bash centreon
+useradd -u 900 -g centreon -m -r -l -d /var/spool/centreon -s /bin/bash centreon
 groupadd -g 901 centreon-engine
-useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -s /bin/bash centreon-engine
+useradd -u 901 -g centreon-engine -m -r -l -d /var/lib/centreon-engine -s /bin/bash centreon-engine
 groupadd -g 902 centreon-broker
-useradd -u 902 -g centreon-broker -m -r -d /var/lib/centreon-broker -s /bin/bash centreon-broker
+useradd -u 902 -g centreon-broker -m -r -l -d /var/lib/centreon-broker -s /bin/bash centreon-broker
 groupadd -g 903 centreon-gorgone
-useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -s /bin/bash centreon-gorgone
+useradd -u 903 -g centreon-gorgone -m -r -l -d /var/lib/centreon-gorgone -s /bin/bash centreon-gorgone
 usermod -aG centreon centreon-gorgone
 usermod -aG www-data centreon-gorgone
 usermod -aG centreon-engine centreon-gorgone
@@ -124,13 +124,12 @@ EOF
 # and install those packages plus runtime dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    bash -e <<'EOF'
+    bash -eo pipefail <<'EOF'
 apt-get update
 apt-get install -y --no-install-recommends gnupg wget ca-certificates
 echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
     > /etc/apt/sources.list.d/centreon-plugins.list
-wget -O- https://apt-key.centreon.com | gpg --dearmor \
-    | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+wget -qO- https://apt-key.centreon.com | gpg --dearmor > /etc/apt/trusted.gpg.d/centreon.gpg
 apt-get update
 apt-get install -y --no-install-recommends \
     libnet-curl-perl \
@@ -172,7 +171,10 @@ apt-get install -y --no-install-recommends \
     wget \
     tzdata \
     ca-certificates \
-    libnetaddr-ip-perl
+    libnetaddr-ip-perl \
+    libprotocol-http2-perl
+apt-get remove -y --purge gnupg
+apt-get autoremove -y
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
 EOF
 
@@ -228,33 +230,11 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
-# Install buf (used as "buf curl") for gRPC-based centengine management
-# (replaces HTTP api_control calls, and grpcurl - grpcurl's only tagged
-# release stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps
-# since March 2025). Unlike grpcurl, buf releases monthly and its binaries
-# are rebuilt with a current Go toolchain each time (v1.71.0 verified
-# locally: built with Go 1.26.4), so downloading it is as fresh as building
-# from source - without the multi-minutes-under-QEMU cost of compiling Go
-# for arm64 in CI.
-RUN bash -e <<'EOF'
-ARCH=$(dpkg --print-architecture)
-case "$ARCH" in
-    amd64) BUF_ARCH="x86_64" ;;
-    arm64) BUF_ARCH="aarch64" ;;
-    *) echo "Unsupported arch: $ARCH" && exit 1 ;;
-esac
-curl -sSL -o /usr/local/bin/buf \
-    "https://github.com/bufbuild/buf/releases/download/v1.71.0/buf-Linux-${BUF_ARCH}"
-chmod +x /usr/local/bin/buf
-mkdir -p /usr/share/centreon-engine/proto
-EOF
-
-# Copy engine proto definitions for buf curl (no reflection API on centengine)
-COPY --link --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
-COPY --link --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
-
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
+# gRPC client for the systemctl shim's centengine SignalProcess call (replaces
+# shelling out to the buf Go binary - see grpc-signal.pl for why).
+COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/grpc-signal.pl /usr/local/lib/centreon-gorgone/grpc-signal.pl
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/entrypoint /usr/local/lib/centreon-gorgone/
 COPY --link --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/centreon /etc/sudoers.d/centreon
 COPY --link --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
@@ -273,6 +253,24 @@ RUN echo "=== Verification ===" && \
     perl -c /usr/bin/gorgoned && \
     echo "=== Files verified ==="
 
+# OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
+ARG BUILD_DATE
+ARG BUILD_VERSION=unknown
+ARG PACKAGE_SOURCES=unknown
+ARG GIT_REVISION=unknown
+
+LABEL org.opencontainers.image.title="Centreon Gorgone" \
+      org.opencontainers.image.description="Centreon Gorgone task orchestration and remote execution daemon" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.revision="${GIT_REVISION}" \
+      org.opencontainers.image.source="https://github.com/centreon/centreon-collect" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.vendor="Centreon" \
+      org.centreon.package-sources="${PACKAGE_SOURCES}" \
+      org.centreon.base-image="debian:13-slim" \
+      org.centreon.release-stage="beta"
+
 # Set the working directory
 WORKDIR /etc/centreon-gorgone/
 
@@ -280,7 +278,7 @@ USER centreon-gorgone
 
 # container.d/99-logs.sh touches this file once every startup script has run.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
-    CMD test -f /tmp/docker.ready
+    CMD test -f /tmp/docker.ready || exit 1
 
 ENTRYPOINT ["/usr/local/lib/centreon-gorgone/container.sh"]
 
