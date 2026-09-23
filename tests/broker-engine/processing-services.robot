@@ -73,7 +73,7 @@ BEPS2
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
@@ -126,7 +126,7 @@ BEPS3
     Ctn Config Broker    central
     Ctn Config Broker    module    ${5}
     Ctn Config BBDO3    ${5}
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    core    debug
     Ctn Clear Retention
@@ -192,15 +192,20 @@ BEPS3R
     Ctn Config Broker    module    ${5}
     Ctn Config BBDO3    ${5}
     Ctn Broker Config Source Log    central    1
-    Ctn Broker Config Log    central    sql    trace
-    Ctn Broker Config Log    central    bbdo    trace
-    Ctn Broker Config Log    central    config    trace
-    Ctn Broker Config Log    central    cache    trace
-    Ctn Broker Config Log    module0    core    trace
-    Ctn Broker Config Log    module1    core    trace
-    Ctn Broker Config Log    module2    core    trace
-    Ctn Broker Config Log    module3    core    trace
-    Ctn Broker Config Log    module4    core    trace
+    Ctn Broker Config Log    central    sql    debug
+    # Ctn Broker Config Log    central    bbdo    trace
+    # Ctn Broker Config Log    central    config    trace
+    # Ctn Broker Config Log    central    cache    trace
+    # Ctn Broker Config Log    module0    core    trace
+    # Ctn Broker Config Log    module1    core    trace
+    # Ctn Broker Config Log    module2    core    trace
+    # Ctn Broker Config Log    module3    core    trace
+    # Ctn Broker Config Log    module4    core    trace
+    # Ctn Broker Config Log    module0    bbdo    trace
+    # Ctn Broker Config Log    module1    bbdo    trace
+    # Ctn Broker Config Log    module2    bbdo    trace
+    # Ctn Broker Config Log    module3    bbdo    trace
+    # Ctn Broker Config Log    module4    bbdo    trace
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
@@ -286,7 +291,7 @@ BEPS4
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
