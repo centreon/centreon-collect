@@ -4428,8 +4428,8 @@ def ctn_broker_delete_downtime(downtime_id: int, port: int = 51001):
     """
     with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         stub = broker_pb2_grpc.BrokerStub(channel)
-        req = broker_pb2.GenericNameOrIndex()
-        req.idx = int(downtime_id)
+        req = broker_pb2.DowntimeIdentifier()
+        req.downtime_id = int(downtime_id)
         stub.DeleteDowntime(req, timeout=GRPC_TIMEOUT)
 
 
@@ -4590,6 +4590,141 @@ def ctn_check_resource_acknowledged_with_timeout(hostname: str, service_desc: st
         time.sleep(1)
     logger.console(f"resources.acknowledged of ({hostname}, {service_desc}) is not {expected}")
     return False
+
+
+def ctn_broker_add_host_comment(hostname: str, persistent: bool = False,
+                                user: str = "robot", comment: str = "Robot host comment",
+                                port: int = 51001) -> int:
+    """
+    Add a user comment on a host via the Broker gRPC AddHostComment endpoint.
+    Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        persistent: True to keep the comment across Engine restarts.
+        user: The comment author.
+        comment: The comment text.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The internal_id of the created comment.
+
+    *Example:*
+
+    | ${id}    Ctn Broker Add Host Comment    host_1    persistent=${True} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostCommentRequest()
+        req.host.host_name = hostname
+        req.user = user
+        req.comment_data = comment
+        req.persistent = bool(persistent)
+        return stub.AddHostComment(req, timeout=GRPC_TIMEOUT).internal_id
+
+
+def ctn_broker_add_service_comment(hostname: str, service_desc: str, persistent: bool = False,
+                                   user: str = "robot", comment: str = "Robot service comment",
+                                   port: int = 51001) -> int:
+    """
+    Add a user comment on a service via the Broker gRPC AddServiceComment
+    endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        persistent: True to keep the comment across Engine restarts.
+        user: The comment author.
+        comment: The comment text.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The internal_id of the created comment.
+
+    *Example:*
+
+    | ${id}    Ctn Broker Add Service Comment    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceCommentRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.user = user
+        req.comment_data = comment
+        req.persistent = bool(persistent)
+        return stub.AddServiceComment(req, timeout=GRPC_TIMEOUT).internal_id
+
+
+def ctn_broker_delete_comment(internal_id: int, port: int = 51001) -> str:
+    """
+    Delete a comment by internal_id via the Broker gRPC DeleteComment endpoint.
+    Requires notification_mode = broker.
+
+    Args:
+        internal_id: The comment internal_id (as returned by Ctn Broker Add * Comment).
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        An empty string on success, the gRPC status code name otherwise
+        (e.g. FAILED_PRECONDITION for a comment not minted by Broker).
+
+    *Example:*
+
+    | ${err}    Ctn Broker Delete Comment    ${id} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.CommentIdentifier()
+        req.internal_id = int(internal_id)
+        try:
+            stub.DeleteComment(req, timeout=GRPC_TIMEOUT)
+        except grpc.RpcError as e:
+            logger.console(f"DeleteComment({internal_id}) failed: {e.code().name}: {e.details()}")
+            return e.code().name
+        return ""
+
+
+def ctn_broker_delete_all_host_comments(hostname: str, port: int = 51001):
+    """
+    Delete every comment of a host via the Broker gRPC DeleteAllHostComments
+    endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Delete All Host Comments    host_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostIdentifier()
+        req.host_name = hostname
+        stub.DeleteAllHostComments(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_delete_all_service_comments(hostname: str, service_desc: str, port: int = 51001):
+    """
+    Delete every comment of a service via the Broker gRPC
+    DeleteAllServiceComments endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Delete All Service Comments    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceIdentifier()
+        req.host_name = hostname
+        req.description = service_desc
+        stub.DeleteAllServiceComments(req, timeout=GRPC_TIMEOUT)
 
 
 def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: int = TIMEOUT):
