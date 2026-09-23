@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -705,6 +705,10 @@ message Acknowledgement {
   uint64 deletion_time = 10;
   bool persistent_comment = 11;
   uint32 state = 12;
+  /* Internal id of the acknowledgement comment when Broker owns the
+   * acknowledgement (notification_mode=broker): needed to delete a
+   * non-persistent comment when the acknowledgement is cleared. */
+  uint64 comment_id = 13;
 }
 
 /* io::neb, neb::de_pb_host_dependency, 21 */

@@ -30,6 +30,7 @@
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
+#include "com/centreon/broker/broker_acknowledgement_manager.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -1473,6 +1474,148 @@ grpc::Status broker_impl::DeleteDowntime(grpc::ServerContext* context
     return grpc::Status(grpc::StatusCode::NOT_FOUND,
                         fmt::format("downtime {} not found", request->idx()));
 
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Acknowledge a host problem (notification_mode = broker). Same
+ * contract as the Engine RPC of the same name.
+ */
+grpc::Status broker_impl::AcknowledgeHostProblem(
+    grpc::ServerContext* context [[maybe_unused]],
+    const AcknowledgementRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!broker_acknowledgement_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Acknowledgement management is not enabled "
+                        "(notification_mode != broker)");
+  auto& cache = config::applier::state::instance().cache();
+  auto h = cache.host(request->host_name());
+  if (!h)
+    return grpc::Status(
+        grpc::StatusCode::NOT_FOUND,
+        fmt::format("could not find host '{}'", request->host_name()));
+
+  std::string err = broker_acknowledgement_manager::instance().acknowledge(
+      h->obj().host_id(), 0, request->ack_author(), request->ack_data(),
+      request->type() == AcknowledgementRequest_Type_STICKY, request->notify(),
+      request->persistent());
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Acknowledge a service problem (notification_mode = broker). Same
+ * contract as the Engine RPC of the same name.
+ */
+grpc::Status broker_impl::AcknowledgeServiceProblem(
+    grpc::ServerContext* context [[maybe_unused]],
+    const AcknowledgementRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!broker_acknowledgement_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Acknowledgement management is not enabled "
+                        "(notification_mode != broker)");
+  auto& cache = config::applier::state::instance().cache();
+  auto s = cache.service(request->host_name(), request->service_desc());
+  if (!s)
+    return grpc::Status(
+        grpc::StatusCode::NOT_FOUND,
+        fmt::format("could not find service '{}' on host '{}'",
+                    request->service_desc(), request->host_name()));
+
+  std::string err = broker_acknowledgement_manager::instance().acknowledge(
+      s->obj().host_id(), s->obj().service_id(), request->ack_author(),
+      request->ack_data(),
+      request->type() == AcknowledgementRequest_Type_STICKY, request->notify(),
+      request->persistent());
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Remove a host acknowledgement (notification_mode = broker).
+ */
+grpc::Status broker_impl::RemoveHostAcknowledgement(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!broker_acknowledgement_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Acknowledgement management is not enabled "
+                        "(notification_mode != broker)");
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_host> h;
+  switch (request->host_case()) {
+    case HostIdentifier::kHostName:
+      h = cache.host(request->host_name());
+      break;
+    case HostIdentifier::kHostId:
+      h = cache.host(request->host_id());
+      break;
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "host_name or host_id must be set");
+  }
+  if (!h)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
+
+  std::string err =
+      broker_acknowledgement_manager::instance().remove(h->obj().host_id(), 0);
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Remove a service acknowledgement (notification_mode = broker).
+ */
+grpc::Status broker_impl::RemoveServiceAcknowledgement(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!broker_acknowledgement_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Acknowledgement management is not enabled "
+                        "(notification_mode != broker)");
+  auto& cache = config::applier::state::instance().cache();
+
+  std::shared_ptr<neb::pb_host> h;
+  switch (request->host_case()) {
+    case ServiceIdentifier::kHostName:
+      h = cache.host(request->host_name());
+      break;
+    case ServiceIdentifier::kHostId:
+      h = cache.host(request->host_id());
+      break;
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "host_name or host_id must be set");
+  }
+  if (!h)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
+
+  std::shared_ptr<neb::pb_service> s;
+  switch (request->service_case()) {
+    case ServiceIdentifier::kDescription:
+      s = cache.service(h->obj().name(), request->description());
+      break;
+    case ServiceIdentifier::kServiceId:
+      s = cache.service(h->obj().host_id(), request->service_id());
+      break;
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "description or service_id must be set");
+  }
+  if (!s)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find service");
+
+  std::string err = broker_acknowledgement_manager::instance().remove(
+      s->obj().host_id(), s->obj().service_id());
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
   return grpc::Status::OK;
 }
 

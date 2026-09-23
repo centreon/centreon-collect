@@ -26,9 +26,9 @@
 #include <boost/asio/post.hpp>
 
 #include "bbdo/bbdo.pb.h"
-#include "bbdo/neb.pb.h"
-#include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "broker/core/config/applier/broker_notification_callbacks.hh"
+#include "com/centreon/broker/broker_acknowledgement_manager.hh"
+#include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
@@ -152,6 +152,7 @@ broker_state::~broker_state() {
     config::applier::state::instance().cache().set_notification_states(
         std::move(states));
   }
+  broker_acknowledgement_manager::unload();
   com::centreon::common::downtimes::downtime_manager::unload();
   com::centreon::common::notifications::notification_manager::unload();
 }
@@ -196,6 +197,13 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
     logger->info(
         "notification_mode=broker: notification decision enabled, "
         "notification manager loaded");
+
+    /* Broker is also the acknowledgement authority: Engine is never told about
+     * acknowledgements, Broker stores, exports and clears them itself. */
+    broker_acknowledgement_manager::load();
+    logger->info(
+        "notification_mode=broker: acknowledgement management enabled, "
+        "acknowledgement manager loaded");
 
     /* Register the notification trigger as an event_sink on the multiplexing
      * engine: it drives the notification_manager on each host/service status
@@ -259,6 +267,7 @@ void broker_state::_on_barrier_released() {
   if (_notification_mode == notification_mode_broker) {
     cache().reinject_pending_downtimes();
     cache().reinject_pending_notification_states();
+    cache().reinject_pending_acknowledgements();
   }
 }
 

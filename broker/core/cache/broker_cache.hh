@@ -720,6 +720,15 @@ class broker_cache {
       uint64_t service_id,
       AckType ack_type,
       uint16_t state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  template <typename T, typename Index, typename Iterator>
+  std::optional<AckType> _restore_acknowledgement_type(Index& index,
+                                                       Iterator it,
+                                                       uint64_t host_id,
+                                                       uint64_t service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  static void _publish_ack_type(uint64_t host_id,
+                                uint64_t service_id,
+                                AckType type);
   void _insert_host_notif_dep(
       const com::centreon::engine::configuration::Hostdependency& dep,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
@@ -1020,6 +1029,15 @@ class broker_cache {
   void update_acknowledgement(
       const std::shared_ptr<neb::pb_acknowledgement>& ack)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  std::shared_ptr<neb::pb_acknowledgement> acknowledgement(
+      uint64_t host_id,
+      uint64_t service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::shared_ptr<neb::pb_acknowledgement> set_acknowledgement_type(
+      uint64_t host_id,
+      uint64_t service_id,
+      AckType type,
+      std::optional<uint16_t> state = std::nullopt) ABSL_LOCKS_EXCLUDED(_mutex);
+  void reinject_pending_acknowledgements() ABSL_LOCKS_EXCLUDED(_mutex);
 };
 }  // namespace cache
 }  // namespace com::centreon::broker

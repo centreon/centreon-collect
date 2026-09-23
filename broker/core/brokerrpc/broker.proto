@@ -1,3 +1,20 @@
+/**
+ * Copyright 2020-2026 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
@@ -228,6 +245,39 @@ service Broker {
   rpc DeleteDowntime(GenericNameOrIndex) returns (google.protobuf.Empty) {}
 
   /**
+   * @brief Acknowledge a host problem (notification_mode = broker).
+   *
+   * Same request fields as the Engine AcknowledgementHostProblem RPC, so PHP
+   * only has to switch the gRPC target (and the RPC name) when Broker owns the
+   * acknowledgements. Only available when notification_mode = broker; the host
+   * must be in a problem state.
+   */
+  rpc AcknowledgeHostProblem(AcknowledgementRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Acknowledge a service problem (notification_mode = broker).
+   *
+   * Same request fields as the Engine AcknowledgementServiceProblem RPC.
+   */
+  rpc AcknowledgeServiceProblem(AcknowledgementRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Remove a host acknowledgement (notification_mode = broker).
+   */
+  rpc RemoveHostAcknowledgement(HostIdentifier)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Remove a service acknowledgement (notification_mode = broker).
+   * The service is identified by the Broker ServiceIdentifier (host by name
+   * or id, service by description or id).
+   */
+  rpc RemoveServiceAcknowledgement(ServiceIdentifier)
+      returns (google.protobuf.Empty) {}
+
+  /**
    * @brief Validate an Engine poller configuration directory without applying
    * it. The directory holds centengine.cfg and the .cfg files PHP generated.
    *
@@ -347,13 +397,31 @@ message GenericSize {
   uint32 size = 1;
 }
 
-// 1 => access by name
-// 2 => access by index
-// not set => all elems
+message AcknowledgementRequest {
+  string host_name = 1;
+  string service_desc = 2;
+  string ack_author = 3;
+  string ack_data = 4;
+  enum Type {
+    NORMAL = 0;
+    STICKY = 1;
+  }
+  Type type = 5;
+  bool notify = 6;
+  bool persistent = 7;
+}
+
 message GenericNameOrIndex {
   oneof nameOrIndex {
     string str = 1;
     uint64 idx = 2;
+  }
+}
+
+message HostIdentifier {
+  oneof host {
+    string host_name = 1;
+    uint64 host_id = 2;
   }
 }
 

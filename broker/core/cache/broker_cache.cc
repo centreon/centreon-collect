@@ -2228,6 +2228,51 @@ void broker_cache::update_metric_mapping(
 }
 
 /**
+ * @brief Restore the acknowledgement type Broker owns on a freshly stored
+ * host/service definition (notification_mode=broker).
+ *
+ * The definitions Engine sends know nothing about the acknowledgements in that
+ * mode, so inserting or replacing one in the cache would reset the flag. When
+ * the cache holds an open acknowledgement for the resource, its type (STICKY or
+ * NORMAL) is set back on the stored entry. The entry is modified copy-on-write
+ * because the incoming event is shared with the output streams. Must be called
+ * with the cache write lock held. No-op in notification_mode=engine.
+ *
+ * @tparam T        The stored event type (neb::pb_host or neb::pb_service).
+ * @tparam Index    The multi-index view @a it belongs to.
+ * @tparam Iterator An iterator type of @a Index.
+ *
+ * @param index      The by_id index the entry was inserted into.
+ * @param it         Iterator to the entry just inserted or replaced.
+ * @param host_id    The host id of the resource.
+ * @param service_id The service id, 0 for a host.
+ *
+ * @return The restored type when a flag was restored, so the caller publishes
+ * the matching adaptive status once the lock is released; std::nullopt
+ * otherwise.
+ */
+template <typename T, typename Index, typename Iterator>
+std::optional<AckType> broker_cache::_restore_acknowledgement_type(
+    Index& index,
+    Iterator it,
+    uint64_t host_id,
+    uint64_t service_id) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return std::nullopt;
+  auto ack = _acknowledgements.find({host_id, service_id});
+  if (ack == _acknowledgements.end() || ack->second->obj().deletion_time() != 0)
+    return std::nullopt;
+  const AckType type =
+      ack->second->obj().sticky() ? AckType::STICKY : AckType::NORMAL;
+  if ((*it)->obj().acknowledgement_type() == type)
+    return std::nullopt;
+  mutable_entry<T> entry{*it};
+  entry->mut_obj().set_acknowledgement_type(type);
+  entry.commit(index, it);
+  return type;
+}
+
+/**
  * @brief Add a host to the cache (used in legacy mode).
  *
  * @param host The host to add
@@ -2235,20 +2280,35 @@ void broker_cache::update_metric_mapping(
 void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
   if (!section_enabled(CACHE_HOSTS))
     return;
-  absl::WriterMutexLock l{&_mutex};
-  auto& index = _hosts.get<by_id>();
-  auto& h = host->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "Processing host '{}' of id {} enabled {}",
-                      h.name(), h.host_id(), h.enabled());
-  auto it = index.find(h.host_id());
-  if (h.enabled()) {
-    if (it != index.end())
-      index.replace(it, host);
-    else
-      index.insert(host);
-  } else {
-    if (it != index.end())
-      index.erase(it);
+  std::optional<AckType> restored_ack;
+  {
+    absl::WriterMutexLock l{&_mutex};
+    auto& index = _hosts.get<by_id>();
+    auto& h = host->obj();
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing host '{}' of id {} enabled {}",
+                        h.name(), h.host_id(), h.enabled());
+    auto it = index.find(h.host_id());
+    if (h.enabled()) {
+      if (it != index.end())
+        index.replace(it, host);
+      else
+        it = index.insert(host).first;
+      /* Broker owns the acknowledgements: the definition Engine sends knows
+       * nothing about them, restore the flag from the cached acknowledgement
+       * (COW: the incoming event is shared with the output streams). */
+      restored_ack = _restore_acknowledgement_type<neb::pb_host>(
+          index, it, h.host_id(), 0);
+    } else {
+      if (it != index.end())
+        index.erase(it);
+    }
+  }
+  if (restored_ack) {
+    const auto& obj = host->obj();
+    SPDLOG_LOGGER_INFO(_logger,
+                       "broker_cache: acknowledgement flag restored on host {}",
+                       obj.host_id());
+    _publish_ack_type(obj.host_id(), 0, *restored_ack);
   }
 }
 
@@ -2262,7 +2322,7 @@ void broker_cache::update_host(
   if (!section_enabled(CACHE_HOSTS))
     return;
 
-  auto& hs = status->obj();
+  const auto& hs = status->obj();
   uint64_t host_id = hs.host_id();
   bool updated = false;
   std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
@@ -2299,7 +2359,12 @@ void broker_cache::update_host(
       hst.set_no_more_notifications(hs.no_more_notifications());
       hst.set_last_notification(hs.last_notification());
       hst.set_next_host_notification(hs.next_host_notification());
-      hst.set_acknowledgement_type(hs.acknowledgement_type());
+      /* When Broker owns the acknowledgements (notification_mode=broker),
+       * Engine knows nothing about them and always reports NONE: the cached
+       * type is authoritative (broker_acknowledgement_manager). */
+      if (!com::centreon::common::notifications::notification_manager::
+              is_loaded())
+        hst.set_acknowledgement_type(hs.acknowledgement_type());
       /* When Broker owns downtime management, the cached depth is authoritative
        * (maintained by broker_downtime_callbacks); don't let an Engine status
        * overwrite it. */
@@ -2455,23 +2520,38 @@ void broker_cache::update_host(
 void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
   if (!section_enabled(CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{&_mutex};
+  std::optional<AckType> restored_ack;
+  {
+    absl::WriterMutexLock l{&_mutex};
 
-  auto& index = _services.get<by_id>();
-  auto& s = svc->obj();
-  SPDLOG_LOGGER_DEBUG(
-      _logger, "Processing service ({}, {}) (description:{}) enabled {}",
-      s.host_id(), s.service_id(), s.description(), s.enabled());
+    auto& index = _services.get<by_id>();
+    auto& s = svc->obj();
+    SPDLOG_LOGGER_DEBUG(
+        _logger, "Processing service ({}, {}) (description:{}) enabled {}",
+        s.host_id(), s.service_id(), s.description(), s.enabled());
 
-  auto it = index.find(std::make_pair(s.host_id(), s.service_id()));
-  if (s.enabled()) {
-    if (it != index.end())
-      index.replace(it, svc);
-    else
-      index.insert(svc);
-  } else {
-    if (it != index.end())
-      index.erase(it);
+    auto it = index.find(std::make_pair(s.host_id(), s.service_id()));
+    if (s.enabled()) {
+      if (it != index.end())
+        index.replace(it, svc);
+      else
+        it = index.insert(svc).first;
+      /* Same as update_host(pb_host): restore the acknowledgement flag Broker
+       * owns on the definition Engine sends. */
+      restored_ack = _restore_acknowledgement_type<neb::pb_service>(
+          index, it, s.host_id(), s.service_id());
+    } else {
+      if (it != index.end())
+        index.erase(it);
+    }
+  }
+  if (restored_ack) {
+    const auto& obj = svc->obj();
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "broker_cache: acknowledgement flag restored on service ({}, {})",
+        obj.host_id(), obj.service_id());
+    _publish_ack_type(obj.host_id(), obj.service_id(), *restored_ack);
   }
 }
 
@@ -2533,7 +2613,12 @@ void broker_cache::update_service(
     svc.set_no_more_notifications(obj.no_more_notifications());
     svc.set_last_notification(obj.last_notification());
     svc.set_next_notification(obj.next_notification());
-    svc.set_acknowledgement_type(obj.acknowledgement_type());
+    /* When Broker owns the acknowledgements (notification_mode=broker), Engine
+     * knows nothing about them and always reports NONE: the cached type is
+     * authoritative (broker_acknowledgement_manager). */
+    if (!com::centreon::common::notifications::notification_manager::
+            is_loaded())
+      svc.set_acknowledgement_type(obj.acknowledgement_type());
     /* When Broker owns downtime management, the cached scheduled_downtime_depth
      * is authoritative (maintained by broker_downtime_callbacks). A status from
      * Engine must not overwrite it. */
@@ -2590,6 +2675,156 @@ void broker_cache::update_acknowledgement(
  *
  * @return A vector with one shared_ptr per cached acknowledgement.
  */
+/**
+ * @brief Return the open acknowledgement of a resource, if any.
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id, 0 for a host acknowledgement.
+ *
+ * @return The cached acknowledgement event, or nullptr.
+ */
+std::shared_ptr<neb::pb_acknowledgement> broker_cache::acknowledgement(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _acknowledgements.find({host_id, service_id});
+  return it == _acknowledgements.end() ? nullptr : it->second;
+}
+
+/**
+ * @brief Set the acknowledgement type of a cached host/service
+ * (notification_mode=broker: Broker is the acknowledgement authority).
+ *
+ * The change is synchronous so a notification decision taken right after sees
+ * it. Setting NONE also applies the closing rule of
+ * _take_expired_acknowledgement(): the caller must publish the returned event,
+ * if any.
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id, 0 for a host.
+ * @param type       The new acknowledgement type.
+ * @param state      The state to apply the closing rule with; the cached state
+ *                   when not provided.
+ *
+ * @return The acknowledgement to publish (deletion_time set), or nullptr.
+ */
+std::shared_ptr<neb::pb_acknowledgement> broker_cache::set_acknowledgement_type(
+    uint64_t host_id,
+    uint64_t service_id,
+    AckType type,
+    std::optional<uint16_t> state) {
+  absl::WriterMutexLock l{&_mutex};
+  uint16_t st = 0;
+  if (service_id == 0) {
+    auto& index = _hosts.get<by_id>();
+    auto found = index.find(host_id);
+    if (found == index.end())
+      return nullptr;
+    mutable_entry<neb::pb_host> entry{*found};
+    entry->mut_obj().set_acknowledgement_type(type);
+    st = static_cast<uint16_t>(entry->obj().state());
+    entry.commit(index, found);
+  } else {
+    auto& index = _services.get<by_id>();
+    auto found = index.find(std::make_pair(host_id, service_id));
+    if (found == index.end())
+      return nullptr;
+    mutable_entry<neb::pb_service> entry{*found};
+    entry->mut_obj().set_acknowledgement_type(type);
+    st = static_cast<uint16_t>(entry->obj().state());
+    entry.commit(index, found);
+  }
+  return _take_expired_acknowledgement(host_id, service_id, type,
+                                       state.value_or(st));
+}
+
+/**
+ * @brief Restore the acknowledgement type of the cached hosts/services from
+ * the persisted acknowledgements (notification_mode=broker).
+ *
+ * After a Broker restart the hosts/services are rebuilt from the configuration
+ * with acknowledgement_type NONE while the acknowledgements themselves survive
+ * in the cache file; and Engine, which ignores them in this mode, cannot
+ * restore the flag through its statuses. Called where the downtimes are
+ * re-injected. No-op in notification_mode=engine.
+ */
+void broker_cache::reinject_pending_acknowledgements() {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return;
+  /* (host_id, service_id, type) restored under the lock, published after. */
+  std::vector<std::tuple<uint64_t, uint64_t, AckType>> restored;
+  {
+    absl::WriterMutexLock l{&_mutex};
+    /* At most one entry per cached acknowledgement. */
+    restored.reserve(_acknowledgements.size());
+    for (const auto& [key, ack] : _acknowledgements) {
+      const auto& o = ack->obj();
+      if (o.deletion_time() != 0)
+        continue;
+      const AckType type = o.sticky() ? AckType::STICKY : AckType::NORMAL;
+      if (key.second == 0) {
+        auto& index = _hosts.get<by_id>();
+        auto found = index.find(key.first);
+        if (found == index.end() ||
+            (*found)->obj().acknowledgement_type() == type)
+          continue;
+        mutable_entry<neb::pb_host> entry{*found};
+        entry->mut_obj().set_acknowledgement_type(type);
+        entry.commit(index, found);
+      } else {
+        auto& index = _services.get<by_id>();
+        auto found = index.find(key);
+        if (found == index.end() ||
+            (*found)->obj().acknowledgement_type() == type)
+          continue;
+        mutable_entry<neb::pb_service> entry{*found};
+        entry->mut_obj().set_acknowledgement_type(type);
+        entry.commit(index, found);
+      }
+      restored.emplace_back(key.first, key.second, type);
+    }
+  }
+  if (restored.empty())
+    return;
+  SPDLOG_LOGGER_INFO(_logger,
+                     "broker_cache: {} acknowledgement flag(s) restored on "
+                     "cached resources",
+                     restored.size());
+  /* Re-assert the flag in the database too: the definitions that rebuilt the
+   * resources were written with acknowledged=0. */
+  for (const auto& [host_id, service_id, type] : restored)
+    _publish_ack_type(host_id, service_id, type);
+}
+
+/**
+ * @brief Publish the acknowledgement type of a resource through an adaptive
+ * status (pb_adaptive_host_status or pb_adaptive_service_status carrying only
+ * acknowledgement_type), so unified_sql re-aligns hosts/services/resources on
+ * the cache. Must be called without the cache lock held: the publisher hands
+ * the event to the multiplexing engine, which feeds it back to the cache.
+ *
+ * @param host_id    The host id of the resource.
+ * @param service_id The service id, 0 for a host.
+ * @param type       The acknowledgement type to publish.
+ */
+void broker_cache::_publish_ack_type(uint64_t host_id,
+                                     uint64_t service_id,
+                                     AckType type) {
+  multiplexing::publisher pblshr;
+  if (service_id == 0) {
+    auto ev = std::make_shared<neb::pb_adaptive_host_status>();
+    ev->mut_obj().set_host_id(host_id);
+    ev->mut_obj().set_acknowledgement_type(type);
+    pblshr.write(ev);
+  } else {
+    auto ev = std::make_shared<neb::pb_adaptive_service_status>();
+    ev->mut_obj().set_host_id(host_id);
+    ev->mut_obj().set_service_id(service_id);
+    ev->mut_obj().set_acknowledgement_type(type);
+    pblshr.write(ev);
+  }
+}
+
 std::vector<std::shared_ptr<neb::pb_acknowledgement>>
 broker_cache::acknowledgements() const {
   absl::ReaderMutexLock lck{&_mutex};
@@ -4604,7 +4839,8 @@ void broker_cache::_save_cache() {
 }
 
 /**
- * @brief Store the started downtimes to persist on the next cache save. Called by broker_state at shutdown, before the downtime_manager is unloaded.
+ * @brief Store the started downtimes to persist on the next cache save. Called
+ * by broker_state at shutdown, before the downtime_manager is unloaded.
  *
  * @param downtimes The vector of started downtimes to save.
  */

@@ -31,6 +31,7 @@
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -2150,6 +2151,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
    * touch them (bind NULL -> COALESCE keeps Broker's value). */
   const bool broker_owns_downtimes =
       com::centreon::common::downtimes::downtime_manager::is_loaded();
+  /* Same for the acknowledgements: in notification_mode=broker Engine always
+   * reports NONE, Broker's value must be kept (NULL -> COALESCE). */
+  const bool broker_owns_acks =
+      com::centreon::common::notifications::notification_manager::is_loaded();
 
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: pb host {} status check result output: "
@@ -2229,8 +2234,14 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         b->set_value_as_i64(23, hscr.next_host_notification(),
                             mapping::entry::invalid_on_zero);
-        b->set_value_as_bool(24, hscr.acknowledgement_type() != AckType::NONE);
-        b->set_value_as_i32(25, hscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          b->set_null_bool(24);
+          b->set_null_i32(25);
+        } else {
+          b->set_value_as_bool(24,
+                               hscr.acknowledgement_type() != AckType::NONE);
+          b->set_value_as_i32(25, hscr.acknowledgement_type());
+        }
         if (broker_owns_downtimes)
           b->set_null_i32(26);
         else
@@ -2283,9 +2294,14 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                                             mapping::entry::invalid_on_zero);
         _hscr_update->bind_value_as_i64_ext(23, hscr.next_host_notification(),
                                             mapping::entry::invalid_on_zero);
-        _hscr_update->bind_value_as_bool(
-            24, hscr.acknowledgement_type() != AckType::NONE);
-        _hscr_update->bind_value_as_i32(25, hscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          _hscr_update->bind_null_bool(24);
+          _hscr_update->bind_null_i32(25);
+        } else {
+          _hscr_update->bind_value_as_bool(
+              24, hscr.acknowledgement_type() != AckType::NONE);
+          _hscr_update->bind_value_as_i32(25, hscr.acknowledgement_type());
+        }
         if (broker_owns_downtimes)
           _hscr_update->bind_null_i32(26);
         else
@@ -2311,7 +2327,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
           b->set_null_bool(3);
         else
           b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
-        b->set_value_as_bool(4, hscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          b->set_null_bool(4);
+        else
+          b->set_value_as_bool(4, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5, hscr.state_type() == HostStatus_StateType_HARD);
         b->set_value_as_u32(6, hscr.check_attempt());
         b->set_value_as_bool(7, hscr.perfdata() != "");
@@ -2336,8 +2355,11 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         else
           _hscr_resources_update->bind_value_as_bool(
               3, hscr.scheduled_downtime_depth() > 0);
-        _hscr_resources_update->bind_value_as_bool(
-            4, hscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          _hscr_resources_update->bind_null_bool(4);
+        else
+          _hscr_resources_update->bind_value_as_bool(
+              4, hscr.acknowledgement_type() != AckType::NONE);
         _hscr_resources_update->bind_value_as_bool(
             5, hscr.state_type() == HostStatus_StateType_HARD);
         _hscr_resources_update->bind_value_as_u32(6, hscr.check_attempt());
@@ -3915,6 +3937,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
    * value instead of overwriting it (which would race with Broker's update). */
   const bool broker_owns_downtimes =
       com::centreon::common::downtimes::downtime_manager::is_loaded();
+  /* Same for the acknowledgements: in notification_mode=broker Engine always
+   * reports NONE, Broker's value must be kept (NULL -> COALESCE). */
+  const bool broker_owns_acks =
+      com::centreon::common::notifications::notification_manager::is_loaded();
 
   SPDLOG_LOGGER_DEBUG(
       _logger_sql,
@@ -3994,8 +4020,14 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         b->set_value_as_i64(24, sscr.next_notification(),
                             mapping::entry::invalid_on_zero);
-        b->set_value_as_bool(25, sscr.acknowledgement_type() != AckType::NONE);
-        b->set_value_as_i32(26, sscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          b->set_null_bool(25);
+          b->set_null_i32(26);
+        } else {
+          b->set_value_as_bool(25,
+                               sscr.acknowledgement_type() != AckType::NONE);
+          b->set_value_as_i32(26, sscr.acknowledgement_type());
+        }
         if (broker_owns_downtimes)
           b->set_null_i32(27);
         else
@@ -4051,9 +4083,14 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                                             mapping::entry::invalid_on_zero);
         _sscr_update->bind_value_as_i64_ext(24, sscr.next_notification(),
                                             mapping::entry::invalid_on_zero);
-        _sscr_update->bind_value_as_bool(
-            25, sscr.acknowledgement_type() != AckType::NONE);
-        _sscr_update->bind_value_as_i32(26, sscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          _sscr_update->bind_null_bool(25);
+          _sscr_update->bind_null_i32(26);
+        } else {
+          _sscr_update->bind_value_as_bool(
+              25, sscr.acknowledgement_type() != AckType::NONE);
+          _sscr_update->bind_value_as_i32(26, sscr.acknowledgement_type());
+        }
         if (broker_owns_downtimes)
           _sscr_update->bind_null_i32(27);
         else
@@ -4089,7 +4126,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           b->set_null_bool(3);
         else
           b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
-        b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          b->set_null_bool(4);
+        else
+          b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5,
                              sscr.state_type() == ServiceStatus_StateType_HARD);
         b->set_value_as_u32(6, sscr.check_attempt());
@@ -4124,8 +4164,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         else
           _sscr_resources_update->bind_value_as_bool(
               3, sscr.scheduled_downtime_depth() > 0);
-        _sscr_resources_update->bind_value_as_bool(
-            4, sscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          _sscr_resources_update->bind_null_bool(4);
+        else
+          _sscr_resources_update->bind_value_as_bool(
+              4, sscr.acknowledgement_type() != AckType::NONE);
         _sscr_resources_update->bind_value_as_bool(
             5, sscr.state_type() == ServiceStatus_StateType_HARD);
         _sscr_resources_update->bind_value_as_u32(6, sscr.check_attempt());
@@ -4532,6 +4575,8 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   /* Same for the persisted notification runtime states (number, timings,
    * notified contacts), so the notification chain resumes after a restart. */
   cache.reinject_pending_notification_states();
+  /* And the acknowledgement flags of the persisted acknowledgements. */
+  cache.reinject_pending_acknowledgements();
 }
 
 /**

@@ -1319,11 +1319,16 @@ void stream::_init_statements() {
       "no_more_notifications=?,"   // 21: no_more_notifications
       "last_notification=?,"       // 22: last_notification
       "next_host_notification=?,"  // 23: next_notification
-      "acknowledged=?,"            // 24: acknowledgement_type != NONE
-      "acknowledgement_type=?,"    // 25: acknowledgement_type
-      // 26: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
-      // keeps the depth already set by Broker instead of overwriting it.
+      // 24, 25: COALESCE so a NULL bind (Broker owns the acknowledgements)
+      // keeps the flag set by Broker.
+      "acknowledged=COALESCE(?,acknowledged),"
+      // 24: acknowledgement_type != NONE
+      "acknowledgement_type=COALESCE(?,acknowledgement_type),"
+      // 25: acknowledgement_type
+      // 26: COALESCE so a NULL bind (Broker owns downtimes) keeps the depth
+      // already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
+      // 26: downtime_depth
       "WHERE host_id=?"  // 27: host_id
   );
 
@@ -1354,11 +1359,16 @@ void stream::_init_statements() {
       "no_more_notifications=?,"   // 22: no_more_notifications
       "last_notification=?,"       // 23: last_notification
       "next_notification=?,"       // 24: next_notification
-      "acknowledged=?,"            // 25: acknowledgement_type != NONE
-      "acknowledgement_type=?,"    // 26: acknowledgement_type
-      // 27: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
+      // COALESCE so a NULL bind (Broker owns the acknowledgements) keeps the
+      // flag set by Broker.
+      "acknowledged=COALESCE(?,acknowledged),"
+                                   // 25: acknowledgement_type != NONE
+      "acknowledgement_type=COALESCE(?,acknowledgement_type),"
+                                   // 26: acknowledgement_type
+      // COALESCE so a NULL bind (Broker owns downtimes)
       // keeps the depth already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
+      // 27: downtime_depth
       "WHERE host_id=? AND service_id=?");  // 28, 29
 
   const std::string hscr_resources_query(
@@ -1369,7 +1379,9 @@ void stream::_init_statements() {
       // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
       // downtimes) keeps the in_downtime flag set by Broker.
       "in_downtime=COALESCE(?,in_downtime),"
-      "acknowledged=?,"               // 4: acknowledgement_type != NONE
+      // 4: acknowledgement. COALESCE so a NULL bind (Broker owns the
+      // acknowledgements) keeps the flag set by Broker.
+      "acknowledged=COALESCE(?,acknowledged),"
       "status_confirmed=?,"           // 5: state_type == HARD
       "check_attempts=?,"             // 6: current_check_attempt
       "has_graph=?,"                  // 7: perfdata != ""
@@ -1388,7 +1400,9 @@ void stream::_init_statements() {
       // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
       // downtimes) keeps the in_downtime flag set by Broker.
       "in_downtime=COALESCE(?,in_downtime),"
-      "acknowledged=?,"               // 4: acknowledgement_type != NONE
+      // 4: acknowledgement. COALESCE so a NULL bind (Broker owns the
+      // acknowledgements) keeps the flag set by Broker.
+      "acknowledged=COALESCE(?,acknowledged),"
       "status_confirmed=?,"           // 5: state_type == HARD
       "check_attempts=?,"             // 6: current_check_attempt
       "has_graph=?,"                  // 7: perfdata != ""
