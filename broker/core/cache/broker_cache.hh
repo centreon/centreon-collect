@@ -18,7 +18,6 @@
 #ifndef CCB_CACHE_BROKER_CACHE_HH
 #define CCB_CACHE_BROKER_CACHE_HH
 #include <absl/base/thread_annotations.h>
-#include <absl/container/btree_set.h>
 #include <absl/container/node_hash_map.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
@@ -33,7 +32,6 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 #include "common/notifications/escalation.hh"
-#include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timeperiod.hh"
 
 namespace com::centreon::engine::configuration {
@@ -847,6 +845,11 @@ class broker_cache {
   void update_metric_mapping(
       const std::shared_ptr<storage::pb_metric_mapping>& mm)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  /* First internal_id of the comments Broker mints (downtime, acknowledgement
+   * and user comments): the range is partitioned away from the per-poller ids
+   * Engine mints, so an id in it identifies its row platform-wide. */
+  static constexpr uint64_t comment_id_base = _downtime_comment_id_base;
+
   void update_host(const std::shared_ptr<neb::pb_host>& host)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_host(const std::shared_ptr<neb::pb_host_status>& status)

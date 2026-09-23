@@ -20,7 +20,6 @@
 #ifndef CCC_TIMEPERIODS_TIMEPERIOD_HH
 #define CCC_TIMEPERIODS_TIMEPERIOD_HH
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "common/engine_conf/timeperiod_helper.hh"

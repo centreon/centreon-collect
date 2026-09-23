@@ -240,9 +240,43 @@ service Broker {
       returns (ScheduleDowntimeResponse) {}
 
   /**
-   * @brief Delete (cancel) a previously scheduled downtime.
+   * @brief Delete (cancel) a previously scheduled downtime, by its id (the
+   * counterpart of Engine's DEL_HOST_DOWNTIME / DEL_SVC_DOWNTIME).
    */
-  rpc DeleteDowntime(GenericNameOrIndex) returns (google.protobuf.Empty) {}
+  rpc DeleteDowntime(DowntimeIdentifier) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Add a user comment on a host (notification_mode = broker), the
+   * counterpart of Engine's AddHostComment. The created comment's internal_id
+   * is returned.
+   */
+  rpc AddHostComment(HostCommentRequest) returns (AddCommentResponse) {}
+
+  /**
+   * @brief Add a user comment on a service (notification_mode = broker), the
+   * counterpart of Engine's AddServiceComment.
+   */
+  rpc AddServiceComment(ServiceCommentRequest) returns (AddCommentResponse) {}
+
+  /**
+   * @brief Delete a comment by its internal_id (notification_mode = broker).
+   * Only comments minted by Broker can be deleted this way: an id minted by a
+   * poller is refused with FAILED_PRECONDITION.
+   */
+  rpc DeleteComment(CommentIdentifier) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Delete every comment of a host (notification_mode = broker), like
+   * Engine's DEL_ALL_HOST_COMMENTS.
+   */
+  rpc DeleteAllHostComments(HostIdentifier) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Delete every comment of a service (notification_mode = broker),
+   * like Engine's DEL_ALL_SVC_COMMENTS.
+   */
+  rpc DeleteAllServiceComments(ServiceIdentifier)
+      returns (google.protobuf.Empty) {}
 
   /**
    * @brief Acknowledge a host problem (notification_mode = broker).
@@ -423,6 +457,36 @@ message HostIdentifier {
     string host_name = 1;
     uint64 host_id = 2;
   }
+}
+
+message DowntimeIdentifier {
+  uint64 downtime_id = 1;
+}
+
+message CommentIdentifier {
+  uint64 internal_id = 1;
+}
+
+/* User comment on a host; same content as Engine's EngineComment, the resource
+ * being identified by name or id like everywhere else in this API. */
+message HostCommentRequest {
+  HostIdentifier host = 1;
+  string user = 2;
+  string comment_data = 3;
+  bool persistent = 4;
+  uint32 entry_time = 5;   // 0: now
+}
+
+message ServiceCommentRequest {
+  ServiceIdentifier service = 1;
+  string user = 2;
+  string comment_data = 3;
+  bool persistent = 4;
+  uint32 entry_time = 5;   // 0: now
+}
+
+message AddCommentResponse {
+  uint64 internal_id = 1;
 }
 
 message ServiceIdentifier {

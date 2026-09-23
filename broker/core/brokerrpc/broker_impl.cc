@@ -25,17 +25,17 @@
 #include <algorithm>
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
 
-#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
+#include "com/centreon/broker/broker_comments.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
 #include "common/crypto/aes256.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
@@ -70,6 +70,85 @@ class capturing_sink
   }
   void flush_() override {}
 };
+
+/**
+ * @brief Resolve a host from a HostIdentifier (name or id) in the Broker
+ * cache. Shared by every RPC that designates a host this way.
+ *
+ * @param id     The identifier.
+ * @param status Set to the gRPC error when the host cannot be resolved.
+ *
+ * @return The cached host, or nullptr (status then tells why).
+ */
+std::shared_ptr<neb::pb_host> resolve_host(const HostIdentifier& id,
+                                           grpc::Status* status) {
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_host> h;
+  switch (id.host_case()) {
+    case HostIdentifier::kHostName:
+      h = cache.host(id.host_name());
+      break;
+    case HostIdentifier::kHostId:
+      h = cache.host(id.host_id());
+      break;
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "host_name or host_id must be set");
+      return nullptr;
+  }
+  if (!h)
+    *status = grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
+  return h;
+}
+
+/**
+ * @brief Resolve a service from a ServiceIdentifier (host by name or id,
+ * service by description or id) in the Broker cache.
+ *
+ * @param id     The identifier.
+ * @param status Set to the gRPC error when the service cannot be resolved.
+ *
+ * @return The cached service, or nullptr (status then tells why).
+ */
+std::shared_ptr<neb::pb_service> resolve_service(const ServiceIdentifier& id,
+                                                 grpc::Status* status) {
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_host> h;
+  switch (id.host_case()) {
+    case ServiceIdentifier::kHostName:
+      h = cache.host(id.host_name());
+      break;
+    case ServiceIdentifier::kHostId:
+      h = cache.host(id.host_id());
+      break;
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "host_name or host_id must be set");
+      return nullptr;
+  }
+  if (!h) {
+    *status = grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
+    return nullptr;
+  }
+  std::shared_ptr<neb::pb_service> s;
+  switch (id.service_case()) {
+    case ServiceIdentifier::kDescription:
+      s = cache.service(h->obj().name(), id.description());
+      break;
+    case ServiceIdentifier::kServiceId:
+      s = cache.service(h->obj().host_id(), id.service_id());
+      break;
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "description or service_id must be set");
+      return nullptr;
+  }
+  if (!s)
+    *status =
+        grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find service");
+  return s;
+}
+
 }  // namespace
 
 broker_impl::broker_impl() {}
@@ -848,56 +927,11 @@ grpc::Status broker_impl::GetService(grpc::ServerContext* context
   if (!cache.section_enabled(cache::broker_cache::CACHE_SERVICES))
     return grpc::Status(grpc::StatusCode::UNAVAILABLE,
                         "Service cache is not enabled in this broker instance");
-  uint64_t host_id = std::numeric_limits<uint64_t>::max();
-  uint64_t service_id = std::numeric_limits<uint64_t>::max();
-  std::string hostname, description;
-  bool by_id = true;
-  switch (request->host_case()) {
-    case ServiceIdentifier::kHostName: {
-      hostname = request->host_name();
-      by_id = false;
-    } break;
-    case ServiceIdentifier::kHostId: {
-      host_id = request->host_id();
-    } break;
-    case ServiceIdentifier::HOST_NOT_SET:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Host must be specified by its ID or by its name");
-  }
-  switch (request->service_case()) {
-    case ServiceIdentifier::kDescription: {
-      description = request->description();
-      by_id = false;
-    } break;
-    case ServiceIdentifier::kServiceId: {
-      service_id = request->service_id();
-    } break;
-    case ServiceIdentifier::SERVICE_NOT_SET:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Service must be specified by its ID or by its name");
-  }
-
-  std::shared_ptr<neb::pb_service> service;
-  if (by_id) {
-    if (host_id == std::numeric_limits<uint64_t>::max() ||
-        service_id == std::numeric_limits<uint64_t>::max()) {
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Both host_id and service_id must be set");
-    }
-    service = cache.service(host_id, service_id);
-  } else {
-    if (hostname.empty() || description.empty()) {
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Both hostname and description must be set");
-    }
-    service = cache.service(hostname, description);
-  }
+  grpc::Status status;
+  auto service = resolve_service(*request, &status);
   if (!service)
-    return grpc::Status(
-        grpc::StatusCode::NOT_FOUND,
-        fmt::format("Service with id '{}:{}' not found", host_id, service_id));
-  else
-    response->CopyFrom(service->obj());
+    return status;
+  response->CopyFrom(service->obj());
   return grpc::Status::OK;
 }
 
@@ -1457,7 +1491,7 @@ grpc::Status broker_impl::ScheduleDowntime(
  */
 grpc::Status broker_impl::DeleteDowntime(grpc::ServerContext* context
                                          [[maybe_unused]],
-                                         const GenericNameOrIndex* request,
+                                         const DowntimeIdentifier* request,
                                          ::google::protobuf::Empty* response
                                          [[maybe_unused]]) {
   if (!downtime_manager::is_loaded())
@@ -1465,15 +1499,137 @@ grpc::Status broker_impl::DeleteDowntime(grpc::ServerContext* context
         grpc::StatusCode::UNAVAILABLE,
         "Downtime management is not enabled (notification_mode != broker)");
 
-  if (request->nameOrIndex_case() != GenericNameOrIndex::kIdx)
+  if (request->downtime_id() == 0)
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        "downtime ID must be provided as idx");
+                        "downtime_id must be set");
 
-  bool ok = downtime_manager::instance().unschedule_downtime(request->idx());
+  bool ok =
+      downtime_manager::instance().unschedule_downtime(request->downtime_id());
   if (!ok)
-    return grpc::Status(grpc::StatusCode::NOT_FOUND,
-                        fmt::format("downtime {} not found", request->idx()));
+    return grpc::Status(
+        grpc::StatusCode::NOT_FOUND,
+        fmt::format("downtime {} not found", request->downtime_id()));
 
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Add a user comment on a host (notification_mode = broker): publish a
+ * USER / EXTERNAL comment and return its internal_id.
+ */
+grpc::Status broker_impl::AddHostComment(grpc::ServerContext* context
+                                         [[maybe_unused]],
+                                         const HostCommentRequest* request,
+                                         AddCommentResponse* response) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Comment management is not enabled "
+                        "(notification_mode != broker)");
+  grpc::Status status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  const time_t entry_time =
+      request->entry_time() ? request->entry_time() : time(nullptr);
+  response->set_internal_id(broker_comments::publish_comment(
+      h->obj().host_id(), 0, h->obj().instance_id(), Comment_EntryType_USER,
+      Comment_Src_EXTERNAL, request->user(), request->comment_data(),
+      request->persistent(), entry_time));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Add a user comment on a service (notification_mode = broker): publish
+ * a USER / EXTERNAL comment and return its internal_id.
+ */
+grpc::Status broker_impl::AddServiceComment(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceCommentRequest* request,
+    AddCommentResponse* response) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Comment management is not enabled "
+                        "(notification_mode != broker)");
+  grpc::Status status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  auto h = config::applier::state::instance().cache().host(s->obj().host_id());
+  const time_t entry_time =
+      request->entry_time() ? request->entry_time() : time(nullptr);
+  response->set_internal_id(broker_comments::publish_comment(
+      s->obj().host_id(), s->obj().service_id(), h ? h->obj().instance_id() : 0,
+      Comment_EntryType_USER, Comment_Src_EXTERNAL, request->user(),
+      request->comment_data(), request->persistent(), entry_time));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Delete a comment by internal_id (notification_mode = broker). Only
+ * ids minted by Broker are accepted: they identify their row platform-wide,
+ * whereas an id minted by a poller would need the poller to be unambiguous.
+ */
+grpc::Status broker_impl::DeleteComment(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const CommentIdentifier* request,
+                                        ::google::protobuf::Empty* response
+                                        [[maybe_unused]]) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Comment management is not enabled "
+                        "(notification_mode != broker)");
+  if (request->internal_id() == 0)
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "internal_id must be set");
+  if (!broker_comments::is_broker_comment_id(request->internal_id()))
+    return grpc::Status(
+        grpc::StatusCode::FAILED_PRECONDITION,
+        fmt::format("comment {} was not created by Broker: delete it "
+                    "through its poller",
+                    request->internal_id()));
+  broker_comments::publish_comment_deletion(request->internal_id(), 0);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Delete every comment of a host (notification_mode = broker).
+ */
+grpc::Status broker_impl::DeleteAllHostComments(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Comment management is not enabled "
+                        "(notification_mode != broker)");
+  grpc::Status status;
+  auto h = resolve_host(*request, &status);
+  if (!h)
+    return status;
+  broker_comments::publish_comments_deletion(h->obj().host_id(), 0,
+                                             h->obj().instance_id());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Delete every comment of a service (notification_mode = broker).
+ */
+grpc::Status broker_impl::DeleteAllServiceComments(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Comment management is not enabled "
+                        "(notification_mode != broker)");
+  grpc::Status status;
+  auto s = resolve_service(*request, &status);
+  if (!s)
+    return status;
+  auto h = config::applier::state::instance().cache().host(s->obj().host_id());
+  broker_comments::publish_comments_deletion(s->obj().host_id(),
+                                             s->obj().service_id(),
+                                             h ? h->obj().instance_id() : 0);
   return grpc::Status::OK;
 }
 
@@ -1546,21 +1702,10 @@ grpc::Status broker_impl::RemoveHostAcknowledgement(
     return grpc::Status(grpc::StatusCode::UNAVAILABLE,
                         "Acknowledgement management is not enabled "
                         "(notification_mode != broker)");
-  auto& cache = config::applier::state::instance().cache();
-  std::shared_ptr<neb::pb_host> h;
-  switch (request->host_case()) {
-    case HostIdentifier::kHostName:
-      h = cache.host(request->host_name());
-      break;
-    case HostIdentifier::kHostId:
-      h = cache.host(request->host_id());
-      break;
-    default:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "host_name or host_id must be set");
-  }
+  grpc::Status status;
+  auto h = resolve_host(*request, &status);
   if (!h)
-    return grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
+    return status;
 
   std::string err =
       broker_acknowledgement_manager::instance().remove(h->obj().host_id(), 0);
@@ -1580,37 +1725,10 @@ grpc::Status broker_impl::RemoveServiceAcknowledgement(
     return grpc::Status(grpc::StatusCode::UNAVAILABLE,
                         "Acknowledgement management is not enabled "
                         "(notification_mode != broker)");
-  auto& cache = config::applier::state::instance().cache();
-
-  std::shared_ptr<neb::pb_host> h;
-  switch (request->host_case()) {
-    case ServiceIdentifier::kHostName:
-      h = cache.host(request->host_name());
-      break;
-    case ServiceIdentifier::kHostId:
-      h = cache.host(request->host_id());
-      break;
-    default:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "host_name or host_id must be set");
-  }
-  if (!h)
-    return grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
-
-  std::shared_ptr<neb::pb_service> s;
-  switch (request->service_case()) {
-    case ServiceIdentifier::kDescription:
-      s = cache.service(h->obj().name(), request->description());
-      break;
-    case ServiceIdentifier::kServiceId:
-      s = cache.service(h->obj().host_id(), request->service_id());
-      break;
-    default:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "description or service_id must be set");
-  }
+  grpc::Status status;
+  auto s = resolve_service(*request, &status);
   if (!s)
-    return grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find service");
+    return status;
 
   std::string err = broker_acknowledgement_manager::instance().remove(
       s->obj().host_id(), s->obj().service_id());

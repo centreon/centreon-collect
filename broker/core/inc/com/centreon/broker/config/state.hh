@@ -19,7 +19,6 @@
 #ifndef CCB_CONFIG_STATE_HH
 #define CCB_CONFIG_STATE_HH
 
-#include <absl/container/btree_map.h>
 
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"

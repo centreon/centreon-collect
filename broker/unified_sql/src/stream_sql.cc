@@ -31,7 +31,6 @@
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -710,7 +709,11 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
         _comments->execute(_mysql, database::mysql_error::store_comment, 0);
     }
     std::string where;
-    if (cmmnt.internal_id() != 0)
+    if (cmmnt.internal_id() != 0 && cmmnt.instance_id() == 0)
+      /* A comment minted by Broker (partitioned, platform-wide id) deleted
+       * through the Broker API: the id alone identifies the row. */
+      where = fmt::format("internal_id={}", cmmnt.internal_id());
+    else if (cmmnt.internal_id() != 0)
       where = fmt::format("internal_id={} AND instance_id={}",
                           cmmnt.internal_id(), cmmnt.instance_id());
     else if (cmmnt.service_id() != 0)
