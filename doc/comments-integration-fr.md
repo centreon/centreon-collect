@@ -230,6 +230,72 @@ rétention ; un ancien fichier de rétention le rebranche via `retention/applier
 
 ---
 
+## Mode `notification_mode = broker` : Broker crée et supprime les commentaires
+
+`broker/core/inc/com/centreon/broker/broker_comments.hh`, `broker/core/src/broker_comments.cc`
+
+Tout ce qui précède décrit le circuit Engine → Broker. En `notification_mode = broker`, Broker
+produit lui-même des commentaires : ceux des downtimes et des acquittements qu'il possède, et,
+depuis les RPC ci-dessous, les commentaires **utilisateur**. Un seul module de fonctions libres,
+`broker_comments`, fabrique les trois événements que unified_sql sait déjà traiter :
+
+| Fonction | Événement `pb_comment` publié | Équivalent Engine |
+|---|---|---|
+| `publish_comment(...)` | commentaire complet, `internal_id` frappé dans la plage Broker, `instance_id` du poller du host | `comment` + `broker_comment_data(ADD)` |
+| `publish_comment_deletion(internal_id, instance_id)` | `internal_id` + `instance_id` + `deletion_time` | `comment::delete_comment(id)` |
+| `publish_comments_deletion(host_id, service_id, instance_id)` | `internal_id = 0` (sentinelle), `host_id`, `service_id`, `deletion_time` | `DEL_ALL_*_COMMENTS` |
+
+`broker_downtime_callbacks` et `broker_acknowledgement_manager` passent par ce module : il n'y a
+plus qu'une façon de construire un commentaire côté Broker.
+
+### RPC
+
+```proto
+rpc AddHostComment(HostCommentRequest) returns (AddCommentResponse) {}
+rpc AddServiceComment(ServiceCommentRequest) returns (AddCommentResponse) {}
+rpc DeleteComment(CommentIdentifier) returns (google.protobuf.Empty) {}
+rpc DeleteAllHostComments(HostIdentifier) returns (google.protobuf.Empty) {}
+rpc DeleteAllServiceComments(ServiceIdentifier) returns (google.protobuf.Empty) {}
+
+message HostCommentRequest {      // même contenu qu'EngineComment, ressource par nom ou id
+  HostIdentifier host = 1; string user = 2; string comment_data = 3;
+  bool persistent = 4; uint32 entry_time = 5;  // 0 : maintenant
+}
+message ServiceCommentRequest {
+  ServiceIdentifier service = 1; string user = 2; string comment_data = 3;
+  bool persistent = 4; uint32 entry_time = 5;
+}
+message AddCommentResponse { uint64 internal_id = 1; }
+message CommentIdentifier  { uint64 internal_id = 1; }
+```
+
+`AddHostComment` / `AddServiceComment` créent un commentaire `USER`, source `EXTERNAL`, et
+renvoient son `internal_id` (Engine ne renvoie rien, PHP relisait l'id en base). Comme les autres
+RPC de ce mode : `UNAVAILABLE` hors mode broker, `NOT_FOUND` si la ressource est inconnue du
+cache, `INVALID_ARGUMENT` si l'identifiant de ressource est vide.
+
+### Suppression par id : la plage d'ids fait office de poller
+
+Engine supprime par `(internal_id, instance_id)` parce que ses ids sont frappés par poller et ne
+sont uniques que par poller. Broker frappe les siens dans une plage partitionnée
+(`broker_cache::comment_id_base`, à partir de `0x3FFFFFFF`) avec un **seul compteur** pour la
+plateforme : un id de cette plage identifie sa ligne à lui seul. `DeleteComment` publie donc une
+suppression avec `instance_id = 0`, et unified_sql, quand `internal_id != 0 && instance_id == 0`,
+filtre sur `internal_id` seul. Un id **en dessous** de la plage est un id de poller : Broker le
+refuse par `FAILED_PRECONDITION` plutôt que de risquer d'atteindre un homonyme d'un autre poller.
+Le seul risque résiduel est la réutilisation d'ids par un Broker qui aurait perdu son fichier de
+cache (le compteur y est persisté).
+
+`DeleteAll*Comments` reprend la sémantique d'Engine : **tous** les commentaires de la ressource
+sont supprimés, quel que soit leur type, y compris ceux de downtime et d'acquittement.
+
+### Tests
+
+`tests/broker-engine/comments-broker.robot` (`BECMTBRK1` à `BECMTBRK3`) : ajout puis suppression
+par id, suppression en masse hôte puis service, refus d'un id frappé par le poller.
+
+---
+
 ## Identité : comment_id vs internal_id
 
 La table `centreon_storage.comments` porte **deux** identifiants :
