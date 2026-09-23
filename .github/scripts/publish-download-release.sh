@@ -48,7 +48,7 @@ write_summary() {
     echo "| | |"
     echo "|---|---|"
     echo "| Repository | \`${WEBAPP_REPO}\` (\`${WEBAPP_BASE}\`) |"
-    echo "| File | \`${out_rel}\` |"
+    echo "| File(s) | $(printf '`%s`, ' "${written_files[@]:-}" | sed 's/, $//') |"
     echo "| Agent catalog | ${catalog_line:-not edited} |"
     echo "| Entries | ${entry_count} |"
     echo "| Branch | \`${BRANCH}\` |"
@@ -60,16 +60,17 @@ write_summary() {
 
 usage() {
   cat <<EOF
-Usage: $SCRIPT_NAME --entries FILE --out-name NAME [options]
+Usage: $SCRIPT_NAME --entries FILE [--out-name NAME] [options]
 
 Required:
   --entries FILE       TSV file, one release entry per line (see below)
-  --out-name NAME      release YAML filename, e.g. 25.10-20260600-alma9.yaml
   --branch NAME        branch to create in $WEBAPP_REPO
   --commit-message MSG commit message
   --pr-title TITLE     pull request title
 
 Optional:
+  --out-name NAME      release YAML filename, e.g. 25.10-20260600-alma9.yaml. Required
+                       unless every entry carries its own out_name column.
   --pr-body-file FILE  pull request body (default: generated)
   --pr-label LABEL     label to apply (default: $PR_LABEL, "" to skip)
   --agent-version V    monitoring agent version whose windows installer is featured on the
@@ -81,10 +82,12 @@ Optional:
   --help
 
 Entry TSV columns (tab-separated, no header):
-  product  train  state  os  version  file  date  md5  size
+  product  train  state  os  version  file  date  md5  size  [s3_uri]  [out_name]
 
-  os may be empty (the windows installer carries an empty one). All entries
-  must belong to the same product group and train.
+  os may be empty (the windows installer carries an empty one). All entries must
+  share one train. s3_uri is ignored here (kept so one TSV shape serves every
+  pipeline); out_name overrides --out-name for that entry, which is what lets one
+  release write several files when its components version independently.
 
 Environment:
   WEBAPP_REPO   target repo (default: centreon/WebApp-download)
@@ -114,11 +117,11 @@ done
 
 [[ -n "$ENTRIES_FILE" ]]    || die "--entries is required (see --help)"
 [[ -f "$ENTRIES_FILE" ]]    || die "entries file not found: $ENTRIES_FILE"
-[[ -n "$OUT_NAME" ]]        || die "--out-name is required"
 [[ -n "$BRANCH" ]]          || die "--branch is required"
 [[ -n "$COMMIT_MESSAGE" ]]  || die "--commit-message is required"
 [[ -n "$PR_TITLE" ]]        || die "--pr-title is required"
-[[ "$OUT_NAME" == *.yaml ]] || die "--out-name must end in .yaml: $OUT_NAME"
+# checked per entry below, since an entry may carry its own out_name instead
+[[ -z "$OUT_NAME" || "$OUT_NAME" == *.yaml ]] || die "--out-name must end in .yaml: $OUT_NAME"
 
 for tool in git curl; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool is required but not installed"
@@ -128,7 +131,7 @@ done
 # Parse and validate entries
 # ---------------------------------------------------------------------------
 # Parallel arrays; bash 4 has no array-of-struct. Index i is one release entry.
-declare -a E_PRODUCT E_TRAIN E_STATE E_OS E_VERSION E_FILE E_DATE E_MD5 E_SIZE
+declare -a E_PRODUCT E_TRAIN E_STATE E_OS E_VERSION E_FILE E_DATE E_MD5 E_SIZE E_OUT_NAME
 entry_count=0
 line_no=0
 
@@ -144,11 +147,15 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
   local_ctx="entry on line $line_no"
   [[ "${#cols[@]}" -ge 9 ]] \
-    || die "$local_ctx: expected 9 or 10 tab-separated columns, got ${#cols[@]}"
+    || die "$local_ctx: expected 9 to 11 tab-separated columns, got ${#cols[@]}"
 
   product="${cols[0]-}"; train="${cols[1]-}";   state="${cols[2]-}"
   os="${cols[3]-}";      version="${cols[4]-}"; file="${cols[5]-}"
   date="${cols[6]-}";    md5="${cols[7]-}";     size="${cols[8]-}"
+  # column 10 is the sidecar uri this fork does not use; 11 is the per-entry output filename
+  entry_out_name="${cols[10]-}"
+  [[ -z "$entry_out_name" || "$entry_out_name" == *.yaml ]] \
+    || die "$local_ctx: out_name must end in .yaml (got '$entry_out_name')"
 
   [[ -n "$product" ]] || die "$local_ctx: product is required"
   [[ -n "$train"   ]] || die "$local_ctx: train is required"
@@ -173,6 +180,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   E_PRODUCT+=("$product"); E_TRAIN+=("$train");   E_STATE+=("$state")
   E_OS+=("$os");           E_VERSION+=("$version"); E_FILE+=("$file")
   E_DATE+=("$date");       E_MD5+=("$md5");       E_SIZE+=("$size")
+  E_OUT_NAME+=("${entry_out_name:-$OUT_NAME}")
   entry_count=$((entry_count + 1))
 done < "$ENTRIES_FILE"
 
@@ -266,30 +274,32 @@ grep -qxF "$train" <<<"$known_trains" || die \
   "train '$train' is not declared in ${WEBAPP_REPO} src/data/catalog.yaml (versions:). Adding a train is a human decision - open a catalog PR first. Known trains: $(tr '\n' ' ' <<<"$known_trains")"
 
 known_products="$(catalog_products)"
-group=""
+# Each entry resolves its own output file: the group comes from the product, the filename from the
+# entry. Entries of one run may therefore legitimately land in different files and different group
+# directories - a release spans packages/ and widgets/ whenever it ships a widget alongside web.
+declare -a E_OUT_REL
+declare -A seen_groups=()
 for i in "${!E_PRODUCT[@]}"; do
   p="${E_PRODUCT[$i]}"
   grep -qxF "$p" <<<"$known_products" || die \
     "product '$p' is not declared in ${WEBAPP_REPO} src/data/catalog.yaml (products:). Adding a product is a human decision - open a catalog PR first."
   g="$(product_group "$p")"
   [[ -n "$g" ]] || die "product '$p' has no group in catalog.yaml"
-  if [[ -z "$group" ]]; then
-    group="$g"
-  elif [[ "$g" != "$group" ]]; then
-    die "all entries must share one product group: '$p' is '$g', expected '$group'"
-  fi
+
+  # The site tab enum and the on-disk folder differ for widgets only.
+  case "$g" in
+    appliances|packages|agent) g_dir="$g" ;;
+    custom)                    g_dir="widgets" ;;
+    *) die "unhandled product group '$g' for '$p' - teach this script its folder" ;;
+  esac
+
+  [[ -n "${E_OUT_NAME[$i]}" ]] || die "entry $i ($p) has no output filename: pass --out-name or an out_name column"
+  E_OUT_REL[$i]="src/data/releases/${g_dir}/${train}/${E_OUT_NAME[$i]}"
+  seen_groups[$g_dir]=1
 done
-log_ok "catalog pre-flight passed (train $train, group $group)"
 
-# The site tab enum and the on-disk folder differ for widgets only.
-case "$group" in
-  appliances|packages|agent) group_dir="$group" ;;
-  custom)                    group_dir="widgets" ;;
-  *) die "unhandled product group '$group' - teach this script its folder" ;;
-esac
-
-out_rel="src/data/releases/${group_dir}/${train}/${OUT_NAME}"
-out_path="$repo_dir/$out_rel"
+mapfile -t OUT_RELS < <(printf '%s\n' "${E_OUT_REL[@]}" | LC_ALL=C sort -u)
+log_ok "catalog pre-flight passed (train $train, group(s) ${!seen_groups[*]}, ${#OUT_RELS[@]} file(s))"
 
 # ---------------------------------------------------------------------------
 # Emit the release YAML
@@ -323,84 +333,106 @@ render_entry() {
 # reading it as empty made it invisible to the supersede check and produced a duplicate row
 yaml_scalar() { sed -n "s/^$2[[:space:]]*[\"']\\?\\(.*[^\"']\\)[\"']\\?[[:space:]]*$/\\1/p" "$1" | head -1; }
 
-chunk_dir="$WORKDIR/chunks"
-mkdir -p "$chunk_dir"
-declare -A chunk_seen
-# set here, not only inside the merge branch: a first publication keeps nothing
-kept=0
-if [[ -f "$out_path" ]]; then
-  # the chunker starts at the first "- ", so anything above it would be dropped on rewrite
-  if head -1 "$out_path" | grep -qv '^- '; then
-    [[ -z "$(head -1 "$out_path" | tr -d '[:space:]')" ]] \
-      || die "$out_rel starts with $(head -1 "$out_path") rather than an entry; rewriting it would drop that line. Update this script for the target repo's new file shape."
-  fi
-  awk -v dir="$chunk_dir" '
-    /^- / { n++; f = sprintf("%s/%04d.existing", dir, n) }
-    n     { print > f }
-  ' "$out_path"
-  for chunk in "$chunk_dir"/*.existing; do
-    [[ -e "$chunk" ]] || continue
-    c_product="$(yaml_scalar "$chunk" '- product:')"
-    c_os="$(yaml_scalar "$chunk" '  os:')"
-    c_version="$(yaml_scalar "$chunk" '  version:')"
-    superseded="false"
-    for i in "${!E_PRODUCT[@]}"; do
-      if [[ "$c_product" == "${E_PRODUCT[$i]}" && "$c_os" == "${E_OS[$i]}" && "$c_version" == "${E_VERSION[$i]}" ]]; then
-        superseded="true"
-        break
+# Written once per output file. A release spans several when its components carry different
+# version numbers, which is the normal case for sources; the agent, being one component, writes one.
+write_output_file() {
+  local out_rel="$1"; shift
+  local -a idx=("$@")
+  local out_path="$repo_dir/$out_rel"
+
+  local chunk_dir
+  chunk_dir="$WORKDIR/chunks/$(tr / _ <<<"$out_rel")"
+  mkdir -p "$chunk_dir"
+  local -A chunk_seen=()
+  # set here, not only inside the merge branch: a first publication keeps nothing
+  local kept=0
+  if [[ -f "$out_path" ]]; then
+    # the chunker starts at the first "- ", so anything above it would be dropped on rewrite
+    if head -1 "$out_path" | grep -qv '^- '; then
+      [[ -z "$(head -1 "$out_path" | tr -d '[:space:]')" ]] \
+        || die "$out_rel starts with $(head -1 "$out_path") rather than an entry; rewriting it would drop that line. Update this script for the target repo's new file shape."
+    fi
+    awk -v dir="$chunk_dir" '
+      /^- / { n++; f = sprintf("%s/%04d.existing", dir, n) }
+      n     { print > f }
+    ' "$out_path"
+    for chunk in "$chunk_dir"/*.existing; do
+      [[ -e "$chunk" ]] || continue
+      c_product="$(yaml_scalar "$chunk" '- product:')"
+      c_os="$(yaml_scalar "$chunk" '  os:')"
+      c_version="$(yaml_scalar "$chunk" '  version:')"
+      local superseded="false"
+      for i in "${idx[@]}"; do
+        if [[ "$c_product" == "${E_PRODUCT[$i]}" && "$c_os" == "${E_OS[$i]}" && "$c_version" == "${E_VERSION[$i]}" ]]; then
+          superseded="true"
+          break
+        fi
+      done
+      if [[ "$superseded" == "true" ]]; then
+        rm -f "$chunk"
+      else
+        mv "$chunk" "${chunk%.existing}.keep"
+        kept=$((kept + 1))
       fi
     done
-    if [[ "$superseded" == "true" ]]; then
-      rm -f "$chunk"
-    else
-      mv "$chunk" "${chunk%.existing}.keep"
-      kept=$((kept + 1))
-    fi
+    log "→ merging into an existing ${out_rel##*/} ($kept entry(ies) kept)"
+  fi
+
+  for i in "${idx[@]}"; do
+    chunk_key="$(printf '%s|%s|%s' "${E_PRODUCT[$i]}" "${E_OS[$i]}" "${E_VERSION[$i]}")"
+    # Two entries sharing a key would silently truncate one into the other. That is exactly how the
+    # inherited product|os key lost 5 of the agent's 14 rows: valid file, passing validation, missing
+    # data. Fail loudly instead, whatever new duplicate axis a future product introduces.
+    [[ -z "${chunk_seen[$chunk_key]:-}" ]] \
+      || die "two entries render to the same key '$chunk_key' - one would overwrite the other. Give them distinct versions, or extend the key."
+    chunk_seen[$chunk_key]=1
+    render_entry "$i" >"$chunk_dir/${chunk_key}.new"
   done
-  log "→ merging into an existing $OUT_NAME ($kept entry(ies) kept)"
-fi
 
-for i in "${!E_PRODUCT[@]}"; do
-  chunk_key="$(printf '%s|%s|%s' "${E_PRODUCT[$i]}" "${E_OS[$i]}" "${E_VERSION[$i]}")"
-  # Two entries sharing a key would silently truncate one into the other. That is exactly how the
-  # inherited product|os key lost 5 of the agent's 14 rows: valid file, passing validation, missing
-  # data. Fail loudly instead, whatever new duplicate axis a future product introduces.
-  [[ -z "${chunk_seen[$chunk_key]:-}" ]] \
-    || die "two entries render to the same key '$chunk_key' - one would overwrite the other. Give them distinct versions, or extend the key."
-  chunk_seen[$chunk_key]=1
-  render_entry "$i" >"$chunk_dir/${chunk_key}.new"
+  mkdir -p "$(dirname "$out_path")"
+  : >"$out_path"
+  # Sort by the rendered product, os then version, matching rm-add-vm.mjs's chunk sort.
+  while IFS= read -r chunk; do
+    cat "$chunk" >>"$out_path"
+  done < <(
+    for chunk in "$chunk_dir"/*.keep "$chunk_dir"/*.new; do
+      [[ -e "$chunk" ]] || continue
+      printf '%s\t%s\t%s\t%s\n' \
+        "$(yaml_scalar "$chunk" '- product:')" \
+        "$(yaml_scalar "$chunk" '  os:')" \
+        "$(yaml_scalar "$chunk" '  version:')" \
+        "$chunk"
+    done | LC_ALL=C sort -t$'\t' -k1,1 -k2,2 -k3,3 | cut -f4
+  )
+
+  # Belt and braces: whatever the keying, the file must hold every kept and every new entry.
+  local written; written=$(grep -c '^- product:' "$out_path" || true)
+  local expected=$((kept + ${#idx[@]}))
+  [[ "$written" -eq "$expected" ]] \
+    || die "$out_rel holds $written entry(ies) but $expected were expected ($kept kept + ${#idx[@]} new). Either entries were lost while assembling the file, or an existing entry does not start with '- product:' and the extractor needs updating for the target repo's rendering."
+
+  # the count alone cannot see a kept entry duplicating a new one, which is what a mis-read
+  # existing row produces; assert the identity is unique in the file that will be committed
+  local dupes; dupes=$(awk '
+    /^- product:/ { p = $0 } /^  os:/ { o = $0 } /^  version:/ { print p "|" o "|" $0 }
+  ' "$out_path" | sort | uniq -d | head -3)
+  [[ -z "$dupes" ]] || die "$out_rel would hold duplicate entries: $dupes"
+
+  log_ok "wrote $out_rel ($written entry(ies))"
+  log "--- $out_rel ---"
+  cat "$out_path"
+  log "--- end ---"
+}
+
+written_files=()
+for out_rel in "${OUT_RELS[@]}"; do
+  idx=()
+  for i in "${!E_OUT_REL[@]}"; do
+    [[ "${E_OUT_REL[$i]}" == "$out_rel" ]] && idx+=("$i")
+  done
+  write_output_file "$out_rel" "${idx[@]}"
+  written_files+=("$out_rel")
 done
-
-mkdir -p "$(dirname "$out_path")"
-: >"$out_path"
-# Sort by the rendered product, os then version, matching rm-add-vm.mjs's chunk sort.
-while IFS= read -r chunk; do
-  cat "$chunk" >>"$out_path"
-done < <(
-  for chunk in "$chunk_dir"/*.keep "$chunk_dir"/*.new; do
-    [[ -e "$chunk" ]] || continue
-    printf '%s\t%s\t%s\t%s\n' \
-      "$(yaml_scalar "$chunk" '- product:')" \
-      "$(yaml_scalar "$chunk" '  os:')" \
-      "$(yaml_scalar "$chunk" '  version:')" \
-      "$chunk"
-  done | LC_ALL=C sort -t$'\t' -k1,1 -k2,2 -k3,3 | cut -f4
-)
-
-# Belt and braces: whatever the keying, the file must hold every kept and every new entry.
-written=$(grep -c '^- product:' "$out_path" || true)
-expected=$((kept + entry_count))
-[[ "$written" -eq "$expected" ]] \
-  || die "$out_rel holds $written entry(ies) but $expected were expected ($kept kept + $entry_count new). Either entries were lost while assembling the file, or an existing entry does not start with '- product:' and the extractor needs updating for the target repo's rendering."
-
-# the count alone cannot see a kept entry duplicating a new one, which is what a mis-read
-# existing row produces; assert the identity is unique in the file that will be committed
-dupes=$(awk '
-  /^- product:/ { p = $0 } /^  os:/ { o = $0 } /^  version:/ { print p "|" o "|" $0 }
-' "$out_path" | sort | uniq -d | head -3)
-[[ -z "$dupes" ]] || die "$out_rel would hold duplicate entries: $dupes"
-
-log_ok "wrote $out_rel ($written entry(ies))"
 
 # ---------------------------------------------------------------------------
 # The Agent tab: catalog.yaml is the only rendered surface for the monitoring agent
@@ -426,9 +458,6 @@ if [[ -n "$AGENT_VERSION" ]]; then
   fi
   log_ok "updated $catalog_rel"
 fi
-log "--- $out_rel ---"
-cat "$out_path"
-log "--- end ---"
 
 # ---------------------------------------------------------------------------
 # Gate on pnpm validate
@@ -485,7 +514,9 @@ if [[ "$DRY_RUN" == "true" ]]; then
   log_skip "[dry-run] would create branch : $BRANCH"
   log_skip "[dry-run] would commit        : $COMMIT_MESSAGE"
   log_skip "[dry-run] would open PR       : $PR_TITLE"
-  log_skip "[dry-run] would target        : ${WEBAPP_REPO} ${WEBAPP_BASE} <- $out_rel"
+  for f in "${written_files[@]}"; do
+    log_skip "[dry-run] would target        : ${WEBAPP_REPO} ${WEBAPP_BASE} <- $f"
+  done
   [[ -n "$AGENT_VERSION" ]] && log_skip "[dry-run] would also commit   : $catalog_rel"
   write_summary "not opened (dry run)"
   log_ok "dry run complete, nothing pushed"
@@ -519,12 +550,12 @@ log "→ committing as $commit_name <$commit_email>"
 if [[ "$branch_exists" != "true" ]]; then
   git checkout --quiet -b "$BRANCH"
 fi
-git add "$out_rel"
+git add "${written_files[@]}"
 [[ -n "$AGENT_VERSION" ]] && git add "$catalog_rel"
 
 if git diff --cached --quiet; then
   write_summary "not opened (no change)"
-  log_skip "no change to commit - $out_rel already matches ${WEBAPP_BASE}"
+  log_skip "no change to commit - the ${#written_files[@]} file(s) already match ${WEBAPP_BASE}"
   exit 0
 fi
 
@@ -537,7 +568,10 @@ if [[ -z "$PR_BODY_FILE" ]]; then
   PR_BODY_FILE="$WORKDIR/pr-body.md"
   {
     printf '## Summary\n'
-    printf -- '- Adds %d release entry(ies) for train `%s` to `%s`\n' "$entry_count" "$train" "$out_rel"
+    printf -- '- Adds %d release entry(ies) for train `%s` to:\n' "$entry_count" "$train"
+    for f in "${written_files[@]}"; do
+      printf -- '  - `%s`\n' "$f"
+    done
     if [[ -n "$AGENT_VERSION" ]]; then
       printf -- '- Features windows installer `%s` on the Agent tab (`%s`)\n' "$AGENT_VERSION" "$catalog_rel"
     fi
