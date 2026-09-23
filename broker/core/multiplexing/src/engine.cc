@@ -386,6 +386,11 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
   std::shared_ptr<muxer> first_muxer;
+  // Keep the other muxers alive here, so that if a muxer loses its last
+  // external owner concurrently, it is only destroyed once _kiew_m is
+  // released below (its destruction unsubscribes it from the engine, which
+  // needs to lock _kiew_m again).
+  std::vector<std::shared_ptr<muxer>> other_muxers;
   std::shared_ptr<detail::callback_caller> cb;
   {
     absl::MutexLock lck(_kiew_m);
@@ -444,6 +449,9 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
               SPDLOG_LOGGER_ERROR(logger, "publish caught unknown exception");
             }
           });
+          // Don't let this shared_ptr be the one whose destruction drops the
+          // muxer's last reference while _kiew_m is still locked below.
+          other_muxers.push_back(std::move(mux_to_publish_in_asio));
         }
       }
     }
