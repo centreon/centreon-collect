@@ -3423,13 +3423,15 @@ def ctn_get_pollers(port, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
+def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT, msg_type: int = 10):
     """
-    Check if a row exists in the logs table with msg_type=10 and ctime >= date.
+    Check if a row exists in the logs table with the given msg_type (10 for a
+    service acknowledgement, 11 for a host one) and ctime >= date.
 
     Args:
         date: The date to check.
         timeout: A timeout in seconds, 30s by default.
+        msg_type: The logs.msg_type to look for (default 10).
 
     Returns:
         True on success.
@@ -3446,7 +3448,7 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT * FROM logs WHERE msg_type=10 and ctime >= {date}")
+                    f"SELECT * FROM logs WHERE msg_type={msg_type} and ctime >= {date}")
                 result = cursor.fetchall()
                 logger.console(result)
                 if len(result) > 0 and len(result[0]) > 0:
@@ -4429,6 +4431,165 @@ def ctn_broker_delete_downtime(downtime_id: int, port: int = 51001):
         req = broker_pb2.GenericNameOrIndex()
         req.idx = int(downtime_id)
         stub.DeleteDowntime(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_acknowledge_host_problem(hostname: str, sticky: bool = False,
+                                        notify: bool = False, persistent: bool = False,
+                                        author: str = "robot",
+                                        comment: str = "Robot test acknowledgement",
+                                        port: int = 51001):
+    """
+    Acknowledge a host problem via the Broker gRPC AcknowledgeHostProblem
+    endpoint (same contract as the Engine RPC). Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        sticky: True for a sticky acknowledgement.
+        notify: True to send an acknowledgement notification.
+        persistent: True to keep the comment after the acknowledgement is cleared.
+        author: The acknowledgement author.
+        comment: The acknowledgement comment.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Acknowledge Host Problem    host_1    sticky=${True} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.AcknowledgementRequest()
+        req.host_name = hostname
+        req.ack_author = author
+        req.ack_data = comment
+        req.type = broker_pb2.AcknowledgementRequest.STICKY if sticky else broker_pb2.AcknowledgementRequest.NORMAL
+        req.notify = bool(notify)
+        req.persistent = bool(persistent)
+        stub.AcknowledgeHostProblem(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_acknowledge_service_problem(hostname: str, service_desc: str,
+                                           sticky: bool = False, notify: bool = False,
+                                           persistent: bool = False,
+                                           author: str = "robot",
+                                           comment: str = "Robot test acknowledgement",
+                                           port: int = 51001):
+    """
+    Acknowledge a service problem via the Broker gRPC AcknowledgeServiceProblem
+    endpoint (same contract as the Engine RPC). Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        sticky: True for a sticky acknowledgement.
+        notify: True to send an acknowledgement notification.
+        persistent: True to keep the comment after the acknowledgement is cleared.
+        author: The acknowledgement author.
+        comment: The acknowledgement comment.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Acknowledge Service Problem    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.AcknowledgementRequest()
+        req.host_name = hostname
+        req.service_desc = service_desc
+        req.ack_author = author
+        req.ack_data = comment
+        req.type = broker_pb2.AcknowledgementRequest.STICKY if sticky else broker_pb2.AcknowledgementRequest.NORMAL
+        req.notify = bool(notify)
+        req.persistent = bool(persistent)
+        stub.AcknowledgeServiceProblem(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_remove_host_acknowledgement(hostname: str, port: int = 51001):
+    """
+    Remove a host acknowledgement via the Broker gRPC RemoveHostAcknowledgement
+    endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Remove Host Acknowledgement    host_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostIdentifier()
+        req.host_name = hostname
+        stub.RemoveHostAcknowledgement(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_remove_service_acknowledgement(hostname: str, service_desc: str,
+                                              port: int = 51001):
+    """
+    Remove a service acknowledgement via the Broker gRPC
+    RemoveServiceAcknowledgement endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Remove Service Acknowledgement    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceIdentifier()
+        req.host_name = hostname
+        req.description = service_desc
+        stub.RemoveServiceAcknowledgement(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_check_resource_acknowledged_with_timeout(hostname: str, service_desc: str,
+                                                 expected: bool, timeout: int = TIMEOUT):
+    """
+    Poll the resources table until the acknowledged flag of a host (empty
+    service_desc) or service matches the expected value.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description, or an empty string for a host.
+        expected: The expected acknowledged flag.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the flag matches within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Resource Acknowledged With Timeout    host_1    service_1    ${True}    60 |
+    """
+    if service_desc:
+        query = ("SELECT r.acknowledged FROM resources r JOIN resources p ON r.parent_id=p.id "
+                 f"WHERE p.name='{hostname}' AND r.name='{service_desc}' AND p.parent_id=0")
+    else:
+        query = f"SELECT acknowledged FROM resources WHERE name='{hostname}' AND parent_id=0"
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['acknowledged'] is not None \
+                        and bool(result[0]['acknowledged']) == bool(expected):
+                    return True
+        time.sleep(1)
+    logger.console(f"resources.acknowledged of ({hostname}, {service_desc}) is not {expected}")
+    return False
 
 
 def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: int = TIMEOUT):
