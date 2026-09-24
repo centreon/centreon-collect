@@ -113,7 +113,7 @@ void streaming_client::_start() {
 
   _sched = scheduler::load(
       _io_context, _logger, _supervised_host, scheduler::default_config(),
-      [sender = std::move(weak_this)](
+      [sender = weak_this](
           const std::shared_ptr<MessageFromAgent>& request) {
         auto parent = sender.lock();
         if (parent) {
@@ -121,6 +121,19 @@ void streaming_client::_start() {
         }
       },
       scheduler::default_check_builder);
+
+  _info_refresher = agent_info_refresher::load(
+      _io_context, _logger, agent_info_refresher::default_period,
+      [supervised_host = _supervised_host, host_template = _host_template,
+       logger = _logger](AgentInfo* to_fill) {
+        fill_agent_info(supervised_host, host_template, to_fill, logger);
+      },
+      [sender = weak_this](const std::shared_ptr<MessageFromAgent>& request) {
+        auto parent = sender.lock();
+        if (parent) {
+          parent->_send(request);
+        }
+      });
   _create_reactor();
 }
 
@@ -147,6 +160,7 @@ void streaming_client::_create_reactor() {
       std::make_shared<MessageFromAgent>();
   fill_agent_info(_supervised_host, _host_template, who_i_am->mutable_init(),
                   _logger);
+  _info_refresher->set_last_sent(who_i_am->init());
 
   _reactor->write(who_i_am);
 }
@@ -220,6 +234,7 @@ void streaming_client::on_error(const std::shared_ptr<client_reactor>& caller) {
 void streaming_client::shutdown() {
   std::lock_guard l(_protect);
   _sched->stop();
+  _info_refresher->stop();
   if (_reactor) {
     _reactor->shutdown();
   }

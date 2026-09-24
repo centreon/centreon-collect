@@ -55,6 +55,9 @@ message MessageFromAgent {
     AgentInfo init = 1;
     opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest
         otel_request = 2;
+    // sent after init when host information (ips...) has changed, it replaces
+    // the host information of init. Ignored by engines that don't know it.
+    AgentInfo info_update = 3;
   }
 }
 

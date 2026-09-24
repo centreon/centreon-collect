@@ -18,6 +18,7 @@
 
 #include "streaming_server.hh"
 #include "agent_info.hh"
+#include "agent_info_refresher.hh"
 #include "scheduler.hh"
 
 using namespace com::centreon::agent;
@@ -28,6 +29,7 @@ class server_reactor
     : public bireactor<
           ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>> {
   std::shared_ptr<scheduler> _sched;
+  agent_info_refresher::pointer _info_refresher;
   const std::string _supervised_host;
   const std::string _host_template;
   boost::asio::system_timer _jwt_timer;
@@ -84,8 +86,7 @@ void server_reactor::_start() {
 
   _sched = scheduler::load(
       _io_context, _logger, _supervised_host, scheduler::default_config(),
-      [sender = std::move(weak_this)](
-          const std::shared_ptr<MessageFromAgent>& request) {
+      [sender = weak_this](const std::shared_ptr<MessageFromAgent>& request) {
         auto parent = sender.lock();
         if (parent) {
           parent->write(request);
@@ -93,11 +94,25 @@ void server_reactor::_start() {
       },
       scheduler::default_check_builder);
 
+  _info_refresher = agent_info_refresher::load(
+      _io_context, _logger, agent_info_refresher::default_period,
+      [supervised_host = _supervised_host, host_template = _host_template,
+       logger = _logger](AgentInfo* to_fill) {
+        fill_agent_info(supervised_host, host_template, to_fill, logger);
+      },
+      [sender = weak_this](const std::shared_ptr<MessageFromAgent>& request) {
+        auto parent = sender.lock();
+        if (parent) {
+          parent->write(request);
+        }
+      });
+
   // identifies to engine
   std::shared_ptr<MessageFromAgent> who_i_am =
       std::make_shared<MessageFromAgent>();
   fill_agent_info(_supervised_host, _host_template, who_i_am->mutable_init(),
                   _logger);
+  _info_refresher->set_last_sent(who_i_am->init());
 
   write(who_i_am);
 }
@@ -153,6 +168,7 @@ void server_reactor::shutdown() {
   if (_alive) {
     _alive = false;
     _sched->stop();
+    _info_refresher->stop();
     bireactor<::grpc::ServerBidiReactor<MessageToAgent,
                                         MessageFromAgent>>::shutdown();
     Finish(::grpc::Status::CANCELLED);

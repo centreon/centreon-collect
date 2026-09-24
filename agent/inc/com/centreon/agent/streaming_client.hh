@@ -21,6 +21,7 @@
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 
+#include "agent_info_refresher.hh"
 #include "bireactor.hh"
 #include "scheduler.hh"
 
@@ -72,6 +73,7 @@ class streaming_client : public common::grpc::grpc_client_base,
 
   std::shared_ptr<client_reactor> _reactor;
   std::shared_ptr<scheduler> _sched;
+  agent_info_refresher::pointer _info_refresher;
 
   /**
    * @brief All attributes of this object are protected by this mutex

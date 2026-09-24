@@ -131,6 +131,7 @@ set( SRC_COMMON
   ${NATIVE_SRC}/check_cpu.cc
   ${SRC_DIR}/agent.grpc.pb.cc
   ${SRC_DIR}/agent.pb.cc
+  ${SRC_DIR}/agent_info_refresher.cc
   ${SRC_DIR}/bireactor.cc
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
