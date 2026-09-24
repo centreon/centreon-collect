@@ -74,6 +74,25 @@ ARG USE_SOURCE_GORGONE=false
 FROM gorgone-config-${USE_SOURCE_GORGONE} AS gorgone-config-selected
 
 #############################################
+# Stage 1h/1i: gorgoned binary selector
+# gorgoned is a plain Perl script (gorgone/gorgoned, #!/usr/bin/perl) - not a
+# compiled artifact - so, unlike engine/broker, there is no compile-vs-package
+# distinction here: copying it from source is exactly as valid as copying it
+# from the .deb. Without this selector, USE_SOURCE_GORGONE=true still forced
+# the extractor stage (and packages-centreon/ in the build context) to be
+# present, so the flag did not mean "zero .deb involved".
+#############################################
+FROM scratch AS gorgoned-false
+COPY --from=extractor /extracted/usr/bin/gorgoned /gorgoned-bin/gorgoned
+
+FROM scratch AS gorgoned-true
+COPY gorgone/gorgoned /gorgoned-bin/gorgoned
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM gorgoned-${USE_SOURCE_GORGONE} AS gorgoned-selected
+
+#############################################
 # Stage 2: Runtime - Debian 13 slim image
 #############################################
 FROM debian:13-slim AS gorgone
@@ -213,7 +232,8 @@ EOF
 # Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
 
 # Gorgone binaries
-COPY --from=extractor --link --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
+# gorgoned comes from gorgoned-selected (either .deb or local repo source)
+COPY --from=gorgoned-selected --link --chmod=755 /gorgoned-bin/gorgoned /usr/bin/gorgoned
 
 # Perl modules (centreon-gorgone and centreon-perl) - use Debian's perl5 path
 # gorgone modules come from gorgone-perl-selected (either .deb or local repo source)
