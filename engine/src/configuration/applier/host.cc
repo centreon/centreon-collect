@@ -428,6 +428,15 @@ void applier::host::remove_object(ssize_t idx) {
       broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
                                    it_s->second, MODATTR_ALL);
 
+    // Detach the services from this host so that no dangling pointer is left
+    // behind: those services may still be referenced later (e.g. while their
+    // own downtimes/notifications are processed during the same configuration
+    // apply), after this host is destroyed below.
+    for (auto it_s = it->second->services.begin();
+         it_s != it->second->services.end(); ++it_s)
+      if (it_s->second)
+        it_s->second->set_host_ptr(nullptr);
+
     broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE,
                               it->second.get(), MODATTR_ALL);
 
