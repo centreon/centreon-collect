@@ -82,4 +82,4 @@ cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot -e unstable $test_file
+robot --runemptysuite -e unstable $test_file
