@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-set(SRC_COMMON check_test.cc check_exec_test.cc drive_size_test.cc
+set(SRC_COMMON agent_info_test.cc check_test.cc check_exec_test.cc drive_size_test.cc
                check_health_test.cc scheduler_test.cc
                check_timeperiod_test.cc test_main.cc)
 

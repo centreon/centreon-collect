@@ -74,7 +74,13 @@ message AgentInfo {
   string os_version = 4;
   bool encryption_ready = 5;  // true if agent is able to receive encrypted commands
   string host_template = 6; // type of host such windows sql server, web server .....
-  repeated string ips = 7;  //ips of the host
+  repeated string ips = 7;  //ips of the host, sorted and without duplicates
+  // Fields below follow OpenTelemetry host and os semantic conventions.
+  // They are empty when unknown or sent by an older agent.
+  string os_type = 8;     // OTel os.type: linux, windows...
+  string os_name = 9;     // OTel os.name: human readable, e.g. AlmaLinux
+  string arch = 10;       // OTel host.arch: amd64, arm64, x86...
+  string machine_id = 11; // OTel host.id: /etc/machine-id or MachineGuid
 }
 
 // Agent configuration sent by Engine
