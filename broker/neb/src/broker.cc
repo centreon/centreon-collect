@@ -231,6 +231,8 @@ void broker_module_init(void const* arg) {
                        &neb::pb_agent_stats::operations, "agent_information");
       e.register_event(neb::pb_unknown_host::static_type(), "UnknownHost",
                        &neb::pb_unknown_host::operations, "no_table");
+      e.register_event(neb::pb_agent_host_info::static_type(), "AgentHostInfo",
+                       &neb::pb_agent_host_info::operations, "no_table");
     }
   }
 }

@@ -122,6 +122,9 @@ using pb_agent_stats =
 using pb_unknown_host =
     io::protobuf<UnknownHost, make_type(io::neb, neb::de_pb_unknown_host)>;
 
+using pb_agent_host_info =
+    io::protobuf<AgentHostInfo, make_type(io::neb, neb::de_pb_agent_host_info)>;
+
 }  // namespace neb
 
 namespace storage {

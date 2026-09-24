@@ -874,3 +874,21 @@ message CustomVariableStatus {
   bool password = 10;
   VarType type = 11;
 }
+
+/* Host information of a cma connected to engine (OpenTelemetry host and os
+ * semantic conventions). Sent when the agent connects, when its information
+ * changes and periodically, so that a restarted broker recovers it. Each event
+ * replaces the whole previous information of the host. */
+/* io::neb, neb::de_pb_agent_host_info, 60 */
+message AgentHostInfo {
+  uint64 poller_id = 1;
+  uint64 host_id = 2;
+  string host_name = 3;
+  uint64 observed_at = 4; /* unix time (s) when engine received this information */
+  string os_type = 5;
+  string os_name = 6;
+  string os_version = 7;
+  string arch = 8;
+  string machine_id = 9;
+  repeated string ips = 10; /* sorted, without duplicates nor loopback */
+}
