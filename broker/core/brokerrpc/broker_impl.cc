@@ -31,6 +31,7 @@
 #include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
 #include "com/centreon/broker/broker_comments.hh"
+#include "com/centreon/broker/broker_notification_dispatcher.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -1808,6 +1809,125 @@ grpc::Status broker_impl::SetServiceNotifications(
       ->info("notifications {} on service ({}, {})",
              request->enabled() ? "enabled" : "disabled", s->obj().host_id(),
              s->obj().service_id());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief The notification dispatcher of the Broker (notification_mode =
+ * broker), or an UNAVAILABLE status when Broker does not own the decision.
+ *
+ * @param status Set when nullptr is returned.
+ *
+ * @return The dispatcher, or nullptr.
+ */
+static broker_notification_dispatcher* _notification_dispatcher(
+    grpc::Status* status) {
+  auto* d = static_cast<config::applier::broker_state&>(
+                config::applier::state::instance())
+                .notification_dispatcher();
+  if (!d)
+    *status = grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                           "Notification management is not enabled "
+                           "(notification_mode != broker)");
+  return d;
+}
+
+/**
+ * @brief Combine the custom notification flags into the library options.
+ */
+static com::centreon::common::notifications::notification_option
+_custom_options(bool broadcast, bool forced, bool increment) {
+  namespace notif = com::centreon::common::notifications;
+  uint32_t o = notif::notification_option_none;
+  if (broadcast)
+    o |= notif::notification_option_broadcast;
+  if (forced)
+    o |= notif::notification_option_forced;
+  if (increment)
+    o |= notif::notification_option_increment;
+  return static_cast<notif::notification_option>(o);
+}
+
+/**
+ * @brief Set the notification number of a host (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetHostNotificationNumber(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostNotificationNumberRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  grpc::Status status;
+  auto* d = _notification_dispatcher(&status);
+  if (!d)
+    return status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  d->post_set_notification_number(h->obj().host_id(), 0, request->number());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Set the notification number of a service (notification_mode =
+ * broker).
+ */
+grpc::Status broker_impl::SetServiceNotificationNumber(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceNotificationNumberRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  grpc::Status status;
+  auto* d = _notification_dispatcher(&status);
+  if (!d)
+    return status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  d->post_set_notification_number(s->obj().host_id(), s->obj().service_id(),
+                                  request->number());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Send a custom notification on a host (notification_mode = broker).
+ */
+grpc::Status broker_impl::SendCustomHostNotification(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostCustomNotificationRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  grpc::Status status;
+  auto* d = _notification_dispatcher(&status);
+  if (!d)
+    return status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  d->post_notify(h->obj().host_id(), 0,
+                 com::centreon::common::notifications::reason_custom,
+                 request->author(), request->comment(),
+                 _custom_options(request->broadcast(), request->forced(),
+                                 request->increment()));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Send a custom notification on a service (notification_mode =
+ * broker).
+ */
+grpc::Status broker_impl::SendCustomServiceNotification(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceCustomNotificationRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  grpc::Status status;
+  auto* d = _notification_dispatcher(&status);
+  if (!d)
+    return status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  d->post_notify(s->obj().host_id(), s->obj().service_id(),
+                 com::centreon::common::notifications::reason_custom,
+                 request->author(), request->comment(),
+                 _custom_options(request->broadcast(), request->forced(),
+                                 request->increment()));
   return grpc::Status::OK;
 }
 

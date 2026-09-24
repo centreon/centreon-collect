@@ -23,6 +23,7 @@
 
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/broker_comments.hh"
+#include "com/centreon/broker/broker_notification_dispatcher.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/notifications/notification_manager.hh"
@@ -35,15 +36,20 @@ namespace com::centreon::broker {
 std::unique_ptr<broker_acknowledgement_manager>
     broker_acknowledgement_manager::_instance;
 
-broker_acknowledgement_manager::broker_acknowledgement_manager()
-    : _logger{log_v2::instance().get(log_v2::CORE)} {}
+broker_acknowledgement_manager::broker_acknowledgement_manager(
+    broker_notification_dispatcher& dispatcher)
+    : _logger{log_v2::instance().get(log_v2::CORE)}, _dispatcher{dispatcher} {}
 
 /**
  * @brief Create the singleton (notification_mode = broker only).
+ *
+ * @param dispatcher The notification dispatcher the acknowledgement
+ * notifications are posted to (its strand serializes them with the batches).
  */
-void broker_acknowledgement_manager::load() {
+void broker_acknowledgement_manager::load(
+    broker_notification_dispatcher& dispatcher) {
   if (!_instance)
-    _instance.reset(new broker_acknowledgement_manager);
+    _instance.reset(new broker_acknowledgement_manager(dispatcher));
 }
 
 /**
@@ -279,8 +285,10 @@ std::string broker_acknowledgement_manager::acknowledge(
   }
   _publish_ack_type(host_id, service_id, type);
 
-  if (notify && notifications::notification_manager::is_loaded())
-    notifications::notification_manager::instance().notify(
+  /* The manager is not thread-safe: the notification is posted on the
+   * dispatcher strand, serialized with the status batches. */
+  if (notify)
+    _dispatcher.post_notify(
         host_id, service_id, notifications::reason_acknowledgement, author,
         comment_data, notifications::notification_option_none);
 

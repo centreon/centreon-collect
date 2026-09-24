@@ -43,6 +43,11 @@ class broker_state : public state {
   bool notifications_on_broker() const {
     return _notification_mode == notification_mode_broker;
   }
+  /* The notification trigger, nullptr in notification_mode=engine. Every
+   * out-of-band access to the notification_manager goes through it. */
+  broker_notification_dispatcher* notification_dispatcher() const {
+    return _notification_dispatcher.get();
+  }
 
  private:
   notification_mode _notification_mode = notification_mode_engine;

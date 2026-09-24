@@ -549,12 +549,11 @@ void engine::_drain() {
      * batch, and counted in _pending so the next batch waits for it
      * (serialization). nullptr in engine mode → nothing posted. */
     if (sink)
-      asio::post(com::centreon::common::pool::io_context(),
-                 [this, keep_alive, sink] {
-                   sink->on_events(_batch);
-                   if (_one_done())
-                     _drain();
-                 });
+      asio::post(sink->executor(), [this, keep_alive, sink] {
+        sink->on_events(_batch);
+        if (_one_done())
+          _drain();
+      });
 
     /* Released last, so nobody can clear _batch while we were still reading it.
      * If everyone else is already done, we carry on with the next batch here

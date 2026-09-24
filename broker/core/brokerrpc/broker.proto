@@ -298,6 +298,36 @@ service Broker {
       returns (google.protobuf.Empty) {}
 
   /**
+   * @brief Set the notification number of a host (notification_mode = broker),
+   * the counterpart of Engine's SET_HOST_NOTIFICATION_NUMBER. Applied
+   * asynchronously, serialized with the notification decisions.
+   */
+  rpc SetHostNotificationNumber(HostNotificationNumberRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Set the notification number of a service
+   * (notification_mode = broker), Engine's SET_SVC_NOTIFICATION_NUMBER.
+   */
+  rpc SetServiceNotificationNumber(ServiceNotificationNumberRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Send a custom notification on a host (notification_mode = broker),
+   * Engine's SEND_CUSTOM_HOST_NOTIFICATION. The decision (contacts,
+   * escalations, forced bypass) is Broker's, the execution the poller's.
+   */
+  rpc SendCustomHostNotification(HostCustomNotificationRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Send a custom notification on a service
+   * (notification_mode = broker), Engine's SEND_CUSTOM_SVC_NOTIFICATION.
+   */
+  rpc SendCustomServiceNotification(ServiceCustomNotificationRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
    * @brief Acknowledge a host problem (notification_mode = broker).
    *
    * Same request fields as the Engine AcknowledgementHostProblem RPC, so PHP
@@ -525,6 +555,35 @@ message HostNotificationsRequest {
 message ServiceNotificationsRequest {
   ServiceIdentifier service = 1;
   bool enabled = 2;
+}
+
+message HostNotificationNumberRequest {
+  HostIdentifier host = 1;
+  uint32 number = 2;
+}
+
+message ServiceNotificationNumberRequest {
+  ServiceIdentifier service = 1;
+  uint32 number = 2;
+}
+
+/* Custom notification; the three flags are Engine's option bits (1, 2, 4). */
+message HostCustomNotificationRequest {
+  HostIdentifier host = 1;
+  string author = 2;
+  string comment = 3;
+  bool broadcast = 4;  // notify every contact, escalations ignored
+  bool forced = 5;     // bypass the enabled switches and periods
+  bool increment = 6;  // count it in the notification number
+}
+
+message ServiceCustomNotificationRequest {
+  ServiceIdentifier service = 1;
+  string author = 2;
+  string comment = 3;
+  bool broadcast = 4;
+  bool forced = 5;
+  bool increment = 6;
 }
 
 message ServiceIdentifier {

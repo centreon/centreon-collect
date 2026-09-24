@@ -26,6 +26,8 @@
 
 namespace com::centreon::broker {
 
+class broker_notification_dispatcher;
+
 /**
  * @brief Broker-side acknowledgement authority (notification_mode = broker).
  *
@@ -41,10 +43,13 @@ namespace com::centreon::broker {
  */
 class broker_acknowledgement_manager {
   std::shared_ptr<spdlog::logger> _logger;
+  /* Serializes the notification requests with the batch pipeline; owned by
+   * broker_state, which unloads this manager before destroying it. */
+  broker_notification_dispatcher& _dispatcher;
 
   static std::unique_ptr<broker_acknowledgement_manager> _instance;
 
-  broker_acknowledgement_manager();
+  broker_acknowledgement_manager(broker_notification_dispatcher& dispatcher);
 
   uint64_t _create_comment(uint64_t host_id,
                            uint64_t service_id,
@@ -63,7 +68,7 @@ class broker_acknowledgement_manager {
                     LogEntry_MsgType msg_type);
 
  public:
-  static void load();
+  static void load(broker_notification_dispatcher& dispatcher);
   static void unload();
   static bool is_loaded() noexcept { return _instance != nullptr; }
   static broker_acknowledgement_manager& instance();
