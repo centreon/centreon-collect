@@ -776,3 +776,59 @@ lib ni celle d'Engine ne lisent `next_notification` (l'intervalle se calcule dep
 est un no-op sur la décision, on ne l'expose pas.
 
 Tests : `tests/broker-engine/notification-settings-broker.robot` (`BENOTSET1`, `BENOTSET2`).
+
+### 9.2 Contacts, contactgroups et timeperiods de notification
+
+`broker/core/cache/notification_toggles.cc`, `broker_cache::set_contact_notifications`,
+`broker_cache::set_contact_notification_period`, `broker_cache::set_notification_period`
+
+Le filtrage des contacts (`should_notify_contact`) lit deux choses sur le contact en
+cache : ses interrupteurs `host_notifications_enabled` /
+`service_notifications_enabled` et ses timeperiods `host_notification_period` /
+`service_notification_period` ; la viabilité de la ressource lit sa
+`notification_period`. En mode broker, ces valeurs appartiennent à Broker : les
+commandes externes Engine correspondantes ont leur pendant Broker, calqué un pour un
+sur le legacy (pas de champ discriminant, une RPC par commande) :
+
+| RPC Broker | Commandes Engine couvertes |
+|---|---|
+| `SetContactHostNotifications(contact, enabled)` | `ENABLE/DISABLE_CONTACT_HOST_NOTIFICATIONS` |
+| `SetContactServiceNotifications(contact, enabled)` | `ENABLE/DISABLE_CONTACT_SVC_NOTIFICATIONS` |
+| `SetContactgroupHostNotifications(contactgroup, enabled)` | `ENABLE/DISABLE_CONTACTGROUP_HOST_NOTIFICATIONS` |
+| `SetContactgroupServiceNotifications(contactgroup, enabled)` | `ENABLE/DISABLE_CONTACTGROUP_SVC_NOTIFICATIONS` |
+| `SetContactHostNotificationPeriod(contact, timeperiod)` | `CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD` |
+| `SetContactServiceNotificationPeriod(contact, timeperiod)` | `CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD` |
+| `SetHostNotificationPeriod(host, timeperiod)` | `CHANGE_HOST_NOTIFICATION_TIMEPERIOD` |
+| `SetServiceNotificationPeriod(service, timeperiod)` | `CHANGE_SVC_NOTIFICATION_TIMEPERIOD` |
+
+Les contacts et contactgroups n'ont pas d'identifiant dans la configuration : ils sont
+désignés par nom (`ContactIdentifier { name }`, `ContactgroupIdentifier { name }`). Une
+timeperiod inconnue du cache Broker est refusée (`NOT_FOUND`), comme Engine refuse la
+commande quand la timeperiod n'existe pas ; un contact ou contactgroup inconnu aussi.
+
+**Surcouche des ressources étendue.** `_notification_overrides` porte maintenant deux
+champs optionnels par ressource, `notify` et `notification_period`
+(`BrokerCache.NotificationOverride`, champs 3 et 4). Les deux suivent le même chemin :
+valeur posée sur l'objet en cache, réappliquée à l'insertion d'une définition
+(`_restore_notification_override`) et par `reinject_pending_notification_overrides()`,
+publiée par l'adaptatif pour que unified_sql mette à jour
+`hosts.notification_period` / `services.notification_period`. En mode broker, la
+`notification_period` d'un adaptatif venant d'Engine est ignorée par le cache, comme
+`notify`.
+
+**Surcouche des contacts.** `_contact_notification_overrides` (clé = nom, persistée dans
+`BrokerCache.contact_notification_overrides`, champ 13) porte quatre champs optionnels :
+les deux interrupteurs et les deux timeperiods. Elle est appliquée par
+`_insert_contact()`, c'est-à-dire à chaque fois qu'une configuration de poller (re)définit
+le contact (`merge`, `apply(DiffState)`), ce qui couvre les redémarrages d'Engine et de
+Broker sans point de réinjection dédié. Les contacts n'étant pas exportés en base par
+unified_sql, rien n'est publié. Même sémantique `MODATTR` que pour les ressources : la
+valeur posée l'emporte sur la configuration tant qu'elle existe.
+
+**Contactgroups.** Comme Engine, un contactgroup n'a pas d'interrupteur propre : la RPC
+éclate sur ses membres au moment de l'appel et chaque contact reçoit sa surcouche. Un
+contact ajouté au groupe plus tard n'est pas concerné, là encore comme Engine.
+
+Tests : `tests/broker-engine/contact-toggles-broker.robot` (`BECNTBRK1` à `3`) ; UT
+`BrokerNotificationDeliverTest.{NotificationPeriodOverrideSurvivesDefinition,
+ContactOverrideSurvivesMerge, ContactgroupToggleAndContactPeriod}`.
