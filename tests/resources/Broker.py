@@ -4727,6 +4727,142 @@ def ctn_broker_delete_all_service_comments(hostname: str, service_desc: str, por
         stub.DeleteAllServiceComments(req, timeout=GRPC_TIMEOUT)
 
 
+def ctn_broker_set_host_notifications(hostname: str, enabled: bool, scope: str = "HOST",
+                                      port: int = 51001):
+    """
+    Enable or disable the notifications of a host via the Broker gRPC
+    SetHostNotifications endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        enabled: True to enable, False to disable.
+        scope: HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN or BEYOND_HOST.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Host Notifications    host_1    ${False}    HOST_AND_SERVICES |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostNotificationsRequest()
+        req.host.host_name = hostname
+        req.enabled = bool(enabled)
+        req.scope = broker_pb2.HostNotificationsRequest.Scope.Value(scope)
+        stub.SetHostNotifications(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_set_service_notifications(hostname: str, service_desc: str, enabled: bool,
+                                         port: int = 51001):
+    """
+    Enable or disable the notifications of a service via the Broker gRPC
+    SetServiceNotifications endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Service Notifications    host_1    service_1    ${False} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceNotificationsRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.enabled = bool(enabled)
+        stub.SetServiceNotifications(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_check_resource_notifications_enabled_with_timeout(hostname: str, service_desc: str,
+                                                          expected: bool, timeout: int = TIMEOUT):
+    """
+    Poll the resources table until the notifications_enabled flag of a host
+    (empty service_desc) or service matches the expected value.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description, or an empty string for a host.
+        expected: The expected flag.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the flag matches within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Resource Notifications Enabled With Timeout    host_1    service_1    ${False}    30 |
+    """
+    if service_desc:
+        query = ("SELECT r.notifications_enabled AS v FROM resources r JOIN resources p ON r.parent_id=p.id "
+                 f"WHERE p.name='{hostname}' AND r.name='{service_desc}' AND p.parent_id=0")
+    else:
+        query = f"SELECT notifications_enabled AS v FROM resources WHERE name='{hostname}' AND parent_id=0"
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['v'] is not None \
+                        and bool(result[0]['v']) == bool(expected):
+                    return True
+        time.sleep(1)
+    logger.console(f"resources.notifications_enabled of ({hostname}, {service_desc}) is not {expected}")
+    return False
+
+
+def ctn_check_services_notify_count_with_timeout(hostname: str, notify: bool, expected: int,
+                                                 timeout: int = TIMEOUT):
+    """
+    Poll the services table until the number of services of a host whose
+    notify flag equals the given value reaches the expected count.
+
+    Args:
+        hostname: The host name.
+        notify: The notify flag value to count.
+        expected: The expected number of services.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the count is reached within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Services Notify Count With Timeout    host_1    ${False}    20    30 |
+    """
+    query = ("SELECT COUNT(*) AS c FROM services s JOIN hosts h ON s.host_id=h.host_id "
+             f"WHERE h.name='{hostname}' AND s.notify={1 if notify else 0} AND s.enabled=1")
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and int(result[0]['c']) == int(expected):
+                    return True
+        time.sleep(1)
+    logger.console(f"services of {hostname} with notify={notify}: expected {expected}")
+    return False
+
+
 def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: int = TIMEOUT):
     """
     Call the broker gRPC CheckPollerConfig on an Engine configuration directory
