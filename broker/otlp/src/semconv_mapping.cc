@@ -250,4 +250,16 @@ mapping map_metric(std::string_view perfdata_name,
   return m;
 }
 
+std::string threshold_metric_name(std::string_view emitted_name) {
+  if (absl::StartsWith(emitted_name, "centreon."))
+    return absl::StrCat(emitted_name, ".threshold");
+  return absl::StrCat("centreon.", emitted_name, ".threshold");
+}
+
+std::string bound_metric_name(std::string_view emitted_name) {
+  if (absl::StartsWith(emitted_name, "centreon."))
+    return absl::StrCat(emitted_name, ".bound");
+  return absl::StrCat("centreon.", emitted_name, ".bound");
+}
+
 }  // namespace com::centreon::broker::otlp

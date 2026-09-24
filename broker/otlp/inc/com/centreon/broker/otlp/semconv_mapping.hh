@@ -66,7 +66,8 @@ struct mapping_rule {
   instrument instr = instrument::gauge;
   double scale = 1.0;
   std::vector<std::pair<std::string, std::string>> attributes;
-  /* Datapoint attribute the label's instance. Empty when the convention
+  /* Datapoint attribute the label's instance (mountpoint, interface...) is
+   * bound to, e.g. "system.filesystem.mountpoint". Empty when the convention
    * needs no instance. When set and the label carries no instance, the rule is
    * not applied and the metric falls back to the centreon.* namespace. */
   std::string instance_attribute;
@@ -150,6 +151,20 @@ mapping map_metric(std::string_view perfdata_name,
                    std::string_view unit,
                    com::centreon::common::perfdata::data_type value_type,
                    const mapping_table& table);
+
+/**
+ * @brief Name of the companion metric carrying this metric's thresholds.
+ *
+ * Derived from the value metric so a dashboard can find it by string
+ * construction, and so each threshold series keeps the unit of the value it
+ * annotates. "centreon." is not repeated if already present.
+ */
+std::string threshold_metric_name(std::string_view emitted_name);
+
+/**
+ * @brief Name of the companion metric carrying this metric's min/max bounds.
+ */
+std::string bound_metric_name(std::string_view emitted_name);
 
 /**
  * @brief Sanitize an arbitrary perfdata label into a legal OTel name segment.

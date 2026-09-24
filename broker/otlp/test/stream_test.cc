@@ -85,7 +85,8 @@ class StreamTest : public ::testing::Test {
   }
 
   std::unique_ptr<stream> make_stream() {
-    return std::make_unique<stream>(conf, enricher, exporter, logger);
+    return std::make_unique<stream>(
+        conf, enricher, mapping_provider::empty(logger), exporter, logger);
   }
 
   static std::shared_ptr<io::data> service_event(uint64_t host_id,
