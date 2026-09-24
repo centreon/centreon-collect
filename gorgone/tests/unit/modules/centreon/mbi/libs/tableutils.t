@@ -27,8 +27,9 @@ sub db_error {
 # $fail_for is an optional callback receiving the query; when it returns a
 # message, the query dies with it, as gorgone::class::db does once it gave up
 # (it retries a failed query by itself before dying).
+# %options can override the handle fields (e.g. `die => 0`, `logger => undef`).
 sub make_db {
-    my ($queries, $logs, $fail_for) = @_;
+    my ($queries, $logs, $fail_for, %options) = @_;
 
     my $logger = mock {} => (
         add => [
@@ -41,7 +42,7 @@ sub make_db {
         ]
     );
 
-    return mock { logger => $logger } => (
+    return mock { die => 1, logger => $logger, %options } => (
         add => [
             query => sub {
                 my ($self, $options) = @_;
@@ -144,11 +145,50 @@ sub test_drop_error {
     is(\@logs, [], 'nothing should be logged.');
 }
 
+# The orphaned tablespace hint must still be given when the handle has no
+# logger.
+sub test_orphaned_tablespace_without_logger {
+    my (@queries, @logs);
+    my $db = make_db(\@queries, \@logs, fail_create_with("Tablespace '`centreon_storage`.`$TABLE`' exists."),
+        logger => undef);
+
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
+
+    like($error, qr/orphaned InnoDB tablespace/, 'the likely cause should be reported.');
+}
+
+# A message only mentioning a word starting with "exists" is not the orphaned
+# tablespace case.
+sub test_exists_as_word_prefix {
+    my (@queries, @logs);
+    my $original = "Tablespace is missing for table `centreon_storage`.`exists_foo`";
+    my $db = make_db(\@queries, \@logs, fail_create_with($original));
+
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
+
+    is($error, db_error($original, $CREATE), 'the original error should be rethrown unchanged.');
+}
+
+# Errors of a handle that does not die on failure would be silently ignored:
+# such a handle must be refused before running any query.
+sub test_handle_not_dying {
+    my (@queries, @logs);
+    my $db = make_db(\@queries, \@logs, undef, die => 0);
+
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
+
+    like($error, qr/must be created with die => 1/, 'the handle should be refused.');
+    is(\@queries, [], 'no query should be executed.');
+}
+
 sub main {
     test_create_succeeds();
     test_orphaned_tablespace();
     test_other_create_error();
     test_drop_error();
+    test_orphaned_tablespace_without_logger();
+    test_exists_as_word_prefix();
+    test_handle_not_dying();
 
     done_testing();
 }

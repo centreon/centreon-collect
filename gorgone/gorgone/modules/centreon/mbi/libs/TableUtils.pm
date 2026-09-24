@@ -33,6 +33,10 @@ use Try::Tiny;
 sub recreate_table {
     my ($db, $tableName, $createTableQuery) = @_;
 
+    # Errors are only caught if queries die on failure.
+    die "Cannot recreate table `$tableName`: the database handle must be created with die => 1\n"
+        if (!$db->{die});
+
     try {
         $db->query({ query => "DROP TABLE IF EXISTS `$tableName`" });
         $db->query({ query => $createTableQuery });
@@ -51,7 +55,7 @@ sub recreate_table {
         # Only the first line of the error is matched: gorgone::class::db
         # appends the failing query on a second line.
         my ($serverError) = split(/\n/, $error);
-        die $error if (!defined($serverError) || $serverError !~ /Tablespace\b.*\bexists/i);
+        die $error if (!defined($serverError) || $serverError !~ /Tablespace\b.*\bexists\b/i);
 
         my $message = "Cannot recreate table `$tableName`: an orphaned InnoDB tablespace "
             . "(.ibd file) was probably left behind by a copy of the database server data "
