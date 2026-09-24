@@ -1865,7 +1865,7 @@ void database_configurator::_disable_service_resources_mariadb(
     bind->set_value_as_i64(1, msg.service_id());
     bind->next_row();
     SPDLOG_LOGGER_TRACE(_logger, "Disabling service resource with id {}:{}",
-                        msg.host_id(), msg.service_id());
+                        msg.service_id(), msg.host_id());
   }
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -1890,7 +1890,7 @@ void database_configurator::_disable_service_resources_mysql(
     _disable_service_resources_stmt->bind_value_as_i64(1, msg.service_id());
     mysql.run_statement(*_disable_service_resources_stmt);
     SPDLOG_LOGGER_TRACE(_logger, "Disabling service resource with id {}:{}",
-                        msg.host_id(), msg.service_id());
+                        msg.service_id(), msg.host_id());
   }
 }
 
