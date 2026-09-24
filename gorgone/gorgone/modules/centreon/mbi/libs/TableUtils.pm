@@ -23,53 +23,45 @@ use warnings;
 
 package gorgone::modules::centreon::mbi::libs::TableUtils;
 
-# Safely drop and recreate a temporary table, handling cases where an orphaned
-# InnoDB tablespace (.ibd file) may exist after a database migration (e.g.
-# rsync of /var/lib/mysql). Without this, CREATE TABLE dies with errno 184
-# "Tablespace already exists" and the ETL crashes.
+use Try::Tiny;
+
+# Drop and recreate a temporary table.
+# A copy of the database server data directory (e.g. rsync of /var/lib/mysql)
+# can leave an orphaned InnoDB tablespace (.ibd file) that is not known to the
+# data dictionary: DROP TABLE IF EXISTS then does nothing and CREATE TABLE
+# fails. This cannot be fixed from SQL, so the error is made actionable.
 sub recreate_table {
-    my ($db, $logger, $tableName, $createTableQuery) = @_;
+    my ($db, $tableName, $createTableQuery) = @_;
 
-    $db->query({ query => "DROP TABLE IF EXISTS `$tableName`" });
-
-    eval {
-        $db->query({ query => $createTableQuery });
-    };
-    return unless $@;
-
-    my $createError = $@;
-    $logger->writeLog("WARNING",
-        "Failed to create temp table `$tableName`: $createError Attempting recovery.");
-
-    # The error handler disconnected the DB; the next query will auto-reconnect.
-    # Check if the table structure still exists (DROP may have only partially
-    # succeeded, or the table was left over from a previous crashed run).
-    my $tableExists = eval {
-        $db->query({ query => "SELECT 1 FROM `$tableName` LIMIT 0" });
-        1;
-    };
-
-    if ($tableExists) {
-        $logger->writeLog("INFO",
-            "Table `$tableName` still exists, truncating and reusing it.");
-        $db->query({ query => "TRUNCATE TABLE `$tableName`" });
-        return;
-    }
-
-    # Table not in data dictionary but tablespace file may remain (orphaned).
-    # Retry DROP + CREATE on the fresh connection.
-    eval {
+    try {
         $db->query({ query => "DROP TABLE IF EXISTS `$tableName`" });
-    };
-    eval {
         $db->query({ query => $createTableQuery });
-    };
-    return unless $@;
+    } catch {
+        my $error = $_;
 
-    die "Cannot create temp table `$tableName`. This may be caused by an orphaned "
-        . "InnoDB tablespace (.ibd file) after a database migration. Please remove "
-        . "the orphaned file from the MariaDB data directory and restart MariaDB. "
-        . "Original error: $createError";
+        # Errors raised by CREATE TABLE on an orphaned tablespace:
+        # - MariaDB: 1005 ER_CANT_CREATE_TABLE, with handler errno 184:
+        #     Can't create table `db`.`t` (errno: 184 "Tablespace already exists")
+        # - MySQL 5.6/5.7: 1813 ER_TABLESPACE_EXISTS:
+        #     Tablespace for table '`db`.`t`' exists. Please DISCARD the tablespace before IMPORT.
+        # - MySQL 8.0: 1813 ER_TABLESPACE_EXISTS:
+        #     Tablespace '%s' exists.
+        # The MariaDB handler message comes from an untranslated list
+        # (include/my_handler_errors.h), so it matches whatever lc_messages is.
+        # Only the first line of the error is matched: gorgone::class::db
+        # appends the failing query on a second line.
+        my ($serverError) = split(/\n/, $error);
+        die $error if (!defined($serverError) || $serverError !~ /Tablespace\b.*\bexists/i);
+
+        my $message = "Cannot recreate table `$tableName`: an orphaned InnoDB tablespace "
+            . "(.ibd file) was probably left behind by a copy of the database server data "
+            . "directory. Check that <datadir>/<database>/$tableName.ibd is not used by any "
+            . "table, remove it and restart the database server. Original error: $error";
+        # The ETL reports the error in its own log; also make the hint visible in
+        # the gorgone log, where the raw database error is logged.
+        $db->{logger}->writeLogError($message) if (defined($db->{logger}));
+        die $message;
+    };
 }
 
 1;

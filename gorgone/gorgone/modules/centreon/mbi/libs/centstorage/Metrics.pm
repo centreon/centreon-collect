@@ -77,7 +77,7 @@ sub createTempTableMetricMinMaxAvgValues {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
     gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-        $self->{centstorage}, $self->{logger}, $self->{name_minmaxavg_tmp}, $createTable);
+        $self->{centstorage}, $self->{name_minmaxavg_tmp}, $createTable);
 }
 
 sub getMetricValueByHour {
@@ -149,7 +149,7 @@ sub createTempTableMetricDayFirstLastValues {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
     gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-        $self->{centstorage}, $self->{logger}, $self->{name_firstlast_tmp}, $createTable);
+        $self->{centstorage}, $self->{name_firstlast_tmp}, $createTable);
 }
 
 sub addIndexTempTableMetricDayFirstLastValues {
@@ -182,7 +182,7 @@ sub createTempTableCtimeMinMaxValues {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
     gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-        $self->{centstorage}, $self->{logger}, $self->{name_minmaxctime_tmp}, $createTable);
+        $self->{centstorage}, $self->{name_minmaxctime_tmp}, $createTable);
 }
 
 sub dropTempTableCtimeMinMaxValues {

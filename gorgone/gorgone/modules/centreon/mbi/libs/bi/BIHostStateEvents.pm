@@ -70,7 +70,7 @@ sub createTempBIEventsTable{
 	$createTable .= " KEY `modbihost_id` (`host_id`)";
 	$createTable .= " ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci";
 	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-		$self->{centstorage}, $self->{logger}, "mod_bi_hoststateevents_tmp", $createTable);
+		$self->{centstorage}, "mod_bi_hoststateevents_tmp", $createTable);
 }
 
 sub prepareTempQuery {

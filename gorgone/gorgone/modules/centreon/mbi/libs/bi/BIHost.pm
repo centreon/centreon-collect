@@ -152,7 +152,7 @@ sub createTempComparisonTable {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
 	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-		$self->{centstorage}, $self->{logger}, $self->{tmp_comp}, $query);
+		$self->{centstorage}, $self->{tmp_comp}, $query);
 }
 
 sub createTempStorageTable {
@@ -169,7 +169,7 @@ sub createTempStorageTable {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
 	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-		$self->{centstorage}, $self->{logger}, $self->{tmp_comp_storage}, $query);
+		$self->{centstorage}, $self->{tmp_comp_storage}, $query);
 }
 
 sub createTempTodayTable {
@@ -186,7 +186,7 @@ sub createTempTodayTable {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
 	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-		$self->{centstorage}, $self->{logger}, $self->{today_table}, $query);
+		$self->{centstorage}, $self->{today_table}, $query);
 }
 
 sub joinNewAndCurrentEntries {

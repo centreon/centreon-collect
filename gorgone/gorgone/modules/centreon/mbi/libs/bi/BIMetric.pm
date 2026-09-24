@@ -106,7 +106,7 @@ sub createTempTable {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
 	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-		$self->{centstorage}, $self->{logger}, $self->{tmpTable}, $query);
+		$self->{centstorage}, $self->{tmpTable}, $query);
 }
 
 sub createCRC32Table {
@@ -120,7 +120,7 @@ sub createCRC32Table {
 	$query .= " COALESCE(hc_id, '?'),COALESCE(hc_name, '?'), COALESCE(hg_id, '?'),COALESCE(hg_name, '?'))) as mycrc";
 	$query .= " FROM ".$self->{"table"};
 	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-		$self->{centstorage}, $self->{logger}, $self->{CRC32}, $query);
+		$self->{centstorage}, $self->{CRC32}, $query);
 	$query = "ALTER TABLE `".$self->{"CRC32"}."` ADD INDEX (`mycrc`)";
 	$db->query({ query => $query });
 }
@@ -165,7 +165,7 @@ sub createTodayTable {
 		$query .= ") ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 	}
 	gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
-		$self->{centstorage}, $self->{logger}, $self->{today_table}, $query);
+		$self->{centstorage}, $self->{today_table}, $query);
 }
 
 sub insertTodayEntries {

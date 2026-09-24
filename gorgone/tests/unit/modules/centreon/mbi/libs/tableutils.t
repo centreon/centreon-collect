@@ -9,29 +9,46 @@ use FindBin;
 use lib "$FindBin::Bin/../../../../../../";
 use gorgone::modules::centreon::mbi::libs::TableUtils;
 
-my $TABLE    = 'mod_bi_tmp_foo';
-my $CREATE   = "CREATE TABLE `$TABLE` (`id` INT) ENGINE=INNODB";
-my $DROP     = "DROP TABLE IF EXISTS `$TABLE`";
-my $EXISTS   = "SELECT 1 FROM `$TABLE` LIMIT 0";
-my $TRUNCATE = "TRUNCATE TABLE `$TABLE`";
+my $TABLE  = 'mod_bi_tmp_foo';
+my $CREATE = "CREATE TABLE `$TABLE` (`id` INT) ENGINE=INNODB";
+my $DROP   = "DROP TABLE IF EXISTS `$TABLE`";
 
-my $TABLESPACE_ERROR = "DBD::mysql::st execute failed: Tablespace for table '$TABLE' exists. errno: 184\n";
+# Format a database error the way gorgone::class::db dies with it once built
+# with `die => 1`: the server message, then the failing query on its own line.
+sub db_error {
+    my ($message, $query) = @_;
 
-# Build a fake DB handle recording every query it is asked to run.
-# $fail_for is an optional callback receiving the query and its 1-based call
-# index; when it returns a message, the query dies with it, the way
-# gorgone::class::db behaves once built with `die => 1`.
+    return "SQL error: $message (caller: gorgone::modules::centreon::mbi::libs::TableUtils:TableUtils.pm:1)\n"
+        . "Query: $query\n";
+}
+
+# Build a fake DB handle recording every query it is asked to run, with a
+# logger recording every error it logs.
+# $fail_for is an optional callback receiving the query; when it returns a
+# message, the query dies with it, as gorgone::class::db does once it gave up
+# (it retries a failed query by itself before dying).
 sub make_db {
-    my ($queries, $fail_for) = @_;
+    my ($queries, $logs, $fail_for) = @_;
 
-    return mock {} => (
+    my $logger = mock {} => (
+        add => [
+            writeLogError => sub {
+                my ($self, $message) = @_;
+
+                push @$logs, $message;
+                return 1;
+            }
+        ]
+    );
+
+    return mock { logger => $logger } => (
         add => [
             query => sub {
                 my ($self, $options) = @_;
 
                 push @$queries, $options->{query};
-                my $error = $fail_for ? $fail_for->($options->{query}, scalar(@$queries)) : undef;
-                die $error if defined($error);
+                my $error = $fail_for ? $fail_for->($options->{query}) : undef;
+                die db_error($error, $options->{query}) if defined($error);
 
                 return 0;
             }
@@ -39,122 +56,99 @@ sub make_db {
     );
 }
 
-# Build a fake logger recording every writeLog() call.
-sub make_logger {
-    my ($logs) = @_;
+sub fail_create_with {
+    my ($error) = @_;
 
-    return mock {} => (
-        add => [
-            writeLog => sub {
-                my ($self, $severity, $message) = @_;
-
-                push @$logs, { severity => $severity, message => $message };
-                return 1;
-            }
-        ]
-    );
+    return sub {
+        my ($query) = @_;
+        return $query eq $CREATE ? $error : undef;
+    };
 }
 
-sub severities {
-    my ($logs) = @_;
-
-    return [map { $_->{severity} } @$logs];
-}
-
-# Nominal case: DROP then CREATE both succeed, no recovery query is needed.
+# Nominal case: DROP then CREATE both succeed.
 sub test_create_succeeds {
     my (@queries, @logs);
-    my $db = make_db(\@queries);
+    my $db = make_db(\@queries, \@logs);
 
-    ok(lives { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, make_logger(\@logs), $TABLE, $CREATE) },
+    ok(lives { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) },
         'recreate_table should not die when the table is created.');
-
     is(\@queries, [$DROP, $CREATE], 'only DROP and CREATE should be executed.');
-    is(\@logs, [], 'nothing should be logged when no recovery is needed.');
+    is(\@logs, [], 'nothing should be logged.');
 }
 
-# CREATE fails but the table is still in the data dictionary: it must be reused
-# through a TRUNCATE, and CREATE must not be replayed.
-sub test_recovery_when_table_still_exists {
+# CREATE fails because of an orphaned tablespace: recreate_table must die with
+# an actionable message carrying the original error, and log it.
+sub test_orphaned_tablespace {
+    my %errors = (
+        'MariaDB' => "Can't create table `centreon_storage`.`$TABLE` (errno: 184 \"Tablespace already exists\")",
+        'MariaDB (French)' => "Ne peut créer la table `centreon_storage`.`$TABLE` (Errcode: 184 \"Tablespace already exists\")",
+        'MySQL 5.7' => "Tablespace for table '`centreon_storage`.`$TABLE`' exists. Please DISCARD the tablespace before IMPORT.",
+        'MySQL 8.0' => "Tablespace '`centreon_storage`.`$TABLE`' exists."
+    );
+
+    for my $server (sort keys %errors) {
+        my (@queries, @logs);
+        my $db = make_db(\@queries, \@logs, fail_create_with($errors{$server}));
+
+        my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
+
+        like($error, qr/Cannot recreate table `\Q$TABLE\E`/, "$server: the table name should be reported.");
+        like($error, qr/orphaned InnoDB tablespace/, "$server: the likely cause should be reported.");
+        like($error, qr{<datadir>/<database>/\Q$TABLE\E\.ibd}, "$server: the file to remove should be reported.");
+        like($error, qr/Original error: \Q@{[db_error($errors{$server}, $CREATE)]}\E/,
+            "$server: the original error should be kept.");
+        is(\@logs, [$error], "$server: the error should be logged.");
+        is(\@queries, [$DROP, $CREATE], "$server: recreate_table should not retry by itself.");
+    }
+}
+
+# Any other CREATE failure must be rethrown unchanged, without the orphaned
+# tablespace hint, even when the failing query mentions a tablespace.
+sub test_other_create_error {
+    my %cases = (
+        'denied' => "CREATE command denied to user 'centreonbi'",
+        'table exists' => "Table '$TABLE' already exists"
+    );
+    my $create_with_tablespace = "CREATE TABLE `$TABLE` (`id` INT) TABLESPACE innodb_file_per_table, COMMENT 'exists'";
+
+    for my $case (sort keys %cases) {
+        my (@queries, @logs);
+        my $db = make_db(\@queries, \@logs, sub {
+            my ($query) = @_;
+            return $query eq $create_with_tablespace ? $cases{$case} : undef;
+        });
+
+        my $error = dies {
+            gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $create_with_tablespace)
+        };
+
+        is($error, db_error($cases{$case}, $create_with_tablespace), "$case: the original error should be rethrown unchanged.");
+        is(\@logs, [], "$case: nothing should be logged.");
+    }
+}
+
+# A DROP failure must be rethrown unchanged, and CREATE must not run. A missing
+# tablespace is not the orphaned case and must not get its hint.
+sub test_drop_error {
     my (@queries, @logs);
-    my $db = make_db(\@queries, sub {
+    my $original = "Tablespace is missing for table `centreon_storage`.`$TABLE`";
+    my $db = make_db(\@queries, \@logs, sub {
         my ($query) = @_;
-        return $TABLESPACE_ERROR if $query eq $CREATE;
-        return undef;
+        return $query eq $DROP ? $original : undef;
     });
 
-    ok(lives { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, make_logger(\@logs), $TABLE, $CREATE) },
-        'recreate_table should not die when the existing table can be truncated.');
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
 
-    is(\@queries, [$DROP, $CREATE, $EXISTS, $TRUNCATE],
-        'the existing table should be truncated instead of being created again.');
-    is(severities(\@logs), ['WARNING', 'INFO'], 'the failure and the reuse should both be logged.');
-    like($logs[1]->{message}, qr/truncating and reusing/, 'the reuse of the table should be logged.');
-}
-
-# CREATE fails and the table is not in the data dictionary (orphaned tablespace):
-# DROP + CREATE must be replayed on the reconnected handle, without TRUNCATE.
-sub test_recovery_when_table_is_missing {
-    my (@queries, @logs);
-    my $db = make_db(\@queries, sub {
-        my ($query, $index) = @_;
-        return $TABLESPACE_ERROR if $query eq $CREATE && $index == 2;
-        return "Table '$TABLE' doesn't exist\n" if $query eq $EXISTS;
-        return undef;
-    });
-
-    ok(lives { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, make_logger(\@logs), $TABLE, $CREATE) },
-        'recreate_table should not die when the retried CREATE succeeds.');
-
-    is(\@queries, [$DROP, $CREATE, $EXISTS, $DROP, $CREATE],
-        'DROP and CREATE should be retried and TRUNCATE should not be executed.');
-    is(severities(\@logs), ['WARNING'], 'only the initial failure should be logged.');
-    like($logs[0]->{message}, qr/Attempting recovery/, 'the recovery attempt should be logged.');
-}
-
-# A failing DROP during the retry must not abort the recovery.
-sub test_recovery_ignores_failing_drop {
-    my (@queries, @logs);
-    my $db = make_db(\@queries, sub {
-        my ($query, $index) = @_;
-        return $TABLESPACE_ERROR if $query eq $CREATE && $index == 2;
-        return "Table '$TABLE' doesn't exist\n" if $query eq $EXISTS;
-        return "Unknown table '$TABLE'\n" if $query eq $DROP && $index == 4;
-        return undef;
-    });
-
-    ok(lives { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, make_logger(\@logs), $TABLE, $CREATE) },
-        'recreate_table should not die when the retried DROP fails but the CREATE succeeds.');
-
-    is(\@queries, [$DROP, $CREATE, $EXISTS, $DROP, $CREATE], 'the retried CREATE should still be executed.');
-}
-
-# Both CREATE attempts fail: recreate_table must die with an actionable message
-# carrying the original error.
-sub test_dies_when_recovery_fails {
-    my (@queries, @logs);
-    my $db = make_db(\@queries, sub {
-        my ($query) = @_;
-        return $TABLESPACE_ERROR if $query eq $CREATE;
-        return "Table '$TABLE' doesn't exist\n" if $query eq $EXISTS;
-        return undef;
-    });
-
-    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, make_logger(\@logs), $TABLE, $CREATE) };
-
-    like($error, qr/Cannot create temp table `\Q$TABLE\E`/, 'the table name should be reported.');
-    like($error, qr/orphaned\s+InnoDB tablespace/, 'the likely cause should be reported.');
-    like($error, qr/errno: 184/, 'the original error should be kept.');
-    is(\@queries, [$DROP, $CREATE, $EXISTS, $DROP, $CREATE], 'no query should run after the second CREATE failure.');
-    is(severities(\@logs), ['WARNING'], 'only the initial failure should be logged.');
+    is($error, db_error($original, $DROP), 'the original error should be rethrown unchanged.');
+    is(\@queries, [$DROP], 'CREATE should not be executed.');
+    is(\@logs, [], 'nothing should be logged.');
 }
 
 sub main {
     test_create_succeeds();
-    test_recovery_when_table_still_exists();
-    test_recovery_when_table_is_missing();
-    test_recovery_ignores_failing_drop();
-    test_dies_when_recovery_fails();
+    test_orphaned_tablespace();
+    test_other_create_error();
+    test_drop_error();
 
     done_testing();
 }
