@@ -261,6 +261,12 @@ flowchart TD
   et `SetServiceNotifications(ServiceNotificationsRequest { service, enabled })` de
   **Broker**. L'interrupteur l'emporte sur la valeur configurée et survit aux
   redémarrages de Broker et d'Engine, comme un `MODATTR` retenu côté Engine.
+* **Réglages du notifier** : `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
+  `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
+  `SendCustomHostNotification` / `SendCustomServiceNotification` (les options 1/2/4
+  deviennent trois booléens `broadcast`, `forced`, `increment`). Ces appels sont
+  appliqués de façon asynchrone, comme le tube. `DELAY_*_NOTIFICATION` n'a pas de
+  pendant : la commande n'a aucun effet sur la décision, ni chez Engine ni chez Broker.
 * **Toutes les autres commandes** (résultats de contrôle, bascules globales ou par
   contact, changements de variables d'objet, contrôles forcés…) vont toujours vers
   **Engine**.

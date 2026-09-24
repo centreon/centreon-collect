@@ -755,3 +755,24 @@ comme `enable_and_propagate_notifications()` côté Engine.
 Tests : `tests/broker-engine/notification-toggles-broker.robot` (`BENOTBRK1` à `3`) ;
 UT `BrokerNotificationDeliverTest.{NotifyOverrideSurvivesDefinition,
 ReinjectNotificationOverrides, HostChildrenIndex}`.
+
+### 9.1 Réglages du notifier et sérialisation
+
+`broker_notification_dispatcher` possède un **strand** : le multiplexeur y poste les lots
+(`event_sink::executor()`), et tout autre appelant du `notification_manager`, qui n'est pas
+thread-safe, y poste son travail au lieu d'appeler le manager depuis son thread. C'est le cas
+de l'acquittement avec `notify` (`broker_acknowledgement_manager` reçoit le dispatcher à son
+chargement) et des RPC suivantes, qui répondent donc avant d'être appliquées, comme le tube
+de commandes :
+
+| RPC Broker | Commande Engine | Effet |
+|---|---|---|
+| `SetHostNotificationNumber` / `SetServiceNotificationNumber(…, number)` | `SET_*_NOTIFICATION_NUMBER` | `notification_manager::set_notification_number` → le backend publie l'adaptive `notification_number` (base), état persisté par T9 |
+| `SendCustomHostNotification` / `SendCustomServiceNotification(…, author, comment, broadcast, forced, increment)` | `SEND_CUSTOM_*_NOTIFICATION` (options 1/2/4) | `notify(reason_custom, …)` ; `forced` court-circuite les interrupteurs, le poller exécute le type `CUSTOM` |
+
+**`DELAY_*_NOTIFICATION` n'a pas de pendant Broker, volontairement** : ni la viabilité de la
+lib ni celle d'Engine ne lisent `next_notification` (l'intervalle se calcule depuis
+`last + notification_interval`) ; Engine ne s'en sert que pour l'export de statut. La commande
+est un no-op sur la décision, on ne l'expose pas.
+
+Tests : `tests/broker-engine/notification-settings-broker.robot` (`BENOTSET1`, `BENOTSET2`).

@@ -752,3 +752,24 @@ BBDO3. The propagation is recursive and visits each host once, like Engine's
 Tests: `tests/broker-engine/notification-toggles-broker.robot` (`BENOTBRK1` to `3`);
 UT `BrokerNotificationDeliverTest.{NotifyOverrideSurvivesDefinition,
 ReinjectNotificationOverrides, HostChildrenIndex}`.
+
+### 9.1 Notifier settings and serialization
+
+`broker_notification_dispatcher` owns a **strand**: the multiplexing engine posts the batches
+on it (`event_sink::executor()`), and every other caller of the `notification_manager`, which
+is not thread-safe, posts its work there instead of calling the manager from its own thread.
+This is the case of the acknowledgement with `notify` (`broker_acknowledgement_manager`
+receives the dispatcher when loaded) and of the following RPCs, which therefore return before
+being applied, like the command pipe:
+
+| Broker RPC | Engine command | Effect |
+|---|---|---|
+| `SetHostNotificationNumber` / `SetServiceNotificationNumber(…, number)` | `SET_*_NOTIFICATION_NUMBER` | `notification_manager::set_notification_number` → the backend publishes the `notification_number` adaptive (database), state persisted by T9 |
+| `SendCustomHostNotification` / `SendCustomServiceNotification(…, author, comment, broadcast, forced, increment)` | `SEND_CUSTOM_*_NOTIFICATION` (options 1/2/4) | `notify(reason_custom, …)`; `forced` bypasses the switches, the poller executes the `CUSTOM` type |
+
+**`DELAY_*_NOTIFICATION` has no Broker counterpart, on purpose**: neither the library nor
+Engine reads `next_notification` in the viability (the interval is computed from
+`last + notification_interval`); Engine only uses it for the status export. The command is a
+no-op on the decision, it is not exposed.
+
+Tests: `tests/broker-engine/notification-settings-broker.robot` (`BENOTSET1`, `BENOTSET2`).
