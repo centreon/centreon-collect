@@ -180,7 +180,7 @@ jobs:
           if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' && ${{ matrix.feature }} != 'connector_ssh/centralized-connector_ssh.robot' ]]; then
             privilege_status="--privileged"
           fi
-          docker run --rm $privilege_status --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \
+          docker run --rm $privilege_status --cap-add=NET_ADMIN --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \
             -v $(pwd):/test_collect  \
             -v  ${{ inputs.aws_web_identity_token_file }}:${{ inputs.aws_web_identity_token_file }} \
             --env AWS_WEB_IDENTITY_TOKEN_FILE=${{ inputs.aws_web_identity_token_file }} \

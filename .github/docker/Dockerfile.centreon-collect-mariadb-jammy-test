@@ -17,6 +17,7 @@ apt-get -y install \
     gcc \
     gdb \
     git \
+    iptables \
     git-buildpackage \
     libgnutls30 \
     libhttp-daemon-ssl-perl \
