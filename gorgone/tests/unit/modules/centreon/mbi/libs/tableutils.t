@@ -93,11 +93,12 @@ sub test_orphaned_tablespace {
 
         my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
 
-        like($error, qr/Cannot recreate table `\Q$TABLE\E`/, "$server: the table name should be reported.");
+        like($error, qr/Cannot create table `\Q$TABLE\E`/, "$server: the table name should be reported.");
         like($error, qr/orphaned InnoDB tablespace/, "$server: the likely cause should be reported.");
         like($error, qr{<datadir>/<database>/\Q$TABLE\E\.ibd}, "$server: the file to remove should be reported.");
-        like($error, qr/Original error: \Q@{[db_error($errors{$server}, $CREATE)]}\E/,
-            "$server: the original error should be kept.");
+        like($error, qr/Original error: SQL error: \Q$errors{$server}\E\n\z/,
+            "$server: the original error should be kept, without caller nor query.");
+        unlike($error, qr/Query:/, "$server: the failing query should not be reported.");
         is(\@logs, [$error], "$server: the error should be logged.");
         is(\@queries, [$DROP, $CREATE], "$server: recreate_table should not retry by itself.");
     }
@@ -177,8 +178,126 @@ sub test_handle_not_dying {
 
     my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
 
-    like($error, qr/must be created with die => 1/, 'the handle should be refused.');
+    like($error, qr/must be created with the die option/, 'the handle should be refused.');
     is(\@queries, [], 'no query should be executed.');
+
+    for my $function ('create_table', 'execute_statement') {
+        my @function_queries;
+        my $db = make_db(\@function_queries, \@logs, undef, die => 0);
+        my $call = \&{"gorgone::modules::centreon::mbi::libs::TableUtils::$function"};
+        my @args = $function eq 'create_table' ? ($db, $TABLE, $CREATE) : ($db, $CREATE);
+
+        like(dies { $call->(@args) }, qr/must be created with the die option/, "$function should refuse the handle.");
+        is(\@function_queries, [], "$function should not execute any query.");
+    }
+}
+
+# create_table() only creates the table, with the same hint on an orphaned
+# tablespace.
+sub test_create_table {
+    my (@queries, @logs);
+    my $db = make_db(\@queries, \@logs, fail_create_with("Tablespace '`centreon_storage`.`$TABLE`' exists."));
+
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::create_table($db, $TABLE, $CREATE) };
+
+    like($error, qr/Cannot create table `\Q$TABLE\E`: an orphaned InnoDB tablespace/, 'the hint should be given.');
+    is(\@queries, [$CREATE], 'the table should not be dropped.');
+}
+
+# execute_statement() gives the hint for CREATE TABLE statements only, naming
+# the table found in the statement.
+sub test_execute_statement {
+    my $tablespace_error = "Tablespace '`centreon_storage`.`mod_bi_foo`' exists.";
+    my %statements = (
+        "CREATE TABLE `mod_bi_foo` (\n  `id` int(11) NOT NULL\n) ENGINE=InnoDB" => 'mod_bi_foo',
+        " create table if not exists mod_bi_foo (`id` INT)" => 'mod_bi_foo',
+        "CREATE TABLE `centreon_storage`.`mod_bi_foo` (`id` INT)" => 'mod_bi_foo',
+        "CREATE TABLE centreon_storage.mod_bi_foo (`id` INT)" => 'mod_bi_foo'
+    );
+
+    for my $statement (sort keys %statements) {
+        my (@queries, @logs);
+        my $db = make_db(\@queries, \@logs, sub { return $tablespace_error; });
+
+        my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::execute_statement($db, $statement) };
+
+        like($error, qr/Cannot create table `\Q$statements{$statement}\E`: an orphaned InnoDB tablespace/,
+            "the hint should name the created table ($statement).");
+        is(\@queries, [$statement], "only the statement should be executed ($statement).");
+    }
+
+    my (@queries, @logs);
+    my $import = "ALTER TABLE `mod_bi_foo` IMPORT TABLESPACE";
+    my $db = make_db(\@queries, \@logs, sub { return $tablespace_error; });
+
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::execute_statement($db, $import) };
+
+    is($error, db_error($tablespace_error, $import), 'other statements should fail with their original error.');
+    is(\@queries, [$import], 'other statements should be executed as is.');
+    is(\@logs, [], 'nothing should be logged for other statements.');
+}
+
+# A partitioned table has one tablespace file per partition: the hint must
+# point to them.
+sub test_orphaned_tablespace_partitioned {
+    my %statements = (
+        'built' => "CREATE TABLE `$TABLE` (`time_id` INT) ENGINE=InnoDB PARTITION BY RANGE(`time_id`) "
+            . "(PARTITION p20260101 VALUES LESS THAN (1767225600))",
+        # As returned by SHOW CREATE TABLE.
+        'dumped' => "CREATE TABLE `$TABLE` (\n  `time_id` int(11) NOT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3\n"
+            . "/*!50100 PARTITION BY RANGE (`time_id`)\n(PARTITION `p20260101` VALUES LESS THAN (1767225600) ENGINE = InnoDB) */"
+    );
+
+    for my $case (sort keys %statements) {
+        my (@queries, @logs);
+        my $db = make_db(\@queries, \@logs, sub { return "Tablespace '`centreon_storage`.`$TABLE`' exists."; });
+
+        my $error = dies {
+            gorgone::modules::centreon::mbi::libs::TableUtils::create_table($db, $TABLE, $statements{$case})
+        };
+
+        like($error, qr{<datadir>/<database>/\Q$TABLE\E#P#\*\.ibd \(or \Q$TABLE\E#p#\*\.ibd on MySQL 8\.0\)},
+            "$case: the partition files should be reported.");
+        unlike($error, qr{\Q$TABLE\E\.ibd}, "$case: a single table file should not be reported.");
+    }
+}
+
+# Only the server message is matched, not the caller appended to it by
+# gorgone::class::db.
+sub test_caller_not_matched {
+    my @queries;
+    my $original = "SQL error: Lock wait timeout exceeded (caller: Tablespace::Exists:/opt/tablespace/exists.pm:1)\n"
+        . "Query: $CREATE\n";
+    my $db = mock { die => 1 } => (
+        add => [
+            query => sub {
+                my ($self, $options) = @_;
+
+                push @queries, $options->{query};
+                die $original;
+            }
+        ]
+    );
+
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::create_table($db, $TABLE, $CREATE) };
+
+    is($error, $original, 'the original error should be rethrown unchanged.');
+}
+
+# The hint is only given for CREATE errors: a DROP failing with a message
+# looking like the orphaned tablespace one must be rethrown unchanged.
+sub test_drop_error_looking_like_orphaned_tablespace {
+    my (@queries, @logs);
+    my $original = "Tablespace '`centreon_storage`.`$TABLE`' exists.";
+    my $db = make_db(\@queries, \@logs, sub {
+        my ($query) = @_;
+        return $query eq $DROP ? $original : undef;
+    });
+
+    my $error = dies { gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $TABLE, $CREATE) };
+
+    is($error, db_error($original, $DROP), 'the original error should be rethrown unchanged.');
+    is(\@logs, [], 'nothing should be logged.');
 }
 
 sub main {
@@ -189,6 +308,11 @@ sub main {
     test_orphaned_tablespace_without_logger();
     test_exists_as_word_prefix();
     test_handle_not_dying();
+    test_create_table();
+    test_execute_statement();
+    test_orphaned_tablespace_partitioned();
+    test_caller_not_matched();
+    test_drop_error_looking_like_orphaned_tablespace();
 
     done_testing();
 }

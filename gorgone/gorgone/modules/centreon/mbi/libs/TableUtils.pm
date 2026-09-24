@@ -25,20 +25,20 @@ package gorgone::modules::centreon::mbi::libs::TableUtils;
 
 use Try::Tiny;
 
-# Drop and recreate a temporary table.
-# A copy of the database server data directory (e.g. rsync of /var/lib/mysql)
-# can leave an orphaned InnoDB tablespace (.ibd file) that is not known to the
-# data dictionary: DROP TABLE IF EXISTS then does nothing and CREATE TABLE
-# fails. This cannot be fixed from SQL, so the error is made actionable.
-sub recreate_table {
+# Helpers to create tables with an actionable error when the database server
+# data directory was copied (e.g. rsync of /var/lib/mysql) and left an orphaned
+# InnoDB tablespace (.ibd file) that is not known to the data dictionary:
+# DROP TABLE IF EXISTS then does nothing and CREATE TABLE fails. This cannot be
+# fixed from SQL.
+# The database handle must be created with die => 1.
+
+# Create a table.
+sub create_table {
     my ($db, $tableName, $createTableQuery) = @_;
 
-    # Errors are only caught if queries die on failure.
-    die "Cannot recreate table `$tableName`: the database handle must be created with die => 1\n"
-        if (!$db->{die});
+    check_handle($db, $tableName);
 
     try {
-        $db->query({ query => "DROP TABLE IF EXISTS `$tableName`" });
         $db->query({ query => $createTableQuery });
     } catch {
         my $error = $_;
@@ -52,20 +52,59 @@ sub recreate_table {
         #     Tablespace '%s' exists.
         # The MariaDB handler message comes from an untranslated list
         # (include/my_handler_errors.h), so it matches whatever lc_messages is.
-        # Only the first line of the error is matched: gorgone::class::db
-        # appends the failing query on a second line.
+        # Only the server message is matched: gorgone::class::db appends the
+        # caller to it, and the failing query on a second line.
         my ($serverError) = split(/\n/, $error);
+        $serverError =~ s/ \(caller: [^)]*\)\z// if (defined($serverError));
         die $error if (!defined($serverError) || $serverError !~ /Tablespace\b.*\bexists\b/i);
 
-        my $message = "Cannot recreate table `$tableName`: an orphaned InnoDB tablespace "
+        # A partitioned InnoDB table has one tablespace per partition:
+        # t#P#p1.ibd (MariaDB, MySQL 5.7) or t#p#p1.ibd (MySQL 8.0).
+        my $files = $createTableQuery =~ /\bPARTITION\s+BY\b/i
+            ? "<datadir>/<database>/$tableName#P#*.ibd (or $tableName#p#*.ibd on MySQL 8.0) are"
+            : "<datadir>/<database>/$tableName.ibd is";
+        # The failing query is left out: it can be huge (one clause per
+        # partition) and would hide the hint.
+        my $message = "Cannot create table `$tableName`: an orphaned InnoDB tablespace "
             . "(.ibd file) was probably left behind by a copy of the database server data "
-            . "directory. Check that <datadir>/<database>/$tableName.ibd is not used by any "
-            . "table, remove it and restart the database server. Original error: $error";
+            . "directory. Check that $files not used by any table, remove the file(s) and "
+            . "restart the database server. Original error: $serverError\n";
         # The ETL reports the error in its own log; also make the hint visible in
         # the gorgone log, where the raw database error is logged.
         $db->{logger}->writeLogError($message) if (defined($db->{logger}));
         die $message;
     };
+}
+
+# Drop and create a table.
+sub recreate_table {
+    my ($db, $tableName, $createTableQuery) = @_;
+
+    check_handle($db, $tableName);
+
+    $db->query({ query => "DROP TABLE IF EXISTS `$tableName`" });
+    create_table($db, $tableName, $createTableQuery);
+}
+
+# Execute any statement, going through create_table() for CREATE TABLE ones.
+sub execute_statement {
+    my ($db, $query) = @_;
+
+    # The table name may be qualified with the database name.
+    if ($query =~ /\A\s*CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:`?[^`\s.(]+`?\.)?`?([^`\s.(]+)`?/i) {
+        create_table($db, $1, $query);
+    } else {
+        $db->query({ query => $query });
+    }
+}
+
+# Errors are only caught if queries die on failure, i.e. if the handle was
+# created with the die option.
+sub check_handle {
+    my ($db, $tableName) = @_;
+
+    die "Cannot create table `$tableName`: the database handle must be created with the die option\n"
+        if (!$db->{die});
 }
 
 1;

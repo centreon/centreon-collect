@@ -23,6 +23,7 @@ package gorgone::modules::centreon::mbi::libs::bi::MySQLTables;
 use strict;
 use warnings;
 use POSIX;
+use gorgone::modules::centreon::mbi::libs::TableUtils;
 
 # Constructor
 # parameters:
@@ -115,7 +116,7 @@ sub createParts {
 	my @partName = split (/\-/, $runningStart);
 	$tableStructure .= "PARTITION p".$partName[0].$partName[1].$partName[2]." VALUES LESS THAN (FLOOR(UNIX_TIMESTAMP('".$runningStart."'))));";
 	$logger->writeLog("DEBUG", "[CREATE] table partitionned [".$tableName."] min value: ".$start.", max value: ".$runningStart.", range:  1 DAY\n");
-	$db->query({ query => $tableStructure });
+	gorgone::modules::centreon::mbi::libs::TableUtils::create_table($db, $tableName, $tableStructure);
 	return 0;
 }
 
@@ -213,8 +214,7 @@ sub emptyTableForRebuild {
 	$structure =~ s/KEY.*\(\`$column\`\)//g;
 	$structure =~ s/\,[\n\s+]+\)/\n\)/g;
 	if (!defined($_[0]) || !$self->isPartitionEnabled()) {
-		$db->query({ query => "DROP TABLE IF EXISTS ".$tableName });
-		$db->query({ query => $structure });
+		gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table($db, $tableName, $structure);
 	} else {
 		my ($start, $end) = @_;
 		$db->query({ query => "DROP TABLE IF EXISTS ".$tableName });
