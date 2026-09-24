@@ -21,7 +21,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -77,8 +76,7 @@ void applier::contact::_update(const configuration::State& config,
           MODATTR_NOTIFICATION_TIMEPERIOD) {
         timeperiod* temp_timeperiod(nullptr);
         const std::string key = state.host_notification_period().value_or("");
-        timeperiod_map::const_iterator found =
-            ::timeperiods.find(key);
+        timeperiod_map::const_iterator found = ::timeperiods.find(key);
 
         if (found != ::timeperiods.end())
           temp_timeperiod = found->second.get();
@@ -95,9 +93,9 @@ void applier::contact::_update(const configuration::State& config,
       if (obj->get_modified_service_attributes() &
           MODATTR_NOTIFICATION_TIMEPERIOD) {
         timeperiod* temp_timeperiod(nullptr);
-        const std::string key = state.host_notification_period().value_or("");
-        timeperiod_map::const_iterator found =
-            ::timeperiods.find(key);
+        const std::string key =
+            state.service_notification_period().value_or("");
+        timeperiod_map::const_iterator found = ::timeperiods.find(key);
 
         if (found != ::timeperiods.end())
           temp_timeperiod = found->second.get();
