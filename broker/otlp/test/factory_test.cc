@@ -118,3 +118,17 @@ TEST(otlp_factory, rejects_degenerate_limits) {
       factory::parse_config(make_cfg({{"max_inflight_requests", "0"}})),
       msg_fmt);
 }
+
+TEST(otlp_factory, host_metadata_defaults) {
+  auto conf = factory::parse_config(make_cfg());
+  EXPECT_EQ(conf->host_metadata_ttl, 900u);
+  EXPECT_FALSE(conf->host_ip_exclude_link_local);
+
+  conf = factory::parse_config(make_cfg(
+      {{"host_metadata_ttl", "60"}, {"host_ip_exclude_link_local", "true"}}));
+  EXPECT_EQ(conf->host_metadata_ttl, 60u);
+  EXPECT_TRUE(conf->host_ip_exclude_link_local);
+
+  EXPECT_THROW(factory::parse_config(make_cfg({{"host_metadata_ttl", "0"}})),
+               msg_fmt);
+}

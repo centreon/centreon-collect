@@ -20,6 +20,7 @@
 #define CCB_OTLP_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
+#include "com/centreon/broker/otlp/host_metadata_store.hh"
 #include "com/centreon/broker/otlp/mapping_provider.hh"
 #include "com/centreon/broker/otlp/otlp_config.hh"
 
@@ -29,11 +30,15 @@ namespace com::centreon::broker::otlp {
  * @brief Endpoint creating OTLP output streams.
  *
  * The muxer filters passed to io::endpoint are what subscribe this module to
- * service and host status events.
+ * service and host status events, and to the host information of Centreon
+ * Monitoring Agents.
  */
 class connector : public io::endpoint {
   const otlp_config::pointer _conf;
   mapping_provider::pointer _mapping;
+  /* outlives the streams, so that a reopened stream (failover) keeps the
+   * host information already received */
+  host_metadata_store::pointer _host_metadata;
 
  public:
   explicit connector(const otlp_config::pointer& conf);

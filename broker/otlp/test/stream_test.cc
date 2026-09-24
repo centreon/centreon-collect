@@ -89,6 +89,35 @@ class StreamTest : public ::testing::Test {
         conf, enricher, mapping_provider::empty(logger), exporter, logger);
   }
 
+  std::unique_ptr<stream> make_stream(
+      const host_metadata_store::pointer& store) {
+    return std::make_unique<stream>(conf, enricher,
+                                    mapping_provider::empty(logger), exporter,
+                                    logger, store);
+  }
+
+  static std::shared_ptr<io::data> host_info_event(uint64_t host_id,
+                                                   uint64_t observed_at,
+                                                   const std::string& id) {
+    auto e = std::make_shared<neb::pb_agent_host_info>();
+    auto& o = e->mut_obj();
+    o.set_poller_id(1);
+    o.set_host_id(host_id);
+    o.set_observed_at(observed_at);
+    o.set_os_type("linux");
+    o.set_machine_id(id);
+    return e;
+  }
+
+  static std::string resource_attr(
+      const ::opentelemetry::proto::metrics::v1::ResourceMetrics& rm,
+      const std::string& key) {
+    for (const auto& a : rm.resource().attributes())
+      if (a.key() == key)
+        return a.value().string_value();
+    return {};
+  }
+
   static std::shared_ptr<io::data> service_event(uint64_t host_id,
                                                  uint64_t service_id,
                                                  const std::string& perf) {
@@ -205,4 +234,47 @@ TEST_F(StreamTest, statistics_report_delivery) {
   EXPECT_GT(tree["datapoints_sent"], 0);
   EXPECT_EQ(tree["export_errors"], 0);
   EXPECT_EQ(tree["inflight_requests"], 0);
+}
+
+TEST_F(StreamTest, host_info_is_acknowledged_and_stored) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  auto s = make_stream(store);
+  EXPECT_EQ(s->write(host_info_event(1, std::time(nullptr), "m1")), 1);
+  EXPECT_EQ(store->size(), 1u);
+
+  EXPECT_EQ(s->write(service_event(1, 1, "rta=250ms")), 1);
+  s->stop();
+  ASSERT_EQ(exporter->calls.size(), 1u);
+  EXPECT_EQ(resource_attr(exporter->calls[0].request.resource_metrics(0),
+                          "host.id"),
+            "m1");
+}
+
+TEST_F(StreamTest, identity_change_splits_the_resource_of_the_batch) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  auto s = make_stream(store);
+  const std::time_t now = std::time(nullptr);
+  s->write(host_info_event(1, now, "m1"));
+  s->write(service_event(1, 1, "rta=250ms"));
+  s->write(host_info_event(1, now + 1, "m2"));
+  s->write(service_event(1, 1, "rta=250ms"));
+  s->stop();
+  ASSERT_EQ(exporter->calls.size(), 1u);
+  const auto& req = exporter->calls[0].request;
+  ASSERT_EQ(req.resource_metrics_size(), 2);
+  EXPECT_EQ(resource_attr(req.resource_metrics(0), "host.id"), "m1");
+  EXPECT_EQ(resource_attr(req.resource_metrics(1), "host.id"), "m2");
+}
+
+TEST_F(StreamTest, outdated_host_info_is_counted) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  auto s = make_stream(store);
+  const std::time_t now = std::time(nullptr);
+  s->write(host_info_event(1, now, "m2"));
+  EXPECT_EQ(s->write(host_info_event(1, now - 10, "m1")), 1);
+  nlohmann::json tree;
+  s->statistics(tree);
+  EXPECT_EQ(tree["host_metadata_received"], 2);
+  EXPECT_EQ(tree["host_metadata_ignored"], 1);
+  EXPECT_EQ(tree["host_metadata_known"], 1);
 }

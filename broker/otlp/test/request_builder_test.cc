@@ -137,6 +137,42 @@ class RequestBuilderTest : public ::testing::Test {
         return a.value().string_value();
     return {};
   }
+  static bool has_resource_attr(
+      const ::opentelemetry::proto::metrics::v1::ResourceMetrics& rm,
+      const std::string& key) {
+    for (const auto& a : rm.resource().attributes())
+      if (a.key() == key)
+        return true;
+    return false;
+  }
+
+  static std::vector<std::string> resource_array_attr(
+      const ::opentelemetry::proto::metrics::v1::ResourceMetrics& rm,
+      const std::string& key) {
+    std::vector<std::string> ret;
+    for (const auto& a : rm.resource().attributes())
+      if (a.key() == key)
+        for (const auto& v : a.value().array_value().values())
+          ret.push_back(v.string_value());
+    return ret;
+  }
+
+  static AgentHostInfo make_host_info(const std::string& machine_id) {
+    AgentHostInfo info;
+    info.set_poller_id(1);
+    info.set_host_id(42);
+    info.set_host_name("srv-web-01");
+    info.set_observed_at(std::time(nullptr));
+    info.set_os_type("linux");
+    info.set_os_name("AlmaLinux");
+    info.set_os_version("9.4");
+    info.set_arch("amd64");
+    info.set_machine_id(machine_id);
+    info.add_ips("10.0.0.1");
+    info.add_ips("169.254.3.4");
+    info.add_ips("fe80::1");
+    return info;
+  }
 };
 
 }  // namespace
@@ -468,4 +504,107 @@ TEST_F(RequestBuilderTest, repeated_metric_reuses_one_metric_entry) {
   const auto* m = find_metric(b.peek(), "centreon.icmp.rtt");
   ASSERT_NE(m, nullptr);
   EXPECT_EQ(m->gauge().data_points_size(), 2);
+}
+
+/* Hosts monitored by a Centreon Monitoring Agent get the OTel host and os
+ * resource attributes it collected. */
+TEST_F(RequestBuilderTest, cma_host_metadata_is_on_the_resource) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  store->update(make_host_info("4c4c4544004d3510804bb4c04f4a3432"),
+                std::time(nullptr));
+  request_builder b(conf, enricher, mapping, logger, store);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=1ms")));
+
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_EQ(resource_attr(rm, "host.name"), "srv-web-01");
+  EXPECT_EQ(resource_attr(rm, "host.id"), "4c4c4544004d3510804bb4c04f4a3432");
+  EXPECT_EQ(resource_attr(rm, "host.arch"), "amd64");
+  EXPECT_EQ(resource_attr(rm, "os.type"), "linux");
+  EXPECT_EQ(resource_attr(rm, "os.name"), "AlmaLinux");
+  EXPECT_EQ(resource_attr(rm, "os.version"), "9.4");
+  EXPECT_EQ(resource_array_attr(rm, "host.ip"),
+            (std::vector<std::string>{"10.0.0.1", "169.254.3.4", "fe80::1"}));
+  EXPECT_FALSE(has_resource_attr(rm, "host.type"));
+}
+
+TEST_F(RequestBuilderTest, link_local_ips_can_be_excluded) {
+  conf->host_ip_exclude_link_local = true;
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  store->update(make_host_info("m1"), std::time(nullptr));
+  request_builder b(conf, enricher, mapping, logger, store);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=1ms")));
+  EXPECT_EQ(resource_array_attr(b.peek().resource_metrics(0), "host.ip"),
+            std::vector<std::string>{"10.0.0.1"});
+}
+
+/* An older agent sends no machine id nor arch: nothing is emitted rather than
+ * an empty value. */
+TEST_F(RequestBuilderTest, empty_host_metadata_fields_are_not_emitted) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  AgentHostInfo info = make_host_info("");
+  info.clear_arch();
+  info.clear_ips();
+  store->update(info, std::time(nullptr));
+  request_builder b(conf, enricher, mapping, logger, store);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=1ms")));
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_FALSE(has_resource_attr(rm, "host.id"));
+  EXPECT_FALSE(has_resource_attr(rm, "host.arch"));
+  EXPECT_FALSE(has_resource_attr(rm, "host.ip"));
+  EXPECT_EQ(resource_attr(rm, "os.type"), "linux");
+}
+
+TEST_F(RequestBuilderTest, host_without_metadata_keeps_the_basic_resource) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  request_builder b(conf, enricher, mapping, logger, store);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=1ms")));
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_EQ(resource_attr(rm, "host.name"), "srv-web-01");
+  EXPECT_FALSE(has_resource_attr(rm, "host.id"));
+  EXPECT_FALSE(has_resource_attr(rm, "os.type"));
+}
+
+/* Resource attributes are frozen for a host within a batch... */
+TEST_F(RequestBuilderTest, metadata_change_applies_to_the_next_batch) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  AgentHostInfo info = make_host_info("m1");
+  store->update(info, std::time(nullptr));
+  request_builder b(conf, enricher, mapping, logger, store);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=1ms")));
+
+  info.set_os_version("9.5");
+  info.set_observed_at(info.observed_at() + 1);
+  ASSERT_EQ(store->update(info, std::time(nullptr)),
+            host_metadata_store::update_result::updated);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=2ms")));
+  auto req = b.take();
+  ASSERT_EQ(req.resource_metrics_size(), 1);
+  EXPECT_EQ(resource_attr(req.resource_metrics(0), "os.version"), "9.4");
+
+  ASSERT_TRUE(b.add_service_status(make_status("rta=3ms")));
+  EXPECT_EQ(resource_attr(b.peek().resource_metrics(0), "os.version"), "9.5");
+}
+
+/* ...except when the machine changes: later samples must not be attributed to
+ * the former machine. */
+TEST_F(RequestBuilderTest, identity_change_starts_a_new_resource) {
+  auto store = std::make_shared<host_metadata_store>(std::chrono::seconds(900));
+  AgentHostInfo info = make_host_info("m1");
+  store->update(info, std::time(nullptr));
+  request_builder b(conf, enricher, mapping, logger, store);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=1ms")));
+
+  info.set_machine_id("m2");
+  info.set_observed_at(info.observed_at() + 1);
+  ASSERT_EQ(store->update(info, std::time(nullptr)),
+            host_metadata_store::update_result::identity_changed);
+  b.start_new_resource(42);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=2ms")));
+
+  const auto& req = b.peek();
+  ASSERT_EQ(req.resource_metrics_size(), 2);
+  EXPECT_EQ(resource_attr(req.resource_metrics(0), "host.id"), "m1");
+  EXPECT_EQ(resource_attr(req.resource_metrics(1), "host.id"), "m2");
+  EXPECT_EQ(req.resource_metrics(0).scope_metrics(0).metrics_size(),
+            req.resource_metrics(1).scope_metrics(0).metrics_size());
 }

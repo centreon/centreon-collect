@@ -33,6 +33,7 @@ include_directories(inc
 set(SOURCES
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
+  ${SRC_DIR}/host_metadata_store.cc
   ${SRC_DIR}/mapping_provider.cc
   ${SRC_DIR}/otlp_exporter.cc
   ${SRC_DIR}/request_builder.cc
@@ -46,6 +47,7 @@ set(SOURCES
 set(HEADERS
   ${INC_DIR}/connector.hh
   ${INC_DIR}/factory.hh
+  ${INC_DIR}/host_metadata_store.hh
   ${INC_DIR}/mapping_provider.hh
   ${INC_DIR}/otlp_config.hh
   ${INC_DIR}/otlp_exporter.hh
@@ -90,6 +92,7 @@ if(WITH_TESTING)
     ${TEST_DIR}/request_builder_test.cc
     ${TEST_DIR}/stream_test.cc
     ${TEST_DIR}/factory_test.cc
+    ${TEST_DIR}/host_metadata_store_test.cc
     PARENT_SCOPE
   )
   set(

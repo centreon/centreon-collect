@@ -41,6 +41,7 @@ class stream : public io::stream {
   std::shared_ptr<resource_enricher> _enricher;
   mapping_provider::pointer _mapping;
   std::shared_ptr<exporter_base> _exporter;
+  host_metadata_store::pointer _host_metadata;
 
   mutable std::mutex _protect;
   std::unique_ptr<request_builder> _builder;
@@ -54,6 +55,8 @@ class stream : public io::stream {
   uint64_t _stat_datapoints_sent = 0;
   uint64_t _stat_export_errors = 0;
   uint64_t _stat_dropped_no_host_name = 0;
+  uint64_t _stat_host_metadata_received = 0;
+  uint64_t _stat_host_metadata_ignored = 0;
 
   /* A batch detached from the builder and ready to hand to the exporter. */
   struct pending_export {
@@ -78,7 +81,8 @@ class stream : public io::stream {
          const std::shared_ptr<resource_enricher>& enricher,
          const mapping_provider::pointer& mapping,
          const std::shared_ptr<exporter_base>& exporter,
-         const std::shared_ptr<spdlog::logger>& logger);
+         const std::shared_ptr<spdlog::logger>& logger,
+         const host_metadata_store::pointer& host_metadata = {});
   ~stream() noexcept override = default;
 
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;

@@ -46,6 +46,26 @@ void set_attribute(otel_common::KeyValue* kv,
   kv->mutable_value()->set_int_value(value);
 }
 
+void set_attribute(otel_common::KeyValue* kv,
+                   std::string_view key,
+                   const std::vector<std::string_view>& values) {
+  kv->set_key(std::string(key));
+  auto* array = kv->mutable_value()->mutable_array_value();
+  for (std::string_view value : values)
+    array->add_values()->set_string_value(std::string(value));
+}
+
+/* 169.254.0.0/16 and fe80::/10 */
+bool is_link_local(std::string_view ip) {
+  if (absl::StartsWith(ip, "169.254."))
+    return true;
+  if (ip.size() < 4 || !absl::StartsWithIgnoreCase(ip, "fe"))
+    return false;
+  const char third = absl::ascii_tolower(ip[2]);
+  return (third == '8' || third == '9' || third == 'a' || third == 'b') &&
+         ip.find(':') != std::string_view::npos;
+}
+
 /* Broker timestamps are seconds; OTLP wants nanoseconds. */
 uint64_t to_unix_nano(int64_t seconds) {
   return static_cast<uint64_t>(seconds) * 1000000000ULL;
@@ -57,8 +77,13 @@ request_builder::request_builder(
     const otlp_config::pointer& conf,
     const std::shared_ptr<resource_enricher>& enricher,
     const mapping_provider::pointer& mapping,
-    const std::shared_ptr<spdlog::logger>& logger)
-    : _conf(conf), _enricher(enricher), _mapping(mapping), _logger(logger) {}
+    const std::shared_ptr<spdlog::logger>& logger,
+    const host_metadata_store::pointer& host_metadata)
+    : _conf(conf),
+      _enricher(enricher),
+      _mapping(mapping),
+      _logger(logger),
+      _host_metadata(host_metadata) {}
 
 request_builder::ScopeMetrics* request_builder::_scope_for_host(
     uint64_t host_id,
@@ -86,6 +111,7 @@ request_builder::ScopeMetrics* request_builder::_scope_for_host(
    */
   set_attribute(resource->add_attributes(), "centreon.host.id",
                 static_cast<int64_t>(host_id));
+  _add_host_metadata(host_id, resource);
 
   ScopeMetrics* sm = rm->add_scope_metrics();
   sm->mutable_scope()->set_name(k_scope_name);
@@ -93,6 +119,53 @@ request_builder::ScopeMetrics* request_builder::_scope_for_host(
 
   _scope_by_host.emplace(host_id, sm);
   return sm;
+}
+
+/**
+ * @brief add the OTel host and os attributes collected by a Centreon
+ * Monitoring Agent. An empty field (unknown, or older agent) is not emitted.
+ */
+void request_builder::_add_host_metadata(
+    uint64_t host_id,
+    ::opentelemetry::proto::resource::v1::Resource* resource) {
+  if (!_host_metadata)
+    return;
+  std::optional<host_metadata> meta =
+      _host_metadata->get(host_id, std::time(nullptr));
+  if (!meta)
+    return;
+
+  auto add_if_not_empty = [resource](std::string_view key,
+                                     const std::string& value) {
+    if (!value.empty())
+      set_attribute(resource->add_attributes(), key, value);
+  };
+  add_if_not_empty("host.id", meta->machine_id);
+  add_if_not_empty("host.arch", meta->arch);
+  add_if_not_empty("os.type", meta->os_type);
+  add_if_not_empty("os.name", meta->os_name);
+  add_if_not_empty("os.version", meta->os_version);
+
+  std::vector<std::string_view> ips;
+  ips.reserve(meta->ips.size());
+  for (const std::string& ip : meta->ips) {
+    if (!_conf->host_ip_exclude_link_local || !is_link_local(ip))
+      ips.push_back(ip);
+  }
+  if (!ips.empty())
+    set_attribute(resource->add_attributes(), "host.ip", ips);
+}
+
+void request_builder::start_new_resource(uint64_t host_id) {
+  if (!_scope_by_host.erase(host_id))
+    return;
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "host id:{} identity changed, new resource for its next "
+                      "samples",
+                      host_id);
+  absl::erase_if(_metric_index, [host_id](const auto& item) {
+    return item.first.first == host_id;
+  });
 }
 
 request_builder::Metric* request_builder::_metric_for(

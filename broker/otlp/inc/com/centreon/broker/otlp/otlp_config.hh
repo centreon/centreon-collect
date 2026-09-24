@@ -52,6 +52,14 @@ struct otlp_config {
   bool send_thresholds = true;
   bool send_status = true;
   bool send_min_max = true;
+
+  /* Seconds after which the host information of a Centreon Monitoring Agent
+   * that engine stopped refreshing is forgotten (engine re-sends it every 5
+   * minutes). */
+  uint32_t host_metadata_ttl = 900;
+  /* Drop link-local addresses (169.254.0.0/16, fe80::/10) from host.ip. OTel
+   * allows them, so they are kept by default. */
+  bool host_ip_exclude_link_local = false;
 };
 
 }  // namespace com::centreon::broker::otlp
