@@ -13,6 +13,7 @@ gorgone:
     - name: httpserver
       package: "gorgone::modules::core::httpserver::hooks"
       enable: true
+      no_shell_interpretation: 0
       address: "0.0.0.0"
       port: "8085"
       ssl: false
