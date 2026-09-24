@@ -39,7 +39,10 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
  * @param io_context
  */
 agent_stat::agent_stat(const std::shared_ptr<asio::io_context>& io_context)
-    : _io_context(io_context), _send_timer(*io_context), _dirty(false) {}
+    : _ticks_since_host_info_snapshot(0),
+      _io_context(io_context),
+      _send_timer(*io_context),
+      _dirty(false) {}
 
 /**
  * @brief static method to construct a agent_stat object
@@ -127,6 +130,65 @@ void agent_stat::remove_agent(const com::centreon::agent::AgentInfo& agent_info,
       _dirty = true;
     }
   }
+  /* nothing is sent to broker: it forgets the information of a host not
+   * refreshed, and a reconnecting agent may already have a new reactor */
+  _host_infos.erase(reactor);
+}
+
+/**
+ * @brief stores the host information of an agent (received in init or
+ * info_update message) and sends it to broker
+ *
+ * @param agent_info
+ * @param reactor connection that received agent_info
+ */
+void agent_stat::set_host_info(
+    const com::centreon::agent::AgentInfo& agent_info,
+    const void* reactor) {
+  host_info to_store{agent_info, std::chrono::system_clock::now()};
+  std::vector<host_info> to_send{to_store};
+  {
+    absl::MutexLock l(_protect);
+    _host_infos[reactor] = std::move(to_store);
+  }
+  _send_host_infos(std::move(to_send));
+}
+
+/**
+ * @brief post to the main thread the sending of host information to broker.
+ * Host id is resolved from host name in the main thread; hosts unknown by
+ * engine are ignored (they are reported by UnknownHost event)
+ *
+ * @param to_send
+ */
+void agent_stat::_send_host_infos(std::vector<host_info>&& to_send) {
+  if (to_send.empty())
+    return;
+  auto fn = std::packaged_task<int(void)>([infos =
+                                               std::move(to_send)]() mutable {
+    for (const host_info& h : infos) {
+      auto found = host::hosts.find(h.info.host());
+      if (found == host::hosts.end())
+        continue;
+      com::centreon::broker::AgentHostInfo event;
+      event.set_host_id(found->second->host_id());
+      event.set_host_name(h.info.host());
+      event.set_observed_at(std::chrono::duration_cast<std::chrono::seconds>(
+                                h.observed_at.time_since_epoch())
+                                .count());
+      event.set_os_type(h.info.os_type());
+      event.set_os_name(h.info.os_name());
+      event.set_os_version(h.info.os_version());
+      event.set_arch(h.info.arch());
+      event.set_machine_id(h.info.machine_id());
+      for (const std::string& ip : h.info.ips()) {
+        event.add_ips(ip);
+      }
+      broker_agent_host_info(event);
+    }
+    return OK;
+  });
+  command_manager::instance().enqueue(std::move(fn));
 }
 
 /**
@@ -168,13 +230,24 @@ void agent_stat::_send_timer_handler(const boost::system::error_code& err) {
   if (err) {
     return;
   }
+  std::vector<host_info> host_infos;
   {
     absl::MutexLock l(_protect);
     if (_dirty) {
       _dirty = false;
       _on_stat_update();
     }
+    /* unconditional snapshot: unlike stats, broker keeps host information
+     * only in memory */
+    if (++_ticks_since_host_info_snapshot >= host_info_snapshot_ticks) {
+      _ticks_since_host_info_snapshot = 0;
+      host_infos.reserve(_host_infos.size());
+      for (const auto& [reactor, info] : _host_infos) {
+        host_infos.push_back(info);
+      }
+    }
   }
+  _send_host_infos(std::move(host_infos));
   _start_send_timer();
 }
 

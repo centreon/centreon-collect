@@ -44,6 +44,19 @@ class agent_stat : public std::enable_shared_from_this<agent_stat> {
 
   agent_info_map _data ABSL_GUARDED_BY(_protect);
 
+  /**
+   * @brief last host information received from each connected agent, sent to
+   * broker on change and every host_info_snapshot_ticks timer ticks so that a
+   * restarted broker recovers it.
+   */
+  struct host_info {
+    com::centreon::agent::AgentInfo info;
+    std::chrono::system_clock::time_point observed_at;
+  };
+  absl::flat_hash_map<const void*, host_info> _host_infos
+      ABSL_GUARDED_BY(_protect);
+  unsigned _ticks_since_host_info_snapshot ABSL_GUARDED_BY(_protect);
+
   std::shared_ptr<asio::io_context> _io_context;
   asio::system_timer _send_timer ABSL_GUARDED_BY(_protect);
   bool _dirty ABSL_GUARDED_BY(_protect);
@@ -52,11 +65,17 @@ class agent_stat : public std::enable_shared_from_this<agent_stat> {
 
   void _on_stat_update() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
+  static void _send_host_infos(std::vector<host_info>&& to_send);
+
   void _start_send_timer();
   void _send_timer_handler(const boost::system::error_code& err);
 
  public:
   using pointer = std::shared_ptr<agent_stat>;
+
+  /* the timer ticks every minute, so host information is re-sent every 5
+   * minutes */
+  static constexpr unsigned host_info_snapshot_ticks = 5;
 
   agent_stat(const std::shared_ptr<asio::io_context>& io_context);
 
@@ -70,6 +89,9 @@ class agent_stat : public std::enable_shared_from_this<agent_stat> {
   void remove_agent(const com::centreon::agent::AgentInfo& agent_info,
                     bool reversed,
                     const void* reactor);
+
+  void set_host_info(const com::centreon::agent::AgentInfo& agent_info,
+                     const void* reactor);
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry::centreon_agent

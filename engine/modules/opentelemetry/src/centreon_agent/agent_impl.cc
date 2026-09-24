@@ -415,8 +415,14 @@ void agent_impl<bireactor_class>::on_request(
           _agent_info->init().encryption_ready();
     }
     _stats->add_agent(_agent_info->init(), _reversed, this);
+    _stats->set_host_info(_agent_info->init(), this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());
     calc_and_send_config_if_needed(agent_conf);
+  }
+  if (request->has_info_update()) {
+    SPDLOG_LOGGER_DEBUG(_logger, "host information update from {}: {}",
+                        get_peer(), request->info_update());
+    _stats->set_host_info(request->info_update(), this);
   }
   if (request->has_otel_request()) {
     metric_request_ptr received(request->unsafe_arena_release_otel_request());

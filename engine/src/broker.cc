@@ -4879,3 +4879,17 @@ void broker_agent_unknown_host(
   to_send->mut_obj().set_poller_id(cbm->poller_id());
   cbm->write(to_send);
 }
+
+/**
+ * @brief called by opentelemetry module to send host information of a
+ * connected agent (os, arch, machine id, ips) to broker
+ *
+ * @param event
+ */
+void broker_agent_host_info(const com::centreon::broker::AgentHostInfo& event) {
+  if (!cbm)
+    return;
+  auto to_send = std::make_shared<neb::pb_agent_host_info>(event);
+  to_send->mut_obj().set_poller_id(cbm->poller_id());
+  cbm->write(to_send);
+}
