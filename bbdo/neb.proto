@@ -987,9 +987,23 @@ message BrokerCache {
   message NotificationOverride {
     uint64 host_id = 1;
     uint64 service_id = 2;
-    bool notify = 3;
+    optional bool notify = 3;
+    optional string notification_period = 4;
   }
   repeated NotificationOverride notification_overrides = 12;
+
+  /* notification_mode=broker: the contact switches and notification
+   * timeperiods set through the Broker API. A contact is known by name only;
+   * the override is re-applied each time the contact is (re)inserted from a
+   * poller configuration. */
+  message ContactNotificationOverride {
+    string contact_name = 1;
+    optional bool host_notifications_enabled = 2;
+    optional bool service_notifications_enabled = 3;
+    optional string host_notification_period = 4;
+    optional string service_notification_period = 5;
+  }
+  repeated ContactNotificationOverride contact_notification_overrides = 13;
 }
 
 /* Ignore */

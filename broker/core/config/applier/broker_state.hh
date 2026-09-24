@@ -19,7 +19,6 @@
 #ifndef CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #define CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #include <absl/base/call_once.h>
-#include <boost/asio/strand.hpp>
 
 #include "broker/core/config/applier/peer_registry.hh"
 #include "broker/core/config/applier/state.hh"

@@ -31,7 +31,6 @@
 #include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
 #include "com/centreon/broker/broker_comments.hh"
-#include "com/centreon/broker/broker_notification_dispatcher.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -153,7 +152,8 @@ std::shared_ptr<neb::pb_service> resolve_service(const ServiceIdentifier& id,
 
 }  // namespace
 
-broker_impl::broker_impl() {}
+broker_impl::broker_impl()
+    : _logger{log_v2::instance().get(log_v2::CORE)} {}
 
 /**
  * @brief Return the Broker's version.
@@ -558,7 +558,7 @@ grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        [[maybe_unused]],
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
-  log_v2::instance().get(log_v2::CORE)->info("Remove poller...");
+  _logger->info("Remove poller...");
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
   pblshr.write(e);
@@ -631,7 +631,7 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
+    SPDLOG_LOGGER_ERROR(_logger, err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     logger->set_level(spdlog::level::level_enum(request->level()));
@@ -673,8 +673,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
-                        "fail to get process info: {}",
+    SPDLOG_LOGGER_ERROR(_logger, "fail to get process info: {}",
                         boost::diagnostic_information(e));
 
     return grpc::Status(grpc::StatusCode::INTERNAL,
@@ -1777,11 +1776,9 @@ grpc::Status broker_impl::SetHostNotifications(
   uint32_t count = cache::notification_toggles::set_host_notifications(
       config::applier::state::instance().cache(), h->obj().host_id(),
       request->enabled(), sc);
-  log_v2::instance()
-      .get(log_v2::CORE)
-      ->info("notifications {} on host {} (scope {}): {} resource(s)",
-             request->enabled() ? "enabled" : "disabled", h->obj().host_id(),
-             HostNotificationsRequest::Scope_Name(request->scope()), count);
+  _logger->info("notifications {} on host {} (scope {}): {} resource(s)",
+                request->enabled() ? "enabled" : "disabled", h->obj().host_id(),
+                HostNotificationsRequest::Scope_Name(request->scope()), count);
   return grpc::Status::OK;
 }
 
@@ -1804,11 +1801,9 @@ grpc::Status broker_impl::SetServiceNotifications(
   cache::notification_toggles::set_service_notifications(
       config::applier::state::instance().cache(), s->obj().host_id(),
       s->obj().service_id(), request->enabled());
-  log_v2::instance()
-      .get(log_v2::CORE)
-      ->info("notifications {} on service ({}, {})",
-             request->enabled() ? "enabled" : "disabled", s->obj().host_id(),
-             s->obj().service_id());
+  _logger->info("notifications {} on service ({}, {})",
+                request->enabled() ? "enabled" : "disabled", s->obj().host_id(),
+                s->obj().service_id());
   return grpc::Status::OK;
 }
 
@@ -1932,6 +1927,249 @@ grpc::Status broker_impl::SendCustomServiceNotification(
 }
 
 /**
+ * @brief The Broker cache when Broker owns the notification decision
+ * (notification_mode = broker), or an UNAVAILABLE status.
+ *
+ * @param status Set when nullptr is returned.
+ *
+ * @return The cache, or nullptr.
+ */
+static cache::broker_cache* _notification_cache(grpc::Status* status) {
+  if (!com::centreon::common::notifications::notification_manager::
+          is_loaded()) {
+    *status = grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                           "Notification management is not enabled "
+                           "(notification_mode != broker)");
+    return nullptr;
+  }
+  return &config::applier::state::instance().cache();
+}
+
+/**
+ * @brief Check that a notification timeperiod named in a request is known to
+ * the Broker cache.
+ *
+ * @param cache  The Broker cache.
+ * @param name   The timeperiod name.
+ * @param status Set when false is returned.
+ *
+ * @return True when the timeperiod exists.
+ */
+static bool _check_timeperiod(const cache::broker_cache& bc,
+                              const std::string& name,
+                              grpc::Status* status) {
+  if (name.empty()) {
+    *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                           "timeperiod must be set");
+    return false;
+  }
+  if (!bc.has_timeperiod(name)) {
+    *status = grpc::Status(grpc::StatusCode::NOT_FOUND,
+                           fmt::format("unknown timeperiod '{}'", name));
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Change the notification timeperiod of a host
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetHostNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  grpc::Status status;
+  auto* bc = _notification_cache(&status);
+  if (!bc)
+    return status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  if (!_check_timeperiod(*bc, request->timeperiod(), &status))
+    return status;
+  bc->set_notification_period(h->obj().host_id(), 0, request->timeperiod());
+  _logger->info("notification period of host {} set to '{}'",
+                h->obj().host_id(), request->timeperiod());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Change the notification timeperiod of a service
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetServiceNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  grpc::Status status;
+  auto* bc = _notification_cache(&status);
+  if (!bc)
+    return status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  if (!_check_timeperiod(*bc, request->timeperiod(), &status))
+    return status;
+  bc->set_notification_period(s->obj().host_id(), s->obj().service_id(),
+                              request->timeperiod());
+  _logger->info("notification period of service ({}, {}) set to '{}'",
+                s->obj().host_id(), s->obj().service_id(),
+                request->timeperiod());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Shared body of SetContact{Host,Service}Notifications.
+ */
+grpc::Status broker_impl::_set_contact_notifications(
+    const ContactNotificationsRequest& request,
+    cache::notification_toggles::notifier n) const {
+  grpc::Status status;
+  auto* bc = _notification_cache(&status);
+  if (!bc)
+    return status;
+  const std::string& name = request.contact().name();
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "contact name must be set");
+  if (!cache::notification_toggles::set_contact_notifications(
+          *bc, name, n, request.enabled()))
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown contact '{}'", name));
+  _logger->info(
+      "{} notifications {} on contact '{}'",
+      n == cache::notification_toggles::notifier::host ? "host" : "service",
+      request.enabled() ? "enabled" : "disabled", name);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the host notifications of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactHostNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notifications(
+      *request, cache::notification_toggles::notifier::host);
+}
+
+/**
+ * @brief Enable or disable the service notifications of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactServiceNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notifications(
+      *request, cache::notification_toggles::notifier::service);
+}
+
+/**
+ * @brief Shared body of SetContactgroup{Host,Service}Notifications.
+ */
+grpc::Status broker_impl::_set_contactgroup_notifications(
+    const ContactgroupNotificationsRequest& request,
+    cache::notification_toggles::notifier n) const {
+  grpc::Status status;
+  auto* bc = _notification_cache(&status);
+  if (!bc)
+    return status;
+  const std::string& name = request.contactgroup().name();
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "contactgroup name must be set");
+  auto count = cache::notification_toggles::set_contactgroup_notifications(
+      *bc, name, n, request.enabled());
+  if (!count)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown contactgroup '{}'", name));
+  _logger->info(
+      "{} notifications {} on contactgroup '{}': {} contact(s)",
+      n == cache::notification_toggles::notifier::host ? "host" : "service",
+      request.enabled() ? "enabled" : "disabled", name, *count);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the host notifications of the contacts of a
+ * contactgroup (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactgroupHostNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactgroupNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contactgroup_notifications(
+      *request, cache::notification_toggles::notifier::host);
+}
+
+/**
+ * @brief Enable or disable the service notifications of the contacts of a
+ * contactgroup (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactgroupServiceNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactgroupNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contactgroup_notifications(
+      *request, cache::notification_toggles::notifier::service);
+}
+
+/**
+ * @brief Shared body of SetContact{Host,Service}NotificationPeriod.
+ */
+grpc::Status broker_impl::_set_contact_notification_period(
+    const ContactNotificationPeriodRequest& request,
+    cache::notification_toggles::notifier n) const {
+  grpc::Status status;
+  auto* bc = _notification_cache(&status);
+  if (!bc)
+    return status;
+  const std::string& name = request.contact().name();
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "contact name must be set");
+  if (!_check_timeperiod(*bc, request.timeperiod(), &status))
+    return status;
+  if (!cache::notification_toggles::set_contact_notification_period(
+          *bc, name, n, request.timeperiod()))
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown contact '{}'", name));
+  _logger->info(
+      "{} notification period of contact '{}' set to '{}'",
+      n == cache::notification_toggles::notifier::host ? "host" : "service",
+      name, request.timeperiod());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Change the host notification timeperiod of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactHostNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notification_period(
+      *request, cache::notification_toggles::notifier::host);
+}
+
+/**
+ * @brief Change the service notification timeperiod of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactServiceNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notification_period(
+      *request, cache::notification_toggles::notifier::service);
+}
+
+/**
  * @brief Validate an Engine poller configuration directory without applying it.
  *
  * Reuses the same offline pipeline as the centralized-config ingestion
@@ -2030,8 +2268,7 @@ grpc::Status broker_impl::CheckPollerConfig(
   std::filesystem::remove(test, ec);
   if (ec)
     SPDLOG_LOGGER_ERROR(
-        log_v2::instance().get(log_v2::CORE),
-        "CheckPollerConfig: cannot remove the derived file '{}': {}",
+        _logger, "CheckPollerConfig: cannot remove the derived file '{}': {}",
         test.string(), ec.message());
 
   // Logged warnings/errors first (chronological), then the fatal exception.

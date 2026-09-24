@@ -21,6 +21,8 @@
 #define CCB_CACHE_NOTIFICATION_TOGGLES_HH
 
 #include <cstdint>
+#include <optional>
+#include <string>
 
 namespace com::centreon::broker::cache {
 
@@ -54,6 +56,26 @@ bool set_service_notifications(broker_cache& cache,
                                uint64_t host_id,
                                uint64_t service_id,
                                bool enabled);
+
+enum class notifier {
+  host,     // the contact's host notifications
+  service,  // the contact's service notifications
+};
+
+bool set_contact_notifications(broker_cache& cache,
+                               const std::string& name,
+                               notifier n,
+                               bool enabled);
+
+std::optional<uint32_t> set_contactgroup_notifications(broker_cache& cache,
+                                                       const std::string& name,
+                                                       notifier n,
+                                                       bool enabled);
+
+bool set_contact_notification_period(broker_cache& cache,
+                                     const std::string& name,
+                                     notifier n,
+                                     const std::string& period);
 
 }  // namespace notification_toggles
 }  // namespace com::centreon::broker::cache

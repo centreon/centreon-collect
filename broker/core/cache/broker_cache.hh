@@ -18,8 +18,8 @@
 #ifndef CCB_CACHE_BROKER_CACHE_HH
 #define CCB_CACHE_BROKER_CACHE_HH
 #include <absl/base/thread_annotations.h>
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
+// #include <absl/container/flat_hash_map.h>
+// #include <absl/container/flat_hash_set.h>
 #include <absl/container/node_hash_map.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
@@ -478,6 +478,24 @@ class broker_cache {
    * stored on it: the contactgroup->contacts resolution is done lazily at
    * notification time. */
   using contact = com::centreon::common::notifications::contact;
+  using notifier_type = com::centreon::common::notifications::notifier_type;
+
+  /* notification_mode=broker: what the Broker API set on a host or service and
+   * that wins over the configured value until set again (Engine's MODATTR_*
+   * kept in retention). Each field is independent: unset means "not
+   * overridden, the configuration applies". */
+  struct resource_notification_override {
+    std::optional<bool> notify;
+    std::optional<std::string> notification_period;
+  };
+
+  /* notification_mode=broker: the same for a contact (known by name). */
+  struct contact_notification_override {
+    std::optional<bool> host_notifications_enabled;
+    std::optional<bool> service_notifications_enabled;
+    std::optional<std::string> host_notification_period;
+    std::optional<std::string> service_notification_period;
+  };
 
   /* Cache view of a contactgroup: its name and the names of its member
    * contacts. The Engine flattens nested contactgroups (contactgroup_members)
@@ -668,12 +686,19 @@ class broker_cache {
                       std::shared_ptr<neb::pb_acknowledgement>>
       _acknowledgements ABSL_GUARDED_BY(_mutex);
 
-  /* notification_mode=broker: notifications-enabled switches set through the
-   * Broker API, keyed by (host_id, service_id) — service_id 0 for a host. An
-   * entry wins over the configured value until the API sets the switch again.
-   * Persisted in the cache file. */
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, bool>
+  /* notification_mode=broker: notifications-enabled switches and notification
+   * timeperiods set through the Broker API, keyed by (host_id, service_id) —
+   * service_id 0 for a host. A set field wins over the configured value until
+   * the API sets it again. Persisted in the cache file. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      resource_notification_override>
       _notification_overrides ABSL_GUARDED_BY(_mutex);
+
+  /* notification_mode=broker: the same for contacts, keyed by contact name.
+   * Re-applied by _insert_contact() each time a poller configuration
+   * (re)defines the contact. Persisted in the cache file. */
+  absl::flat_hash_map<std::string, contact_notification_override>
+      _contact_notification_overrides ABSL_GUARDED_BY(_mutex);
 
   /* Host topology: parent -> children and child -> parents, fed by the
    * configuration (Host.parents) in centralized mode and by pb_host_parent
@@ -745,14 +770,31 @@ class broker_cache {
                                 uint64_t service_id,
                                 AckType type);
   template <typename T, typename Index, typename Iterator>
-  std::optional<bool> _restore_notify_override(Index& index,
-                                               Iterator it,
-                                               uint64_t host_id,
-                                               uint64_t service_id)
+  std::optional<resource_notification_override> _restore_notification_override(
+      Index& index,
+      Iterator it,
+      uint64_t host_id,
+      uint64_t service_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  static void _publish_notification_override(
+      uint64_t host_id,
+      uint64_t service_id,
+      const resource_notification_override& o);
+  template <typename T, typename Index>
+  bool _set_notification_override(Index& index,
+                                  const typename Index::key_type& key,
+                                  uint64_t host_id,
+                                  uint64_t service_id,
+                                  const resource_notification_override& o)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
-  static void _publish_notify(uint64_t host_id,
-                              uint64_t service_id,
-                              bool notify);
+  bool _set_notification_override(uint64_t host_id,
+                                  uint64_t service_id,
+                                  const resource_notification_override& o)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void _apply_contact_override(contact& entry) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  bool _set_contact_override(const std::string& name,
+                             const contact_notification_override& o)
+      ABSL_LOCKS_EXCLUDED(_mutex);
   void _set_host_parents(uint64_t child_id,
                          absl::flat_hash_set<uint64_t>&& parents)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
@@ -1071,10 +1113,31 @@ class broker_cache {
       std::optional<uint16_t> state = std::nullopt) ABSL_LOCKS_EXCLUDED(_mutex);
   void reinject_pending_acknowledgements() ABSL_LOCKS_EXCLUDED(_mutex);
 
-  /* notification_mode=broker: notifications-enabled switch of a resource. */
+  /* notification_mode=broker: notifications-enabled switch and notification
+   * timeperiod of a resource (service_id 0 for a host). Return false when the
+   * resource is unknown to the cache. */
   bool set_notify(uint64_t host_id, uint64_t service_id, bool notify)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  bool set_notification_period(uint64_t host_id,
+                               uint64_t service_id,
+                               const std::string& period)
+      ABSL_LOCKS_EXCLUDED(_mutex);
   void reinject_pending_notification_overrides() ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* notification_mode=broker: notifications-enabled switch and notification
+   * timeperiod of a contact, for its host or its service notifications. Return
+   * false when the contact is unknown to the cache. */
+  bool set_contact_notifications(const std::string& name,
+                                 notifier_type type,
+                                 bool enabled) ABSL_LOCKS_EXCLUDED(_mutex);
+  bool set_contact_notification_period(const std::string& name,
+                                       notifier_type type,
+                                       const std::string& period)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool has_contactgroup(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool has_timeperiod(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
 
   /* Host topology. */
   void update_host_parent(const std::shared_ptr<neb::pb_host_parent>& hp)

@@ -17,7 +17,6 @@
  */
 #include <boost/preprocessor/seq/for_each.hpp>
 
-#include <memory>
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/storage/index_mapping.hh"
@@ -759,6 +758,9 @@ void broker_cache::_insert_contact(const engine::configuration::Contact& c,
   entry.service_notification_options =
       service_options_to_flags(c.service_notification_options());
   entry.timezone = c.timezone();
+  /* notification_mode=broker: what the Broker API set on this contact wins
+   * over the configuration it is being (re)built from. */
+  _apply_contact_override(entry);
   value.second.insert(poller_id);
 }
 
@@ -2298,7 +2300,7 @@ void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
   if (!section_enabled(CACHE_HOSTS))
     return;
   std::optional<AckType> restored_ack;
-  std::optional<bool> restored_notify;
+  std::optional<resource_notification_override> restored_notify;
   {
     absl::WriterMutexLock l{&_mutex};
     auto& index = _hosts.get<by_id>();
@@ -2316,15 +2318,15 @@ void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
        * (COW: the incoming event is shared with the output streams). */
       restored_ack = _restore_acknowledgement_type<neb::pb_host>(
           index, it, h.host_id(), 0);
-      restored_notify =
-          _restore_notify_override<neb::pb_host>(index, it, h.host_id(), 0);
+      restored_notify = _restore_notification_override<neb::pb_host>(
+          index, it, h.host_id(), 0);
     } else {
       if (it != index.end())
         index.erase(it);
     }
   }
   if (restored_notify)
-    _publish_notify(host->obj().host_id(), 0, *restored_notify);
+    _publish_notification_override(host->obj().host_id(), 0, *restored_notify);
   if (restored_ack) {
     const auto& obj = host->obj();
     SPDLOG_LOGGER_INFO(_logger,
@@ -2477,7 +2479,11 @@ void broker_cache::update_host(
       h.set_check_freshness(ah.check_freshness());
     if (ah.has_check_period())
       h.set_check_period(ah.check_period());
-    if (ah.has_notification_period())
+    /* Same rule as `notify`: in notification_mode=broker the notification
+     * timeperiod is set through the Broker API (CHANGE_*_NOTIFICATION_
+     * TIMEPERIOD counterpart), an Engine adaptive must not override it. */
+    if (ah.has_notification_period() && !com::centreon::common::notifications::
+                                            notification_manager::is_loaded())
       h.set_notification_period(ah.notification_period());
     entry.commit(index, found);
   } else
@@ -2548,7 +2554,7 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
   if (!section_enabled(CACHE_SERVICES))
     return;
   std::optional<AckType> restored_ack;
-  std::optional<bool> restored_notify;
+  std::optional<resource_notification_override> restored_notify;
   {
     absl::WriterMutexLock l{&_mutex};
 
@@ -2568,7 +2574,7 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
        * owns on the definition Engine sends. */
       restored_ack = _restore_acknowledgement_type<neb::pb_service>(
           index, it, s.host_id(), s.service_id());
-      restored_notify = _restore_notify_override<neb::pb_service>(
+      restored_notify = _restore_notification_override<neb::pb_service>(
           index, it, s.host_id(), s.service_id());
     } else {
       if (it != index.end())
@@ -2576,8 +2582,8 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
     }
   }
   if (restored_notify)
-    _publish_notify(svc->obj().host_id(), svc->obj().service_id(),
-                    *restored_notify);
+    _publish_notification_override(svc->obj().host_id(),
+                                   svc->obj().service_id(), *restored_notify);
   if (restored_ack) {
     const auto& obj = svc->obj();
     SPDLOG_LOGGER_INFO(
@@ -2772,14 +2778,14 @@ std::shared_ptr<neb::pb_acknowledgement> broker_cache::set_acknowledgement_type(
 }
 
 /**
- * @brief Apply the persisted notification switch of a resource on a freshly
+ * @brief Apply the persisted notification override of a resource on a freshly
  * stored host/service definition (notification_mode=broker).
  *
- * The definitions Engine sends carry the configured notifications_enabled, not
- * the value toggled through the Broker API. When an override exists for the
- * resource, it is set back on the stored entry (copy-on-write, the incoming
- * event is shared with the output streams). Must be called with the cache
- * write lock held. No-op without override.
+ * The definitions Engine sends carry the configured notifications_enabled and
+ * notification_period, not the values set through the Broker API. When an
+ * override exists for the resource, its set fields are put back on the stored
+ * entry (copy-on-write, the incoming event is shared with the output streams).
+ * Must be called with the cache write lock held. No-op without override.
  *
  * @tparam T        The stored event type (neb::pb_host or neb::pb_service).
  * @tparam Index    The multi-index view @a it belongs to.
@@ -2790,60 +2796,144 @@ std::shared_ptr<neb::pb_acknowledgement> broker_cache::set_acknowledgement_type(
  * @param host_id    The host id of the resource.
  * @param service_id The service id, 0 for a host.
  *
- * @return The restored switch when one was applied, so the caller publishes
- * the matching adaptive event once the lock is released; std::nullopt
- * otherwise.
+ * @return The fields actually restored (those that differed), so the caller
+ * publishes the matching adaptive event once the lock is released;
+ * std::nullopt when nothing changed.
  */
 template <typename T, typename Index, typename Iterator>
-std::optional<bool> broker_cache::_restore_notify_override(
-    Index& index,
-    Iterator it,
-    uint64_t host_id,
-    uint64_t service_id) {
+std::optional<broker_cache::resource_notification_override>
+broker_cache::_restore_notification_override(Index& index,
+                                             Iterator it,
+                                             uint64_t host_id,
+                                             uint64_t service_id) {
   auto o = _notification_overrides.find({host_id, service_id});
   if (o == _notification_overrides.end())
     return std::nullopt;
-  if ((*it)->obj().notify() == o->second)
+  const resource_notification_override& ov = o->second;
+  resource_notification_override restored;
+  const auto& obj = (*it)->obj();
+  if (ov.notify && obj.notify() != *ov.notify)
+    restored.notify = ov.notify;
+  if (ov.notification_period &&
+      obj.notification_period() != *ov.notification_period)
+    restored.notification_period = ov.notification_period;
+  if (!restored.notify && !restored.notification_period)
     return std::nullopt;
   mutable_entry<T> entry{*it};
-  entry->mut_obj().set_notify(o->second);
+  if (restored.notify)
+    entry->mut_obj().set_notify(*restored.notify);
+  if (restored.notification_period)
+    entry->mut_obj().set_notification_period(*restored.notification_period);
   entry.commit(index, it);
-  return o->second;
+  return restored;
 }
 
 /**
- * @brief Publish the notifications-enabled switch of a resource through an
- * adaptive event (pb_adaptive_host / pb_adaptive_service carrying only
- * `notify`), what Engine emits for ENABLE/DISABLE_*_NOTIFICATIONS, so
- * unified_sql updates hosts/services/resources the same way in both modes.
- * Must be called without the cache lock held.
+ * @brief Publish the notification override of a resource through an adaptive
+ * event (pb_adaptive_host / pb_adaptive_service carrying only the set
+ * fields), what Engine emits for ENABLE/DISABLE_*_NOTIFICATIONS and
+ * CHANGE_*_NOTIFICATION_TIMEPERIOD, so unified_sql updates
+ * hosts/services/resources the same way in both modes. Must be called without
+ * the cache lock held.
  *
  * @param host_id    The host id of the resource.
  * @param service_id The service id, 0 for a host.
- * @param notify     The switch value.
+ * @param o          The fields to publish (unset fields are left out).
  */
-void broker_cache::_publish_notify(uint64_t host_id,
-                                   uint64_t service_id,
-                                   bool notify) {
+void broker_cache::_publish_notification_override(
+    uint64_t host_id,
+    uint64_t service_id,
+    const resource_notification_override& o) {
   multiplexing::publisher pblshr;
   if (service_id == 0) {
     auto ev = std::make_shared<neb::pb_adaptive_host>();
-    ev->mut_obj().set_host_id(host_id);
-    ev->mut_obj().set_notify(notify);
+    auto& obj = ev->mut_obj();
+    obj.set_host_id(host_id);
+    if (o.notify)
+      obj.set_notify(*o.notify);
+    if (o.notification_period)
+      obj.set_notification_period(*o.notification_period);
     pblshr.write(ev);
   } else {
     auto ev = std::make_shared<neb::pb_adaptive_service>();
-    ev->mut_obj().set_host_id(host_id);
-    ev->mut_obj().set_service_id(service_id);
-    ev->mut_obj().set_notify(notify);
+    auto& obj = ev->mut_obj();
+    obj.set_host_id(host_id);
+    obj.set_service_id(service_id);
+    if (o.notify)
+      obj.set_notify(*o.notify);
+    if (o.notification_period)
+      obj.set_notification_period(*o.notification_period);
     pblshr.write(ev);
   }
 }
 
 /**
- * @brief Set the notifications-enabled switch of a host or service
+ * @brief Apply @p o on the cached resource found by @p key in @p index and
+ * merge it into the persisted override of (host_id, service_id). Must be
+ * called with the cache write lock held.
+ *
+ * @return False when the resource is unknown to the cache.
+ */
+template <typename T, typename Index>
+bool broker_cache::_set_notification_override(
+    Index& index,
+    const typename Index::key_type& key,
+    uint64_t host_id,
+    uint64_t service_id,
+    const resource_notification_override& o) {
+  auto found = index.find(key);
+  if (found == index.end())
+    return false;
+  mutable_entry<T> entry{*found};
+  if (o.notify)
+    entry->mut_obj().set_notify(*o.notify);
+  if (o.notification_period)
+    entry->mut_obj().set_notification_period(*o.notification_period);
+  entry.commit(index, found);
+  resource_notification_override& ov =
+      _notification_overrides[std::make_pair(host_id, service_id)];
+  if (o.notify)
+    ov.notify = o.notify;
+  if (o.notification_period)
+    ov.notification_period = o.notification_period;
+  return true;
+}
+
+/**
+ * @brief Set the given override fields on a host or service
  * (notification_mode=broker): the cached value the notification decision
  * reads, the persisted override, and the adaptive event for the database.
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id, 0 for a host.
+ * @param o          The fields to set (unset fields are left untouched).
+ *
+ * @return False when the resource is unknown to the cache.
+ */
+bool broker_cache::_set_notification_override(
+    uint64_t host_id,
+    uint64_t service_id,
+    const resource_notification_override& o) {
+  {
+    absl::WriterMutexLock l{&_mutex};
+    bool ok;
+    if (service_id == 0)
+      ok = _set_notification_override<neb::pb_host>(_hosts.get<by_id>(),
+                                                    host_id, host_id, 0, o);
+    else
+      ok = _set_notification_override<neb::pb_service>(
+          _services.get<by_id>(), std::make_pair(host_id, service_id), host_id,
+          service_id, o);
+    if (!ok)
+      return false;
+  }
+  _publish_notification_override(host_id, service_id, o);
+  return true;
+}
+
+/**
+ * @brief Set the notifications-enabled switch of a host or service
+ * (notification_mode=broker).
  *
  * @param host_id    The host id.
  * @param service_id The service id, 0 for a host.
@@ -2854,73 +2944,196 @@ void broker_cache::_publish_notify(uint64_t host_id,
 bool broker_cache::set_notify(uint64_t host_id,
                               uint64_t service_id,
                               bool notify) {
-  {
-    absl::WriterMutexLock l{&_mutex};
-    if (service_id == 0) {
-      auto& index = _hosts.get<by_id>();
-      auto found = index.find(host_id);
-      if (found == index.end())
-        return false;
-      mutable_entry<neb::pb_host> entry{*found};
-      entry->mut_obj().set_notify(notify);
-      entry.commit(index, found);
-    } else {
-      auto& index = _services.get<by_id>();
-      auto found = index.find(std::make_pair(host_id, service_id));
-      if (found == index.end())
-        return false;
-      mutable_entry<neb::pb_service> entry{*found};
-      entry->mut_obj().set_notify(notify);
-      entry.commit(index, found);
-    }
-    _notification_overrides.insert_or_assign({host_id, service_id}, notify);
-  }
-  _publish_notify(host_id, service_id, notify);
-  return true;
+  resource_notification_override o;
+  o.notify = notify;
+  return _set_notification_override(host_id, service_id, o);
 }
 
 /**
- * @brief Re-apply the persisted notification switches on the cached resources
+ * @brief Set the notification timeperiod of a host or service
+ * (notification_mode=broker), the CHANGE_*_NOTIFICATION_TIMEPERIOD
+ * counterpart. The timeperiod is not checked here (see has_timeperiod()).
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id, 0 for a host.
+ * @param period     The timeperiod name.
+ *
+ * @return False when the resource is unknown to the cache.
+ */
+bool broker_cache::set_notification_period(uint64_t host_id,
+                                           uint64_t service_id,
+                                           const std::string& period) {
+  resource_notification_override o;
+  o.notification_period = period;
+  return _set_notification_override(host_id, service_id, o);
+}
+
+/**
+ * @brief Re-apply the persisted notification overrides on the cached resources
  * (notification_mode=broker), after a restart or a configuration merge that
- * rebuilt them with the configured value. Each restored switch is republished
+ * rebuilt them with the configured values. Each restored field is republished
  * so the database follows. No-op in notification_mode=engine.
  */
 void broker_cache::reinject_pending_notification_overrides() {
   if (!com::centreon::common::notifications::notification_manager::is_loaded())
     return;
-  std::vector<std::tuple<uint64_t, uint64_t, bool>> restored;
+  std::vector<std::tuple<uint64_t, uint64_t, resource_notification_override>>
+      restored;
   {
     absl::WriterMutexLock l{&_mutex};
     restored.reserve(_notification_overrides.size());
-    for (const auto& [key, notify] : _notification_overrides) {
+    for (const auto& [key, ov] : _notification_overrides) {
+      std::optional<resource_notification_override> r;
       if (key.second == 0) {
         auto& index = _hosts.get<by_id>();
         auto found = index.find(key.first);
-        if (found == index.end() || (*found)->obj().notify() == notify)
+        if (found == index.end())
           continue;
-        mutable_entry<neb::pb_host> entry{*found};
-        entry->mut_obj().set_notify(notify);
-        entry.commit(index, found);
+        r = _restore_notification_override<neb::pb_host>(index, found,
+                                                         key.first, 0);
       } else {
         auto& index = _services.get<by_id>();
         auto found = index.find(key);
-        if (found == index.end() || (*found)->obj().notify() == notify)
+        if (found == index.end())
           continue;
-        mutable_entry<neb::pb_service> entry{*found};
-        entry->mut_obj().set_notify(notify);
-        entry.commit(index, found);
+        r = _restore_notification_override<neb::pb_service>(
+            index, found, key.first, key.second);
       }
-      restored.emplace_back(key.first, key.second, notify);
+      if (r)
+        restored.emplace_back(key.first, key.second, std::move(*r));
     }
   }
   if (restored.empty())
     return;
   SPDLOG_LOGGER_INFO(_logger,
-                     "broker_cache: {} notification switch(es) restored on "
+                     "broker_cache: {} notification override(s) restored on "
                      "cached resources",
                      restored.size());
-  for (const auto& [host_id, service_id, notify] : restored)
-    _publish_notify(host_id, service_id, notify);
+  for (const auto& [host_id, service_id, o] : restored)
+    _publish_notification_override(host_id, service_id, o);
+}
+
+/**
+ * @brief Apply the persisted override of a contact on its cache entry
+ * (notification_mode=broker). Must be called with the cache write lock held.
+ * No-op without override.
+ *
+ * @param entry The contact just (re)built from a poller configuration.
+ */
+void broker_cache::_apply_contact_override(contact& entry) const {
+  auto it = _contact_notification_overrides.find(entry.name);
+  if (it == _contact_notification_overrides.end())
+    return;
+  const contact_notification_override& ov = it->second;
+  if (ov.host_notifications_enabled)
+    entry.host_notifications_enabled = *ov.host_notifications_enabled;
+  if (ov.service_notifications_enabled)
+    entry.service_notifications_enabled = *ov.service_notifications_enabled;
+  if (ov.host_notification_period)
+    entry.host_notification_period = *ov.host_notification_period;
+  if (ov.service_notification_period)
+    entry.service_notification_period = *ov.service_notification_period;
+}
+
+/**
+ * @brief Merge @p o into the persisted override of contact @p name and apply
+ * it on the cached contact (notification_mode=broker). Contacts are not
+ * exported to the database, so nothing is published.
+ *
+ * @param name The contact name.
+ * @param o    The fields to set (unset fields are left untouched).
+ *
+ * @return False when the contact is unknown to the cache.
+ */
+bool broker_cache::_set_contact_override(
+    const std::string& name,
+    const contact_notification_override& o) {
+  absl::WriterMutexLock l{&_mutex};
+  auto it = _contacts.find(name);
+  if (it == _contacts.end())
+    return false;
+  contact_notification_override& ov = _contact_notification_overrides[name];
+  if (o.host_notifications_enabled)
+    ov.host_notifications_enabled = o.host_notifications_enabled;
+  if (o.service_notifications_enabled)
+    ov.service_notifications_enabled = o.service_notifications_enabled;
+  if (o.host_notification_period)
+    ov.host_notification_period = o.host_notification_period;
+  if (o.service_notification_period)
+    ov.service_notification_period = o.service_notification_period;
+  _apply_contact_override(it->second.first);
+  return true;
+}
+
+/**
+ * @brief Enable or disable the host or service notifications of a contact
+ * (notification_mode=broker), the ENABLE/DISABLE_CONTACT_{HOST,SVC}_
+ * NOTIFICATIONS counterpart. The switch wins over the configured value until
+ * set again, like Engine's MODATTR kept in retention.
+ *
+ * @param name    The contact name.
+ * @param type    Which notifications: host_notification or
+ * service_notification.
+ * @param enabled The new switch value.
+ *
+ * @return False when the contact is unknown to the cache.
+ */
+bool broker_cache::set_contact_notifications(const std::string& name,
+                                             notifier_type type,
+                                             bool enabled) {
+  contact_notification_override o;
+  if (type == notifier_type::host_notification)
+    o.host_notifications_enabled = enabled;
+  else
+    o.service_notifications_enabled = enabled;
+  return _set_contact_override(name, o);
+}
+
+/**
+ * @brief Set the host or service notification timeperiod of a contact
+ * (notification_mode=broker), the CHANGE_CONTACT_{HOST,SVC}_NOTIFICATION_
+ * TIMEPERIOD counterpart. The timeperiod is not checked here (see
+ * has_timeperiod()).
+ *
+ * @param name   The contact name.
+ * @param type   Which notifications: host_notification or service_notification.
+ * @param period The timeperiod name.
+ *
+ * @return False when the contact is unknown to the cache.
+ */
+bool broker_cache::set_contact_notification_period(const std::string& name,
+                                                   notifier_type type,
+                                                   const std::string& period) {
+  contact_notification_override o;
+  if (type == notifier_type::host_notification)
+    o.host_notification_period = period;
+  else
+    o.service_notification_period = period;
+  return _set_contact_override(name, o);
+}
+
+/**
+ * @brief Tell whether a contactgroup of that name is known to the cache.
+ *
+ * @param name The contactgroup name.
+ *
+ * @return True when the contactgroup is cached.
+ */
+bool broker_cache::has_contactgroup(const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  return _contactgroups.contains(name);
+}
+
+/**
+ * @brief Tell whether a timeperiod of that name is known to the cache.
+ *
+ * @param name The timeperiod name.
+ *
+ * @return True when the timeperiod is cached.
+ */
+bool broker_cache::has_timeperiod(const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  return _timeperiods.contains(name);
 }
 
 /**
@@ -3191,7 +3404,8 @@ void broker_cache::update_service(
       s.set_check_freshness(as.check_freshness());
     if (as.has_check_period())
       s.set_check_period(as.check_period());
-    if (as.has_notification_period())
+    if (as.has_notification_period() && !com::centreon::common::notifications::
+                                            notification_manager::is_loaded())
       s.set_notification_period(as.notification_period());
     entry.commit(index, it);
   } else {
@@ -4990,9 +5204,27 @@ void broker_cache::_load_cache() {
       }
       _pending_notification_states.assign(to_load.notification_states().begin(),
                                           to_load.notification_states().end());
-      for (const auto& o : to_load.notification_overrides())
-        _notification_overrides.insert_or_assign({o.host_id(), o.service_id()},
-                                                 o.notify());
+      for (const auto& o : to_load.notification_overrides()) {
+        resource_notification_override& ov =
+            _notification_overrides[std::make_pair(o.host_id(),
+                                                   o.service_id())];
+        if (o.has_notify())
+          ov.notify = o.notify();
+        if (o.has_notification_period())
+          ov.notification_period = o.notification_period();
+      }
+      for (const auto& o : to_load.contact_notification_overrides()) {
+        contact_notification_override& ov =
+            _contact_notification_overrides[o.contact_name()];
+        if (o.has_host_notifications_enabled())
+          ov.host_notifications_enabled = o.host_notifications_enabled();
+        if (o.has_service_notifications_enabled())
+          ov.service_notifications_enabled = o.service_notifications_enabled();
+        if (o.has_host_notification_period())
+          ov.host_notification_period = o.host_notification_period();
+        if (o.has_service_notification_period())
+          ov.service_notification_period = o.service_notification_period();
+      }
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
@@ -5088,11 +5320,26 @@ void broker_cache::_save_cache() {
       to_save.add_notification_states()->CopyFrom(n);
     /* Notification switches set through the Broker API (notification_mode=
      * broker), re-applied on the rebuilt resources after a restart. */
-    for (const auto& [key, notify] : _notification_overrides) {
+    for (const auto& [key, ov] : _notification_overrides) {
       auto* o = to_save.add_notification_overrides();
       o->set_host_id(key.first);
       o->set_service_id(key.second);
-      o->set_notify(notify);
+      if (ov.notify)
+        o->set_notify(*ov.notify);
+      if (ov.notification_period)
+        o->set_notification_period(*ov.notification_period);
+    }
+    for (const auto& [name, ov] : _contact_notification_overrides) {
+      auto* o = to_save.add_contact_notification_overrides();
+      o->set_contact_name(name);
+      if (ov.host_notifications_enabled)
+        o->set_host_notifications_enabled(*ov.host_notifications_enabled);
+      if (ov.service_notifications_enabled)
+        o->set_service_notifications_enabled(*ov.service_notifications_enabled);
+      if (ov.host_notification_period)
+        o->set_host_notification_period(*ov.host_notification_period);
+      if (ov.service_notification_period)
+        o->set_service_notification_period(*ov.service_notification_period);
     }
   }
   /* Saving the BrokerCache */

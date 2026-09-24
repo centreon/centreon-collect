@@ -19,7 +19,6 @@
 
 #include "broker/core/cache/notification_toggles.hh"
 
-#include <absl/container/flat_hash_set.h>
 
 #include "broker/core/cache/broker_cache.hh"
 
@@ -81,6 +80,16 @@ uint32_t toggle_children(broker_cache& cache,
   return count;
 }
 
+/**
+ * @brief Map the module's notifier selector to the notification library's
+ * notifier_type the cache reasons on.
+ */
+broker_cache::notifier_type to_notifier_type(notifier n) {
+  return n == notifier::host
+             ? broker_cache::notifier_type::host_notification
+             : broker_cache::notifier_type::service_notification;
+}
+
 }  // namespace
 
 /**
@@ -135,6 +144,72 @@ bool set_service_notifications(broker_cache& cache,
                                uint64_t service_id,
                                bool enabled) {
   return cache.set_notify(host_id, service_id, enabled);
+}
+
+/**
+ * @brief Enable or disable the host or service notifications of a contact
+ * (ENABLE/DISABLE_CONTACT_{HOST,SVC}_NOTIFICATIONS).
+ *
+ * @param cache   The Broker cache.
+ * @param name    The contact name.
+ * @param n       Which notifications of the contact.
+ * @param enabled The new switch value.
+ *
+ * @return False when the contact is unknown to the cache.
+ */
+bool set_contact_notifications(broker_cache& cache,
+                               const std::string& name,
+                               notifier n,
+                               bool enabled) {
+  return cache.set_contact_notifications(name, to_notifier_type(n), enabled);
+}
+
+/**
+ * @brief Enable or disable the host or service notifications of every member
+ * of a contactgroup (ENABLE/DISABLE_CONTACTGROUP_{HOST,SVC}_NOTIFICATIONS).
+ * Like Engine, the group has no switch of its own: the members are toggled
+ * one by one, each getting its own override.
+ *
+ * @param cache   The Broker cache.
+ * @param name    The contactgroup name.
+ * @param n       Which notifications of the contacts.
+ * @param enabled The new switch value.
+ *
+ * @return The number of contacts toggled, or std::nullopt when the
+ * contactgroup is unknown to the cache.
+ */
+std::optional<uint32_t> set_contactgroup_notifications(broker_cache& cache,
+                                                       const std::string& name,
+                                                       notifier n,
+                                                       bool enabled) {
+  if (!cache.has_contactgroup(name))
+    return std::nullopt;
+  uint32_t count = 0;
+  const broker_cache::notifier_type type = to_notifier_type(n);
+  for (const std::string& member : cache.contactgroup_members(name))
+    if (cache.set_contact_notifications(member, type, enabled))
+      ++count;
+  return count;
+}
+
+/**
+ * @brief Set the host or service notification timeperiod of a contact
+ * (CHANGE_CONTACT_{HOST,SVC}_NOTIFICATION_TIMEPERIOD). The caller checks the
+ * timeperiod exists (broker_cache::has_timeperiod).
+ *
+ * @param cache  The Broker cache.
+ * @param name   The contact name.
+ * @param n      Which notifications of the contact.
+ * @param period The timeperiod name.
+ *
+ * @return False when the contact is unknown to the cache.
+ */
+bool set_contact_notification_period(broker_cache& cache,
+                                     const std::string& name,
+                                     notifier n,
+                                     const std::string& period) {
+  return cache.set_contact_notification_period(name, to_notifier_type(n),
+                                               period);
 }
 
 }  // namespace com::centreon::broker::cache::notification_toggles
