@@ -94,11 +94,29 @@ sub root {
 sub stop_ev {
     $module->{loop}->break();
 }
+# set_secure_command_execution(
+#   module => $options{config},
+#   action => "COMMAND",
+#   data => {data => content => [{command => 'ls -lha'}, {command => 'cat /tmp/t' }]});
+# take an array of command and add the "no_shell_interpretation" option to true if the global module configuration allows it.
+# this does in place manipulation of the data hashmap.
+sub set_secure_command_execution {
+    my (%options) = @_;
+    return if !$options{config};
+    return if $options{action} ne "COMMAND";
+    return if !$options{data} or !$options{data}->{content} or ref($options{data}->{content}) ne "ARRAY";
+    return if $options{config}->{no_shell_interpretation} =~ /0|false/i;
 
+    for my $command (@{$options{data}->{content}}) {
+        $command->{no_shell_interpretation} = 1;
+    }
+    return 1;
+}
 sub call_action {
     my (%options) = @_;
 
     $action_token = gorgone::standard::library::generate_token() if (!defined($options{token}));
+    set_secure_command_execution(config => $options{module}->{config}, action => $options{action}, data => $options{data});
 
     $options{module}->send_internal_action({
         socket => $socket,
