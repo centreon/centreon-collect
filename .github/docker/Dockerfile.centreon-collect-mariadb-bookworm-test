@@ -13,6 +13,7 @@ apt-get -y install \
     gcc \
     gdb \
     git \
+    iptables \
     libhttp-daemon-ssl-perl \
     libjson-perl \
     liblua5.3 \

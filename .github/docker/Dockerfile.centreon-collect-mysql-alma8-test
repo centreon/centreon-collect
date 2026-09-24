@@ -18,6 +18,7 @@ dnf install --best -y \
     git \
     gnutls \
     iptables \
+    iptables-utils \
     iproute \
     libgcrypt \
     lua \

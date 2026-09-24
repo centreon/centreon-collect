@@ -19,6 +19,7 @@ dnf install --best -y \
     gdb \
     git \
     iptables \
+    iptables-utils \
     lua \
     mariadb-server \
     mariadb \
