@@ -22,6 +22,7 @@
 #include <cmath>
 #include <ctime>
 #include <chrono>
+#include <filesystem>
 #include <functional>
 #include <list>
 #include <memory>
@@ -44,6 +45,7 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_cat.h>
 #include <absl/strings/str_split.h>
+#include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
 /* The global_cache headers declare their own interprocess/container aliases

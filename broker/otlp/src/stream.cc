@@ -29,14 +29,17 @@ using namespace com::centreon::broker::otlp;
 
 stream::stream(const otlp_config::pointer& conf,
                const std::shared_ptr<resource_enricher>& enricher,
+               const mapping_provider::pointer& mapping,
                const std::shared_ptr<exporter_base>& exporter,
                const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("otlp"),
       _conf(conf),
       _logger(logger),
       _enricher(enricher),
+      _mapping(mapping),
       _exporter(exporter),
-      _builder(std::make_unique<request_builder>(conf, enricher, logger)),
+      _builder(
+          std::make_unique<request_builder>(conf, enricher, mapping, logger)),
       _last_send(std::time(nullptr)) {}
 
 bool stream::read(std::shared_ptr<io::data>& d,

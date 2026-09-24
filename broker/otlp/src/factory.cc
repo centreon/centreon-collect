@@ -91,6 +91,8 @@ otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
   conf->max_inflight_requests = get_uint(cfg, "max_inflight_requests", 4);
   conf->export_timeout = get_uint(cfg, "export_timeout", 30);
 
+  conf->mapping_file = get_string(cfg, "mapping_file", "");
+
   // On default
   conf->send_thresholds = get_bool(cfg, "send_thresholds", true);
   conf->send_status = get_bool(cfg, "send_status", true);
