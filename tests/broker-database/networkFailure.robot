@@ -39,10 +39,16 @@ NetworkDBFail6
     [Tags]    broker    database    network    unstable
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    ELSE
+        Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+        Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    END
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -98,10 +104,16 @@ NetworkDBFail7
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Reset Eth Connection
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
+    ELSE
+        Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+        Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    END
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -209,10 +221,16 @@ Ctn Network Failure
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Broker    central
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    10
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    10
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    10
+    ELSE
+        Ctn Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    10
+        Ctn Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
+        Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    10
+    END
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Source Log    central    true
     ${start}    Get Current Date

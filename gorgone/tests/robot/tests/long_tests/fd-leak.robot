@@ -7,7 +7,7 @@ Test Timeout        1200s
 *** Test Cases ***
 check gorgone proxy do not leak file descriptor with a poller
     [Tags]    long_tests
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    push_zmq_gorgone_central    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    push_zmq_gorgone_central    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     ${cmd_count_file_descriptor}=    Set Variable    count=0; for pid in \$(ps aux | grep gorgone-proxy | grep -v grep | awk '{ print \$2 }') ; do num=\$(lsof | grep \$pid | wc -l); count=\$((count + \$num)) ; done ; echo \$count
 
     Log To Console    \nStarting the gorgone setup

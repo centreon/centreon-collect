@@ -90,7 +90,7 @@ class host_serv_list {
 template <class string_type>
 bool host_serv_list::contains(const string_type& host,
                               const string_type& service_description) const {
-  absl::ReaderMutexLock l(&_data_m);
+  absl::ReaderMutexLock l(_data_m);
   auto host_search = _data.find(host);
   if (host_search != _data.end()) {
     return host_search->second.contains(service_description);
@@ -102,7 +102,7 @@ template <typename host_set, typename service_set>
 host_serv_metric host_serv_list::match(const host_set& hosts,
                                        const service_set& services) const {
   host_serv_metric ret;
-  absl::ReaderMutexLock l(&_data_m);
+  absl::ReaderMutexLock l(_data_m);
   for (const auto& host : hosts) {
     auto host_search = _data.find(host);
     if (host_search != _data.end()) {

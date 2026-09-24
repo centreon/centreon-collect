@@ -32,7 +32,7 @@ class GetNextValidTimeCalendarDateTest : public TestEngine {
  public:
   void default_data_set() {
     _creator.new_timeperiod();
-    daterange* dr(NULL);
+    configuration::Daterange* dr(nullptr);
     // 2016-10-25 10:45-14:25
     dr = _creator.new_calendar_date(2016, 9, 25, 2016, 9, 25);
     _creator.new_timerange(10, 45, 14, 25, dr);
@@ -93,12 +93,7 @@ TEST_F(GetNextValidTimeCalendarDateTest, AfterCalendarDates) {
   std::unique_ptr<engine::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(8000, 85000);
-    tiperiod->days[i] = list_time;
-  }
-
+  apply_same_timeranges_to_every_day(tiperiod.get(), {{8000, 85000}});
   default_data_set();
 
   time_t now(strtotimet("2016-10-30 12:00:00"));

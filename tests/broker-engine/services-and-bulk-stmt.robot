@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Test Clean
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -64,6 +64,14 @@ EBBPS1
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
+            #we wait rrd acknowledgment in order to avoid duplicate rrd
+            ${ack_content}    Create List     acknowledging [0-9]+ events from centreon-broker-master-rrd
+            ${result}    Ctn Find Regex In Log With Timeout
+            ...    ${centralLog}
+            ...    ${start_broker}
+            ...    ${ack_content}
+            ...    30
+            Should Be True    ${result}    No rrd acknowledging found.
             Log To Console    Stopping Broker
             Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
@@ -149,6 +157,14 @@ EBBPS2
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
+            #we wait rrd acknowledgment in order to avoid duplicate rrd
+            ${ack_content}    Create List     acknowledging [0-9]+ events from centreon-broker-master-rrd
+            ${result}    Ctn Find Regex In Log With Timeout
+            ...    ${centralLog}
+            ...    ${start_broker}
+            ...    ${ack_content}
+            ...    30
+            Should Be True    ${result}    No rrd acknowledging found.
             Ctn Kindly Stop Broker
             Log To Console    Waiting for 5s
             Sleep    5s

@@ -28,9 +28,12 @@ set -e
 
 mysql -h ${MYSQL_HOST} -u root -ppassword -e "CREATE DATABASE \`centreon\`"
 mysql -h ${MYSQL_HOST} -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
+mysql -h ${MYSQL_HOST} -u root -ppassword -e "CREATE DATABASE \`centreon-remote\`"
 mysql -h ${MYSQL_HOST} -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
 mysql -h ${MYSQL_HOST} -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
+mysql -h ${MYSQL_HOST} -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-remote\`.* TO 'centreon'@'%'"
 mysql -h ${MYSQL_HOST} -u root -ppassword 'centreon' < /usr/local/src/centreon/centreon/www/install/createTables.sql
+mysql -h ${MYSQL_HOST} -u root -ppassword 'centreon-remote' < /usr/local/src/centreon/centreon/www/install/createTables.sql
 mysql -h ${MYSQL_HOST} -u root -ppassword 'centreon-storage' < /usr/local/src/centreon/centreon/www/install/createTablesCentstorage.sql
 
 echo "##### Starting tests #####"

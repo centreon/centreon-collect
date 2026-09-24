@@ -51,6 +51,37 @@ class ssl_exception : public std::runtime_error {
 
 using namespace com::centreon::common::crypto;
 
+namespace {
+static void copy_subject_alt_name_extensions(const X509* source, X509* target) {
+  if (!source || !target) {
+    return;
+  }
+
+  for (int ext_index = X509_get_ext_by_NID(source, NID_subject_alt_name, -1);
+       ext_index >= 0; ext_index = X509_get_ext_by_NID(
+                           source, NID_subject_alt_name, ext_index)) {
+    X509_EXTENSION* source_ext = X509_get_ext(source, ext_index);
+    if (!source_ext) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to read source subjectAltName extension");
+    }
+
+    X509_EXTENSION* copied_ext = X509_EXTENSION_dup(source_ext);
+    if (!copied_ext) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to duplicate source subjectAltName extension");
+    }
+
+    const int add_status = X509_add_ext(target, copied_ext, -1);
+    X509_EXTENSION_free(copied_ext);
+    if (add_status != 1) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to add subjectAltName extension to generated certificate");
+    }
+  }
+}
+}  // namespace
+
 /**
  * @brief load a certificate from pem format file
  *
@@ -269,41 +300,42 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
                                unsigned version,
                                const EVP_PKEY* ca_key,
                                const X509* ca_cert) {
-  X509* x509 = X509_new();
+  std::unique_ptr<X509, decltype(&X509_free)> x509(X509_new(), X509_free);
   X509_NAME* name;
 
-  X509_set_version(x509, version);  // 0 = v1, 1 = v2, 2 = v3
-  ASN1_INTEGER_set(X509_get_serialNumber(x509), (long)time(NULL));
-  X509_gmtime_adj(X509_get_notBefore(x509), 0);
-  X509_gmtime_adj(X509_get_notAfter(x509), minute_cert_ttl * 60);
-  X509_set_pubkey(x509, const_cast<EVP_PKEY*>(pkey));
+  X509_set_version(x509.get(), version);  // 0 = v1, 1 = v2, 2 = v3
+  ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), (long)time(NULL));
+  X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
+  X509_gmtime_adj(X509_get_notAfter(x509.get()), minute_cert_ttl * 60);
+  X509_set_pubkey(x509.get(), const_cast<EVP_PKEY*>(pkey));
 
   // subject
-  name = X509_get_subject_name(x509);
+  name = X509_get_subject_name(x509.get());
 
-  set_name_fields(x509, name_fields);
+  set_name_fields(x509.get(), name_fields);
 
   // Issuer
   if (ca_cert) {
-    X509_set_issuer_name(x509, X509_get_subject_name(ca_cert));
+    X509_set_issuer_name(x509.get(), X509_get_subject_name(ca_cert));
+    copy_subject_alt_name_extensions(ca_cert, x509.get());
   } else {
-    X509_set_issuer_name(x509, name);  // auto-signé
+    X509_set_issuer_name(x509.get(), name);  // auto-signé
     // Extension : Basic Constraints = CA:TRUE
     X509V3_CTX ctx;
-    X509V3_set_ctx(&ctx, x509, x509, NULL, NULL, 0);
+    X509V3_set_ctx(&ctx, x509.get(), x509.get(), NULL, NULL, 0);
     X509_EXTENSION* ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints,
                                               "critical,CA:TRUE");
-    X509_add_ext(x509, ext, -1);
+    X509_add_ext(x509.get(), ext, -1);
     X509_EXTENSION_free(ext);
   }
 
   // Signature
-  if (!X509_sign(x509, const_cast<EVP_PKEY*>(ca_key ? ca_key : pkey),
+  if (!X509_sign(x509.get(), const_cast<EVP_PKEY*>(ca_key ? ca_key : pkey),
                  EVP_sha256())) {
     throw ssl_exception("fail to sign certificate:");
   }
 
-  return x509;
+  return x509.release();
 }
 
 /**

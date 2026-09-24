@@ -87,8 +87,8 @@ TEST_F(HostNotification, SimpleNormalHostNotification) {
   set_time(43200);
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
@@ -114,8 +114,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotificationsdisabled) {
   set_time(43200);
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
@@ -136,8 +136,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
   set_time(43200);
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
@@ -158,8 +158,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(43200, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{43200, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -180,8 +179,7 @@ TEST_F(HostNotification,
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(43200, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{43200, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -200,8 +198,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(43200, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{43200, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -221,8 +218,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
 
   _host->set_scheduled_downtime_depth(30);
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -242,8 +238,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
 
   _host->set_is_flapping(true);
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -263,8 +258,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
 
   _host->set_state_type(checkable::soft);
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -284,8 +278,7 @@ TEST_F(HostNotification,
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -305,8 +298,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -328,8 +320,7 @@ TEST_F(HostNotification,
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -352,8 +343,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -376,8 +366,7 @@ TEST_F(HostNotification,
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -402,8 +391,7 @@ TEST_F(HostNotification,
   set_time(20000);
 
   uint64_t id{_host->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, 12345)};
@@ -427,8 +415,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
   set_time(43200);
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
-  for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].emplace_back(0, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};

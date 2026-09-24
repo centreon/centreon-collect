@@ -17,6 +17,7 @@
  */
 #include "com/centreon/engine/broker.hh"
 #include <openssl/x509.h>
+#include <spdlog/common.h>
 #include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
@@ -329,7 +330,7 @@ void broker_adaptive_tag_data(int type, engine::tag* et) {
       return;
   }
   tg.set_name(et->name());
-  neb_logger->trace("callbacks:  tag {}", tg.ShortDebugString());
+  neb_logger->trace("callbacks:  tag {}", tg);
 
   // Send event(t).
   cbm->write(t);
@@ -1157,6 +1158,7 @@ static void forward_pb_service(int type,
     // Search host ID and service ID.
     srv.set_host_id(es->host_id());
     srv.set_service_id(es->service_id());
+    srv.set_instance_id(cbm->poller_id());
     if (srv.host_id() && srv.service_id())
       SPDLOG_LOGGER_DEBUG(neb_logger,
                           "callbacks: service ({}, {}) has a severity id {}",
@@ -1957,7 +1959,7 @@ static void forward_pb_external_command(int type,
           if (host_id != 0) {
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
-            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
             data.set_host_id(host_id);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
@@ -1994,7 +1996,7 @@ static void forward_pb_external_command(int type,
           if (p.first && p.second) {
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
-            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
             data.set_host_id(p.first);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
@@ -2184,6 +2186,7 @@ static void forward_pb_group(int type, const G* group_data) {
                       (type == NEBTYPE_SERVICEGROUP_UPDATE &&
                        !group_data->members.empty()));
       obj.set_name(common::check_string_utf8(group_data->get_group_name()));
+      obj.set_alias(group_data->get_alias());
 
       // Send service group event.
       if (group_data->get_id()) {
@@ -2713,7 +2716,9 @@ static void forward_pb_host_status(const host* hst,
     }
 
     // Acknowledgement event.
-    handle_acknowledgement(state, host);
+    // Only process it when the acknowledgement actually changed.
+    if (attributes & engine::host::STATUS_ACKNOWLEDGEMENT)
+      handle_acknowledgement(state, host);
   } else {
     auto h{std::make_shared<neb::pb_host_status>()};
     com::centreon::broker::HostStatus& hscr = h.get()->mut_obj();
@@ -3450,7 +3455,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "EXTERNAL COMMAND") {
     test_fail("acknowledge type");
-    auto& data = *ait;
+    std::string_view data = *ait;
     ++ait;
     if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
       le_obj.set_msg_type(
@@ -3678,7 +3683,12 @@ static void forward_log(const char* data, time_t entry_time) {
  */
 static void forward_pb_log(const char* data, time_t entry_time) {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
+  if (neb_logger->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(neb_logger, "callbacks: generating pb log event {}",
+                        data);
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
+  }
 
   try {
     // In/Out variables.
@@ -4705,7 +4715,9 @@ static void forward_pb_service_status(const engine::service* svc,
     }
 
     // Acknowledgement event.
-    handle_acknowledgement(state, asscr);
+    // Only process it when the acknowledgement actually changed.
+    if (attributes & engine::service::STATUS_ACKNOWLEDGEMENT)
+      handle_acknowledgement(state, asscr);
   } else {
     auto s{std::make_shared<neb::pb_service_status>()};
     ServiceStatus& sscr = s.get()->mut_obj();

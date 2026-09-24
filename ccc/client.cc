@@ -259,7 +259,7 @@ static void message_description(const google::protobuf::Descriptor* desc,
       one_of = false;
     }
 
-    const std::string& entry_name = f->name();
+    std::string_view entry_name = f->name();
     std::string value;
     switch (f->type()) {
       case google::protobuf::FieldDescriptor::TYPE_BOOL:

@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/bam/ba.hh"
+#include "com/centreon/common/fmt_protobuf.hh"
 
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -305,8 +306,10 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
         "{})",
         _id, _name, _host_id, _service_id);
 
-    // Check if there was a change.
-    bool in_downtime(dt->was_started && dt->actual_end_time.is_null());
+    // Check if there was a change. A cancelled downtime is over, even when it
+    // carries no actual_end_time (poller restart cancellation).
+    bool in_downtime(dt->was_started && dt->actual_end_time.is_null() &&
+                     !dt->was_cancelled);
     if (_in_downtime != in_downtime) {
       SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: {}",
                           _in_downtime);
@@ -340,9 +343,11 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   assert(downtime.host_id() == _host_id &&
          downtime.service_id() == _service_id);
 
-  // Check if there was a change.
+  // Check if there was a change. A cancelled downtime is over, even when it
+  // carries no actual_end_time (poller restart cancellation).
   bool in_downtime(downtime.started() &&
-                   time_is_undefined(downtime.actual_end_time()));
+                   time_is_undefined(downtime.actual_end_time()) &&
+                   !downtime.cancelled());
 
   // Log message.
   SPDLOG_LOGGER_DEBUG(
@@ -368,8 +373,11 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
  *
  *  @param[in] cache  The cache.
  */
-void ba::save_inherited_downtime(persistent_cache& cache
-                                 [[maybe_unused]]) const {}
+void ba::save_inherited_downtime(persistent_cache& cache) const {
+  if (_inherited_downtime)
+    cache.add(
+        std::make_shared<pb_inherited_downtime>(_inherited_downtime->obj()));
+}
 
 /**
  *  Set the inherited downtime of this ba.
@@ -554,8 +562,7 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     o.set_perfdata(get_perfdata());
     o.set_service_id(_service_id);
     o.set_state_type(ServiceStatus_StateType_HARD);
-    _logger->trace("BAM: new virtual service status for BA {}: {}", _id,
-                   o.DebugString());
+    _logger->trace("BAM: new virtual service status for BA {}: {}", _id, o);
     return status;
   }
 }
@@ -676,4 +683,20 @@ void ba::dump(std::ofstream& output) const {
  */
 int32_t ba::get_ack_impact_hard() const {
   return _acknowledgement_count;
+}
+
+/**
+ * @brief used to build ba outputs
+ *
+ * @return std::string first chars of baoutput string
+ */
+std::string ba::output_begin() const {
+  std::string_view sz_state;
+  unsigned hard_state = get_state_hard();
+  if (hard_state < state_str.size()) {
+    sz_state = state_str[hard_state];
+  } else {
+    sz_state = "bad state";
+  }
+  return fmt::format("BA: {} - {} - {}: ", _id, _name, sz_state);
 }

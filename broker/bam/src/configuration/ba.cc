@@ -38,7 +38,10 @@ ba::ba(uint32_t id,
        ba::state_source source,
        double warning_level,
        double critical_level,
-       downtime_behaviour dt_behaviour)
+       downtime_behaviour dt_behaviour,
+       uint32_t icon_id,
+       const std::string_view& icon_image,
+       const std::string_view& icon_image_alt)
     : _id(id),
       _host_id(0),
       _service_id(0),
@@ -47,7 +50,10 @@ ba::ba(uint32_t id,
       _state_source(source),
       _warning_level(warning_level),
       _critical_level(critical_level),
-      _dt_behaviour(dt_behaviour) {}
+      _dt_behaviour(dt_behaviour),
+      _icon_id(icon_id),
+      _icon_image(icon_image),
+      _icon_image_alt(icon_image_alt) {}
 
 /**
  *  Equality comparison operator.
@@ -63,7 +69,9 @@ bool ba::operator==(const ba& right) const {
          _state_source == right._state_source &&
          std::abs(_warning_level - right._warning_level) < eps &&
          std::abs(_critical_level - right._critical_level) < eps &&
-         _event == right._event && _dt_behaviour == right._dt_behaviour;
+         _event == right._event && _dt_behaviour == right._dt_behaviour &&
+         _icon_id == right._icon_id && _icon_image == right._icon_image &&
+         _icon_image_alt == right._icon_image_alt;
 }
 
 /**

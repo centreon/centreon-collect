@@ -45,7 +45,7 @@ class instance_configuration : public io::data {
   }
 
   bool loaded;
-  uint32_t poller_id;
+  uint64_t poller_id;
 
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;

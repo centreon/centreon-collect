@@ -22,6 +22,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/utils.hh"
@@ -57,9 +58,32 @@ int grab_contact_macros_r(nagios_macros* mac, contact* cntct) {
 /******************* MACRO GENERATION FUNCTIONS *******************/
 /******************************************************************/
 
+/**
+ * Recursively resolve macros within a custom macro value.
+ * Tracks depth to prevent infinite recursion, calls process_macros_r,
+ * then restores the previous state.
+ */
+static void resolve_custom_macro_value(nagios_macros* mac,
+                                       std::string& output) {
+  if (!mac)
+    return;
+  if (output.empty() || output.find('$') == std::string::npos)
+    return;
+  if (mac->custom_macro_recursion_depth >= MAX_CUSTOM_MACRO_RECURSION_DEPTH)
+    return;
+
+  mac->custom_macro_recursion_depth++;
+
+  std::string resolved;
+  process_macros_r(mac, output, resolved, 0);
+  output = std::move(resolved);
+
+  mac->custom_macro_recursion_depth--;
+}
+
 /* calculates the value of a custom macro */
 int grab_custom_macro_value_r(nagios_macros* mac,
-                              std::string const& macro_name,
+                              const std::string_view& macro_name,
                               std::string const& arg1,
                               std::string const& arg2,
                               std::string& output) {
@@ -87,6 +111,8 @@ int grab_custom_macro_value_r(nagios_macros* mac,
       /* get the host macro value */
       result = grab_custom_object_macro_r(mac, macro_name.substr(5),
                                           temp_host->custom_variables, output);
+      if (result == OK)
+        resolve_custom_macro_value(mac, output);
     }
     /* a host macro with a hostgroup name and delimiter */
     else {
@@ -130,6 +156,8 @@ int grab_custom_macro_value_r(nagios_macros* mac,
       /* get the service macro value */
       result = grab_custom_object_macro_r(
           mac, macro_name.substr(8), temp_service->custom_variables, output);
+      if (result == OK)
+        resolve_custom_macro_value(mac, output);
     }
     /* else and ondemand macro... */
     else {
@@ -205,6 +233,8 @@ int grab_custom_macro_value_r(nagios_macros* mac,
       result = grab_custom_object_macro_r(mac, macro_name.substr(8),
                                           temp_contact->get_custom_variables(),
                                           output);
+      if (result == OK)
+        resolve_custom_macro_value(mac, output);
     }
     /* a contact macro with a contactgroup name and delimiter */
     else {
@@ -634,7 +664,7 @@ int grab_standard_contactgroup_macro(
 
 /* computes a custom object macro */
 int grab_custom_object_macro_r(nagios_macros* mac,
-                               std::string const& macro_name,
+                               const std::string_view& macro_name,
                                map_customvar const& vars,
                                std::string& output) {
   int result = ERROR;

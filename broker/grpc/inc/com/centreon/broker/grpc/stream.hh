@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,31 +19,20 @@
 #ifndef CCB_GRPC_STREAM_HH__
 #define CCB_GRPC_STREAM_HH__
 
+#include <absl/base/thread_annotations.h>
 #include "com/centreon/broker/io/raw.hh"
 #include "grpc_config.hh"
 
 namespace centreon_stream = com::centreon::broker::stream;
 
 namespace com::centreon::broker {
-namespace stream {
-std::ostream& operator<<(std::ostream&, const CentreonEvent&);
-}
 
 namespace grpc {
 
 extern const std::string authorization_header;
 
-struct detail_centreon_event;
-std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
-
 using grpc_event_type = centreon_stream::CentreonEvent;
 using event_ptr = std::shared_ptr<grpc_event_type>;
-
-struct detail_centreon_event {
-  detail_centreon_event(const centreon_stream::CentreonEvent& todump)
-      : to_dump(todump) {}
-  const centreon_stream::CentreonEvent& to_dump;
-};
 
 /**
  * @brief we pass our protobuf objects to grpc_event without copy
@@ -84,14 +73,18 @@ class stream : public io::stream,
    * by grpc layers. We allocate this container and never free this because
    * threads terminate in unknown order.
    */
-  static std::set<std::shared_ptr<stream>>* _instances;
-  static std::mutex _instances_m;
+  static absl::flat_hash_set<std::shared_ptr<stream>>* _instances
+      ABSL_GUARDED_BY(_instances_m);
+  static absl::Mutex _instances_m;
+
+  const io::endpoint* _parent;
 
   using read_queue = std::queue<event_ptr>;
   using write_queue = std::queue<event_with_data::pointer>;
 
   read_queue _read_queue;
   write_queue _write_queue;
+  time_t _last_full_write_queue_error = 0;
 
   std::atomic_bool _alive = true;
 
@@ -105,13 +98,17 @@ class stream : public io::stream,
 
   grpc_config::pointer _conf;
   const std::string_view _class_name;
+  const std::string _peer;
 
   std::mutex _protect;
 
   void start_write();
 
  protected:
-  stream(const grpc_config::pointer& conf, const std::string_view& class_name);
+  stream(const io::endpoint* parent,
+         const grpc_config::pointer& conf,
+         const std::string_view& class_name,
+         const std::string& peer);
 
   // called only by public stop
   virtual void shutdown();
@@ -125,7 +122,12 @@ class stream : public io::stream,
   static void register_stream(
       const std::shared_ptr<stream<bireactor_class>>& strm);
 
+  template <class visitor>
+  static void visit_all_instances(visitor&& visit);
+
   void start_read();
+
+  std::string peer() const override { return _peer; }
 
   // bireactor part
   void OnReadDone(bool ok) override;
@@ -143,26 +145,29 @@ class stream : public io::stream,
 
   int32_t flush() override;
   int32_t stop() override;
+  const io::endpoint* parent() const { return _parent; }
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 
+/**
+ * @brief apply visit on all const instances
+ *
+ * @tparam bireactor_class
+ * @tparam visitor
+ * @param visit
+ */
+template <class bireactor_class>
+template <class visitor>
+void stream<bireactor_class>::visit_all_instances(visitor&& visit) {
+  absl::MutexLock l(_instances_m);
+  for (const auto& inst : *_instances) {
+    visit(*inst);
+  }
+}
+
 }  // namespace grpc
 
 }  // namespace com::centreon::broker
-
-namespace fmt {
-// formatter specializations for fmt
-template <>
-struct formatter<centreon_stream::CentreonEvent> : ostream_formatter {};
-
-template <>
-struct formatter<com::centreon::broker::grpc::detail_centreon_event>
-    : ostream_formatter {};
-
-template <>
-struct formatter<com::centreon::broker::io::raw> : ostream_formatter {};
-
-}  // namespace fmt
 
 #endif  // !CCB_GRPC_STREAM_HH

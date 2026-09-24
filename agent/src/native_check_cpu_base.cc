@@ -254,14 +254,15 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
   try {
     std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> begin =
         get_cpu_time_snapshot(true);
 
-    // end of measure = min(now+timeout, next check)
+    // end of measure = min(now+effective_timeout, next check)
     time_point now = std::chrono::system_clock::now();
-    time_point end_measure = now + timeout;
+    time_point end_measure = now + effective_timeout;
     time_step next = this->get_raw_start_expected();
     next.increment_to_after_min(now);
     if (next.value() < end_measure) {

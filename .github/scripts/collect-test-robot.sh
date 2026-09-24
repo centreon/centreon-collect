@@ -7,7 +7,9 @@ export RUN_ENV=docker
 test_file=$1
 database_type=$2
 #this env variable is a json that contains some test params
-export TESTS_PARAMS='$3'
+export TESTS_PARAMS=$3
+
+echo "########################### execute tests with params: $TESTS_PARAMS ###########################"
 
 if [ -f "/.venv/bin/activate" ]; then
   echo "########################### activate python virtual env ###########################"

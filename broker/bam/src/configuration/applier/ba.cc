@@ -131,7 +131,9 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
     if (bbdo3_enabled) {
       auto bs = _ba_pb_service(
           it->first, it->second.cfg.get_host_id(), it->second.cfg.get_name(),
-          it->second.cfg.get_host_name(), it->second.cfg.get_service_id());
+          it->second.cfg.get_host_name(), it->second.cfg.get_service_id(),
+          it->second.cfg.get_icon_id(), it->second.cfg.get_icon_image(),
+          it->second.cfg.get_icon_image_alt());
       bs->mut_obj().set_enabled(false);
       s = bs;
     } else {
@@ -168,7 +170,9 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
     if (bbdo3_enabled)
       s = _ba_pb_service(it->first, it->second.get_host_id(),
                          it->second.get_name(), it->second.get_host_name(),
-                         it->second.get_service_id());
+                         it->second.get_service_id(), it->second.get_icon_id(),
+                         it->second.get_icon_image(),
+                         it->second.get_icon_image_alt());
     else
       s = _ba_service(it->first, it->second.get_host_id(),
                       it->second.get_service_id());
@@ -301,9 +305,15 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
     const std::string& ba_name,
     const std::string& host_name,
     uint32_t service_id,
+    uint32_t icon_id,
+    const std::string& icon_image,
+    const std::string& icon_image_alt,
     bool in_downtime) {
-  _logger->trace("_ba_pb_service ba {}, service {}:{} with downtime {}", ba_id,
-                 host_id, service_id, in_downtime);
+  _logger->trace(
+      "_ba_pb_service ba {}, service {}:{} with downtime {}, icon_id {}, "
+      "icon_image '{}', icon_image_alt '{}'",
+      ba_id, host_id, service_id, in_downtime, icon_id, icon_image,
+      icon_image_alt);
   auto s{std::make_shared<neb::pb_service>()};
   auto& o = s->mut_obj();
   o.set_host_id(host_id);
@@ -317,6 +327,9 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   o.set_scheduled_downtime_depth(in_downtime ? 1 : 0);
   o.set_max_check_attempts(1);
   o.set_enabled(true);
+  o.set_icon_id(icon_id);
+  o.set_icon_image(icon_image);
+  o.set_icon_image_alt(icon_image_alt);
   return s;
 }
 

@@ -21,6 +21,7 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/nebstructs.hh"
@@ -287,11 +288,10 @@ void cbmod::add_downtime(uint64_t downtime_id,
         _neb_logger,
         "cbmod: add_downtime: Downtime with ID {} already exists: {} - "
         "replaced by {}",
-        downtime_id, _downtimes[downtime_id]->obj().DebugString(),
-        obj.ShortDebugString());
+        downtime_id, _downtimes[downtime_id]->obj(), obj);
   } else {
     SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: add_downtime: Downtime added: {}",
-                        obj.ShortDebugString());
+                        obj);
   }
   _downtimes[downtime_id] = pb_dt;
   if (_use_protobuf)
@@ -315,8 +315,7 @@ void cbmod::start_downtime(uint64_t downtime_id) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
-  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime started: {}",
-                      obj.ShortDebugString());
+  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime started: {}", obj);
 }
 
 /**
@@ -338,7 +337,7 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
   else
     write(translate_to_legacy_downtime(pb_dt));
   SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} stopped: {}",
-                      downtime_id, obj.ShortDebugString());
+                      downtime_id, obj);
 }
 
 /**
@@ -362,7 +361,7 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
     else
       write(translate_to_legacy_downtime(pb_dt));
     SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} removed: {}",
-                        downtime_id, obj.ShortDebugString());
+                        downtime_id, obj);
     _downtimes.erase(found);
   } else {
     SPDLOG_LOGGER_ERROR(_neb_logger,

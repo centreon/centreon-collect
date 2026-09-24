@@ -60,6 +60,9 @@ class ba {
                                                   const std::string& ba_name,
                                                   const std::string& host_name,
                                                   uint32_t service_id,
+                                                  uint32_t icon_id = 0,
+                                                  const std::string& icon_image = "",
+                                                  const std::string& icon_image_alt = "",
                                                   bool in_downtime = false);
   void _internal_copy(ba const& other);
   std::shared_ptr<bam::ba> _new_ba(configuration::ba const& cfg,

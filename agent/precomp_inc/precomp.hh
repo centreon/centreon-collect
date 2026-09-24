@@ -60,6 +60,7 @@ namespace asio = boost::asio;
 
 #include <rapidjson/document.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 namespace multi_index = boost::multi_index;

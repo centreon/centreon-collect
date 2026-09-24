@@ -16,14 +16,20 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
+#include <spdlog/sinks/ostream_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <fstream>
+#include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/process_args.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/aes256.hh"
 
 #include "com/centreon/common/process/process.hh"
+
+#ifndef _WIN32
+#include <dirent.h>
+#include <sys/resource.h>
+#endif
 
 using namespace com::centreon::common;
 
@@ -91,7 +97,7 @@ class process_wait : public process<true> {
     process<true>::start_process(
         [this](const process<true>&, int exit_code, int exit_status,
                const std::string& std_out, const std::string& std_err) {
-          absl::MutexLock l(&_waiter);
+          absl::MutexLock l(_waiter);
           _completed = true;
           _stdout = std_out;
           _stderr = std_err;
@@ -105,7 +111,7 @@ class process_wait : public process<true> {
     process<true>::start_process(
         [this](const process<true>&, int exit_code, int exit_status,
                const std::string& std_out, const std::string& std_err) {
-          absl::MutexLock l(&_waiter);
+          absl::MutexLock l(_waiter);
           _completed = true;
           _stdout = std_out;
           _stderr = std_err;
@@ -116,7 +122,7 @@ class process_wait : public process<true> {
   }
 
   void wait() {
-    absl::MutexLock l(&_waiter);
+    absl::MutexLock l(_waiter);
     if (!_completed) {
       _waiter.Await(absl::Condition(&_completed));
     }
@@ -134,6 +140,75 @@ TEST_F(process_test, echo) {
   EXPECT_EQ(to_wait->get_stdout(), "hello" END_OF_LINE);
   EXPECT_EQ(to_wait->get_stderr(), "");
 }
+
+#ifndef _WIN32
+#if defined(SYS_pidfd_open)
+
+namespace {
+/**
+ * @brief Counts the number of file descriptors currently opened by this
+ * process, by listing /proc/self/fd.
+ */
+static unsigned count_open_fds() {
+  unsigned count = 0;
+  DIR* dir = opendir("/proc/self/fd");
+  if (dir) {
+    struct dirent* elem = readdir(dir);
+    while (elem) {
+      if (elem->d_type != DT_DIR) {
+        ++count;
+      }
+      elem = readdir(dir);
+    }
+    closedir(dir);
+    return count - 1;
+  }
+  return 0;
+}
+
+/**
+ * @brief RAII helper that restores the RLIMIT_NOFILE soft limit on
+ * destruction, even if the test fails before reaching the end of its body.
+ */
+class rlimit_nofile_guard {
+ public:
+  rlimit_nofile_guard() { getrlimit(RLIMIT_NOFILE, &_original); }
+  ~rlimit_nofile_guard() { setrlimit(RLIMIT_NOFILE, &_original); }
+
+  const struct rlimit& original() const { return _original; }
+
+ private:
+  struct rlimit _original;
+};
+}  // namespace
+
+/**
+ * @brief Lowers the number of file descriptors this process is allowed to
+ * open, just enough so the stdin/stdout/stderr pipes of the child process
+ * can still be created, but not enough for the additional pidfd_open() call
+ * used to watch the child process. We then check that an exception is thrown
+ * ⚠️ This test can't be launched alone, another process_test must be launched
+ * before in order to initialize asio fds
+ */
+TEST_F(process_test, pidfd_open_failure) {
+  using namespace std::literals;
+
+  rlimit_nofile_guard rlimit_guard;
+
+  struct rlimit low_limit = rlimit_guard.original();
+  // 3 pipes (stdin, stdout, stderr) need 2 file descriptors each to be
+  // created: that leaves no room left for the pidfd_open() call.
+  low_limit.rlim_cur = count_open_fds() + 6;
+  ASSERT_EQ(setrlimit(RLIMIT_NOFILE, &low_limit), 0);
+
+  std::shared_ptr<process_wait> to_wait(
+      new process_wait(g_io_context, _logger, ECHO_PATH, {"hello"s}));
+
+  EXPECT_THROW(to_wait->start_process(), com::centreon::exceptions::msg_fmt);
+}
+
+#endif  // defined(SYS_pidfd_open)
+#endif  // !_WIN32
 
 TEST_F(process_test, throw_on_error) {
   using namespace std::literals;
@@ -176,7 +251,7 @@ TEST_F(process_test, stdin_to_stdout) {
       // in order to let some async_read_some complete
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    loopback->write_to_stdin(fmt::format("hello{}\n", ii));
+    loopback->write_to_child_stdin(fmt::format("hello{}\n", ii));
     expected += fmt::format("receive hello{}\n", ii);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -197,7 +272,7 @@ TEST_F(process_test, shell_stdin_to_stdout) {
       // in order to let some async_read_some complete
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    loopback->write_to_stdin(fmt::format("echo hello{}\n", ii));
+    loopback->write_to_child_stdin(fmt::format("echo hello{}\n", ii));
     expected += fmt::format("hello{}\n", ii);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -282,6 +357,117 @@ TEST_F(process_test, stdout_to_file) {
 }
 
 #endif
+
+#ifndef _WIN32
+
+/**
+ * @brief Helper: run a process with streaming stdout/stderr handlers and wait
+ * for completion. Returns the accumulated output.
+ *
+ */
+static void run_with_streaming_handler(const std::string& cmd,
+                                       bool use_stdout_handler,
+                                       std::string& accumulated_out,
+                                       bool& order_ok_out,
+                                       int& chunk_count_out) {
+  absl::Mutex mutex;
+  bool completed = false;
+  accumulated_out.clear();
+  order_ok_out = true;
+  chunk_count_out = 0;
+  size_t expected_pos = 0;
+
+  using reader_type = std::function<void(const boost::system::error_code&,
+                                         const std::string_view&)>;
+
+  reader_type chunk_handler = [&](const boost::system::error_code& err,
+                                  const std::string_view& data) {
+    if (err) {
+      return;
+    }
+    absl::MutexLock l(mutex);
+    ++chunk_count_out;
+    for (unsigned char c : data) {
+      if (c != static_cast<unsigned char>('0' + expected_pos % 10)) {
+        order_ok_out = false;
+      }
+      ++expected_pos;
+    }
+    accumulated_out.append(data);
+  };
+
+  reader_type noop_handler = [](const boost::system::error_code&,
+                                const std::string_view&) {};
+
+  auto proc = std::make_shared<process<true>>(g_io_context, _logger, cmd, true,
+                                              false, nullptr);
+  proc->start_process(
+      [&](const process<true>&, int, e_exit_status, const std::string&,
+          const std::string&) {
+        absl::MutexLock l(mutex);
+        completed = true;
+      },
+      std::move(use_stdout_handler ? chunk_handler : noop_handler),
+      std::move(use_stdout_handler ? noop_handler : chunk_handler),
+      std::chrono::seconds(10));
+
+  absl::MutexLock l(mutex);
+  mutex.Await(absl::Condition(&completed));
+}
+
+// Outputs 20000 bytes of cycling digits "0123456789..."
+static constexpr const char* kLargeStdoutCmd =
+    "/bin/sh -c 'i=0; while [ $i -lt 2000 ]; do "
+    "printf \"0123456789\"; i=$((i+1)); done'";
+
+// Same but to stderr.
+static constexpr const char* kLargeStderrCmd =
+    "/bin/sh -c 'i=0; while [ $i -lt 2000 ]; do "
+    "printf \"0123456789\" >&2; i=$((i+1)); done'";
+
+static constexpr size_t kLargeOutputSize = 20000;  // 10 chars × 2000
+
+/**
+ * @brief Verifies that when stdout output exceeds the 4096-byte read buffer,
+ * all chunks are delivered to the stdout_handler in order and no data is lost.
+ *
+ */
+TEST_F(process_test, stdout_handler_ordering_large_output) {
+  std::string accumulated;
+  bool order_ok;
+  int chunk_count;
+
+  run_with_streaming_handler(kLargeStdoutCmd, /*stdout=*/true, accumulated,
+                             order_ok, chunk_count);
+
+  EXPECT_EQ(accumulated.size(), kLargeOutputSize)
+      << "incomplete stdout: received " << accumulated.size() << " of "
+      << kLargeOutputSize << " bytes";
+  EXPECT_TRUE(order_ok) << "stdout chunks received out of order";
+  // Must have been split into multiple 4096-byte reads
+  EXPECT_GT(chunk_count, 1) << "expected multiple chunks for a "
+                            << kLargeOutputSize << "-byte output";
+}
+
+/**
+ * @brief Same ordering guarantee for the stderr_handler path.
+ */
+TEST_F(process_test, stderr_handler_ordering_large_output) {
+  std::string accumulated;
+  bool order_ok;
+  int chunk_count;
+
+  run_with_streaming_handler(kLargeStderrCmd, /*stdout=*/false, accumulated,
+                             order_ok, chunk_count);
+
+  EXPECT_EQ(accumulated.size(), kLargeOutputSize)
+      << "incomplete stderr: received " << accumulated.size() << " of "
+      << kLargeOutputSize << " bytes";
+  EXPECT_TRUE(order_ok) << "stderr chunks received out of order";
+  EXPECT_GT(chunk_count, 1);
+}
+
+#endif  // !_WIN32
 
 static bool check(std::string const& cmdline,
                   std::vector<std::string_view> const& res) {

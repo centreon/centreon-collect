@@ -25,7 +25,8 @@ if(WITH_TESTING)
 
   include_directories(
     ${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc ${MODULE_DIR_OTL}/inc
-    ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common/http/inc)
+    ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common/http/inc
+    ${CMAKE_SOURCE_DIR}/common/crypto)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
@@ -53,8 +54,10 @@ if(WITH_TESTING)
   target_link_libraries(bin_connector_test_run 
     cce_core
     -Wl,--whole-archive
-    log_v2 
+    log_v2
+    centreon_common 
     centreon_grpc
+    centreon_file_system
     gRPC::grpc++
     stdc++fs
     -Wl,--no-whole-archive
@@ -117,6 +120,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/enginerpc/pbenginerpc.cc
       ${TESTS_DIR}/helper.cc
       ${TESTS_DIR}/macros/pbmacro.cc
+      ${TESTS_DIR}/macros/pbmacro_custom_recursive.cc
       ${TESTS_DIR}/macros/pbmacro_hostname.cc
       ${TESTS_DIR}/macros/pbmacro_service.cc
       ${TESTS_DIR}/external_commands/pbanomalydetection.cc
@@ -134,6 +138,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/notifications/service_downtime_notification_test.cc
       ${TESTS_DIR}/opentelemetry/agent_check_result_builder_test.cc
       ${TESTS_DIR}/opentelemetry/agent_reverse_client_test.cc
+      ${TESTS_DIR}/opentelemetry/certificate_service_test.cc
       ${TESTS_DIR}/opentelemetry/grpc_config_test.cc
       ${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc
       ${TESTS_DIR}/opentelemetry/open_telemetry_test.cc
@@ -162,6 +167,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/timeperiod/utils.hh")
   add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+  add_dependencies(ut_engine_utils target_state_proto)
   target_link_libraries(ut_engine_utils PRIVATE dl)
   add_executable(ut_engine ${ut_sources})
   target_include_directories(
@@ -190,28 +196,29 @@ if(WITH_TESTING)
     ut_engine
     PRIVATE
     enginerpc
+    cerpc
     ut_engine_utils
-    centreon_process
-    pb_open_telemetry_lib
+    centreon_pb_bbdo
     centagent_lib
+    centreon_process
+    centreon_hexdump
     centreon_grpc
     centreon_http
-    centreon_process
     -Wl,-whole-archive
     cce_core
     log_v2
     opentelemetry
+    centreon_file_system
     ctncrypto
-    gRPC::grpc++
     Boost::program_options
     -Wl,-no-whole-archive
-	    #Boost::url
     ${GCOV}
     GTest::gtest
     GTest::gtest_main
     GTest::gmock
     GTest::gmock_main
     gRPC::grpc++
+    protobuf::libprotobuf
     fmt::fmt
     ryml::ryml
     stdc++fs

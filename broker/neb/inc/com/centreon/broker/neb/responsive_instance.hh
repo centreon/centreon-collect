@@ -43,7 +43,7 @@ class responsive_instance : public io::data {
     return io::events::data_type<io::neb, neb::de_responsive_instance>::value;
   }
 
-  uint32_t poller_id;
+  uint64_t poller_id;
   bool responsive;
 
   static mapping::entry const entries[];

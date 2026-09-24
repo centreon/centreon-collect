@@ -151,7 +151,7 @@ sub db_parse_xml {
                     $dbcon->{$name}->{port} = $2;
                     $dbcon->{$name}->{port} =~ s/\://;
                 }
-                $dbcon->{$name}->{db} =~ s/\?autoReconnect\=true//;
+                $dbcon->{$name}->{db} =~ s/[?&].*//;
             } elsif ($prop->{name} eq 'odaUser') {
                 $dbcon->{$name}->{user} = $prop->{value};
             } elsif ($prop->{name} eq 'odaPassword') {
@@ -367,7 +367,8 @@ sub watch_etl_import {
                     db => $val->{db},
                     sql => $val->{sql},
                     command => $val->{command},
-                    message => $val->{message}
+                    message => $val->{message},
+                    continue_on_error => $val->{continue_on_error}
                 }
             );
         } elsif ($val->{status} == FINISHED) {

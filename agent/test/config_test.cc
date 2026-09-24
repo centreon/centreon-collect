@@ -19,9 +19,13 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 
+#include "check_exec.hh"
 #include "config.hh"
+#include "scheduler.hh"
 
 using namespace com::centreon::agent;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 static const std::string _json_config_path =
     std::filesystem::temp_directory_path() / "config_test.json";
@@ -203,4 +207,120 @@ TEST(config, custom_checks) {
   ASSERT_EQ(custom_checks.at("check_echo"), "/usr/bin/echo \"$ARG2$ $ARG1$\"");
   ASSERT_EQ(custom_checks.at("custom_check_2"),
             "/path/to/custom_check_2 -c /arg=<value>");
+}
+
+static const std::string _custom_checks_ini_path =
+    std::filesystem::temp_directory_path() / "config_test_custom_check.ini";
+
+// write the json also the custom file .ini
+static void write_custom_checks_config(const std::string& ini_content) {
+  ::remove(_json_config_path.c_str());
+  std::ofstream json_f(_json_config_path);
+  json_f << R"({"host":"127.0.0.1","endpoint":"host1.domain2:4317",)"
+         << R"("custom_check_file":")" << _custom_checks_ini_path << R"("})";
+  json_f.close();
+  std::ofstream ini_f(_custom_checks_ini_path);
+  ini_f << ini_content;
+}
+
+TEST(config, custom_checks_reload) {
+  write_custom_checks_config(
+      "[custom_checks]\n; a comment\ncheck_echo=/usr/bin/echo one\n");
+
+  config conf(_json_config_path);
+  ASSERT_TRUE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().size(), 1);
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"), "/usr/bin/echo one");
+
+  {
+    std::ofstream ini_f(_custom_checks_ini_path);
+    ini_f << "check_echo=/usr/bin/echo two\ncheck_new=/usr/bin/true\n";
+  }
+  ASSERT_TRUE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().size(), 2);
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"), "/usr/bin/echo two");
+  ASSERT_EQ(conf.get_custom_checks().at("check_new"), "/usr/bin/true");
+
+  // file removed => previous custom checks are kept
+  ::remove(_custom_checks_ini_path.c_str());
+  ASSERT_FALSE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().size(), 2);
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"), "/usr/bin/echo two");
+
+  // malformed line => whole file rejected, previous custom checks are kept
+  {
+    std::ofstream ini_f(_custom_checks_ini_path);
+    ini_f << "check_echo=/usr/bin/echo three\nthis is not an assignment\n";
+  }
+  ASSERT_FALSE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"), "/usr/bin/echo two");
+
+  // empty name or command => rejected too
+  {
+    std::ofstream ini_f(_custom_checks_ini_path);
+    ini_f << "check_echo=\n";
+  }
+  ASSERT_FALSE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"), "/usr/bin/echo two");
+
+  // corrected file => refreshed
+  {
+    std::ofstream ini_f(_custom_checks_ini_path);
+    ini_f << "check_echo=/usr/bin/echo four\n";
+  }
+  ASSERT_TRUE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().size(), 1);
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"), "/usr/bin/echo four");
+}
+
+/**
+ * @brief a check built after config::reload_custom_checks() must use the new
+ * command line whereas checks built before keep the old one
+ */
+TEST(config, custom_check_command_refreshed_after_reload) {
+  write_custom_checks_config("check_echo=/usr/bin/echo one\n");
+  config::load(_json_config_path);
+
+  Service serv;
+  serv.set_service_description("serv");
+  serv.set_command_name("command");
+  serv.set_command_line(R"({"check":"custom","args":{"name":"check_echo"}})");
+
+  // the resolved custom command is stored in check_exec process args
+  auto build_check = [&serv]() {
+    return std::dynamic_pointer_cast<check_exec>(
+        scheduler::default_check_builder(
+            g_io_context, spdlog::default_logger(), {}, serv,
+            engine_to_agent_request_ptr(),
+            []([[maybe_unused]] const std::shared_ptr<check>& caller,
+               [[maybe_unused]] int status,
+               [[maybe_unused]] const std::list<
+                   com::centreon::common::perfdata>& perfdata,
+               [[maybe_unused]] const std::list<std::string>& outputs) {},
+            std::make_shared<checks_statistics>(), nullptr));
+  };
+
+  const std::vector<std::string> arg_one{"one"};
+  const std::vector<std::string> arg_two{"two"};
+
+  std::shared_ptr<check_exec> before_reload = build_check();
+  ASSERT_TRUE(before_reload);
+  ASSERT_EQ(before_reload->get_process_args()->get_exe_path(), "/usr/bin/echo");
+  ASSERT_EQ(before_reload->get_process_args()->get_args(), arg_one);
+
+  {
+    std::ofstream ini_f(_custom_checks_ini_path);
+    ini_f << "check_echo=/usr/bin/echo two\n";
+  }
+  config::reload_custom_checks();
+
+  // already built checks keep their resolved command line
+  ASSERT_EQ(before_reload->get_process_args()->get_args(), arg_one);
+  // rebuilt checks use the refreshed one
+  std::shared_ptr<check_exec> after_reload = build_check();
+  ASSERT_TRUE(after_reload);
+  ASSERT_EQ(after_reload->get_process_args()->get_exe_path(), "/usr/bin/echo");
+  ASSERT_EQ(after_reload->get_process_args()->get_args(), arg_two);
+
+  ::remove(_custom_checks_ini_path.c_str());
 }

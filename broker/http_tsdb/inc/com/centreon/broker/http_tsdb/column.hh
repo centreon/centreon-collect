@@ -28,7 +28,7 @@ namespace http_tsdb {
  */
 class column {
  public:
-  enum class type { string, number };
+  enum type { string, number };
 
   column();
   column(std::string const& name,

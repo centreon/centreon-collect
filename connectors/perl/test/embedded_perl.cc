@@ -48,8 +48,9 @@ TEST(EmbeddedPerl, RunSimple1) {
     } while ((rb > 0) && (size > 0));
 
     // Compile and execute script.
-    int fds[3];
-    pid_t child(embedded_perl::instance().run(script_path, fds, io_context));
+    fork_pipes pipes;
+    pipes.init();
+    pid_t child(embedded_perl::instance().run(script_path, pipes, io_context));
 
     // Wait for child termination.
     int status;
@@ -84,8 +85,9 @@ TEST(EmbeddedPerl, RunSimple2) {
     } while ((rb > 0) && (size > 0));
 
     // Compile and execute script.
-    int fds[3];
-    pid_t child(embedded_perl::instance().run(script_path, fds, io_context));
+    fork_pipes pipes;
+    pipes.init();
+    pid_t child(embedded_perl::instance().run(script_path, pipes, io_context));
 
     // Wait for child termination.
     int status;
@@ -96,7 +98,9 @@ TEST(EmbeddedPerl, RunSimple2) {
       ASSERT_TRUE(false);
     }
 
-    child = embedded_perl::instance().run(script_path, fds, io_context);
+    fork_pipes pipes2;
+    pipes2.init();
+    child = embedded_perl::instance().run(script_path, pipes2, io_context);
 
     // Wait for child termination.
     if (waitpid(child, &status, 0) == child) {

@@ -1,0 +1,26 @@
+name: "compute-docker-tag"
+description: "Sanitize a git ref (branch or tag name) into a valid Docker tag."
+inputs:
+  ref:
+    description: "The raw git ref to sanitize (e.g. github.head_ref || github.ref_name)"
+    required: true
+outputs:
+  tag:
+    description: "The sanitized, Docker-tag-friendly value"
+    value: ${{ steps.compute-docker-tag.outputs.tag }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Compute Docker tag
+      id: compute-docker-tag
+      env:
+        RAW_REF: ${{ inputs.ref }}
+      run: |
+        docker_tag=$(printf '%s' "$RAW_REF" | sed -E 's#[^[:alnum:]_.-]+#-#g; s#^[.-]+##; s#-+#-#g' | cut -c1-128)
+        if [[ -z "$docker_tag" ]]; then
+          echo "::error::Unable to derive a valid Docker tag from ref '$RAW_REF'"
+          exit 1
+        fi
+        echo "tag=${docker_tag}" >> "$GITHUB_OUTPUT"
+      shell: bash

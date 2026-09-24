@@ -17,8 +17,7 @@
  */
 
 #include "com/centreon/connector/perl/orders/parser.hh"
-#include "com/centreon/connector/ipolicy.hh"
-#include "com/centreon/connector/log.hh"
+#include "com/centreon/connector/perl/policy.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::connector::perl::orders;
@@ -26,13 +25,15 @@ using com::centreon::exceptions::msg_fmt;
 
 parser::parser(
     const shared_io_context& io_context,
-    const std::shared_ptr<com::centreon::connector::policy_interface>& policy)
-    : com::centreon::connector::parser(io_context, policy) {}
+    const std::shared_ptr<com::centreon::connector::policy_interface>& policy,
+    int stdin_fd)
+    : com::centreon::connector::parser(io_context, policy, stdin_fd) {}
 
 parser::pointer parser::create(shared_io_context io_context,
                                const std::shared_ptr<policy_interface>& policy,
-                               const std::string& test_cmd_file) {
-  pointer ret{new parser(io_context, policy)};
+                               const std::string& test_cmd_file,
+                               int stdin_fd) {
+  pointer ret{new parser(io_context, policy, stdin_fd)};
 
   if (!test_cmd_file.empty()) {
     ret->read_file(test_cmd_file);
@@ -76,10 +77,8 @@ void parser::execute(const std::string& cmd) {
   pos = end + 1;
   // Find command to execute.
   end = cmd.find('\0', pos);
-  std::shared_ptr<com::centreon::connector::orders::options> cmdline(
-      std::make_shared<com::centreon::connector::orders::options>(
-          cmd.substr(pos, end - pos)));
 
   // Notify listener.
-  _owner->on_execute(cmd_id, ts_timeout, cmdline);
+  std::static_pointer_cast<policy>(_owner)->on_execute(
+      cmd_id, ts_timeout, cmd.substr(pos, end - pos));
 }

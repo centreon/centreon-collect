@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cstdio>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <list>
@@ -34,13 +35,20 @@
 #include <string>
 
 #include <boost/asio.hpp>
+#include <boost/process/v2/process.hpp>
 
+#include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
+#include <boost/multi_index/identity.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <boost/smart_ptr/shared_array.hpp>
 
 namespace asio = boost::asio;

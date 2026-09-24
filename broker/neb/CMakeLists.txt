@@ -31,7 +31,6 @@ include_directories(
 # NEB sources.
 set(NEB_SOURCES
     ${SRC_DIR}/acknowledgement.cc
-    ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/check.cc
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
@@ -65,8 +64,7 @@ add_dependencies(nebbase process_stat pb_common_lib table_max_size pb_neb_lib
                  pb_open_telemetry_lib)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
-target_link_libraries(nebbase PRIVATE pb_neb_lib pb_header_lib pb_common_lib
-                                      pb_open_telemetry_lib)
+target_link_libraries(nebbase PRIVATE centreon_pb_bbdo)
 
 set_target_properties(nebbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hpp)
@@ -81,7 +79,7 @@ add_library(
   # Main source.
   ${SRC_DIR}/broker.cc)
 
-add_dependencies(${NEB} nebbase)
+add_dependencies(${NEB} nebbase target_broker_message)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive fmt::fmt)
@@ -98,23 +96,21 @@ add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
                          ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
 
 set_target_properties(cbmod PROPERTIES PREFIX "" POSITION_INDEPENDENT_CODE ON)
+add_dependencies(cbmod target_state_proto)
 
 target_precompile_headers(cbmod REUSE_FROM nebbase)
 target_link_libraries(
   cbmod
   PRIVATE fmt::fmt
-          -Wl,--whole-archive
-          rokerbase
-          process_stat
-          centreon_common
-          nebbase
-          -Wl,--no-whole-archive
-	  pb_bam_lib
-	  pb_storage_lib
-          multiplexing
-          pb_common_lib
-          pb_neb_lib
-          pb_header_lib)
+  -Wl,--whole-archive
+  rokerbase
+  process_stat
+  centreon_common
+  nebbase
+  Boost::thread
+  -Wl,--no-whole-archive
+  multiplexing
+  centreon_pb_bbdo)
 
 get_property(
   CBMOD_DEFINES
@@ -128,7 +124,6 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
       # Actual tests
-      ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc

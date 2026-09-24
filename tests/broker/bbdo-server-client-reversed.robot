@@ -178,7 +178,7 @@ BSCSSTGRR2
     ...    ${EtcRoot}/centreon-broker/server.crt
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${content}    Create List    write: buff:    write done: buff:
+    ${content}    Create List    write:    write done:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
     Ctn Kindly Stop Broker

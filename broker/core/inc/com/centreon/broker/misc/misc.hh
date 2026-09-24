@@ -25,10 +25,33 @@ namespace com::centreon::broker::misc {
 std::string temp_path();
 std::list<std::string> split(std::string const& str, char sep);
 uint16_t crc16_ccitt(char const* data, uint32_t data_len);
-std::string exec(std::string const& cmd);
 int32_t exec_process(char const** argv, bool wait_for_completion);
 std::vector<char> from_hex(std::string const& str);
 std::string dump_filters(const multiplexing::muxer_filter& filters);
+
+/**
+ * @brief execute a command via popen(shell)
+ * This trick makes that this function can be used only with constant strings
+ * @tparam N
+ * @param cmd   cmd to execute
+ * @return std::string
+ */
+template <std::size_t N>
+std::string exec(const char (&cmd)[N]) {
+  std::array<char, 128> buffer;
+  std::string result;
+  struct file_closer {
+    void operator()(FILE* to_close) const { pclose(to_close); }
+  };
+  std::unique_ptr<FILE, file_closer> pipe(popen(cmd, "r"));
+  if (!pipe)
+    throw std::runtime_error("popen() failed!");
+
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    result += buffer.data();
+  }
+  return result;
+}
 
 #if DEBUG_ROBOT
 void debug(const std::string& content);

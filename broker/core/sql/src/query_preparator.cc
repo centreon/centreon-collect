@@ -112,7 +112,7 @@ mysql_stmt query_preparator::prepare_insert_into(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(entry_name, e.max_length, e.attribute);
       query.append(entry_name);
@@ -208,7 +208,7 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
     int size = 0;
     for (int i = 0; i < desc->field_count(); i++) {
       // log_v2::neb()->info("{}", desc->field(i)->name());
-      const std::string entry_name = desc->field(i)->name();
+      std::string_view entry_name = desc->field(i)->name();
       query.append(entry_name);
       query.append(",");
       bind_mapping.insert(
@@ -353,7 +353,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(entry_name, e.max_length, e.attribute);
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
@@ -373,7 +373,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     const google::protobuf::FieldDescriptor* f =
         desc->FindFieldByNumber(e.number);
     if (f) {
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
         continue;
       key = fmt::format(":{}", entry_name);
@@ -535,7 +535,7 @@ mysql_stmt query_preparator::prepare_update_table(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(entry_name, e.max_length, e.attribute);
       // Standard field.
@@ -548,13 +548,6 @@ mysql_stmt query_preparator::prepare_update_table(
         query.append("=?,");
         query_bind_mapping.insert(std::make_pair(key, query_size++));
       }
-      // Part of ID field.
-      else {
-        where.append(e.name);
-        where.append("=? AND ");
-        key = fmt::format(":{}", entry_name);
-        where_bind_mapping.insert(std::make_pair(key, where_size++));
-      }
     } else
       throw msg_fmt(
           "could not prepare update query for event of type {}:"
@@ -562,6 +555,28 @@ mysql_stmt query_preparator::prepare_update_table(
           "object",
           _event_id, e.number, info->get_name());
   }
+
+  for (const auto& e : _pb_unique) {
+    const google::protobuf::FieldDescriptor* f =
+        desc->FindFieldByNumber(e.number);
+    if (!f)
+      throw msg_fmt(
+          "could not prepare update query for event of type {}:"
+          "protobuf field with number {} does not exist in '{}' protobuf "
+          "object",
+          _event_id, e.number, info->get_name());
+    std::string_view entry_name = f->name();
+    if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
+      pb_mapping.resize(f->index() + 1);
+    if (std::get<0>(pb_mapping[f->index()]).empty())
+      pb_mapping[f->index()] = std::make_tuple(entry_name, e.max_length, e.attribute);
+
+    where.append(e.name);
+    where.append("=? AND ");
+    key = fmt::format(":{}", entry_name);
+    where_bind_mapping.insert(std::make_pair(key, where_size++));
+  }
+
   query.resize(query.size() - 1);
   query.append(where, 0, where.size() - 5);
 
@@ -664,7 +679,7 @@ mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(u.name, u.max_length, u.attribute);
       query.append(fmt::format("{}=? AND ", u.name));

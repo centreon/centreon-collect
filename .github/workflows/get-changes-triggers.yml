@@ -50,18 +50,15 @@ jobs:
 
     steps:
       - name: Checkout sources
-        if: github.event_name == 'pull_request' || inputs.base_sha != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Fetch tags
         if: inputs.base_sha != ''
-        run: git fetch origin tag ${{ inputs.base_sha }} --no-tags || true
-        shell: bash
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-tags: true
 
       - name: Convert inputs to yaml list
         if: github.event_name == 'pull_request' || inputs.base_sha != ''
         id: inline_inputs
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PRODUCTION_PATHS: ${{ inputs.production_paths }}
           UNIT_TEST_PATHS: ${{ inputs.unit_test_paths }}
@@ -89,7 +86,7 @@ jobs:
       - name: Get changed files
         if: github.event_name == 'pull_request' || inputs.base_sha != ''
         id: get_changed_files
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
         with:
           base_sha: ${{ github.event_name == 'pull_request' && ' ' || inputs.base_sha }}
           files_yaml: |
@@ -103,7 +100,7 @@ jobs:
       - name: Determine triggers for event ${{ github.event_name }}
         if: github.event_name == 'pull_request' || inputs.base_sha != ''
         id: get_triggers
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IS_NIGHTLY: ${{ inputs.is_nightly }}
           HAS_PRODUCTION_CHANGES: ${{ steps.get_changed_files.outputs.production_any_changed }}
@@ -156,7 +153,7 @@ jobs:
       - name: Determine triggers for event ${{ github.event_name }}
         if: github.event_name == 'workflow_dispatch'
         id: get_dispatch_triggers
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           LABELS: ${{ inputs.labels }}
         with:

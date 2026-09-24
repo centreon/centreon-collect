@@ -31,7 +31,7 @@ class GetNextValidTimeOffsetWeekdayOfGenericMonthTest : public ::testing::Test {
  public:
   void default_data_set() {
     _creator.new_timeperiod();
-    daterange* dr(NULL);
+    configuration::Daterange* dr(NULL);
     // tuesday 4 october 10:45-14:25
     dr = _creator.new_offset_weekday_of_generic_month(2, 4, 2, 4);
     _creator.new_timerange(10, 45, 14, 25, dr);
@@ -43,7 +43,7 @@ class GetNextValidTimeOffsetWeekdayOfGenericMonthTest : public ::testing::Test {
 
   void negative_offset_data_set() {
     _creator.new_timeperiod();
-    daterange* dr(NULL);
+    configuration::Daterange* dr(NULL);
     // tuesday -4 10:45-14:25
     dr = _creator.new_offset_weekday_of_generic_month(2, -4, 2, -4);
     _creator.new_timerange(10, 45, 14, 25, dr);

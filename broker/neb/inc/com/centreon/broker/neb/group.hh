@@ -45,13 +45,13 @@ class group : public io::data {
   bool enabled;
   uint32_t id;
   std::string name;
-  uint32_t poller_id;
+  uint64_t poller_id;
 
  private:
   void _internal_copy(group const& other);
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_GROUP_HH

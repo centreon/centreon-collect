@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -1242,7 +1242,7 @@ BECUSTOMHOSTVAR
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    version=3.1.0
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
@@ -1277,7 +1277,7 @@ BECUSTOMSVCVAR
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    version=3.1.0
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker

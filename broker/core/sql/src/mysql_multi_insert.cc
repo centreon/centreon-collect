@@ -192,5 +192,5 @@ bool bulk_or_multi::ready() const {
  * @brief force the bulk_or_multi to be ready
  */
 void bulk_or_multi::force_ready() {
-  _first_row_add_time = std::chrono::system_clock::time_point::max();
+  _first_row_add_time = std::chrono::system_clock::from_time_t(0);
 }

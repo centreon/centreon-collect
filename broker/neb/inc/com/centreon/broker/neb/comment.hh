@@ -52,7 +52,7 @@ class comment : public io::data {
   uint32_t host_id;
   uint32_t internal_id;
   bool persistent;
-  uint32_t poller_id;
+  uint64_t poller_id;
   uint32_t service_id;
   short source;
 

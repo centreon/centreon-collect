@@ -68,4 +68,7 @@ message pb_process_stat {
     uint64 res_size = 12;
 
     uint64 shared_size = 13;
+
+    //number of opened file descriptors
+    uint32 opened_fds = 14;
 }

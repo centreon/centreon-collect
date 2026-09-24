@@ -105,8 +105,8 @@ class event_container {
 
   ~event_container();
 
-  void lock() { _events_m.Lock(); }
-  void unlock() { _events_m.Unlock(); }
+  void lock() { _events_m.lock(); }
+  void unlock() { _events_m.unlock(); }
 
   const event_cont& get_critical() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {

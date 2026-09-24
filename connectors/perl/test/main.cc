@@ -21,12 +21,18 @@
 #include <perl.h>
 
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/perl/embedded_perl.hh"
+
+#include "com/centreon/common/process/child_process.hh"
+// #include "com/centreon/connector/perl/embedded_perl.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
-using namespace com::centreon::connector::perl;
+// using namespace com::centreon::connector::perl;
 
+std::shared_ptr<asio::io_context> g_io_context(new asio::io_context{
+    boost::asio::config_from_string{"scheduler.wait_usec=-1"}});
+
+char* argv0 = nullptr;
 /**
  *  Tester entry point.
  *
@@ -35,25 +41,34 @@ using namespace com::centreon::connector::perl;
  *
  *  @return 0 on success, any other value on failure.
  */
-int main(int argc, char* argv[], char** env) {
+int main(int argc, char* argv[], char**) {
+  argv0 = argv[0];
   log::instance().set_level(spdlog::level::trace);
-  log::instance().switch_to_stdout();
+  // log::instance().switch_to_stdout();
+  log::instance().switch_to_file("/tmp/ut_connector.log");
   log::instance().add_pid_to_log();
+  auto worker{asio::make_work_guard(*g_io_context)};
+  std::thread asio_thread([]() { g_io_context->run(); });
+
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
-  PERL_SYS_INIT3(&argc, &argv, &env);
-  embedded_perl::load(argc, argv, env);
+  // PERL_SYS_INIT3(&argc, &argv, &env);
+  // embedded_perl::load(argc, argv, env);
   // Run all tests.
   int ret = RUN_ALL_TESTS();
 
-  PL_perl_destruct_level = 1;
-  perl_destruct(my_perl);
-  perl_free(my_perl);
-  PERL_SYS_TERM();
-  my_perl = nullptr;
+  // PL_perl_destruct_level = 1;
+  // perl_destruct(my_perl);
+  // perl_free(my_perl);
+  // PERL_SYS_TERM();
+  // my_perl = nullptr;
 
   // Unload.
-  embedded_perl::unload();
+  // embedded_perl::unload();
+
+  g_io_context->stop();
+  asio_thread.join();
+  spdlog::shutdown();
 
   return ret;
 }

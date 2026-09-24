@@ -66,6 +66,7 @@ foreach(name IN LISTS otl_protobuf_files)
   set(proto_file "${name}.proto")
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
+           "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
     COMMENT "Generating interface files of the otl file ${proto_file}"
     #DEPENDS ${CMAKE_BINARY_DIR}/opentelemetry-proto/${proto_file}
     DEPENDS opentelemetry-proto-files
@@ -99,6 +100,7 @@ macro(get_protobuf_files name)
 endmacro()
 
 include_directories("${CMAKE_SOURCE_DIR}/broker/core/inc"
+                    "${CMAKE_SOURCE_DIR}/common/inc"
                     "${CMAKE_SOURCE_DIR}/broker/core/sql/inc")
 
 add_library(
@@ -160,3 +162,19 @@ add_library(
 set_target_properties(bbdo_bam PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bam REUSE_FROM bbdo_bbdo)
 add_dependencies(bbdo_bam table_max_size pb_bam_lib)
+
+add_library(centreon_pb_bbdo SHARED bbdo/centreon_pb_bbdo.cc)
+
+target_link_libraries(centreon_pb_bbdo
+  pb_neb_lib
+  pb_common_lib
+  pb_storage_lib
+  pb_bbdo_lib
+  pb_bam_lib
+  pb_extcmd_lib
+  pb_open_telemetry_lib
+  pb_rebuild_message_lib
+  pb_remove_graph_message_lib
+  pb_header_lib
+)
+

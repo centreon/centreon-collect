@@ -56,8 +56,13 @@ add_library(
   ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.cc
   ${CMAKE_CURRENT_BINARY_DIR}/engine.grpc.pb.h
   ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.h)
-target_link_libraries(cerpc PRIVATE protobuf::libprotobuf)
 add_dependencies(cerpc engine_rpc process_stat)
+
+set_target_properties(cerpc PROPERTIES
+  PREFIX ""
+  POSITION_INDEPENDENT_CODE ON)
+
+#target_link_libraries(cerpc PUBLIC protobuf::libprotobuf gRPC::grpc++)
 
 # mod_enginerpc target.
 add_library(
@@ -67,13 +72,13 @@ add_library(
   # Headers.
   "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-add_dependencies(enginerpc centreon_common process_stat cerpc)
+add_dependencies(enginerpc centreon_common process_stat cerpc pb_neb_lib
+                 pb_storage_lib pb_open_telemetry_lib target_state_proto)
 target_precompile_headers(enginerpc PRIVATE precomp_inc/precomp.hh)
 
 # Prettier name.
-set_property(
-  TARGET enginerpc
-  PROPERTY PREFIX ""
-  PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(enginerpc PROPERTIES
+  PREFIX ""
+  POSITION_INDEPENDENT_CODE ON)
 # Link target with libraries.
 target_link_libraries(enginerpc PRIVATE cerpc)

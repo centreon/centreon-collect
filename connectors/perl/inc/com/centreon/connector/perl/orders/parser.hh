@@ -21,17 +21,6 @@
 
 #include "com/centreon/connector/parser.hh"
 
-namespace com::centreon::connector {
-
-namespace orders {
-class options : public std::string {
- public:
-  options(const std::string& src) : std::string(src) {}
-};
-}  // namespace orders
-
-}  // namespace com::centreon::connector
-
 namespace com::centreon::connector::perl {
 
 namespace orders {
@@ -45,9 +34,10 @@ namespace orders {
  */
 class parser : public com::centreon::connector::parser {
  protected:
-  parser(const shared_io_context& io_context,
-         const std::shared_ptr<com::centreon::connector::policy_interface>&
-             policy);
+  parser(
+      const shared_io_context& io_context,
+      const std::shared_ptr<com::centreon::connector::policy_interface>& policy,
+      int stdin_fd = STDIN_FILENO);
 
   void execute(const std::string& cmd) override;
 
@@ -56,7 +46,8 @@ class parser : public com::centreon::connector::parser {
 
   static pointer create(shared_io_context io_context,
                         const std::shared_ptr<policy_interface>& policy,
-                        const std::string& test_cmd_file = "");
+                        const std::string& test_cmd_file = "",
+                        int stdin_fd = STDIN_FILENO);
 
   parser(parser const& p) = delete;
   parser& operator=(parser const& p) = delete;

@@ -126,27 +126,27 @@ contents:
     expand: true
 
   - src: "../contrib/gorgone_config_init.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0755
 
   - src: "../contrib/gorgone_audit.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0755
 
   - src: "../contrib/gorgone_install_plugins.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
   - src: "../contrib/gorgone_key_thumbprint.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
   - src: "../contrib/gorgone_key_generation.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
@@ -158,6 +158,7 @@ scripts:
 overrides:
   rpm:
     depends:
+      - centreon-common
       - centreon-perl-libs-common
       - bzip2
       - initscripts
@@ -203,6 +204,7 @@ overrides:
 
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
+      - centreon-common
       - centreon-perl-libs-common
       - libdatetime-perl
       - libtime-parsedate-perl
@@ -216,6 +218,7 @@ overrides:
       - libdbi-perl
       - libdbd-sqlite3-perl
       - libdbd-mysql-perl
+      - libdbd-mariadb-perl
       - libhttp-daemon-perl
       - libhttp-daemon-ssl-perl
       - libnetaddr-ip-perl

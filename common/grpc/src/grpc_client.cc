@@ -16,12 +16,47 @@
 ** For more information : contact@centreon.com
 */
 
+#include <cstdlib>
+
 #include <grpcpp/create_channel.h>
 #include "grpcpp/security/credentials.h"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 
 using namespace com::centreon::common::grpc;
+
+#ifdef _WIN32
+/**
+ * @brief Force gRPC to use the OS-native (getaddrinfo-based) DNS resolver
+ * instead of its default c-ares resolver.
+ *
+ */
+static void force_native_dns_resolver() {
+  if (!std::getenv("GRPC_DNS_RESOLVER")) {
+    _putenv_s("GRPC_DNS_RESOLVER", "native");
+  }
+}
+#endif
+
+/**
+ * @brief Certificate verifier that unconditionally accepts any peer.
+ *
+ * Used for the TLS_SKIP_VERIFY_CA bootstrap channel where server identity
+ * is validated via CA-fingerprint instead of the TLS hostname check.
+ */
+class skip_all_certificate_verifier
+    : public ::grpc::experimental::ExternalCertificateVerifier {
+ public:
+  bool Verify(::grpc::experimental::TlsCustomVerificationCheckRequest*,
+              std::function<void(::grpc::Status)>,
+              ::grpc::Status* sync_status) override {
+    if (sync_status)
+      *sync_status = ::grpc::Status::OK;
+    return true;
+  }
+  void Cancel(
+      ::grpc::experimental::TlsCustomVerificationCheckRequest*) override {}
+};
 
 /**
  * @brief Construct a new grpc client base::grpc client base object
@@ -33,6 +68,10 @@ grpc_client_base::grpc_client_base(
     const grpc_config::pointer& conf,
     const std::shared_ptr<spdlog::logger>& logger)
     : _conf(conf), _logger(logger) {
+#ifdef _WIN32
+  force_native_dns_resolver();
+#endif
+
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
   args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
@@ -63,6 +102,10 @@ grpc_client_base::grpc_client_base(
     if (conf->get_security_mode() == grpc_config::TLS_SKIP_VERIFY_CA) {
       ::grpc::experimental::TlsChannelCredentialsOptions options;
       options.set_verify_server_certs(false);
+      options.set_check_call_host(false);
+      options.set_certificate_verifier(
+          ::grpc::experimental::ExternalCertificateVerifier::Create<
+              skip_all_certificate_verifier>());
       creds = ::grpc::experimental::TlsCredentials(options);
       SPDLOG_LOGGER_INFO(_logger, "skip ca verify encrypted connection to {}",
                          conf->get_hostport());

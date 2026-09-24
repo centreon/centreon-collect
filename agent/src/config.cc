@@ -32,7 +32,7 @@ const std::string_view config::config_schema(R"(
         "host": {
             "description": "Name of the host as it is configured in centreon. If omitted, the system hostname will be used",
             "type": "string",
-            "minLength": 5
+            "minLength": 1
         },
         "host_template": {
             "description": "type of host such as linux_web_server ...",
@@ -69,6 +69,10 @@ const std::string_view config::config_schema(R"(
         },
         "ca_common_name": {
             "description": "CA Common Name (CN). This is used to verify the server certificate. Don't use it if unsure.",
+            "type": "string"
+        },
+        "fingerprint": {
+            "description": "Expected SHA256 fingerprint of the CA certificate. If provided without ca_certificate, the agent will retrieve the CA from the server using insecure TLS.",
             "type": "string"
         },
         "reversed_grpc_streaming": {
@@ -187,6 +191,7 @@ config::config(const std::string& path) {
   if (_ca_name.empty()) {
     _ca_name = json_config.get_string("ca_name", "");
   }
+  _ca_fingerprint = json_config.get_string("fingerprint", "");
   _host = json_config.get_string("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();

@@ -48,7 +48,8 @@ class parser : public std::enable_shared_from_this<parser> {
   void _parse(std::string const& cmd);
 
   parser(const shared_io_context& io_context,
-         const std::shared_ptr<policy_interface>& policy);
+         const std::shared_ptr<policy_interface>& policy,
+         int stdin_fd = STDIN_FILENO);
 
   virtual void start_read();
   void read_file(const std::string& test_file_path);

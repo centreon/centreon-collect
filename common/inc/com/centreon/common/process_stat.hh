@@ -19,7 +19,6 @@
 #ifndef CCCM_PROCESS_STAT_HH
 #define CCCM_PROCESS_STAT_HH
 
-
 #include <boost/exception/exception.hpp>
 #include <boost/exception/info.hpp>
 
@@ -29,6 +28,7 @@ class process_stat {
   pid_t _pid;
   std::string _cmdline;
   unsigned _num_threads;
+  unsigned _opened_fds;
 
   // io file
   uint64_t _query_read_bytes;
@@ -67,6 +67,13 @@ class process_stat {
    * @return unsigned
    */
   unsigned num_threads() const { return _num_threads; }
+
+  /**
+   * @brief number of opened file descriptors
+   *
+   * @return unsigned
+   */
+  unsigned opened_fds() const { return _opened_fds; };
 
   /**
    * The number of bytes which this task has caused to
@@ -198,6 +205,7 @@ void process_stat::to_protobuff(protobuf_class& dest) const {
   dest.set_vm_size(_vm_size);
   dest.set_res_size(_res_size);
   dest.set_shared_size(_shared_size);
+  dest.set_opened_fds(_opened_fds);
 }
 
 }  // namespace com::centreon::common

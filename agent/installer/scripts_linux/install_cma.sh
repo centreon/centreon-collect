@@ -1,6 +1,6 @@
 #!/bin/bash
 #===============================================================================
-# Copyright 2025 Centreon
+# Copyright 2026 Centreon
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -34,12 +34,12 @@
 # Options:
 #   -e, --endpoint       Poller endpoint (IP:PORT or DNS:PORT) [REQUIRED]
 #   -t, --token          Authentication token (can be entered interactively if not provided)
-#   -n, --hostname       Host name as defined in Centreon (default: system hostname)
+#   -n, --host           Host name as defined in Centreon (default: system hostname)
 #   -v, --version        Centreon version (24.10 or 25.10, default: 24.10)
 #   -c, --encryption     Encryption mode: full, insecure, or no (default: no)
 #   -r, --reverse        Enable poller-initiated (reversed) connection mode
-#   -a, --ca-cert        Path to CA certificate file (required if encryption=full/insecure, non-reverse)
-#   -N, --ca-name        CA common name (optional, used with encryption=full/insecure)
+#   -a, --ca       Path to CA certificate file (required if encryption=full/insecure, non-reverse)
+#   -N, --common-name        CA common name (optional, used with encryption=full/insecure)
 #   -C, --cert           Path to public certificate file (required if encryption=full/insecure, reverse mode)
 #   -k, --key            Path to private key file (required if encryption=full/insecure, reverse mode)
 #   -f, --fingerprint    Certificate fingerprint for validation
@@ -48,8 +48,8 @@
 #   -l, --log-level      Log level: off, critical, error, warning, info, debug, trace (default: info)
 #   -M, --max-file-size  Maximum log file size in bytes (used with log-type=file)
 #   -m, --max-number     Maximum number of log files for rotation (used with log-type=file)
-#   -x, --custom-check   Path to custom check configuration file
-#   -p, --components     Comma-separated list of components to install: agent,plugin (default: agent,plugin)
+#   -x, --custom-check-file   Path to custom check configuration file
+#   -p, --components     Comma-separated list of components to install: agent,plugins (default: agent,plugins)
 #   -H, --host-template  Host template to use in Centreon (optional , default : OS-Linux-Centreon-Monitoring-Agent-custom)
 #   -d, --dry-run        Show what would be done without making changes
 #   -h, --help           Display this help message
@@ -59,7 +59,7 @@
 #   ./install_cma.sh -e "192.168.1.100:4317" -t "my-auth-token"
 #
 #   # Installation with plugins and custom hostname
-#   ./install_cma.sh -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugin"
+#   ./install_cma.sh -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugins"
 #
 #   # Installation with full encryption (agent-initiated)
 #   ./install_cma.sh -e "192.168.1.100:4317" -t "my-token" -c full -a /path/to/ca.crt
@@ -89,7 +89,7 @@ DEFAULT_LOG_LEVEL="error"
 DEFAULT_LOG_TYPE="file"
 DEFAULT_LOG_FILE="/var/log/centreon-monitoring-agent/centagent.log"
 DEFAULT_MAX_FILE_SIZE="10"
-DEFAULT_MAX_NUMBER="3"
+DEFAULT_MAX_NUMBER="10"
 DEFAULT_HOST_TEMPLATE="OS-Linux-Centreon-Monitoring-Agent-custom"
 
 # Configuration paths
@@ -122,7 +122,7 @@ LOG_LEVEL="${DEFAULT_LOG_LEVEL}"
 MAX_FILE_SIZE="${DEFAULT_MAX_FILE_SIZE}"
 MAX_NUMBER="${DEFAULT_MAX_NUMBER}"
 CUSTOM_CHECK_FILE=""
-COMPONENTS="agent,plugin"
+COMPONENTS="agent,plugins"
 DRY_RUN=false
 OUTPUT_CONFIG=false
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"  # Optional GitHub token for API authentication
@@ -170,12 +170,12 @@ REQUIRED OPTIONS:
 
 OPTIONAL OPTIONS:
     -t, --token <TOKEN>           Authentication token (can be entered interactively if not provided)
-    -n, --hostname <NAME>         Host name as defined in Centreon (default: system hostname)
+    -n, --host <NAME>             Host name as defined in Centreon (default: system hostname)
     -v, --version <VERSION>       Centreon version: 24.10 or 25.10 (default: ${DEFAULT_CENTREON_VERSION})
     -c, --encryption <MODE>       Encryption mode: full, insecure, or no (default: ${DEFAULT_ENCRYPTION})
     -r, --reverse                 Enable poller-initiated (reversed) connection mode
-    -a, --ca-cert <PATH>          Path to CA certificate file (used with encryption=full/insecure)
-    -N, --ca-name <NAME>          CA common name (optional, used with encryption=full/insecure)
+    -a, --ca <PATH>               Path to CA certificate file (used with encryption=full/insecure)
+    -N, --common-name <NAME>      CA common name (optional, used with encryption=full/insecure)
     -C, --cert <PATH>             Path to public certificate file (required for TLS in reverse mode)
     -k, --key <PATH>              Path to private key file (required for TLS in reverse mode)
     -f, --fingerprint <STRING>    Certificate fingerprint for validation
@@ -184,8 +184,8 @@ OPTIONAL OPTIONS:
     -l, --log-level <LEVEL>       Log level: off, critical, error, warning, info, debug, trace (default: ${DEFAULT_LOG_LEVEL})
     -M, --max-file-size <BYTES>   Maximum log file size in bytes (used with log-type=file)
     -m, --max-number <NUM>        Maximum number of log files for rotation
-    -x, --custom-check <PATH>     Path to custom check configuration file
-    -p, --components <LIST>       Comma-separated list of components to install: agent,plugin (default: agent,plugin)
+    -x, --custom-check-file <PATH>     Path to custom check configuration file
+    -p, --components <LIST>       Comma-separated list of components to install: agent,plugins (default: agent,plugins)
     -H, --host-template <STRING>    Host template to use in Centreon (optional)
     -d, --dry-run                 Show what would be done without making changes
     -h, --help                    Display this help message
@@ -195,7 +195,7 @@ EXAMPLES:
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-auth-token"
 
     # Installation with plugins and custom hostname
-    ${SCRIPT_NAME} -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugin"
+    ${SCRIPT_NAME} -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugins"
 
     # Installation with full encryption (agent-initiated)
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-token" -c full -a /path/to/ca.crt
@@ -541,13 +541,33 @@ determine_package_manager() {
 ensure_installed_tools() {
     local missing_packages=()
     
+    #update (mandatory in order to have needed glibc version)
+    case "${PKG_MANAGER}" in
+        dnf|yum)
+            ${PKG_MANAGER} update -y
+            ;;
+        apt)
+            apt-get update -qq
+            ;;
+    esac
+
     # Check which tools are missing
     command -v curl &> /dev/null || missing_packages+=("curl")
     command -v hostname &> /dev/null || missing_packages+=("hostname")
     
-    # For Debian/Ubuntu, also check for gpg (provided by gnupg package)
+    #add mandatory packages
     if [[ "${PKG_MANAGER}" == "apt" ]]; then
         command -v gpg &> /dev/null || missing_packages+=("gnupg")
+        dpkg -s lsb-release &> /dev/null || missing_packages+=("lsb-release")
+        dpkg -s ca-certificates &> /dev/null || missing_packages+=("ca-certificates")
+        dpkg -s apt-transport-https &> /dev/null || missing_packages+=("apt-transport-https")
+        dpkg -s wget &> /dev/null || missing_packages+=("wget")
+        dpkg -s gnupg2 &> /dev/null || missing_packages+=("gnupg2")
+        if [[ ${OS_VERSION_MAJOR} -le 12 ]]; then
+            dpkg -s software-properties-common &> /dev/null || missing_packages+=("software-properties-common")
+        fi
+    else
+        rpm -ql procps-ng &> /dev/null || missing_packages+=("procps-ng")
     fi
     
     # If all tools are installed, return early
@@ -569,7 +589,6 @@ ensure_installed_tools() {
             ${PKG_MANAGER} install -qq -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
             ;;
         apt)
-            apt-get update -qq
             apt-get install -qq -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
             ;;
     esac
@@ -616,22 +635,6 @@ github_api_call() {
 # Returns: The CMA version tag (e.g., "centreon-monitoring-agent-25.10.1")
 get_latest_cma_version() {
     local centreon_version="$1"
-    local latest_tag="${centreon_version}-latest"
-    
-    log_info "Fetching latest CMA version for Centreon ${centreon_version}..."
-    
-    # Get the commit SHA for the latest tag
-    local commit_sha
-    local tag_response
-    tag_response=$(github_api_call "${GITHUB_API_URL}/git/refs/tags/${latest_tag}")
-    
-    commit_sha=$(echo "${tag_response}" | grep -o '"sha": *"[^"]*"' | head -1 | cut -d'"' -f4)
-    
-    if [[ -z "${commit_sha}" ]]; then
-        die "Failed to fetch tag ${latest_tag} from GitHub"
-    fi
-
-    log_info "Commit SHA for ${latest_tag}: ${commit_sha}"
     
     # Search through paginated results to find the CMA tag
     # Keep searching until we find the tag or reach the last page (less than 100 items)
@@ -645,7 +648,7 @@ get_latest_cma_version() {
         page_content=$(github_api_call "${GITHUB_API_URL}/tags?per_page=100&page=${page}")
         
         # Try to find the CMA tag in this page
-        cma_tag=$(echo "${page_content}" | grep -B5 "\"sha\": \"${commit_sha}\"" | grep '"name":' | grep "centreon-monitoring-agent-" | head -1 | cut -d'"' -f4)
+        cma_tag=$(echo "${page_content}" | grep name.*centreon-monitoring-agent-${centreon_version} | cut -d'"' -f4 | sort -rV | head -1)
         
         # If we found the tag, exit the loop
         if [[ -n "${cma_tag}" ]]; then
@@ -931,7 +934,7 @@ install_cma_agent() {
 
 install_centreon_plugins() {
     # Check if "plugin" is in the COMPONENTS list
-    if [[ ! "${COMPONENTS}" =~ (^|,)plugin(,|$) ]]; then
+    if [[ ! "${COMPONENTS}" =~ (^|,)plugins(,|$) ]]; then
         return 0
     fi
 
@@ -942,6 +945,11 @@ install_centreon_plugins() {
         return 0
     fi
 
+    if [ ! -d "/var/lib/centreon/centplugins" ]; then
+        mkdir -p /var/lib/centreon/centplugins
+        chown centreon-monitoring-agent: /var/lib/centreon/centplugins
+    fi
+    
     case "${PKG_MANAGER}" in
         dnf|yum)
             configure_plugins_repo_rhel
@@ -1034,7 +1042,7 @@ generate_config_json() {
     if [[ "${ENCRYPTION}" == "full" || "${ENCRYPTION}" == "insecure" ]]; then
         if [[ "${REVERSE_MODE}" == "true" ]]; then
             if [[ -n "${PUBLIC_CERT}" ]]; then
-                config_json+=$'\n'"    \"certificate\": \"${PUBLIC_CERT}\","
+                config_json+=$'\n'"    \"public_cert\": \"${PUBLIC_CERT}\","
             fi
             if [[ -n "${PRIVATE_KEY}" ]]; then
                 config_json+=$'\n'"    \"private_key\": \"${PRIVATE_KEY}\","
@@ -1054,7 +1062,7 @@ generate_config_json() {
     fi
 
     if [[ -n "${CUSTOM_CHECK_FILE}" ]]; then
-        config_json+=$'\n'"    \"check_file\": \"${CUSTOM_CHECK_FILE}\","
+        config_json+=$'\n'"    \"custom_check_file\": \"${CUSTOM_CHECK_FILE}\","
     fi
 
     config_json="${config_json%,}"
@@ -1131,7 +1139,7 @@ parse_arguments() {
                 CA_CERT="$2"
                 shift 2
                 ;;
-            -N|--commonname)
+            -N|--common-name)
                 CA_COMMON_NAME="$2"
                 shift 2
                 ;;
@@ -1147,16 +1155,16 @@ parse_arguments() {
                 FINGERPRINT="$2"
                 shift 2
                 ;;
-            -T|--logtype)
+            -T|--log-type)
                 LOG_TYPE="$2"
                 validate_log_type "${LOG_TYPE}"
                 shift 2
                 ;;
-            -L|--logfile)
+            -L|--log-file)
                 LOG_FILE="$2"
                 shift 2
                 ;;
-            -l|--loglevel)
+            -l|--log-level)
                 LOG_LEVEL="$2"
                 validate_log_level "${LOG_LEVEL}"
                 shift 2
@@ -1169,7 +1177,7 @@ parse_arguments() {
                 MAX_NUMBER="$2"
                 shift 2
                 ;;
-            -x|--custom-check)
+            -x|--custom-check-file)
                 CUSTOM_CHECK_FILE="$2"
                 shift 2
                 ;;
@@ -1185,7 +1193,7 @@ parse_arguments() {
                 DRY_RUN=true
                 shift
                 ;;
-            -H| --host-template)
+            -H|--host-template)
                 HOST_TEMPLATE="$2"
                 shift 2
                 ;;
@@ -1266,9 +1274,6 @@ main() {
     # Ensure required tools are installed
     ensure_installed_tools
 
-    # Install plugins if requested
-    install_centreon_plugins
-
     # Install CMA agent
     install_cma_agent
 
@@ -1277,6 +1282,9 @@ main() {
 
     # Configure and start service
     configure_service
+
+    # Install plugins if requested
+    install_centreon_plugins
 
     echo ""
     log_info "=== Script execution completed ==="

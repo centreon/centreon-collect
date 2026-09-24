@@ -3,4 +3,4 @@
 User_Alias      GORGONE=centreon-gorgone
 Defaults:GORGONE !requiretty
 
-GORGONE ALL = NOPASSWD: /usr/local/bin/gorgone_install_plugins.pl
+GORGONE ALL = NOPASSWD: /usr/bin/gorgone_install_plugins.pl

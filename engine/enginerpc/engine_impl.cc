@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3945,14 +3945,12 @@ grpc::Status engine_impl::ShutdownProgram(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  auto fn = std::packaged_task<int32_t(void)>([]() -> int32_t {
-    exit(0);
-    return 0;
-  });
+  EngineSignalProcess shutdown_request;
+  shutdown_request.set_process(
+      ::com::centreon::engine::EngineSignalProcess_Process_SHUTDOWN);
+  shutdown_request.set_scheduled_time(time(nullptr));
 
-  command_manager::instance().enqueue(std::move(fn));
-
-  return grpc::Status::OK;
+  return SignalProcess(context, &shutdown_request, nullptr);
 }
 
 #define HOST_METHOD_BEGIN                                                    \

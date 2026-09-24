@@ -20,7 +20,7 @@
 #ifndef CCE_OBJECTS_TIMEPERIOD_HH
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
-#include "com/centreon/engine/daterange.hh"
+#include "com/centreon/common/timeperiod_utils.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 
 /* Forward declaration. */
@@ -46,6 +46,8 @@ class timeperiod {
   std::string const& get_name() const { return _name; };
   void set_name(const std::string& name);
   const std::string& get_alias() const { return _alias; };
+  const configuration::Timeperiod& get_config() const { return _config; }
+  configuration::Timeperiod& mutable_config() { return _config; }
   void set_alias(const std::string& alias);
   const timeperiodexclusion& get_exclusions() const { return _exclusions; };
   timeperiodexclusion& get_exclusions() { return _exclusions; };
@@ -61,15 +63,13 @@ class timeperiod {
   bool operator==(timeperiod const& obj) noexcept;
   bool operator!=(timeperiod const& obj) noexcept;
 
-  days_array days;
-  exception_array exceptions;
-
   static timeperiod_map timeperiods;
 
  private:
   std::string _name;
   std::string _alias;
   timeperiodexclusion _exclusions;
+  configuration::Timeperiod _config;
 };
 
 }  // namespace com::centreon::engine

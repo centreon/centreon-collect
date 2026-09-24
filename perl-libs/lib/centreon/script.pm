@@ -62,6 +62,8 @@ sub new {
        centstorage_db_conn => 0,
        severity => "info",
        noconfig => 0,
+       requireconfig => 0,
+       noconfig_skip => 0,
        noroot => 0,
        instance_mode => "central"
       );
@@ -145,6 +147,16 @@ sub parse_options {
         if (-e "$self->{config_file}" && -s "$self->{config_file}") {
             require $self->{config_file};
             $self->{centreon_config} = $centreon_config;
+        } elsif ($self->{requireconfig} == 1) {
+            # The configuration file is required but not available yet (e.g. right
+            # after installation, before the first configuration export). There is
+            # nothing to do, so flag it to skip execution instead of failing while
+            # connecting to the database and polluting the logs with errors.
+            # The logger severity is normally applied in init(), which we skip in
+            # this case, so apply it here to make sure this message is emitted.
+            $self->{logger}->severity($self->{severity});
+            $self->{logger}->writeLogInfo("Configuration file $self->{config_file} does not exist or is empty yet, nothing to do.");
+            $self->{noconfig_skip} = 1;
         }
     }
 }
@@ -153,6 +165,10 @@ sub run {
     my $self = shift;
 
     $self->parse_options();
+    # A required configuration file is not available yet: nothing to do, exit
+    # quietly (parse_options already logged the reason) before touching the
+    # database. This also stops subclasses, which call SUPER::run() first.
+    exit(0) if $self->{noconfig_skip};
     $self->init();
 }
 

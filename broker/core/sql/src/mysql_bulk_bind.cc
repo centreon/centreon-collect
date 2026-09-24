@@ -48,7 +48,7 @@ void mysql_bulk_bind::_prepare_type(size_t range, enum enum_field_types type) {
 }
 
 void mysql_bulk_bind::set_value_as_u64(size_t range,
-                                       int64_t value,
+                                       uint64_t value,
                                        uint32_t invalid_on) {
   if (value == 0 && (invalid_on & mapping::entry::invalid_on_zero))
     set_null_u64(range);

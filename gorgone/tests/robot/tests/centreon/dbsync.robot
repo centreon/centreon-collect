@@ -8,12 +8,14 @@ Test Timeout        500s
 *** Test Cases ***
 send many log by ${communication_mode}, expect all of them on the central
     [Tags]    overflow
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     ${central_name}    Set Variable    ${communication_mode}_gorgone_dbsync_central
     ${poller_name}    Set Variable    ${communication_mode}_gorgone_dbsync_poller
     @{process_list}    Set Variable    ${poller_name}    ${central_name}
     Log To Console    \nStarting the gorgone setup
-
+    # remove sqlite database if they exists before starting gorgone to avoid old logs messing the count.
+    Remove File    /etc/centreon-gorgone/${process_list}[1]/history.sdb
+    Remove File    /etc/centreon-gorgone/${process_list}[0]/history.sdb
     Setup Two Gorgone Instances    communication_mode=${communication_mode}    central_name=${central_name}     poller_name=${poller_name}
     #Ctn Check No Error In Logs    pullwss_gorgone_poller_2
 
@@ -26,9 +28,8 @@ send many log by ${communication_mode}, expect all of them on the central
     ...    sqlite3
     ...    database=/etc/centreon-gorgone/${process_list}[0]/history.sdb
     ...    alias=sqlite_poller
-    Execute SQL String    DELETE FROM gorgone_history    alias=sqlite_central
-    Execute SQL String    DELETE FROM gorgone_history    alias=sqlite_poller
-    Execute SQL String    VACUUM    alias=sqlite_poller
+
+
     ${log_size}    Set Variable    200
     ${log_count}    Set Variable    300
     ${nb_log_central}=    Set Variable    0
@@ -54,17 +55,24 @@ send many log by ${communication_mode}, expect all of them on the central
     Should Be True    ${row_count} >= ${nb_log_central}    message=${row_count} logs in the central, expected at least ${nb_log_central}.
     Should Be True    ${row_count} < ${nb_log_central} + 20    message=${row_count} logs in the central, expected around ${nb_log_central}.
     Log To Console    End of tests.
-    Examples:    communication_mode   --
-        ...    push_zmq
-        ...    pull
-        ...    pullwss
+    Examples:    communication_mode   poller_id    --
+        ...    push_zmq        2
+        ...    push_zmq        299123456
+        ...    push_zmq_uid    2
+        ...    push_zmq_uid    299123456
+        ...    pull            2
+        ...    pull            299123456
+        ...    pullwss         2
+        ...    pullwss         299123456
+        ...    pullwss_uid     2
+        ...    pullwss_uid     299123456
 
 *** Keywords ***
 Get Log From Central
     [Documentation]    This use the api to request logs from the poller, then wait in the database for every logs.
-    [Arguments]    @{process_list}    ${token}    ${log_count}=10
+    [Arguments]    @{process_list}    ${token}    ${log_count}=10    ${poller_id}=2
 
-    ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    count=${log_count}    node_path=nodes/2/    timeout=15
+    ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    count=${log_count}    node_path=nodes/${poller_id}/    timeout=15
     Check Row Count    SELECT * FROM gorgone_history WHERE token = '${token}'    ==    ${log_count}    retry_timeout=50s    retry_pause=5s    alias=sqlite_central
     ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    count=${log_count}    timeout=1
 

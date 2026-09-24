@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
+#include <c4/substr.hpp>
+#include <c4/yml/common.hpp>
+#include <string_view>
 #define C4_NO_DEBUG_BREAK 1
 
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -53,12 +56,13 @@ const std::string command_blacklist_output(
  * exception instead
  * by default on error rapidyaml call abort so this handler
  */
-void on_rapidyaml_error(const char* buff,
-                        size_t length [[maybe_unused]],
-                        ryml::Location loc,
+void on_rapidyaml_error(ryml::csubstr buff,
+                        const ryml::ErrorDataParse& detail,
                         void*) {
-  throw msg_fmt("fail to parse {} at line {}: {}", loc.name.data(), loc.line,
-                buff);
+  throw msg_fmt(
+      "fail to parse {} at line {}: {}",
+      std::string_view(detail.ymlloc.name.str, detail.ymlloc.name.len),
+      detail.ymlloc.line, std::string_view(buff.str, buff.len));
 }
 
 }  // namespace com::centreon::engine::configuration
@@ -72,8 +76,9 @@ std::unique_ptr<whitelist> whitelist::_instance;
 void whitelist::init_ryml_error_handler() {
   static absl::once_flag _initialized;
   absl::call_once(_initialized, []() {
-    ryml::set_callbacks(
-        ryml::Callbacks(nullptr, nullptr, nullptr, on_rapidyaml_error));
+    ryml::Callbacks err_callback;
+    err_callback.set_error_parse(on_rapidyaml_error);
+    ryml::set_callbacks(err_callback);
   });
 }
 

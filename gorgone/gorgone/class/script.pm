@@ -54,6 +54,12 @@ sub new {
     bless $self, $class;
     $self->{name} = $name;
     $self->{logger} = centreon::common::logger->new();
+    # if both env variables and argv are present, argv will be used.
+    $self->{config_file} = $ENV{"GORGONE_CONFIG"} if $ENV{"GORGONE_CONFIG"};
+    $self->{vault_config_file} = $ENV{"GORGONE_VAULT_FILE"} if $ENV{"GORGONE_VAULT_FILE"};
+    $self->{log_file} = $ENV{"GORGONE_LOG_FILE"} if $ENV{"GORGONE_LOG_FILE"};;
+    $self->{severity} = $ENV{"GORGONE_LOG_LEVEL"} if $ENV{"GORGONE_LOG_LEVEL"} ;
+
     $self->{options} = {
         'config=s'    => \$self->{config_file},
         'vault=s'     => \$self->{vault_config_file},
@@ -133,6 +139,7 @@ sub parse_options {
         print "version: " . $self->get_version() . "\n";
         exit(0);
     }
+
 }
 
 sub run {
@@ -256,6 +263,7 @@ sub yaml_parse_config {
         if ($self->{vault} and $self->{vault}->can('get_secret')) {
             ${$options{config}} = $self->{vault}->get_secret( ${$options{config}});
         }
+        # let's check
     } else {
         $self->{logger}->writeLogError("config - unknown type of data: " . ref(${$options{config}}));
     }
@@ -287,6 +295,94 @@ sub yaml_load_config {
         ariane => defined($options{ariane}) ? $options{ariane} : ''
     );
     return $config;
+}
+
+# this function check all environment variables for default value to add to the configuration.
+# This function should be called AFTER yaml_load_config.
+# as gorgone don't have a consolidated list of allowed configuration option, this parse every env variable which name start as GORGONE__
+# and expect every level of the hashmap to be separated by double underscore.
+# it should be done after the yaml loading because modules definition are in an array, and we can't set 2 array element for a single gorgone module.
+# The env variables name case don't matter, it is lc() before use. See the documentation for all recognized variable definition.
+sub load_env_config {
+    my $self = shift;
+
+    for my $key_env (keys %ENV){
+        $key_env = lc($key_env);
+        next if $key_env !~ /^gorgone__/;
+        $self->{logger}->writeLogDebug("config - checking if env variable $key_env should update configuration...");
+
+        my $key = substr($key_env, 9);
+        my $conf = $self->{config}->{configuration};
+        my $arianne = "gorgone";
+        for my $path (split(/__/, $key)){
+            if ($arianne eq "gorgone__gorgone__modules"){
+                # we need to search the correct module in the array of module
+                my $module_ref = undef;
+                for my $module (@$conf){
+                    if ($module->{name} eq $path){
+                        $module_ref = $module;
+                    }
+                }
+                if (!defined($module_ref)){
+                    # the module don't exist, so we create it in the array, and then jump in.
+                    $module_ref = {name => $path};
+                    push(@$conf,$module_ref);
+                }
+                $conf = $module_ref;
+                $arianne .= "__$path";
+                next;
+            }
+            $arianne .= "__$path";
+            if ($arianne eq $key_env) {
+                # As this configuration can come only from config file, env variable take precedence and override any value.
+                $self->{logger}->writeLogDebug("config - updated the configuration from $arianne environment variable.");
+                $conf->{$path} = $ENV{uc($key_env)};
+            } else { # still not on the leaf, we continue to create the hash map if needed. for now we can't process array leaf like action whitelist.
+                if (!$conf->{$path}) {
+                    $conf->{$path} = {};
+                }
+                $conf = $conf->{$path};
+            }
+
+
+        }
+    }
+
+    # as the full name of each parameter is long, we make some short alias for basic use
+    my $conf = $self->{config}->{configuration}->{gorgone};
+
+    if ($ENV{GORGONE_UID}){
+        $conf->{gorgonecore}->{id} = $ENV{GORGONE_UID};
+    }
+    my $pullwss_ref = undef;
+    for my $module (@{$conf->{modules}}) {
+        if ($module->{name} eq "pullwss") {
+            $pullwss_ref = $module;
+        }
+    }
+
+    if ($ENV{GORGONE_TOKEN}) {
+        if (!defined($pullwss_ref)) {
+            $pullwss_ref = {name => "pullwss"};
+            push @{$conf->{modules}}, $pullwss_ref;
+        }
+        $pullwss_ref->{token} = $ENV{GORGONE_TOKEN};
+    }
+    if ($ENV{CENTRAL_HOST}) {
+        if (!defined($pullwss_ref)) {
+            $pullwss_ref = {name => "pullwss"};
+            push @{$conf->{modules}}, $pullwss_ref;
+        }
+        $pullwss_ref->{address} = $ENV{CENTRAL_HOST};
+    }
+    if ($ENV{CENTRAL_PORT}) {
+        if (!defined($pullwss_ref)) {
+            $pullwss_ref = {name => "pullwss"};
+            push @{$conf->{modules}}, $pullwss_ref;
+        }
+        $pullwss_ref->{port} = $ENV{CENTRAL_PORT};
+    }
+
 }
 
 1;

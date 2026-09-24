@@ -16,17 +16,20 @@
 # For more information : contact@centreon.com
 #
 
-include_directories(${PROJECT_SOURCE_DIR}/process/inc)
+include_directories(${PROJECT_SOURCE_DIR}/process/inc ${PROJECT_SOURCE_DIR}/inc)
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS})
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SOURCES
+    src/child_process.cc
+    src/fork.cc
     src/process_args.cc
     src/process.cc
     src/spawnp_launcher.cc)
 else()
   set(SOURCES
+    src/child_process.cc
     src/process_args.cc
     src/process.cc)
 endif()
@@ -40,3 +43,14 @@ target_precompile_headers(centreon_process REUSE_FROM centreon_common)
 target_link_libraries(centreon_process INTERFACE Boost::process)
 
 set_property(TARGET centreon_process PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+
+add_library(
+  centreon_process_no_crypto STATIC
+  ${SOURCES})
+
+target_precompile_headers(centreon_process_no_crypto REUSE_FROM centreon_common)
+target_link_libraries(centreon_process_no_crypto INTERFACE Boost::process)
+
+set_property(TARGET centreon_process_no_crypto PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(centreon_process_no_crypto PUBLIC -DPROCESS_NO_CRYPTO=1)

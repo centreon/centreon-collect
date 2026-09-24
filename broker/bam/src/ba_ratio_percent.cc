@@ -170,23 +170,15 @@ bool ba_ratio_percent::_apply_changes(kpi* child,
  *  @return Service output.
  */
 std::string ba_ratio_percent::get_output() const {
-  state state = get_state_hard();
-  std::string retval;
-  switch (state) {
-    case state_unknown:
-      retval = "Status is UNKNOWN";
-      break;
-    default:
-      retval = fmt::format(
-          "Status is {} - {}\% of KPIs are in a CRITICAL state (warn: {} "
-          "- crit: {})",
-          state_str[state],
-          static_cast<int>(100 * _level_hard / _impacts.size()), _level_warning,
-          _level_critical);
-      break;
+  if (get_state_hard() == state_unknown) {
+    return output_begin();
+  } else {
+    return output_begin() +
+           fmt::format(
+               "{}\% of KPIs are in a CRITICAL state (warn: {} - crit: {})",
+               static_cast<int>(100 * _level_hard / _impacts.size()),
+               _level_warning, _level_critical);
   }
-
-  return retval;
 }
 
 /**

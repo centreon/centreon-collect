@@ -184,11 +184,11 @@ BAM_STREAM_FILTER
         # Reject KpiEvent
         ${grep_res5}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event bam:KpiEvent .* rejected by write filter    regexp=True
+        ...    muxer centreon-bam-monitoring event {"cat":"bam","elem":"KpiEvent".* rejected by write filter    regexp=True
         # Reject storage
         ${grep_res6}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event storage:.* rejected by write filter    regexp=True
+        ...    muxer centreon-bam-monitoring event {"cat":"storage".* rejected by write filter    regexp=True
 
         IF    len("""${grep_res1}""") > 0 and len("""${grep_res2}""") > 0 and len("""${grep_res3}""") > 0 and len("""${grep_res4}""") > 0 and len("""${grep_res5}""") > 0 and len("""${grep_res6}""") > 0
             BREAK
@@ -213,12 +213,12 @@ BAM_STREAM_FILTER
     # reject storage
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event storage:.* rejected by write filter    regexp=True
+    ...    centreon-bam-reporting event {"cat":"storage".* rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    We should reject events of Storage category. They are not rejected.
     # reject neb
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event neb:.* rejected by write filter    regexp=True
+    ...    centreon-bam-reporting event {"cat":"neb".* rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    We should reject events of Neb category. They are not rejected.
 
 UNIFIED_SQL_FILTER
@@ -302,10 +302,10 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List
-    ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
+    ...    create endpoint TCP|GRPC for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
@@ -400,10 +400,10 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List
-    ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
+    ...    create endpoint TCP|GRPC for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files

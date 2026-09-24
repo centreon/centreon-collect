@@ -94,7 +94,7 @@ sub getMetricCapacityValuesOnPeriod {
 	my ($start_time_id, $end_time_id, $etlProperties) = @_;
 
 	my $query =	" SELECT servicemetric_id, liveservice_id, ";
-	$query .=		" `first_value`,  total";
+	$query .=		" MAX(`first_value`) as `first_value`,  MAX(total) as total";
 	$query .=	" FROM  mod_bi_liveservice l, mod_bi_servicemetrics m, ".$self->{"name"}." v";
 	$query .=	" WHERE timeperiod_id IN (".$etlProperties->{'capacity.include.liveservices'}.")";
 	$query .= " AND l.id = v.liveservice_id";
@@ -113,7 +113,7 @@ sub getMetricCapacityValuesOnPeriod {
 	}
 	
 	$query = 	" SELECT servicemetric_id, liveservice_id, ";
-	$query .= 		"`last_value`, total";
+	$query .= 		"MAX(`last_value`) as `last_value`, MAX(total) as total";
 	$query .= 	" FROM mod_bi_liveservice l, mod_bi_servicemetrics m, ".$self->{"name"}." v";
 	$query .=	" WHERE timeperiod_id IN (".$etlProperties->{'capacity.include.liveservices'}.")";
 	$query .= " AND l.id = v.liveservice_id";

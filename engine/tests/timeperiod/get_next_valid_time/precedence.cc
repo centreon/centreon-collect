@@ -37,28 +37,28 @@ class GetNextValidTimePrecedenceTest : public testing::Test {
 
   // 2016-11-07 06:00-07:00
   void calendar_date_and_lower() {
-    daterange* dr(_creator.new_calendar_date(2016, 10, 7, 2016, 10, 7));
+    configuration::Daterange* dr(_creator.new_calendar_date(2016, 10, 7, 2016, 10, 7));
     _creator.new_timerange(6, 0, 7, 0, dr);
     specific_month_date_and_lower();
   }
 
   // November 7 05:00-06:00
   void specific_month_date_and_lower() {
-    daterange* dr(_creator.new_specific_month_date(10, 7, 10, 7));
+    configuration::Daterange* dr(_creator.new_specific_month_date(10, 7, 10, 7));
     _creator.new_timerange(5, 0, 6, 0, dr);
     generic_month_date_and_lower();
   }
 
   // day 7 04:00-05:00
   void generic_month_date_and_lower() {
-    daterange* dr(_creator.new_generic_month_date(7, 7));
+    configuration::Daterange* dr(_creator.new_generic_month_date(7, 7));
     _creator.new_timerange(4, 0, 5, 0, dr);
     offset_weekday_of_specific_month_and_lower();
   }
 
   // monday 1 november 03:00-04:00
   void offset_weekday_of_specific_month_and_lower() {
-    daterange* dr(
+    configuration::Daterange* dr(
         _creator.new_offset_weekday_of_specific_month(10, 1, 1, 10, 1, 1));
     _creator.new_timerange(3, 0, 4, 0, dr);
     offset_weekday_of_generic_month_and_lower();
@@ -67,7 +67,7 @@ class GetNextValidTimePrecedenceTest : public testing::Test {
   // monday 1 02:00-03:00
   // monday   01:00-02:00
   void offset_weekday_of_generic_month_and_lower() {
-    daterange* dr(_creator.new_offset_weekday_of_generic_month(1, 1, 1, 1));
+    configuration::Daterange* dr(_creator.new_offset_weekday_of_generic_month(1, 1, 1, 1));
     _creator.new_timerange(2, 0, 3, 0, dr);
     _creator.new_timerange(1, 0, 2, 0, 1);
   }

@@ -36,7 +36,11 @@ dnf install -y nodejs
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} sh -
 source ~/.bashrc
 cd /usr/local/src
-pnpm install --frozen-lockfile
+pnpm install \
+  --frozen-lockfile \
+  --config.trustPolicy=no-downgrade \
+  --config.minimumReleaseAge=2880 \
+  --config.blockExoticSubdeps=true
 
 dnf install -y \
   "perl-Libssh-Session" \
@@ -52,6 +56,13 @@ dnf install -y \
   "perl(RRDs)" \
   "perl(XML::Simple)" \
   "perl(ZMQ::FFI)"
+
+# centreon-engine-daemon (ships /usr/sbin/centenginestats, needed by
+# centreon/statistics.robot) used to be pulled in transitively via
+# centreon-gorgone-centreon-config -> centreon-common -> centreon-engine-daemon.
+# That link was removed to fix a packaging layer inversion (centreon-common no
+# longer depends on centreon-engine-daemon), so it must be installed explicitly here.
+dnf install -y centreon-engine-daemon
 
 dnf clean all
 

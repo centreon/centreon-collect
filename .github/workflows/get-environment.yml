@@ -59,7 +59,7 @@ on:
         description: "matrix to use for dockerize and test jobs"
         value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
       collect_matrix:
-        description: "matrix to use for collect jobs (contains arch)"
+        description: "matrix to use for collect jobs (deduplicated by os+arch)"
         value: ${{ jobs.get-environment.outputs.collect_matrix }}
       collect_robot_matrix:
         description: "matrix to use for collect jobs (contains arch)"
@@ -122,13 +122,20 @@ jobs:
     steps:
       - name: Check if PR has skip label
         id: has_skip_label
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          IS_PR: ${{ contains(fromJSON('["pull_request"]') , github.event_name) }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_LABELS: ${{ inputs.labels }}
         with:
           script: |
             let hasSkipLabel = false;
             let labels = [];
 
-            if (${{ contains(fromJSON('["pull_request"]') , github.event_name) }} === true) {
+            const skipLabel = `skip-workflow-${process.env.WORKFLOW_NAME}`;
+
+            if (process.env.IS_PR === 'true') {
               try {
                 const fetchedLabels = await github.rest.issues.listLabelsOnIssue({
                   owner: context.repo.owner,
@@ -137,15 +144,15 @@ jobs:
                 });
                 fetchedLabels.data.forEach(({ name }) => {
                   labels.push(name);
-                  if (name === '${{ format('skip-workflow-{0}', github.workflow) }}') {
+                  if (name === skipLabel) {
                     hasSkipLabel = true;
                   }
                 });
               } catch (e) {
                 core.warning(`failed to list labels: ${e}`);
               }
-            } else if ('${{ github.event_name }}' === 'workflow_dispatch' && '${{ inputs.labels }}'.length > 0) {
-              labels = '${{ inputs.labels }}'
+            } else if (process.env.EVENT_NAME === 'workflow_dispatch' && process.env.INPUT_LABELS.length > 0) {
+              labels = process.env.INPUT_LABELS
                 .split(',')
                 .map(label => label.trim())
                 .filter(label => label.length > 0);
@@ -156,13 +163,13 @@ jobs:
             return hasSkipLabel;
 
       - name: Checkout sources (current branch)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: ${{ steps.has_skip_label.outputs.result == 'true' && 100 || 1 }}
 
       # get latest major version to detect cloud / on-prem versions
       - name: Checkout sources (develop branch)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: develop
           path: centreon-develop
@@ -171,14 +178,17 @@ jobs:
       - if: ${{ steps.has_skip_label.outputs.result == 'true' }}
         name: Get workflow triggered paths
         id: get_workflow_triggered_paths
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          GH_REPOSITORY: ${{ github.repository }}
         with:
           script: |
             const fs = require('fs');
 
             let paths = [];
 
-            const workflowFilePath = '${{ github.workflow_ref }}'.replace('${{ github.repository }}/', '').split('@').shift();
+            const workflowFilePath = process.env.WORKFLOW_REF.replace(`${process.env.GH_REPOSITORY}/`, '').split('@').shift();
 
             if (fs.existsSync(workflowFilePath)) {
               const workflowFileContent = fs.readFileSync(workflowFilePath, 'utf8');
@@ -223,7 +233,7 @@ jobs:
       - if: ${{ steps.has_skip_label.outputs.result == 'true' }}
         name: Get push changes
         id: get_push_changes
-        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
         with:
           since_last_remote_commit: true
           json: true
@@ -233,20 +243,25 @@ jobs:
 
       - name: Check if current workflow should be skipped
         id: skip_workflow
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          GH_REF: ${{ github.head_ref || github.ref_name }}
+          HAS_SKIP_LABEL: ${{ steps.has_skip_label.outputs.result }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          ANY_CHANGED: ${{ steps.get_push_changes.outputs.any_changed }}
         with:
           script: |
-            if (/^bump-.+/.test('${{ github.head_ref || github.ref_name }}')) {
+            if (/^bump-.+/.test(process.env.GH_REF)) {
               core.notice('skipping workflow because it is a bump branch');
               return true;
             }
 
-            if (${{ steps.has_skip_label.outputs.result }} === false) {
+            if (process.env.HAS_SKIP_LABEL === 'false') {
               return false;
             }
 
-            const label = '${{ format('skip-workflow-{0}', github.workflow) }}';
-            if ('${{ steps.get_push_changes.outputs.any_changed }}' === 'true') {
+            const label = `skip-workflow-${process.env.WORKFLOW_NAME}`;
+            if (process.env.ANY_CHANGED === 'true') {
               try {
                 await github.rest.issues.removeLabel({
                   name: label,
@@ -274,10 +289,13 @@ jobs:
       - if: ${{ github.event_name == 'pull_request' }}
         name: Get nested pull request path
         id: pr_path
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          GH_HEAD_REF: ${{ github.head_ref }}
+          GH_BASE_REF: ${{ github.base_ref }}
         with:
           script: |
-            const prPath = ['${{ github.head_ref }}', '${{ github.base_ref }}'];
+            const prPath = [process.env.GH_HEAD_REF, process.env.GH_BASE_REF];
 
             const result = await github.rest.pulls.list({
               owner: context.repo.owner,
@@ -301,7 +319,10 @@ jobs:
 
       - name: Get stability
         id: get_stability
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          IS_PR: ${{ contains(fromJSON('["pull_request"]') , github.event_name) }}
+          PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
         with:
           script: |
             const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
@@ -357,10 +378,10 @@ jobs:
 
             let isTargetingFeatureBranch = false;
 
-            if (${{ contains(fromJSON('["pull_request"]') , github.event_name) }} === true) {
+            if (process.env.IS_PR === 'true') {
               console.log(`Evaluating pull request target path for feature branch detection`);
               let targetStability = 'canary';
-              const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
+              const prPath = JSON.parse(process.env.PR_PATH);
               prPath.shift(); // remove current branch
 
               if (prPath.length && getStability(prPath[0]) === 'canary') {
@@ -388,12 +409,14 @@ jobs:
 
       - name: Get version from ${{ inputs.version_file }}
         id: get_version
+        env:
+          VERSION_FILE: ${{ inputs.version_file }}
         run: |
-          if [[ "${{ inputs.version_file }}" == *.version* ]]; then
+          if [[ "$VERSION_FILE" == *.version* ]]; then
             . .version
-            . ${{ inputs.version_file }}
+            . "$VERSION_FILE"
             VERSION="$MAJOR.$MINOR"
-          elif [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
+          elif [[ "$VERSION_FILE" == CMakeLists.txt ]]; then
             MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
             MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
             VERSION="$MAJOR.$MINOR"
@@ -401,7 +424,7 @@ jobs:
             CMA_MINOR=$(awk '$1 ~ "AGENT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
             CMA_VERSION="$CMA_MAJOR.$CMA_MINOR"
           else
-            echo "Unable to parse version file ${{ inputs.version_file }}"
+            echo "Unable to parse version file $VERSION_FILE"
             exit 1
           fi
 
@@ -412,11 +435,11 @@ jobs:
             MAJOR=${a[0]}.${a[1]}
             echo "minor_version=${a[2]}" >> $GITHUB_OUTPUT
           else
-            echo "Cannot parse version number from ${{ inputs.version_file }}"
+            echo "Cannot parse version number from $VERSION_FILE"
             exit 1
           fi
 
-          if [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
+          if [[ "$VERSION_FILE" == CMakeLists.txt ]]; then
             if grep -E '^[2-9][0-9]\.[0-9][0-9]\.[0-9]+' <<<"$CMA_VERSION" >/dev/null 2>&1 ; then
               n=${CMA_VERSION//[!0-9]/ }
               a=(${n//\./ })
@@ -424,7 +447,7 @@ jobs:
               MAJOR=${a[0]}.${a[1]}
               echo "cma_minor_version=${a[2]}" >> $GITHUB_OUTPUT
             else
-              echo "Cannot parse version number from ${{ inputs.version_file }}"
+              echo "Cannot parse version number from $VERSION_FILE"
               exit 1
             fi
           else
@@ -435,11 +458,14 @@ jobs:
 
       - name: "Get release: 1 for testing / stable, <date>.<commit_sha> for others"
         id: get_release
+        env:
+          STABILITY: ${{ steps.get_stability.outputs.stability }}
+          GH_SHA: ${{ github.sha }}
         run: |
-          if [[ "${{ steps.get_stability.outputs.stability }}" == "testing" || "${{ steps.get_stability.outputs.stability }}" == "stable" ]]; then
+          if [[ "$STABILITY" == "testing" || "$STABILITY" == "stable" ]]; then
             RELEASE="1"
           else
-            RELEASE="$(date +%s).$(echo ${{ github.sha }} | cut -c -7)"
+            RELEASE="$(date +%s).$(echo "$GH_SHA" | cut -c -7)"
           fi
 
           echo "release=$RELEASE" >> $GITHUB_OUTPUT
@@ -447,12 +473,15 @@ jobs:
 
       - name: "Get release type: hotfix, release or not defined if not a release"
         id: get_release_type
+        env:
+          GH_REF: ${{ github.head_ref || github.ref_name }}
+          GH_REF_TYPE: ${{ github.ref_type }}
         run: |
           # Set REF_NAME (branch or tag)
-          REF_NAME="${{ github.head_ref || github.ref_name }}"
+          REF_NAME="$GH_REF"
 
           # Get ref type (branch or tag)
-          REF_TYPE="${{ github.ref_type }}"  # 'branch' or 'tag'
+          REF_TYPE="$GH_REF_TYPE"  # 'branch' or 'tag'
           RELEASE_TYPE=""
 
           # Get release type based on ref type
@@ -482,16 +511,17 @@ jobs:
         shell: bash
 
       - name: Detect nightly status
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: get_nightly_status
         env:
           NIGHTLY_MANUAL_TRIGGER: ${{ inputs.nightly_manual_trigger }}
+          GH_REPOSITORY: ${{ github.repository }}
         with:
           script: |
             const getNightlyInput = () => {
               const nightly_manual_trigger = process.env.NIGHTLY_MANUAL_TRIGGER;
               console.log(nightly_manual_trigger);
-              if (typeof nightly_manual_trigger === 'undefined' || nightly_manual_trigger === '' || '${{ github.repository }}'.match(/^workflow-.*$/)) {
+              if (typeof nightly_manual_trigger === 'undefined' || nightly_manual_trigger === '' || process.env.GH_REPOSITORY.match(/^workflow-.*$/)) {
                 return 'false';
               } else if (context.eventName === 'schedule' || context.eventName === 'workflow_dispatch' && nightly_manual_trigger === 'true' ) {
                 return 'true';
@@ -503,9 +533,12 @@ jobs:
 
       - name: "Detect cloud version"
         id: detect_cloud_version
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
+          CURRENT_MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -515,24 +548,20 @@ jobs:
             const baseRef = process.env.GITHUB_BASE_REF; // only set for pull_request
             const isNightly = process.env.IS_NIGHTLY;
 
-            const developMajorVersion = "${{ steps.latest_major_version.outputs.latest_major_version }}";
-            const currentMajorVersion = "${{ steps.get_version.outputs.major_version }}";
-            // if major version is higher than develop major version => it is a cloud version
-            // if month number is not 04 or 10 => it is a cloud version
+            const currentMajorVersion = process.env.CURRENT_MAJOR_VERSION;
+            // if month number is not 10 => it is a cloud version
             // anything else => onprem
             const isCloudCandidate =
-              Number(currentMajorVersion) >= Number(developMajorVersion) ||
-              !currentMajorVersion.match(/\.(04|10)$/);
-
+              !currentMajorVersion.match(/\.10$/);
             let releaseScope = "unknown";
 
             // in a nightly context, whatever the event_name is, the release context does not matter
             if ( process.env.IS_NIGHTLY == 'true' ) {
               releaseScope = isCloudCandidate ? "cloud" : "onprem";
-            } else if ( "${{ github.event_name }}" === "pull_request" ) {
+            } else if ( process.env.EVENT_NAME === "pull_request" ) {
               // handle if triggering event is a pull_request
               // finalTargetBranch can be develop, dev-XX.YY.x, release-XX.YY-next, hotfix-XX.YY-next
-              const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
+              const prPath = JSON.parse(process.env.PR_PATH);
               const finalTargetBranch = prPath.pop();
               console.log(`finalTargetBranch is: ${finalTargetBranch}`)
 
@@ -645,11 +674,13 @@ jobs:
 
       - name: "Detect delivery type"
         id: detect_delivery_type
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          HAS_DELIVERY_FEATURE_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'delivery-feature') }}
         with:
           script: |
             let delivery_type  = 'classic';
-            if (${{ contains(steps.has_skip_label.outputs.labels, 'delivery-feature') && 'true' || 'false' }}) {
+            if (process.env.HAS_DELIVERY_FEATURE_LABEL === 'true') {
               delivery_type = 'feature';
             }
 
@@ -657,14 +688,17 @@ jobs:
 
       - name: Detect linked dev and stable branches
         id: linked_branches
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
+          MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
         with:
           script: |
             let linkedDevBranch = 'develop';
             let linkedStableBranch = 'master';
-            if ('${{ steps.detect_cloud_version.outputs.isCloud }}' === 'false') {
-              linkedDevBranch = 'dev-' + '${{ steps.get_version.outputs.major_version }}' + '.x';
-              linkedStableBranch = '${{ steps.get_version.outputs.major_version }}' + '.x';
+            if (process.env.IS_CLOUD === 'false') {
+              linkedDevBranch = `dev-${process.env.MAJOR_VERSION}.x`;
+              linkedStableBranch = `${process.env.MAJOR_VERSION}.x`;
             }
             core.setOutput('linked_dev_branch', linkedDevBranch);
             core.setOutput('linked_stable_branch', linkedStableBranch);
@@ -675,7 +709,7 @@ jobs:
           IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
           STABILITY: ${{ steps.get_stability.outputs.stability }}
           MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             if (process.env.STABILITY !== 'testing' && process.env.STABILITY !== 'stable') {
@@ -723,236 +757,138 @@ jobs:
             core.setOutput('previous_release_bundle_tag', previousStableBundleTag);
 
       - name: Detect operating systems and databases to test
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: get_os_database_matrix
+        env:
+          IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
+          IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
+          STABILITY: ${{ steps.get_stability.outputs.stability }}
+          HAS_DATABASE_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'database') }}
+          HAS_SYSTEM_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'system') }}
         with:
           script: |
-            const alma10_mariadb_10_11 = {
-              "operating_system": "alma10",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const alma9_mariadb_10_11 = {
-              "operating_system": "alma9",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const alma8_mysql_8_0 = {
-              "operating_system": "alma8",
-              "database": "mysql:8.0",
-              "arch": "amd64"
-            };
-            const alma8_mariadb_10_11 = {
-              "operating_system": "alma8",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const bullseye_mysql_8_4 = {
-              "operating_system": "bullseye",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const bullseye_mariadb_10_11 = {
-              "operating_system": "bullseye",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const bookworm_mysql_8_4 = {
-              "operating_system": "bookworm",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const bookworm_mariadb_10_11 = {
-              "operating_system": "bookworm",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const trixie_mariadb_11_8 = {
-              "operating_system": "trixie",
-              "database": "mariadb:11.8",
-              "arch": "amd64"
-            };
-            const jammy_mysql_8_4 = {
-              "operating_system": "jammy",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const jammy_mariadb_10_11 = {
-              "operating_system": "jammy",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const noble_mysql_8_4 = {
-              "operating_system": "noble",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const noble_mariadb_10_11 = {
-              "operating_system": "noble",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
+            const isCloud     = process.env.IS_CLOUD === 'true';
+            const isNightly   = process.env.IS_NIGHTLY === 'true';
+            const stability   = process.env.STABILITY;
+            const hasDbLabel  = process.env.HAS_DATABASE_LABEL === 'true';
+            const hasSysLabel = process.env.HAS_SYSTEM_LABEL === 'true';
+            const isFullRun   = hasDbLabel
+                             || hasSysLabel
+                             || ['unstable', 'testing', 'stable'].includes(stability);
+            const isSystemRun = hasSysLabel
+                             || ['unstable', 'testing', 'stable'].includes(stability);
+            const isDbRun     = hasDbLabel
+                             || ['unstable', 'testing', 'stable'].includes(stability);
+            const wantsDockerCollect = ${{ contains(steps.has_skip_label.outputs.labels, 'build-docker-collect') && 'true' || 'false' }};
+
+            const cfg = (operating_system, database) => ({ operating_system, database, arch: 'amd64' });
+
+            const alma10_mysql_8_4       = cfg('alma10',   'mysql:8.4');
+            const alma10_mariadb_11_8    = cfg('alma10',   'mariadb:11.8');
+            const alma9_mariadb_11_8     = cfg('alma9',    'mariadb:11.8')
+            const alma9_mysql_8_0        = cfg('alma9',    'mysql:8.0');
+            const alma8_mariadb_10_11    = cfg('alma8',    'mariadb:10.11');
+            const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
+            const trixie_mariadb_11_8    = cfg('trixie',   'mariadb:11.8');
+            const trixie_mysql_8_4       = cfg('trixie',   'mysql:8.4');
+            const jammy_mariadb_10_11    = cfg('jammy',    'mariadb:10.11');
+            const noble_mariadb_10_11    = cfg('noble',    'mariadb:10.11');
+
+            // Fixed weekday -> preferred configuration (0=sunday, 1=monday, ..., 6=saturday)
+            const dailyConfigByDayOfWeek = {
+              1: alma10_mysql_8_4,    // Monday
+              2: trixie_mariadb_11_8, // Tuesday
+              3: alma10_mysql_8_4,    // Wednesday
+              4: alma9_mariadb_11_8,  // Thursday
+              5: alma10_mysql_8_4,    // Friday
             };
 
             const getDailyConfig = (configs) => {
-              const today = new Date();
-              const dayOfWeek = today.getDay(); // 0=sunday, 1=monday, ..., 6=saturday
+              const dayOfWeek = new Date().getDay();
+              const preferred = dailyConfigByDayOfWeek[dayOfWeek];
 
-              // If it's weekend, use the default configuration
-              if (dayOfWeek === 0 || dayOfWeek === 6) {
-                return configs[0];
-              }
-
-              // Reference date: January 1, 2025
-              const referenceDate = new Date('2025-01-01');
-
-              // Calculate the number of working days since January 1
-              let workingDays = 0;
-              const currentDate = new Date(referenceDate);
-
-              while (currentDate < today) {
-                const dayOfWeek = currentDate.getDay();
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Monday to Friday
-                  workingDays++;
-                }
-                currentDate.setDate(currentDate.getDate() + 1);
-              }
-
-              // Alternating balanced on 3 configurations
-              const configIndex = workingDays % configs.length;
-
-              return configs[configIndex];
+              // Fall back to the first available configuration on weekends,
+              // or if the preferred one isn't part of the package matrix
+              return preferred && configs.includes(preferred) ? preferred : configs[0];
             };
 
-            const configs = [alma9_mariadb_10_11, alma8_mysql_8_0, bookworm_mysql_8_4];
-            const collectConfigs = [
-              alma9_mariadb_10_11,
-              alma8_mysql_8_0,
-              bookworm_mysql_8_4
-            ];
+            const configs = [alma10_mysql_8_4, alma9_mariadb_11_8, trixie_mariadb_11_8]
             const cmaConfigs = [
-              alma10_mariadb_10_11,
-              alma9_mariadb_10_11,
-              alma8_mariadb_10_11,
-              bullseye_mariadb_10_11,
-              bookworm_mariadb_10_11,
-              trixie_mariadb_11_8,
-              jammy_mariadb_10_11,
-              noble_mariadb_10_11
+              alma10_mariadb_11_8, alma9_mysql_8_0, alma8_mariadb_10_11,
+              bookworm_mariadb_10_11, trixie_mysql_8_4,
+              jammy_mariadb_10_11, noble_mariadb_10_11
             ];
+            const cloud = alma10_mysql_8_4;
+            let main = isCloud ? cloud : alma10_mariadb_11_8;
 
-            const cloud = alma8_mysql_8_0;
+            const activeConfig = isNightly ? getDailyConfig(configs) : main;
 
-            let main = alma9_mariadb_10_11;
-            if ('${{ steps.detect_cloud_version.outputs.isCloud }}' == 'true') {
-              main = cloud;
-            }
+            let matrix = { cloud: [cloud], main: [activeConfig], operating_systems: [activeConfig] };
+            let collectMatrix = [activeConfig];
+            let cmaMatrix = [activeConfig];
 
-            let matrix = {
-              "cloud": [cloud],
-              "main": [main],
-              "operating_systems": [main]
-            };
-
-            if ('${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true') {
-              const dailyConfig = getDailyConfig(configs);
-
-              matrix = {
-                "cloud": [cloud],
-                "main": [dailyConfig],
-                "operating_systems": [dailyConfig]
-              };
-            }
-
-            let collectMatrix = [...matrix.operating_systems];
-            let cmaMatrix = [...matrix.operating_systems];
-
-            if (
-              ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
-              || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
-              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
-            ) {
-              matrix = {
-                ...matrix,
-                "operating_systems": configs,
-              };
-              collectMatrix = collectConfigs;
+            if (isFullRun) {
+              const uniqueOsConfigs = [...new Map(configs.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
+              matrix = { ...matrix, operating_systems: uniqueOsConfigs };
+              collectMatrix = configs;
               cmaMatrix = cmaConfigs;
             }
 
-            console.log('matrix', matrix);
+            // --- Expand arm64 for Debian-based distros ---
+            const ARM64_DISTROS = ['bookworm', 'trixie', 'jammy', 'noble'];
+            const withArch = (configs) => configs.flatMap(c =>
+              ARM64_DISTROS.includes(c.operating_system)
+                ? [{...c, arch: 'amd64'}, {...c, arch: 'arm64'}]
+                : [{...c, arch: 'amd64'}]
+            );
 
-            const setArchConfigs = (configs) => {
-              const archConfigs = [];
-
-              for (const config of configs) {
-                archConfigs.push({...config, "arch": "amd64"});
-                if (["bullseye", "bookworm", "trixie", "jammy", "noble"].includes(config.operating_system)) {
-                  archConfigs.push({...config, "arch": "arm64"});
-                }
-              }
-
-              return archConfigs;
-            };
-
-            if (
-              ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
-              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
-            ) {
-              collectMatrix = setArchConfigs([...collectMatrix]);
-              cmaMatrix = setArchConfigs([...cmaMatrix]);
+            if (isSystemRun) {
+              collectMatrix = withArch(collectMatrix);
+              cmaMatrix = withArch(cmaMatrix);
             }
 
-            console.log('collectMatrix', collectMatrix);
-            core.setOutput('collect_matrix', collectMatrix);
+            // Ensure trixie amd64+arm64 are packaged when the dockerize-engine-broker job is requested,
+            // otherwise the deb cache it restores does not exist and the job fails.
+            if (wantsDockerCollect) {
+              collectMatrix.push({ operating_system: 'trixie', arch: 'amd64' });
+              collectMatrix.push({ operating_system: 'trixie', arch: 'arm64' });
+            }
 
-            console.log('cmaMatrix', cmaMatrix);
+            // deduplicate by os+arch (no database dimension needed for build/packaging)
+            collectMatrix = [...new Map(collectMatrix.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
+
+            core.setOutput('collect_matrix', collectMatrix);
+            console.log('collectMatrix', collectMatrix);
+
             core.setOutput('cma_matrix', cmaMatrix);
+            console.log('cmaMatrix', cmaMatrix);
 
             const setTestConfigs = (configs) => {
               let hasGrpcConfig = false;
               let hasMysqlConfig = false;
-              const testConfigs = [];
-
-              for (const config of configs) {
-                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
-                if (config.arch === "amd64" && hasGrpcConfig === false) {
-                  testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{\"default_transport\":\"grpc\",\"default_bbdo_version\":\"3.1.0\"}"});
-                  hasGrpcConfig = true;
+              return configs.flatMap(c => {
+                const entries = [{...c, database_type: c.operating_system === 'alma10' ? 'mysql' : 'mariadb', tests_params: '{}'}];
+                if (c.arch === 'amd64' && !hasGrpcConfig) {
+                  entries.push({...c, database_type: c.operating_system === 'alma10' ? 'mysql' : 'mariadb', tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'});
                 }
-                if (
-                  ['alma8', 'alma9'].includes(config.operating_system) &&
-                  hasMysqlConfig === false &&
-                  config.arch === "amd64" &&
-                  (
-                    ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}') ||
-                    ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
-                  )
-                ) {
-                  testConfigs.push({...config, "database_type": "mysql", "tests_params": "{}"});
+                if (['alma8', 'alma9', 'alma10'].includes(c.operating_system) && !hasMysqlConfig && c.arch === 'amd64' && isDbRun) {
+                  c.operating_system === 'alma10' ? entries.push({...c, database_type: 'mariadb', tests_params: '{}'}) : entries.push({...c, database_type: 'mysql', tests_params: '{}'});
                   hasMysqlConfig = true;
                 }
-              }
-
-              return testConfigs;
+                return entries;
+              });
             };
 
-            //No grpc no mysql for CMA robot tests
-            const setTestConfigsCMA = (configs) => {
-              const testConfigs = [];
+            // No grpc, no mysql for CMA robot tests
+            const setCmaTestConfigs = (configs) => configs.map(c => ({...c, database_type: 'mariadb', tests_params: '{}'}));
 
-              for (const config of configs) {
-                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
-              }
-              return testConfigs;
-            };
-
-            let collectRobotMatrix = setTestConfigs([...collectMatrix]);
-            console.log('collectRobotMatrix', collectRobotMatrix);
+            const collectRobotMatrix = setTestConfigs(collectMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
+            console.log('collectRobotMatrix', collectRobotMatrix);
 
-            let cmaRobotMatrix = setTestConfigsCMA([...cmaMatrix]);
-            console.log('cmaRobotMatrix', cmaRobotMatrix);
+            const cmaRobotMatrix = setCmaTestConfigs(cmaMatrix);
             core.setOutput('cma_robot_matrix', cmaRobotMatrix);
+            console.log('cmaRobotMatrix', cmaRobotMatrix);
 
             return matrix;
 
@@ -966,40 +902,67 @@ jobs:
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
 
       - name: Display info in job summary
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          LATEST_MAJOR_VERSION: ${{ steps.latest_major_version.outputs.latest_major_version }}
+          IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
+          PREVIOUS_RELEASE_BUNDLE_TAG: ${{ steps.get_previous_release_bundle_tag.outputs.previous_release_bundle_tag }}
+          DELIVERY_TYPE: ${{ steps.detect_delivery_type.outputs.delivery_type }}
+          LINKED_DEV_BRANCH: ${{ steps.linked_branches.outputs.linked_dev_branch }}
+          LINKED_STABLE_BRANCH: ${{ steps.linked_branches.outputs.linked_stable_branch }}
+          MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
+          MINOR_VERSION: ${{ steps.get_version.outputs.minor_version }}
+          RELEASE: ${{ steps.get_release.outputs.release }}
+          CMA_MAJOR_VERSION: ${{ steps.get_version.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ steps.get_version.outputs.cma_minor_version }}
+          STABILITY: ${{ steps.get_stability.outputs.stability }}
+          RELEASE_TYPE: ${{ steps.get_release_type.outputs.release_type }}
+          IS_TARGETING_FEATURE_BRANCH: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
+          IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
+          PACKAGING_IMG_VERSION: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
+          TEST_IMG_VERSION: ${{ steps.get_docker_images_version.outputs.test_img_version }}
+          COLLECT_ROBOT_MATRIX: ${{ steps.get_os_database_matrix.outputs.collect_robot_matrix }}
+          CMA_ROBOT_MATRIX: ${{ steps.get_os_database_matrix.outputs.cma_robot_matrix }}
+          SKIP_WORKFLOW: ${{ steps.skip_workflow.outputs.result }}
+          LABELS: ${{ steps.has_skip_label.outputs.labels }}
+          TARGET_STABILITY: ${{ steps.get_stability.outputs.target_stability }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
         with:
           script: |
             const outputTable = [
               [{data: 'Name', header: true}, {data: 'Value', header: true}],
-              ['latest_major_version', '${{ steps.latest_major_version.outputs.latest_major_version }}'],
-              ['is_cloud', '${{ steps.detect_cloud_version.outputs.isCloud }}'],
-              ['previous_release_bundle_tag', '${{ steps.get_previous_release_bundle_tag.outputs.previous_release_bundle_tag || '<em>not found</em>' }}'],
-              ['delivery_type', '${{ steps.detect_delivery_type.outputs.delivery_type }}'],
-              ['linked_dev_branch', '${{ steps.linked_branches.outputs.linked_dev_branch }}'],
-              ['linked_stable_branch', '${{ steps.linked_branches.outputs.linked_stable_branch }}'],
-              ['major_version', '${{ steps.get_version.outputs.major_version }}'],
-              ['minor_version', '${{ steps.get_version.outputs.minor_version }}'],
-              ['release', '${{ steps.get_release.outputs.release }}'],
-              ['cma_major_version', '${{ steps.get_version.outputs.cma_major_version }}'],
-              ['cma_minor_version', '${{ steps.get_version.outputs.cma_minor_version }}'],
-              ['stability', '${{ steps.get_stability.outputs.stability }}'],
-              ['release_type', '${{ steps.get_release_type.outputs.release_type || '<em>not defined because this is not a release</em>' }}'],
-              ['is_targeting_feature_branch', '${{ steps.get_stability.outputs.is_targeting_feature_branch }}'],
-              ['is_nightly', '${{ steps.get_nightly_status.outputs.is_nightly }}'],
-              ['packaging_img_version', '${{ steps.get_docker_images_version.outputs.packaging_img_version }}'],
-              ['test_img_version', '${{ steps.get_docker_images_version.outputs.test_img_version }}'],
-              ['skip_workflow', '${{ steps.skip_workflow.outputs.result }}'],
-              ['labels', '${{ steps.has_skip_label.outputs.labels }}'],
+              ['latest_major_version', process.env.LATEST_MAJOR_VERSION],
+              ['is_cloud', process.env.IS_CLOUD],
+              ['previous_release_bundle_tag', process.env.PREVIOUS_RELEASE_BUNDLE_TAG || '<em>not found</em>'],
+              ['delivery_type', process.env.DELIVERY_TYPE],
+              ['linked_dev_branch', process.env.LINKED_DEV_BRANCH],
+              ['linked_stable_branch', process.env.LINKED_STABLE_BRANCH],
+              ['major_version', process.env.MAJOR_VERSION],
+              ['minor_version', process.env.MINOR_VERSION],
+              ['release', process.env.RELEASE],
+              ['cma_major_version', process.env.CMA_MAJOR_VERSION],
+              ['cma_minor_version', process.env.CMA_MINOR_VERSION],
+              ['stability', process.env.STABILITY],
+              ['release_type', process.env.RELEASE_TYPE || '<em>not defined because this is not a release</em>'],
+              ['is_targeting_feature_branch', process.env.IS_TARGETING_FEATURE_BRANCH],
+              ['is_nightly', process.env.IS_NIGHTLY],
+              ['packaging_img_version', process.env.PACKAGING_IMG_VERSION],
+              ['test_img_version', process.env.TEST_IMG_VERSION],
+              ['collect_robot_matrix', process.env.COLLECT_ROBOT_MATRIX],
+              ['cma_robot_matrix', process.env.CMA_ROBOT_MATRIX],
+              ['skip_workflow', process.env.SKIP_WORKFLOW],
+              ['labels', process.env.LABELS],
             ];
 
-            outputTable.push(['target_stability', '${{ steps.get_stability.outputs.target_stability || '<em>not defined because current run is not triggered by pull request event</em>' }}']);
+            outputTable.push(['target_stability', process.env.TARGET_STABILITY || '<em>not defined because current run is not triggered by pull request event</em>']);
 
             core.summary
               .addHeading(`${context.workflow} environment outputs`)
               .addTable(outputTable);
 
-            if ("${{ github.event_name }}" === "pull_request") {
-              const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
+            if (process.env.EVENT_NAME === "pull_request") {
+              const prPath = JSON.parse(process.env.PR_PATH);
               const mainBranchName = prPath.pop();
               let codeBlock = `
                 %%{ init: { 'gitGraph': { 'mainBranchName': '${mainBranchName}', 'showCommitLabel': false } } }%%

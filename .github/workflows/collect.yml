@@ -58,6 +58,8 @@ on:
       - selinux/centreon-broker/**
       - selinux/centreon-engine/**
       - tests/**
+      - .github/docker/centreon-engine/**
+      - .github/docker/centreon-broker/**
   push:
     branches:
       - develop
@@ -94,7 +96,7 @@ jobs:
   dependency-scan:
     uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
 
-  dispatch-to-maintained-branches:
+  dispatch-to-maintenance-branches:
     if: |
       github.run_attempt == 1 &&
       github.event_name == 'schedule' &&
@@ -103,22 +105,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Run nightly on a different maintenance branch depending on the day
-        run: |
-          NIGHTLY_TARGETS=("dev-24.04.x" "dev-24.10.x" "dev-25.10.x")
-          TARGET_BRANCH=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
-          if [[ -z "$TARGET_BRANCH" ]]; then
-            echo "[INFO] - The target branch was not properly defined for that day (out-of-bounds array)."
-            exit 0
-          else
-            gh workflow run collect.yml -r "$TARGET_BRANCH" -f nightly_manual_trigger=true
-            echo "[INFO] - Dispatching nightly run to $TARGET_BRANCH branch."
-          fi
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Select maintenance branch and run nightly workflow on it
+        uses: ./.github/actions/dispatch-to-maintenance-branch
 
   get-environment:
     needs: [dependency-scan]
@@ -142,7 +132,7 @@ jobs:
       version_file: .version.centreon-collect
       cmake_file: CMakeLists.txt
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check ${{ env.version_file }}
         uses: ./.github/actions/check-version-consistency
@@ -183,6 +173,8 @@ jobs:
         "overlays/**"
         "selinux/centreon-broker/**"
         "selinux/centreon-engine/**"
+        ".github/docker/centreon-engine/**"
+        ".github/docker/centreon-broker/**"
         "!**/test/**"
         "!**/tests/**"
         "!agent/test/**"
@@ -220,7 +212,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 8 --ulimit core=-1 --privileged
+      options: --cpus 4 --ulimit core=-1 --privileged
       env:
         AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
         AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
@@ -231,7 +223,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install sccache
         run: |
@@ -243,14 +235,15 @@ jobs:
         shell: bash
 
       - name: Compile centreon-collect
+        env:
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.operating_system }}" == "alma8" || "${{ matrix.operating_system }}" == "alma9" ]]; then
-            CMAKE="cmake3"
-          fi
 
           export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
+          export VCPKG_MAX_CONCURRENCY=6
+          export VCPKG_FORCE_SYSTEM_BINARIES=1
+          export PATH=$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH
 
           mv /root/.cache /github/home/
 
@@ -262,7 +255,7 @@ jobs:
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
-                  -DCMAKE_BUILD_TYPE=Debug \
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DWITH_PREFIX=/usr \
                   -DWITH_PREFIX_BIN=/usr/sbin \
                   -DWITH_USER_BROKER=centreon-broker \
@@ -309,7 +302,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: unit-test-${{ matrix.operating_system }}-${{ matrix.arch }}-reports
           path: "build/ut_*"
@@ -388,7 +381,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Parse distrib name
         id: parse-distrib
@@ -396,36 +389,44 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
 
+      - name: Compute Docker tag
+        id: docker-tag
+        uses: ./.github/actions/compute-docker-tag
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
       - name: Restore packages
         id: restore-packages
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-amd64-${{ github.head_ref || github.ref_name }}
 
       - name: Prepare packages directory
         if: steps.restore-packages.outputs.cache-hit == 'true'
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
         run: |
           ls -lh *.rpm
           mkdir packages-centreon
-          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-${{ needs.get-environment.outputs.major_version }}*.rpm packages-centreon/
+          mv centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-"${MAJOR_VERSION}"*.rpm packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
       - name: Login to registry
         if: steps.restore-packages.outputs.cache-hit == 'true'
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
           password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
 
-      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
         if: steps.restore-packages.outputs.cache-hit == 'true'
 
       - name: Build and push web image
         if: steps.restore-packages.outputs.cache-hit == 'true'
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         env:
           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
           DOCKER_BUILD_SUMMARY: false
@@ -440,10 +441,637 @@ jobs:
           pull: true
           push: true
           load: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.project }}-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.project }}-${{ matrix.distrib }}:${{ steps.docker-tag.outputs.tag }}
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
+  dockerize-engine-broker:
+    # Depends on robot-test (in addition to package) so this only runs once
+    # robot-test has passed or was skipped (no e2e-relevant changes) — never
+    # after a real failure — instead of racing ahead of it (MON-207531). This
+    # job alone doesn't guarantee the resulting image is validated:
+    # docker-boot-test/docker-config-wiring-test below are what actually gate
+    # version_tag and promote-docker-tag/promote-docker-to-ghcr.
+    needs: [get-environment, get-aws-environment, changes, package, robot-test]
+    if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(needs.get-environment.outputs.collect_matrix, 'trixie') &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      (
+        needs.get-environment.outputs.is_nightly == 'true' ||
+        contains(needs.get-environment.outputs.labels, 'build-docker-collect') ||
+        needs.get-environment.outputs.stability == 'testing'
+      ) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+
+    name: dockerize ${{ matrix.image }}-${{ matrix.distrib }}
+
+    # Matrix job outputs come from the last completed matrix leg. Safe here
+    # because compute-tag only depends on the ref/major_version, never on
+    # matrix.image or matrix.distrib, so every leg produces the same tag.
+    outputs:
+      image_tag: ${{ steps.compute-tag.outputs.tag }}
+      additional_tag: ${{ steps.compute-tag.outputs.additional_tag }}
+      version_tag: ${{ steps.compute-tag.outputs.version_tag }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore amd64 packages
+        id: restore-amd64
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ./*.deb
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+
+      - name: Restore arm64 packages
+        id: restore-arm64
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ./*.deb
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
+
+      - name: Fail if packages cache is missing
+        if: steps.restore-amd64.outputs.cache-hit != 'true' || steps.restore-arm64.outputs.cache-hit != 'true'
+        run: |
+          [[ "${{ steps.restore-amd64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No deb cache for ${{ matrix.distrib }} amd64 — ensure ${{ matrix.distrib }} amd64 is in collect_matrix (get-environment.yml)."
+          [[ "${{ steps.restore-arm64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No deb cache for ${{ matrix.distrib }} arm64 — ensure ${{ matrix.distrib }} arm64 is in collect_matrix (get-environment.yml)."
+          exit 1
+        shell: bash
+
+      - name: Prepare packages directory
+        run: |
+          mkdir -p packages-centreon/amd64 packages-centreon/arm64
+          for deb in centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd,connector-perl,connector-ssh}_${{ needs.get-environment.outputs.major_version }}*.deb; do
+            [[ ! -f "$deb" ]] && continue
+            if [[ "$deb" == *_amd64.deb ]]; then
+              mv "$deb" packages-centreon/amd64/
+            elif [[ "$deb" == *_arm64.deb ]]; then
+              mv "$deb" packages-centreon/arm64/
+            fi
+          done
+          ls -lhR packages-centreon/
+        shell: bash
+
+      - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Compute Docker tag
+        id: compute-tag
+        env:
+          RAW_REF: ${{ github.head_ref || github.ref_name }}
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          MINOR_VERSION: ${{ needs.get-environment.outputs.minor_version }}
+        run: |
+          if [[ "$RAW_REF" == "develop" ]]; then
+            echo "tag=develop-${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=develop" >> "$GITHUB_OUTPUT"
+          elif [[ "$RAW_REF" =~ ^dev-[0-9]+\.[0-9]+\.x$ ]]; then
+            echo "tag=${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=" >> "$GITHUB_OUTPUT"
+          else
+            docker_tag=$(printf '%s' "$RAW_REF" | sed -E 's#[^[:alnum:]_.-]+#-#g; s#^[.-]+##; s#-+#-#g' | cut -c1-128)
+            if [[ -z "$docker_tag" ]]; then
+              echo "::error::Unable to derive a valid Docker tag from ref '$RAW_REF'"
+              exit 1
+            fi
+            echo "tag=${docker_tag}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+          # On a release/hotfix branch (stability 'testing'), also tag with the
+          # deterministic target version (e.g. 26.10.5). promote-docker-to-ghcr
+          # pulls this exact tag on the eventual stable event — computed the same
+          # way from the same version file, so no release_type reconstruction is
+          # needed to find the candidate to promote.
+          if [[ "$RAW_REF" =~ ^(release|hotfix)-[0-9]+\.[0-9]+-next$ ]]; then
+            echo "version_tag=${MAJOR_VERSION}.${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version_tag=" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Compute build date
+        id: build-date
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        env:
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          file: .github/docker/${{ matrix.image }}/${{ matrix.distrib }}/Dockerfile
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            "VERSION=${{ needs.get-environment.outputs.major_version }}"
+            "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
+            "STABILITY=${{ needs.get-environment.outputs.stability }}"
+            "BUILD_DATE=${{ steps.build-date.outputs.date }}"
+            "BUILD_VERSION=${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}-${{ needs.get-environment.outputs.release }}"
+            "PACKAGE_SOURCES=centreon-collect ${{ matrix.image }} (Debian ${{ matrix.distrib }})"
+            "GIT_REVISION=${{ github.event.pull_request.head.sha || github.sha }}"
+          pull: true
+          push: ${{ github.event.pull_request.head.repo.fork != true }}
+          # Disabled: BuildKit's own attestation manifests would make this
+          # digest diverge from the ghcr.io one docker-push-to-ghcr.sh
+          # reconstructs later.
+          provenance: false
+          sbom: false
+          # version_tag is deliberately NOT pushed here: it's only applied by
+          # promote-docker-version-tag below, once docker-boot-test/
+          # docker-config-wiring-test have validated this exact image. Pushing
+          # it here (before those tests run) would let promote-docker-to-ghcr
+          # pick up an unvalidated candidate on a later, separate stable run.
+          tags: |
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ steps.compute-tag.outputs.tag }}
+          secrets: |
+            "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
+            "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
+      - name: Attest build provenance (deterministic candidate only)
+        # Only for builds with a version_tag (real promotion candidates).
+        # push-to-registry:false since ghcr.io doesn't have this image yet;
+        # discoverable later by digest once promoted.
+        if: steps.compute-tag.outputs.version_tag != ''
+        continue-on-error: true
+        id: attest-build-provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ghcr.io/centreon/${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: false
+          create-storage-record: false
+
+      - name: Warn if build provenance attestation failed
+        if: steps.attest-build-provenance.outcome == 'failure'
+        run: |
+          echo "::warning::Build provenance attestation failed for ${{ matrix.image }}-${{ matrix.distrib }}. Image build/delivery continues; investigate before relying on provenance verification for this version."
+        shell: bash
+
+  docker-boot-test:
+    needs: [get-environment, dockerize-engine-broker]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-engine-broker.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [trixie]
+        platform: [linux/amd64, linux/arm64]
+    name: docker boot test centreon-engine-${{ matrix.distrib }} (${{ matrix.platform }})
+    env:
+      ENGINE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-engine-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Set up QEMU
+        if: ${{ matrix.platform == 'linux/arm64' }}
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - name: Replace / with - in the platform name
+        id: platform-name
+        run: echo "dashed=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Pull image for ${{ matrix.platform }}
+        run: docker pull --platform "${{ matrix.platform }}" "$ENGINE_IMAGE"
+        shell: bash
+
+      - name: Run boot test
+        env:
+          IMAGE: ${{ env.ENGINE_IMAGE }}
+          PLATFORM: ${{ matrix.platform }}
+          SUMMARY_FRAGMENT_FILE: /tmp/summary-fragment.md
+        run: ./.github/scripts/centreon-engine-docker-boot-test.sh
+        shell: bash
+
+      - name: Upload summary fragment
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-summary-fragment-boot-${{ matrix.distrib }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/summary-fragment.md
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: centreon-engine-boot-test-${{ matrix.distrib }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/centreon-engine-boot-test.log
+          retention-days: 1
+
+  docker-config-wiring-test:
+    needs: [get-environment, dockerize-engine-broker]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-engine-broker.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [trixie]
+    name: docker config/wiring test centreon-engine-${{ matrix.distrib }}
+    env:
+      ENGINE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-engine-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Pull image
+        run: docker pull --platform linux/amd64 "$ENGINE_IMAGE"
+        shell: bash
+
+      - name: Run config/wiring test scenarios
+        env:
+          IMAGE: ${{ env.ENGINE_IMAGE }}
+          SUMMARY_FRAGMENT_FILE: /tmp/summary-fragment.md
+        run: ./.github/scripts/centreon-engine-docker-config-wiring-test.sh
+        shell: bash
+
+      - name: Upload summary fragment
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-summary-fragment-wiring-${{ matrix.distrib }}
+          path: /tmp/summary-fragment.md
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: centreon-engine-config-wiring-test-${{ matrix.distrib }}
+          path: /tmp/centreon-engine-config-wiring-test.log
+          retention-days: 1
+
+  docker-test-summary:
+    # Combines the docker-boot-test matrix (2 legs) and docker-config-wiring-test
+    # into ONE Step Summary block. GitHub renders one Step Summary block per job
+    # unconditionally, so merging what several jobs write is only possible from
+    # a downstream job that collects their output - not by changing what each
+    # job writes into its own summary. Keeps docker-boot-test/
+    # docker-config-wiring-test as separate parallel jobs (same speed, same
+    # per-leg pass/fail granularity as distinct PR checks); this job only
+    # affects the Summary tab.
+    needs: [get-environment, docker-boot-test, docker-config-wiring-test]
+    if: |
+      always() &&
+      needs.get-environment.result == 'success' &&
+      (needs.docker-boot-test.result != 'skipped' || needs.docker-config-wiring-test.result != 'skipped')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Download all summary fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: test-summary-fragment-*
+          path: fragments
+        continue-on-error: true
+
+      - name: Combine fragments into one Step Summary
+        run: |
+          {
+            echo "## Docker engine/broker test results"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          shopt -s nullglob
+          found=false
+          for frag in fragments/*/summary-fragment.md; do
+            found=true
+            cat "$frag" >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [ "$found" != "true" ]; then
+            echo "_No test summary fragments were found - the boot-test/wiring-test legs may have failed before producing a report; check their individual job logs._" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        shell: bash
+
+  docker-trivy-cves:
+    needs: [get-environment, dockerize-engine-broker]
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-engine-broker.result == 'success'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+    name: docker trivy cves ${{ matrix.image }}-${{ matrix.distrib }}
+    permissions:
+      contents: read
+    env:
+      SCAN_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Login to registry
+        if: ${{ github.event.pull_request.head.repo.fork != true }}
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Run Trivy CVE scan (informational)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: true
+          format: json
+          output: cve-report-${{ matrix.image }}-${{ matrix.distrib }}.json
+          exit-code: '0'
+
+      - name: Write CVE summary
+        env:
+          REPORT: cve-report-${{ matrix.image }}-${{ matrix.distrib }}.json
+          IMAGE: ${{ env.SCAN_IMAGE }}
+        run: |
+          count_sev() {
+            jq --arg sev "$1" '[.Results[]?.Vulnerabilities[]?] | group_by(.VulnerabilityID) | map(.[0]) | map(select(.Severity==$sev)) | length' "$REPORT"
+          }
+          badge() {
+            echo -n "![${1} ${2}](https://img.shields.io/badge/${1}-${2}-${3})"
+          }
+          critical=$(count_sev CRITICAL)
+          high=$(count_sev HIGH)
+          medium=$(count_sev MEDIUM)
+          low=$(count_sev LOW)
+          unknown=$(count_sev UNKNOWN)
+          {
+            echo "### Trivy CVE scan — ${{ matrix.image }}-${{ matrix.distrib }}"
+            echo
+            echo "_ignore-unfixed: true — counts below are fixable CVEs only (a fix is available upstream)._"
+            echo
+            echo "\`${IMAGE}\`"
+            echo
+            badge CRITICAL "$critical" 8b0000
+            echo -n ' '
+            badge HIGH "$high" e05d44
+            echo -n ' '
+            badge MEDIUM "$medium" fe7d37
+            echo -n ' '
+            badge LOW "$low" dfb317
+            echo -n ' '
+            badge UNKNOWN "$unknown" 9f9f9f
+            echo
+            echo
+            high_crit=$(( high + critical ))
+            if [ "$high_crit" -eq 0 ]; then
+              echo "No fixable CRITICAL/HIGH vulnerability found. ✅"
+            else
+              echo "**${high_crit} fixable CRITICAL/HIGH unique CVE(s)** — detail below."
+              echo
+              echo "| CVE | Severity | Status | Fixed version | Affected package(s) |"
+              echo "| --- | --- | --- | --- | --- |"
+              jq -r '
+                [.Results[]?.Vulnerabilities[]?] as $vulns |
+                ($vulns | group_by(.VulnerabilityID) | map({
+                  id: .[0].VulnerabilityID,
+                  severity: .[0].Severity,
+                  status: (.[0].Status // "affected"),
+                  fixed: ([.[].FixedVersion] | map(select(. != null and . != "")) | unique | join(", ")),
+                  pkgs: ([.[].PkgName] | unique | join(", "))
+                })) | map(select(.severity=="CRITICAL" or .severity=="HIGH")) | sort_by(.severity) | .[] |
+                "| [\(.id)](https://avd.aquasec.com/nvd/\(.id | ascii_downcase)) | \(.severity) | \(.status) | \(if .fixed == "" then "—" else .fixed end) | \(.pkgs) |"
+              ' "$REPORT"
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+      - name: Upload CVE report artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: cve-report-${{ matrix.image }}-${{ matrix.distrib }}
+          path: cve-report-*.json
+          retention-days: 30
+
+      - name: Generate SBOM (CycloneDX format)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          format: cyclonedx
+          output: sbom-${{ matrix.image }}-${{ matrix.distrib }}-cyclonedx.json
+
+      - name: Generate SBOM (SPDX format)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.SCAN_IMAGE }}
+          format: spdx-json
+          output: sbom-${{ matrix.image }}-${{ matrix.distrib }}-spdx.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: sbom-${{ matrix.image }}-${{ matrix.distrib }}
+          path: sbom-*.json
+          retention-days: 30
+
+      - name: Trivy info message
+        env:
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
+        run: |
+          if [[ "$STABILITY" == "stable" ]]; then
+            echo "::notice::Trivy CVE scan complete (stable build). Review critical/high CVEs above; consider resolving before Pulp promotion."
+          else
+            echo "::notice::Trivy CVE scan complete (unstable build). SBOMs uploaded as artifacts for audit trail."
+          fi
+        shell: bash
+
+  promote-docker-tag:
+    # Handles both mutually-exclusive cases produced by "Compute Docker tag":
+    # the develop floating tag (additional_tag) and the deterministic
+    # release/hotfix version tag (version_tag) — one job, one mechanism,
+    # instead of two near-identical jobs. Only reached after
+    # docker-boot-test/docker-config-wiring-test have both passed for this
+    # exact image — promote-docker-to-ghcr looks up version_tag on the
+    # eventual stable release (a separate, later run), so it must never point
+    # at an image whose own container e2e tests failed.
+    needs:
+      [
+        get-environment,
+        dockerize-engine-broker,
+        docker-boot-test,
+        docker-config-wiring-test,
+        docker-trivy-cves,
+      ]
+    if: |
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      (needs.dockerize-engine-broker.outputs.additional_tag != '' || needs.dockerize-engine-broker.outputs.version_tag != '')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+    name: promote ${{ matrix.image }}-${{ matrix.distrib }} validated tag
+    steps:
+      - name: Login to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Promote validated tag (manifest retag, no rebuild)
+        env:
+          IMAGE_BASE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}
+          SOURCE_TAG: ${{ needs.dockerize-engine-broker.outputs.image_tag }}
+          TARGET_TAG: ${{ needs.dockerize-engine-broker.outputs.additional_tag || needs.dockerize-engine-broker.outputs.version_tag }}
+        run: |
+          docker buildx imagetools create \
+            --tag "$IMAGE_BASE:$TARGET_TAG" \
+            "$IMAGE_BASE:$SOURCE_TAG"
+        shell: bash
+
+  promote-docker-to-ghcr:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability == 'stable' &&
+      github.event_name != 'workflow_dispatch' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect' &&
+      needs.get-environment.outputs.is_cloud == 'false'
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+    name: promote ${{ matrix.image }}-${{ matrix.distrib }} to ghcr.io stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Login to Harbor registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Promote to ghcr.io stable (best-effort, non-blocking)
+        # Fails hard if no Harbor candidate is found under the deterministic
+        # version_tag from dockerize-engine-broker (only produced after
+        # robot-test passed) or if the ghcr.io push itself fails —
+        # continue-on-error swallows that into a warning below, mirroring how
+        # promote-to-stable-pulp is called. Deliberately no fallback to the
+        # legacy release_type-based tag: that tag is written at build time,
+        # before container e2e tests run, so it's never a validated candidate.
+        continue-on-error: true
+        id: promote-ghcr
+        uses: ./.github/actions/promote-docker-to-ghcr
+        with:
+          ghcr_image: ghcr.io/centreon/${{ matrix.image }}
+          harbor_image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}
+          harbor_tag: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
+          ghcr_tags: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }} ${{ needs.get-environment.outputs.major_version }}
+          platforms: linux/amd64,linux/arm64
+
+      - name: Warn if ghcr.io stable delivery failed
+        if: steps.promote-ghcr.outcome == 'failure'
+        run: |
+          echo "::warning::ghcr.io delivery failed for ${{ matrix.image }}-${{ matrix.distrib }}. This release is available on Harbor but was NOT published to ghcr.io — see the 'Promote to ghcr.io stable' step for the missing-candidate or push error, and investigate before relying on public delivery for this version."
+        shell: bash
+
+      - name: Attest SBOM on ghcr.io (best-effort, non-blocking)
+        if: steps.promote-ghcr.outcome == 'success' && steps.promote-ghcr.outputs.digest != ''
+        continue-on-error: true
+        id: attest-ghcr
+        uses: ./.github/actions/attest-ghcr-image
+        with:
+          ghcr_image: ghcr.io/centreon/${{ matrix.image }}
+          digest: ${{ steps.promote-ghcr.outputs.digest }}
+          amd64_digest: ${{ steps.promote-ghcr.outputs.amd64_digest }}
+          arm64_digest: ${{ steps.promote-ghcr.outputs.arm64_digest }}
+
+      - name: Warn if ghcr.io attestation failed
+        if: steps.attest-ghcr.outcome == 'failure'
+        run: |
+          echo "::warning::SBOM attestation failed for ${{ matrix.image }}-${{ matrix.distrib }}. The image WAS published to ghcr.io but is unattested — see the 'Attest SBOM on ghcr.io' step and investigate before relying on gh attestation verify for this version."
+        shell: bash
 
   robot-test:
     needs: [get-environment, get-aws-environment, changes, package]
@@ -451,6 +1079,7 @@ jobs:
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
+      ! contains(needs.get-environment.outputs.labels, 'build-docker-collect') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -497,7 +1126,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: centreon-collect
 
@@ -523,21 +1152,21 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - distrib: el8
-            arch: amd64
           - distrib: el9
+            arch: amd64
+          - distrib: el10
             arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Publish RPM packages
         uses: ./.github/actions/rpm-delivery
@@ -553,6 +1182,53 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
+  deliver-rpm-pulp:
+    if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    needs: [get-environment, changes, robot-test]
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: el9
+            arch: amd64
+          - distrib: el10
+            arch: amd64
+
+    name: deliver ${{ matrix.distrib }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_rpm_pulp
+        uses: ./.github/actions/package-delivery-pulp
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
   deliver-deb:
     if: |
       needs.changes.outputs.trigger_delivery == 'true' &&
@@ -565,21 +1241,21 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - distrib: bookworm
+          - distrib: trixie
             arch: amd64
-          - distrib: bookworm
+          - distrib: trixie
             arch: arm64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Publish DEB packages
         uses: ./.github/actions/deb-delivery
@@ -593,25 +1269,71 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+  deliver-deb-pulp:
+    if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect' &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+
+    needs: [get-environment, changes, robot-test]
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: trixie
+            arch: amd64
+          - distrib: trixie
+            arch: arm64
+
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_deb_pulp
+        uses: ./.github/actions/package-delivery-pulp
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -626,6 +1348,43 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+  promote-pulp:
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [el9, el10, trixie]
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Promote ${{ matrix.distrib }} to stable on Pulp
+        id: promote_pulp
+        uses: ./.github/actions/promote-to-stable-pulp
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, promote]
     if: |
@@ -637,7 +1396,7 @@ jobs:
 
   clear-branch-cache:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-deb, deliver-rpm]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     env:
       GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     if: |
@@ -647,11 +1406,13 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: List and delete cache
+        env:
+          GH_REF_NAME: ${{ github.ref_name }}
         run: |
-          mapfile -t cache_keys < <(gh cache list --ref refs/heads/${{ github.ref_name }} --json key -q '.[] | .key')
+          mapfile -t cache_keys < <(gh cache list --ref "refs/heads/$GH_REF_NAME" --json key -q '.[] | .key')
           echo $cache_keys
           while read row; do
             gh cache delete $row
@@ -669,7 +1430,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Create Jira ticket based on nightly build failure
         uses: ./.github/actions/create-jira-ticket

@@ -61,6 +61,7 @@ sub register {
     # https://docs.mojolicious.org/Mojo/Transaction/WebSocket#max_websocket_size
     $config->{max_msg_size} = 130_000
         if (!defined($config->{max_msg_size}) || $config->{max_msg_size} !~ /\d+/);
+    $config->{central_uri} = "/" if ( ! $config->{central_uri});
 
     return ($loaded, NAMESPACE, NAME, EVENTS);
 }

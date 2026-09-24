@@ -39,6 +39,7 @@ class factory : public http_tsdb::factory {
   factory(factory const&) = delete;
   ~factory() = default;
   factory& operator=(factory const& other) = delete;
+  void set_default_values(config::endpoint& cfg) const override;
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const std::map<std::string, std::string>& global_params,

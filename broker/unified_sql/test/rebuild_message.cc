@@ -23,7 +23,6 @@
 #include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"

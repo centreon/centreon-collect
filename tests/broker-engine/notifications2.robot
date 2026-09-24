@@ -764,6 +764,7 @@ not18
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -790,6 +791,9 @@ not18
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
 
+    #let time to first check to be done in order to not do following checks at the same timestamp
+    Sleep    5
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -805,6 +809,7 @@ not18
 not19
     [Documentation]    notification delay where first notification delay greater than retry check 
     [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Retention
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Engine Config Set Value    0    interval_length    1    True
@@ -832,6 +837,9 @@ not19
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
 
+    #let time to first check to be done in order to not do following checks at the same timestamp
+    Sleep    5
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -845,10 +853,11 @@ not19
     Ctn Kindly Stop Broker
 
 not20
-    [Documentation]    notification delay where first notification delay samller than retry check
+    [Documentation]    notification delay where first notification delay smaller than retry check
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -873,6 +882,9 @@ not20
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    #let time to first check to be done in order to not do following checks at the same timestamp
+    Sleep    5
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 

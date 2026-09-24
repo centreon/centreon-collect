@@ -226,12 +226,14 @@ void stream::_update_stats() {
                     d = fmt::format("{}s", sec);
                   s->set_file_expected_terminated_in(d);
 
+                  std::tm tm{};
+                  localtime_r(&terminated, &tm);
                   log_v2::instance()
                       .get(log_v2::CORE)
                       ->info(
                           "Retention file will be terminated at {:%Y-%m-%d "
                           "%H:%M:%S}",
-                          fmt::localtime(terminated));
+                          tm);
                 }
               } else
                 s->set_file_expected_terminated_at(

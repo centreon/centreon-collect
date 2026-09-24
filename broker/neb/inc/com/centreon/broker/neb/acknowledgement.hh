@@ -60,7 +60,7 @@ class acknowledgement : public io::data {
   bool notify_contacts;
   bool notify_only_if_not_already_acknowledged;
   bool persistent_comment;
-  uint32_t poller_id;
+  uint64_t poller_id;
   uint32_t service_id;
   short state;
 

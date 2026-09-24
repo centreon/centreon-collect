@@ -37,7 +37,7 @@ using namespace com::centreon::broker::storage;
  *
  *  @param[in] instance_id Instance ID to remove.
  */
-void conflict_manager::_clean_tables(uint32_t instance_id) {
+void conflict_manager::_clean_tables(uint64_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
     std::lock_guard<std::mutex> l(_group_clean_timer_m);
@@ -104,11 +104,15 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
   // Cancellation of downtimes.
   _logger_sql->debug("SQL: Cancellation of downtimes (instance_id: {})",
                      instance_id);
+  /* A cancelled downtime must also be terminated: leaving actual_end_time NULL
+   * makes every consumer (BAM in_downtime computation, availability reporting)
+   * consider the downtime still running forever. */
   query = fmt::format(
-      "UPDATE downtimes SET cancelled=1 WHERE actual_end_time IS NULL AND "
-      "cancelled=0 "
+      "UPDATE downtimes SET cancelled=1,actual_end_time={},deletion_time={} "
+      "WHERE "
+      "actual_end_time IS NULL AND cancelled=0 "
       "AND instance_id={}",
-      instance_id);
+      time(nullptr), time(nullptr), instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, conn);
   _add_action(conn, actions::downtimes);
@@ -184,9 +188,7 @@ void conflict_manager::_update_hosts_and_services_of_unresponsive_instances() {
     return;
 
   /* Update unresponsive instances which were responsive */
-  for (std::unordered_map<uint32_t, stored_timestamp>::iterator
-           it = _stored_timestamps.begin(),
-           end = _stored_timestamps.end();
+  for (auto it = _stored_timestamps.begin(), end = _stored_timestamps.end();
        it != end; ++it) {
     if (it->second.get_state() == stored_timestamp::responsive &&
         it->second.timestamp_outdated(_instance_timeout)) {
@@ -197,9 +199,7 @@ void conflict_manager::_update_hosts_and_services_of_unresponsive_instances() {
 
   // Update new oldest timestamp
   _oldest_timestamp = timestamp(std::numeric_limits<time_t>::max());
-  for (std::unordered_map<uint32_t, stored_timestamp>::iterator
-           it = _stored_timestamps.begin(),
-           end = _stored_timestamps.end();
+  for (auto it = _stored_timestamps.begin(), end = _stored_timestamps.end();
        it != end; ++it) {
     if (it->second.get_state() == stored_timestamp::responsive &&
         _oldest_timestamp > it->second.get_timestamp())
@@ -213,7 +213,7 @@ void conflict_manager::_update_hosts_and_services_of_unresponsive_instances() {
  *  @param[in] id         The instance id.
  *  @param[in] responsive True if the instance is responsive, false otherwise.
  */
-void conflict_manager::_update_hosts_and_services_of_instance(uint32_t id,
+void conflict_manager::_update_hosts_and_services_of_instance(uint64_t id,
                                                               bool responsive) {
   int32_t conn = _mysql.choose_connection_by_instance(id);
   _finish_action(conn, actions::hosts);
@@ -259,12 +259,11 @@ void conflict_manager::_update_hosts_and_services_of_instance(uint32_t id,
  *
  *  @param instance_id The id of the instance to have its timestamp updated.
  */
-void conflict_manager::_update_timestamp(uint32_t instance_id) {
+void conflict_manager::_update_timestamp(uint64_t instance_id) {
   stored_timestamp::state_type s{stored_timestamp::responsive};
 
   // Find the state of an existing timestamp if it exists.
-  std::unordered_map<uint32_t, stored_timestamp>::iterator found =
-      _stored_timestamps.find(instance_id);
+  auto found = _stored_timestamps.find(instance_id);
   if (found != _stored_timestamps.end()) {
     s = found->second.get_state();
 
@@ -282,7 +281,7 @@ void conflict_manager::_update_timestamp(uint32_t instance_id) {
     _oldest_timestamp = timestamp.get_timestamp();
 }
 
-bool conflict_manager::_is_valid_poller(uint32_t instance_id) {
+bool conflict_manager::_is_valid_poller(uint64_t instance_id) {
   /* Check if the poller of id instance_id is deleted. */
   bool deleted = false;
   if (_cache_deleted_instance_id.find(instance_id) !=

@@ -33,8 +33,8 @@ TEST(graphiteFactory, HasEndpoint) {
   cfg.type = "graphite";
   ASSERT_TRUE(fact.has_endpoint(cfg, nullptr));
   fact.set_default_values(cfg);
-  ASSERT_EQ(cfg.cache_enabled, true);
-  ASSERT_EQ(cfg.params["cache"], "yes");
+  ASSERT_EQ(cfg.cache_enabled, false);
+  ASSERT_EQ(cfg.params["cache"], "no");
 }
 
 TEST(graphiteFactory, MissingParams) {

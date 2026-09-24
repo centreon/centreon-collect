@@ -21,7 +21,10 @@
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+#include <boost/asio.hpp>
 #include <deque>
 #include <list>
+
+namespace asio = boost::asio;
 
 #endif /* !CC_CORE_BBDO_PRECOMP_HH */

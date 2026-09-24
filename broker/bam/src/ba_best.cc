@@ -178,26 +178,25 @@ void ba_best::_unapply_impact(kpi* kpi_ptr,
  */
 std::string ba_best::get_output() const {
   state state = get_state_hard();
-  std::string retval;
   switch (state) {
     case state_unknown:
-      retval =
-          "Status is UNKNOWN - All KPIs are in an UNKNOWN state or worse "
-          "(WARNING or CRITICAL)";
+      return output_begin() +
+             "All KPIs are in an UNKNOWN state or worse "
+             "(WARNING or CRITICAL)";
       break;
     case state_ok:
-      retval = "Status is OK - At least one KPI is in an OK state";
+      return output_begin() + "At least one KPI is in an OK state";
       break;
     case state_warning:
-      retval =
-          "Status is WARNING - All KPIs are in a WARNING state or worse "
-          "(CRITICAL)";
+      return output_begin() +
+             "All KPIs are in a WARNING state or worse "
+             "(CRITICAL)";
       break;
     case state_critical:
-      retval = "Status is CRITICAL - All KPIs are in a CRITICAL state";
+      return output_begin() + "All KPIs are in a CRITICAL state";
       break;
   }
-  return retval;
+  return {};
 }
 
 /**

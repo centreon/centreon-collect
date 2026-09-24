@@ -29,28 +29,6 @@
                 "neb": "error"
             }
         },
-        "output": [
-            {
-                "name": "central-module-master-output",
-                "port": "5669",
-                "host": "localhost",
-                "protocol": "bbdo",
-                "tls": "no",
-                "negotiation": "yes",
-                "buffering_timeout": "0",
-                "retry_interval": "60",
-                "one_peer_retention_mode": "no",
-                "compression": "no",
-                "type": "ipv4"
-            }
-        ],
-        "stats": [
-            {
-                "type": "stats",
-                "name": "central-rrd-stats",
-                "json_fifo": "@ENGINE_VAR_LIB_DIR@/central-module-master-stats.json"
-            }
-        ],
         "grpc": {
             "port": 51003
         }

@@ -179,7 +179,7 @@ bool check::_start_check(const duration& timeout) {
     return false;
   }
   _running_check = true;
-  _start_timeout_timer(timeout);
+  _start_timeout_timer(_custom_timeout.value_or(timeout));
   SPDLOG_LOGGER_TRACE(_logger, "start check for service {}",
                       _service.service_description());
 

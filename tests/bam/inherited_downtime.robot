@@ -367,5 +367,5 @@ Ctn BAM Setup
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
     Execute SQL String
-    ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
+    ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE deletion_time IS NULL
     Disconnect From Database

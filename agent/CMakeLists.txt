@@ -90,19 +90,23 @@ endforeach()
 #centagent server and client
 add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
+          ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
   COMMENT "Generating interface files from the conf centagent proto file (grpc)"
   OUTPUT ${SRC_DIR}/agent.grpc.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${PROJECT_SOURCE_DIR}/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
     --grpc_out=${SRC_DIR} ${PROJECT_SOURCE_DIR}/proto/agent.proto
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
+          ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
   COMMENT "Generating interface files from the conf centagent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/agent.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${PROJECT_SOURCE_DIR}/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
     ${PROJECT_SOURCE_DIR}/proto/agent.proto
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -131,6 +135,7 @@ set( SRC_COMMON
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
+  ${SRC_DIR}/grpc_ca_bootstrap.cc
   ${SRC_DIR}/check_health.cc
   ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
@@ -173,7 +178,7 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SRC ${SRC_COMMON} ${SRC_LINUX} )
+  set(SRC ${SRC_COMMON} ${SRC_LINUX} ${SRC_PB_OTEL} )
 else()
   add_compile_options("/wd5232")
   set(SRC ${SRC_COMMON} ${SRC_WINDOWS} ${SRC_PB_OTEL})
@@ -193,6 +198,8 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
   ${CMAKE_SOURCE_DIR}/common/process/inc
+  ${CMAKE_BINARY_DIR}
+  ${CMAKE_BINARY_DIR}/common/engine_conf
 )
 
 target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
@@ -200,7 +207,7 @@ target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
 SET(CENTREON_AGENT centagent)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_dependencies(centagent_lib pb_open_telemetry_lib)
+  add_dependencies(centagent_lib pb_open_telemetry_lib target_timeperiod_proto)
 
   add_executable(${CENTREON_AGENT} ${SRC_DIR}/main.cc)
 
@@ -211,24 +218,31 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     -Wl,--no-whole-archive
     absl::any absl::log absl::base absl::bits
     centagent_lib
+    centreon_common_timeperiod
     centreon_common
     centreon_grpc
     centreon_process
-    pb_open_telemetry_lib
+    centreon_hexdump
+    centreon_file_system
     ctncrypto
     Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)
 else()
+  add_dependencies(centagent_lib target_timeperiod_proto)
+
   add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc  ${SRC_DIR}/agent.rc)
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
     centagent_lib
+    centreon_common_timeperiod
     centreon_common
     centreon_grpc
     centreon_process
+    centreon_hexdump
+    centreon_file_system
     ctncrypto
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits
@@ -237,6 +251,7 @@ else()
     fmt::fmt
     pdh
     taskschd
+    Crypt32
     Version.lib)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")

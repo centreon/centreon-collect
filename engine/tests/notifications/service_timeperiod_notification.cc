@@ -146,12 +146,8 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(15000, 38000);
-    list_time.emplace_back(65000, 85000);
-    tperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tperiod.get(),
+                                     {{15000, 38000}, {65000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(1);
@@ -257,11 +253,7 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
   se_aply.add_object(se);
   se_aply.expand_objects(pb_config);
   se_aply.resolve_object(se, err);
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(35000, 85000);
-    tperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tperiod.get(), {{35000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(0);
@@ -370,12 +362,8 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodOut) {
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(1000, 15000);
-    list_time.emplace_back(80000, 85000);
-    tperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tperiod.get(),
+                                     {{1000, 15000}, {80000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(1);
@@ -498,11 +486,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(8000, 85000);
-    tiperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tiperiod.get(), {{8000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(1);
@@ -625,11 +609,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(8000, 85000);
-    tiperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tiperiod.get(), {{8000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(1);
@@ -752,11 +732,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(8000, 85000);
-    tiperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tiperiod.get(), {{8000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(1);
@@ -872,11 +848,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(8000, 85000);
-    tiperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tiperiod.get(), {{8000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(1);
@@ -991,11 +963,7 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodUser) {
   se_aply.resolve_object(se, err);
 
   // uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i) {
-    timerange_list list_time;
-    list_time.emplace_back(8000, 85000);
-    tiperiod->days[i] = list_time;
-  }
+  apply_same_timeranges_to_every_day(tiperiod.get(), {{8000, 85000}});
 
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_notification_interval(1);

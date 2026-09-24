@@ -20,6 +20,7 @@
 
 import json
 import re
+import time
 
 
 def ctn_get_host_cache_info(log_file_path: str, host_id: int):
@@ -72,7 +73,7 @@ def ctn_get_hostgroup_cache_info(log_file_path: str, hostgroup_id: int):
     return last
 
 
-def ctn_get_service_cache_info(log_file_path: str, service_id: int):
+def ctn_get_service_cache_info(log_file_path: str, service_id: int, timeout: int = 0):
     """
     Find last line like serv 1 : { "host_id" : "1", "serv_id" : "1", "name" : "serv_1","servgroups" : .....
     These lines are produced by dump_service.lua
@@ -80,21 +81,29 @@ def ctn_get_service_cache_info(log_file_path: str, service_id: int):
     Args:
         log_file_path (str): log file path
         service_id:
+        timeout (int): max seconds to wait for the entry to appear. 0 means no retry.
     Returns:
-        Data of the json string as a python object 
+        Data of the json string as a python object
     """
-    with open(log_file_path) as f:
-        lines = f.readlines()
-
     search_pattern = re.compile(
         rf"^.*INFO:\s*serv\s*{service_id}\s*:\s*({{.*}})$")
 
-    last = {}
-    for line in lines:
-        m = search_pattern.search(line)
-        if m is not None:
-            last = json.loads(m.group(1))
-    return last
+    deadline = time.time() + timeout
+    while True:
+        try:
+            with open(log_file_path) as f:
+                lines = f.readlines()
+            last = {}
+            for line in lines:
+                m = search_pattern.search(line)
+                if m is not None:
+                    last = json.loads(m.group(1))
+            if last or time.time() >= deadline:
+                return last
+        except FileNotFoundError:
+            if time.time() >= deadline:
+                return {}
+        time.sleep(1)
 
 
 def ctn_get_servgroup_cache_info(log_file_path: str, group_id: int):

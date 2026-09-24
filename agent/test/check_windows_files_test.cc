@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include <random>
+
 #include <gtest/gtest.h>
 #include <re2/re2.h>
 
@@ -131,7 +133,7 @@ TEST_F(check_files_test, default_behavior) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         complete = true;
         output = outputs.front();
       },
@@ -139,7 +141,7 @@ TEST_F(check_files_test, default_behavior) {
 
   checker->start_check(std::chrono::seconds(20));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   re2::RE2 ok_regex(R"(OK: All \d+ files are ok)");
@@ -176,7 +178,7 @@ TEST_F(check_files_test, test_filter) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         complete = true;
         output = outputs.front();
       },
@@ -184,7 +186,7 @@ TEST_F(check_files_test, test_filter) {
 
   checker->start_check(std::chrono::seconds(20));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   // Should only list files > 1k (output should not mention "Empty" unless none
@@ -248,7 +250,7 @@ TEST_F(check_files_test, warning_status) {
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
-          absl::MutexLock lck(&wait_m);
+          absl::MutexLock lck(wait_m);
           complete = true;
           output = outputs.front();
         },
@@ -256,7 +258,7 @@ TEST_F(check_files_test, warning_status) {
 
     checker->start_check(std::chrono::seconds(20));
 
-    absl::MutexLock lck(&wait_m);
+    absl::MutexLock lck(wait_m);
     wait_m.Await(absl::Condition(&is_complete));
 
     ASSERT_NE(output.find("WARNING:"), std::string::npos);
@@ -312,7 +314,7 @@ TEST_F(check_files_test, critical_status) {
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
-          absl::MutexLock lck(&wait_m);
+          absl::MutexLock lck(wait_m);
           complete = true;
           output = outputs.front();
         },
@@ -320,7 +322,7 @@ TEST_F(check_files_test, critical_status) {
 
     checker->start_check(std::chrono::seconds(120));
 
-    absl::MutexLock lck(&wait_m);
+    absl::MutexLock lck(wait_m);
     wait_m.Await(absl::Condition(&is_complete));
 
     ASSERT_NE(output.find("CRITICAL:"), std::string::npos);
@@ -375,7 +377,7 @@ TEST_F(check_files_test, ok_status) {
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
-          absl::MutexLock lck(&wait_m);
+          absl::MutexLock lck(wait_m);
           complete = true;
           output = outputs.front();
         },
@@ -383,7 +385,7 @@ TEST_F(check_files_test, ok_status) {
 
     checker->start_check(std::chrono::seconds(120));
 
-    absl::MutexLock lck(&wait_m);
+    absl::MutexLock lck(wait_m);
     wait_m.Await(absl::Condition(&is_complete));
 
     ASSERT_NE(output.find("OK:"), std::string::npos);
@@ -419,7 +421,7 @@ TEST_F(check_files_test, version) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         complete = true;
         output = outputs.front();
       },
@@ -427,7 +429,7 @@ TEST_F(check_files_test, version) {
 
   checker->start_check(std::chrono::seconds(120));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
   if (output.find("Timeout at execution") == std::string::npos) {
     ASSERT_NE(output.find("OK: cmd.exe: "), std::string::npos)
@@ -523,7 +525,7 @@ TEST_F(check_files_test, regex_failures) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         complete = true;
         output = outputs.front();
       },
@@ -531,7 +533,7 @@ TEST_F(check_files_test, regex_failures) {
 
   checker->start_check(std::chrono::seconds(120));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   // Expect an error due to invalid regex pattern
@@ -578,7 +580,7 @@ TEST_F(check_files_test, pattern_matching) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         complete = true;
         output = outputs.front();
       },
@@ -586,7 +588,7 @@ TEST_F(check_files_test, pattern_matching) {
 
   checker->start_check(std::chrono::seconds(120));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_TRUE(output.starts_with("OK: "))
@@ -647,7 +649,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
                 perfdata,
             [[maybe_unused]] const std::list<std::string>& outputs) {
-          absl::MutexLock lck(&wait_m);
+          absl::MutexLock lck(wait_m);
           complete = true;
           output = outputs.front();
         },
@@ -657,7 +659,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
     checker.reset();  // Reset the checker to ensure it is deleted
   }
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   re2::RE2 ok_regex(R"(OK: All \d+ files are ok)");
@@ -702,7 +704,7 @@ TEST_F(check_files_test, two_checks_same_path) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         complete = true;
         output = outputs.front();
       },
@@ -744,4 +746,83 @@ TEST_F(check_files_test, two_checks_same_path) {
 
   // check if a change of lines is detected
   ASSERT_EQ(number_lines + 20, new_number_lines);
+}
+
+// the status must be re-evaluated on every check.
+// A "critical-status": "count > 0" check must go CRITICAL when a matching file
+// appears and go back to OK once that file is removed. Before the fix the
+// filter metadata map was never cleared, so a deleted file lingered and the
+// check stayed CRITICAL forever.
+TEST_F(check_files_test, status_updates_when_file_added_and_removed) {
+  namespace fs = std::filesystem;
+
+  fs::path dir = fs::temp_directory_path() / "check_files_add_remove_fixture";
+  fs::remove_all(dir);
+  fs::create_directories(dir);
+  fs::path watched = dir / "test.txt";
+
+  std::string json_str = fmt::format(R"cfg({{
+    "path": "{}",
+    "max-depth": 0,
+    "pattern": "test.txt",
+    "critical-status": "count > 0",
+    "output-syntax": "${{status}}: ${{problem_count}}/${{count}} files (${{problem_list}})",
+    "ok-syntax": "${{status}}: ${{ok_count}} files found",
+    "verbose": false
+  }})cfg",
+                                     dir.generic_string());
+
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
+
+  absl::Mutex wait_m;
+  std::string output;
+  int status = -1;
+  bool complete = false;
+
+  auto is_complete = [&]() { return complete; };
+
+  auto checker = std::make_shared<check_files>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, check_args, nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller, int st,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          const std::list<std::string>& outputs) {
+        absl::MutexLock lck(wait_m);
+        complete = true;
+        status = st;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  auto run_one_check = [&]() {
+    {
+      absl::MutexLock lk(&wait_m);
+      complete = false;
+    }
+    checker->start_check(std::chrono::seconds(20));
+    absl::MutexLock lk(&wait_m);
+    wait_m.Await(absl::Condition(&is_complete));
+  };
+
+  // 1) no matching file yet -> OK
+  run_one_check();
+  EXPECT_EQ(status, e_status::ok)
+      << "expected OK when no file is present, got: " << output;
+
+  // 2) create the file -> count > 0 -> CRITICAL
+  { std::ofstream(watched) << "hello\n"; }
+  run_one_check();
+  EXPECT_EQ(status, e_status::critical)
+      << "expected CRITICAL once the file exists, got: " << output;
+
+  // 3) remove the file -> status must return to OK
+  fs::remove(watched);
+  run_one_check();
+  EXPECT_EQ(status, e_status::ok)
+      << "expected OK after the file is removed, got: " << output;
+
+  fs::remove_all(dir);
 }

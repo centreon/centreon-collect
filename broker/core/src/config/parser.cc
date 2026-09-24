@@ -180,6 +180,7 @@ state parser::parse(std::string const& file, bool neb_module) {
     if (json_document.is_object() &&
         json_document["centreonBroker"].is_object()) {
       std::string module;
+      bool uid_set = false;
       for (auto it = json_document["centreonBroker"].begin();
            it != json_document["centreonBroker"].end(); ++it) {
         if (it.key() == "command_file" && it.value().is_object())
@@ -244,12 +245,26 @@ state parser::parse(std::string const& file, bool neb_module) {
                                    retval, &state::broker_name,
                                    &json::is_string))
           ;
-        else if (get_conf<int, state>({it.key(), it.value()}, "poller_id",
-                                      retval, &state::poller_id,
-                                      &json::is_number, &json::get<int>))
-          ;
-        else if (get_conf<state>({it.key(), it.value()}, "poller_name", retval,
-                                 &state::poller_name, &json::is_string))
+        else if (it.key() == "uid") {
+          const json& v = it.value();
+          if (v.is_number()) {
+            retval.poller_id(v.get<uint64_t>());
+            uid_set = true;
+          } else
+            throw msg_fmt(
+                "config parser: cannot parse key 'uid': value must be a "
+                "64-bit integer");
+        } else if (it.key() == "poller_id" && !uid_set) {
+          const json& v = it.value();
+          if (v.is_number())
+            retval.poller_id(static_cast<uint64_t>(v.get<int64_t>()));
+          else
+            throw msg_fmt(
+                "config parser: cannot parse key 'poller_id': value must be "
+                "an integer");
+        } else if (get_conf<state>({it.key(), it.value()}, "poller_name",
+                                   retval, &state::poller_name,
+                                   &json::is_string))
           ;
         else if (get_conf<state>({it.key(), it.value()}, "module_directory",
                                  retval, &state::module_directory,
@@ -360,7 +375,6 @@ state parser::parse(std::string const& file, bool neb_module) {
             throw msg_fmt(
                 "config parser: cannot parse key '"
                 "'input':  value type must be an object");
-
         } else if (it.key() == "log") {
           if (!it.value().is_object())
             throw msg_fmt(

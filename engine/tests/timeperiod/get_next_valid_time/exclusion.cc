@@ -39,7 +39,7 @@ class GetNextValidTimeExclusionTest : public ::testing::Test {
 
   void calendar_date_full_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_calendar_date(2016, 10, 24, 2016, 10, 24));
+    configuration::Daterange* dr(_creator.new_calendar_date(2016, 10, 24, 2016, 10, 24));
 
     _creator.new_timerange(0, 0, 24, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
@@ -47,42 +47,42 @@ class GetNextValidTimeExclusionTest : public ::testing::Test {
 
   void calendar_date_partial_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_calendar_date(2016, 10, 24, 2016, 10, 30));
+    configuration::Daterange* dr(_creator.new_calendar_date(2016, 10, 24, 2016, 10, 30));
     _creator.new_timerange(8, 0, 9, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
   }
 
   void specific_month_date_full_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_specific_month_date(10, 24, 10, 25));
+    configuration::Daterange* dr(_creator.new_specific_month_date(10, 24, 10, 25));
     _creator.new_timerange(0, 0, 24, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
   }
 
   void specific_month_date_partial_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_specific_month_date(10, 24, 10, 28));
+    configuration::Daterange* dr(_creator.new_specific_month_date(10, 24, 10, 28));
     _creator.new_timerange(8, 0, 10, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
   }
 
   void generic_month_date_full_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_generic_month_date(24, 26));
+    configuration::Daterange* dr(_creator.new_generic_month_date(24, 26));
     _creator.new_timerange(0, 0, 24, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
   }
 
   void generic_month_date_partial_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_generic_month_date(24, 29));
+    configuration::Daterange* dr(_creator.new_generic_month_date(24, 29));
     _creator.new_timerange(8, 0, 11, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
   }
 
   void offset_weekday_of_specific_month_full_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(
+    configuration::Daterange* dr(
         _creator.new_offset_weekday_of_specific_month(10, 4, -1, 10, 0, -1));
     _creator.new_timerange(0, 0, 24, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
@@ -90,7 +90,7 @@ class GetNextValidTimeExclusionTest : public ::testing::Test {
 
   void offset_weekday_of_specific_month_partial_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(
+    configuration::Daterange* dr(
         _creator.new_offset_weekday_of_specific_month(10, 4, -1, 10, 0, -1));
     _creator.new_timerange(8, 0, 12, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
@@ -98,14 +98,14 @@ class GetNextValidTimeExclusionTest : public ::testing::Test {
 
   void offset_weekday_of_generic_month_full_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_offset_weekday_of_generic_month(4, -1, 1, -1));
+    configuration::Daterange* dr(_creator.new_offset_weekday_of_generic_month(4, -1, 1, -1));
     _creator.new_timerange(0, 0, 24, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
   }
 
   void offset_weekday_of_generic_month_partial_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_offset_weekday_of_generic_month(4, -1, 1, -1));
+    configuration::Daterange* dr(_creator.new_offset_weekday_of_generic_month(4, -1, 1, -1));
     _creator.new_timerange(8, 0, 13, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
     std::cout << _creator.get_timeperiods_shared();

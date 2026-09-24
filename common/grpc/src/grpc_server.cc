@@ -52,9 +52,15 @@ grpc_server_base::grpc_server_base(
           return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
                                 "Token expired");
         }
+        auto trusted_tokens = _conf->get_trusted_tokens();
+        if (!trusted_tokens) {
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "UNAUTHENTICATED : No trusted token list configured");
+          return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                                "Token validation not configured");
+        }
         // check if token is trusted by the service
-        if (_conf->get_trusted_tokens()->find(jwt.get_string()) ==
-            _conf->get_trusted_tokens()->end()) {
+        if (trusted_tokens->find(jwt.get_string()) == trusted_tokens->end()) {
           SPDLOG_LOGGER_ERROR(_logger,
                               "UNAUTHENTICATED : Token is not trusted");
           return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,

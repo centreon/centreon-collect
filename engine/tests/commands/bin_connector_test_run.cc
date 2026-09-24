@@ -22,6 +22,7 @@
 #include <cstring>
 #include <fstream>
 #include <thread>
+#include "aes256.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/timestamp.hh"
@@ -33,6 +34,7 @@
 
 using com::centreon::exceptions::msg_fmt;
 
+std::unique_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
 /**
  *  Simulate a execution process.
  *

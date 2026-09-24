@@ -38,7 +38,7 @@ else
     fi
 fi
 
-sleep 5
+sleep 10
 echo "########################### Init centreon database ############################"
 
 mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon'"

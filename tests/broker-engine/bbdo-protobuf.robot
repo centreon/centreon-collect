@@ -13,6 +13,12 @@ Test Teardown       Ctn Save Logs If Failed
 BEPBBEE1
     [Documentation]    central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
     [Tags]    broker    engine    protobuf    bbdo
+
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -33,6 +39,12 @@ BEPBBEE1
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
     [Tags]    broker    engine    protobuf    bbdo
+
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -315,5 +327,37 @@ GRPC_RECONNECT
     Ctn Process Service Result Hard    host_1    service_2    2    service critical
     ${result}    Ctn Check Service Status With Timeout    host_1    service_2    2    60    HARD
     Should Be True    ${result}    The service (host_1,service_2) is not CRITICAL as expected
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+
+BEPBUID1
+    [Documentation]    uid > 2^32 in broker module config overrides poller_id.
+    ...    The instances, hosts and resources tables must store this 64-bit value.
+    [Tags]    broker    engine    protobuf    bbdo    MON-200521
+    Ctn Config Engine    ${1}    ${2}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Add Item    module0    uid    ${5000000000}
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    True
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Row Count
+    ...    SELECT instance_id FROM instances WHERE instance_id=5000000000 AND running=1
+    ...    ==    1    retry_timeout=60s    retry_pause=2s
+    Check Row Count
+    ...    SELECT instance_id FROM hosts WHERE instance_id=5000000000 AND enabled=1
+    ...    >=    1    retry_timeout=60s    retry_pause=2s
+    Check Row Count
+    ...    SELECT id FROM resources WHERE poller_id=5000000000 AND enabled=1
+    ...    >=    1    retry_timeout=60s    retry_pause=2s
+    Disconnect From Database    pymysql
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True

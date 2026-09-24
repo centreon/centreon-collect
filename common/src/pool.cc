@@ -99,7 +99,7 @@ pool::~pool() {
  */
 void pool::_stop() {
   SPDLOG_LOGGER_DEBUG(_logger, "Stopping the thread pool");
-  absl::MutexLock l(&_pool_m);
+  absl::MutexLock l(_pool_m);
   _worker.reset();
   if (_original_pid == getpid()) {
     for (auto& t : *_pool)
@@ -128,7 +128,7 @@ void pool::_set_pool_size(size_t pool_size) {
                         ? std::max(std::thread::hardware_concurrency(), 3u)
                         : pool_size;
 
-  absl::MutexLock l(&_pool_m);
+  absl::MutexLock l(_pool_m);
   if (new_size <= _pool_size || _io_context->stopped()) {
     return;
   }

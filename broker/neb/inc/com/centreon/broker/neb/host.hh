@@ -52,7 +52,7 @@ class host : public host_service, public host_status {
   std::string host_name;
   bool notify_on_down;
   bool notify_on_unreachable;
-  uint32_t poller_id;
+  uint64_t poller_id;
   bool stalk_on_down;
   bool stalk_on_unreachable;
   bool stalk_on_up;

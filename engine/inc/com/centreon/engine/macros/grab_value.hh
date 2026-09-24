@@ -28,7 +28,7 @@ extern "C" {
 #endif  // C++
 
 int grab_macro_value_r(nagios_macros* mac,
-                       std::string const& macro_buffer,
+                       const std::string_view& macro_buffer,
                        std::string& output,
                        int* clean_options,
                        int* free_macro);

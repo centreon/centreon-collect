@@ -23,7 +23,6 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -100,8 +99,6 @@ void broker_module_init(void const* arg) {
     io::protocols::instance().reg("VICTORIA_METRICS",
                                   std::make_shared<victoria_metrics::factory>(),
                                   1, 7);
-    cache::global_cache::load(fmt::format(
-        "{}.cache.global", config::applier::state::instance().cache_dir()));
   }
 }
 }

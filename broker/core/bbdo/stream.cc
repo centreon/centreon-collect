@@ -30,7 +30,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
-#include "com/centreon/common/file.hh"
+#include "com/centreon/common/file_system.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -619,10 +619,17 @@ int32_t stream::stop() {
   /* We acknowledge peer about received events. */
   _logger->info("bbdo stream stopped with {} events acknowledged",
                 _events_received_since_last_ack);
-  if (_events_received_since_last_ack)
-    send_event_acknowledgement();
+  if (_events_received_since_last_ack) {
+    try {
+      send_event_acknowledgement();
+    } catch (const std::exception&) {
+    }
+  }
 
-  _substream->stop();
+  try {
+    _substream->stop();
+  } catch (const std::exception& e) {
+  }
 
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;

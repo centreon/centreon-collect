@@ -35,7 +35,7 @@ stored_timestamp::stored_timestamp() noexcept
  *  @param id Id of the instance associated with this timestamp.
  *  @param s  State of the instance associated with this timestamp.
  */
-stored_timestamp::stored_timestamp(uint32_t id, state_type s) noexcept
+stored_timestamp::stored_timestamp(uint64_t id, state_type s) noexcept
     : _instance_id{id}, _state{s} {
   update_timestamp();
 }
@@ -53,7 +53,7 @@ stored_timestamp::stored_timestamp(stored_timestamp const& right) noexcept
  *
  *  @return The id of the instance associated with this timestamp.
  */
-uint32_t stored_timestamp::get_id() const noexcept {
+uint64_t stored_timestamp::get_id() const noexcept {
   return _instance_id;
 }
 

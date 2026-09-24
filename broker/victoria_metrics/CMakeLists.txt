@@ -25,12 +25,14 @@ include_directories(inc
   ${PROJECT_SOURCE_DIR}/http_tsdb/inc
   ${HTTP_INC_DIR}
   ${PROJECT_SOURCE_DIR}/neb/inc
+  ${PROJECT_SOURCE_DIR}/core/cache/inc
 )
 
 # Sources.
 set(SOURCES
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
+  ${SRC_DIR}/line_protocol_query.cc
   ${SRC_DIR}/request.cc
   ${SRC_DIR}/stream.cc
   ${SRC_DIR}/main.cc
@@ -53,10 +55,12 @@ add_library("${VICTORIA_METRICS}" SHARED
 )
 set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
+add_dependencies("${VICTORIA_METRICS}" target_broker_message
+                 target_cache_protobuf)
 target_link_libraries("${VICTORIA_METRICS}"
   http_tsdb
   centreon_http
-  bbdo_storage pb_storage_lib fmt::fmt)
+  bbdo_storage centreon_pb_bbdo fmt::fmt)
 target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.

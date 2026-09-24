@@ -19,7 +19,6 @@
 #ifndef CCB_LUA_LUABINDING_HH
 #define CCB_LUA_LUABINDING_HH
 
-#include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
 extern "C" {
@@ -27,6 +26,8 @@ extern "C" {
 #include "lua.h"
 #include "lualib.h"
 }
+
+#include "com/centreon/broker/io/data.hh"
 
 namespace com::centreon::broker::lua {
 /**
@@ -90,9 +91,6 @@ class luabinding {
   // True if there is a flush() function in the Lua script.
   bool _flush;
 
-  // The cache.
-  macro_cache& _cache;
-
   // Count on events
   int32_t _total;
 
@@ -109,8 +107,7 @@ class luabinding {
 
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, misc::variant> const& conf_params,
-             macro_cache& cache);
+             std::map<std::string, misc::variant> const& conf_params);
   luabinding(luabinding const&) = delete;
   luabinding& operator=(luabinding const&) = delete;
   ~luabinding() noexcept;

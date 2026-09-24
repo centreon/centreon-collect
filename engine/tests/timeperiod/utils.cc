@@ -25,7 +25,6 @@
 #include <unordered_map>
 
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/timerange.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "tests/timeperiod/utils.hh"
 
@@ -66,8 +65,9 @@ std::shared_ptr<timeperiod> timeperiod_creator::get_timeperiods_shared() {
 timeperiod* timeperiod_creator::new_timeperiod() {
   configuration::Timeperiod conf_tp;
   configuration::timeperiod_helper tp_hlp(&conf_tp);
-  conf_tp.set_timeperiod_name("test");
-  conf_tp.set_alias("test");
+  std::string name = "test-" + std::to_string(++_tp_counter);
+  conf_tp.set_timeperiod_name(name);
+  conf_tp.set_alias(name);
   std::shared_ptr<timeperiod> tp = std::make_shared<timeperiod>(conf_tp);
   _timeperiods.push_front(tp);
   return tp.get();
@@ -85,6 +85,8 @@ void timeperiod_creator::new_exclusion(std::shared_ptr<timeperiod> excluded,
     target = _timeperiods.begin()->get();
 
   target->get_exclusions().insert({excluded->get_name(), excluded.get()});
+  // Keep proto in sync so the common.
+  target->mutable_config().mutable_exclude()->add_data(excluded->get_name());
 }
 
 /**
@@ -100,21 +102,26 @@ void timeperiod_creator::new_exclusion(std::shared_ptr<timeperiod> excluded,
  *
  *  @return The newly created daterange.
  */
-daterange* timeperiod_creator::new_calendar_date(int start_year,
-                                                 int start_month,
-                                                 int start_day,
-                                                 int end_year,
-                                                 int end_month,
-                                                 int end_day,
-                                                 timeperiod* target) {
+configuration::Daterange* timeperiod_creator::new_calendar_date(
+    int start_year,
+    int start_month,
+    int start_day,
+    int end_year,
+    int end_month,
+    int end_day,
+    timeperiod* target) {
   if (!target)
     target = _timeperiods.begin()->get();
 
-  target->exceptions[daterange::calendar_date].emplace_back(
-      daterange::calendar_date, start_year, start_month, start_day, 0, 0,
-      end_year, end_month, end_day, 0, 0, 0,
-      google::protobuf::RepeatedPtrField<configuration::Timerange>());
-  return &*target->exceptions[daterange::calendar_date].rbegin();
+  auto* dr = target->mutable_config().mutable_exceptions()->add_calendar_date();
+  dr->set_type(configuration::Daterange_TypeRange_calendar_date);
+  dr->set_syear(start_year);
+  dr->set_smon(start_month);
+  dr->set_smday(start_day);
+  dr->set_eyear(end_year);
+  dr->set_emon(end_month);
+  dr->set_emday(end_day);
+  return dr;
 }
 
 /**
@@ -128,19 +135,22 @@ daterange* timeperiod_creator::new_calendar_date(int start_year,
  *
  *  @return The newly created daterange.
  */
-daterange* timeperiod_creator::new_specific_month_date(int start_month,
-                                                       int start_day,
-                                                       int end_month,
-                                                       int end_day,
-                                                       timeperiod* target) {
+configuration::Daterange* timeperiod_creator::new_specific_month_date(
+    int start_month,
+    int start_day,
+    int end_month,
+    int end_day,
+    timeperiod* target) {
   if (!target)
     target = _timeperiods.begin()->get();
 
-  target->exceptions[daterange::month_date].emplace_back(
-      daterange::month_date, 0, start_month, start_day, 0, 0, 0, end_month,
-      end_day, 0, 0, 0,
-      google::protobuf::RepeatedPtrField<configuration::Timerange>());
-  return &*target->exceptions[daterange::month_date].rbegin();
+  auto* dr = target->mutable_config().mutable_exceptions()->add_month_date();
+  dr->set_type(configuration::Daterange_TypeRange_month_date);
+  dr->set_smon(start_month);
+  dr->set_smday(start_day);
+  dr->set_emon(end_month);
+  dr->set_emday(end_day);
+  return dr;
 }
 
 /**
@@ -152,19 +162,18 @@ daterange* timeperiod_creator::new_specific_month_date(int start_month,
  *
  *  @return The newly created daterange.
  */
-daterange* timeperiod_creator::new_generic_month_date(int start_day,
-                                                      int end_day,
-                                                      timeperiod* target) {
+configuration::Daterange* timeperiod_creator::new_generic_month_date(
+    int start_day,
+    int end_day,
+    timeperiod* target) {
   if (!target)
     target = _timeperiods.begin()->get();
 
-  std::shared_ptr<daterange> dr{new daterange(
-      daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0, {})};
-
-  target->exceptions[daterange::month_day].emplace_back(
-      daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0,
-      google::protobuf::RepeatedPtrField<configuration::Timerange>());
-  return &*target->exceptions[daterange::month_day].rbegin();
+  auto* dr = target->mutable_config().mutable_exceptions()->add_month_day();
+  dr->set_type(configuration::Daterange_TypeRange_month_day);
+  dr->set_smday(start_day);
+  dr->set_emday(end_day);
+  return dr;
 }
 
 /**
@@ -180,22 +189,27 @@ daterange* timeperiod_creator::new_generic_month_date(int start_day,
  *
  *  @return The newly created daterange.
  */
-daterange* timeperiod_creator::new_offset_weekday_of_specific_month(
-    int start_month,
-    int start_wday,
-    int start_offset,
-    int end_month,
-    int end_wday,
-    int end_offset,
-    timeperiod* target) {
+configuration::Daterange*
+timeperiod_creator::new_offset_weekday_of_specific_month(int start_month,
+                                                         int start_wday,
+                                                         int start_offset,
+                                                         int end_month,
+                                                         int end_wday,
+                                                         int end_offset,
+                                                         timeperiod* target) {
   if (!target)
     target = _timeperiods.begin()->get();
 
-  target->exceptions[daterange::month_week_day].emplace_back(
-      daterange::month_week_day, 0, start_month, 0, start_wday, start_offset, 0,
-      end_month, 0, end_wday, end_offset, 0,
-      google::protobuf::RepeatedPtrField<configuration::Timerange>());
-  return &*target->exceptions[daterange::month_week_day].rbegin();
+  auto* dr =
+      target->mutable_config().mutable_exceptions()->add_month_week_day();
+  dr->set_type(configuration::Daterange_TypeRange_month_week_day);
+  dr->set_smon(start_month);
+  dr->set_swday(start_wday);
+  dr->set_swday_offset(start_offset);
+  dr->set_emon(end_month);
+  dr->set_ewday(end_wday);
+  dr->set_ewday_offset(end_offset);
+  return dr;
 }
 
 /**
@@ -209,20 +223,22 @@ daterange* timeperiod_creator::new_offset_weekday_of_specific_month(
  *
  *  @return The newly created daterange.
  */
-daterange* timeperiod_creator::new_offset_weekday_of_generic_month(
-    int start_wday,
-    int start_offset,
-    int end_wday,
-    int end_offset,
-    timeperiod* target) {
+configuration::Daterange*
+timeperiod_creator::new_offset_weekday_of_generic_month(int start_wday,
+                                                        int start_offset,
+                                                        int end_wday,
+                                                        int end_offset,
+                                                        timeperiod* target) {
   if (!target)
     target = _timeperiods.begin()->get();
 
-  target->exceptions[daterange::week_day].emplace_back(
-      daterange::week_day, 0, 0, 0, start_wday, start_offset, 0, 0, 0, end_wday,
-      end_offset, 0,
-      google::protobuf::RepeatedPtrField<configuration::Timerange>());
-  return &*target->exceptions[daterange::week_day].rbegin();
+  auto* dr = target->mutable_config().mutable_exceptions()->add_week_day();
+  dr->set_type(configuration::Daterange_TypeRange_week_day);
+  dr->set_swday(start_wday);
+  dr->set_swday_offset(start_offset);
+  dr->set_ewday(end_wday);
+  dr->set_ewday_offset(end_offset);
+  return dr;
 }
 
 /**
@@ -238,24 +254,15 @@ void timeperiod_creator::new_timerange(int start_hour,
                                        int start_minute,
                                        int end_hour,
                                        int end_minute,
-                                       daterange* target) {
+                                       configuration::Daterange* target) {
   if (!target)
     return;
 
-  target->add_timerange(
-      timerange(hmtos(start_hour, start_minute), hmtos(end_hour, end_minute)));
+  auto* tr = target->add_timerange();
+  tr->set_range_start(hmtos(start_hour, start_minute));
+  tr->set_range_end(hmtos(end_hour, end_minute));
 }
 
-/**
- *  Create a new weekday timerange.
- *
- *  @param[in]  start_hour    Start hour.
- *  @param[in]  start_minute  Start minute.
- *  @param[in]  end_hour      End hour.
- *  @param[in]  end_minute    End minute.
- *  @param[in]  day           Day.
- *  @param[out] target        Target timeperiod.
- */
 void timeperiod_creator::new_timerange(int start_hour,
                                        int start_minute,
                                        int end_hour,
@@ -265,8 +272,29 @@ void timeperiod_creator::new_timerange(int start_hour,
   if (!target)
     target = _timeperiods.begin()->get();
 
-  target->days[day].emplace_back(hmtos(start_hour, start_minute),
-                                 hmtos(end_hour, end_minute));
+  auto& cfg_days = *target->mutable_config().mutable_timeranges();
+  auto* day_list =
+      [&]() -> google::protobuf::RepeatedPtrField<configuration::Timerange>* {
+    switch (day) {
+      case 0:
+        return cfg_days.mutable_sunday();
+      case 1:
+        return cfg_days.mutable_monday();
+      case 2:
+        return cfg_days.mutable_tuesday();
+      case 3:
+        return cfg_days.mutable_wednesday();
+      case 4:
+        return cfg_days.mutable_thursday();
+      case 5:
+        return cfg_days.mutable_friday();
+      default:
+        return cfg_days.mutable_saturday();
+    }
+  }();
+  auto* tr = day_list->Add();
+  tr->set_range_start(hmtos(start_hour, start_minute));
+  tr->set_range_end(hmtos(end_hour, end_minute));
 }
 
 /**

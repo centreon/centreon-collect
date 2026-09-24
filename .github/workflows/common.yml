@@ -15,6 +15,7 @@ on:
   pull_request:
     paths:
       - ".version"
+      - ".version.centreon-common"
       - "packaging/centreon-common/**"
       - "selinux/centreon-common/**"
   push:
@@ -27,6 +28,7 @@ on:
       - 'hotfix-[2-9][0-9].[0-9][0-9]-next'
     paths:
       - ".version"
+      - ".version.centreon-common"
       - "packaging/centreon-common/**"
       - "selinux/centreon-common/**"
     tags:
@@ -54,14 +56,14 @@ jobs:
       matrix:
         include:
           - package_extension: rpm
-            image: packaging-centreon-collect-alma8
-            distrib: el8
-          - package_extension: rpm
             image: packaging-centreon-collect-alma9
             distrib: el9
+          - package_extension: rpm
+            image: packaging-centreon-collect-alma10
+            distrib: el10
           - package_extension: deb
-            image: packaging-centreon-collect-bookworm
-            distrib: bookworm
+            image: packaging-centreon-collect-trixie
+            distrib: trixie
 
     runs-on: ubuntu-24.04
 
@@ -75,13 +77,16 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Generate selinux binaries
         if: ${{ matrix.package_extension == 'rpm' }}
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          MINOR_VERSION: ${{ needs.get-environment.outputs.minor_version }}
         run: |
           cd selinux/centreon-common
-          sed -i "s/@VERSION@/${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}/g" *.te
+          sed -i "s/@VERSION@/$MAJOR_VERSION.$MINOR_VERSION/g" *.te
           make -f /usr/share/selinux/devel/Makefile
         shell: bash
 
@@ -110,7 +115,7 @@ jobs:
           upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
 
   deliver-rpm:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, package]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -122,11 +127,11 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [el8, el9]
+        distrib: [el9, el10]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Delivery
         uses: ./.github/actions/rpm-delivery
@@ -142,8 +147,48 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
+  deliver-rpm-pulp:
+    runs-on: centreon-ubuntu-22.04
+    needs: [get-environment, package]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+
+    strategy:
+      matrix:
+        distrib: [el9, el10]
+
+    name: deliver ${{ matrix.distrib }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_rpm_pulp
+        uses: ./.github/actions/package-delivery-pulp
+        with:
+          module_name: common
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
   deliver-deb:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, package]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -155,11 +200,11 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm]
+        distrib: [trixie]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Delivery
         uses: ./.github/actions/deb-delivery
@@ -173,24 +218,63 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  promote:
-    needs: [get-environment, deliver-deb, deliver-rpm]
+  deliver-deb-pulp:
+    runs-on: centreon-ubuntu-22.04
+    needs: [get-environment, package]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+
+    strategy:
+      matrix:
+        distrib: [trixie]
+
+    name: deliver ${{ matrix.distrib }} (pulp)
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver packages on Pulp
+        id: deliver_deb_pulp
+        uses: ./.github/actions/package-delivery-pulp
+        with:
+          module_name: common
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+  promote:
+    needs: [get-environment, deliver-rpm, deliver-deb]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -204,6 +288,42 @@ jobs:
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  promote-pulp:
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    runs-on: centreon-ubuntu-22.04
+    strategy:
+      matrix:
+        distrib: [el9, el10, trixie]
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Promote ${{ matrix.distrib }} to stable on Pulp
+        id: promote_pulp
+        uses: ./.github/actions/promote-to-stable-pulp
+        with:
+          module_name: common
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, promote]

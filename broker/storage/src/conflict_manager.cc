@@ -242,7 +242,7 @@ void conflict_manager::_load_deleted_instances() {
   try {
     mysql_result res(future.get());
     while (_mysql.fetch_row(res))
-      _cache_deleted_instance_id.insert(res.value_as_u32(0));
+      _cache_deleted_instance_id.insert(res.value_as_u64(0));
   } catch (std::exception const& e) {
     throw msg_fmt("could not get list of deleted instances: {}", e.what());
   }
@@ -330,7 +330,7 @@ void conflict_manager::_load_caches() {
   try {
     mysql_result res(future_inst.get());
     while (_mysql.fetch_row(res)) {
-      uint32_t instance_id = res.value_as_i32(0);
+      auto instance_id = res.value_as_u64(0);
       _stored_timestamps.insert(
           {instance_id,
            stored_timestamp(instance_id, stored_timestamp::unresponsive)});
@@ -375,7 +375,7 @@ void conflict_manager::_load_caches() {
   try {
     mysql_result res(future_hst.get());
     while (_mysql.fetch_row(res))
-      _cache_host_instance[res.value_as_u32(0)] = res.value_as_u32(1);
+      _cache_host_instance[res.value_as_u64(0)] = res.value_as_u64(1);
   } catch (std::exception const& e) {
     throw msg_fmt("SQL: could not get the list of host/instance pairs: {}",
                   e.what());

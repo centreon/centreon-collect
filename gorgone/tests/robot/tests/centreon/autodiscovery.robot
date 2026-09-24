@@ -17,11 +17,14 @@ check autodiscovery ${communication_mode}
     Test Service Disco
     # host discovery command is constructed by php which honor vault himself.
     Test Host disco    ${poller}
+    # This should always be last as the autodiscovery module will DIE trying to parse the output of the injection.
     Test Service Disco don't interpret bash    ${central}
 
     Examples:    communication_mode   --
         ...    push_zmq
+        ...    push_zmq_uid
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
 
 *** Keywords ***
@@ -51,7 +54,7 @@ Test Host disco
     ${http_body}=    Get File    ${ROOT_CONFIG}${/}autodiscovery/host-http-body.json
     ${start_date}=   Get Current Date    increment=-1s
     ${response}=    POST  http://127.0.0.1:8085/api/nodes/1/centreon/autodiscovery/hosts   data=${http_body}
-    Check Row Count    select * from mod_host_disco_host;    equal    9    alias=conf    retry_timeout=60    retry_pause=5
+    Check Row Count    select * from mod_host_disco_host;    equal    9    alias=conf    retry_timeout=180    retry_pause=5
     # check the poller made the call and not the central.
     ${query}    Create List    .COMMAND. .discovery_10.*"command":"echo '{."discovered_items
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${poller_name}/gorgoned.log    content=${query}    date=${start_date}    timeout=10    regex=True
@@ -60,7 +63,7 @@ Test Host disco
 Test Teardown
     [Arguments]    @{process_list}
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-delete-autodiscovery.sql
-    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Stop Mockoon
 
 Test Setup
@@ -68,6 +71,7 @@ Test Setup
     Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
     Setup Vault
 
+    Ctn Init Tests
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-delete-autodiscovery.sql
 
     @{central_config}    Create List    ${ROOT_CONFIG}autodiscovery${/}configuration-autodiscovery.yaml    ${ROOT_CONFIG}actions.yaml

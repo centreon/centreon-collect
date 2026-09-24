@@ -247,7 +247,7 @@ sub install_plugins {
     $self->{logger}->writeLogInfo("[action] validate plugins - install " . join(' ', @{$options{installed}}));
     my ($error, $stdout, $return_code) = gorgone::standard::misc::backtick(
         command => 'sudo',
-        arguments => ['/usr/local/bin/gorgone_install_plugins.pl', '--type=' . $options{type}, @{$options{installed}}],
+        arguments => ['/usr/bin/gorgone_install_plugins.pl', '--type=' . $options{type}, @{$options{installed}}],
         timeout => 300,
         wait_exit => 1,
         redirect_stderr => 1,

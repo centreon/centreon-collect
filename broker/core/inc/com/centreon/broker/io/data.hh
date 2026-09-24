@@ -19,6 +19,7 @@
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
 
+#include "google/protobuf/io/zero_copy_stream.h"
 namespace com::centreon::broker::io {
 /**
  *  @class data data.hh "com/centreon/broker/io/data.hh"
@@ -33,28 +34,6 @@ class data {
   const uint32_t _type;
 
  public:
-  /**
-   * @brief this sub class is used to dump data or inherited by using
-   * dump_more_detail instead of dump
-   * example:
-   * @code {.c++}
-   * io::data event;
-   * log_v2::core()->trace("event:{}", io::data::dump_detail{event});
-   * @endcode
-   */
-  struct dump_detail {
-    const data& to_dump;
-  };
-
-  /**
-   * @brief same as dump_detail
-   * dump in json format
-   *
-   */
-  struct dump_json {
-    const data& to_dump;
-  };
-
   data() = delete;
   data(uint32_t type = 0);
   data(data const& other);
@@ -62,9 +41,7 @@ class data {
   data& operator=(data const& other);
   constexpr uint32_t type() const noexcept { return _type; }
 
-  virtual void dump(std::ostream& s) const;
-  virtual void dump_more_detail(std::ostream& s) const;
-  virtual void dump_to_json(std::ostream& s) const;
+  virtual void dump(fmt::format_context::iterator& stream) const;
 
   uint32_t source_id;
   uint32_t destination_id;
@@ -72,36 +49,31 @@ class data {
   static uint32_t broker_id;
 };
 
-inline std::ostream& operator<<(std::ostream& s, const data& d) {
-  d.dump(s);
-  return s;
-}
-
-inline std::ostream& operator<<(std::ostream& s, const data::dump_detail& d) {
-  d.to_dump.dump_more_detail(s);
-  return s;
-}
-
-inline std::ostream& operator<<(std::ostream& s, const data::dump_json& d) {
-  d.to_dump.dump_to_json(s);
-  return s;
-}
-
 using data_read_handler = std::function<void(const std::shared_ptr<data>&)>;
 
 }  // namespace com::centreon::broker::io
 
 namespace fmt {
-template <>
-struct formatter<com::centreon::broker::io::data> : ostream_formatter {};
+template <class event_type>
+struct formatter<
+    event_type,
+    char,
+    std::enable_if_t<
+        std::is_base_of_v<com::centreon::broker::io::data, event_type>>> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
+    return ctx.begin();
+  }
 
-template <>
-struct formatter<com::centreon::broker::io::data::dump_detail>
-    : ostream_formatter {};
-
-template <>
-struct formatter<com::centreon::broker::io::data::dump_json>
-    : ostream_formatter {};
+  template <typename FormatContext>
+  auto format(const event_type& event,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
+    auto out = ctx.out();
+    *(out++) = '{';
+    event.dump(out);
+    *(out++) = '}';
+    return out;
+  }
+};
 
 }  // namespace fmt
 

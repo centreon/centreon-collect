@@ -37,23 +37,23 @@ class GetNextValidTimeBackwardDST : public ::testing::Test {
   // DATE RANGES
   //
 
-  daterange* dst_calendar_date() {
+  configuration::Daterange* dst_calendar_date() {
     return (_creator.new_calendar_date(2016, 9, 30, 2016, 9, 30));
   }
 
-  daterange* dst_specific_month_date() {
+  configuration::Daterange* dst_specific_month_date() {
     return (_creator.new_specific_month_date(9, 30, 9, 30));
   }
 
-  daterange* dst_generic_month_date() {
+  configuration::Daterange* dst_generic_month_date() {
     return (_creator.new_generic_month_date(30, 30));
   }
 
-  daterange* dst_offset_weekday_of_specific_month() {
+  configuration::Daterange* dst_offset_weekday_of_specific_month() {
     return (_creator.new_offset_weekday_of_specific_month(9, 0, 5, 9, 0, 5));
   }
 
-  daterange* dst_offset_weekday_of_generic_month() {
+  configuration::Daterange* dst_offset_weekday_of_generic_month() {
     return (_creator.new_offset_weekday_of_generic_month(0, 5, 0, 5));
   }
 
@@ -61,20 +61,20 @@ class GetNextValidTimeBackwardDST : public ::testing::Test {
   // TIME RANGES
   //
 
-  void timerange_includes_dst(daterange* dr) {
+  void timerange_includes_dst(configuration::Daterange* dr) {
     _creator.new_timerange(1, 0, 4, 0, dr);
   }
 
-  void timerange_excludes_dst(daterange* dr) {
+  void timerange_excludes_dst(configuration::Daterange* dr) {
     _creator.new_timerange(1, 0, 2, 0, dr);
     _creator.new_timerange(3, 0, 4, 0, dr);
   }
 
-  void timerange_within_dst(daterange* dr) {
+  void timerange_within_dst(configuration::Daterange* dr) {
     _creator.new_timerange(2, 15, 2, 45, dr);
   }
 
-  void timerange_stop_in_dst(daterange* dr) {
+  void timerange_stop_in_dst(configuration::Daterange* dr) {
     _creator.new_timerange(1, 0, 2, 30, dr);
   }
 
@@ -142,7 +142,7 @@ class GetNextValidTimeBackwardDST : public ::testing::Test {
 
 TEST_F(GetNextValidTimeBackwardDST,
        CalendarDateIncludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_calendar_date());
+  configuration::Daterange* dr(dst_calendar_date());
   timerange_includes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -151,7 +151,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        CalendarDateExcludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_calendar_date());
+  configuration::Daterange* dr(dst_calendar_date());
   timerange_excludes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -159,7 +159,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 }
 
 TEST_F(GetNextValidTimeBackwardDST, CalendarDateIncludeDSTNowAtDST) {
-  daterange* dr(dst_calendar_date());
+  configuration::Daterange* dr(dst_calendar_date());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -167,7 +167,7 @@ TEST_F(GetNextValidTimeBackwardDST, CalendarDateIncludeDSTNowAtDST) {
 }
 
 TEST_F(GetNextValidTimeBackwardDST, CalendarDateExcludeDSTNowAtDST) {
-  daterange* dr(dst_calendar_date());
+  configuration::Daterange* dr(dst_calendar_date());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -180,7 +180,7 @@ TEST_F(GetNextValidTimeBackwardDST, CalendarDateExcludeDSTNowAtDST) {
 
 TEST_F(GetNextValidTimeBackwardDST,
        SpecificMonthDateIncludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_specific_month_date());
+  configuration::Daterange* dr(dst_specific_month_date());
   timerange_includes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -189,7 +189,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        SpecificMonthDateExcludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_specific_month_date());
+  configuration::Daterange* dr(dst_specific_month_date());
   timerange_excludes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -197,7 +197,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 }
 
 TEST_F(GetNextValidTimeBackwardDST, SpecificMonthDateIncludeDSTNowAtDST) {
-  daterange* dr(dst_specific_month_date());
+  configuration::Daterange* dr(dst_specific_month_date());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -205,7 +205,7 @@ TEST_F(GetNextValidTimeBackwardDST, SpecificMonthDateIncludeDSTNowAtDST) {
 }
 
 TEST_F(GetNextValidTimeBackwardDST, SpecificMonthDateExcludeDSTNowAtDST) {
-  daterange* dr(dst_specific_month_date());
+  configuration::Daterange* dr(dst_specific_month_date());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -218,7 +218,7 @@ TEST_F(GetNextValidTimeBackwardDST, SpecificMonthDateExcludeDSTNowAtDST) {
 
 TEST_F(GetNextValidTimeBackwardDST,
        GenericMonthDateIncludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_generic_month_date());
+  configuration::Daterange* dr(dst_generic_month_date());
   timerange_includes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -227,7 +227,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        GenericMonthDateExcludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_generic_month_date());
+  configuration::Daterange* dr(dst_generic_month_date());
   timerange_excludes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -235,7 +235,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 }
 
 TEST_F(GetNextValidTimeBackwardDST, GenericMonthDateIncludeDSTNowAtDST) {
-  daterange* dr(dst_generic_month_date());
+  configuration::Daterange* dr(dst_generic_month_date());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -243,7 +243,7 @@ TEST_F(GetNextValidTimeBackwardDST, GenericMonthDateIncludeDSTNowAtDST) {
 }
 
 TEST_F(GetNextValidTimeBackwardDST, GenericMonthDateExcludeDSTNowAtDST) {
-  daterange* dr(dst_generic_month_date());
+  configuration::Daterange* dr(dst_generic_month_date());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -256,7 +256,7 @@ TEST_F(GetNextValidTimeBackwardDST, GenericMonthDateExcludeDSTNowAtDST) {
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfSpecificMonthIncludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_offset_weekday_of_specific_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_includes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -265,7 +265,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfSpecificMonthExcludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_offset_weekday_of_specific_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_excludes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -274,7 +274,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfSpecificMonthIncludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_specific_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -283,7 +283,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfSpecificMonthExcludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_specific_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -296,7 +296,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfGenericMonthIncludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_offset_weekday_of_generic_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_includes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -305,7 +305,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfGenericMonthExcludeDSTNowAtBeginningOfOverlappedHour) {
-  daterange* dr(dst_offset_weekday_of_generic_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_excludes_dst(dr);
   beginning_of_overlapped_hour();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -314,7 +314,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfGenericMonthIncludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_generic_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_includes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
@@ -323,7 +323,7 @@ TEST_F(GetNextValidTimeBackwardDST,
 
 TEST_F(GetNextValidTimeBackwardDST,
        OffsetWeekdayOfGenericMonthExcludeDSTNowAtDST) {
-  daterange* dr(dst_offset_weekday_of_generic_month());
+  configuration::Daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_excludes_dst(dr);
   at_dst();
   get_next_valid_time(_now, &_computed, _creator.get_timeperiods());

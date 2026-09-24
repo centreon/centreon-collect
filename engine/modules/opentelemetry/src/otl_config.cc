@@ -24,14 +24,11 @@
 #include "otl_config.hh"
 #include "otl_fmt.hh"
 
-int fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                        ExportMetricsServiceRequest>::max_length_log = -1;
-
-bool fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                         ExportMetricsServiceRequest>::json_grpc_format = false;
-
 using namespace com::centreon::engine::modules::opentelemetry;
 using namespace com::centreon::common;
+
+int otl_formatter::max_length_log = -1;
+bool otl_formatter::json_grpc_format = false;
 
 static constexpr std::string_view _grpc_config_schema(R"(
 {

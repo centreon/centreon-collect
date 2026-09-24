@@ -30,13 +30,13 @@ std::shared_ptr<com::centreon::engine::commands::otel::open_telemetry_base>
 void host_serv_list::register_host_serv(
     const std::string& host,
     const std::string& service_description) {
-  absl::WriterMutexLock l(&_data_m);
+  absl::WriterMutexLock l(_data_m);
   _data[host].insert(service_description);
 }
 
 void host_serv_list::remove(const std::string& host,
                             const std::string& service_description) {
-  absl::WriterMutexLock l(&_data_m);
+  absl::WriterMutexLock l(_data_m);
   auto host_search = _data.find(host);
   if (host_search != _data.end()) {
     host_search->second.erase(service_description);

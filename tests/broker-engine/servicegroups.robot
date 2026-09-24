@@ -13,6 +13,11 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 EBNSG1
     [Documentation]    New service group with several pollers and connections to DB
     [Tags]    broker    engine    servicegroup
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -166,6 +171,17 @@ EBNSGU3_${test_label}
 
     Should Be True    len("""${grep_result}""") > 10    servicegroup_1 not found in /tmp/lua-engine.log
 
+    # The alias is carried only by the protobuf ServiceGroup event (neb.proto
+    # field 6, PB_SERVICE_GROUP).
+    IF    ${Use_BBDO3}
+        FOR    ${loop_index}    IN RANGE    30
+            ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_alias:servicegroup_1
+            IF    len("""${grep_result}""") > 10    BREAK
+            Sleep    1s
+        END
+        Should Be True    len("""${grep_result}""") > 10    servicegroup_1 alias not found in /tmp/lua-engine.log
+    END
+
     Ctn Rename Service Group    ${0}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${2}    servicegroup_1    servicegroup_test
@@ -258,5 +274,84 @@ EBSG_1
     ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    6    30
     Should Be True    ${result}    We should get 3 relations between the servicegroup 1 and services.
 
+EBNSG2
+    [Documentation]    Scenario: Two pollers are connected, servicegroup 1 is defined on poller 0 with
+    ...                host_1/service_1 and host_2/service_2 as members. Both hosts and their services are then
+    ...                moved from poller 0's configuration to poller 1's configuration, poller 1 is reloaded first,
+    ...                then poller 0. The servicegroup and its service memberships must not disappear from the
+    ...                database.
+    [Tags]    broker    engine    servicegroup    unified_sql    MON-169103
+    Ctn Config Engine    ${2}    ${5}    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Config BBDO3    ${2}
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1","host_2","service_2"]
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    2    30
+    Should Be True    ${result}    We should have 2 services members in the servicegroup 1 before the move.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query    SELECT count(*) FROM servicegroups WHERE servicegroup_id = 1
+    Should Be Equal As Strings    ${output}    ((1,),)    The servicegroup 1 should exist before the move.
+
+    # Move host_1 and host_2 with their services from poller 0's configuration to poller 1's configuration.
+    Ctn Engine Config Move Host To Engine    0    1    host_1
+    Ctn Engine Config Move Services To Engine    0    1    host_1
+    Ctn Engine Config Move Host To Engine    0    1    host_2
+    Ctn Engine Config Move Services To Engine    0    1    host_2
+
+    Ctn Add Service Group    ${1}    ${1}    ["host_1","service_1","host_2","service_2"]
+    Ctn Config Engine Add Cfg File    ${1}    servicegroups.cfg
+
+    # Reload the second poller first, then the first poller.
+    Ctn Reload Engine    1
+    Sleep    1
+    Ctn Reload Engine    0
+
+    Sleep    5
+
+    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    2    30
+    Should Be True
+    ...    ${result}
+    ...    host_1/service_1 and host_2/service_2 should still be members of servicegroup 1 in services_servicegroups after the move.
+
+    ${output}    Query    SELECT count(*) FROM servicegroups WHERE servicegroup_id = 1
+    Should Be Equal As Strings    ${output}    ((1,),)    The servicegroup 1 should still exist after the move.
+
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_1' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_1 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name='host_2' AND enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    host_2 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query
+    ...    SELECT h.instance_id FROM services s JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1' AND s.enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    service_1 on host_1 should be enabled and owned by poller 1 (instance_id=2) after the move.
+
+    ${output}    Query
+    ...    SELECT h.instance_id FROM services s JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_2' AND s.description='service_2' AND s.enabled=1
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    ((2,),)
+    ...    service_2 on host_2 should be enabled and owned by poller 1 (instance_id=2) after the move.
 
 

@@ -58,7 +58,7 @@ EVENT_SCRIPT_BASIC_SERVICE_CHECK
     ${event_script_count}    Get Line Count    ${event_script_lines}
     
     ${broker_content}    Get File    ${centralLog}
-    ${neb_service_lines}    Get Regexp Matches    ${broker_content}    .*neb:Service.*
+    ${neb_service_lines}    Get Regexp Matches    ${broker_content}    .*"cat":"neb","elem":"Service".*
     ${neb_service_count}    Get Length    ${neb_service_lines}
     
     Should Be Equal As Integers    ${event_script_count}    ${neb_service_count}    Event script log lines should match neb:Service occurrences in broker log

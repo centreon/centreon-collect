@@ -159,6 +159,7 @@ option(WITH_CREATE_FILES "Create centreon-engine files." ON)
 set(CREATE_FILES "${WITH_CREATE_FILES}")
 
 set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
+set(PREFIX_BROKER_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker")
 
 #
 
@@ -498,7 +499,7 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
 
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib)
+add_dependencies(centenginestats centreon_clib pb_neb_lib target_state_proto)
 target_link_libraries(centenginestats PRIVATE centreon_clib fmt::fmt absl::log absl::base absl::log_internal_check_op)
 
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
@@ -517,7 +518,7 @@ target_link_libraries(
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
-  engine_conf
+  centreon_engine_conf
   fmt::fmt
   spdlog::spdlog
   cbmod)
@@ -540,10 +541,14 @@ target_link_libraries(
   cce_core
   centreon_common
   centreon_process
+  centreon_hexdump
+  centreon_file_system
   ctncrypto
   Boost::url
   gRPC::grpc++
+  protobuf::libprotobuf
   Boost::program_options
+  Boost::thread
   -Wl,--no-whole-archive
   absl::any
   absl::log

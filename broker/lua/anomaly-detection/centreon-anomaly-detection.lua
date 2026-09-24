@@ -60,7 +60,7 @@ local data = {
   source = "centreon_onprem",
   proxy = "",   --"proxy.int.centreon.com:3128"
   max_queue_size = 10,
-  token = "tRGkO5tjVA2qHOYfgKkY21SoTYPNif6ualYmeBpm",
+  token = "token",
   queue = {},
   filter = {},
 }

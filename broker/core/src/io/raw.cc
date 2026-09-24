@@ -18,15 +18,6 @@
 
 #include "com/centreon/broker/io/raw.hh"
 
-namespace com::centreon::broker::io {
-
-std::ostream& operator<<(std::ostream& s, const raw& d) {
-  s << static_cast<const data&>(d) << " buffer_length:" << d.size();
-  return s;
-}
-
-}  // namespace com::centreon::broker::io
-
 using namespace com::centreon::broker::io;
 
 /**
@@ -93,6 +84,7 @@ bool raw::empty() const {
   return _buffer.empty();
 }
 
-// void raw::append(const char* msg) {
-//  _buffer.insert(_buffer.end(), msg, msg + strlen(msg));
-//}
+void raw::dump(fmt::format_context::iterator& stream) const {
+  data::dump(stream);
+  fmt::format_to(stream, ",\"buffer_length\":{}", _buffer.size());
+}

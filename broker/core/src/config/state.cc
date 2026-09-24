@@ -377,7 +377,7 @@ const std::map<std::string, std::string>& state::params() const noexcept {
  *
  *  @param[in] id  Poller ID.
  */
-void state::poller_id(int id) noexcept {
+void state::poller_id(uint64_t id) noexcept {
   _poller_id = id;
 }
 
@@ -386,7 +386,7 @@ void state::poller_id(int id) noexcept {
  *
  *  @return Poller ID.
  */
-int state::poller_id() const noexcept {
+uint64_t state::poller_id() const noexcept {
   return _poller_id;
 }
 

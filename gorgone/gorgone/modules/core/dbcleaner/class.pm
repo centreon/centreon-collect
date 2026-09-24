@@ -127,11 +127,14 @@ sub action_dbclean {
         query => "DELETE FROM gorgone_history WHERE (instant = 1 AND `ctime` <  " . (time() - 86400) . ") OR `ctime` < ?",
         bind_values => [time() - $self->{config}->{purge_history_time}]
     });
+    my ($status3) = $self->{db_gorgone}->query({
+        query => "VACUUM"
+    });
     $self->{purge_timer} = time();
 
     $self->{logger}->writeLogDebug("[dbcleaner] Purge finished");
 
-    if ($status == -1 || $status2 == -1) {
+    if ($status == -1 || $status2 == -1 || $status3 == -1) {
         $self->send_log(
             code => GORGONE_ACTION_FINISH_KO,
             token => $options{token},

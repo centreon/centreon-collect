@@ -212,7 +212,7 @@ LPWSTR event_container::_get_message_string(EVT_HANDLE h_metadata,
  */
 void event_container::_on_event(EVT_HANDLE h_event) {
   try {
-    absl::MutexLock l(&_events_m);
+    absl::MutexLock l(_events_m);
     event_data raw_event(_render_context, h_event, &_read_event_buffer,
                          &_buffer_size);
     _on_event(raw_event, h_event);
