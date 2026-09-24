@@ -4863,6 +4863,161 @@ def ctn_check_services_notify_count_with_timeout(hostname: str, notify: bool, ex
     return False
 
 
+def ctn_broker_set_host_notification_number(hostname: str, number: int, port: int = 51001):
+    """
+    Set the notification number of a host via the Broker gRPC
+    SetHostNotificationNumber endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        number: The new notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Host Notification Number    host_1    3 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostNotificationNumberRequest()
+        req.host.host_name = hostname
+        req.number = int(number)
+        stub.SetHostNotificationNumber(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_set_service_notification_number(hostname: str, service_desc: str, number: int,
+                                               port: int = 51001):
+    """
+    Set the notification number of a service via the Broker gRPC
+    SetServiceNotificationNumber endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        number: The new notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Service Notification Number    host_1    service_1    3 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceNotificationNumberRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.number = int(number)
+        stub.SetServiceNotificationNumber(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment: str,
+                                             broadcast: bool = False, forced: bool = False,
+                                             increment: bool = False, port: int = 51001):
+    """
+    Send a custom notification on a host via the Broker gRPC
+    SendCustomHostNotification endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        author: The notification author.
+        comment: The notification comment.
+        broadcast: Notify every contact, escalations ignored.
+        forced: Bypass the enabled switches and periods.
+        increment: Count it in the notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Send Custom Host Notification    host_1    admin    a comment    forced=${True} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostCustomNotificationRequest()
+        req.host.host_name = hostname
+        req.author = author
+        req.comment = comment
+        req.broadcast = bool(broadcast)
+        req.forced = bool(forced)
+        req.increment = bool(increment)
+        stub.SendCustomHostNotification(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str, author: str,
+                                                comment: str, broadcast: bool = False,
+                                                forced: bool = False, increment: bool = False,
+                                                port: int = 51001):
+    """
+    Send a custom notification on a service via the Broker gRPC
+    SendCustomServiceNotification endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        author: The notification author.
+        comment: The notification comment.
+        broadcast: Notify every contact, escalations ignored.
+        forced: Bypass the enabled switches and periods.
+        increment: Count it in the notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Send Custom Service Notification    host_1    service_1    admin    a comment |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceCustomNotificationRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.author = author
+        req.comment = comment
+        req.broadcast = bool(broadcast)
+        req.forced = bool(forced)
+        req.increment = bool(increment)
+        stub.SendCustomServiceNotification(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_check_service_notification_number_with_timeout(hostname: str, service_desc: str,
+                                                       expected: int, timeout: int = TIMEOUT):
+    """
+    Poll the services table until notification_number of a service reaches the
+    expected value.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        expected: The expected notification number.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if reached within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Service Notification Number With Timeout    host_1    service_1    3    30 |
+    """
+    query = ("SELECT s.notification_number AS n FROM services s JOIN hosts h ON s.host_id=h.host_id "
+             f"WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['n'] is not None and int(result[0]['n']) == int(expected):
+                    return True
+        time.sleep(1)
+    logger.console(f"notification_number of ({hostname}, {service_desc}) is not {expected}")
+    return False
+
+
 def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: int = TIMEOUT):
     """
     Call the broker gRPC CheckPollerConfig on an Engine configuration directory
