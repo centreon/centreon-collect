@@ -246,8 +246,15 @@ flowchart TD
     and comment RPCs must **no longer** be called in this mode.
   * otherwise → call **Engine**'s downtime, acknowledgement and comment RPCs
     (legacy).
-* **All other commands** (check results, notification toggles, object variable
-  changes, forced checks…) always go to **Engine**.
+* **Per-host / per-service notification switches** (`ENABLE/DISABLE_HOST_NOTIFICATIONS`,
+  `*_SVC_NOTIFICATIONS`, `*_HOST_SVC_NOTIFICATIONS`, `*_HOST_AND_CHILD_NOTIFICATIONS`,
+  `*_ALL_NOTIFICATIONS_BEYOND_HOST`) follow `notification_mode` as well: in `broker`
+  mode, **Broker**'s `SetHostNotifications(HostNotificationsRequest { host, enabled,
+  scope })` and `SetServiceNotifications(ServiceNotificationsRequest { service,
+  enabled })`. The switch wins over the configured value and survives Broker and
+  Engine restarts, like a retained `MODATTR` on the Engine side.
+* **All other commands** (check results, global or per-contact notification
+  toggles, object variable changes, forced checks…) always go to **Engine**.
 
 ## Downtime example
 
@@ -337,7 +344,7 @@ In legacy mode (`notification_mode = engine`), PHP keeps calling Engine's
 | Acknowledgements | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (when `notification_mode = broker`) |
 | Comments | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments` | same names on Broker (`HostCommentRequest` / `ServiceCommentRequest` / `CommentIdentifier`), when `notification_mode = broker` |
 | Checks | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck` | — |
-| Notifications / toggles | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, … | — |
+| Notifications / toggles | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, … | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications` — when `notification_mode = broker`, for the per-host/service switches; the others stay on Engine |
 | Object variable changes | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, … | — |
 
 > The list of which downtime/acknowledgement families will progressively move to

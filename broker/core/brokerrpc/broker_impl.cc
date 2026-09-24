@@ -26,6 +26,7 @@
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 
+#include "broker/core/cache/notification_toggles.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
@@ -1734,6 +1735,79 @@ grpc::Status broker_impl::RemoveServiceAcknowledgement(
       s->obj().host_id(), s->obj().service_id());
   if (!err.empty())
     return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the notifications of a host and, per scope, of its
+ * services and/or child hosts (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetHostNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Notification management is not enabled "
+                        "(notification_mode != broker)");
+  grpc::Status status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+
+  using cache::notification_toggles::scope;
+  scope sc;
+  switch (request->scope()) {
+    case HostNotificationsRequest::HOST:
+      sc = scope::host;
+      break;
+    case HostNotificationsRequest::HOST_AND_SERVICES:
+      sc = scope::host_and_services;
+      break;
+    case HostNotificationsRequest::HOST_AND_CHILDREN:
+      sc = scope::host_and_children;
+      break;
+    case HostNotificationsRequest::BEYOND_HOST:
+      sc = scope::beyond_host;
+      break;
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown scope");
+  }
+  uint32_t count = cache::notification_toggles::set_host_notifications(
+      config::applier::state::instance().cache(), h->obj().host_id(),
+      request->enabled(), sc);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("notifications {} on host {} (scope {}): {} resource(s)",
+             request->enabled() ? "enabled" : "disabled", h->obj().host_id(),
+             HostNotificationsRequest::Scope_Name(request->scope()), count);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the notifications of a service
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetServiceNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Notification management is not enabled "
+                        "(notification_mode != broker)");
+  grpc::Status status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  cache::notification_toggles::set_service_notifications(
+      config::applier::state::instance().cache(), s->obj().host_id(),
+      s->obj().service_id(), request->enabled());
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("notifications {} on service ({}, {})",
+             request->enabled() ? "enabled" : "disabled", s->obj().host_id(),
+             s->obj().service_id());
   return grpc::Status::OK;
 }
 

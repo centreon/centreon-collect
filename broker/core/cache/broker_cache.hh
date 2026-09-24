@@ -18,6 +18,8 @@
 #ifndef CCB_CACHE_BROKER_CACHE_HH
 #define CCB_CACHE_BROKER_CACHE_HH
 #include <absl/base/thread_annotations.h>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <absl/container/node_hash_map.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
@@ -666,6 +668,21 @@ class broker_cache {
                       std::shared_ptr<neb::pb_acknowledgement>>
       _acknowledgements ABSL_GUARDED_BY(_mutex);
 
+  /* notification_mode=broker: notifications-enabled switches set through the
+   * Broker API, keyed by (host_id, service_id) — service_id 0 for a host. An
+   * entry wins over the configured value until the API sets the switch again.
+   * Persisted in the cache file. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, bool>
+      _notification_overrides ABSL_GUARDED_BY(_mutex);
+
+  /* Host topology: parent -> children and child -> parents, fed by the
+   * configuration (Host.parents) in centralized mode and by pb_host_parent
+   * events otherwise. Used to propagate the notification switches. */
+  absl::flat_hash_map<uint64_t, absl::flat_hash_set<uint64_t>> _host_children
+      ABSL_GUARDED_BY(_mutex);
+  absl::flat_hash_map<uint64_t, absl::flat_hash_set<uint64_t>> _host_parents
+      ABSL_GUARDED_BY(_mutex);
+
   /* Active (started) downtimes to persist with the cache (set by broker_state
    * just before the downtime_manager is unloaded). */
   std::vector<Downtime> _active_downtimes_to_save ABSL_GUARDED_BY(_mutex);
@@ -727,6 +744,18 @@ class broker_cache {
   static void _publish_ack_type(uint64_t host_id,
                                 uint64_t service_id,
                                 AckType type);
+  template <typename T, typename Index, typename Iterator>
+  std::optional<bool> _restore_notify_override(Index& index,
+                                               Iterator it,
+                                               uint64_t host_id,
+                                               uint64_t service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  static void _publish_notify(uint64_t host_id,
+                              uint64_t service_id,
+                              bool notify);
+  void _set_host_parents(uint64_t child_id,
+                         absl::flat_hash_set<uint64_t>&& parents)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _insert_host_notif_dep(
       const com::centreon::engine::configuration::Hostdependency& dep,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
@@ -1041,6 +1070,17 @@ class broker_cache {
       AckType type,
       std::optional<uint16_t> state = std::nullopt) ABSL_LOCKS_EXCLUDED(_mutex);
   void reinject_pending_acknowledgements() ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* notification_mode=broker: notifications-enabled switch of a resource. */
+  bool set_notify(uint64_t host_id, uint64_t service_id, bool notify)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void reinject_pending_notification_overrides() ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* Host topology. */
+  void update_host_parent(const std::shared_ptr<neb::pb_host_parent>& hp)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> children_of(uint64_t host_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
 };
 }  // namespace cache
 }  // namespace com::centreon::broker

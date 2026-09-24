@@ -268,6 +268,7 @@ void broker_state::_on_barrier_released() {
     cache().reinject_pending_downtimes();
     cache().reinject_pending_notification_states();
     cache().reinject_pending_acknowledgements();
+    cache().reinject_pending_notification_overrides();
   }
 }
 

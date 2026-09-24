@@ -279,6 +279,25 @@ service Broker {
       returns (google.protobuf.Empty) {}
 
   /**
+   * @brief Enable or disable the notifications of a host
+   * (notification_mode = broker), optionally propagated to its services
+   * and/or its child hosts. Covers Engine's ENABLE/DISABLE_HOST_NOTIFICATIONS,
+   * *_HOST_SVC_NOTIFICATIONS, *_HOST_AND_CHILD_NOTIFICATIONS and
+   * *_ALL_NOTIFICATIONS_BEYOND_HOST. The switch wins over the configured
+   * value and survives Broker and Engine restarts.
+   */
+  rpc SetHostNotifications(HostNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the notifications of a service
+   * (notification_mode = broker). Covers Engine's
+   * ENABLE/DISABLE_SVC_NOTIFICATIONS.
+   */
+  rpc SetServiceNotifications(ServiceNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
    * @brief Acknowledge a host problem (notification_mode = broker).
    *
    * Same request fields as the Engine AcknowledgementHostProblem RPC, so PHP
@@ -487,6 +506,25 @@ message ServiceCommentRequest {
 
 message AddCommentResponse {
   uint64 internal_id = 1;
+}
+
+message HostNotificationsRequest {
+  enum Scope {
+    HOST = 0;               // the host only
+    HOST_AND_SERVICES = 1;  // the host and all its services
+    HOST_AND_CHILDREN = 2;  // the host and its child hosts, recursively
+                            // (no service)
+    BEYOND_HOST = 3;        // the child hosts, recursively, with their
+                            // services; the host itself is left untouched
+  }
+  HostIdentifier host = 1;
+  bool enabled = 2;
+  Scope scope = 3;
+}
+
+message ServiceNotificationsRequest {
+  ServiceIdentifier service = 1;
+  bool enabled = 2;
 }
 
 message ServiceIdentifier {

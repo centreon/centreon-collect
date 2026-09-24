@@ -711,3 +711,47 @@ Implémentations hôtes (le seul couplage) :
 - `broker/core/cache/broker_cache.cc` — `notification_escalation()` (appelle
   `evaluate_escalations`).
 
+## 9. Bascules de notification en `notification_mode = broker`
+
+`broker/core/cache/notification_toggles.cc`, `broker_cache::set_notify`
+
+En mode broker, l'interrupteur « notifications activées » d'un hôte ou d'un service
+appartient à Broker : c'est lui que `get_config()` lit (champ `notify` de l'objet en
+cache, combiné à `enable_notifications` du poller). Les commandes externes Engine
+`ENABLE/DISABLE_*_NOTIFICATIONS` ont donc leur pendant Broker :
+
+| RPC Broker | Commandes Engine couvertes |
+|---|---|
+| `SetHostNotifications(host, enabled, scope=HOST)` | `ENABLE/DISABLE_HOST_NOTIFICATIONS` |
+| `… scope=HOST_AND_SERVICES` | idem + `ENABLE/DISABLE_HOST_SVC_NOTIFICATIONS` |
+| `… scope=HOST_AND_CHILDREN` | `ENABLE/DISABLE_HOST_AND_CHILD_NOTIFICATIONS` (hôtes récursivement, sans les services) |
+| `… scope=BEYOND_HOST` | `ENABLE/DISABLE_ALL_NOTIFICATIONS_BEYOND_HOST` (descendants et leurs services, l'hôte lui-même intact) |
+| `SetServiceNotifications(service, enabled)` | `ENABLE/DISABLE_SVC_NOTIFICATIONS` |
+
+Ce que fait `broker_cache::set_notify()` : positionner `notify` sur l'objet en cache
+(synchrone, la décision suivante le voit), mémoriser l'interrupteur dans
+`_notification_overrides` (persisté dans `BrokerCache.notification_overrides`), et
+publier le `pb_adaptive_host` / `pb_adaptive_service` qu'Engine aurait émis, pour que
+unified_sql mette à jour `hosts.notify`, `services.notify` et
+`resources.notifications_enabled`.
+
+**La surcouche.** Trois chemins remettent `notify` à la valeur configurée : une
+définition renvoyée par Engine (redémarrage), `merge()` d'une configuration
+centralisée, et les définitions écrites en base. La surcouche est réappliquée à
+l'insertion d'une définition (`_restore_notify_override`, copie-sur-écriture) et par
+`reinject_pending_notification_overrides()` aux points de réinjection des downtimes
+et des acquittements, avec republication de l'adaptatif. Sémantique Engine : la
+valeur basculée l'emporte sur la configuration tant qu'elle existe, comme
+`MODATTR_NOTIFICATIONS_ENABLED` en rétention ; elle ne change que par une nouvelle
+bascule. En mode broker, le `notify` d'un adaptatif venant d'Engine est ignoré par le
+cache : une commande mal routée vers Engine ne peut pas écraser la surcouche.
+
+**Topologie.** Les scopes `HOST_AND_CHILDREN` et `BEYOND_HOST` s'appuient sur un
+index parent → enfants du cache, alimenté par `Host.parents` de la configuration
+centralisée (résolu par nom au `merge`) et par les événements `pb_host_parent` en
+BBDO3 non centralisé. La propagation est récursive et visite chaque hôte une fois,
+comme `enable_and_propagate_notifications()` côté Engine.
+
+Tests : `tests/broker-engine/notification-toggles-broker.robot` (`BENOTBRK1` à `3`) ;
+UT `BrokerNotificationDeliverTest.{NotifyOverrideSurvivesDefinition,
+ReinjectNotificationOverrides, HostChildrenIndex}`.

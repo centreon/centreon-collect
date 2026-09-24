@@ -4580,6 +4580,8 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   cache.reinject_pending_notification_states();
   /* And the acknowledgement flags of the persisted acknowledgements. */
   cache.reinject_pending_acknowledgements();
+  /* And the notification switches toggled through the Broker API. */
+  cache.reinject_pending_notification_overrides();
 }
 
 /**

@@ -707,3 +707,48 @@ Host implementations (the only coupling):
   then `pb_notification_execute` dispatch).
 - `broker/core/cache/broker_cache.cc` — `notification_escalation()` (calls
   `evaluate_escalations`).
+
+## 9. Notification switches in `notification_mode = broker`
+
+`broker/core/cache/notification_toggles.cc`, `broker_cache::set_notify`
+
+In broker mode the "notifications enabled" switch of a host or service belongs to
+Broker: it is what `get_config()` reads (the `notify` field of the cached object,
+combined with the poller's `enable_notifications`). Engine's
+`ENABLE/DISABLE_*_NOTIFICATIONS` external commands therefore have a Broker counterpart:
+
+| Broker RPC | Engine commands covered |
+|---|---|
+| `SetHostNotifications(host, enabled, scope=HOST)` | `ENABLE/DISABLE_HOST_NOTIFICATIONS` |
+| `… scope=HOST_AND_SERVICES` | same + `ENABLE/DISABLE_HOST_SVC_NOTIFICATIONS` |
+| `… scope=HOST_AND_CHILDREN` | `ENABLE/DISABLE_HOST_AND_CHILD_NOTIFICATIONS` (hosts recursively, no service) |
+| `… scope=BEYOND_HOST` | `ENABLE/DISABLE_ALL_NOTIFICATIONS_BEYOND_HOST` (descendants and their services, the host itself untouched) |
+| `SetServiceNotifications(service, enabled)` | `ENABLE/DISABLE_SVC_NOTIFICATIONS` |
+
+What `broker_cache::set_notify()` does: set `notify` on the cached object
+(synchronously, the next decision sees it), record the switch in
+`_notification_overrides` (persisted in `BrokerCache.notification_overrides`), and
+publish the `pb_adaptive_host` / `pb_adaptive_service` Engine would have emitted, so
+unified_sql updates `hosts.notify`, `services.notify` and
+`resources.notifications_enabled`.
+
+**The override.** Three paths reset `notify` to the configured value: a definition
+resent by Engine (restart), `merge()` of a centralized configuration, and the
+definitions written to the database. The override is re-applied when a definition is
+inserted (`_restore_notify_override`, copy-on-write) and by
+`reinject_pending_notification_overrides()` at the downtime/acknowledgement
+re-injection points, republishing the adaptive event. Engine semantics: the toggled
+value wins over the configuration as long as it exists, like a retained
+`MODATTR_NOTIFICATIONS_ENABLED`; only a new toggle changes it. In broker mode the
+cache ignores the `notify` of an adaptive coming from Engine: a command misrouted to
+Engine cannot overwrite the override.
+
+**Topology.** The `HOST_AND_CHILDREN` and `BEYOND_HOST` scopes rely on a parent →
+children index in the cache, fed by `Host.parents` of the centralized configuration
+(resolved by name at `merge`) and by `pb_host_parent` events in non-centralized
+BBDO3. The propagation is recursive and visits each host once, like Engine's
+`enable_and_propagate_notifications()`.
+
+Tests: `tests/broker-engine/notification-toggles-broker.robot` (`BENOTBRK1` to `3`);
+UT `BrokerNotificationDeliverTest.{NotifyOverrideSurvivesDefinition,
+ReinjectNotificationOverrides, HostChildrenIndex}`.

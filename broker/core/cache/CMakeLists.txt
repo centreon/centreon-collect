@@ -24,6 +24,7 @@ include_directories(
 
 add_library(broker_cache STATIC
   broker_cache.cc
+  notification_toggles.cc
 )
 
 target_precompile_headers(broker_cache PRIVATE ../precomp_inc/precomp.hh)

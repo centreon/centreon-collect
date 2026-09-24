@@ -943,3 +943,113 @@ TEST_F(BrokerNotificationDeliverTest, ReinjectPendingAcknowledgements) {
             AckType::NORMAL);
   ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
 }
+
+/**
+ * @brief notification_mode=broker: set_notify() records the switch, the
+ * notification decision sees it (get_config), and a definition resent by
+ * Engine with the configured value does not override it.
+ */
+TEST_F(BrokerNotificationDeliverTest, NotifyOverrideSurvivesDefinition) {
+  merge_service_with_contact(_cache, true);
+  /* Configured value: enabled. */
+  ASSERT_TRUE(_cache->set_notify(1, 5, false));
+  ASSERT_FALSE(_cache->service(1, 5)->obj().notify());
+  ASSERT_FALSE(_cb->get_config(1, 5).enabled);
+
+  /* Engine resends the service definition with notify=true (configuration). */
+  auto svc = std::make_shared<neb::pb_service>();
+  auto& o = svc->mut_obj();
+  o.set_host_id(1);
+  o.set_service_id(5);
+  o.set_host_name("host_1");
+  o.set_description("service_1");
+  o.set_enabled(true);
+  o.set_notify(true);
+  _cache->update_service(svc);
+  ASSERT_FALSE(_cache->service(1, 5)->obj().notify());
+
+  /* An adaptive from Engine does not win either in broker mode. */
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(5);
+  as->mut_obj().set_notify(true);
+  _cache->update_service(as);
+  ASSERT_FALSE(_cache->service(1, 5)->obj().notify());
+
+  /* Unknown resource. */
+  ASSERT_FALSE(_cache->set_notify(1, 99, false));
+}
+
+/**
+ * @brief reinject_pending_notification_overrides() puts the persisted switch
+ * back on resources rebuilt with the configured value (merge, restart).
+ */
+TEST_F(BrokerNotificationDeliverTest, ReinjectNotificationOverrides) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->set_notifications_enabled(true);
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->host(1)->obj().notify());
+
+  ASSERT_TRUE(_cache->set_notify(1, 0, false));
+  ASSERT_FALSE(_cache->host(1)->obj().notify());
+  /* A merge rebuilds the host from the configuration (notify seeded true). */
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->host(1)->obj().notify());
+  _cache->reinject_pending_notification_overrides();
+  ASSERT_FALSE(_cache->host(1)->obj().notify());
+}
+
+/**
+ * @brief The host topology index is fed by the configuration parents (merge)
+ * and by pb_host_parent events, and replaced on a new configuration.
+ */
+TEST_F(BrokerNotificationDeliverTest, HostChildrenIndex) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  for (uint64_t id = 1; id <= 4; ++id) {
+    auto* h = st.mutable_hosts()->Add();
+    h->set_host_id(id);
+    h->set_host_name(fmt::format("host_{}", id));
+    if (id == 2 || id == 3)
+      h->mutable_parents()->add_data("host_1");
+    if (id == 4)
+      h->mutable_parents()->add_data("host_3");
+  }
+  _cache->merge(st);
+  auto c1 = _cache->children_of(1);
+  std::sort(c1.begin(), c1.end());
+  ASSERT_EQ(c1, (std::vector<uint64_t>{2, 3}));
+  ASSERT_EQ(_cache->children_of(3), (std::vector<uint64_t>{4}));
+  ASSERT_TRUE(_cache->children_of(2).empty());
+
+  /* host_4 moves under host_2: the old link is dropped. */
+  for (auto& h : *st.mutable_hosts())
+    if (h.host_id() == 4) {
+      h.mutable_parents()->clear_data();
+      h.mutable_parents()->add_data("host_2");
+    }
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->children_of(3).empty());
+  ASSERT_EQ(_cache->children_of(2), (std::vector<uint64_t>{4}));
+
+  /* pb_host_parent events (non-centralized path). */
+  auto hp = std::make_shared<neb::pb_host_parent>();
+  hp->mut_obj().set_enabled(true);
+  hp->mut_obj().set_parent_id(1);
+  hp->mut_obj().set_child_id(4);
+  _cache->update_host_parent(hp);
+  c1 = _cache->children_of(1);
+  std::sort(c1.begin(), c1.end());
+  ASSERT_EQ(c1, (std::vector<uint64_t>{2, 3, 4}));
+  hp->mut_obj().set_enabled(false);
+  _cache->update_host_parent(hp);
+  c1 = _cache->children_of(1);
+  std::sort(c1.begin(), c1.end());
+  ASSERT_EQ(c1, (std::vector<uint64_t>{2, 3}));
+}

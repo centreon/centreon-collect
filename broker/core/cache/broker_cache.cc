@@ -357,6 +357,23 @@ void broker_cache::merge(
         _insert_resource_contacts(host.host_id(), 0, host.contacts(),
                                   host.contactgroups(), state.poller_id());
     }
+    /* Host topology, resolved by name once every host of this configuration
+     * is known. A parent on a poller not ingested yet is simply not linked. */
+    auto& by_name_index = _hosts.get<by_name>();
+    for (const engine::configuration::Host& host : state.hosts()) {
+      absl::flat_hash_set<uint64_t> parents;
+      for (const std::string& parent_name : host.parents().data()) {
+        auto p = by_name_index.find(parent_name);
+        if (p != by_name_index.end())
+          parents.insert((*p)->obj().host_id());
+        else
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "broker_cache: parent '{}' of host {} unknown, "
+                              "not linked",
+                              parent_name, host.host_id());
+      }
+      _set_host_parents(host.host_id(), std::move(parents));
+    }
   }
 
   /* Work on hostgroups */
@@ -2281,6 +2298,7 @@ void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
   if (!section_enabled(CACHE_HOSTS))
     return;
   std::optional<AckType> restored_ack;
+  std::optional<bool> restored_notify;
   {
     absl::WriterMutexLock l{&_mutex};
     auto& index = _hosts.get<by_id>();
@@ -2298,11 +2316,15 @@ void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
        * (COW: the incoming event is shared with the output streams). */
       restored_ack = _restore_acknowledgement_type<neb::pb_host>(
           index, it, h.host_id(), 0);
+      restored_notify =
+          _restore_notify_override<neb::pb_host>(index, it, h.host_id(), 0);
     } else {
       if (it != index.end())
         index.erase(it);
     }
   }
+  if (restored_notify)
+    _publish_notify(host->obj().host_id(), 0, *restored_notify);
   if (restored_ack) {
     const auto& obj = host->obj();
     SPDLOG_LOGGER_INFO(_logger,
@@ -2422,7 +2444,12 @@ void broker_cache::update_host(
     SPDLOG_LOGGER_DEBUG(_logger,
                         "Updating adaptive host for host '{}' in Broker cache.",
                         ah.host_id());
-    if (ah.has_notify())
+    /* When Broker owns the notification switches (notification_mode=broker),
+     * a toggle Engine would report is not authoritative: the cached value and
+     * the persisted override are. Broker's own adaptive re-enters here too,
+     * already applied by set_notify(). */
+    if (ah.has_notify() && !com::centreon::common::notifications::
+                               notification_manager::is_loaded())
       h.set_notify(ah.notify());
     if (ah.has_active_checks())
       h.set_active_checks(ah.active_checks());
@@ -2521,6 +2548,7 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
   if (!section_enabled(CACHE_SERVICES))
     return;
   std::optional<AckType> restored_ack;
+  std::optional<bool> restored_notify;
   {
     absl::WriterMutexLock l{&_mutex};
 
@@ -2540,11 +2568,16 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
        * owns on the definition Engine sends. */
       restored_ack = _restore_acknowledgement_type<neb::pb_service>(
           index, it, s.host_id(), s.service_id());
+      restored_notify = _restore_notify_override<neb::pb_service>(
+          index, it, s.host_id(), s.service_id());
     } else {
       if (it != index.end())
         index.erase(it);
     }
   }
+  if (restored_notify)
+    _publish_notify(svc->obj().host_id(), svc->obj().service_id(),
+                    *restored_notify);
   if (restored_ack) {
     const auto& obj = svc->obj();
     SPDLOG_LOGGER_INFO(
@@ -2739,6 +2772,231 @@ std::shared_ptr<neb::pb_acknowledgement> broker_cache::set_acknowledgement_type(
 }
 
 /**
+ * @brief Apply the persisted notification switch of a resource on a freshly
+ * stored host/service definition (notification_mode=broker).
+ *
+ * The definitions Engine sends carry the configured notifications_enabled, not
+ * the value toggled through the Broker API. When an override exists for the
+ * resource, it is set back on the stored entry (copy-on-write, the incoming
+ * event is shared with the output streams). Must be called with the cache
+ * write lock held. No-op without override.
+ *
+ * @tparam T        The stored event type (neb::pb_host or neb::pb_service).
+ * @tparam Index    The multi-index view @a it belongs to.
+ * @tparam Iterator An iterator type of @a Index.
+ *
+ * @param index      The by_id index the entry was inserted into.
+ * @param it         Iterator to the entry just inserted or replaced.
+ * @param host_id    The host id of the resource.
+ * @param service_id The service id, 0 for a host.
+ *
+ * @return The restored switch when one was applied, so the caller publishes
+ * the matching adaptive event once the lock is released; std::nullopt
+ * otherwise.
+ */
+template <typename T, typename Index, typename Iterator>
+std::optional<bool> broker_cache::_restore_notify_override(
+    Index& index,
+    Iterator it,
+    uint64_t host_id,
+    uint64_t service_id) {
+  auto o = _notification_overrides.find({host_id, service_id});
+  if (o == _notification_overrides.end())
+    return std::nullopt;
+  if ((*it)->obj().notify() == o->second)
+    return std::nullopt;
+  mutable_entry<T> entry{*it};
+  entry->mut_obj().set_notify(o->second);
+  entry.commit(index, it);
+  return o->second;
+}
+
+/**
+ * @brief Publish the notifications-enabled switch of a resource through an
+ * adaptive event (pb_adaptive_host / pb_adaptive_service carrying only
+ * `notify`), what Engine emits for ENABLE/DISABLE_*_NOTIFICATIONS, so
+ * unified_sql updates hosts/services/resources the same way in both modes.
+ * Must be called without the cache lock held.
+ *
+ * @param host_id    The host id of the resource.
+ * @param service_id The service id, 0 for a host.
+ * @param notify     The switch value.
+ */
+void broker_cache::_publish_notify(uint64_t host_id,
+                                   uint64_t service_id,
+                                   bool notify) {
+  multiplexing::publisher pblshr;
+  if (service_id == 0) {
+    auto ev = std::make_shared<neb::pb_adaptive_host>();
+    ev->mut_obj().set_host_id(host_id);
+    ev->mut_obj().set_notify(notify);
+    pblshr.write(ev);
+  } else {
+    auto ev = std::make_shared<neb::pb_adaptive_service>();
+    ev->mut_obj().set_host_id(host_id);
+    ev->mut_obj().set_service_id(service_id);
+    ev->mut_obj().set_notify(notify);
+    pblshr.write(ev);
+  }
+}
+
+/**
+ * @brief Set the notifications-enabled switch of a host or service
+ * (notification_mode=broker): the cached value the notification decision
+ * reads, the persisted override, and the adaptive event for the database.
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id, 0 for a host.
+ * @param notify     The new switch value.
+ *
+ * @return False when the resource is unknown to the cache.
+ */
+bool broker_cache::set_notify(uint64_t host_id,
+                              uint64_t service_id,
+                              bool notify) {
+  {
+    absl::WriterMutexLock l{&_mutex};
+    if (service_id == 0) {
+      auto& index = _hosts.get<by_id>();
+      auto found = index.find(host_id);
+      if (found == index.end())
+        return false;
+      mutable_entry<neb::pb_host> entry{*found};
+      entry->mut_obj().set_notify(notify);
+      entry.commit(index, found);
+    } else {
+      auto& index = _services.get<by_id>();
+      auto found = index.find(std::make_pair(host_id, service_id));
+      if (found == index.end())
+        return false;
+      mutable_entry<neb::pb_service> entry{*found};
+      entry->mut_obj().set_notify(notify);
+      entry.commit(index, found);
+    }
+    _notification_overrides.insert_or_assign({host_id, service_id}, notify);
+  }
+  _publish_notify(host_id, service_id, notify);
+  return true;
+}
+
+/**
+ * @brief Re-apply the persisted notification switches on the cached resources
+ * (notification_mode=broker), after a restart or a configuration merge that
+ * rebuilt them with the configured value. Each restored switch is republished
+ * so the database follows. No-op in notification_mode=engine.
+ */
+void broker_cache::reinject_pending_notification_overrides() {
+  if (!com::centreon::common::notifications::notification_manager::is_loaded())
+    return;
+  std::vector<std::tuple<uint64_t, uint64_t, bool>> restored;
+  {
+    absl::WriterMutexLock l{&_mutex};
+    restored.reserve(_notification_overrides.size());
+    for (const auto& [key, notify] : _notification_overrides) {
+      if (key.second == 0) {
+        auto& index = _hosts.get<by_id>();
+        auto found = index.find(key.first);
+        if (found == index.end() || (*found)->obj().notify() == notify)
+          continue;
+        mutable_entry<neb::pb_host> entry{*found};
+        entry->mut_obj().set_notify(notify);
+        entry.commit(index, found);
+      } else {
+        auto& index = _services.get<by_id>();
+        auto found = index.find(key);
+        if (found == index.end() || (*found)->obj().notify() == notify)
+          continue;
+        mutable_entry<neb::pb_service> entry{*found};
+        entry->mut_obj().set_notify(notify);
+        entry.commit(index, found);
+      }
+      restored.emplace_back(key.first, key.second, notify);
+    }
+  }
+  if (restored.empty())
+    return;
+  SPDLOG_LOGGER_INFO(_logger,
+                     "broker_cache: {} notification switch(es) restored on "
+                     "cached resources",
+                     restored.size());
+  for (const auto& [host_id, service_id, notify] : restored)
+    _publish_notify(host_id, service_id, notify);
+}
+
+/**
+ * @brief Replace the parents of a host in the topology index (both
+ * directions). Must be called with the cache write lock held.
+ *
+ * @param child_id The host whose parents are set.
+ * @param parents  Its new parent ids (may be empty).
+ */
+void broker_cache::_set_host_parents(uint64_t child_id,
+                                     absl::flat_hash_set<uint64_t>&& parents) {
+  auto old = _host_parents.find(child_id);
+  if (old != _host_parents.end()) {
+    for (uint64_t p : old->second) {
+      auto c = _host_children.find(p);
+      if (c != _host_children.end()) {
+        c->second.erase(child_id);
+        if (c->second.empty())
+          _host_children.erase(c);
+      }
+    }
+    _host_parents.erase(old);
+  }
+  for (uint64_t p : parents)
+    _host_children[p].insert(child_id);
+  if (!parents.empty())
+    _host_parents.emplace(child_id, std::move(parents));
+}
+
+/**
+ * @brief Update the host topology from a pb_host_parent event (BBDO3 without
+ * centralized configuration; the centralized path feeds it from merge()).
+ *
+ * @param hp The event: enabled adds the link, disabled removes it.
+ */
+void broker_cache::update_host_parent(
+    const std::shared_ptr<neb::pb_host_parent>& hp) {
+  if (!section_enabled(CACHE_HOSTS))
+    return;
+  const auto& obj = hp->obj();
+  absl::WriterMutexLock l{&_mutex};
+  if (obj.enabled()) {
+    _host_children[obj.parent_id()].insert(obj.child_id());
+    _host_parents[obj.child_id()].insert(obj.parent_id());
+  } else {
+    auto c = _host_children.find(obj.parent_id());
+    if (c != _host_children.end()) {
+      c->second.erase(obj.child_id());
+      if (c->second.empty())
+        _host_children.erase(c);
+    }
+    auto p = _host_parents.find(obj.child_id());
+    if (p != _host_parents.end()) {
+      p->second.erase(obj.parent_id());
+      if (p->second.empty())
+        _host_parents.erase(p);
+    }
+  }
+}
+
+/**
+ * @brief Return the direct children of a host in the topology index.
+ *
+ * @param host_id The parent host id.
+ *
+ * @return The child host ids (empty when none).
+ */
+std::vector<uint64_t> broker_cache::children_of(uint64_t host_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto c = _host_children.find(host_id);
+  if (c == _host_children.end())
+    return {};
+  return std::vector<uint64_t>(c->second.begin(), c->second.end());
+}
+
+/**
  * @brief Restore the acknowledgement type of the cached hosts/services from
  * the persisted acknowledgements (notification_mode=broker).
  *
@@ -2903,7 +3161,9 @@ void broker_cache::update_service(
      * otherwise cloned then swapped. */
     mutable_entry<neb::pb_service> entry{*it};
     auto& s = entry->mut_obj();
-    if (as.has_notify())
+    /* Same as for hosts: Broker owns the switch in notification_mode=broker. */
+    if (as.has_notify() && !com::centreon::common::notifications::
+                               notification_manager::is_loaded())
       s.set_notify(as.notify());
     if (as.has_active_checks())
       s.set_active_checks(as.active_checks());
@@ -4431,6 +4691,9 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
     case neb::pb_adaptive_host::static_type():
       update_host(std::static_pointer_cast<neb::pb_adaptive_host>(evt));
       break;
+    case neb::pb_host_parent::static_type():
+      update_host_parent(std::static_pointer_cast<neb::pb_host_parent>(evt));
+      break;
     case neb::pb_adaptive_host_status::static_type():
       update_host(std::static_pointer_cast<neb::pb_adaptive_host_status>(evt));
       break;
@@ -4727,6 +4990,9 @@ void broker_cache::_load_cache() {
       }
       _pending_notification_states.assign(to_load.notification_states().begin(),
                                           to_load.notification_states().end());
+      for (const auto& o : to_load.notification_overrides())
+        _notification_overrides.insert_or_assign({o.host_id(), o.service_id()},
+                                                 o.notify());
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
@@ -4820,6 +5086,14 @@ void broker_cache::_save_cache() {
      * a Broker restart (only populated when notification_mode=broker). */
     for (const auto& n : _notification_states_to_save)
       to_save.add_notification_states()->CopyFrom(n);
+    /* Notification switches set through the Broker API (notification_mode=
+     * broker), re-applied on the rebuilt resources after a restart. */
+    for (const auto& [key, notify] : _notification_overrides) {
+      auto* o = to_save.add_notification_overrides();
+      o->set_host_id(key.first);
+      o->set_service_id(key.second);
+      o->set_notify(notify);
+    }
   }
   /* Saving the BrokerCache */
   std::ofstream ofs{_cache_file, std::ios::binary | std::ios::trunc};

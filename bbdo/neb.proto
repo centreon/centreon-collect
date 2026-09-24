@@ -979,6 +979,17 @@ message BrokerCache {
     repeated Event events = 8;
   }
   repeated NotificationState notification_states = 11;
+
+  /* notification_mode=broker: the notifications-enabled switches toggled
+   * through the Broker API. They win over the configured value (like Engine's
+   * MODATTR_NOTIFICATIONS_ENABLED kept in retention) and are re-applied on the
+   * definitions Engine or the configuration rebuild. */
+  message NotificationOverride {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+    bool notify = 3;
+  }
+  repeated NotificationOverride notification_overrides = 12;
 }
 
 /* Ignore */
