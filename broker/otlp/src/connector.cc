@@ -45,5 +45,7 @@ connector::connector(const otlp_config::pointer& conf)
 
 std::shared_ptr<io::stream> connector::open() {
   auto logger = log_v2::instance().get(log_v2::OTL);
-  return std::make_shared<stream>(_conf, logger);
+  return std::make_shared<stream>(
+      _conf, std::make_shared<global_cache_enricher>(),
+      std::make_shared<otlp_exporter>(_conf, logger), logger);
 }
