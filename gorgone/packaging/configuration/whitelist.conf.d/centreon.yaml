@@ -3,7 +3,7 @@
 - ^sudo\s+(/bin/|/usr/bin/)?systemctl\s+(reload|restart)\s+(centengine|centreontrapd|cbd|centreon_vmware)(\.service)?\s*$
 - ^(sudo\s+)?(/usr/bin/)?service\s+(centengine|centreontrapd|cbd|cbd-sql)\s+(reload|restart)\s*$
 - ^/usr/sbin/centenginestats\s+-c\s+/etc/centreon-engine/+centengine\.cfg\s*$
-- ^cat\s+/var/lib/centreon-engine/+[a-zA-Z0-9\-]+-stats\.json\s*$
+- ^cat\s+/var/lib/centreon-(engine|broker)/+[a-zA-Z0-9\-]+-stats\.json\s*$
 - ^(sudo\s+)?/usr/lib/centreon/plugins/.*$
 - ^(sudo\s+)?/usr/lib(64)?/nagios/plugins/.*$ # NRPE Plugins, can be installed in /usr/lib or /usr/lib64 (RHEL based)
 - ^/bin/perl /usr/share/centreon/bin/anomaly_detection --seasonality >> /var/log/centreon/anomaly_detection\.log 2>&1\s*$
