@@ -24,6 +24,16 @@ on:
         required: false
         default: ""
         type: string
+      publish_cma_version:
+        description: "Publish only this CMA version to the download site, e.g. 25.10.9 (leave empty for a normal run)"
+        required: false
+        default: ""
+        type: string
+      publish_dry_run:
+        description: "Rehearse that publication without opening a pull request"
+        required: false
+        default: true
+        type: boolean
 
   pull_request:
     paths:
@@ -100,9 +110,12 @@ jobs:
           version: ${{ env.version }}
 
   changes:
+    # a publish-only dispatch skips this, which leaves every trigger_* output empty and so
+    # turns off the whole build / test / package / deliver chain that consumes them
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      inputs.publish_cma_version == ''
     needs: [get-environment]
     uses: ./.github/workflows/get-changes-triggers.yml
     with:
@@ -237,11 +250,15 @@ jobs:
         run: .github/scripts/agent_installer_test.ps1
         shell: powershell
 
+      # enableCrossOsArchive lets deliver-windows-pulp restore this on a linux runner. The cache
+      # VERSION is a hash of the raw path strings, so the three sites that share this key must
+      # spell the path identically -- hence forward slashes here too, which glob accepts on windows.
       - name: Cache monitoring agent
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          path: agent\installer\centreon-monitoring-agent.exe
+          path: agent/installer/centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
+          enableCrossOsArchive: true
 
       - name: Upload package artifacts
         if: |
@@ -464,6 +481,7 @@ jobs:
   deliver-rpm:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      inputs.publish_cma_version == '' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
@@ -505,8 +523,11 @@ jobs:
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-rpm-pulp:
+    # the one delivery job not gated on a trigger_* output, so the publish-only dispatch
+    # condition has to be spelled out here or its cache restore fails the run
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      inputs.publish_cma_version == '' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
@@ -679,11 +700,13 @@ jobs:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
+      # path and enableCrossOsArchive must match the save byte for byte: both feed the cache version
       - name: Restore cache monitoring agent
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          path: agent\installer\centreon-monitoring-agent.exe
+          path: agent/installer/centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
+          enableCrossOsArchive: true
           fail-on-cache-miss: true
 
       - name: Deliver
@@ -706,6 +729,62 @@ jobs:
           Write-Host "[DEBUG] deliver testing to - Target path: ${TARGET_PATH}"
           jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
         shell: powershell
+
+  # Blocking, like every other Pulp job since #3705. Delivery also fails closed when the major is
+  # not provisioned — run create-repos-installers.yml in centreon/delivery-tooling for every new
+  # major, including the cloud ones the nightly builds.
+  deliver-windows-pulp:
+    if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore the installer built on windows
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: agent/installer/centreon-monitoring-agent.exe
+          key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+
+      - name: Name the installer after its version
+        env:
+          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # same name artifactory publishes, so both stores stay comparable
+          VERSION_EXE="centreon-monitoring-agent-${CMA_MAJOR_VERSION}.${CMA_MINOR_VERSION}.exe"
+          mv agent/installer/centreon-monitoring-agent.exe "agent/installer/$VERSION_EXE"
+          echo "VERSION_EXE=$VERSION_EXE" >> "$GITHUB_ENV"
+
+      - name: Deliver the installer on Pulp
+        uses: ./.github/actions/installers-delivery-pulp
+        with:
+          module_name: monitoring-agent
+          major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          installer_path: agent/installer/${{ env.VERSION_EXE }}
+          installer_name: ${{ env.VERSION_EXE }}
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
   promote-linux:
     needs: [get-environment, deliver-rpm, deliver-deb]
@@ -752,7 +831,6 @@ jobs:
         with:
           file_pattern: /tmp/promoted-packages/centreon-monitoring-agent${{ steps.parse-distrib.outputs.package_version_separator }}${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
-          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   promote-linux-pulp:
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
@@ -846,7 +924,120 @@ jobs:
         with:
           file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
-          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+
+  # Blocking, like its delivery counterpart. Needs no installer file: the relative path carries
+  # no stability, so promotion is a content add of the unit already in the testing repository.
+  promote-windows-pulp:
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    needs: [get-environment, deliver-windows-pulp]
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Promote the installer to stable on Pulp
+        uses: ./.github/actions/promote-installers-pulp
+        with:
+          module_name: monitoring-agent
+          major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          installer_name: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe
+          pulp_url: ${{ vars.PULP_API_URL }}
+          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
+          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+
+  # One job, after both promotions: every asset is on the github release by then, so this reads
+  # them back rather than reconstructing names, and a single writer needs no branch merging
+  # between the 8 promote jobs. Re-runnable on its own.
+  publish-cma-download-site:
+    needs: [get-environment, promote-linux, promote-windows]
+    # Two ways in: the component tag, and an explicit dispatch naming a version. The dispatch is
+    # the retry path -- re-running a failed job replays the same commit, so it cannot pick up a
+    # fix, and re-tagging a released component is not an option.
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      github.repository == 'centreon/centreon-collect' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      (
+        (github.event_name != 'workflow_dispatch' &&
+         needs.get-environment.outputs.is_cloud == 'false' &&
+         contains(fromJson('["stable"]'), needs.get-environment.outputs.stability))
+        ||
+        (github.event_name == 'workflow_dispatch' && inputs.publish_cma_version != '')
+      )
+
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+
+    env:
+      # the dispatched version wins; otherwise the tag's, through get-environment
+      CMA_VERSION: ${{ inputs.publish_cma_version || format('{0}.{1}', needs.get-environment.outputs.cma_major_version, needs.get-environment.outputs.cma_minor_version) }}
+      PUBLISH_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_dry_run) && 'true' || 'false' }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # the target repo's own validator runs before anything is pushed; it needs pnpm >= 11,
+      # provisioned the way WebApp-download's own workflows do it (not corepack)
+      - name: Setup node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 11
+
+      - name: Install libatomic1
+        shell: bash
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libatomic1
+
+      - name: Build the download site entries
+        id: entries
+        shell: bash
+        env:
+          RELEASE_TAG: centreon-monitoring-agent-${{ env.CMA_VERSION }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AGENT_ENTRY_FILE: agent-entry.tsv
+        run: ./.github/scripts/cma-release-entries.sh > entries.tsv
+
+      - name: Publish to the download site
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+        run: |
+          set -euo pipefail
+          IFS=$'\t' read -r AGENT_VERSION AGENT_URL AGENT_MD5 AGENT_SIZE < agent-entry.tsv
+          DRY_RUN_FLAG=()
+          [[ "$PUBLISH_DRY_RUN" == "true" ]] && DRY_RUN_FLAG=(--dry-run)
+
+          ./.github/scripts/publish-download-release.sh \
+            "${DRY_RUN_FLAG[@]}" \
+            --entries entries.tsv \
+            --out-name "${CMA_VERSION}.yaml" \
+            --branch "release/cma-${CMA_VERSION}" \
+            --commit-message "release: centreon-monitoring-agent ${CMA_VERSION}" \
+            --pr-title "release: centreon-monitoring-agent ${CMA_VERSION}" \
+            --agent-version "$AGENT_VERSION" \
+            --agent-file-url "$AGENT_URL" \
+            --agent-md5 "$AGENT_MD5" \
+            --agent-size "$AGENT_SIZE"
 
   set-skip-label:
     needs:
