@@ -703,3 +703,315 @@ Centralized_Start_Stop_Broker_Engine_${id}
     ...    1    False
     ...    2    True
     Ctn Stop Engine
+
+BECSS_POLLER_LOST_STATE
+    [Documentation]    Scenario: A poller that lost its retention and its state.prot gets back its full configuration
+    ...    Given a centralized configuration with a central (poller 1) and a poller (poller 2)
+    ...    And Broker and both Engines are started and the configurations are applied
+    ...    When the poller is stopped
+    ...    And its retention file and its state.prot are removed
+    ...    And the poller is started again
+    ...    Then the poller requests its configuration to Broker
+    ...    And Broker sends it the full configuration
+    ...    And check results from the poller are received by Broker
+    [Tags]    broker    engine    start-stop    MON-208979
+    Ctn Config Centralized Engine    ${2}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Broker Logs
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    ${result}    Ctn In Bbdo2
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
+
+    ${content}    Create List
+    ...    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1
+    ...    Found lock file '/tmp/var/lib/centreon/config/2.lck' for poller id 2
+    ...    BBDO: received diff state ack from poller 1
+    ...    BBDO: received diff state ack from poller 2
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Both pollers should have received their configuration from Broker.
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=2 AND enabled=1    >    ${0}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
+
+    Log To Console    Stopping the poller (poller id 2)
+    Ctn Stop Engine Instance    ${1}
+
+    Log To Console    Removing retention and state.prot of the poller
+    Remove File    ${VarRoot}/log/centreon-engine/config1/retention.dat
+    Remove File    ${VarRoot}/lib/centreon-engine/config1/state.prot
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config1/retention.dat
+    File Should Not Exist    ${VarRoot}/lib/centreon-engine/config1/state.prot
+
+    ${start_poller}    Ctn Get Round Current Date
+    Log To Console    Starting the poller again
+    Ctn Start Engine Instance    ${1}
+
+    # The poller has no configuration anymore, Broker must send it the full one.
+    ${content}    Create List
+    ...    BBDO: sending DiffState to poller 2
+    ...    BBDO: received diff state ack from poller 2
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should have received again its configuration from Broker.
+
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog1}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should be running with its configuration.
+    File Should Exist    ${VarRoot}/lib/centreon-engine/config1/state.prot
+
+    # Check results from the poller must reach the database.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result
+    ...    SELECT COUNT(*) FROM hosts WHERE instance_id=2 AND enabled=1
+    ...    >    ${0}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT COUNT(*) FROM services s JOIN hosts h ON h.host_id=s.host_id WHERE h.instance_id=2 AND s.enabled=1 AND s.last_check >= ${start_poller}
+    ...    >    ${0}    retry_timeout=300s    retry_pause=5s
+    Disconnect From Database
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BECSS_POLLER_OLD_STATE
+    [Documentation]    Scenario: A poller restarted with an old state.prot gets the last configuration
+    ...    Given a centralized configuration with a central (poller 1) and a poller (poller 2)
+    ...    And Broker and both Engines are started and the configurations are applied
+    ...    When the poller is stopped
+    ...    And its retention file is removed and its state.prot is put aside
+    ...    And its configuration is modified and Broker is notified of the change
+    ...    And the poller is started again
+    ...    Then the poller gets its new configuration from Broker
+    ...    And check results from the poller are received by Broker
+    ...    When the poller is stopped
+    ...    And its first state.prot is restored
+    ...    And the poller is started again
+    ...    Then Broker sends it the last configuration
+    ...    And the poller runs the last configuration
+    [Tags]    broker    engine    start-stop    MON-208979
+    Ctn Config Centralized Engine    ${2}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Broker Logs
+
+    ${poller_state}    Set Variable    ${VarRoot}/lib/centreon-engine/config1/state.prot
+    ${saved_state}    Set Variable    ${VarRoot}/lib/centreon-engine/state1.prot.saved
+    ${broker_prot}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/2.prot
+    Remove File    ${saved_state}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    ${result}    Ctn In Bbdo2
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
+
+    ${content}    Create List
+    ...    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1
+    ...    Found lock file '/tmp/var/lib/centreon/config/2.lck' for poller id 2
+    ...    BBDO: received diff state ack from poller 1
+    ...    BBDO: received diff state ack from poller 2
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Both pollers should have received their configuration from Broker.
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=2 AND enabled=1    ==    ${25}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
+    ${first_version}    Ctn Get Prot Config Version    ${broker_prot}
+    Should Not Be Empty    ${first_version}    Broker should know the first configuration of the poller.
+
+    Log To Console    Stopping the poller (poller id 2)
+    Ctn Stop Engine Instance    ${1}
+    ${version}    Ctn Get Prot Config Version    ${poller_state}
+    Should Be Equal    ${version}    ${first_version}    The poller should run the first configuration.
+
+    Log To Console    Removing retention and putting state.prot of the poller aside
+    Remove File    ${VarRoot}/log/centreon-engine/config1/retention.dat
+    Move File    ${poller_state}    ${saved_state}
+
+    Log To Console    Modifying the poller configuration (host_50 removed)
+    ${start_update}    Ctn Get Round Current Date
+    Ctn Engine Config Remove All Services From Host    ${1}    host_50
+    Ctn Engine Config Remove Host    ${1}    host_50
+    Ctn Notify Broker Of Engine Config Change    ${1}
+    ${content}    Create List    New Engine configuration for poller 2 stored
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_update}    ${content}    30
+    Should Be True    ${result}    Broker should have prepared the new configuration of the poller.
+
+    ${start_poller}    Ctn Get Round Current Date
+    Log To Console    Starting the poller without state.prot
+    Ctn Start Engine Instance    ${1}
+
+    ${content}    Create List
+    ...    BBDO: sending DiffState to poller 2
+    ...    BBDO: received diff state ack from poller 2
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should have received its new configuration from Broker.
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog1}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should be running with its new configuration.
+
+    Wait Until Keyword Succeeds    30s    1s    File Should Not Exist    ${VarRoot}/lib/centreon/config/2.lck
+    ${last_version}    Ctn Get Prot Config Version    ${broker_prot}
+    Should Not Be Equal    ${last_version}    ${first_version}    Broker should know the new configuration of the poller.
+    ${version}    Ctn Get Prot Config Version    ${poller_state}
+    Should Be Equal    ${version}    ${last_version}    The poller should run the new configuration.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result
+    ...    SELECT COUNT(*) FROM hosts WHERE instance_id=2 AND enabled=1
+    ...    ==    ${24}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT COUNT(*) FROM services s JOIN hosts h ON h.host_id=s.host_id WHERE h.instance_id=2 AND s.enabled=1 AND s.last_check >= ${start_poller}
+    ...    >    ${0}    retry_timeout=300s    retry_pause=5s
+    Disconnect From Database
+
+    Log To Console    Stopping the poller and restoring its first state.prot
+    Ctn Stop Engine Instance    ${1}
+    Copy File    ${saved_state}    ${poller_state}
+    ${version}    Ctn Get Prot Config Version    ${poller_state}
+    Should Be Equal    ${version}    ${first_version}    The first state.prot should be restored.
+
+    ${start_poller}    Ctn Get Round Current Date
+    Log To Console    Starting the poller with its first state.prot
+    Ctn Start Engine Instance    ${1}
+
+    # The poller announces the first configuration, Broker must send it the last one.
+    ${content}    Create List
+    ...    BBDO: sending DiffState to poller 2
+    ...    BBDO: received diff state ack from poller 2 with version '${last_version}'
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should have received the last configuration from Broker.
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog1}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should be running with the last configuration.
+
+    ${version}    Ctn Get Prot Config Version    ${poller_state}
+    Should Be Equal    ${version}    ${last_version}    The poller should run the last configuration.
+    ${version}    Ctn Get Prot Config Version    ${broker_prot}
+    Should Be Equal    ${version}    ${last_version}    Broker should still know the last configuration.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result
+    ...    SELECT COUNT(*) FROM hosts WHERE instance_id=2 AND enabled=1
+    ...    ==    ${24}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT COUNT(*) FROM services s JOIN hosts h ON h.host_id=s.host_id WHERE h.instance_id=2 AND s.enabled=1 AND s.last_check >= ${start_poller}
+    ...    >    ${0}    retry_timeout=300s    retry_pause=5s
+    Disconnect From Database
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BECSS_POLLER_BAD_VERSION
+    [Documentation]    Scenario: A poller restarted with an unknown configuration version gets back its configuration
+    ...    Given a centralized configuration with a central (poller 1) and a poller (poller 2)
+    ...    And Broker and both Engines are started and the configurations are applied
+    ...    When the poller is stopped
+    ...    And the config_version of its state.prot is replaced by an unknown one
+    ...    And the poller is started again
+    ...    Then Broker sends it its whole configuration
+    ...    And the poller runs the configuration known by Broker
+    ...    And check results from the poller are received by Broker
+    [Tags]    broker    engine    start-stop    MON-208979
+    Ctn Config Centralized Engine    ${2}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Broker Logs
+
+    ${poller_state}    Set Variable    ${VarRoot}/lib/centreon-engine/config1/state.prot
+    ${broker_prot}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/2.prot
+    ${bad_version}    Set Variable    0000000000000000000000000000000000000000000000000000000000000000
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    ${result}    Ctn In Bbdo2
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
+
+    ${content}    Create List
+    ...    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1
+    ...    Found lock file '/tmp/var/lib/centreon/config/2.lck' for poller id 2
+    ...    BBDO: received diff state ack from poller 1
+    ...    BBDO: received diff state ack from poller 2
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Both pollers should have received their configuration from Broker.
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=2 AND enabled=1    ==    ${25}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
+    ${known_version}    Ctn Get Prot Config Version    ${broker_prot}
+    Should Not Be Empty    ${known_version}    Broker should know the configuration of the poller.
+
+    Log To Console    Stopping the poller (poller id 2)
+    Ctn Stop Engine Instance    ${1}
+    ${version}    Ctn Get Prot Config Version    ${poller_state}
+    Should Be Equal    ${version}    ${known_version}    The poller should run the configuration known by Broker.
+
+    Log To Console    Replacing the config_version of the poller state.prot
+    Ctn Set Prot Config Version    ${poller_state}    ${bad_version}
+    ${version}    Ctn Get Prot Config Version    ${poller_state}
+    Should Be Equal    ${version}    ${bad_version}    The config_version of state.prot should have been replaced.
+
+    ${start_poller}    Ctn Get Round Current Date
+    Log To Console    Starting the poller with an unknown configuration version
+    Ctn Start Engine Instance    ${1}
+
+    # The poller announces an unknown version, Broker must send it its whole configuration.
+    ${content}    Create List
+    ...    Poller 2 announced engine conf '${bad_version}' which does not match
+    ...    BBDO: sending DiffState to poller 2
+    ...    BBDO: received diff state ack from poller 2 with version '${known_version}'
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should have received its whole configuration from Broker.
+    ${content}    Create List    Processing full configuration from diff.    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog1}    ${start_poller}    ${content}    60
+    Should Be True    ${result}    The poller should have applied its whole configuration.
+
+    ${version}    Ctn Get Prot Config Version    ${poller_state}
+    Should Be Equal    ${version}    ${known_version}    The poller should run the configuration known by Broker.
+    ${version}    Ctn Get Prot Config Version    ${broker_prot}
+    Should Be Equal    ${version}    ${known_version}    Broker configuration of the poller should not change.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result
+    ...    SELECT COUNT(*) FROM hosts WHERE instance_id=2 AND enabled=1
+    ...    ==    ${25}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT COUNT(*) FROM services s JOIN hosts h ON h.host_id=s.host_id WHERE h.instance_id=2 AND s.enabled=1
+    ...    ==    ${500}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT COUNT(*) FROM services s JOIN hosts h ON h.host_id=s.host_id WHERE h.instance_id=2 AND s.enabled=1 AND s.last_check >= ${start_poller}
+    ...    >    ${0}    retry_timeout=300s    retry_pause=5s
+    Disconnect From Database
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

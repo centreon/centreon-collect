@@ -99,8 +99,7 @@ target_link_libraries(
           pb_open_telemetry_lib
           ctncrypto)
 
-add_dependencies(opentelemetry pb_open_telemetry_lib pb_header_lib pb_neb_lib
-                 engine_rpc)
+add_dependencies(opentelemetry pb_all_libs engine_rpc)
 
 target_include_directories(
   opentelemetry

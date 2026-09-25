@@ -32,6 +32,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     jwt_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
+    log_v2/centreon_rotating_file_sink_test.cc
     node_allocator_test.cc
     perfdata_test.cc
     process_stat_test.cc
