@@ -132,13 +132,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _pool_size = s.pool_size();
 
   // Set cache directory.
-  std::filesystem::path cache_dir;
-  if (s.cache_directory().empty())
-    cache_dir = PREFIX_VAR;
-  else
-    cache_dir = s.cache_directory();
-
-  _cache_dir = cache_dir / s.broker_name();
+  _cache_dir = calc_cache_dir(s);
 
   //  if (s.get_bbdo_version().major_v >= 3) {
   //    // Configuration cache directory (for broker, from php).
@@ -331,6 +325,25 @@ com::centreon::common::PeerType state::peer_type() const {
  */
 std::shared_ptr<com::centreon::broker::stats::center> state::center() const {
   return _center;
+}
+
+/**
+ * @brief Compute the cache directory of this broker instance. It is the
+ * cache_directory given in the configuration (or PREFIX_VAR if not set)
+ * followed by a sub-directory named after the broker.
+ *
+ * @param s The broker configuration.
+ *
+ * @return The cache directory path (<cache_directory>/<broker_name>).
+ */
+std::filesystem::path state::calc_cache_dir(const config::state& s) {
+  std::filesystem::path cache_dir;
+  if (s.cache_directory().empty())
+    cache_dir = PREFIX_VAR;
+  else
+    cache_dir = s.cache_directory();
+
+  return cache_dir / s.broker_name();
 }
 
 }  // namespace com::centreon::broker::config::applier
