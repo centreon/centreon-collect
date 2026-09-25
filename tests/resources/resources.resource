@@ -9,6 +9,7 @@ Library     Common.py
 ${BROKER_LOG}       ${VarRoot}/log/centreon-broker
 ${BROKER_LIB}       ${VarRoot}/lib/centreon-broker
 ${ENGINE_LOG}       ${VarRoot}/log/centreon-engine
+${ENGINE_LIB}       ${VarRoot}/lib/centreon-engine
 ${SCRIPTS}          ${CURDIR}${/}scripts${/}
 ${centralLog}       ${BROKER_LOG}/central-broker-master.log
 ${moduleLog0}       ${BROKER_LOG}/central-module-master0.log
@@ -55,6 +56,8 @@ Ctn Clean Before Suite
     Ctn Clear Broker Logs
     Ctn Clear Commands Status
     Ctn Clear Engine White List
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
 
 Ctn Clean Before Test
     [Documentation]    Per-test isolation for suites that run several tests in a
@@ -187,7 +190,7 @@ Ctn Kindly Stop Broker
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
-        IF    ${result.rc} != 0
+        IF    ${result.rc} != -15 and ${result.rc} != 0
             Ctn Save Logs
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
@@ -199,13 +202,18 @@ Ctn Kindly Stop Broker
                         Log To Console    We are in BBDO3, so we also check RRD duplicates
                         Log To Console    central broker stopped
                         # We have to check if central RRD logs contain errors about data sent in the past.
-                        ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-                        IF    len("""${result}""") > 0
-                            Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
-                            Ctn Save Logs
-                            Remove File    ${rrdLog}
+                        ${rrdLog_exists}    Run Keyword And Return Status    File Should Exist    ${rrdLog}
+                        IF    ${rrdLog_exists}
+                            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                            IF    len("""${result}""") > 0
+                                Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
+                                Ctn Save Logs
+                                Remove File    ${rrdLog}
+                            END
+                            Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+                        ELSE
+                            Log To Console    ${rrdLog} does not exist, skipping RRD duplicates check
                         END
-                        Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
                 ELSE
                     Log To Console    Broker RRD was not started, so we don't check RRD duplicates
                 END
@@ -213,13 +221,16 @@ Ctn Kindly Stop Broker
                 Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
             END
 
-	    # We check negative metric_id
-	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
-	    IF    len("""${result}""") > 0
-                Log To Console    The central logs contain errors about metrics with negative IDs.
-                Ctn Save Logs
-                Remove File    ${centralLog}
-	    END
+    	    # We check negative metric_id
+            ${central_log_exists}    Run Keyword And Return Status    File Should Exist    ${centralLog}
+            IF    ${central_log_exists}
+                ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+                IF    len("""${result}""") > 0
+                        Log To Console    The central logs contain errors about metrics with negative IDs.
+                        Ctn Save Logs
+                        Remove File    ${centralLog}
+                END
+            END
         END
     END
 
@@ -233,7 +244,7 @@ Ctn Kindly Stop Broker
             Send Signal To Process    SIGKILL    b2
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
-            IF    ${result.rc} != 0
+            IF    ${result.rc} != -15 and ${result.rc} != 0
                 Ctn Save Logs
                 # Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
                 Ctn Coredump Info    b2    /usr/sbin/cbd    broker_rrd
@@ -256,6 +267,7 @@ Ctn Stop Processes
     Ctn Kill Broker
     Ctn Kill Engine
     Ctn Broker Config Reset
+    Remove Files    ${rrdLog}    ${centralLog}    ${engineLog0}    ${engineLog1}    ${engineLog2}    ${engineLog3}    ${engineLog4}
 
 Ctn Start Engine
     [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False    ${with_extended_conf}=False
@@ -458,14 +470,38 @@ Ctn Save Logs
     Log To Console      Save test logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${failDir0}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config0
+    ${failDir1}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config1
+    ${failDir2}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config2
+    ${failDir3}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config3
+    ${failDir4}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config4
     Create Directory    ${failDir}
     Copy Files    ${BROKER_LOG}/*    ${failDir}
-    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir}
+    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir0}
+    IF    os.path.isdir('${ENGINE_LOG}/config1')
+        Copy Files    ${ENGINE_LOG}/config1/*.log    ${failDir1}
+    END
+    IF    os.path.isdir('${ENGINE_LOG}/config2')
+        Copy Files    ${ENGINE_LOG}/config2/*.log    ${failDir2}
+    END
+    IF    os.path.isdir('${ENGINE_LOG}/config3')
+        Copy Files    ${ENGINE_LOG}/config3/*.log    ${failDir3}
+    END
+    IF    os.path.isdir('${ENGINE_LOG}/config4')
+        Copy Files    ${ENGINE_LOG}/config4/*.log    ${failDir4}
+    END
     Copy Files    ${ENGINE_LOG}/config0/*.dat    ${failDir}
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
+    
+    IF    os.path.isdir('${BROKER_LIB}/central-broker-master')
+        Ctn Copy Directory Skip Special    ${BROKER_LIB}/central-broker-master    ${failDir}/var/lib/centreon-broker
+    END
+    IF    os.path.isdir('${ENGINE_LIB}')
+        Ctn Copy Directory Skip Special    ${ENGINE_LIB}    ${failDir}/var/lib/centreon-engine
+    END
     Move Files    /tmp/lua*.log    ${failDir}
     Move Files    /tmp/mariadb.log    ${failDir}
     Move Files    /tmp/tcpdump.pcap    ${failDir}

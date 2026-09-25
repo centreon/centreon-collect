@@ -17,11 +17,7 @@
  *
  */
 
-#include <absl/container/fixed_array.h>
-#include <fmt/chrono.h>
 #include <sys/resource.h>
-#include <chrono>
-#include <cstdint>
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -140,6 +136,8 @@ void applier::state::apply(configuration::State& new_cfg,
       pb_indexed_config.serialize_to_ostream(&f);
       f.close();
     }
+    SPDLOG_LOGGER_INFO(config_logger, "config with version {} loaded",
+                       new_cfg.config_version());
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -147,11 +145,13 @@ void applier::state::apply(configuration::State& new_cfg,
       throw;
 
     // If is not the first time, we can restore the old one.
-    config_logger->error("Cannot apply new configuration: {}", e.what());
+    SPDLOG_LOGGER_ERROR(config_logger, "Cannot apply new configuration: {}",
+                        e.what());
 
     // Check if we need to restore old configuration.
     if (_processing_state == state_error) {
-      config_logger->debug("configuration: try to restore old configuration");
+      SPDLOG_LOGGER_DEBUG(config_logger,
+                          "configuration: try to restore old configuration");
       auto old_state = std::unique_ptr<configuration::State>(save.release());
       _processing(*old_state, err, state);
     }
@@ -182,12 +182,14 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
       throw;
 
     // If is not the first time, we can restore the old one.
-    config_logger->error("Cannot apply new configuration: {}", e.what());
+    SPDLOG_LOGGER_ERROR(config_logger, "Cannot apply new configuration: {}",
+                        e.what());
 
     // Check if we need to restore old configuration.
     if (_processing_state == state_error) {
       auto old_state = std::unique_ptr<configuration::State>(save.release());
-      config_logger->debug("configuration: try to restore old configuration");
+      SPDLOG_LOGGER_DEBUG(config_logger,
+                          "configuration: try to restore old configuration");
       _processing(*old_state, err);
     }
   }
@@ -593,7 +595,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Global host event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
@@ -612,7 +615,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Global service event handler command '{}' is not defined "
           "anywhere!",
           temp_command_name);
@@ -633,7 +637,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Obsessive compulsive service processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
@@ -649,7 +654,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error: Obsessive compulsive host processor command '{}' is not "
           "defined anywhere!",
           temp_command_name);
@@ -697,7 +703,8 @@ void applier::state::_check_serviceescalations() const {
         }
       }
       if (!found) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on serviceescalation !!! The service {}/{} contains a non "
             "existing service escalation",
             srv->get_hostname(), srv->get_description());
@@ -705,7 +712,8 @@ void applier::state::_check_serviceescalations() const {
       }
     }
     if (s.size() != srv->get_escalations().size()) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on serviceescalation !!! Some escalations are stored "
           "several times in service {}/{} set size: {} ; list size: {}",
           srv->get_hostname(), srv->get_description(), s.size(),
@@ -722,7 +730,8 @@ void applier::state::_check_serviceescalations() const {
       if (p.second.get() == se->notifier_ptr) {
         found = true;
         if (se->get_hostname() != p.second->get_hostname()) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Host name given by the escalation is {} "
               "whereas the hostname from the notifier is {}.",
@@ -730,7 +739,8 @@ void applier::state::_check_serviceescalations() const {
           throw engine_error() << "This is a bug";
         }
         if (se->get_description() != p.second->get_description()) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Service description given by the "
               "escalation is {} whereas the service description from the "
@@ -742,7 +752,8 @@ void applier::state::_check_serviceescalations() const {
       }
     }
     if (!found) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on serviceescalation !!! The notifier seen by the "
           "escalation is wrong The bug is detected on escalation concerning "
           "host {} and service {}",
@@ -771,7 +782,8 @@ void applier::state::_check_hostescalations() const {
         }
       }
       if (!found) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on hostescalation !!! The host {} contains a non existing "
             "host escalation",
             hst->get_name());
@@ -788,7 +800,8 @@ void applier::state::_check_hostescalations() const {
       if (p.second.get() == he->notifier_ptr) {
         found = true;
         if (he->get_hostname() != p.second->get_name()) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on hostescalation !!! The notifier seen by the escalation "
               "is wrong. Host name given by the escalation is {} whereas the "
               "hostname from the notifier is {}.",
@@ -799,7 +812,8 @@ void applier::state::_check_hostescalations() const {
       }
     }
     if (!found) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on hostescalation !!! The notifier seen by the escalation is "
           "wrong The bug is detected on escalation concerning host {}",
           he->get_hostname());
@@ -821,7 +835,8 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contact !!! The contact {} used in contactgroup {} is "
             "not or badly defined",
             pp.first, p.first);
@@ -835,7 +850,8 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contact !!! The contact {} used in service {}/{} is not "
             "or badly defined",
             pp.first, p.second->get_hostname(), p.second->get_description());
@@ -849,7 +865,8 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contact !!! The contact {} used in service {} is not or "
             "badly defined",
             pp.first, p.second->get_name());
@@ -873,7 +890,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in service "
             "{}/{} is not or badly defined",
             pp.first, p.first.first, p.first.second);
@@ -888,7 +906,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in host {} is "
             "not or badly defined",
             pp.first, p.first);
@@ -903,7 +922,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in "
             "serviceescalation {} is not or badly defined",
             pp.first, p.second->internal_key());
@@ -918,7 +938,8 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on contactgroup !!! The contactgroup {} used in "
             "hostescalation {} is not or badly defined",
             pp.first, p.second->internal_key());
@@ -944,7 +965,8 @@ void applier::state::_check_services() const {
           {svc->get_host_id(), svc->get_service_id()})};
       if (found == engine::service::services_by_id.end() ||
           found->second.get() != svc) {
-        config_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
             "Error on service !!! The service {}/{} used in service dependency "
             "{}/{} is not or badly defined",
             p.first.first, p.first.second, p.first.first, p.first.second);
@@ -958,7 +980,8 @@ void applier::state::_check_services() const {
         {p.second->get_hostname(), p.second->get_description()})};
     if (found == engine::service::services.end() ||
         found->second.get() != p.second.get()) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on service !!! The service {}/{} defined in services is not "
           "defined in services_by_id",
           p.first.first, p.first.second);
@@ -981,7 +1004,8 @@ void applier::state::_check_services() const {
           }
         }
         if (!found) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on service !!! The service {}/{} defined in services has "
               "a wrong check command",
               p.first.first, p.first.second);
@@ -993,7 +1017,8 @@ void applier::state::_check_services() const {
 
   if (engine::service::services_by_id.size() !=
       engine::service::services.size()) {
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error on service !!! services_by_id contains ices that are not in "
         "services. The first one size is {}  the second size is {}",
         engine::service::services.size(), engine::service::services.size());
@@ -1012,7 +1037,8 @@ void applier::state::_check_hosts() const {
                               std::string const& where) {
     host_map::const_iterator found{engine::host::hosts.find(hst->get_name())};
     if (found == engine::host::hosts.end() || found->second.get() != hst) {
-      config_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
           "Error on host !!! The host {} used in {} is not defined or badly "
           "defined in hosts",
           hst->get_name(), where);
@@ -1046,7 +1072,8 @@ void applier::state::_check_hosts() const {
           }
         }
         if (!found) {
-          config_logger->error(
+          SPDLOG_LOGGER_ERROR(
+              config_logger,
               "Error on host !!! The host {} defined in hosts has a wrong "
               "check command",
               p.first);
@@ -1057,7 +1084,8 @@ void applier::state::_check_hosts() const {
   }
 
   if (engine::host::hosts_by_id.size() != engine::host::hosts.size()) {
-    config_logger->error(
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
         "Error on host !!! hosts_by_id contains hosts that are not in "
         "hosts. The first one size is {} whereas the second size is {}",
         engine::service::services.size(), engine::service::services.size());
@@ -1164,6 +1192,153 @@ void applier::state::_apply(configuration::State& new_cfg,
     } catch (std::exception const& e) {
       ++err.config_errors;
       std::cout << e.what();
+    }
+  }
+}
+
+/**
+ *  Apply a configuration diff (modify/remove/add) to a map of objects, for
+ *  object types whose removal key (as carried by the diff) has a different
+ *  type than the map's key and must be converted first.
+ *
+ *  @param[in]     diff         Diff describing modified, removed and added
+ *                               objects for this object type.
+ *  @param[in,out] current_list Map of currently applied objects, keyed by
+ *                               KeyType.
+ *  @param[in]     build_key    Builds a KeyType from a modified object, to
+ *                               look it up in current_list.
+ *  @param[in]     convert_key  Converts a removed-object key (ProtoKeyType,
+ *                               as stored in the diff) into the KeyType used
+ *                               by the applier's remove_object().
+ *  @param[in,out] err          Error counter, incremented on failures when
+ *                               verify_config is set (errors are otherwise
+ *                               left to propagate).
+ */
+template <typename Applier,
+          typename DiffType,
+          typename KeyType,
+          typename ObjType,
+          typename ProtoKeyType>
+void _apply_ng(
+    const DiffType& diff,
+    absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
+    std::function<KeyType(const ObjType&)>&& build_key,
+    std::function<KeyType(const ProtoKeyType&)>&& convert_key,
+    error_cnt& err) {
+  Applier aplyr;
+
+  // Modify objects.
+  for (auto& m : diff.modified()) {
+    KeyType key = build_key(m);
+    auto* current_obj = current_list.at(key).get();
+    if (!verify_config)
+      aplyr.modify_object(current_obj, m);
+    else {
+      try {
+        aplyr.modify_object(current_obj, m);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Erase objects.
+  for (auto& key : diff.removed()) {
+    if (!verify_config)
+      aplyr.remove_object(convert_key(key));
+    else {
+      try {
+        aplyr.remove_object(convert_key(key));
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff.added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+}
+
+/**
+ *  Apply a configuration diff (modify/remove/add) to a map of objects, for
+ *  object types whose removal key already matches the map's KeyType (no
+ *  conversion needed).
+ *
+ *  @param[in]     diff         Diff describing modified, removed and added
+ *                               objects for this object type.
+ *  @param[in,out] current_list Map of currently applied objects, keyed by
+ *                               KeyType.
+ *  @param[in]     build_key    Builds a KeyType from a modified object, to
+ *                               look it up in current_list.
+ *  @param[in,out] err          Error counter, incremented on failures when
+ *                               verify_config is set (errors are otherwise
+ *                               left to propagate).
+ */
+template <typename Applier,
+          typename DiffType,
+          typename KeyType,
+          typename ObjType>
+void _apply_ng(
+    const DiffType& diff,
+    absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
+    std::function<KeyType(const ObjType&)>&& build_key,
+    error_cnt& err) {
+  Applier aplyr;
+
+  // Modify objects.
+  for (auto& m : diff.modified()) {
+    KeyType key = build_key(m);
+    auto* current_obj = current_list.at(key).get();
+    if (!verify_config)
+      aplyr.modify_object(current_obj, m);
+    else {
+      try {
+        aplyr.modify_object(current_obj, m);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Erase objects.
+  for (auto& key : diff.removed()) {
+    if (!verify_config)
+      aplyr.remove_object(key);
+    else {
+      try {
+        aplyr.remove_object(key);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff.added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      }
     }
   }
 }
@@ -1285,19 +1460,24 @@ void applier::state::_apply_diff_conf(
   APPLY_DIFF(command_file);
   if (!diff.broker_module().empty()) {
     pb_indexed_config.mut_state().clear_broker_module();
-    for (auto& m : diff.broker_module()) {
+    for (const auto& m : diff.broker_module()) {
       pb_indexed_config.mut_state().add_broker_module(m);
-      if (!broker::loader::instance().loaded(m)) {
+      size_t file_arg_sep = m.find(' ');
+      std::string file_path = m.substr(0, file_arg_sep);
+      std::string args;
+      if (file_arg_sep != std::string::npos) {
+        args = m.substr(file_arg_sep + 1);
+      }
+      if (!broker::loader::instance().loaded(file_path)) {
         if (!verify_config) {
-          std::pair<std::string, std::string> p =
-              absl::StrSplit(m, absl::MaxSplits(' ', 1));
-          auto mod = broker::loader::instance().add_module(p.first, p.second);
+          auto mod = broker::loader::instance().add_module(file_path, args);
           if (mod)
             mod->open();
           else {
-            config_logger->error(
+            SPDLOG_LOGGER_ERROR(
+                config_logger,
                 "Error loading broker module '{}' with parameters '{}'",
-                p.first, p.second);
+                file_path, args);
           }
         }
       }
@@ -1407,11 +1587,12 @@ void applier::state::_apply_diff_conf(
 
   // Apply timeperiods.
   _apply_ng<configuration::applier::timeperiod, DiffTimeperiod, std::string,
-            Timeperiod>(*diff.mutable_timeperiods(),
-                        pb_indexed_config.mut_timeperiods(),
-                        [](const Timeperiod& obj) -> std::string {
-                          return obj.timeperiod_name();
-                        });
+            Timeperiod>(
+      *diff.mutable_timeperiods(), pb_indexed_config.mut_timeperiods(),
+      [](const Timeperiod& obj) -> std::string {
+        return obj.timeperiod_name();
+      },
+      err);
   _resolve<configuration::Timeperiod, std::string, applier::timeperiod>(
       pb_indexed_config.timeperiods(), err);
 
@@ -1419,27 +1600,31 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::connector, DiffConnector, std::string,
             Connector>(
       *diff.mutable_connectors(), pb_indexed_config.mut_connectors(),
-      [](const Connector& obj) -> std::string { return obj.connector_name(); });
+      [](const Connector& obj) -> std::string { return obj.connector_name(); },
+      err);
   _resolve<configuration::Connector, std::string, applier::connector>(
       pb_indexed_config.connectors(), err);
 
   // Apply commands.
   _apply_ng<configuration::applier::command, DiffCommand, std::string, Command>(
       *diff.mutable_commands(), pb_indexed_config.mut_commands(),
-      [](const Command& obj) -> std::string { return obj.command_name(); });
+      [](const Command& obj) -> std::string { return obj.command_name(); },
+      err);
   _resolve<configuration::Command, std::string, applier::command>(
       pb_indexed_config.commands(), err);
 
   // Apply contacts and contactgroups.
   _apply_ng<configuration::applier::contact, DiffContact, std::string, Contact>(
       *diff.mutable_contacts(), pb_indexed_config.mut_contacts(),
-      [](const Contact& obj) -> std::string { return obj.contact_name(); });
+      [](const Contact& obj) -> std::string { return obj.contact_name(); },
+      err);
   _apply_ng<configuration::applier::contactgroup, DiffContactgroup, std::string,
-            Contactgroup>(*diff.mutable_contactgroups(),
-                          pb_indexed_config.mut_contactgroups(),
-                          [](const Contactgroup& obj) -> std::string {
-                            return obj.contactgroup_name();
-                          });
+            Contactgroup>(
+      *diff.mutable_contactgroups(), pb_indexed_config.mut_contactgroups(),
+      [](const Contactgroup& obj) -> std::string {
+        return obj.contactgroup_name();
+      },
+      err);
   _resolve<configuration::Contact, std::string, applier::contact>(
       pb_indexed_config.contacts(), err);
   _resolve<configuration::Contactgroup, std::string, applier::contactgroup>(
@@ -1456,7 +1641,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const SeverityKeyWithPoller& key) {
         return std::make_tuple(key.id(), key.type(), (uint32_t)key.poller_id());
-      });
+      },
+      err);
 
   // Apply tags.
   _apply_ng<configuration::applier::tag, DiffTag,
@@ -1469,12 +1655,13 @@ void applier::state::_apply_diff_conf(
       [](const TagKeyWithPoller& key) {
         return std::make_tuple(key.id(), (uint32_t)key.type(),
                                (uint32_t)key.poller_id());
-      });
+      },
+      err);
 
   // Apply hosts and hostgroups.
   _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(
       *diff.mutable_hosts(), pb_indexed_config.mut_hosts(),
-      [](const Host& obj) -> uint64_t { return obj.host_id(); });
+      [](const Host& obj) -> uint64_t { return obj.host_id(); }, err);
   _apply_ng<configuration::applier::hostgroup, DiffHostgroup,
             std::pair<std::string, uint32_t>, Hostgroup, PairGroupPoller>(
       *diff.mutable_hostgroups(), pb_indexed_config.mut_hostgroups(),
@@ -1483,7 +1670,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const PairGroupPoller& key) {
         return std::make_pair(key.group_name(), key.poller_id());
-      });
+      },
+      err);
 
   // Apply services.
   _apply_ng<configuration::applier::service, DiffService,
@@ -1494,7 +1682,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const HostServiceId& key) {
         return std::make_pair(key.host_id(), key.service_id());
-      });
+      },
+      err);
 
   // Apply anomalydetections.
   _apply_ng<configuration::applier::anomalydetection, DiffAnomalydetection,
@@ -1506,7 +1695,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const HostServiceId& key) {
         return std::make_pair(key.host_id(), key.service_id());
-      });
+      },
+      err);
 
   // Apply servicegroups.
   _apply_ng<configuration::applier::servicegroup, DiffServicegroup,
@@ -1517,7 +1707,8 @@ void applier::state::_apply_diff_conf(
       },
       [](const PairGroupPoller& key) {
         return std::make_pair(key.group_name(), key.poller_id());
-      });
+      },
+      err);
 
   // Resolve hosts, services, host groups.
   _resolve<configuration::Host, uint64_t, applier::host>(
@@ -1542,7 +1733,7 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::hostdependency, DiffHostdependency, size_t,
             Hostdependency>(*diff.mutable_hostdependencies(),
                             pb_indexed_config.mut_hostdependencies(),
-                            configuration::hostdependency_key);
+                            configuration::hostdependency_key, err);
   _resolve<configuration::Hostdependency, uint64_t, applier::hostdependency>(
       pb_indexed_config.hostdependencies(), err);
 
@@ -1551,7 +1742,7 @@ void applier::state::_apply_diff_conf(
             size_t, Servicedependency>(
       *diff.mutable_servicedependencies(),
       pb_indexed_config.mut_servicedependencies(),
-      configuration::servicedependency_key);
+      configuration::servicedependency_key, err);
   _resolve<configuration::Servicedependency, uint64_t,
            applier::servicedependency>(pb_indexed_config.servicedependencies(),
                                        err);
@@ -1560,7 +1751,7 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::hostescalation, DiffHostescalation, size_t,
             Hostescalation>(*diff.mutable_hostescalations(),
                             pb_indexed_config.mut_hostescalations(),
-                            configuration::hostescalation_key);
+                            configuration::hostescalation_key, err);
   _resolve<configuration::Hostescalation, uint64_t, applier::hostescalation>(
       pb_indexed_config.hostescalations(), err);
 
@@ -1569,7 +1760,7 @@ void applier::state::_apply_diff_conf(
             size_t, Serviceescalation>(
       *diff.mutable_serviceescalations(),
       pb_indexed_config.mut_serviceescalations(),
-      configuration::serviceescalation_key);
+      configuration::serviceescalation_key, err);
   _resolve<configuration::Serviceescalation, uint64_t,
            applier::serviceescalation>(pb_indexed_config.serviceescalations(),
                                        err);
@@ -1657,9 +1848,9 @@ void applier::state::_processing(configuration::State& new_cfg,
       credentials_decrypt.reset();
     }
 
-    config_logger->debug("Old version: {} - New version: {}",
-                         pb_indexed_config.state().config_version(),
-                         new_cfg.config_version());
+    SPDLOG_LOGGER_DEBUG(config_logger, "Old version: {} - New version: {}",
+                        pb_indexed_config.state().config_version(),
+                        new_cfg.config_version());
     // Apply new global on the current state.
     if (!verify_config) {
       _apply(new_cfg, err);
@@ -1679,13 +1870,13 @@ void applier::state::_processing(configuration::State& new_cfg,
     // Check for circular paths between hosts.
     pre_flight_circular_check(&err.config_warnings, &err.config_errors);
 
+    apply_log_config(new_cfg);
     // Call start broker event the first time to run applier state.
     if (!has_already_been_loaded) {
       neb_load_all_modules();
 
       broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
     } else {
-      apply_log_config(new_cfg);
       cbm->reload();
       neb_reload_all_modules();
     }
@@ -1784,8 +1975,9 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     std::lock_guard<std::mutex> lock(_apply_lock);
     _apply_diff_conf(diff_conf, &tv, err);
 
-    config_logger->debug("Duration to apply the diff state configuration {}",
-                         tv[2] - tv[1]);
+    SPDLOG_LOGGER_DEBUG(config_logger,
+                        "Duration to apply the diff state configuration {}",
+                        tv[2] - tv[1]);
     // Apply scheduler
     applier::scheduler::instance().apply(pb_indexed_config.mut_state(),
                                          diff_conf);
@@ -1794,7 +1986,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     // Timing.
     tv[3] = std::chrono::system_clock::now();
 
-    config_logger->debug("Duration to reload the whitelist {}", tv[3] - tv[2]);
+    SPDLOG_LOGGER_DEBUG(config_logger, "Duration to reload the whitelist {}",
+                        tv[3] - tv[2]);
     // Check for circular paths between hosts.
     pre_flight_circular_check(&err.config_warnings, &err.config_errors);
 
@@ -1824,8 +2017,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
 
     // Timing.
     tv[4] = std::chrono::system_clock::now();
-    config_logger->debug("Duration to apply resources change {}",
-                         tv[4] - tv[3]);
+    SPDLOG_LOGGER_DEBUG(config_logger, "Duration to apply resources change {}",
+                        tv[4] - tv[3]);
   } catch (...) {
     _processing_state = state_error;
     throw;

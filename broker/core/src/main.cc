@@ -25,6 +25,8 @@
 #include <exception>
 #include <thread>
 
+#include <absl/container/btree_set.h>
+
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
@@ -33,6 +35,10 @@ namespace asio = boost::asio;
 #define BOOST_DATE_TIME_NO_LIB 1
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 #include <spdlog/fmt/ostr.h>
 
@@ -262,6 +268,9 @@ int main(int argc, char* argv[]) {
          * Otherwise we will have issues with concurrent accesses. */
         try {
           log_v2::instance().apply(log_conf);
+          // logger recreated by apply
+          core_logger = log_v2::instance().get(log_v2::CORE);
+          com::centreon::common::pool::instance().set_logger(core_logger);
         } catch (const std::exception& e) {
           core_logger->error("{}", e.what());
         }
