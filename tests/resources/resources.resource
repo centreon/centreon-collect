@@ -407,6 +407,32 @@ Ctn Stop Engine
         END
     END
 
+Ctn Start Engine Instance
+    [Documentation]    Start only the centengine instance ${idx} (new generation, centralized configuration).
+    [Arguments]    ${idx}
+    ${log}    Catenate    SEPARATOR=    ${ENGINE_LOG}    /config    ${idx}
+    Start Process    /usr/sbin/centengine
+    ...    -p    ${VarRoot}/lib/centreon-engine/config${idx}
+    ...    -l    ${log}/centengine.log
+    ...    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json
+    ...    alias=e${idx}
+    ...    stdout=${log}/centengine-stdout.log
+    ...    stderr=${log}/centengine-stderr.log
+
+Ctn Stop Engine Instance
+    [Documentation]    Stop only the centengine instance ${idx} and check it stopped correctly.
+    [Arguments]    ${idx}
+    Send Signal To Process    SIGTERM    e${idx}
+    ${result}    Wait For Process    e${idx}    timeout=60s
+    IF    "${result}" == "${None}"
+        Ctn Dump Process    e${idx}    /usr/sbin/centengine    centengine${idx}
+        Send Signal To Process    SIGKILL    e${idx}
+        Fail    centengine${idx} not correctly stopped (coredump generated)
+    END
+    Should Be True
+    ...    ${result.rc} == -15 or ${result.rc} == 0
+    ...    centengine${idx} badly stopped - code returned ${result.rc}.
+
 Ctn Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
     Run Keyword And Continue On Failure    Ctn Stop Engine

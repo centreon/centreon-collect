@@ -354,6 +354,10 @@ void broker_state::add_peer(uint64_t poller_id,
  * the Engine state. If neither a .prot file nor a .lck file is found, the
  * poller configuration is considered lost and Broker will request it from
  * Engine via a DiffState{unknown=true} at the next negotiation.
+ * If the poller announced a configuration version that does not match the
+ * one stored in the <poller_id>.prot file (for example because it lost its
+ * state.prot), and no new configuration is pending (no .lck file), the whole
+ * known configuration is prepared so that it is sent back to the poller.
  *
  * @param poller_id The poller ID.
  * @return true if the configuration was found, false if it is lost/unknown.
@@ -365,6 +369,9 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   std::fstream f(prot_file);
   multiplexing::publisher pblshr;
   bool poller_conf_lost = false;
+  /* Set when the poller announced a configuration that is not the one
+   * Broker knows for it. */
+  std::unique_ptr<engine::configuration::State> mismatched_state;
   if (f) {
     auto engine_state = std::make_shared<neb::pb_engine_state>();
     auto& state = engine_state->mut_obj();
@@ -401,6 +408,8 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
             poller_id, found->second.engine_conf, state.config_version(),
             prot_file.string());
         found->second.engine_conf.clear();
+        mismatched_state =
+            std::make_unique<engine::configuration::State>(state);
       }
     }
   } else {
@@ -424,6 +433,23 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
     absl::MutexLock lck(&_lck_set_m);
     _lck_set.insert(existing_lck);
     poller_conf_lost = false;
+  } else if (mismatched_state) {
+    /* No new configuration is pending for this poller, so nothing will
+     * trigger the preparation of a diff for it. Since its current
+     * configuration is not the one Broker knows, the poller may have lost
+     * it (e.g. its state.prot has been removed). We prepare its whole
+     * configuration so that it is sent to it: the most recent one if it has
+     * already been prepared (new-<ID>.prot), otherwise the known one. */
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "Poller {} does not run the configuration known by Broker, preparing "
+        "its whole configuration to send it",
+        poller_id);
+    if (!_prepare_diff_from_new_prot_file(poller_id)) {
+      // no new-<ID>.prot pending => we create a diff<ID>.prot with only
+      // mismatched_state
+      _prepare_diff_for_poller(poller_id, std::move(mismatched_state));
+    }
   }
   if (poller_conf_lost) {
     /* Broker is unable to update the cache concerning this poller because
