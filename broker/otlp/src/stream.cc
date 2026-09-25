@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/otlp/stream.hh"
+#include <google/protobuf/util/json_util.h>
 #include <spdlog/spdlog.h>
 
 #include "bbdo/neb.pb.h"
@@ -79,15 +80,39 @@ std::optional<stream::pending_export> stream::_prepare_send_locked() {
 
 void stream::_dispatch(pending_export&& batch) {
   const uint64_t nb_data = batch.nb_data;
+  const int nb_hosts = batch.request.resource_metrics_size();
+  const auto start = std::chrono::steady_clock::now();
+  SPDLOG_LOGGER_DEBUG(_logger, "otlp: sending {} datapoints of {} hosts",
+                      nb_data, nb_hosts);
+  /* Snapshot of the request exactly as it goes over gRPC, one line of OTLP
+   * JSON (same encoding as the collector file exporter):
+   *   grep -o 'otlp: batch {.*' <log> | cut -c13- | jq .
+   * Serializing is expensive, hence the level test before doing it. */
+  if (_logger->should_log(spdlog::level::trace)) {
+    std::string json;
+    if (google::protobuf::util::MessageToJsonString(batch.request, &json).ok())
+      SPDLOG_LOGGER_TRACE(_logger, "otlp: batch {}", json);
+  }
   _exporter->export_async(
       std::move(batch.request), nb_data,
-      [this](const ::grpc::Status& status, const exporter_base::ExportResponse&,
-             uint64_t sent) {
+      [this, nb_hosts, start](const ::grpc::Status& status,
+                              const exporter_base::ExportResponse&,
+                              uint64_t sent) {
         std::lock_guard<std::mutex> l(_protect);
         --_inflight;
         if (status.ok()) {
           ++_stat_batches_sent;
           _stat_datapoints_sent += sent;
+          /* failures are logged by the exporter */
+          SPDLOG_LOGGER_INFO(
+              _logger,
+              "otlp: {} datapoints of {} hosts sent in {} ms ({} datapoints "
+              "in {} batches since start)",
+              sent, nb_hosts,
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  std::chrono::steady_clock::now() - start)
+                  .count(),
+              _stat_datapoints_sent, _stat_batches_sent);
         } else {
           ++_stat_export_errors;
         }
