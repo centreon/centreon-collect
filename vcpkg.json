@@ -16,10 +16,6 @@
       "platform": "linux"
     },
     {
-      "name": "curl",
-      "platform": "linux"
-    },
-    {
       "name": "ryml",
       "platform": "linux"
     },
