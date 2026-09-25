@@ -133,6 +133,9 @@ done
 # Parallel arrays; bash 4 has no array-of-struct. Index i is one release entry.
 declare -a E_PRODUCT E_TRAIN E_STATE E_OS E_VERSION E_FILE E_DATE E_MD5 E_SIZE E_OUT_NAME
 entry_count=0
+# tracks whether any entry brought its own output filename; if none did, a single --out-name is in
+# force and the old one-file-per-run invariant still has to hold
+any_entry_out_name="false"
 line_no=0
 
 while IFS= read -r line || [[ -n "$line" ]]; do
@@ -154,6 +157,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   date="${cols[6]-}";    md5="${cols[7]-}";     size="${cols[8]-}"
   # column 10 is the sidecar uri this fork does not use; 11 is the per-entry output filename
   entry_out_name="${cols[10]-}"
+  if [[ -n "$entry_out_name" ]]; then any_entry_out_name="true"; fi
   [[ -z "$entry_out_name" || "$entry_out_name" == *.yaml ]] \
     || die "$local_ctx: out_name must end in .yaml (got '$entry_out_name')"
 
@@ -299,6 +303,13 @@ for i in "${!E_PRODUCT[@]}"; do
 done
 
 mapfile -t OUT_RELS < <(printf '%s\n' "${E_OUT_REL[@]}" | LC_ALL=C sort -u)
+
+# With a single --out-name and no per-entry out_name there is nothing to separate products of
+# different groups, so entries would silently land in another group's directory. This is the
+# pre-multi-file "all entries must share one product group" guard, which the monitoring agent relies on.
+if [[ "$any_entry_out_name" == "false" && "${#OUT_RELS[@]}" -gt 1 ]]; then
+  die "entries resolve to ${#OUT_RELS[@]} output files (${OUT_RELS[*]}) but only one --out-name was given, so they do not share a product group. Give each entry its own out_name column to publish across groups."
+fi
 log_ok "catalog pre-flight passed (train $train, group(s) ${!seen_groups[*]}, ${#OUT_RELS[@]} file(s))"
 
 # ---------------------------------------------------------------------------
@@ -514,7 +525,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
   log_skip "[dry-run] would create branch : $BRANCH"
   log_skip "[dry-run] would commit        : $COMMIT_MESSAGE"
   log_skip "[dry-run] would open PR       : $PR_TITLE"
-  for f in "${written_files[@]}"; do
+  for f in "${written_files[@]:-}"; do
     log_skip "[dry-run] would target        : ${WEBAPP_REPO} ${WEBAPP_BASE} <- $f"
   done
   [[ -n "$AGENT_VERSION" ]] && log_skip "[dry-run] would also commit   : $catalog_rel"
@@ -550,7 +561,7 @@ log "→ committing as $commit_name <$commit_email>"
 if [[ "$branch_exists" != "true" ]]; then
   git checkout --quiet -b "$BRANCH"
 fi
-git add "${written_files[@]}"
+git add "${written_files[@]:-}"
 [[ -n "$AGENT_VERSION" ]] && git add "$catalog_rel"
 
 if git diff --cached --quiet; then
@@ -569,7 +580,7 @@ if [[ -z "$PR_BODY_FILE" ]]; then
   {
     printf '## Summary\n'
     printf -- '- Adds %d release entry(ies) for train `%s` to:\n' "$entry_count" "$train"
-    for f in "${written_files[@]}"; do
+    for f in "${written_files[@]:-}"; do
       printf -- '  - `%s`\n' "$f"
     done
     if [[ -n "$AGENT_VERSION" ]]; then
