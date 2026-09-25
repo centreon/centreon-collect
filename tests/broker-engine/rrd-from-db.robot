@@ -26,6 +26,7 @@ BRRDDMDB1
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
+    Ctn Clear Retention
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
     Ctn Start Engine
@@ -64,6 +65,7 @@ BRRDDIDDB1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
 
+    Ctn Clear Retention
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
@@ -109,6 +111,7 @@ BRRDRBDB1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
 
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -168,6 +171,7 @@ BRRDRBUDB1
     Ctn Config BBDO3    1
     Ctn Create Metrics    3
 
+    Ctn Clear Retention
     ${start}    Get Current Date    exclude_millis=True
     Ctn Start Broker
     Ctn Start Engine
@@ -226,6 +230,7 @@ BRRDUPLICATE
     Ctn Broker Config Flush Log    rrd    0
     Ctn Create Metrics    3
 
+    Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
