@@ -275,6 +275,10 @@ else
   log "→ $BRANCH does not exist yet on ${WEBAPP_REPO}, it will be created"
 fi
 
+# Captured before any code from the target repository runs, so it is the honest base for the
+# commit this run builds.
+base_sha="$(git -C "$repo_dir" rev-parse HEAD)"
+
 catalog="$repo_dir/src/data/catalog.yaml"
 [[ -f "$catalog" ]] || die "$catalog missing - the target repo layout changed"
 
@@ -592,10 +596,6 @@ log "→ committing as $commit_name <$commit_email>"
 if [[ "$branch_exists" != "true" ]]; then
   authed_git checkout --quiet -b "$BRANCH"
 fi
-# anything different here was changed after it was validated
-printf '%s\n' "$tree_manifest" | sha256sum --quiet -c - \
-  || die "the files staged for commit changed after validation; refusing to publish them"
-
 git add "${written_files[@]:-}"
 [[ -n "$AGENT_VERSION" ]] && git add "$catalog_rel"
 
@@ -606,6 +606,25 @@ if git diff --cached --quiet; then
 fi
 
 authed_git commit --quiet -m "$COMMIT_MESSAGE"
+# Verify what will actually be pushed. The commit is built from the index, not the working
+# tree, so a pre-staged path, an extra commit, a clean filter or a symlink would all pass a
+# check of the files on disk and still change what lands in the pull request.
+parent="$(git rev-parse HEAD^)"
+[[ "$parent" == "$base_sha" ]] \
+  || die "the branch carries history this run did not create; refusing to push it"
+
+mapfile -t committed < <(git diff --name-only "$base_sha" HEAD | LC_ALL=C sort)
+mapfile -t intended  < <(printf '%s\n' "${written_files[@]:-}" ${AGENT_VERSION:+"$catalog_rel"} | LC_ALL=C sort)
+[[ "${committed[*]}" == "${intended[*]}" ]] \
+  || die "the commit touches files this run did not write: ${committed[*]}"
+
+while read -r want path; do
+  [[ -n "${path:-}" ]] || continue
+  [[ "$(git show "HEAD:$path" | sha256sum | cut -d' ' -f1)" == "$want" ]] \
+    || die "$path was committed with content the run did not validate"
+done <<<"$tree_manifest"
+log_ok "commit verified against what was validated"
+
 authed_git push --quiet origin "HEAD:refs/heads/$BRANCH" \
   || die "could not push $BRANCH to ${WEBAPP_REPO}. If another run advanced the same branch, re-run this job: it merges into whatever is there."
 log_ok "pushed $BRANCH"
