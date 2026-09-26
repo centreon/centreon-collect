@@ -1004,6 +1004,15 @@ message BrokerCache {
     optional string service_notification_period = 5;
   }
   repeated ContactNotificationOverride contact_notification_overrides = 13;
+
+  /* notification_mode=broker: the program-wide notifications switch of a
+   * poller set through the Broker API. It wins over enable_notifications of the
+   * poller configuration. */
+  message PollerNotificationOverride {
+    uint64 poller_id = 1;
+    bool enabled = 2;
+  }
+  repeated PollerNotificationOverride poller_notification_overrides = 14;
 }
 
 /* Ignore */

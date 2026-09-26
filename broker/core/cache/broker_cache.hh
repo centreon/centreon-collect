@@ -700,6 +700,13 @@ class broker_cache {
   absl::flat_hash_map<std::string, contact_notification_override>
       _contact_notification_overrides ABSL_GUARDED_BY(_mutex);
 
+  /* notification_mode=broker: the program-wide notifications switch of a
+   * poller set through the Broker API, keyed by poller id. Re-applied on
+   * instance_info each time a configuration (re)defines the poller.
+   * Persisted in the cache file. */
+  absl::flat_hash_map<uint64_t, bool> _poller_notification_overrides
+      ABSL_GUARDED_BY(_mutex);
+
   /* Host topology: parent -> children and child -> parents, fed by the
    * configuration (Host.parents) in centralized mode and by pb_host_parent
    * events otherwise. Used to propagate the notification switches. */
@@ -791,6 +798,8 @@ class broker_cache {
                                   const resource_notification_override& o)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void _apply_contact_override(contact& entry) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _apply_poller_override(uint64_t poller_id, instance_info& info) const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   bool _set_contact_override(const std::string& name,
                              const contact_notification_override& o)
@@ -1135,6 +1144,15 @@ class broker_cache {
                                        const std::string& period)
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool has_contactgroup(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* notification_mode=broker: program-wide notifications switch of a poller
+   * (ENABLE/DISABLE_NOTIFICATIONS counterpart). Returns false when the poller
+   * is unknown to the cache. */
+  bool set_poller_notifications(uint64_t poller_id, bool enabled)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  /* The id of the poller of that name, or std::nullopt when unknown. */
+  std::optional<uint64_t> instance_id(const std::string& name) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool has_timeperiod(const std::string& name) const
       ABSL_LOCKS_EXCLUDED(_mutex);

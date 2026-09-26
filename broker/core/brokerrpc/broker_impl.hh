@@ -279,6 +279,10 @@ class broker_impl final : public Broker::Service {
       grpc::ServerContext* context,
       const ContactNotificationPeriodRequest* request,
       ::google::protobuf::Empty* response) override;
+  grpc::Status SetPollerNotifications(
+      grpc::ServerContext* context,
+      const PollerNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
   grpc::Status AcknowledgeHostProblem(
       grpc::ServerContext* context,
       const AcknowledgementRequest* request,

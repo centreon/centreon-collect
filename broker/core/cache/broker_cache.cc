@@ -299,6 +299,8 @@ void broker_cache::merge(
                           ? std::chrono::seconds(state.interval_length())
                           : instance_info::default_interval_length,
                       state.soft_state_dependencies()});
+  if (section_enabled(CACHE_INSTANCES))
+    _apply_poller_override(state.poller_id(), _instances[state.poller_id()]);
 
   /* Work on timeperiods */
   if (section_enabled(CACHE_NOTIFICATIONS) && !state.timeperiods().empty()) {
@@ -900,8 +902,10 @@ void broker_cache::apply(
        diff.has_soft_state_dependencies() || diff.interval_length() > 0)) {
     auto it = _instances.find(diff.poller_id());
     if (it != _instances.end()) {
-      if (diff.has_enable_notifications())
+      if (diff.has_enable_notifications()) {
         it->second.notifications_enabled = diff.enable_notifications();
+        _apply_poller_override(diff.poller_id(), it->second);
+      }
       if (diff.has_send_recovery_notifications_anyway())
         it->second.send_recovery_notifications_anyway =
             diff.send_recovery_notifications_anyway();
@@ -1893,7 +1897,9 @@ void broker_cache::update_instance(
     /* The neb Instance event carries none of the poller settings
      * (notifications_enabled, interval_length...), so only refresh the name
      * and keep the values already set by merge()/apply(). */
-    _instances[obj.instance_id()].name = obj.name();
+    instance_info& info = _instances[obj.instance_id()];
+    info.name = obj.name();
+    _apply_poller_override(obj.instance_id(), info);
   } else
     _instances.erase(obj.instance_id());
 }
@@ -3134,6 +3140,60 @@ bool broker_cache::has_contactgroup(const std::string& name) const {
 bool broker_cache::has_timeperiod(const std::string& name) const {
   absl::ReaderMutexLock l{&_mutex};
   return _timeperiods.contains(name);
+}
+
+/**
+ * @brief Apply the persisted program-wide notifications switch of a poller on
+ * its instance_info (notification_mode=broker). Must be called with the cache
+ * write lock held. No-op without override.
+ *
+ * @param poller_id The poller id.
+ * @param info      Its cache entry, just (re)built from a configuration.
+ */
+void broker_cache::_apply_poller_override(uint64_t poller_id,
+                                          instance_info& info) const {
+  auto it = _poller_notification_overrides.find(poller_id);
+  if (it != _poller_notification_overrides.end())
+    info.notifications_enabled = it->second;
+}
+
+/**
+ * @brief Enable or disable the notifications of a whole poller
+ * (notification_mode=broker), the ENABLE/DISABLE_NOTIFICATIONS counterpart.
+ * The switch wins over enable_notifications of the poller configuration until
+ * set again, like Engine's MODATTR_NOTIFICATIONS_ENABLED kept in retention.
+ * Nothing is published: the instances table keeps reflecting Engine's own
+ * flag until the command is forwarded to the poller.
+ *
+ * @param poller_id The poller id.
+ * @param enabled   The new switch value.
+ *
+ * @return False when the poller is unknown to the cache.
+ */
+bool broker_cache::set_poller_notifications(uint64_t poller_id, bool enabled) {
+  absl::WriterMutexLock l{&_mutex};
+  auto it = _instances.find(poller_id);
+  if (it == _instances.end())
+    return false;
+  _poller_notification_overrides.insert_or_assign(poller_id, enabled);
+  it->second.notifications_enabled = enabled;
+  return true;
+}
+
+/**
+ * @brief Look up a poller by name.
+ *
+ * @param name The poller name.
+ *
+ * @return Its id, or std::nullopt when no poller of that name is cached.
+ */
+std::optional<uint64_t> broker_cache::instance_id(
+    const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  for (const auto& [id, info] : _instances)
+    if (info.name == name)
+      return id;
+  return std::nullopt;
 }
 
 /**
@@ -5225,6 +5285,9 @@ void broker_cache::_load_cache() {
         if (o.has_service_notification_period())
           ov.service_notification_period = o.service_notification_period();
       }
+      for (const auto& o : to_load.poller_notification_overrides())
+        _poller_notification_overrides.insert_or_assign(o.poller_id(),
+                                                        o.enabled());
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
@@ -5340,6 +5403,11 @@ void broker_cache::_save_cache() {
         o->set_host_notification_period(*ov.host_notification_period);
       if (ov.service_notification_period)
         o->set_service_notification_period(*ov.service_notification_period);
+    }
+    for (const auto& [poller_id, enabled] : _poller_notification_overrides) {
+      auto* o = to_save.add_poller_notification_overrides();
+      o->set_poller_id(poller_id);
+      o->set_enabled(enabled);
     }
   }
   /* Saving the BrokerCache */
