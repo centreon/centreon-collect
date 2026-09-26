@@ -19,10 +19,26 @@
 #ifndef CENTREON_ENGINE_TESTS_HELPER_HH_
 #define CENTREON_ENGINE_TESTS_HELPER_HH_
 
+#include <filesystem>
+
 #include "com/centreon/engine/globals.hh"
 
 std::unique_ptr<com::centreon::engine::configuration::state_helper>
 init_config_state(void);
 void deinit_config_state(void);
+
+/**
+ * @brief The build directory, where the tests' fixtures (tests/*.cfg, helper
+ * binaries...) live: the parent of the directory holding this test binary
+ * (<build>/tests). Usable at static initialization, unlike the cwd main()
+ * moves to. Falls back to the cwd when /proc/self/exe cannot be read.
+ */
+inline std::filesystem::path build_dir() {
+  std::error_code ec;
+  auto exe = std::filesystem::read_symlink("/proc/self/exe", ec);
+  if (ec)
+    return std::filesystem::current_path();
+  return exe.parent_path().parent_path();
+}
 
 #endif  // CENTREON_ENGINE_TESTS_HELPER_HH_

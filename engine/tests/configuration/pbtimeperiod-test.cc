@@ -27,6 +27,7 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "helper.hh"
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine;
@@ -885,9 +886,9 @@ std::vector<std::vector<std::string>> parse_timeperiods_cfg(
   bool wait_time_period_begin = true;
 
   std::vector<std::string> current;
-  while (!f.eof()) {
-    std::getline(f, line);
-
+  /* getline as the loop condition: on a missing file, eof() never becomes
+   * true and the loop would never end. */
+  while (std::getline(f, line)) {
     if (line.empty() || line[0] == '#') {
       continue;
     }
@@ -911,8 +912,10 @@ std::vector<std::vector<std::string>> parse_timeperiods_cfg(
   return ret;
 }
 
+/* Read at static initialization (it feeds INSTANTIATE_TEST_SUITE_P below), so
+ * the path cannot rely on the cwd main() sets: resolve it from the binary. */
 std::vector<std::vector<std::string>> file_content =
-    parse_timeperiods_cfg("tests/timeperiods.cfg");
+    parse_timeperiods_cfg((build_dir() / "tests/timeperiods.cfg").string());
 
 class timeperiod_config_parser_test
     : public ::testing::TestWithParam<std::vector<std::string>> {

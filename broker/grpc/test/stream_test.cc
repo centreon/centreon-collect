@@ -365,31 +365,33 @@ static std::string read_file(const std::string& path) {
   return ss.str();
 }
 
-com::centreon::broker::grpc::grpc_config::pointer conf_crypted_server1234(
-    std::make_shared<com::centreon::broker::grpc::grpc_config>(
-        "localhost:4446",
-        true,
-        read_file("tests/grpc_test_keys/server_1234.crt"),
-        read_file("tests/grpc_test_keys/server_1234.key"),
-        read_file("tests/grpc_test_keys/ca_1234.crt"),
-        "my_auth",
-        "",
-        false,
-        30,
-        false));
+/* Built on first use, not at static initialization: the key files are
+ * read relative to the build directory main() moves to. */
+static com::centreon::broker::grpc::grpc_config::pointer
+conf_crypted_server1234() {
+  static com::centreon::broker::grpc::grpc_config::pointer conf =
+      std::make_shared<com::centreon::broker::grpc::grpc_config>(
+          "localhost:4446", true,
+          read_file("tests/grpc_test_keys/server_1234.crt"),
+          read_file("tests/grpc_test_keys/server_1234.key"),
+          read_file("tests/grpc_test_keys/ca_1234.crt"), "my_auth", "", false,
+          30, false);
+  return conf;
+}
 
-com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
-    std::make_shared<com::centreon::broker::grpc::grpc_config>(
-        "localhost:4446",
-        true,
-        read_file("tests/grpc_test_keys/client_1234.crt"),
-        read_file("tests/grpc_test_keys/client_1234.key"),
-        read_file("tests/grpc_test_keys/ca_1234.crt"),
-        "my_auth",
-        "",
-        false,
-        30,
-        false));
+/* Built on first use, not at static initialization: the key files are
+ * read relative to the build directory main() moves to. */
+static com::centreon::broker::grpc::grpc_config::pointer
+conf_crypted_client1234() {
+  static com::centreon::broker::grpc::grpc_config::pointer conf =
+      std::make_shared<com::centreon::broker::grpc::grpc_config>(
+          "localhost:4446", true,
+          read_file("tests/grpc_test_keys/client_1234.crt"),
+          read_file("tests/grpc_test_keys/client_1234.key"),
+          read_file("tests/grpc_test_keys/ca_1234.crt"), "my_auth", "", false,
+          30, false);
+  return conf;
+}
 
 class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
  protected:
@@ -401,7 +403,7 @@ class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
     _logger = log_v2::instance().get(log_v2::GRPC);
     //_logger->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(
-        conf_crypted_server1234);
+        conf_crypted_server1234());
   }
   static void TearDownTestSuite() { s.reset(); };
 
@@ -420,7 +422,7 @@ INSTANTIATE_TEST_SUITE_P(grpc_test_server_crypted,
                          ::testing::ValuesIn(tests_feed));
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeySendReceive) {
-  com::centreon::broker::grpc::connector conn(conf_crypted_client1234);
+  com::centreon::broker::grpc::connector conn(conf_crypted_client1234());
   std::shared_ptr<io::stream> client = conn.open();
   std::shared_ptr<io::stream> accepted = s->open();
   ASSERT_NE(accepted.get(), nullptr);
@@ -446,22 +448,23 @@ TEST_P(grpc_test_server_crypted, ServerToClientWithKeySendReceive) {
   accepted->stop();
 }
 
-com::centreon::broker::grpc::grpc_config::pointer
-    conf_crypted_client1234_bad_auth(
-        std::make_shared<com::centreon::broker::grpc::grpc_config>(
-            "localhost:4446",
-            true,
-            read_file("tests/grpc_test_keys/client_1234.crt"),
-            read_file("tests/grpc_test_keys/client_1234.key"),
-            read_file("tests/grpc_test_keys/ca_1234.crt"),
-            "my_auth_pasbon",
-            "",
-            false,
-            30,
-            false));
+/* Built on first use, not at static initialization: the key files are
+ * read relative to the build directory main() moves to. */
+static com::centreon::broker::grpc::grpc_config::pointer
+conf_crypted_client1234_bad_auth() {
+  static com::centreon::broker::grpc::grpc_config::pointer conf =
+      std::make_shared<com::centreon::broker::grpc::grpc_config>(
+          "localhost:4446", true,
+          read_file("tests/grpc_test_keys/client_1234.crt"),
+          read_file("tests/grpc_test_keys/client_1234.key"),
+          read_file("tests/grpc_test_keys/ca_1234.crt"), "my_auth_pasbon", "",
+          false, 30, false);
+  return conf;
+}
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeyAndBadAuthorization) {
-  com::centreon::broker::grpc::connector conn(conf_crypted_client1234_bad_auth);
+  com::centreon::broker::grpc::connector conn(
+      conf_crypted_client1234_bad_auth());
   std::shared_ptr<io::stream> client = conn.open();
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

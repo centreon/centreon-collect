@@ -55,7 +55,8 @@ class CentreonBrokerEnvironment : public testing::Environment {
   void SetUp() override {
     com::centreon::broker::config::applier::state::load<
         com::centreon::broker::config::applier::broker_state>("");
-    com::centreon::broker::config::applier::state::instance().initialize_cache();
+    com::centreon::broker::config::applier::state::instance()
+        .initialize_cache();
     com::centreon::broker::io::protocols::load();
     com::centreon::broker::io::events::load();
   }
@@ -76,6 +77,14 @@ class CentreonBrokerEnvironment : public testing::Environment {
 int main(int argc, char* argv[]) {
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
+
+  /* The tests open their fixtures (modules, keys, helper binaries) relative
+   * to the build directory, and this binary lives in <build>/tests: go there
+   * whatever the caller's cwd is. On failure the cwd is left unchanged. */
+  std::error_code ec;
+  auto exe = std::filesystem::read_symlink("/proc/self/exe", ec);
+  if (!ec)
+    std::filesystem::current_path(exe.parent_path().parent_path(), ec);
 
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());

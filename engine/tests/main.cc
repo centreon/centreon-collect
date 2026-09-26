@@ -18,9 +18,12 @@
  */
 
 #include <gtest/gtest.h>
+
+#include <filesystem>
 #include "com/centreon/clib.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/globals.hh"
+#include "helper.hh"
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
@@ -50,6 +53,12 @@ void set_time(time_t now);
 int main(int argc, char* argv[]) {
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
+
+  /* The tests open their fixtures (modules, keys, helper binaries) relative
+   * to the build directory, and this binary lives in <build>/tests: go there
+   * whatever the caller's cwd is. On failure the cwd is left unchanged. */
+  std::error_code ec;
+  std::filesystem::current_path(build_dir(), ec);
 
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
