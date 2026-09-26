@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Delivers CMA assets to a GitHub release and registers them on download.centreon.com.
+# Delivers CMA assets to a GitHub release.
+#
+# The assets are published to the download site by the release YAML committed to
+# centreon/WebApp-download, not from here.
 #
 # Modes
 #   local  (default): deliver local files matching --file-pattern
@@ -20,10 +23,9 @@
 # Tokens (--flag or env var):
 #   GITHUB_TOKEN                  GitHub token with write:contents scope
 #   ARTIFACTORY_ACCESS_TOKEN      JFrog token (action mode only)
-#   TOKEN_DOWNLOAD_CENTREON_COM   download.centreon.com registration token
 #
 # Flags:
-#   --dry-run        Log what would happen without executing uploads/registrations
+#   --dry-run        Log what would happen without executing uploads
 #   --force-reupload Re-upload to GitHub release even if the asset is already there
 
 set -euo pipefail
@@ -56,7 +58,6 @@ FORCE_REUPLOAD="false"
 REPO="${DELIVER_REPO:-${GITHUB_REPOSITORY:-centreon/centreon-collect}}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 ARTIFACTORY_TOKEN="${ARTIFACTORY_ACCESS_TOKEN:-}"
-DOWNLOAD_TOKEN="${TOKEN_DOWNLOAD_CENTREON_COM:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -68,7 +69,6 @@ while [[ $# -gt 0 ]]; do
     --repo)              REPO="$2";               shift 2 ;;
     --github-token)      GITHUB_TOKEN="$2";       shift 2 ;;
     --artifactory-token) ARTIFACTORY_TOKEN="$2";  shift 2 ;;
-    --download-token)    DOWNLOAD_TOKEN="$2";     shift 2 ;;
     --dry-run)           DRY_RUN="true";          shift   ;;
     --force-reupload)    FORCE_REUPLOAD="true";   shift   ;;
     *) log_error "Unknown argument: $1"; exit 1 ;;
@@ -147,71 +147,6 @@ download_from_artifactory() {
     "https://centreon.jfrog.io/artifactory/${repo}/${art_path}/${name}" \
     -o "${dest_dir}/${name}"
   echo "${dest_dir}/${name}"
-}
-
-# ─── download.centreon.com ────────────────────────────────────────────────────
-file_size() { stat -c '%s' "$1" 2>/dev/null || wc -c < "$1"; }
-
-register_download() {
-  local file="$1" download_url="$2"
-  local filename; filename=$(basename "$file")
-
-  # Parse: product-MAJOR.MINOR.PATCH[...].ext
-  local product major_ver minor_ver extension
-  if [[ "$filename" =~ ^([a-zA-Z0-9-]+)[-_]([0-9]+\.[0-9]+)\.([0-9]+).*\.([a-z]+)$ ]]; then
-    product="${BASH_REMATCH[1]}"
-    major_ver="${BASH_REMATCH[2]}"
-    minor_ver="${BASH_REMATCH[3]}"
-    extension="${BASH_REMATCH[4]}"
-  else
-    log_warn "Cannot parse metadata from ${filename} — skipping download.centreon.com"
-    return 0
-  fi
-
-  # Distrib suffix
-  local distrib_suffix=""
-  if [[ "$filename" =~ \.el([0-9]+)\. ]]; then
-    distrib_suffix="-el${BASH_REMATCH[1]}"
-  elif [[ "$filename" =~ deb([0-9]+)u[0-9]+ ]]; then
-    distrib_suffix="-debian-${BASH_REMATCH[1]}"
-  elif [[ "$filename" =~ ubuntu[._]([0-9]+\.[0-9]+) ]]; then
-    distrib_suffix="-ubuntu-${BASH_REMATCH[1]}"
-  elif [[ "$filename" =~ \.exe$ ]]; then
-    distrib_suffix="-windows"
-  fi
-
-  # Arch suffix
-  local arch_suffix=""
-  if [[ "$filename" =~ (amd64|x86_64) ]]; then
-    arch_suffix="-amd64"
-  elif [[ "$filename" =~ (arm64|aarch64) ]]; then
-    arch_suffix="-arm64"
-  fi
-
-  local file_hash file_sz version_str
-  file_hash=$(md5sum "$file" | cut -d' ' -f1)
-  file_sz=$(file_size "$file")
-  version_str="${major_ver}.${minor_ver}${distrib_suffix}${arch_suffix}"
-
-  if [[ "$DRY_RUN" == "true" ]]; then
-    log_skip "[dry-run] Would register: ${product} ${version_str}"
-    return 0
-  fi
-
-  local response
-  response=$(curl --get --fail --silent \
-    "https://download.centreon.com/api/" \
-    --data-urlencode "token=${DOWNLOAD_TOKEN}" \
-    --data-urlencode "product=${product}" \
-    --data-urlencode "release=${major_ver}" \
-    --data-urlencode "version=${version_str}" \
-    --data-urlencode "extension=${extension}" \
-    --data-urlencode "md5=${file_hash}" \
-    --data-urlencode "size=${file_sz}" \
-    --data-urlencode "ddos=0" \
-    --data-urlencode "dryrun=0" \
-    --data-urlencode "release_url=${download_url}")
-  log_ok "Registered on download.centreon.com${response:+: ${response}}"
 }
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -337,15 +272,6 @@ for file in "${FILES[@]}"; do
     fi
   fi
 
-  # download.centreon.com registration
-  if [[ -n "$DOWNLOAD_TOKEN" ]]; then
-    if register_download "$file" "$download_url"; then
-      : # logged inside the function
-    else
-      log_error "download.centreon.com registration failed for ${filename}"
-      (( failed++ )) || true
-    fi
-  fi
 done
 
 # 5. Summary
