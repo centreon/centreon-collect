@@ -832,3 +832,36 @@ contact ajouté au groupe plus tard n'est pas concerné, là encore comme Engine
 Tests : `tests/broker-engine/contact-toggles-broker.robot` (`BECNTBRK1` à `3`) ; UT
 `BrokerNotificationDeliverTest.{NotificationPeriodOverrideSurvivesDefinition,
 ContactOverrideSurvivesMerge, ContactgroupToggleAndContactPeriod}`.
+
+### 9.3 Interrupteur global d'un poller
+
+`broker_cache::set_poller_notifications`, `cache/notification_toggles.cc`
+
+`ENABLE/DISABLE_NOTIFICATIONS` est, chez Engine, un drapeau de programme : il coupe toute
+notification du poller, quel que soit l'état des ressources. Broker le modélise déjà par
+poller dans `instance_info.notifications_enabled`, lu par `get_config()` et alimenté par
+`enable_notifications` de la configuration centralisée (`merge`, `DiffState`). En mode broker,
+la RPC `SetPollerNotifications(PollerNotificationsRequest { PollerIdentifier poller, bool
+enabled })` pose ce drapeau, avec `PollerIdentifier { poller_id | poller_name }`. Poller
+inconnu : `NOT_FOUND`.
+
+**Surcouche.** `_poller_notification_overrides` (clé = `poller_id`, persistée dans
+`BrokerCache.poller_notification_overrides`, champ 14) est réappliquée par
+`_apply_poller_override()` à chaque fois que l'entrée du poller est (re)construite : `merge`
+d'une configuration, `DiffState` changeant `enable_notifications`, événement `pb_instance`
+en BBDO3 non centralisé. Même sémantique que `MODATTR_NOTIFICATIONS_ENABLED` sur le
+programme Engine, retenu dans `retention.dat`.
+
+**Sens de « global ».** Le périmètre reste le poller, c'est-à-dire un programme Engine, comme
+en legacy. Pour toute la plateforme, PHP boucle sur ses pollers. Une bascule à l'échelle
+d'une zone n'a de sens qu'avec la distribution dynamique des ressources et est différée à ce
+jalon.
+
+**Trou connu.** Rien n'est publié : `instances.notifications` en base continue de refléter le
+drapeau d'Engine, pas la surcouche Broker. Il n'existe pas d'adaptatif d'instance, et publier
+un statut d'instance complet écraserait les autres colonnes. Ce trou sera fermé par le canal
+descendant du prérequis 4 (redescente de la commande à Engine), qui alignera d'un coup sa
+rétention, ses macros et la base.
+
+Tests : `tests/broker-engine/poller-toggles-broker.robot` (`BEPOLBRK1`) ; UT
+`BrokerNotificationDeliverTest.PollerOverrideSurvivesMerge`.

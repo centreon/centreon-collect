@@ -265,6 +265,12 @@ flowchart TD
   `SetServiceNotificationPeriod({ host | service, timeperiod })`. One RPC per legacy command,
   contacts and contactgroups designated by name, a timeperiod unknown to Broker is refused
   (`NOT_FOUND`). Same persistence rules as the per-resource switches.
+* **Poller-wide switch**: `ENABLE/DISABLE_NOTIFICATIONS` (addressed to a poller) →
+  **Broker**'s `SetPollerNotifications(PollerNotificationsRequest { poller { poller_id |
+  poller_name }, enabled })` in `broker` mode. The scope stays the poller, as in legacy; for
+  the whole platform, loop over the pollers. ⚠️ `instances.notifications` in the database
+  still reflects Engine's flag, not the Broker switch (documented gap, closed by routing the
+  external commands to Engine).
 * **Notifier settings**: `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
   `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
   `SendCustomHostNotification` / `SendCustomServiceNotification` (option bits 1/2/4
@@ -362,7 +368,7 @@ In legacy mode (`notification_mode = engine`), PHP keeps calling Engine's
 | Acknowledgements | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (when `notification_mode = broker`) |
 | Comments | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments` | same names on Broker (`HostCommentRequest` / `ServiceCommentRequest` / `CommentIdentifier`), when `notification_mode = broker` |
 | Checks | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck` | — |
-| Notifications / toggles | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, … | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications`, `SetContact{Host,Service}Notifications`, `SetContactgroup{Host,Service}Notifications`, `SetContact{Host,Service}NotificationPeriod`, `Set{Host,Service}NotificationPeriod` — when `notification_mode = broker`, for the per-host/service/contact/contactgroup switches and the notification timeperiods; the others stay on Engine |
+| Notifications / toggles | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, … | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications`, `SetContact{Host,Service}Notifications`, `SetContactgroup{Host,Service}Notifications`, `SetContact{Host,Service}NotificationPeriod`, `Set{Host,Service}NotificationPeriod`, `SetPollerNotifications` — when `notification_mode = broker`, for the per-host/service/contact/contactgroup switches and the notification timeperiods; the others stay on Engine |
 | Object variable changes | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, … | — |
 
 > The list of which downtime/acknowledgement families will progressively move to

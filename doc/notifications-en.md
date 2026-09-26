@@ -827,3 +827,35 @@ to the group later is not affected, again like Engine.
 Tests: `tests/broker-engine/contact-toggles-broker.robot` (`BECNTBRK1` to `3`); UT
 `BrokerNotificationDeliverTest.{NotificationPeriodOverrideSurvivesDefinition,
 ContactOverrideSurvivesMerge, ContactgroupToggleAndContactPeriod}`.
+
+### 9.3 Poller-wide switch
+
+`broker_cache::set_poller_notifications`, `cache/notification_toggles.cc`
+
+On Engine, `ENABLE/DISABLE_NOTIFICATIONS` is a program-wide flag: it blocks every
+notification of the poller whatever the state of the resources. Broker already models it
+per poller in `instance_info.notifications_enabled`, read by `get_config()` and fed by
+`enable_notifications` of the centralized configuration (`merge`, `DiffState`). In broker
+mode the `SetPollerNotifications(PollerNotificationsRequest { PollerIdentifier poller, bool
+enabled })` RPC sets this flag, with `PollerIdentifier { poller_id | poller_name }`. Unknown
+poller: `NOT_FOUND`.
+
+**Override.** `_poller_notification_overrides` (keyed by `poller_id`, persisted in
+`BrokerCache.poller_notification_overrides`, field 14) is re-applied by
+`_apply_poller_override()` each time the poller entry is (re)built: `merge` of a
+configuration, `DiffState` changing `enable_notifications`, `pb_instance` event in
+non-centralized BBDO3. Same semantics as `MODATTR_NOTIFICATIONS_ENABLED` on the Engine
+program, kept in `retention.dat`.
+
+**Meaning of "global".** The scope stays the poller, that is one Engine program, as in
+legacy. For the whole platform PHP loops over its pollers. A zone-wide switch only makes
+sense with the dynamic distribution of resources and is deferred to that milestone.
+
+**Known gap.** Nothing is published: `instances.notifications` in the database keeps
+reflecting Engine's flag, not the Broker override. There is no instance adaptive event, and
+publishing a full instance status would overwrite the other columns. The gap will be closed
+by the downward channel of prerequisite 4 (forwarding the command to Engine), which aligns
+its retention, its macros and the database at once.
+
+Tests: `tests/broker-engine/poller-toggles-broker.robot` (`BEPOLBRK1`); UT
+`BrokerNotificationDeliverTest.PollerOverrideSurvivesMerge`.
