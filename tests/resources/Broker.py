@@ -5415,3 +5415,32 @@ def ctn_check_service_notification_period_with_timeout(hostname: str, service_de
                     return True
         time.sleep(1)
     return False
+
+
+def ctn_broker_set_poller_notifications(poller: str, enabled: bool, port: int = 51001):
+    """
+    Enable or disable the notifications of a whole poller via the Broker gRPC
+    SetPollerNotifications endpoint (Engine's ENABLE/DISABLE_NOTIFICATIONS on
+    that poller). Requires notification_mode = broker.
+
+    Args:
+        poller: The poller id (digits) or the poller name.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Poller Notifications    1    ${False} |
+    """
+    def call(stub):
+        req = broker_pb2.PollerNotificationsRequest()
+        if str(poller).isdigit():
+            req.poller.poller_id = int(poller)
+        else:
+            req.poller.poller_name = str(poller)
+        req.enabled = bool(enabled)
+        stub.SetPollerNotifications(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
