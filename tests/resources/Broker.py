@@ -5417,6 +5417,42 @@ def ctn_check_service_notification_period_with_timeout(hostname: str, service_de
     return False
 
 
+def ctn_broker_execute_external_command(command: str, poller=None, port: int = 51001):
+    """
+    Send a legacy Engine external command line through the Broker gRPC
+    ExecuteExternalCommand endpoint. A host or service command is routed to
+    the poller supervising the host named as first argument, a contact or
+    contactgroup command is broadcast to every connected poller, a global or
+    process command goes to the poller given in `poller`. The poller parses
+    and executes the line as if it had come from its command pipe.
+
+    Args:
+        command: The legacy line, e.g. "SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;0".
+            The "[timestamp] " prefix is optional.
+        poller: The poller id (digits) or name, required for a global or
+            process command, ignored otherwise.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Execute External Command    SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;0 |
+    | ${err}    Ctn Broker Execute External Command    DISABLE_EVENT_HANDLERS    poller=2 |
+    """
+    def call(stub):
+        req = broker_pb2.ExternalCommandRequest()
+        req.command = command
+        if poller is not None:
+            if str(poller).isdigit():
+                req.poller.poller_id = int(poller)
+            else:
+                req.poller.poller_name = str(poller)
+        stub.ExecuteExternalCommand(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
 def ctn_broker_set_poller_notifications(poller: str, enabled: bool, port: int = 51001):
     """
     Enable or disable the notifications of a whole poller via the Broker gRPC
