@@ -374,7 +374,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   auto engine_state = std::make_shared<neb::pb_engine_state>();
   engine::configuration::State& full_state = engine_state->mut_obj();
   if (f) {
-    poller_conf_lost = full_state.ParseFromIstream(&f);
+    poller_conf_lost = !full_state.ParseFromIstream(&f);
     if (!poller_conf_lost) {
       if (_logger->level() <= spdlog::level::trace) {
         std::string debug_diff;
