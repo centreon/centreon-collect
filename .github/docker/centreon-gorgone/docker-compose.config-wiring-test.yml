@@ -34,6 +34,9 @@ services:
   poller-env-override:
     image: ${GORGONE_IMAGE}
     environment:
+      # Debug severity needed here so the env-override confirmation log line
+      # (only printed at debug level) is actually visible to the test.
+      GORGONE_LOG_LEVEL: debug
       GORGONE__GORGONE__GORGONECORE__ID: "42"
 
   central-stub:

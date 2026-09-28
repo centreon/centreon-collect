@@ -86,6 +86,11 @@ if ! grep -q "runtime-test-app-secret" <<< "$content" || ! grep -q "runtime-test
   exit 1
 fi
 echo "OK: engine-context.json created with mode 640 and expected content."
+if $COMPOSE logs poller-with-secrets 2>&1 | grep -qi "debug"; then
+  echo "::error::default severity leaked debug-level output; GORGONE_LOG_LEVEL should default to error"
+  exit 1
+fi
+echo "OK: default severity (error) suppresses debug-level output."
 $COMPOSE down poller-with-secrets > /dev/null 2>&1 || true
 summary_step_pass
 
