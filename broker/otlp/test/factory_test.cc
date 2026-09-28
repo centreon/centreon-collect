@@ -115,3 +115,12 @@ TEST(otlp_factory, rejects_degenerate_limits) {
       factory::parse_config(make_cfg({{"max_inflight_requests", "0"}})),
       msg_fmt);
 }
+
+TEST(otlp_factory, host_ip_exclude_link_local) {
+  auto conf = factory::parse_config(make_cfg());
+  EXPECT_FALSE(conf->host_ip_exclude_link_local);
+
+  conf = factory::parse_config(
+      make_cfg({{"host_ip_exclude_link_local", "true"}}));
+  EXPECT_TRUE(conf->host_ip_exclude_link_local);
+}

@@ -52,6 +52,10 @@ struct otlp_config {
   bool send_thresholds = true;
   bool send_status = true;
   bool send_min_max = true;
+
+  /* Drop link-local addresses (169.254.0.0/16, fe80::/10) from host.ip. OTel
+   * allows them, so they are kept by default. */
+  bool host_ip_exclude_link_local = false;
 };
 
 }  // namespace com::centreon::broker::otlp
