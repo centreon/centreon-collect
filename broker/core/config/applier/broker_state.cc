@@ -19,7 +19,6 @@
 #include "broker/core/config/applier/broker_state.hh"
 #include "bbdo/bbdo.pb.h"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/vars.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/engine_conf/indexed_state.hh"
@@ -371,11 +370,11 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   bool poller_conf_lost = false;
   /* Set when the poller announced a configuration that is not the one
    * Broker knows for it. */
-  std::unique_ptr<engine::configuration::State> mismatched_state;
+  bool have_to_send_all_conf = false;
+  auto engine_state = std::make_shared<neb::pb_engine_state>();
+  engine::configuration::State& full_state = engine_state->mut_obj();
   if (f) {
-    auto engine_state = std::make_shared<neb::pb_engine_state>();
-    auto& state = engine_state->mut_obj();
-    poller_conf_lost = !state.ParseFromIstream(&f);
+    poller_conf_lost = full_state.ParseFromIstream(&f);
     if (!poller_conf_lost) {
       if (_logger->level() <= spdlog::level::trace) {
         std::string debug_diff;
@@ -383,7 +382,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
             ::google::protobuf::json::MessageToJsonString(engine_state->obj(),
                                                           &debug_diff);
         SPDLOG_LOGGER_TRACE(_logger, "read from file {} version {} state: {}",
-                            prot_file, state.config_version(), debug_diff);
+                            prot_file, full_state.config_version(), debug_diff);
       }
       pblshr.write(engine_state);
 
@@ -399,17 +398,16 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
       absl::WriterMutexLock lck(&_connected_peers_m);
       auto found = _engine_peers.find(poller_id);
       if (found != _engine_peers.end() &&
-          found->second.engine_conf != state.config_version()) {
+          found->second.engine_conf != full_state.config_version()) {
         SPDLOG_LOGGER_WARN(
             _logger,
             "Poller {} announced engine conf '{}' which does not match "
             "Broker's configuration '{}' for it (from '{}'): clearing the "
             "known engine conf for this poller",
-            poller_id, found->second.engine_conf, state.config_version(),
+            poller_id, found->second.engine_conf, full_state.config_version(),
             prot_file.string());
         found->second.engine_conf.clear();
-        mismatched_state =
-            std::make_unique<engine::configuration::State>(state);
+        have_to_send_all_conf = true;
       }
     }
   } else {
@@ -433,7 +431,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
     absl::MutexLock lck(&_lck_set_m);
     _lck_set.insert(existing_lck);
     poller_conf_lost = false;
-  } else if (mismatched_state) {
+  } else if (have_to_send_all_conf) {
     /* No new configuration is pending for this poller, so nothing will
      * trigger the preparation of a diff for it. Since its current
      * configuration is not the one Broker knows, the poller may have lost
@@ -448,7 +446,9 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
     if (!_prepare_diff_from_new_prot_file(poller_id)) {
       // no new-<ID>.prot pending => we create a diff<ID>.prot with only
       // mismatched_state
-      _prepare_diff_for_poller(poller_id, std::move(mismatched_state));
+      _prepare_diff_for_poller(
+          poller_id,
+          std::make_unique<engine::configuration::State>(full_state));
     }
   }
   if (poller_conf_lost) {

@@ -137,6 +137,7 @@ BECSS4
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    trace
 
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
@@ -717,6 +718,7 @@ BECSS_POLLER_LOST_STATE
     [Tags]    broker    engine    start-stop    MON-208979
     Ctn Config Centralized Engine    ${2}
     Ctn Config Broker    central
+    Ctn Broker Config Source Log    central    1
     Ctn Config Broker    module    ${2}
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    config    debug
