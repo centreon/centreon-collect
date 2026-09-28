@@ -415,6 +415,7 @@ void agent_impl<bireactor_class>::on_request(
           _agent_info->init().encryption_ready();
     }
     _stats->add_agent(_agent_info->init(), _reversed, this);
+    _stats->set_host_info(_agent_info->init(), this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());
     calc_and_send_config_if_needed(agent_conf);
   }
