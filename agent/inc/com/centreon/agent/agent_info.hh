@@ -25,9 +25,14 @@ namespace com::centreon::agent {
 
 void read_os_version();
 
+#ifndef _WIN32
+std::string otel_arch(std::string_view machine);
+std::string read_machine_id(const std::string& path);
+#endif
+
 void fill_agent_info(const std::string& supervised_host,
                      const std::string& host_template,
                      ::com::centreon::agent::AgentInfo* agent_info,
                      const std::shared_ptr<spdlog::logger>& logger);
 }  // namespace com::centreon::agent
-#endif
+#endif
