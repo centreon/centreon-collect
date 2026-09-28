@@ -46,6 +46,21 @@ ARG USE_SOURCE_GORGONE=false
 FROM gorgone-perl-${USE_SOURCE_GORGONE} AS gorgone-perl-selected
 
 #############################################
+# Stage 1h/1i: Gorgone binary selector
+# USE_SOURCE_GORGONE=false → extract gorgoned from .deb (production default)
+# USE_SOURCE_GORGONE=true  → copy gorgoned script from local repo source (dev/testing)
+#############################################
+FROM scratch AS gorgoned-bin-false
+COPY --from=extractor /extracted/usr/bin/gorgoned /gorgoned-bin/gorgoned
+
+FROM scratch AS gorgoned-bin-true
+COPY gorgone/gorgoned /gorgoned-bin/gorgoned
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM gorgoned-bin-${USE_SOURCE_GORGONE} AS gorgoned-bin-selected
+
+#############################################
 # Stage 1d/1e: Centreon Perl libs selector
 #############################################
 FROM scratch AS centreon-perl-false
@@ -214,7 +229,8 @@ EOF
 # Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
 
 # Gorgone binaries
-COPY --from=extractor --link --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
+# gorgoned comes from gorgoned-bin-selected (either .deb or local repo source, see USE_SOURCE_GORGONE)
+COPY --from=gorgoned-bin-selected --link --chmod=755 /gorgoned-bin/gorgoned /usr/bin/gorgoned
 
 # Perl modules (centreon-gorgone and centreon-perl) - use Debian's perl5 path
 # gorgone modules come from gorgone-perl-selected (either .deb or local repo source)
@@ -230,6 +246,17 @@ COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --
 COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+
+# Static central config — deliberately NOT under config.d/ (which config.yaml globs
+# wholesale via !include) so it never merges with the poller config above. Selected
+# by pointing `gorgoned --config=` directly at it (TYPE=central mode, see compose).
+# DB creds are injected via GORGONE__CENTREON__DATABASE__... env vars at startup.
+COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
+     .github/docker/centreon-gorgone/trixie/config/40-gorgoned-central.yaml \
+     /etc/centreon-gorgone/40-gorgoned-central.yaml
+COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
+     .github/docker/centreon-gorgone/trixie/config/registernodes-central-docker.yml \
+     /etc/centreon-gorgone/registernodes-central-docker.yml
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
