@@ -79,15 +79,28 @@ std::optional<stream::pending_export> stream::_prepare_send_locked() {
 
 void stream::_dispatch(pending_export&& batch) {
   const uint64_t nb_data = batch.nb_data;
+  const int nb_hosts = batch.request.resource_metrics_size();
+  const auto start = std::chrono::steady_clock::now();
   _exporter->export_async(
       std::move(batch.request), nb_data,
-      [this](const ::grpc::Status& status, const exporter_base::ExportResponse&,
-             uint64_t sent) {
+      [this, nb_hosts, start](const ::grpc::Status& status,
+                              const exporter_base::ExportResponse&,
+                              uint64_t sent) {
         std::lock_guard<std::mutex> l(_protect);
         --_inflight;
         if (status.ok()) {
           ++_stat_batches_sent;
           _stat_datapoints_sent += sent;
+          /* failures are logged by the exporter */
+          SPDLOG_LOGGER_INFO(
+              _logger,
+              "otlp: {} datapoints of {} hosts sent in {} ms ({} datapoints "
+              "in {} batches since start)",
+              sent, nb_hosts,
+              std::chrono::duration_cast<std::chrono::milliseconds>(
+                  std::chrono::steady_clock::now() - start)
+                  .count(),
+              _stat_datapoints_sent, _stat_batches_sent);
         } else {
           ++_stat_export_errors;
         }
