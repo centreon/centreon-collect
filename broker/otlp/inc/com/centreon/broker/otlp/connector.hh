@@ -20,6 +20,7 @@
 #define CCB_OTLP_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
+#include "com/centreon/broker/otlp/mapping_provider.hh"
 #include "com/centreon/broker/otlp/otlp_config.hh"
 
 namespace com::centreon::broker::otlp {
@@ -32,6 +33,7 @@ namespace com::centreon::broker::otlp {
  */
 class connector : public io::endpoint {
   const otlp_config::pointer _conf;
+  mapping_provider::pointer _mapping;
 
  public:
   explicit connector(const otlp_config::pointer& conf);

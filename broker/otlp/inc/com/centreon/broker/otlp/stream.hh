@@ -20,6 +20,7 @@
 #define CCB_OTLP_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/otlp/mapping_provider.hh"
 #include "com/centreon/broker/otlp/otlp_config.hh"
 #include "com/centreon/broker/otlp/otlp_exporter.hh"
 #include "com/centreon/broker/otlp/request_builder.hh"
@@ -38,9 +39,10 @@ class stream : public io::stream {
   const otlp_config::pointer _conf;
   std::shared_ptr<spdlog::logger> _logger;
   std::shared_ptr<resource_enricher> _enricher;
+  mapping_provider::pointer _mapping;
   std::shared_ptr<exporter_base> _exporter;
 
-  std::mutex _protect;
+  mutable std::mutex _protect;
   std::unique_ptr<request_builder> _builder;
   /* Events delivered but not yet reported to the muxer. */
   uint32_t _acknowledged = 0;
@@ -74,6 +76,7 @@ class stream : public io::stream {
  public:
   stream(const otlp_config::pointer& conf,
          const std::shared_ptr<resource_enricher>& enricher,
+         const mapping_provider::pointer& mapping,
          const std::shared_ptr<exporter_base>& exporter,
          const std::shared_ptr<spdlog::logger>& logger);
   ~stream() noexcept override = default;

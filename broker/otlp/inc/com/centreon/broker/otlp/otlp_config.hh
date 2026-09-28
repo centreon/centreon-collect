@@ -43,6 +43,11 @@ struct otlp_config {
   /* Per-export deadline, in seconds. */
   uint32_t export_timeout = 30;
 
+  /* JSON file mapping Centreon metric names to OTel semantic conventions.
+   * Empty: no mapping, every metric goes under centreon.*. Watched and
+   * reloaded when rewritten. */
+  std::string mapping_file;
+
   /* Optional annotation streams. On by default. */
   bool send_thresholds = true;
   bool send_status = true;
