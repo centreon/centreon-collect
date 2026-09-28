@@ -169,13 +169,13 @@ BAM_STREAM_FILTER
     # Monitoring
     FOR    ${cpt}    IN RANGE    30
         # pb_service
-        ${grep_res1}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001b written
+        ${grep_res1}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001b written    regexp=True
         # pb_service_status
-        ${grep_res2}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001d written
+        ${grep_res2}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001d written    regexp=True
         # pb_ba_status
-        ${grep_res3}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 60013 written
+        ${grep_res3}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 60013 written    regexp=True
         # pb_kpi_status
-        ${grep_res4}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 6001b written
+        ${grep_res4}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 6001b written    regexp=True
 
         # Reject KpiEvent
         ${grep_res5}    Grep File
@@ -247,7 +247,7 @@ UNIFIED_SQL_FILTER
     # de_pb_service de_pb_service_status de_pb_host de_pb_custom_variable de_pb_log_entry de_pb_host_check
     FOR    ${event}    IN    1001b    1001d    1001e    10025    10029    10027
         ${to_search}    Catenate    central-broker-unified-sql event of type    ${event}    written
-        ${grep_res}    Grep File    ${centralLog}    ${to_search}
+        ${grep_res}    Grep File    ${centralLog}    ${to_search}    regexp=True
         Should Not Be Empty    ${grep_res}
     END
 

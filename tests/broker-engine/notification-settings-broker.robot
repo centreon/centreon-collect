@@ -113,6 +113,11 @@ BENOTSET2
     Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
     Ctn Wait For Broker Notification Services    ${start}
 
+    # check.pl derives its state from the clock: force service_1 to OK so the
+    # first active check publishes OK HARD whatever the time window.
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    120    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 

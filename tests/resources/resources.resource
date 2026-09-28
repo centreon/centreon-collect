@@ -199,7 +199,7 @@ Ctn Kindly Stop Broker
                         Log To Console    We are in BBDO3, so we also check RRD duplicates
                         Log To Console    central broker stopped
                         # We have to check if central RRD logs contain errors about data sent in the past.
-                        ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                        ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file    regexp=True
                         IF    len("""${result}""") > 0
                             Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
                             Ctn Save Logs
@@ -214,7 +214,7 @@ Ctn Kindly Stop Broker
             END
 
 	    # We check negative metric_id
-	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0    regexp=True
 	    IF    len("""${result}""") > 0
                 Log To Console    The central logs contain errors about metrics with negative IDs.
                 Ctn Save Logs
