@@ -49,7 +49,7 @@ target_link_libraries("${GRAPHITE}"
 target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${GRAPHITE}" nebbase)
+add_dependencies("${GRAPHITE}" global_cache centreon_pb_bbdo nebbase)
 
 # Testing.
 if (WITH_TESTING)

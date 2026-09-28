@@ -41,7 +41,8 @@ set(CONFLICTMGR
     conflictmgr
     PARENT_SCOPE)
 add_dependencies(conflictmgr
-	process_stat
+  centreon_pb_bbdo
+  process_stat
 	)
 
 set_target_properties(conflictmgr PROPERTIES POSITION_INDEPENDENT_CODE ON)
