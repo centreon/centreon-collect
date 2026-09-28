@@ -20,8 +20,10 @@
 #define CCB_OTLP_REQUEST_BUILDER_HH
 
 #include "bbdo/neb.pb.h"
+#include "com/centreon/broker/otlp/mapping_provider.hh"
 #include "com/centreon/broker/otlp/otlp_config.hh"
 #include "com/centreon/broker/otlp/resource_enricher.hh"
+#include "com/centreon/broker/otlp/semconv_mapping.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker::otlp {
@@ -43,6 +45,7 @@ class request_builder {
 
   const otlp_config::pointer _conf;
   std::shared_ptr<resource_enricher> _enricher;
+  mapping_provider::pointer _mapping;
   std::shared_ptr<spdlog::logger> _logger;
 
   ExportRequest _request;
@@ -65,9 +68,17 @@ class request_builder {
                       instrument instr);
   NumberDataPoint* _new_point(Metric* m, instrument instr);
 
+  void _add_perfdata(uint64_t host_id,
+                     const std::string& host_name,
+                     uint64_t service_id,
+                     const std::string& description,
+                     const std::string& perfdata_str,
+                     uint64_t ts);
+
  public:
   request_builder(const otlp_config::pointer& conf,
                   const std::shared_ptr<resource_enricher>& enricher,
+                  const mapping_provider::pointer& mapping,
                   const std::shared_ptr<spdlog::logger>& logger);
 
   /**
@@ -79,7 +90,11 @@ class request_builder {
   bool add_service_status(const ServiceStatus& status);
 
   /**
-   * @brief Append the host's check state.
+   * @brief Parse a host status' perfdata, append everything it yields and the
+   * host's check state.
+   *
+   * @return false when the host name could not be resolved and the status was
+   * therefore skipped.
    */
   bool add_host_status(const HostStatus& status);
 

@@ -33,9 +33,11 @@ include_directories(inc
 set(SOURCES
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
+  ${SRC_DIR}/mapping_provider.cc
   ${SRC_DIR}/otlp_exporter.cc
   ${SRC_DIR}/request_builder.cc
   ${SRC_DIR}/resource_enricher.cc
+  ${SRC_DIR}/semconv_mapping.cc
   ${SRC_DIR}/stream.cc
   ${SRC_DIR}/main.cc
 )
@@ -44,10 +46,12 @@ set(SOURCES
 set(HEADERS
   ${INC_DIR}/connector.hh
   ${INC_DIR}/factory.hh
+  ${INC_DIR}/mapping_provider.hh
   ${INC_DIR}/otlp_config.hh
   ${INC_DIR}/otlp_exporter.hh
   ${INC_DIR}/request_builder.hh
   ${INC_DIR}/resource_enricher.hh
+  ${INC_DIR}/semconv_mapping.hh
   ${INC_DIR}/stream.hh
 )
 
@@ -81,6 +85,8 @@ if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
+    ${TEST_DIR}/semconv_mapping_test.cc
+    ${TEST_DIR}/mapping_provider_test.cc
     ${TEST_DIR}/request_builder_test.cc
     ${TEST_DIR}/stream_test.cc
     ${TEST_DIR}/factory_test.cc

@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/otlp/request_builder.hh"
+#include "com/centreon/broker/otlp/semconv_mapping.hh"
 #include "com/centreon/common/perfdata.hh"
 
 using namespace com::centreon::broker::otlp;
@@ -55,8 +56,9 @@ uint64_t to_unix_nano(int64_t seconds) {
 request_builder::request_builder(
     const otlp_config::pointer& conf,
     const std::shared_ptr<resource_enricher>& enricher,
+    const mapping_provider::pointer& mapping,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _conf(conf), _enricher(enricher), _logger(logger) {}
+    : _conf(conf), _enricher(enricher), _mapping(mapping), _logger(logger) {}
 
 request_builder::ScopeMetrics* request_builder::_scope_for_host(
     uint64_t host_id,
@@ -152,6 +154,48 @@ request_builder::NumberDataPoint* request_builder::_new_point(
   return m->mutable_sum()->add_data_points();
 }
 
+void request_builder::_add_perfdata(uint64_t host_id,
+                                    const std::string& host_name,
+                                    uint64_t service_id,
+                                    const std::string& description,
+                                    const std::string& perfdata_str,
+                                    uint64_t ts) {
+
+  auto tag_identity = [&](NumberDataPoint* dp) {
+    if (!service_id)
+      return;
+    if (!description.empty())
+      set_attribute(dp->add_attributes(), "centreon.service.description",
+                    description);
+    set_attribute(dp->add_attributes(), "centreon.service.id",
+                  static_cast<int64_t>(service_id));
+  };
+
+  std::list<perfdata> parsed = perfdata::parse_perfdata(
+      host_id, service_id, perfdata_str.c_str(), _logger);
+
+  /* One snapshot for the all status, so a reload in the middle cannot modifier
+   * the map mapping_provider swapping tables and table is shared pointer */
+  const mapping_table::pointer table = _mapping->get();
+  for (const perfdata& pd : parsed) {
+    const mapping map =
+        map_metric(pd.name(), pd.unit(), pd.value_type(), *table);
+
+    Metric* m = _metric_for(host_id, host_name, map.name, map.unit, map.instr);
+    NumberDataPoint* dp = _new_point(m, map.instr);
+    dp->set_time_unix_nano(ts);
+    dp->set_as_double(pd.value() * map.scale);
+    tag_identity(dp);
+    /* The raw label is always preserved so no information is lost by mapping
+     * and operators can still find a metric by its Centreon name. */
+    set_attribute(dp->add_attributes(), "centreon.metric.name", pd.name());
+    for (const auto& [k, v] : map.attributes)
+      set_attribute(dp->add_attributes(), k, v);
+    ++_nb_data;
+
+  }
+}
+
 bool request_builder::add_service_status(const ServiceStatus& status) {
   std::optional<std::string> host_name = _enricher->host_name(status.host_id());
   if (!host_name) {
@@ -169,14 +213,8 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
 
   const uint64_t ts = to_unix_nano(status.last_check());
 
-  /* the identity of service is add as attributes */
-  auto tag_identity = [&](NumberDataPoint* dp) {
-    if (!description.empty())
-      set_attribute(dp->add_attributes(), "centreon.service.description",
-                    description);
-    set_attribute(dp->add_attributes(), "centreon.service.id",
-                  static_cast<int64_t>(status.service_id()));
-  };
+  _add_perfdata(status.host_id(), *host_name, status.service_id(), description,
+                status.perfdata(), ts);
 
   if (_conf->send_status) {
     /* One unitless enum for every check, so unlike thresholds a single metric
@@ -186,7 +224,11 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
     NumberDataPoint* sdp = _new_point(sm, instrument::gauge);
     sdp->set_time_unix_nano(ts);
     sdp->set_as_double(static_cast<double>(status.state()));
-    tag_identity(sdp);
+    if (!description.empty())
+      set_attribute(sdp->add_attributes(), "centreon.service.description",
+                    description);
+    set_attribute(sdp->add_attributes(), "centreon.service.id",
+                  static_cast<int64_t>(status.service_id()));
     set_attribute(sdp->add_attributes(), "centreon.state.type",
                   status.state_type() == ServiceStatus::HARD ? "hard" : "soft");
     ++_nb_data;
@@ -202,17 +244,26 @@ bool request_builder::add_host_status(const HostStatus& status) {
   std::optional<std::string> host_name = _enricher->host_name(status.host_id());
   if (!host_name) {
     ++_dropped_no_host_name;
+    SPDLOG_LOGGER_DEBUG(_logger, "no host name for host_id {}, dropping it",
+                        status.host_id());
     return false;
   }
 
-  Metric* m = _metric_for(status.host_id(), *host_name, "centreon.host.state",
-                          "1", instrument::gauge);
-  NumberDataPoint* dp = _new_point(m, instrument::gauge);
-  dp->set_time_unix_nano(to_unix_nano(status.last_check()));
-  dp->set_as_double(static_cast<double>(status.state()));
-  set_attribute(dp->add_attributes(), "centreon.state.type",
-                status.state_type() == HostStatus::HARD ? "hard" : "soft");
-  ++_nb_data;
+  const uint64_t ts = to_unix_nano(status.last_check());
+
+  /* service_id 0: the host check itself */
+  _add_perfdata(status.host_id(), *host_name, 0, {}, status.perfdata(), ts);
+
+  if (_conf->send_status) {
+    Metric* m = _metric_for(status.host_id(), *host_name,
+                            "centreon.host.state", "1", instrument::gauge);
+    NumberDataPoint* dp = _new_point(m, instrument::gauge);
+    dp->set_time_unix_nano(ts);
+    dp->set_as_double(static_cast<double>(status.state()));
+    set_attribute(dp->add_attributes(), "centreon.state.type",
+                  status.state_type() == HostStatus::HARD ? "hard" : "soft");
+    ++_nb_data;
+  }
   return true;
 }
 

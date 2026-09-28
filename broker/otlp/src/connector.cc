@@ -22,6 +22,7 @@
 #include "com/centreon/broker/otlp/otlp_exporter.hh"
 #include "com/centreon/broker/otlp/resource_enricher.hh"
 #include "com/centreon/broker/otlp/stream.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -39,13 +40,25 @@ static constexpr multiplexing::muxer_filter _otlp_stream_filter = {
 static constexpr multiplexing::muxer_filter _otlp_forbidden_filter =
     multiplexing::muxer_filter(_otlp_stream_filter).reverse();
 
+/**
+ * @brief Construct the endpoint and load its metric mapping.
+ *
+ * @throw msg_fmt if a mapping file is configured but can't be loaded.
+ */
 connector::connector(const otlp_config::pointer& conf)
     : io::endpoint(false, _otlp_stream_filter, _otlp_forbidden_filter),
-      _conf(conf) {}
+      _conf(conf) {
+  auto logger = log_v2::instance().get(log_v2::OTL);
+  _mapping = _conf->mapping_file.empty()
+                 ? mapping_provider::empty(logger)
+                 : mapping_provider::load(
+                       com::centreon::common::pool::io_context_ptr(),
+                       _conf->mapping_file, logger);
+}
 
 std::shared_ptr<io::stream> connector::open() {
   auto logger = log_v2::instance().get(log_v2::OTL);
   return std::make_shared<stream>(
-      _conf, std::make_shared<global_cache_enricher>(),
+      _conf, std::make_shared<global_cache_enricher>(), _mapping,
       std::make_shared<otlp_exporter>(_conf, logger), logger);
 }
