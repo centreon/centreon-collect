@@ -160,7 +160,6 @@ void request_builder::_add_perfdata(uint64_t host_id,
                                     const std::string& description,
                                     const std::string& perfdata_str,
                                     uint64_t ts) {
-
   auto tag_identity = [&](NumberDataPoint* dp) {
     if (!service_id)
       return;
@@ -193,6 +192,57 @@ void request_builder::_add_perfdata(uint64_t host_id,
       set_attribute(dp->add_attributes(), k, v);
     ++_nb_data;
 
+    if (_conf->send_thresholds) {
+      /* Created on first finite bound, so a perfdata without thresholds does
+       * not leave an empty Metric in the payload. */
+      Metric* tm = nullptr;
+      auto add_threshold = [&](float bound, const char* level,
+                               const char* which) {
+        if (!std::isfinite(bound))
+          return;
+        if (!tm)
+          /* Same unit as the value it annotates: a shared threshold metric
+           * would mix bytes, ratios and seconds into one series name. */
+          tm = _metric_for(host_id, host_name, threshold_metric_name(map.name),
+                           map.unit, instrument::gauge);
+        NumberDataPoint* tdp = _new_point(tm, instrument::gauge);
+        tdp->set_time_unix_nano(ts);
+        tdp->set_as_double(bound * map.scale);
+        tag_identity(tdp);
+        set_attribute(tdp->add_attributes(), "centreon.metric.name", pd.name());
+        set_attribute(tdp->add_attributes(), "centreon.threshold.level", level);
+        set_attribute(tdp->add_attributes(), "centreon.threshold.bound", which);
+        for (const auto& [k, v] : map.attributes)
+          set_attribute(tdp->add_attributes(), k, v);
+        ++_nb_data;
+      };
+      add_threshold(pd.warning(), "warning", "upper");
+      add_threshold(pd.warning_low(), "warning", "lower");
+      add_threshold(pd.critical(), "critical", "upper");
+      add_threshold(pd.critical_low(), "critical", "lower");
+    }
+
+    if (_conf->send_min_max) {
+      Metric* bm = nullptr;
+      auto add_bound = [&](float bound, const char* which) {
+        if (!std::isfinite(bound))
+          return;
+        if (!bm)
+          bm = _metric_for(host_id, host_name, bound_metric_name(map.name),
+                           map.unit, instrument::gauge);
+        NumberDataPoint* bdp = _new_point(bm, instrument::gauge);
+        bdp->set_time_unix_nano(ts);
+        bdp->set_as_double(bound * map.scale);
+        tag_identity(bdp);
+        set_attribute(bdp->add_attributes(), "centreon.metric.name", pd.name());
+        set_attribute(bdp->add_attributes(), "centreon.bound.type", which);
+        for (const auto& [k, v] : map.attributes)
+          set_attribute(bdp->add_attributes(), k, v);
+        ++_nb_data;
+      };
+      add_bound(pd.min(), "min");
+      add_bound(pd.max(), "max");
+    }
   }
 }
 
@@ -238,7 +288,7 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
 }
 
 bool request_builder::add_host_status(const HostStatus& status) {
-  if (!_conf->send_status)
+  if (!_conf->send_status && status.perfdata().empty())
     return true;
 
   std::optional<std::string> host_name = _enricher->host_name(status.host_id());
@@ -255,8 +305,8 @@ bool request_builder::add_host_status(const HostStatus& status) {
   _add_perfdata(status.host_id(), *host_name, 0, {}, status.perfdata(), ts);
 
   if (_conf->send_status) {
-    Metric* m = _metric_for(status.host_id(), *host_name,
-                            "centreon.host.state", "1", instrument::gauge);
+    Metric* m = _metric_for(status.host_id(), *host_name, "centreon.host.state",
+                            "1", instrument::gauge);
     NumberDataPoint* dp = _new_point(m, instrument::gauge);
     dp->set_time_unix_nano(ts);
     dp->set_as_double(static_cast<double>(status.state()));

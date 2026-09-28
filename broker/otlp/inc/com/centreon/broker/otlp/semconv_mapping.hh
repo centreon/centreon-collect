@@ -152,6 +152,20 @@ mapping map_metric(std::string_view perfdata_name,
                    const mapping_table& table);
 
 /**
+ * @brief Name of the companion metric carrying this metric's thresholds.
+ *
+ * Derived from the value metric so a dashboard can find it by string
+ * construction, and so each threshold series keeps the unit of the value it
+ * annotates. "centreon." is not repeated if already present.
+ */
+std::string threshold_metric_name(std::string_view emitted_name);
+
+/**
+ * @brief Name of the companion metric carrying this metric's min/max bounds.
+ */
+std::string bound_metric_name(std::string_view emitted_name);
+
+/**
  * @brief Sanitize an arbitrary perfdata label into a legal OTel name segment.
  */
 std::string sanitize(std::string_view raw);
