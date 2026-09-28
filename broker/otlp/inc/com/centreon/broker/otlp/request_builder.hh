@@ -20,6 +20,7 @@
 #define CCB_OTLP_REQUEST_BUILDER_HH
 
 #include "bbdo/neb.pb.h"
+#include "com/centreon/broker/otlp/host_metadata_store.hh"
 #include "com/centreon/broker/otlp/mapping_provider.hh"
 #include "com/centreon/broker/otlp/otlp_config.hh"
 #include "com/centreon/broker/otlp/resource_enricher.hh"
@@ -47,6 +48,8 @@ class request_builder {
   std::shared_ptr<resource_enricher> _enricher;
   mapping_provider::pointer _mapping;
   std::shared_ptr<spdlog::logger> _logger;
+  /* may be null: no CMA host information */
+  host_metadata_store::pointer _host_metadata;
 
   ExportRequest _request;
   /* host_id -> its ResourceMetrics in _request, so all of a host's series land
@@ -68,6 +71,9 @@ class request_builder {
                       instrument instr);
   NumberDataPoint* _new_point(Metric* m, instrument instr);
 
+  void _add_host_metadata(uint64_t host_id,
+                          ::opentelemetry::proto::resource::v1::Resource* res);
+
   void _add_perfdata(uint64_t host_id,
                      const std::string& host_name,
                      uint64_t service_id,
@@ -79,7 +85,8 @@ class request_builder {
   request_builder(const otlp_config::pointer& conf,
                   const std::shared_ptr<resource_enricher>& enricher,
                   const mapping_provider::pointer& mapping,
-                  const std::shared_ptr<spdlog::logger>& logger);
+                  const std::shared_ptr<spdlog::logger>& logger,
+                  const host_metadata_store::pointer& host_metadata = {});
 
   /**
    * @brief Parse a service status' perfdata and append everything it yields.

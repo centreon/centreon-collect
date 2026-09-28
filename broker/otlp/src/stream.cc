@@ -31,15 +31,20 @@ stream::stream(const otlp_config::pointer& conf,
                const std::shared_ptr<resource_enricher>& enricher,
                const mapping_provider::pointer& mapping,
                const std::shared_ptr<exporter_base>& exporter,
-               const std::shared_ptr<spdlog::logger>& logger)
+               const std::shared_ptr<spdlog::logger>& logger,
+               const host_metadata_store::pointer& host_metadata)
     : io::stream("otlp"),
       _conf(conf),
       _logger(logger),
       _enricher(enricher),
       _mapping(mapping),
       _exporter(exporter),
-      _builder(
-          std::make_unique<request_builder>(conf, enricher, mapping, logger)),
+      _host_metadata(host_metadata),
+      _builder(std::make_unique<request_builder>(conf,
+                                                 enricher,
+                                                 mapping,
+                                                 logger,
+                                                 host_metadata)),
       _last_send(std::time(nullptr)) {}
 
 bool stream::read(std::shared_ptr<io::data>& d,
@@ -123,6 +128,15 @@ int stream::write(std::shared_ptr<io::data> const& d) {
         ++_acknowledged;
         break;
       }
+      case neb::pb_agent_host_info::static_type(): {
+        ++_stat_host_metadata_received;
+        if (_host_metadata) {
+          _host_metadata->set(
+              std::static_pointer_cast<neb::pb_agent_host_info>(d)->obj());
+        }
+        ++_acknowledged;
+        break;
+      }
       default:
         /* acknowledge immediately. */
         ++_acknowledged;
@@ -178,6 +192,9 @@ void stream::statistics(nlohmann::json& tree) const {
   tree["datapoints_sent"] = _stat_datapoints_sent;
   tree["export_errors"] = _stat_export_errors;
   tree["dropped_no_host_name"] = _stat_dropped_no_host_name;
+  tree["host_metadata_received"] = _stat_host_metadata_received;
+  if (_host_metadata)
+    tree["host_metadata_known"] = _host_metadata->size();
   tree["inflight_requests"] = _inflight;
   tree["pending_datapoints"] = _builder->nb_data();
 }

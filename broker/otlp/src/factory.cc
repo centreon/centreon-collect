@@ -98,6 +98,9 @@ otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
   conf->send_status = get_bool(cfg, "send_status", true);
   conf->send_min_max = get_bool(cfg, "send_min_max", true);
 
+  conf->host_ip_exclude_link_local =
+      get_bool(cfg, "host_ip_exclude_link_local", false);
+
   if (conf->max_datapoints_per_batch == 0)
     throw msg_fmt("otlp: 'max_datapoints_per_batch' must be > 0 for '{}'",
                   cfg.name);

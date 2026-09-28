@@ -46,6 +46,32 @@ void set_attribute(otel_common::KeyValue* kv,
   kv->mutable_value()->set_int_value(value);
 }
 
+void set_attribute(otel_common::KeyValue* kv,
+                   std::string_view key,
+                   const std::vector<std::string_view>& values) {
+  kv->set_key(std::string(key));
+  auto* array = kv->mutable_value()->mutable_array_value();
+  for (std::string_view value : values)
+    array->add_values()->set_string_value(std::string(value));
+}
+
+/* 169.254.0.0/16 and fe80::/10. The address is parsed rather than matched as
+ * text: fe8::1 is 0fe8::1, not link-local, and ::ffff:169.254.1.1 is. */
+bool is_link_local(std::string_view ip) {
+  boost::system::error_code ec;
+  asio::ip::address addr =
+      asio::ip::make_address(std::string(ip.substr(0, ip.find('%'))), ec);
+  if (ec)
+    return false;
+  if (addr.is_v6()) {
+    const asio::ip::address_v6 v6 = addr.to_v6();
+    if (!v6.is_v4_mapped())
+      return v6.is_link_local();
+    addr = asio::ip::make_address_v4(asio::ip::v4_mapped, v6);
+  }
+  return (addr.to_v4().to_uint() & 0xFFFF0000) == 0xA9FE0000;
+}
+
 /* Broker timestamps are seconds; OTLP wants nanoseconds. */
 uint64_t to_unix_nano(int64_t seconds) {
   return static_cast<uint64_t>(seconds) * 1000000000ULL;
@@ -57,8 +83,13 @@ request_builder::request_builder(
     const otlp_config::pointer& conf,
     const std::shared_ptr<resource_enricher>& enricher,
     const mapping_provider::pointer& mapping,
-    const std::shared_ptr<spdlog::logger>& logger)
-    : _conf(conf), _enricher(enricher), _mapping(mapping), _logger(logger) {}
+    const std::shared_ptr<spdlog::logger>& logger,
+    const host_metadata_store::pointer& host_metadata)
+    : _conf(conf),
+      _enricher(enricher),
+      _mapping(mapping),
+      _logger(logger),
+      _host_metadata(host_metadata) {}
 
 request_builder::ScopeMetrics* request_builder::_scope_for_host(
     uint64_t host_id,
@@ -86,6 +117,7 @@ request_builder::ScopeMetrics* request_builder::_scope_for_host(
    */
   set_attribute(resource->add_attributes(), "centreon.host.id",
                 static_cast<int64_t>(host_id));
+  _add_host_metadata(host_id, resource);
 
   ScopeMetrics* sm = rm->add_scope_metrics();
   sm->mutable_scope()->set_name(k_scope_name);
@@ -93,6 +125,40 @@ request_builder::ScopeMetrics* request_builder::_scope_for_host(
 
   _scope_by_host.emplace(host_id, sm);
   return sm;
+}
+
+/**
+ * @brief add the OTel host and os attributes collected by a Centreon
+ * Monitoring Agent. An empty field (unknown, or older agent) is not emitted.
+ */
+void request_builder::_add_host_metadata(
+    uint64_t host_id,
+    ::opentelemetry::proto::resource::v1::Resource* resource) {
+  if (!_host_metadata)
+    return;
+  std::optional<host_metadata> meta = _host_metadata->get(host_id);
+  if (!meta)
+    return;
+
+  auto add_if_not_empty = [resource](std::string_view key,
+                                     const std::string& value) {
+    if (!value.empty())
+      set_attribute(resource->add_attributes(), key, value);
+  };
+  add_if_not_empty("host.id", meta->machine_id);
+  add_if_not_empty("host.arch", meta->arch);
+  add_if_not_empty("os.type", meta->os_type);
+  add_if_not_empty("os.name", meta->os_name);
+  add_if_not_empty("os.version", meta->os_version);
+
+  std::vector<std::string_view> ips;
+  ips.reserve(meta->ips.size());
+  for (const std::string& ip : meta->ips) {
+    if (!_conf->host_ip_exclude_link_local || !is_link_local(ip))
+      ips.push_back(ip);
+  }
+  if (!ips.empty())
+    set_attribute(resource->add_attributes(), "host.ip", ips);
 }
 
 request_builder::Metric* request_builder::_metric_for(
