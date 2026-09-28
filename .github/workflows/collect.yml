@@ -1057,10 +1057,8 @@ jobs:
         shell: bash
 
       - name: Attest SBOM on ghcr.io
-        # This is the customer-facing guarantee `gh attestation verify` checks
-        # against. By the time it runs the image is already pushed, so a hard
-        # failure here doesn't roll back delivery — it just turns a silent
-        # warning into a visible red check instead of continue-on-error.
+        # Hard failure: image is already pushed at this point, so this is the
+        # gh attestation verify guarantee, not delivery — must be visible.
         if: steps.promote-ghcr.outcome == 'success' && steps.promote-ghcr.outputs.digest != ''
         id: attest-ghcr
         uses: ./.github/actions/attest-ghcr-image
@@ -1069,6 +1067,12 @@ jobs:
           digest: ${{ steps.promote-ghcr.outputs.digest }}
           amd64_digest: ${{ steps.promote-ghcr.outputs.amd64_digest }}
           arm64_digest: ${{ steps.promote-ghcr.outputs.arm64_digest }}
+
+      - name: Explain ghcr.io attestation failure
+        if: failure() && steps.attest-ghcr.outcome == 'failure'
+        run: |
+          echo "::error::SBOM attestation failed for ${{ matrix.image }}-${{ matrix.distrib }}. The image WAS published to ghcr.io but is unattested. To fix: check the 'Attest SBOM on ghcr.io' step logs above for the actual cause (registry auth, Sigstore/Fulcio outage); re-running this job is safe, it only re-attests the already-published digest."
+        shell: bash
 
   robot-test:
     needs: [get-environment, get-aws-environment, changes, package]
