@@ -21,6 +21,7 @@
 
 #include <absl/strings/ascii.h>
 #include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 #include <absl/strings/strip.h>
 
 #include <string_view>
@@ -33,6 +34,7 @@
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/external_commands/command_table.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -635,11 +637,9 @@ void processing::_redirector_hostgroup(int id,
     return;
   }
 
-  for (host_map_unsafe::iterator it(group->members.begin()),
-       end(group->members.begin());
-       it != end; ++it)
-    if (it->second)
-      (*fptr)(it->second);
+  for (const auto& [name, hst] : group->members)
+    if (hst)
+      (*fptr)(hst);
 }
 
 template <void (*fptr)(service*)>
@@ -934,6 +934,82 @@ bool processing::execute(std::string_view cmdstr) {
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, command_id, args);
   return true;
+}
+
+/**
+ * @brief The names of every external command this table knows. Used to check
+ * that the routing table Broker relies on (common/external_commands) lists the
+ * same commands.
+ *
+ * @return The command names, in no particular order.
+ */
+std::vector<std::string_view> processing::command_names() {
+  std::vector<std::string_view> retval;
+  retval.reserve(_lst_command.size());
+  for (const auto& [name, info] : _lst_command)
+    retval.emplace_back(name);
+  return retval;
+}
+
+/**
+ * @brief Rewrite the host name (first argument) and service description
+ * (second argument) of a legacy command line from the ids Broker resolved, so
+ * the line can be parsed by the handlers whatever names it carried, even
+ * none ("[ts] SCHEDULE_FORCED_SVC_CHECK;;;0"). Only host and service commands
+ * (as classified by common/external_commands) are rewritten; any other line,
+ * or an unknown id, is returned unchanged and left to the parser's own error
+ * handling.
+ *
+ * @param line       The full legacy line, "[timestamp] NAME;args".
+ * @param host_id    The host id, 0 to keep the names as they are.
+ * @param service_id The service id, 0 for a host command.
+ *
+ * @return The line to hand to execute().
+ */
+std::string processing::resolve_ids(std::string_view line,
+                                    uint64_t host_id,
+                                    uint64_t service_id) {
+  namespace ec = com::centreon::common::external_commands;
+  if (host_id == 0)
+    return std::string(line);
+
+  std::string_view name, args;
+  time_t entry_time = 0;
+  if (!split_command_line(line, name, args, entry_time))
+    return std::string(line);
+  auto info = ec::lookup(name);
+  if (!info ||
+      (info->kind != ec::target::host && info->kind != ec::target::service))
+    return std::string(line);
+
+  auto hit = host::hosts_by_id.find(host_id);
+  if (hit == host::hosts_by_id.end()) {
+    SPDLOG_LOGGER_ERROR(external_command_logger,
+                        "external command {}: unknown host id {}", name,
+                        host_id);
+    return std::string(line);
+  }
+  /* Drop the name arguments the ids replace, keep the rest verbatim. */
+  std::vector<std::string_view> fields = absl::StrSplit(args, ';');
+  size_t skip = info->kind == ec::target::service ? 2 : 1;
+  std::string rest;
+  for (size_t i = skip; i < fields.size(); ++i) {
+    rest += ';';
+    rest.append(fields[i]);
+  }
+  if (info->kind == ec::target::host)
+    return fmt::format("[{}] {};{}{}", entry_time, name, hit->second->name(),
+                       rest);
+
+  auto sit = service::services_by_id.find({host_id, service_id});
+  if (sit == service::services_by_id.end()) {
+    SPDLOG_LOGGER_ERROR(external_command_logger,
+                        "external command {}: unknown service id ({}, {})",
+                        name, host_id, service_id);
+    return std::string(line);
+  }
+  return fmt::format("[{}] {};{};{}{}", entry_time, name, hit->second->name(),
+                     sit->second->description(), rest);
 }
 
 /**

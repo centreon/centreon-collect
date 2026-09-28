@@ -507,6 +507,7 @@ target_link_libraries(
   ${SOCKET_LIBRARIES}
   centreon_clib
   engine_conf
+  external_commands
   notifications
   timeperiods
   fmt::fmt

@@ -418,6 +418,29 @@ service Broker {
       returns (google.protobuf.Empty) {}
 
   /**
+   * @brief Execute a legacy Engine external command through Broker, which
+   * routes it to the poller supervising the targeted resource. The command is
+   * the line PHP already produces for the Engine command pipe, without the
+   * leading "[timestamp] " (accepted if present).
+   *
+   * Broker resolves the poller(s) and forwards the line; the poller parses and
+   * executes it exactly as if it had come from its command pipe. A host or
+   * service command goes to the poller supervising the host (first argument),
+   * with the resolved ids so the poller does not depend on the names; a
+   * contact or contactgroup command goes to every connected poller (each has
+   * its copy of the contacts); a global or process command goes to the poller
+   * named in the request. Errors are reported synchronously: INVALID_ARGUMENT
+   * (malformed or unknown command, missing argument or poller), NOT_FOUND
+   * (unknown host, service or poller), UNAVAILABLE (poller not connected),
+   * UNIMPLEMENTED (group command, or downtime / comment designated by id),
+   * FAILED_PRECONDITION (command that Broker owns in notification_mode =
+   * broker: the message names the gRPC method to use instead). The execution
+   * itself stays asynchronous.
+   */
+  rpc ExecuteExternalCommand(ExternalCommandRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
    * @brief Validate an Engine poller configuration directory without applying
    * it. The directory holds centengine.cfg and the .cfg files PHP generated.
    *
@@ -667,6 +690,15 @@ message PollerIdentifier {
     uint64 poller_id = 1;
     string poller_name = 2;
   }
+}
+
+message ExternalCommandRequest {
+  /* The legacy line, "[timestamp] " prefix optional. */
+  string command = 1;
+  /* Required for a global or process command (the legacy pipe designated the
+   * poller, here the request must): the Engine it applies to. Ignored for a
+   * host, service, contact or contactgroup command. */
+  PollerIdentifier poller = 2;
 }
 
 message PollerNotificationsRequest {

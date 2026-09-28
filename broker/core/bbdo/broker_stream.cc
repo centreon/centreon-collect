@@ -355,13 +355,12 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     _send_diff_state_for_poller(poller_id());
   }
 
-  /* notification_mode=broker: deliver the notification executions the
-   * dispatcher queued for the poller this stream supervises. */
+  /* Downward channel: deliver the events queued for the poller this stream
+   * supervises (notification executions, external commands). */
   if (peer_type() == common::ENGINE) {
-    for (auto& evt : _state.pop_pending_notification_executes(poller_id())) {
-      SPDLOG_LOGGER_DEBUG(_logger,
-                          "BBDO: sending notification execution to poller {}",
-                          poller_id());
+    for (auto& evt : _state.pop_pending_for_poller(poller_id())) {
+      SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending event 0x{:x} to poller {}",
+                          evt->type(), poller_id());
       _write(evt);
     }
   }

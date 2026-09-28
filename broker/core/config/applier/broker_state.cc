@@ -1996,39 +1996,38 @@ broker_state::pop_pending_diff_state_acks() {
 }
 
 /**
- * @brief Queue a pb_notification_execute for delivery to the poller supervising
- * the resource (notification_mode=broker). Called from the notification
- * dispatcher on the multiplexing thread; the event is drained later by that
- * poller's ENGINE-connected stream in read().
+ * @brief Queue an event for delivery to a poller: a pb_notification_execute
+ * from the notification dispatcher (notification_mode=broker) or a
+ * pb_external_command from the ExecuteExternalCommand RPC. Called from any
+ * thread; the event is drained later by that poller's ENGINE-connected stream
+ * in read(), which runs within 100 ms of the push (feeder polling period).
  *
- * @param poller_id The id of the poller that must run the notification.
- * @param evt The pb_notification_execute event to deliver.
+ * @param poller_id The id of the poller the event is addressed to.
+ * @param evt The event to deliver.
  */
-void broker_state::push_pending_notification_execute(
-    uint64_t poller_id,
-    std::shared_ptr<io::data> evt) {
-  absl::WriterMutexLock lck(&_pending_notif_m);
-  _pending_notification_executes[poller_id].push_back(std::move(evt));
+void broker_state::push_pending_for_poller(uint64_t poller_id,
+                                           std::shared_ptr<io::data> evt) {
+  absl::WriterMutexLock lck(&_pending_for_pollers_m);
+  _pending_for_pollers[poller_id].push_back(std::move(evt));
 }
 
 /**
- * @brief Drain and return the notification executes queued for a poller
- * (notification_mode=broker). Called from that poller's ENGINE-connected
- * stream read().
+ * @brief Drain and return the events queued for a poller. Called from that
+ * poller's ENGINE-connected stream read().
  *
  * @param poller_id The id of the poller whose queue must be drained.
  *
  * @return The queued events in arrival order, or an empty vector if the poller
  * has nothing pending.
  */
-std::vector<std::shared_ptr<io::data>>
-broker_state::pop_pending_notification_executes(uint64_t poller_id) {
-  absl::WriterMutexLock lck(&_pending_notif_m);
-  auto it = _pending_notification_executes.find(poller_id);
-  if (it == _pending_notification_executes.end())
+std::vector<std::shared_ptr<io::data>> broker_state::pop_pending_for_poller(
+    uint64_t poller_id) {
+  absl::WriterMutexLock lck(&_pending_for_pollers_m);
+  auto it = _pending_for_pollers.find(poller_id);
+  if (it == _pending_for_pollers.end())
     return {};
   auto result = std::move(it->second);
-  _pending_notification_executes.erase(it);
+  _pending_for_pollers.erase(it);
   return result;
 }
 

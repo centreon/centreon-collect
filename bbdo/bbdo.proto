@@ -117,6 +117,24 @@ message NotificationExecute {
   repeated string contacts = 11;
 }
 
+// Sent by Broker to a poller: a legacy external command received on the
+// ExecuteExternalCommand gRPC entry point, or one Broker issues itself. The
+// command is the full legacy line, "[timestamp] NAME;arg1;arg2..." as the
+// Engine command pipe would receive it; the poller hands it to the same parser
+// (commands::processing::execute), so the Engine handlers are untouched.
+//
+// For a host or service command Broker also gives the ids it resolved in its
+// cache. Engine then rewrites the host name (first argument) and the service
+// description (second argument) from these ids before parsing, so the names in
+// the line may be stale or even empty ("SCHEDULE_FORCED_SVC_CHECK;;;0"): ids
+// are the key, names are only what the legacy parser expects. Zero = unset.
+/* io::bbdo, bbdo::de_pb_external_command, 61 */
+message ExternalCommand {
+  string command = 1;
+  uint64 host_id = 2;
+  uint64 service_id = 3;
+}
+
 /* Written on disk (topology.cache) on clean central shutdown. Loaded on
  * restart as routing hints: engine peer N is reachable via relay R. */
 /* Ignore */

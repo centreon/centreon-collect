@@ -52,15 +52,19 @@ using pb_diff_state = com::centreon::broker::io::protobuf<
 using pb_diff_state_ack = com::centreon::broker::io::
     protobuf<DiffStateAck, make_type(io::bbdo, bbdo::de_pb_diff_state_ack)>;
 
-using pb_config_request = com::centreon::broker::io::protobuf<
-    ConfigRequest, make_type(io::bbdo, bbdo::de_pb_config_request)>;
+using pb_config_request = com::centreon::broker::io::
+    protobuf<ConfigRequest, make_type(io::bbdo, bbdo::de_pb_config_request)>;
 
-using pb_config_revoke = com::centreon::broker::io::protobuf<
-    ConfigRevoke, make_type(io::bbdo, bbdo::de_pb_config_revoke)>;
+using pb_config_revoke = com::centreon::broker::io::
+    protobuf<ConfigRevoke, make_type(io::bbdo, bbdo::de_pb_config_revoke)>;
 
 using pb_notification_execute = com::centreon::broker::io::protobuf<
     NotificationExecute,
     make_type(io::bbdo, bbdo::de_pb_notification_execute)>;
+
+using pb_external_command = com::centreon::broker::io::protobuf<
+    ExternalCommand,
+    make_type(io::bbdo, bbdo::de_pb_external_command)>;
 
 using pb_bench = com::centreon::broker::io::
     protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;

@@ -52,6 +52,10 @@ class processing {
  public:
   static bool execute(std::string_view cmd);
   static bool is_thread_safe(std::string_view cmd);
+  static std::vector<std::string_view> command_names();
+  static std::string resolve_ids(std::string_view line,
+                                 uint64_t host_id,
+                                 uint64_t service_id);
 
   static void wrapper_enable_host_and_child_notifications(host* hst);
   static void wrapper_disable_host_and_child_notifications(host* hst);

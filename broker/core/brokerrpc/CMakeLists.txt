@@ -96,6 +96,7 @@ add_dependencies(brokerrpc pb_broker_lib)
 target_link_libraries(brokerrpc
   PRIVATE
     pb_broker_lib
+    external_commands
 )
 
 set_target_properties(brokerrpc PROPERTIES

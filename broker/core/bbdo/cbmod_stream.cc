@@ -153,6 +153,12 @@ void cbmod_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
        * later by the loop when the resource is not found. */
       _state.push_notification_execute(d);
       break;
+    case pb_external_command::static_type():
+      /* External command routed by Broker to this poller: executed at once
+       * when thread-safe (passive check results), queued for the Engine event
+       * loop otherwise, exactly as the command pipe does. */
+      _state.push_external_command(d);
+      break;
     default:
       break;
   }

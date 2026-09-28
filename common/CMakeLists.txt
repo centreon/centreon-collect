@@ -25,6 +25,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(timeperiods)
   add_subdirectory(log_v2)
   add_subdirectory(notifications)
+  add_subdirectory(external_commands)
 endif()
 
 # Set directories.

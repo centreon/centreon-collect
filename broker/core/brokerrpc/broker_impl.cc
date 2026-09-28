@@ -18,6 +18,10 @@
  */
 
 #include "broker/core/brokerrpc/broker_impl.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
 #include <spdlog/details/null_mutex.h>
@@ -26,6 +30,7 @@
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 
+#include "broker/core/bbdo/internal.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
@@ -35,6 +40,7 @@
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
 #include "common/crypto/aes256.hh"
+#include "common/external_commands/command_table.hh"
 #include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
@@ -120,6 +126,62 @@ std::shared_ptr<neb::pb_host> resolve_host(const HostIdentifier& id,
   if (!h)
     *status = grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
   return h;
+}
+
+/**
+ * @brief Resolve a poller id from a PollerIdentifier (id or name) in the
+ * Broker cache. Shared by every RPC that designates a poller this way.
+ *
+ * @param id     The identifier.
+ * @param status Set to the gRPC error when the poller cannot be resolved.
+ *
+ * @return The poller id, or 0 (status then tells why).
+ */
+uint64_t resolve_poller(const PollerIdentifier& id, grpc::Status* status) {
+  switch (id.poller_case()) {
+    case PollerIdentifier::kPollerId:
+      return id.poller_id();
+    case PollerIdentifier::kPollerName: {
+      auto pid = config::applier::state::instance().cache().instance_id(
+          id.poller_name());
+      if (!pid) {
+        *status =
+            grpc::Status(grpc::StatusCode::NOT_FOUND,
+                         fmt::format("unknown poller '{}'", id.poller_name()));
+        return 0;
+      }
+      return *pid;
+    }
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "poller_id or poller_name must be set");
+      return 0;
+  }
+}
+
+/**
+ * @brief Build a pb_external_command addressed to a poller.
+ *
+ * @param poller_id  The destination poller.
+ * @param line       The full legacy line, "[timestamp] NAME;args".
+ * @param host_id    The host the command targets, 0 if none.
+ * @param service_id The service the command targets, 0 if none.
+ *
+ * @return The event, ready for broker_state::push_pending_for_poller().
+ */
+std::shared_ptr<bbdo::pb_external_command> make_external_command(
+    uint64_t poller_id,
+    const std::string& line,
+    uint64_t host_id = 0,
+    uint64_t service_id = 0) {
+  auto evt = std::make_shared<bbdo::pb_external_command>();
+  evt->source_id = 0;
+  evt->destination_id = static_cast<uint32_t>(poller_id);
+  auto& obj = evt->mut_obj();
+  obj.set_command(line);
+  obj.set_host_id(host_id);
+  obj.set_service_id(service_id);
+  return evt;
 }
 
 /**
@@ -2172,31 +2234,190 @@ grpc::Status broker_impl::SetPollerNotifications(
                                     "Notification"))
     return *err;
   auto& bc = config::applier::state::instance().cache();
-  uint64_t poller_id;
-  switch (request->poller().poller_case()) {
-    case PollerIdentifier::kPollerId:
-      poller_id = request->poller().poller_id();
-      break;
-    case PollerIdentifier::kPollerName: {
-      auto id = bc.instance_id(request->poller().poller_name());
-      if (!id)
-        return grpc::Status(grpc::StatusCode::NOT_FOUND,
-                            fmt::format("unknown poller '{}'",
-                                        request->poller().poller_name()));
-      poller_id = *id;
-      break;
-    }
-    default:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "poller_id or poller_name must be set");
-  }
+  grpc::Status status;
+  uint64_t poller_id = resolve_poller(request->poller(), &status);
+  if (!status.ok())
+    return status;
   if (!cache::notification_toggles::set_poller_notifications(
           bc, poller_id, request->enabled()))
     return grpc::Status(grpc::StatusCode::NOT_FOUND,
                         fmt::format("unknown poller {}", poller_id));
   _logger->info("notifications {} on poller {}",
                 request->enabled() ? "enabled" : "disabled", poller_id);
+
+  /* Broker owns the decision, but the poller still exports its own
+   * enable_notifications flag (instances.notifications): make it follow the
+   * switch by handing it the legacy command, so the DB and the poller agree
+   * with Broker. Best effort: a disconnected poller gets the switch through
+   * its configuration at reconnection anyway. */
+  auto& state = static_cast<config::applier::broker_state&>(
+      config::applier::state::instance());
+  if (state.is_poller_connected(poller_id))
+    state.push_pending_for_poller(
+        poller_id, make_external_command(
+                       poller_id, fmt::format("[{}] {}", time(nullptr),
+                                              request->enabled()
+                                                  ? "ENABLE_NOTIFICATIONS"
+                                                  : "DISABLE_NOTIFICATIONS")));
   return grpc::Status::OK;
+}
+
+/**
+ * @brief Route a legacy Engine external command to the poller(s) it applies
+ * to. Broker parses just enough of the line to find the command name and, for
+ * a host or service command, the host and service; the whole line, prefixed
+ * with the entry timestamp, is then handed to the poller through the downward
+ * BBDO channel (pb_external_command) and executed there by the same parser as
+ * the command pipe. A host or service command carries the ids Broker
+ * resolved, so the poller rewrites the names from them before parsing.
+ *
+ * Routing by target (common/external_commands):
+ *  - host, service: the poller supervising the host;
+ *  - contact, contactgroup: every connected poller (each has its copy);
+ *  - global, process: the poller named in the request (required);
+ *  - hostgroup, servicegroup (PHP no longer emits them), downtime and comment
+ *    designated by id: UNIMPLEMENTED.
+ * In notification_mode=broker the commands Broker owns (acknowledgements,
+ * downtimes, comments, notification switches) are refused with
+ * FAILED_PRECONDITION and the name of the gRPC method to use instead: routed
+ * to the poller they would be silently ignored by Broker.
+ *
+ * @param request The legacy command line, with or without "[timestamp] ", and
+ * the poller for a global or process command.
+ * @param response Unused.
+ *
+ * @return OK once the command is queued for the poller(s), the error otherwise.
+ */
+grpc::Status broker_impl::ExecuteExternalCommand(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ExternalCommandRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  namespace ec = com::centreon::common::external_commands;
+  std::string_view line = absl::StripAsciiWhitespace(request->command());
+
+  /* Optional "[timestamp] " prefix, as on the command pipe. */
+  time_t entry_time = time(nullptr);
+  if (absl::ConsumePrefix(&line, "[")) {
+    size_t close = line.find(']');
+    uint64_t ts = 0;
+    if (close == std::string_view::npos ||
+        !absl::SimpleAtoi(absl::StripAsciiWhitespace(line.substr(0, close)),
+                          &ts))
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "malformed timestamp prefix, expected '[epoch] '");
+    entry_time = static_cast<time_t>(ts);
+    line.remove_prefix(close + 1);
+    line = absl::StripLeadingAsciiWhitespace(line);
+  }
+
+  std::vector<std::string_view> fields = absl::StrSplit(line, ';');
+  std::string_view name = fields[0];
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "empty external command");
+  auto info = ec::lookup(name);
+  if (!info)
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        fmt::format("unknown external command '{}'", name));
+
+  auto& state = static_cast<config::applier::broker_state&>(
+      config::applier::state::instance());
+  if (state.notifications_on_broker() && !info->broker_rpc.empty())
+    return grpc::Status(
+        grpc::StatusCode::FAILED_PRECONDITION,
+        fmt::format("{} is handled by Broker in notification_mode=broker: use "
+                    "the {} gRPC method",
+                    name, info->broker_rpc));
+
+  const std::string full_line = fmt::format("[{}] {}", entry_time, line);
+  switch (info->kind) {
+    case ec::target::host:
+    case ec::target::service: {
+      if (fields.size() < 2 || fields[1].empty())
+        return grpc::Status(
+            grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::format("{} expects a host name as first argument", name));
+      std::string host_name(fields[1]);
+      auto h = state.cache().host(host_name);
+      if (!h)
+        return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                            fmt::format("unknown host '{}'", host_name));
+      uint64_t poller_id = h->obj().instance_id();
+      uint64_t host_id = h->obj().host_id();
+      uint64_t service_id = 0;
+      if (info->kind == ec::target::service) {
+        if (fields.size() < 3 || fields[2].empty())
+          return grpc::Status(
+              grpc::StatusCode::INVALID_ARGUMENT,
+              fmt::format("{} expects a service description as second argument",
+                          name));
+        std::string description(fields[2]);
+        auto s = state.cache().service(host_name, description);
+        if (!s)
+          return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                              fmt::format("unknown service ('{}', '{}')",
+                                          host_name, description));
+        service_id = s->obj().service_id();
+      }
+      if (!state.is_poller_connected(poller_id))
+        return grpc::Status(
+            grpc::StatusCode::UNAVAILABLE,
+            fmt::format("poller {} supervising '{}' is not connected",
+                        poller_id, host_name));
+      state.push_pending_for_poller(
+          poller_id,
+          make_external_command(poller_id, full_line, host_id, service_id));
+      _logger->info("external command {} routed to poller {}", name, poller_id);
+      return grpc::Status::OK;
+    }
+    case ec::target::contact:
+    case ec::target::contactgroup: {
+      if (fields.size() < 2 || fields[1].empty())
+        return grpc::Status(
+            grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::format("{} expects a {} name as first argument", name,
+                        ec::to_string(info->kind)));
+      /* Every poller holds its own copy of the contacts: broadcast. */
+      auto pollers = state.connected_pollers();
+      if (pollers.empty())
+        return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                            "no poller connected");
+      for (const auto& p : pollers)
+        state.push_pending_for_poller(
+            p.poller_id, make_external_command(p.poller_id, full_line));
+      _logger->info("external command {} broadcast to {} poller(s)", name,
+                    pollers.size());
+      return grpc::Status::OK;
+    }
+    case ec::target::global:
+    case ec::target::process: {
+      if (!request->has_poller())
+        return grpc::Status(
+            grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::format("{} is a {} command: the request must name the poller",
+                        name, ec::to_string(info->kind)));
+      grpc::Status status;
+      uint64_t poller_id = resolve_poller(request->poller(), &status);
+      if (!status.ok())
+        return status;
+      if (!state.is_poller_connected(poller_id))
+        return grpc::Status(
+            grpc::StatusCode::UNAVAILABLE,
+            fmt::format("poller {} is not connected", poller_id));
+      state.push_pending_for_poller(
+          poller_id, make_external_command(poller_id, full_line));
+      _logger->info("external command {} routed to poller {}", name, poller_id);
+      return grpc::Status::OK;
+    }
+    case ec::target::hostgroup:
+    case ec::target::servicegroup:
+    case ec::target::downtime:
+    case ec::target::comment:
+      break;
+  }
+  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED,
+                      fmt::format("{} targets a {}: not routed by Broker", name,
+                                  ec::to_string(info->kind)));
 }
 
 /**

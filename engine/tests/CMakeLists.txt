@@ -110,9 +110,12 @@ if(WITH_TESTING)
       ${TESTS_DIR}/macros/pbmacro.cc
       ${TESTS_DIR}/macros/pbmacro_hostname.cc
       ${TESTS_DIR}/macros/pbmacro_service.cc
+      ${TESTS_DIR}/external_commands/command_table.cc
       ${TESTS_DIR}/external_commands/global_commands.cc
       ${TESTS_DIR}/external_commands/pbanomalydetection.cc
       ${TESTS_DIR}/external_commands/pbhost.cc
+      ${TESTS_DIR}/external_commands/pbhostgroup.cc
+      ${TESTS_DIR}/external_commands/resolve_ids.cc
       ${TESTS_DIR}/external_commands/pbservice.cc
       ${TESTS_DIR}/main.cc
       ${TESTS_DIR}/loop/loop.cc

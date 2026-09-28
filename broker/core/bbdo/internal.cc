@@ -63,6 +63,8 @@ void bbdo::load() {
   e.register_event(make_type(io::bbdo, bbdo::de_pb_notification_execute),
                    "NotificationExecute",
                    &bbdo::pb_notification_execute::operations);
+  e.register_event(make_type(io::bbdo, bbdo::de_pb_external_command),
+                   "ExternalCommand", &bbdo::pb_external_command::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

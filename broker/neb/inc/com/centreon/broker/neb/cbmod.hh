@@ -18,6 +18,9 @@
 #ifndef CCB_NEB_CBMOD_HH
 #define CCB_NEB_CBMOD_HH
 #include <filesystem>
+#include <functional>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "bbdo/bbdo.pb.h"
@@ -76,6 +79,10 @@ class cbmod {
   void reload();
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   std::vector<NotificationExecute> drain_notification_executes();
+  void set_external_command_handler(
+      std::function<std::optional<std::string>(const ExternalCommand&)>
+          handler);
+  std::vector<std::string> drain_external_commands();
   bool broker_handles_notifications() const;
   void set_diff_state_applied(const std::string& config_version);
   bool centralized_conf() const;

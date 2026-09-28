@@ -369,6 +369,28 @@ std::vector<NotificationExecute> cbmod::drain_notification_executes() {
 }
 
 /**
+ * @brief Install the handler run on every external command routed by Broker,
+ * on the receiving thread (see cbmod_state).
+ *
+ * @param handler Returns nullopt when it executed the command itself, the
+ * resolved line to queue for the event loop otherwise.
+ */
+void cbmod::set_external_command_handler(
+    std::function<std::optional<std::string>(const ExternalCommand&)> handler) {
+  _impl->state().set_external_command_handler(std::move(handler));
+}
+
+/**
+ * @brief Drain the external commands Broker routed to this poller that wait
+ * for the Engine event loop.
+ *
+ * @return The pending command lines, in arrival order.
+ */
+std::vector<std::string> cbmod::drain_external_commands() {
+  return _impl->state().drain_external_commands();
+}
+
+/**
  * @brief Tell whether Broker owns the notification decision
  * (notification_mode=broker), as advertised at negotiation. When true, Engine
  * must not decide notifications on its own.

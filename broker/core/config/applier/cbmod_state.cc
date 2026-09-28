@@ -218,6 +218,57 @@ std::vector<NotificationExecute> cbmod_state::drain_notification_executes() {
 }
 
 /**
+ * @brief Install the handler Engine runs on every external command received
+ * from Broker, on the receiving thread. It rewrites the legacy line from the
+ * host/service ids, executes it at once when it is thread-safe (passive check
+ * results), as the command pipe reader does, and otherwise returns the line
+ * to queue for the event loop.
+ *
+ * @param handler Returns nullopt when it executed the command itself, the
+ * resolved line to queue otherwise.
+ */
+void cbmod_state::set_external_command_handler(
+    std::function<std::optional<std::string>(const ExternalCommand&)> handler) {
+  _external_command_handler = std::move(handler);
+}
+
+/**
+ * @brief Receive an external command routed by Broker. Called from
+ * cbmod_stream when a pb_external_command is received. The command is either
+ * executed at once by the handler or queued for the Engine event loop.
+ *
+ * @param cmd A shared pointer to a bbdo::pb_external_command event.
+ */
+void cbmod_state::push_external_command(const std::shared_ptr<io::data>& cmd) {
+  auto evt = std::static_pointer_cast<
+      com::centreon::broker::bbdo::pb_external_command>(cmd);
+  std::optional<std::string> line;
+  if (_external_command_handler)
+    line = _external_command_handler(evt->obj());
+  else
+    line = evt->obj().command();
+  if (!line)
+    return;
+  absl::MutexLock lck(&_pending_external_commands_m);
+  _pending_external_commands.push_back(std::move(*line));
+}
+
+/**
+ * @brief Drain the external commands waiting for the Engine event loop. The
+ * queue is emptied.
+ *
+ * @return The pending command lines, in arrival order.
+ */
+std::vector<std::string> cbmod_state::drain_external_commands() {
+  absl::MutexLock lck(&_pending_external_commands_m);
+  std::vector<std::string> retval(
+      std::make_move_iterator(_pending_external_commands.begin()),
+      std::make_move_iterator(_pending_external_commands.end()));
+  _pending_external_commands.clear();
+  return retval;
+}
+
+/**
  * @brief Store the current Engine configuration to be sent to Broker.
  * Called when Broker requests the Engine configuration via a
  * DiffState{unknown=true} message.

@@ -24,6 +24,8 @@
 #include <future>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -62,6 +64,23 @@ void loop::run() {
   functions_logger->trace("events::loop::run()");
 
   process_logger->info("Configuration loaded, main loop starting.");
+
+  /* External commands routed by Broker: the names are rewritten from the ids
+   * Broker resolved, then same model as the command pipe: the thread-safe
+   * ones (passive check results) run at once on the receiving thread, the
+   * others are queued and drained below by this loop. */
+  if (cbm)
+    cbm->set_external_command_handler(
+        [](const com::centreon::broker::ExternalCommand& cmd)
+            -> std::optional<std::string> {
+          std::string line = commands::processing::resolve_ids(
+              cmd.command(), cmd.host_id(), cmd.service_id());
+          if (!commands::processing::is_thread_safe(line))
+            return line;
+          external_command_logger->debug("direct execute {}", line);
+          commands::processing::execute(line);
+          return std::nullopt;
+        });
   // Initialize some time members.
   time(&_last_time);
   _last_status_update = 0L;
@@ -244,9 +263,17 @@ void loop::_dispatching() {
               ne.reason_type()),
           ne.notification_id(), ne.notification_number(), ne.escalated(),
           ne.author(), ne.message(),
-          static_cast<com::centreon::common::notifications::notification_option>(
+          static_cast<
+              com::centreon::common::notifications::notification_option>(
               ne.options()),
           ne.contacts());
+    }
+
+    /* External commands routed by Broker that were not thread-safe: run them
+     * here, as check_for_external_commands does for the command pipe. */
+    if (cbm) {
+      for (const std::string& cmd : cbm->drain_external_commands())
+        process_external_command(cmd.c_str());
     }
 
     // Get the current time.
