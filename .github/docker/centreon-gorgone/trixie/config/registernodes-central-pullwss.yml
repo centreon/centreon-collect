@@ -1,0 +1,8 @@
+# pullwss variant: B (Central-as-a-poller) dials IN to A, so no address/port is
+# declared here — just accept id 1 (Central's real nagios_server.id) as a
+# pullwss-type node. prevail: 1 for the same reason as the push_zmq variant (see
+# registernodes-central-docker.yml).
+nodes:
+  - id: 1
+    type: pullwss
+    prevail: 1

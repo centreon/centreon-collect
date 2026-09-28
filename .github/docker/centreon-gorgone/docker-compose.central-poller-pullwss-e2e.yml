@@ -1,0 +1,76 @@
+# Central-as-a-poller fixture, pullwss variant. Unlike docker-compose.central-poller-e2e.yml
+# (push_zmq, fully self-contained), this one is NOT self-contained by design: pullwss's
+# whole point is going through httpd for TLS termination (see 40-gorgoned-central-pullwss.yaml
+# and the plan doc "Pivot pullwss"), so it joins the EXTERNAL network of the
+# `centreon-web-split` stack (repo `centreon`, .github/docker/centreon-web-split/docker-compose.yml)
+# rather than standing up its own httpd.
+#
+# Empirically validated end-to-end against the REAL centreon-web-split stack (real httpd with
+# mod_proxy_wstunnel + the gorgone ProxyPass wired by the docker-split-web agent, real Centreon
+# DB): websocket auth (`[proxy] httpserver client 1 is logged`), REMOTECOPY, and COMMAND
+# (whitelist) all pass through httpd -> gorgone-central unchanged from the push_zmq results.
+#
+# Usage (after `centreon-web-split` is already up, and its httpd was started/recreated with
+# GORGONE_WSS_UPSTREAM=gorgone-central:8087 — see the plan doc for the exact recreate command):
+#   docker compose -f docker-compose.central-poller-pullwss-e2e.yml -p central-pullwss-e2e up -d
+services:
+  gorgone-central:
+    image: ${GORGONE_IMAGE}
+    networks:
+      default:
+        aliases:
+          - gorgone-central
+    command: ["/usr/bin/perl", "/usr/bin/gorgoned",
+              "--config=/etc/centreon-gorgone/40-gorgoned-central-pullwss.yaml",
+              "--severity=debug", "--flushoutput"]
+    environment:
+      TYPE: central
+      # Point at the web-split stack's real DB (service name from that stack's compose project).
+      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__DSN: "mysql:host=centreon-web-split-db-1;dbname=centreon"
+      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__USERNAME: centreon
+      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__PASSWORD: centreon
+      GORGONE__CENTREON__DATABASE__DB_REALTIME__DSN: "mysql:host=centreon-web-split-db-1;dbname=centreon_storage"
+      GORGONE__CENTREON__DATABASE__DB_REALTIME__USERNAME: centreon
+      GORGONE__CENTREON__DATABASE__DB_REALTIME__PASSWORD: centreon
+    volumes:
+      - centreon-cache:/var/cache/centreon      # shared with php-fpm in the real deployment
+      - centreon-varlib:/var/lib/centreon        # shared with php-fpm in the real deployment (centcore.cmd)
+
+  gorgone-central-poller:
+    image: ${GORGONE_IMAGE}
+    environment:
+      TYPE: poller
+      APP_SECRET: e2e-test-secret
+      SALT: e2e-test-salt
+      # Must equal the real nagios_server.id of Central (normally 1).
+      GORGONE_UID: "1"
+      CENTRAL_HOST: httpd
+      CENTRAL_PORT: "80"
+      # Must match gorgone-central's proxy.httpserver.token in 40-gorgoned-central-pullwss.yaml.
+      GORGONE_TOKEN: e2e-pullwss-shared-token
+      # This dev stack's httpd has no TLS configured (port 80 only) — production talks wss:// to
+      # httpd's real HTTPS port instead, no override needed there.
+      GORGONE__GORGONE__MODULES__pullwss__ssl: "false"
+    volumes:
+      - engine-context:/etc/centreon-engine
+      - broker-context:/etc/centreon-broker
+
+  engine-context-init:
+    image: ${GORGONE_IMAGE}
+    user: root
+    entrypoint: ["sh", "-c"]
+    command:
+      - "mkdir -p /etc/centreon-engine && chown centreon-engine:centreon-engine /etc/centreon-engine && chmod 775 /etc/centreon-engine"
+    volumes:
+      - engine-context:/etc/centreon-engine
+
+networks:
+  default:
+    name: centreon-web-split_default
+    external: true
+
+volumes:
+  centreon-cache:
+  centreon-varlib:
+  engine-context:
+  broker-context:

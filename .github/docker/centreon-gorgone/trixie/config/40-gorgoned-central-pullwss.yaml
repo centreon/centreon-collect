@@ -1,0 +1,103 @@
+name: Central-docker-pullwss
+description: >
+  Central orchestrator gorgone configuration, pullwss variant (poller-initiated
+  connection, no RSA-thumbprint authorized_clients management). Standalone file,
+  loaded directly via `gorgoned --config=...`, same reasoning as
+  40-gorgoned-central.yaml (kept as the push_zmq prototype, not removed).
+configuration:
+  centreon:
+    database:
+      db_configuration:
+        dsn: "mysql:host=mariadb;dbname=centreon"
+        username: centreon
+        password: centreon
+      db_realtime:
+        dsn: "mysql:host=mariadb;dbname=centreon_storage"
+        username: centreon
+        password: centreon
+  gorgone:
+    gorgonecore:
+      id: 1000
+      privkey: /var/lib/centreon-gorgone/.keys/rsakey.priv.pem
+      pubkey: /var/lib/centreon-gorgone/.keys/rsakey.pub.pem
+
+    # Enables the "real" pullwss auth path (Centreon API poller-token lookup) in
+    # gorgone/gorgone/modules/core/proxy/httpserver.pm:502-524 — only engages when
+    # a connecting client's Bearer token contains ':' (name:value form); this is
+    # gorgone's OWN login to the Centreon API (a real web user), used to validate
+    # OTHER tokens (like a poller's), not the poller token itself. Optional: the
+    # static proxy.httpserver.token below (no ':') works without this block at all
+    # — kept only to empirically validate the "real" production auth path too.
+    # admin/Centreon!2021 is the known dev-only seed credential for the
+    # centreon-web-split stack (documented in that repo's own Pilier-1 README) —
+    # not a secret, never use this pattern with real credentials.
+    tpapi:
+      - name: centreonv2
+        base_url: "http://httpd/centreon/api/latest/"
+        username: admin
+        password: "Centreon!2021"
+
+    modules:
+      # REST API for REMOTECOPY/COMMAND (moveFiles.php/restartPollers.php target) —
+      # unchanged from the push_zmq prototype.
+      - name: httpserver
+        package: gorgone::modules::core::httpserver::hooks
+        enable: true
+        address: 0.0.0.0
+        port: 8443
+        ssl: false
+        auth:
+          enabled: true
+          user: admin
+          password: password
+        allowed_hosts:
+          enabled: true
+          subnets:
+            - 127.0.0.1/32
+            - 172.16.0.0/12
+
+      # proxy.httpserver (a DIFFERENT, dedicated Mojo::Server::Daemon child spawned
+      # by proxy itself, gorgone/gorgone/modules/core/proxy/hooks.pm:898-926) is
+      # what actually serves pullwss/wss websocket connections — separate port from
+      # the REST API above. Auth here is a simple shared string (`token`), compared
+      # in gorgone/gorgone/modules/core/proxy/httpserver.pm:527-536 — the
+      # tpapi_centreonv2/Centreon-API-token path only engages if the token contains
+      # a ':' (name:value form); a plain token skips it entirely, so no httpd/API
+      # dependency for this path.
+      - name: proxy
+        package: gorgone::modules::core::proxy::hooks
+        enable: true
+        httpserver:
+          enable: 'true'
+          address: 0.0.0.0
+          port: 8087
+          ssl: 'false'
+          token: e2e-pullwss-shared-token
+
+      # Manual node registration, pullwss variant: no address/port needed (Central
+      # doesn't dial out — B connects in), just declares id 1 as an accepted
+      # pullwss-type node so `is_logged_websocket`'s REGISTERNODES sniff (proxy/
+      # httpserver.pm:538) and pathway() resolve it.
+      - name: register
+        package: gorgone::modules::core::register::hooks
+        enable: true
+        config_file: /etc/centreon-gorgone/registernodes-central-pullwss.yml
+
+      - name: nodes
+        package: gorgone::modules::centreon::nodes::hooks
+        enable: true
+
+      - name: legacycmd
+        package: gorgone::modules::centreon::legacycmd::hooks
+        enable: true
+        cmd_file: "/var/lib/centreon/centcore.cmd"
+        cache_dir: "/var/cache/centreon/"
+        cache_dir_trap: "/etc/snmp/centreon_traps/"
+        remote_dir: "/var/cache/centreon/config/remote-data/"
+
+      - name: action
+        package: gorgone::modules::core::action::hooks
+        enable: true
+        command_timeout: 30
+        whitelist_cmds: true
+        allowed_cmds: !include /etc/centreon-gorgone/config.d/whitelist.conf.d/*.yaml
