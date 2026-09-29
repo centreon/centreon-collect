@@ -14,20 +14,26 @@ Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-BENOTBRK1
+BENOTBRK1_${transport}
     [Documentation]    Scenario: service notifications disabled then enabled through Broker
     ...    Given a service with a contact, in notification_mode=broker (BBDO3)
+    ...    And Engine and Broker linked over the given transport, tcp or grpc
     ...    When its notifications are disabled through SetServiceNotifications
     ...    Then resources.notifications_enabled drops to 0
     ...    And a CRITICAL HARD result is not notified (Broker logs the disabled reason)
     ...    When its notifications are enabled again
     ...    Then the next CRITICAL result is notified by the poller
+    ...    And the notification execution order reaches the poller whatever the transport
     [Tags]    broker    engine    services    notification    broker_notification_toggles
     Ctn Clear Commands Status
     Ctn Config Centralized Engine    ${1}    ${1}    ${1}
     Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config BBDO3    ${1}
+    IF    "${transport}" == "grpc"
+        Ctn Change Broker Tcp Output To Grpc    module0
+        Ctn Change Broker Tcp Input To Grpc    central
+    END
     Ctn Broker Config Add Item    central    notification_mode    broker
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    notifications    debug
@@ -77,6 +83,10 @@ BENOTBRK1
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start_enable}    ${content}    90
     Should Be True    ${result}    The CRITICAL notification should be executed once the switch is on again
+
+    Examples:    transport    --
+    ...    tcp
+    ...    grpc
 
 BENOTBRK2
     [Documentation]    Scenario: host and services switch through Broker survives Broker and Engine restarts
