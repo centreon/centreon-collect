@@ -482,9 +482,10 @@ En mode historique (`notification_mode = engine`), PHP continue d'appeler les
   restent sur Engine parce qu'elles concernent le processus du poller lui-même, pas la
   supervision d'une ressource. Qui pilote le processus en HA est une décision à part.
 * **À l'exécution** : un intercepteur serveur gRPC côté Engine loggue, dans le logger
-  `external_command`, au plus une fois par heure et par méthode :
-  `gRPC method /com.centreon.engine.Engine/<Méthode> is deprecated: send the legacy
-  external command line through Broker's ExecuteExternalCommand instead`. L'appel est
+  `external_command`, une fois par exécution d'Engine, au premier appel de chaque méthode :
+  `gRPC method /com.centreon.engine.Engine/<Méthode> is deprecated: use Broker's gRPC
+  API instead, the typed RPC when one exists or ExecuteExternalCommand otherwise`.
+  L'appel est
   toujours servi. L'intercepteur lit l'option `deprecated` du descripteur de la
   méthode : le fichier proto est la seule source de vérité.
 * **La suppression** viendra après la migration PHP, dans une version ultérieure.
