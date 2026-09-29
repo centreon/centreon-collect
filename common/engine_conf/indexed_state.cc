@@ -18,6 +18,7 @@
  */
 #include "common/engine_conf/indexed_state.hh"
 #include <google/protobuf/util/message_differencer.h>
+#include "com/centreon/common/file.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
@@ -74,10 +75,20 @@ indexed_state::indexed_state(const indexed_state& other) {
  *
  * @param state
  */
-void indexed_state::set_state(std::unique_ptr<State>&& state) {
-  absl::MutexLock l(&_state_m);
+void indexed_state::_set_state_no_lock(std::unique_ptr<State>&& state) {
   _state = std::move(state);
   _index(_state.get());
+}
+
+/**
+ * @brief Set the State object to this. The State containers are emptied
+ * and their items are stored directly in the indexed_state.
+ *
+ * @param state
+ */
+void indexed_state::set_state(std::unique_ptr<State>&& state) {
+  absl::MutexLock l(&_state_m);
+  _set_state_no_lock(std::move(state));
 }
 
 void indexed_state::merge_state(State* state) {
@@ -95,8 +106,7 @@ void indexed_state::merge_state(const State& state) {
  *
  * @return State* The State object contained in the indexed_state.
  */
-State* indexed_state::release() {
-  absl::MutexLock l(&_state_m);
+State* indexed_state::_release_no_lock() {
   State* retval;
   if (_state) {
     _apply_containers();
@@ -105,6 +115,18 @@ State* indexed_state::release() {
     retval = nullptr;
   }
   return retval;
+}
+
+/**
+ * @brief Reset the indexed_state. The contained State has its containers
+ * filled with the items stored in the indexed_state. And the contained State
+ * is returned. If there is no State object, nullptr is returned.
+ *
+ * @return State* The State object contained in the indexed_state.
+ */
+State* indexed_state::release() {
+  absl::MutexLock l(&_state_m);
+  return _release_no_lock();
 }
 
 /**
@@ -729,11 +751,30 @@ void indexed_state::diff_with_new_config(
   SET_IF_CHANGED(config_version);
 }
 
-void indexed_state::serialize_to_ostream(std::ostream* os) {
-  std::unique_ptr<State> state(release());
+/**
+ * @brief Serialize the whole configuration State to a file.
+ *
+ * The indexed objects (hosts, services, commands...) are stored outside of
+ * _state, so release() is used to move them back into a complete State
+ * message. Once it has been saved, the State is given back with set_state()
+ * so the indexes are rebuilt. This is also done if the save fails, so the
+ * indexed_state stays usable, and the exception is rethrown.
+ * If there is no State, nothing is written.
+ *
+ * @param file_path Path of the destination file.
+ * @throw std::exception if the file cannot be written.
+ */
+void indexed_state::serialize_to_disk(const std::filesystem::path& file_path) {
+  absl::MutexLock l(&_state_m);
+  std::unique_ptr<State> state(_release_no_lock());
   if (state) {
-    state->SerializeToOstream(os);
-    set_state(std::move(state));
+    try {
+      com::centreon::common::save_proto_to_disk(file_path, *state);
+    } catch (const std::exception&) {
+      _set_state_no_lock(std::move(state));
+      throw;
+    }
+    _set_state_no_lock(std::move(state));
   }
 }
 

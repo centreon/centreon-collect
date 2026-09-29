@@ -19,6 +19,7 @@
 
 #include <sys/resource.h>
 
+#include "com/centreon/common/file.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/otel_connector.hh"
@@ -108,12 +109,13 @@ static void increase_fd_limit(uint32_t soft_fd_limit) {
  */
 void applier::state::get_current_state(configuration::State& state) {
   if (!proto_conf.empty()) {
-    std::ifstream f(proto_conf / "state.prot", std::ios::binary);
-    if (f) {
-      state.ParseFromIstream(&f);
-    } else {
-      process_logger->error("Unable to open '{}/state.prot'",
-                            proto_conf.string());
+    try {
+      if (!common::load_proto_from_disk(proto_conf.c_str(), state)) {
+        throw std::runtime_error("File not readable");
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(process_logger, "Unable to open '{}/state.prot': {}",
+                          proto_conf.string(), e.what());
     }
   }
 }
@@ -132,9 +134,7 @@ void applier::state::apply(configuration::State& new_cfg,
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
     if (!proto_conf.empty()) {
-      std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-      pb_indexed_config.serialize_to_ostream(&f);
-      f.close();
+      pb_indexed_config.serialize_to_disk(proto_conf / "state.prot");
     }
     SPDLOG_LOGGER_INFO(config_logger, "config with version {} loaded",
                        new_cfg.config_version());
@@ -172,9 +172,7 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
   try {
     _processing_state = state_ready;
     _processing_diff(diff_conf, err);
-    std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-    pb_indexed_config.serialize_to_ostream(&f);
-    f.close();
+    pb_indexed_config.serialize_to_disk(proto_conf / "state.prot");
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.

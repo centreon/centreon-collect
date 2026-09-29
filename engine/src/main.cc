@@ -38,6 +38,7 @@ namespace po = boost::program_options;
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
@@ -346,26 +347,16 @@ int main(int argc, char* argv[]) {
           std::filesystem::path proto_conf_file;
           if (!proto_conf.empty()) {
             proto_conf_file = proto_conf / "state.prot";
-            std::error_code ec;
-            if (std::filesystem::exists(proto_conf_file, ec)) {
-              std::ifstream ifs(proto_conf_file);
-              if (ifs.good()) {
-                proto_valid = new_conf->ParseFromIstream(&ifs);
-                if (!proto_valid) {
-                  std::cerr << time(nullptr) << ": can't decode "
-                            << proto_conf_file << " => not loaded" << std::endl;
-                } else {
-                  std::cout << time(nullptr) << ": " << proto_conf_file
-                            << " loaded" << std::endl;
-                }
-                ifs.close();
-              } else {
-                std::cerr << time(nullptr) << ": can't load " << proto_conf_file
-                          << " : " << strerror(errno) << std::endl;
+            try {
+              proto_valid = com::centreon::common::load_proto_from_disk(
+                  proto_conf_file.c_str(), *new_conf);
+              if (!proto_valid) {
+                std::cout << time(nullptr) << ": " << proto_conf_file
+                          << " does not exist" << std::endl;
               }
-            } else {
-              std::cout << time(nullptr) << ": " << proto_conf_file
-                        << " does not exist" << std::endl;
+            } catch (const std::exception& e) {
+              std::cerr << time(nullptr) << ":Fail to load " << proto_conf_file
+                        << " : " << e.what() << std::endl;
             }
           }
           if (!proto_valid) {

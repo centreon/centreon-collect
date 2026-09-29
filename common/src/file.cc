@@ -122,17 +122,17 @@ std::string hash_directory(const std::filesystem::path& dir_path,
  * @throw exceptions::msg_fmt if the content is not a valid serialization of
  * data.
  */
-bool load_proto_from_disk(const std::string_view& file_path,
+bool load_proto_from_disk(const std::filesystem::path& file_path,
                           ::google::protobuf::Message& data) {
-  if (::access(file_path.data(), R_OK)) {
+  if (::access(file_path.c_str(), R_OK)) {
     return false;
   }
-  boost::interprocess::file_mapping file_map(file_path.data(),
+  boost::interprocess::file_mapping file_map(file_path.c_str(),
                                              boost::interprocess::read_only);
   boost::interprocess::mapped_region region(file_map,
                                             boost::interprocess::read_only);
   if (!data.ParseFromArray(region.get_address(), region.get_size())) {
-    throw exceptions::msg_fmt("Fail to parse {}", file_path);
+    throw exceptions::msg_fmt("Fail to parse {}", file_path.string());
   }
   return true;
 }
@@ -150,13 +150,13 @@ bool load_proto_from_disk(const std::string_view& file_path,
  * or mapped, or if it can't be renamed to file_path. In all these cases, the
  * temporary file is removed.
  */
-void save_proto_to_disk(const std::string_view& file_path,
+void save_proto_to_disk(const std::filesystem::path& file_path,
                         const ::google::protobuf::Message& data) {
   size_t needed = data.ByteSizeLong();
 
   // mkstemp replaces XXXXXX and needs a null-terminated mutable buffer
   std::string tmp_path;
-  tmp_path.reserve(file_path.size() + 7);
+  tmp_path.reserve(file_path.string().length() + 7);
   tmp_path.append(file_path);
   tmp_path.append(".XXXXXX");
 
@@ -189,10 +189,10 @@ void save_proto_to_disk(const std::string_view& file_path,
 
   ::close(fd);
 
-  if (::rename(tmp_path.c_str(), file_path.data()) < 0) {
+  if (::rename(tmp_path.c_str(), file_path.c_str()) < 0) {
     ::unlink(tmp_path.c_str());
     throw exceptions::msg_fmt("Fail to rename {} to {}: {}", tmp_path,
-                              file_path, strerror(errno));
+                              file_path.string(), strerror(errno));
   }
 }
 
