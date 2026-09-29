@@ -6270,6 +6270,17 @@ métier dupliquée (`broker_impl::_execute_native_command`). Routées au poller,
 seraient silencieusement ignorées par Broker. Seules les suppressions de downtime par
 critères, sans RPC typée, restent `UNIMPLEMENTED`.
 
+La couverture de test du routage est gratuite grâce à l'outillage Robot : toute ligne
+legacy émise par les mots-clés d'`Engine.py` (`Ctn Process Service Check Result`,
+`Ctn Acknowledge Service Problem`, `Ctn Disable Host Check`, ...) passe par un helper
+unique, `Ctn Send External Command`, qui l'écrit dans le tube de commandes du poller par
+défaut et la confie à `ExecuteExternalCommand` quand la variable Robot `${EXTCMD_MODE}`
+vaut `broker` (`Ctn Set External Command Mode    broker` dans un test, ou
+`--variable EXTCMD_MODE:broker` pour toute une campagne). Les tests BBDO3
+d'`external-commands.robot`, `external-commands2.robot` et `acknowledgement.robot`
+tournent en mode broker, leurs jumeaux BBDO2 gardent le tube : les deux voies restent
+couvertes sans doubler la campagne.
+
 > Pour le passage des commandes externes à gRPC côté PHP et la règle de routage
 > Engine/Broker selon `notification_mode`, voir
 > [Évolutions PHP — Commandes externes via gRPC](./php-evolutions-fr.md#évolution-2--commandes-externes-via-grpc).
