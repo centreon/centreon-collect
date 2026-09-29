@@ -684,6 +684,15 @@ def ctn_find_line_from(lines, date, agent_format: bool = False):
             start = idx
         else:
             break
+
+    # The dichotomy may stop on a line older than my_date (typically the last
+    # one when no line has been written since my_date). Skip those lines, so
+    # that an old line cannot match a pattern searched from my_date.
+    while idx < len(lines):
+        idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
+        if idx_d is not None and idx_d >= my_date:
+            break
+        idx += 1
     return idx
 
 
