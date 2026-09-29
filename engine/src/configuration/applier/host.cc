@@ -296,7 +296,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
     h->custom_variables.clear();
 
     for (auto& c : new_obj.customvariables()) {
-      h->custom_variables[c.name()] = c.value();
+      h->custom_variables[c.name()] =
+          engine::customvariable(c.value(), c.is_sent());
 
       if (c.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
