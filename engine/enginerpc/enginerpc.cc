@@ -19,9 +19,13 @@
 
 #include <grpcpp/server_builder.h>
 
+#include <memory>
+#include <vector>
+
 #include "com/centreon/engine/host.hh"
 
 #include "com/centreon/engine/enginerpc.hh"
+#include "com/centreon/engine/rpc_deprecation_interceptor.hh"
 
 using namespace com::centreon::engine;
 
@@ -30,6 +34,13 @@ enginerpc::enginerpc(const std::string& address, uint16_t port) {
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(&_service);
+  /* Warn when a command RPC deprecated in engine.proto is still called. */
+  std::vector<
+      std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>>
+      creators;
+  creators.emplace_back(
+      std::make_unique<rpc_deprecation_interceptor_factory>());
+  builder.experimental().SetInterceptorCreators(std::move(creators));
   _server = builder.BuildAndStart();
 }
 

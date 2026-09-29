@@ -28,7 +28,7 @@ init_config_state(void);
 void deinit_config_state(void);
 
 /**
- * @brief The build directory, where the tests' fixtures (tests/*.cfg, helper
+ * @brief The build directory, where the tests' fixtures (*.cfg, helper
  * binaries...) live: the parent of the directory holding this test binary
  * (<build>/tests). Usable at static initialization, unlike the cwd main()
  * moves to. Falls back to the cwd when /proc/self/exe cannot be read.

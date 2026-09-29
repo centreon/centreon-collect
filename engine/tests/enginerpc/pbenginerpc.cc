@@ -18,18 +18,18 @@
  */
 
 #include <gtest/gtest.h>
-#include "com/centreon/engine/anomalydetection.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
-#include "common/engine_conf/hostgroup_helper.hh"
 #include "helper.hh"
 
 #include <chrono>
+#include <set>
+
+#include <google/protobuf/descriptor.h>
 
 #include <fstream>
 #include <thread>
 
 #include "com/centreon/engine/enginerpc.hh"
+#include "com/centreon/engine/rpc_deprecation_interceptor.hh"
 
 #include "../test_engine.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -1622,4 +1622,81 @@ TEST_F(EngineRpc, NewThresholdsFile) {
   ASSERT_EQ(output.front(), "NewThresholdsFile: 0");
   command_manager::instance().execute();
   ASSERT_EQ(_ad->get_thresholds_file(), "/tmp/thresholds_file.json");
+}
+
+/* The command RPCs deprecated for PHP (routed through Broker's
+ * ExecuteExternalCommand) are marked `option deprecated = true` in
+ * engine.proto. This test pins the exact list so that marking or unmarking a
+ * method is a conscious change. SignalProcess, ShutdownProgram and
+ * NewThresholdsFile are process lifecycle, deliberately kept on Engine. */
+TEST(EngineRpcDeprecation, DeprecatedCommandRpcsAreExactlyTheExpectedOnes) {
+  const std::set<std::string> expected{
+      "ProcessServiceCheckResult",
+      "ProcessHostCheckResult",
+      "AddHostComment",
+      "AddServiceComment",
+      "DeleteComment",
+      "DeleteAllHostComments",
+      "DeleteAllServiceComments",
+      "RemoveHostAcknowledgement",
+      "RemoveServiceAcknowledgement",
+      "AcknowledgementHostProblem",
+      "AcknowledgementServiceProblem",
+      "DeleteDowntime",
+      "DeleteHostDowntimeFull",
+      "DeleteServiceDowntimeFull",
+      "DeleteDowntimeByHostName",
+      "DeleteDowntimeByHostGroupName",
+      "DeleteDowntimeByStartTimeComment",
+      "DelayHostNotification",
+      "DelayServiceNotification",
+      "ScheduleHostDowntime",
+      "ScheduleServiceDowntime",
+      "ScheduleHostServicesDowntime",
+      "ScheduleHostGroupHostsDowntime",
+      "ScheduleHostGroupServicesDowntime",
+      "ScheduleServiceGroupHostsDowntime",
+      "ScheduleServiceGroupServicesDowntime",
+      "ScheduleAndPropagateHostDowntime",
+      "ScheduleAndPropagateTriggeredHostDowntime",
+      "ScheduleHostCheck",
+      "ScheduleHostServiceCheck",
+      "ScheduleServiceCheck",
+      "ChangeHostObjectIntVar",
+      "ChangeServiceObjectIntVar",
+      "ChangeContactObjectIntVar",
+      "ChangeHostObjectCharVar",
+      "ChangeServiceObjectCharVar",
+      "ChangeContactObjectCharVar",
+      "ChangeHostObjectCustomVar",
+      "ChangeServiceObjectCustomVar",
+      "ChangeContactObjectCustomVar",
+      "EnableHostAndChildNotifications",
+      "DisableHostAndChildNotifications",
+      "DisableHostNotifications",
+      "EnableHostNotifications",
+      "DisableNotifications",
+      "EnableNotifications",
+      "DisableServiceNotifications",
+      "EnableServiceNotifications",
+      "ChangeAnomalyDetectionSensitivity"};
+  const google::protobuf::ServiceDescriptor* sd =
+      google::protobuf::DescriptorPool::generated_pool()->FindServiceByName(
+          "com.centreon.engine.Engine");
+  ASSERT_NE(sd, nullptr);
+  std::set<std::string> marked;
+  for (int i = 0; i < sd->method_count(); ++i) {
+    const google::protobuf::MethodDescriptor* md = sd->method(i);
+    if (md->options().deprecated())
+      marked.insert(md->name());
+    /* The interceptor factory must agree with the descriptor. */
+    ASSERT_EQ(rpc_deprecation_interceptor_factory::is_deprecated(
+                  fmt::format("/{}/{}", sd->full_name(), md->name())),
+              md->options().deprecated())
+        << md->name();
+  }
+  ASSERT_EQ(marked, expected);
+  ASSERT_FALSE(rpc_deprecation_interceptor_factory::is_deprecated(
+      "/com.centreon.engine.Engine/Unknown"));
+  ASSERT_FALSE(rpc_deprecation_interceptor_factory::is_deprecated("garbage"));
 }
