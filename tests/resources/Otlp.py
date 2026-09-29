@@ -13,10 +13,15 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
+import queue
+import struct
 import threading
 import time
 
 import grpc
+from google.protobuf.json_format import Parse
+import grpc_stream_pb2
+import grpc_stream_pb2_grpc
 from robot.api.deco import keyword, library
 from opentelemetry.proto.collector.metrics.v1 import metrics_service_pb2
 from opentelemetry.proto.collector.metrics.v1 import metrics_service_pb2_grpc
@@ -35,6 +40,73 @@ def _attributes(attributes):
     return {item.key: _value(item.value) for item in attributes}
 
 
+def _bbdo_crc(header):
+    # BBDO's CRC-16/X-25, over the 14 header bytes following the CRC.
+    crc = 0xffff
+    for byte in header:
+        crc ^= byte
+        for _ in range(8):
+            crc = (crc >> 1) ^ (0x8408 if crc & 1 else 0)
+    return crc ^ 0xffff
+
+
+class _BbdoPeer:
+    """A test poller with a real BBDO/gRPC handshake and ordered event stream."""
+
+    def __init__(self, endpoint, poller_id):
+        self.queue = queue.Queue()
+        self.channel = grpc.insecure_channel(endpoint)
+        self.call = None
+        self.error = None
+        self.ready = threading.Event()
+        self.thread = None
+        try:
+            grpc.channel_ready_future(self.channel).result(timeout=15)
+            welcome = grpc_stream_pb2.CentreonEvent()
+            welcome.Welcome_.version.major = 3
+            welcome.Welcome_.version.minor = 1
+            welcome.Welcome_.poller_id = poller_id
+            welcome.Welcome_.poller_name = f"robot-{poller_id}"
+            welcome.Welcome_.broker_name = f"robot-module-{poller_id}"
+            self.queue.put(welcome)
+            self.call = grpc_stream_pb2_grpc.centreon_bbdoStub(
+                self.channel).exchange(self._requests())
+            self.thread = threading.Thread(target=self._receive, daemon=True)
+            self.thread.start()
+            if not self.ready.wait(15) or self.error:
+                raise AssertionError(f"BBDO handshake failed: {self.error}")
+        except Exception:
+            self.close()
+            raise
+
+    def _requests(self):
+        while True:
+            event = self.queue.get()
+            if event is None:
+                return
+            yield event
+
+    def _receive(self):
+        try:
+            for event in self.call:
+                if event.HasField("Welcome_"):
+                    self.ready.set()
+        except grpc.RpcError as error:
+            self.error = str(error)
+        finally:
+            if not self.ready.is_set() and self.error is None:
+                self.error = "Stream closed before Broker's Welcome"
+            self.ready.set()
+
+    def close(self):
+        self.queue.put(None)
+        if self.call is not None:
+            self.call.cancel()
+        self.channel.close()
+        if self.thread is not None:
+            self.thread.join(timeout=5)
+
+
 @library(scope="SUITE", auto_keywords=False)
 class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
     def __init__(self):
@@ -44,12 +116,69 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
         self._condition = threading.Condition()
         self._points = deque(maxlen=4096)
         self._probe = 0
+        self._peer = None
+
+    @keyword
+    def ctn_connect_otlp_bbdo_peer(self, endpoint: str, poller_id: int = 10):
+        """Inject BBDO events for delayed/deleted hosts and pre-upgrade senders."""
+        self.ctn_disconnect_otlp_bbdo_peer()
+        self._peer = _BbdoPeer(endpoint, poller_id)
+
+    @keyword
+    def ctn_disconnect_otlp_bbdo_peer(self):
+        if self._peer is not None:
+            self._peer.close()
+            self._peer = None
+
+    @keyword
+    def ctn_send_otlp_bbdo_event(self, event_name: str, content: str):
+        """Queue a protobuf event; content uses the protobuf JSON field names."""
+        if self._peer is None or self._peer.error:
+            raise AssertionError("BBDO test peer is not connected")
+        event = grpc_stream_pb2.CentreonEvent(source_id=999)
+        Parse(content, getattr(event, event_name + "_"))
+        self._peer.queue.put(event)
+
+    @keyword
+    def ctn_send_otlp_legacy_macro(self, name: str, value: str,
+                                   status: bool = False, enabled: bool = True):
+        """Send a BBDO2-layout event inside gRPC's raw buffer envelope.
+
+        Field order follows neb/custom_variable{,_status}.cc. Neither layout
+        contains instance_id. This exercises the real BBDO2-to-protobuf adapter.
+        """
+        if self._peer is None or self._peer.error:
+            raise AssertionError("BBDO test peer is not connected")
+        if "\0" in name or "\0" in value:
+            raise ValueError("BBDO strings cannot contain NUL")
+        payload = struct.pack("!IB", 101, 1) + name.encode() + b"\0"
+        payload += struct.pack("!IQ", 0, int(time.time()))
+        if not status:
+            payload = bytes([enabled]) + payload + struct.pack("!H", 0)
+        payload += value.encode() + b"\0"
+        if not status:
+            payload += b"\0"  # default_value
+        # neb category = 1; custom_variable = 3; custom_variable_status = 4.
+        event_type = 0x10004 if status else 0x10003
+        header = struct.pack("!HIII", len(payload), event_type, 999, 0)
+        packet = struct.pack("!H", _bbdo_crc(header)) + header + payload
+        self._peer.queue.put(grpc_stream_pb2.CentreonEvent(buffer=packet))
 
     @keyword
     def ctn_otlp_next_probe(self):
         """Return a value no earlier export of this suite can carry."""
         self._probe += 1
         return self._probe
+
+    @keyword
+    def ctn_otlp_bbdo_probe(self, host_id: int = 101, host: str = "robot-host"):
+        probe = self.ctn_otlp_next_probe()
+        self.ctn_send_otlp_bbdo_event("ServiceStatus", json.dumps({
+            "host_id": host_id, "service_id": 1,
+            "last_check": int(time.time()),
+            "perfdata": f"robot_probe={probe}",
+        }))
+        return self.ctn_wait_for_otlp_point(host, "centreon.robot_probe", probe)
 
     @keyword
     def ctn_start_otlp_collector(self, capture_path: str):
