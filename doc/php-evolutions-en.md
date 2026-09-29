@@ -458,6 +458,28 @@ In legacy mode (`notification_mode = engine`), PHP keeps calling Engine's
 > (Broker's `ServiceIdentifier`). The other families remain on Engine even when
 > `notification_mode = broker`.
 
+### How the deprecation shows
+
+* **In `engine.proto`**: every deprecated command RPC carries
+  `option deprecated = true`. The mark is visible to every consumer of the descriptor
+  (reflection, generated documentation, grpcurl), and a unit test pins the exact list
+  (49 methods), so that marking or unmarking one is a conscious change. Deprecated: check results and forced checks, comments,
+  acknowledgements, downtimes (the nine `Schedule*Downtime` variants and the
+  deletions by criteria included), `Change*ObjectIntVar/CharVar/CustomVar` for hosts,
+  services and contacts, the `Enable/Disable*Notifications` switches,
+  `Delay*Notification`, `ChangeAnomalyDetectionSensitivity`.
+* **Not deprecated**: observation (`Get*`, stats, log settings) and process lifecycle
+  (`SignalProcess`, `ShutdownProgram`, `NewThresholdsFile`), which stay on Engine
+  because they concern the poller process itself, not the supervision of a
+  resource. Who drives the process in HA is a separate decision.
+* **At runtime**: a gRPC server interceptor on Engine logs, in the
+  `external_command` logger, at most once an hour per method:
+  `gRPC method /com.centreon.engine.Engine/<Method> is deprecated: send the legacy
+  external command line through Broker's ExecuteExternalCommand instead`. The call is
+  still served. The interceptor reads the `deprecated` option of the method
+  descriptor: the proto file is the single source of truth.
+* **Removal** will come after the PHP migration, in a later version.
+
 ## Discovery and ports
 
 * Engine's gRPC server is configured by `grpc_port` / `rpc_listen_address` in the
