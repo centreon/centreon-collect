@@ -52,6 +52,15 @@ class broker_impl final : public Broker::Service {
   /* Broker's CORE logger, resolved once at construction. */
   std::shared_ptr<spdlog::logger> _logger;
 
+  grpc::Status _execute_native_command(std::string_view name,
+                                       std::string_view args,
+                                       std::string_view broker_rpc,
+                                       const ExternalCommandRequest& request);
+  grpc::Status _schedule_downtime_cascade(ScheduleDowntimeRequest req,
+                                          bool services,
+                                          bool children,
+                                          bool triggered);
+
   grpc::Status _set_contact_notifications(
       const ContactNotificationsRequest& request,
       cache::notification_toggles::notifier n) const;

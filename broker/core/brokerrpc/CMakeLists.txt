@@ -88,6 +88,7 @@ set_target_properties(pb_broker_lib PROPERTIES
 add_library(brokerrpc
   broker_impl.cc
   brokerrpc.cc
+  legacy_commands.cc
 )
 
 target_precompile_headers(brokerrpc PRIVATE ../precomp_inc/precomp.hh)

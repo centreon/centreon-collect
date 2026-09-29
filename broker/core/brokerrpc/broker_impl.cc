@@ -23,7 +23,6 @@
 #include <absl/strings/str_split.h>
 #include <absl/strings/strip.h>
 #include <google/protobuf/util/time_util.h>
-#include <grpcpp/support/status.h>
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/sinks/base_sink.h>
 #include <algorithm>
@@ -31,6 +30,7 @@
 #include "common/engine_conf/parser.hh"
 
 #include "broker/core/bbdo/internal.hh"
+#include "broker/core/brokerrpc/legacy_commands.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
@@ -1524,11 +1524,14 @@ grpc::Status broker_impl::ScheduleDowntime(
                                ? downtime::host_downtime
                                : downtime::service_downtime;
 
+  const time_t entry_time = request->entry_time()
+                                ? static_cast<time_t>(request->entry_time())
+                                : time(nullptr);
   uint64_t new_id = 0;
   bool ok = downtime_manager::instance().schedule_downtime(
-      dt_type, resolved_host_id, resolved_service_id,
-      static_cast<time_t>(request->entry_time()), request->author(),
-      request->comment_data(), static_cast<time_t>(request->start_time()),
+      dt_type, resolved_host_id, resolved_service_id, entry_time,
+      request->author(), request->comment_data(),
+      static_cast<time_t>(request->start_time()),
       static_cast<time_t>(request->end_time()), request->fixed(),
       request->triggered_by(), request->duration(), &new_id);
 
@@ -1541,9 +1544,9 @@ grpc::Status broker_impl::ScheduleDowntime(
     for (uint64_t svc_id : cache.service_ids_for_host(resolved_host_id)) {
       uint64_t svc_downtime_id;
       downtime_manager::instance().schedule_downtime(
-          downtime::service_downtime, resolved_host_id, svc_id,
-          static_cast<time_t>(request->entry_time()), request->author(),
-          request->comment_data(), static_cast<time_t>(request->start_time()),
+          downtime::service_downtime, resolved_host_id, svc_id, entry_time,
+          request->author(), request->comment_data(),
+          static_cast<time_t>(request->start_time()),
           static_cast<time_t>(request->end_time()), request->fixed(), new_id,
           request->duration(), &svc_downtime_id);
     }
@@ -2322,12 +2325,20 @@ grpc::Status broker_impl::ExecuteExternalCommand(
 
   auto& state = static_cast<config::applier::broker_state&>(
       config::applier::state::instance());
-  if (state.notifications_on_broker() && !info->broker_rpc.empty())
-    return grpc::Status(
-        grpc::StatusCode::FAILED_PRECONDITION,
-        fmt::format("{} is handled by Broker in notification_mode=broker: use "
-                    "the {} gRPC method",
-                    name, info->broker_rpc));
+  if (state.notifications_on_broker() && !info->broker_rpc.empty()) {
+    /* Broker owns this command: execute it here through the typed RPC it
+     * maps to, instead of handing it to a poller that no longer decides. */
+    size_t sep = line.find(';');
+    std::string_view args = sep == std::string_view::npos
+                                ? std::string_view()
+                                : line.substr(sep + 1);
+    grpc::Status st =
+        _execute_native_command(name, args, info->broker_rpc, *request);
+    if (st.ok())
+      _logger->info("external command {} executed by Broker as {}", name,
+                    info->broker_rpc);
+    return st;
+  }
 
   const std::string full_line = fmt::format("[{}] {}", entry_time, line);
   switch (info->kind) {
@@ -2418,6 +2429,315 @@ grpc::Status broker_impl::ExecuteExternalCommand(
   return grpc::Status(grpc::StatusCode::UNIMPLEMENTED,
                       fmt::format("{} targets a {}: not routed by Broker", name,
                                   ec::to_string(info->kind)));
+}
+
+/**
+ * @brief Execute, on Broker itself, a legacy external command that Broker owns
+ * in notification_mode=broker (acknowledgements, downtimes, comments,
+ * notification switches). The positional arguments are converted into the
+ * typed request (legacy_commands) and the typed RPC method is invoked as a
+ * plain method: no business logic lives here.
+ *
+ * Divergences with the typed API, handled here:
+ *  - ENABLE/DISABLE_HOST_SVC_NOTIFICATIONS only touches the services on
+ *    Engine, whereas the HOST_AND_SERVICES scope also touches the host: the
+ *    services are toggled one by one;
+ *  - SCHEDULE_HOST_SVC_DOWNTIME and
+ * SCHEDULE_AND_PROPAGATE(_TRIGGERED)_HOST_DOWNTIME are one legacy line for
+ * several downtimes: cascaded through ScheduleDowntime, on the host's services
+ * or on its descendants. Commands without a typed counterpart (downtime
+ * deletion by criteria, group commands) are refused with UNIMPLEMENTED.
+ *
+ * @param name       The command name.
+ * @param args       What follows "NAME;" on the line.
+ * @param broker_rpc The typed RPC the table maps the command to (for logs).
+ * @param request    The gRPC request (for the poller of a global command).
+ *
+ * @return The status of the typed RPC, or the conversion error.
+ */
+grpc::Status broker_impl::_execute_native_command(
+    std::string_view name,
+    std::string_view args,
+    std::string_view broker_rpc,
+    const ExternalCommandRequest& request) {
+  namespace lc = legacy_commands;
+  ::google::protobuf::Empty empty;
+  const bool enable = absl::StartsWith(name, "ENABLE_");
+
+  if (name == "ACKNOWLEDGE_HOST_PROBLEM" || name == "ACKNOWLEDGE_SVC_PROBLEM") {
+    bool svc = name == "ACKNOWLEDGE_SVC_PROBLEM";
+    AcknowledgementRequest req;
+    if (auto st = lc::acknowledgement(args, svc, &req); !st.ok())
+      return st;
+    return svc ? AcknowledgeServiceProblem(nullptr, &req, &empty)
+               : AcknowledgeHostProblem(nullptr, &req, &empty);
+  }
+  if (name == "REMOVE_HOST_ACKNOWLEDGEMENT") {
+    HostIdentifier id;
+    if (auto st = lc::host_identifier(args, &id); !st.ok())
+      return st;
+    return RemoveHostAcknowledgement(nullptr, &id, &empty);
+  }
+  if (name == "REMOVE_SVC_ACKNOWLEDGEMENT") {
+    ServiceIdentifier id;
+    if (auto st = lc::service_identifier(args, &id); !st.ok())
+      return st;
+    return RemoveServiceAcknowledgement(nullptr, &id, &empty);
+  }
+  if (name == "ADD_HOST_COMMENT") {
+    HostCommentRequest req;
+    AddCommentResponse resp;
+    if (auto st = lc::host_comment(args, &req); !st.ok())
+      return st;
+    return AddHostComment(nullptr, &req, &resp);
+  }
+  if (name == "ADD_SVC_COMMENT") {
+    ServiceCommentRequest req;
+    AddCommentResponse resp;
+    if (auto st = lc::service_comment(args, &req); !st.ok())
+      return st;
+    return AddServiceComment(nullptr, &req, &resp);
+  }
+  if (name == "DEL_HOST_COMMENT" || name == "DEL_SVC_COMMENT") {
+    CommentIdentifier id;
+    if (auto st = lc::comment_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteComment(nullptr, &id, &empty);
+  }
+  if (name == "DEL_ALL_HOST_COMMENTS") {
+    HostIdentifier id;
+    if (auto st = lc::host_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteAllHostComments(nullptr, &id, &empty);
+  }
+  if (name == "DEL_ALL_SVC_COMMENTS") {
+    ServiceIdentifier id;
+    if (auto st = lc::service_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteAllServiceComments(nullptr, &id, &empty);
+  }
+  if (name == "SCHEDULE_HOST_DOWNTIME" || name == "SCHEDULE_SVC_DOWNTIME") {
+    bool svc = name == "SCHEDULE_SVC_DOWNTIME";
+    ScheduleDowntimeRequest req;
+    ScheduleDowntimeResponse resp;
+    if (auto st = lc::schedule_downtime(args, svc, &req); !st.ok())
+      return st;
+    return ScheduleDowntime(nullptr, &req, &resp);
+  }
+  if (name == "SCHEDULE_HOST_SVC_DOWNTIME" ||
+      name == "SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME" ||
+      name == "SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME") {
+    ScheduleDowntimeRequest req;
+    if (auto st = lc::schedule_downtime(args, false, &req); !st.ok())
+      return st;
+    bool services = name == "SCHEDULE_HOST_SVC_DOWNTIME";
+    return _schedule_downtime_cascade(
+        std::move(req), services, !services,
+        name == "SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME");
+  }
+  if (name == "DEL_HOST_DOWNTIME" || name == "DEL_SVC_DOWNTIME") {
+    DowntimeIdentifier id;
+    if (auto st = lc::downtime_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteDowntime(nullptr, &id, &empty);
+  }
+  if (name == "ENABLE_HOST_NOTIFICATIONS" ||
+      name == "DISABLE_HOST_NOTIFICATIONS" ||
+      name == "ENABLE_HOST_AND_CHILD_NOTIFICATIONS" ||
+      name == "DISABLE_HOST_AND_CHILD_NOTIFICATIONS" ||
+      name == "ENABLE_ALL_NOTIFICATIONS_BEYOND_HOST" ||
+      name == "DISABLE_ALL_NOTIFICATIONS_BEYOND_HOST") {
+    HostNotificationsRequest req;
+    if (auto st = lc::host_identifier(args, req.mutable_host()); !st.ok())
+      return st;
+    req.set_enabled(enable);
+    if (absl::StrContains(name, "AND_CHILD"))
+      req.set_scope(HostNotificationsRequest::HOST_AND_CHILDREN);
+    else if (absl::StrContains(name, "BEYOND_HOST"))
+      req.set_scope(HostNotificationsRequest::BEYOND_HOST);
+    else
+      req.set_scope(HostNotificationsRequest::HOST);
+    return SetHostNotifications(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_HOST_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_HOST_SVC_NOTIFICATIONS") {
+    /* Services only, unlike the HOST_AND_SERVICES scope. */
+    HostIdentifier id;
+    if (auto st = lc::host_identifier(args, &id); !st.ok())
+      return st;
+    auto& bc = config::applier::state::instance().cache();
+    auto h = bc.host(id.host_name());
+    if (!h)
+      return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                          fmt::format("unknown host '{}'", id.host_name()));
+    for (uint64_t service_id : bc.service_ids_for_host(h->obj().host_id())) {
+      ServiceNotificationsRequest req;
+      req.mutable_service()->set_host_id(h->obj().host_id());
+      req.mutable_service()->set_service_id(service_id);
+      req.set_enabled(enable);
+      if (auto st = SetServiceNotifications(nullptr, &req, &empty); !st.ok())
+        return st;
+    }
+    return grpc::Status::OK;
+  }
+  if (name == "ENABLE_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_SVC_NOTIFICATIONS") {
+    ServiceNotificationsRequest req;
+    if (auto st = lc::service_identifier(args, req.mutable_service()); !st.ok())
+      return st;
+    req.set_enabled(enable);
+    return SetServiceNotifications(nullptr, &req, &empty);
+  }
+  if (name == "SET_HOST_NOTIFICATION_NUMBER") {
+    HostNotificationNumberRequest req;
+    if (auto st = lc::host_notification_number(args, &req); !st.ok())
+      return st;
+    return SetHostNotificationNumber(nullptr, &req, &empty);
+  }
+  if (name == "SET_SVC_NOTIFICATION_NUMBER") {
+    ServiceNotificationNumberRequest req;
+    if (auto st = lc::service_notification_number(args, &req); !st.ok())
+      return st;
+    return SetServiceNotificationNumber(nullptr, &req, &empty);
+  }
+  if (name == "SEND_CUSTOM_HOST_NOTIFICATION") {
+    HostCustomNotificationRequest req;
+    if (auto st = lc::host_custom_notification(args, &req); !st.ok())
+      return st;
+    return SendCustomHostNotification(nullptr, &req, &empty);
+  }
+  if (name == "SEND_CUSTOM_SVC_NOTIFICATION") {
+    ServiceCustomNotificationRequest req;
+    if (auto st = lc::service_custom_notification(args, &req); !st.ok())
+      return st;
+    return SendCustomServiceNotification(nullptr, &req, &empty);
+  }
+  if (name == "CHANGE_HOST_NOTIFICATION_TIMEPERIOD") {
+    HostNotificationPeriodRequest req;
+    if (auto st = lc::host_notification_period(args, &req); !st.ok())
+      return st;
+    return SetHostNotificationPeriod(nullptr, &req, &empty);
+  }
+  if (name == "CHANGE_SVC_NOTIFICATION_TIMEPERIOD") {
+    ServiceNotificationPeriodRequest req;
+    if (auto st = lc::service_notification_period(args, &req); !st.ok())
+      return st;
+    return SetServiceNotificationPeriod(nullptr, &req, &empty);
+  }
+  if (name == "CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD" ||
+      name == "CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD") {
+    ContactNotificationPeriodRequest req;
+    if (auto st = lc::contact_notification_period(args, &req); !st.ok())
+      return st;
+    return absl::StrContains(name, "_HOST_")
+               ? SetContactHostNotificationPeriod(nullptr, &req, &empty)
+               : SetContactServiceNotificationPeriod(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_CONTACT_HOST_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACT_HOST_NOTIFICATIONS" ||
+      name == "ENABLE_CONTACT_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACT_SVC_NOTIFICATIONS") {
+    ContactNotificationsRequest req;
+    if (auto st = lc::contact_identifier(args, req.mutable_contact()); !st.ok())
+      return st;
+    req.set_enabled(enable);
+    return absl::StrContains(name, "_HOST_")
+               ? SetContactHostNotifications(nullptr, &req, &empty)
+               : SetContactServiceNotifications(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_CONTACTGROUP_HOST_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACTGROUP_HOST_NOTIFICATIONS" ||
+      name == "ENABLE_CONTACTGROUP_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACTGROUP_SVC_NOTIFICATIONS") {
+    ContactgroupNotificationsRequest req;
+    if (auto st = lc::contactgroup_identifier(args, req.mutable_contactgroup());
+        !st.ok())
+      return st;
+    req.set_enabled(enable);
+    return absl::StrContains(name, "_HOST_")
+               ? SetContactgroupHostNotifications(nullptr, &req, &empty)
+               : SetContactgroupServiceNotifications(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_NOTIFICATIONS" || name == "DISABLE_NOTIFICATIONS") {
+    if (!request.has_poller())
+      return grpc::Status(
+          grpc::StatusCode::INVALID_ARGUMENT,
+          fmt::format(
+              "{} is a global command: the request must name the poller",
+              name));
+    PollerNotificationsRequest req;
+    *req.mutable_poller() = request.poller();
+    req.set_enabled(enable);
+    return SetPollerNotifications(nullptr, &req, &empty);
+  }
+  /* Downtime deletion by criteria, group downtimes and group switches. */
+  return grpc::Status(
+      grpc::StatusCode::UNIMPLEMENTED,
+      fmt::format(
+          "{} is owned by Broker in notification_mode=broker but has no "
+          "exact {} counterpart: not executed",
+          name, broker_rpc));
+}
+
+/**
+ * @brief Schedule the downtimes one legacy line stands for: the host's
+ * services (SCHEDULE_HOST_SVC_DOWNTIME) or the host and its descendants
+ * (SCHEDULE_AND_PROPAGATE[_TRIGGERED]_HOST_DOWNTIME, the descendants
+ * triggered by the top downtime in the TRIGGERED form), as Engine does.
+ *
+ * @param req       The host form of the request, names resolved by the cache.
+ * @param services  Schedule the host's services (and not the host).
+ * @param children  Schedule the host and its descendants.
+ * @param triggered Descendants are triggered by the top downtime.
+ *
+ * @return OK, or the first error met.
+ */
+grpc::Status broker_impl::_schedule_downtime_cascade(
+    ScheduleDowntimeRequest req,
+    bool services,
+    bool children,
+    bool triggered) {
+  auto& bc = config::applier::state::instance().cache();
+  auto h = bc.host(req.host_name());
+  if (!h)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown host '{}'", req.host_name()));
+  uint64_t host_id = h->obj().host_id();
+  ScheduleDowntimeResponse resp;
+
+  if (services) {
+    for (uint64_t service_id : bc.service_ids_for_host(host_id)) {
+      ScheduleDowntimeRequest r = req;
+      r.set_type(ScheduleDowntimeRequest::SERVICE);
+      r.set_host_id(host_id);
+      r.set_service_id(service_id);
+      if (auto st = ScheduleDowntime(nullptr, &r, &resp); !st.ok())
+        return st;
+    }
+    return grpc::Status::OK;
+  }
+
+  if (auto st = ScheduleDowntime(nullptr, &req, &resp); !st.ok())
+    return st;
+  if (!children)
+    return grpc::Status::OK;
+  uint64_t trigger = triggered ? resp.downtime_id() : req.triggered_by();
+  absl::flat_hash_set<uint64_t> seen{host_id};
+  std::vector<uint64_t> todo = bc.children_of(host_id);
+  while (!todo.empty()) {
+    uint64_t child = todo.back();
+    todo.pop_back();
+    if (!seen.insert(child).second)
+      continue;
+    ScheduleDowntimeRequest r = req;
+    r.set_host_id(child);
+    r.set_triggered_by(trigger);
+    if (auto st = ScheduleDowntime(nullptr, &r, &resp); !st.ok())
+      return st;
+    for (uint64_t g : bc.children_of(child))
+      todo.push_back(g);
+  }
+  return grpc::Status::OK;
 }
 
 /**

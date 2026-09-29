@@ -558,6 +558,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
       ${TEST_DIR}/processing/feeder.cc
       ${TEST_DIR}/time/timerange.cc
       ${TEST_DIR}/rpc/brokerrpc.cc
+      ${TEST_DIR}/rpc/legacy_commands.cc
       ${TEST_DIR}/exceptions.cc
       ${TEST_DIR}/io.cc)
   add_subdirectory(test)
