@@ -48,3 +48,12 @@ std::optional<std::string> global_cache_enricher::service_description(
     return std::nullopt;
   return std::string(s->description().c_str(), s->description().length());
 }
+
+otel_service global_cache_enricher::host_otel_service(uint64_t host_id) {
+  auto instance = cache::global_cache::instance_ptr();
+  if (!instance)
+    return {};
+
+  cache::otel_service found = instance->get_otel_service(host_id);
+  return {std::move(found.name), std::move(found.name_space)};
+}

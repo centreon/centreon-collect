@@ -51,6 +51,7 @@ class fake_enricher : public resource_enricher {
  public:
   absl::flat_hash_map<uint64_t, std::string> hosts;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::string> services;
+  absl::flat_hash_map<uint64_t, otel_service> otel_services;
 
   std::optional<std::string> host_name(uint64_t host_id) override {
     auto it = hosts.find(host_id);
@@ -63,6 +64,12 @@ class fake_enricher : public resource_enricher {
     auto it = services.find({h, s});
     if (it == services.end())
       return std::nullopt;
+    return it->second;
+  }
+  otel_service host_otel_service(uint64_t host_id) override {
+    auto it = otel_services.find(host_id);
+    if (it == otel_services.end())
+      return {};
     return it->second;
   }
 };
@@ -197,6 +204,83 @@ TEST_F(RequestBuilderTest, service_name_identifies_the_emitter_not_the_check) {
   EXPECT_EQ(resource_attr(rm, "service.name"), "centreon-broker");
   EXPECT_EQ(resource_attr(rm, "service.namespace"), "centreon");
   EXPECT_NE(resource_attr(rm, "service.name"), "Disk-/var");
+  EXPECT_TRUE(has_resource_attr(rm, "service.version"));
+}
+
+/* OTEL_SERVICE_NAME / OTEL_SERVICE_NAMESPACE host macros name the service. The
+ * broker version does not describe it, so service.version is left out. */
+TEST_F(RequestBuilderTest, host_macros_set_service_name_and_namespace) {
+  enricher->otel_services[42] = {"payment-api", "shop"};
+  request_builder b(conf, enricher, mapping, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_EQ(resource_attr(rm, "service.name"), "payment-api");
+  EXPECT_EQ(resource_attr(rm, "service.namespace"), "shop");
+  EXPECT_FALSE(has_resource_attr(rm, "service.version"));
+  EXPECT_EQ(resource_attr(rm, "host.name"), "srv-web-01");
+}
+
+/* Each macro falls back to its own default; the service is still the broker
+ * when only the namespace is set, so its version stays. */
+TEST_F(RequestBuilderTest, only_namespace_macro_keeps_default_service_name) {
+  enricher->otel_services[42] = {"", "prod"};
+  request_builder b(conf, enricher, mapping, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_EQ(resource_attr(rm, "service.name"), "centreon-broker");
+  EXPECT_EQ(resource_attr(rm, "service.namespace"), "prod");
+  EXPECT_TRUE(has_resource_attr(rm, "service.version"));
+}
+
+TEST_F(RequestBuilderTest, only_name_macro_keeps_default_namespace) {
+  enricher->otel_services[42] = {"payment-api", ""};
+  request_builder b(conf, enricher, mapping, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_EQ(resource_attr(rm, "service.name"), "payment-api");
+  EXPECT_EQ(resource_attr(rm, "service.namespace"), "centreon");
+}
+
+TEST_F(RequestBuilderTest, blank_service_macros_use_defaults) {
+  enricher->otel_services[42] = {"  ", "\t"};
+  request_builder b(conf, enricher, mapping, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_EQ(resource_attr(rm, "service.name"), "centreon-broker");
+  EXPECT_EQ(resource_attr(rm, "service.namespace"), "centreon");
+}
+
+TEST_F(RequestBuilderTest, service_macros_are_trimmed) {
+  enricher->otel_services[42] = {" payment-api ", " shop"};
+  request_builder b(conf, enricher, mapping, logger);
+  ASSERT_TRUE(b.add_host_status(make_host_status("rta=1ms")));
+
+  const auto& rm = b.peek().resource_metrics(0);
+  EXPECT_EQ(resource_attr(rm, "service.name"), "payment-api");
+  EXPECT_EQ(resource_attr(rm, "service.namespace"), "shop");
+}
+
+/* Each host keeps its own service identity in the same batch. */
+TEST_F(RequestBuilderTest, service_identity_is_per_host) {
+  enricher->hosts[43] = "srv-db-01";
+  enricher->otel_services[43] = {"orders-db", "shop"};
+  request_builder b(conf, enricher, mapping, logger);
+  ASSERT_TRUE(b.add_service_status(make_status("rta=250ms")));
+  ServiceStatus other = make_status("rta=3ms");
+  other.set_host_id(43);
+  ASSERT_TRUE(b.add_service_status(other));
+
+  ASSERT_EQ(b.peek().resource_metrics_size(), 2);
+  for (const auto& rm : b.peek().resource_metrics()) {
+    if (resource_attr(rm, "host.name") == "srv-db-01")
+      EXPECT_EQ(resource_attr(rm, "service.name"), "orders-db");
+    else
+      EXPECT_EQ(resource_attr(rm, "service.name"), "centreon-broker");
+  }
 }
 
 TEST_F(RequestBuilderTest, centreon_service_is_a_datapoint_attribute) {

@@ -29,8 +29,9 @@ namespace otel_common = ::opentelemetry::proto::common::v1;
 namespace {
 
 constexpr const char* k_scope_name = "com.centreon.broker.otlp";
-constexpr const char* k_service_name = "centreon-broker";
-constexpr const char* k_service_namespace = "centreon";
+/* Used when the host has no OTEL_SERVICE_NAME / OTEL_SERVICE_NAMESPACE macro */
+constexpr std::string_view k_service_name = "centreon-broker";
+constexpr std::string_view k_service_namespace = "centreon";
 
 void set_attribute(otel_common::KeyValue* kv,
                    std::string_view key,
@@ -105,16 +106,23 @@ request_builder::ScopeMetrics* request_builder::_scope_for_host(
   ResourceMetrics* rm = _request.add_resource_metrics();
   auto* resource = rm->mutable_resource();
 
-  /* host.name is the correlation key; everything else on the
-   * resource describes the emitter, per the OTel definition of service.*. */
+  /* host.name is the correlation key. service.* names the service the host
+   * runs when set through its custom macros, the emitter otherwise. */
   set_attribute(resource->add_attributes(), "host.name", host_name);
-  set_attribute(resource->add_attributes(), "service.name", k_service_name);
-  set_attribute(resource->add_attributes(), "service.namespace",
-                k_service_namespace);
-  set_attribute(resource->add_attributes(), "service.version",
-                CENTREON_BROKER_VERSION);
-  /* No uuid exists in today, so the Centreon id is kept as a fallback identity.
-   */
+  const otel_service service = _enricher->host_otel_service(host_id);
+  const std::string_view service_name =
+      absl::StripAsciiWhitespace(service.name);
+  const std::string_view service_namespace =
+      absl::StripAsciiWhitespace(service.name_space);
+  set_attribute(resource->add_attributes(), "service.name",
+                service_name.empty() ? k_service_name : service_name);
+  set_attribute(
+      resource->add_attributes(), "service.namespace",
+      service_namespace.empty() ? k_service_namespace : service_namespace);
+
+  if (service_name.empty())
+    set_attribute(resource->add_attributes(), "service.version",
+                  CENTREON_BROKER_VERSION);
   set_attribute(resource->add_attributes(), "centreon.host.id",
                 static_cast<int64_t>(host_id));
   _add_host_metadata(host_id, resource);
