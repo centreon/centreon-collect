@@ -258,6 +258,12 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/registernodes-central-docker.yml \
      /etc/centreon-gorgone/registernodes-central-docker.yml
 
+# TYPE=central's own config.d files (30/31/40) are not baked here — unlike the
+# poller config above, they're written directly by
+# container.d/12-central-config.sh at startup (heredocs, env vars expand
+# naturally), so they never collide with the poller config.d/40-gorgoned.yaml
+# baked in above and there's no separate template tree to keep in sync.
+
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
 # gRPC client for the systemctl shim's centengine SignalProcess call (replaces
