@@ -22,6 +22,105 @@ OTLP_DEFAULT_IDENTITY
     Ctn Start OTLP Stack
     Ctn Check OTLP Identity    centreon-broker    centreon
 
+OTLP_HOST_MACROS
+    [Documentation]    Scenario: Host macros override the service identity of each host independently
+    ...    Given host_1 defines _OTEL_SERVICE_NAME, _OTEL_SERVICE_NAMESPACE and a _SECRET macro
+    ...    And host_2 only defines _OTEL_SERVICE_NAMESPACE
+    ...    And service_1 defines its own _OTEL_SERVICE_NAME
+    ...    When passive check results of both hosts are exported
+    ...    Then host_1 carries payments/shop without service.version
+    ...    And host_2 carries centreon-broker/production
+    ...    And no resource carries the secret macro
+    ...    When the service_1 macro is changed at runtime
+    ...    Then host_1 still carries payments/shop
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    payments
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    shop
+    Ctn Set OTLP Host Macro    0    host_1    SECRET    do-not-export
+    Ctn Set OTLP Host Macro    1    host_2    OTEL_SERVICE_NAMESPACE    production
+    Ctn Engine Config Set Value In Services    0    service_1    _OTEL_SERVICE_NAME    wrong-service
+    Ctn Start OTLP Stack
+    Ctn Check OTLP Identity    payments    shop
+    Ctn Check OTLP Identity    centreon-broker    production    1    host_2    service_2
+    Ctn Change Custom Svc Var Command    host_1    service_1    OTEL_SERVICE_NAME    still-wrong
+    Ctn Check OTLP Identity    payments    shop
+
+OTLP_RUNTIME_MACROS
+    [Documentation]    Scenario: Runtime host macro updates apply to the next exports
+    ...    Given host_1 is configured with name and namespace "initial"
+    ...    When both macros are changed at runtime with surrounding spaces
+    ...    Then the next export carries the trimmed values payments/shop
+    ...    When the name is changed to spaces only
+    ...    Then service.name falls back to centreon-broker and the namespace is kept
+    ...    When the namespace is changed to an empty value
+    ...    Then the identity falls back to centreon-broker/centreon
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    initial
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    initial
+    Ctn Start OTLP Stack
+    Ctn Check OTLP Identity    initial    initial
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    ${SPACE}${SPACE}payments${SPACE}${SPACE}
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAMESPACE    ${SPACE}shop${SPACE}
+    Ctn Check OTLP Identity    payments    shop
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    ${SPACE}${SPACE}
+    Ctn Check OTLP Identity    centreon-broker    shop
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAMESPACE    ${EMPTY}
+    Ctn Check OTLP Identity    centreon-broker    centreon
+
+OTLP_RELOAD_AND_REMOVAL
+    [Documentation]    Scenario: Configuration reloads update and then remove host macros
+    ...    Given host_1 is configured with name "initial" and namespace "shop"
+    ...    When the name is changed in the configuration and Engine is reloaded
+    ...    Then the next export carries changed/shop
+    ...    When the updated name is removed from the configuration and Engine is reloaded
+    ...    Then the removal reaches Broker, since the update kept is_sent
+    ...    And service.name falls back to centreon-broker
+    ...    When the namespace is removed too and Engine is reloaded
+    ...    Then the identity falls back to centreon-broker/centreon
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    initial
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    shop
+    Ctn Start OTLP Stack
+    Ctn Check OTLP Identity    initial    shop
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    changed
+    Ctn Reload Engine And Wait    0
+    Ctn Check OTLP Identity    changed    shop
+    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAME${SPACE}
+    Ctn Reload Engine And Wait    0
+    Ctn Check OTLP Identity    centreon-broker    shop
+    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAMESPACE${SPACE}
+    Ctn Reload Engine And Wait    0
+    Ctn Check OTLP Identity    centreon-broker    centreon
+
+OTLP_BROKER_RESTART
+    [Documentation]    Scenario: A runtime identity survives a Broker restart
+    ...    Given host_1 is configured with name "configured"
+    ...    When the name is changed to "runtime" at runtime
+    ...    Then exports carry runtime/centreon
+    ...    When Broker is restarted while Engine keeps running
+    ...    Then exports still carry runtime/centreon
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    configured
+    Ctn Start OTLP Stack
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    runtime
+    Ctn Check OTLP Identity    runtime    centreon
+    Ctn Restart Broker    only_central=${True}
+    Ctn Check OTLP Identity    runtime    centreon
+
+OTLP_ENGINE_RESTART_REMOVAL
+    [Documentation]    Scenario: Macros removed while Engine is stopped do not survive its restart
+    ...    Given host_1 is configured with name and namespace "removed"
+    ...    And exports carry removed/removed
+    ...    When Engine is stopped, both macros are removed from its configuration and Engine is started
+    ...    Then its startup dump restores centreon-broker/centreon
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    removed
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    removed
+    Ctn Start OTLP Stack
+    Ctn Check OTLP Identity    removed    removed
+    Ctn Stop Engine
+    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAME${SPACE}
+    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAMESPACE${SPACE}
+    ${start}    Get Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+    Ctn Check OTLP Identity    centreon-broker    centreon
+
 
 *** Keywords ***
 Ctn Config OTLP Stack
@@ -71,6 +170,24 @@ Ctn Start OTLP Stack
     Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${2}
+
+Ctn Reload Engine And Wait
+    [Documentation]    When Engine is reloaded
+    ...    Then "Reload configuration finished" is logged; check_for_external_commands() is logged
+    ...    every second, so only this message proves the reload is applied
+    [Arguments]    ${poller}
+    ${start}    Get Current Date
+    Ctn Reload Engine    ${poller}
+    ${content}    Create List    Reload configuration finished
+    ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config${poller}/centengine.log    ${start}    ${content}    60
+    Should Be True    ${result}    Engine ${poller} should finish its reload.
+
+Ctn Set OTLP Host Macro
+    [Arguments]    ${poller}    ${host}    ${name}    ${value}
+    # The shared deletion helper matches substrings: include the separator so
+    # OTEL_SERVICE_NAME cannot match OTEL_SERVICE_NAMESPACE.
+    Ctn Engine Config Delete Value In Hosts    ${poller}    ${host}    _${name}${SPACE}
+    Ctn Engine Config Set Value In Hosts    ${poller}    ${host}    _${name}    ${value}
 
 Ctn Check OTLP Identity
     [Documentation]    When a passive result with a new probe value is sent through the poller
