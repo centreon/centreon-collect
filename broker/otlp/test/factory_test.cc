@@ -29,6 +29,12 @@ using com::centreon::exceptions::msg_fmt;
 
 namespace {
 
+/**
+ * @brief OTLP output configuration with a default endpoint.
+ *
+ * @param params extra parameters; endpoint is added if absent
+ * @return the configuration
+ */
 config::endpoint make_cfg(
     const std::map<std::string, std::string>& params = {}) {
   config::endpoint cfg(config::endpoint::io_type::output);

@@ -31,6 +31,14 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace {
 
+/**
+ * @brief String parameter of an endpoint.
+ *
+ * @param cfg endpoint configuration
+ * @param key parameter name
+ * @param def value when the parameter is absent
+ * @return the parameter value, or def
+ */
 std::string get_string(const config::endpoint& cfg,
                        const std::string& key,
                        const std::string& def) {
@@ -38,6 +46,15 @@ std::string get_string(const config::endpoint& cfg,
   return it == cfg.params.end() ? def : it->second;
 }
 
+/**
+ * @brief Unsigned integer parameter of an endpoint.
+ *
+ * @param cfg endpoint configuration
+ * @param key parameter name
+ * @param def value when the parameter is absent
+ * @return the parameter value, or def
+ * @throw msg_fmt if the value is not a number
+ */
 uint32_t get_uint(const config::endpoint& cfg,
                   const std::string& key,
                   uint32_t def) {
@@ -51,6 +68,15 @@ uint32_t get_uint(const config::endpoint& cfg,
   return out;
 }
 
+/**
+ * @brief Boolean parameter of an endpoint.
+ *
+ * @param cfg endpoint configuration
+ * @param key parameter name
+ * @param def value when the parameter is absent
+ * @return the parameter value, or def
+ * @throw msg_fmt if the value is not a boolean
+ */
 bool get_bool(const config::endpoint& cfg, const std::string& key, bool def) {
   auto it = cfg.params.find(key);
   if (it == cfg.params.end())
@@ -64,6 +90,13 @@ bool get_bool(const config::endpoint& cfg, const std::string& key, bool def) {
 
 }  // namespace
 
+/**
+ * @brief Tell whether an endpoint configuration is an OTLP output.
+ *
+ * @param cfg endpoint configuration
+ * @param ext if not null, set to the OTLP extension
+ * @return true if the type is "otlp" (case-insensitive)
+ */
 bool factory::has_endpoint(const config::endpoint& cfg,
                            io::extension* ext) const {
   if (ext)
@@ -71,6 +104,15 @@ bool factory::has_endpoint(const config::endpoint& cfg,
   return absl::EqualsIgnoreCase(cfg.type, "otlp");
 }
 
+/**
+ * @brief Build the configuration of an OTLP endpoint from its parameters and
+ * their default values.
+ *
+ * @param cfg endpoint configuration
+ * @return the parsed configuration
+ * @throw msg_fmt if endpoint is missing, a value is malformed, or
+ * max_datapoints_per_batch or max_inflight_requests is 0
+ */
 otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
   auto conf = std::make_shared<otlp_config>();
 
@@ -111,6 +153,20 @@ otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
   return conf;
 }
 
+/**
+ * @brief Create the connector of an OTLP output.
+ *
+ * The global cache is loaded first when the applier state is loaded, because
+ * host names are resolved from it.
+ *
+ * @param cfg endpoint configuration
+ * @param global_params unused
+ * @param is_acceptor set to false: an OTLP output is always a connector
+ * @param cache unused
+ * @return the new connector
+ * @throw msg_fmt if the configuration is invalid or the mapping file can't be
+ * loaded
+ */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const std::map<std::string, std::string>& global_params [[maybe_unused]],

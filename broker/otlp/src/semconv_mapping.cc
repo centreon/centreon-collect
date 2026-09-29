@@ -64,6 +64,13 @@ constexpr std::string_view k_mapping_schema = R"(
 }
 )";
 
+/**
+ * @brief Instrument of a mapping rule.
+ *
+ * @param s "gauge", "sum_monotonic" or "sum_non_monotonic", as validated by the
+ * schema
+ * @return the instrument, gauge for any other value
+ */
 instrument parse_instrument(std::string_view s) {
   if (s == "sum_monotonic")
     return instrument::sum_monotonic;
@@ -98,6 +105,15 @@ std::string ucum_unit(std::string_view centreon_unit) {
 
 namespace com::centreon::broker::otlp {
 
+/**
+ * @brief Split a structured perfdata label: instance~sub1~sub2#metric.
+ *
+ * A label without '#' is only a metric name. The returned views point into
+ * perfdata_name.
+ *
+ * @param perfdata_name raw label
+ * @return instance, sub-instances and metric name
+ */
 decomposed_name decompose(std::string_view perfdata_name) {
   decomposed_name res;
   const std::size_t label = perfdata_name.find('#');
@@ -163,6 +179,13 @@ std::string sanitize(std::string_view raw) {
   return out.empty() ? std::string("unnamed") : out;
 }
 
+/**
+ * @brief Parse a mapping document, validated against k_mapping_schema.
+ *
+ * @param json_content JSON document
+ * @return the immutable table
+ * @throw msg_fmt if the content is not valid JSON or not a valid mapping
+ */
 mapping_table::pointer mapping_table::from_json(std::string_view json_content) {
   static json_validator validator(k_mapping_schema);
   rapidjson::Document doc = rapidjson_helper::read_from_string(json_content);
@@ -192,6 +215,14 @@ mapping_table::pointer mapping_table::from_json(std::string_view json_content) {
   return table;
 }
 
+/**
+ * @brief Read and parse a mapping file.
+ *
+ * @param path mapping file
+ * @return the immutable table
+ * @throw msg_fmt, naming the file, if it can't be read or is not a valid
+ * mapping
+ */
 mapping_table::pointer mapping_table::from_file(
     const std::filesystem::path& path) {
   try {
@@ -201,16 +232,42 @@ mapping_table::pointer mapping_table::from_file(
   }
 }
 
+/**
+ * @brief Shared table with no rule.
+ *
+ * @return the empty table
+ */
 const mapping_table::pointer& mapping_table::empty() {
   static const pointer table = std::make_shared<const mapping_table>();
   return table;
 }
 
+/**
+ * @brief Rule of a Centreon metric name.
+ *
+ * @param metric metric part of a perfdata label
+ * @return the rule, or nullptr if there is none
+ */
 const mapping_rule* mapping_table::find(std::string_view metric) const {
   auto found = _rules.find(metric);
   return found == _rules.end() ? nullptr : &found->second;
 }
 
+/**
+ * @brief Resolve a perfdata label to the metric to emit.
+ *
+ * The rule of the metric name applies, unless it needs an instance attribute
+ * and the label has no instance. Otherwise the metric falls back to
+ * centreon.<sanitized name>, with a UCUM unit, a monotonic sum for counter and
+ * derive values (a gauge otherwise), a scale of 1, and centreon.metric.instance
+ * when the label has an instance.
+ *
+ * @param perfdata_name raw label
+ * @param unit perfdata unit
+ * @param value_type perfdata data type
+ * @param table rules to resolve the label with
+ * @return the resolved mapping
+ */
 mapping map_metric(std::string_view perfdata_name,
                    std::string_view unit,
                    perfdata::data_type value_type,
@@ -250,12 +307,26 @@ mapping map_metric(std::string_view perfdata_name,
   return m;
 }
 
+/**
+ * @brief Name of the metric carrying the thresholds of a metric:
+ * <emitted_name>.threshold, prefixed with "centreon." unless it already is.
+ *
+ * @param emitted_name name of the value metric
+ * @return the threshold metric name
+ */
 std::string threshold_metric_name(std::string_view emitted_name) {
   if (absl::StartsWith(emitted_name, "centreon."))
     return absl::StrCat(emitted_name, ".threshold");
   return absl::StrCat("centreon.", emitted_name, ".threshold");
 }
 
+/**
+ * @brief Name of the metric carrying the min/max bounds of a metric:
+ * <emitted_name>.bound, prefixed with "centreon." unless it already is.
+ *
+ * @param emitted_name name of the value metric
+ * @return the bound metric name
+ */
 std::string bound_metric_name(std::string_view emitted_name) {
   if (absl::StartsWith(emitted_name, "centreon."))
     return absl::StrCat(emitted_name, ".bound");

@@ -58,6 +58,15 @@ connector::connector(const otlp_config::pointer& conf)
                        _conf->mapping_file, logger);
 }
 
+/**
+ * @brief Create a new output stream for this endpoint.
+ *
+ * Each stream gets its own resource enricher and gRPC exporter. The mapping
+ * provider and the CMA host information store belong to the endpoint and are
+ * shared by all its streams, so they survive a stream reopening.
+ *
+ * @return the new stream
+ */
 std::shared_ptr<io::stream> connector::open() {
   auto logger = log_v2::instance().get(log_v2::OTL);
   return std::make_shared<stream>(
