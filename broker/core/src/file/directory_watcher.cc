@@ -19,6 +19,7 @@
 #include "com/centreon/broker/file/directory_watcher.hh"
 
 #include <errno.h>
+#include <boost/asio/error.hpp>
 #include <boost/system/detail/error_code.hpp>
 
 #include "com/centreon/common/pool.hh"
@@ -44,9 +45,11 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
                                      bool non_blocking)
     : _io_context(com::centreon::common::pool::io_context_ptr()),
       _sd{asio::posix::stream_descriptor(*_io_context, inotify_init())},
+      _watch_dir(to_watch_dir),
       _logger{log_v2::instance().get(log_v2::CORE)} {
   int fd = _sd.native_handle();
-  _logger->info(
+  SPDLOG_LOGGER_INFO(
+      _logger,
       "directory_watcher: watching directory '{}' with mask {:#x} and "
       "non_blocking={}",
       to_watch_dir, mask, non_blocking);
@@ -59,7 +62,8 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
     boost::system::error_code ec;
     _sd.non_blocking(true, ec);
     if (ec) {
-      _logger->error(
+      SPDLOG_LOGGER_ERROR(
+          _logger,
           "directory_watcher: couldn't set inotify instance to non-blocking: "
           "{}",
           ec.message());
@@ -77,12 +81,12 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
  *  Destructor.
  */
 directory_watcher::~directory_watcher() {
-  std::cout << "directory_watcher destructor" << std::endl;
   boost::system::error_code ec;
   auto ec1 = _sd.close(ec);
   if (ec1) {
-    _logger->error("Error while closing the directory watcher: {}",
-                   ec1.message());
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Error while closing the directory {} watcher: {}",
+                        _watch_dir, ec1.message());
   }
 
   int fd = _sd.native_handle();
@@ -100,7 +104,10 @@ directory_watcher::iterator directory_watcher::watch() {
   boost::system::error_code ec;
   _bytes_read = _sd.read_some(boost::asio::buffer(_buffer), ec);
   if (ec) {
-    _logger->error("Unable to read from inotify: {}", ec.message());
+    if (ec != asio::error::try_again) {
+      SPDLOG_LOGGER_ERROR(_logger, "Unable to read from inotify from {}: {}",
+                          _watch_dir, ec.message());
+    }
     _bytes_read = 0;
   }
   return iterator(this);

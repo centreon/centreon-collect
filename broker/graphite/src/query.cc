@@ -343,18 +343,21 @@ void query::_get_host_id(io::data const& d, std::ostream& is) {
  */
 void query::_get_service(io::data const& d, std::ostream& is) {
   auto& cache = config::applier::state::instance().cache();
-  std::shared_ptr<neb::pb_service> svc;
-  std::string service_description;
+  uint64_t host_id;
+  uint64_t service_id;
   if (_type == status) {
-    auto obj = static_cast<storage::pb_status const&>(d).obj();
-    svc = cache.service(obj.host_id(), obj.service_id());
-    service_description = _escape(svc->obj().description());
+    host_id = static_cast<storage::pb_status const&>(d).obj().host_id();
+    service_id = static_cast<storage::pb_status const&>(d).obj().service_id();
   } else {
-    auto obj = static_cast<storage::pb_metric const&>(d).obj();
-    svc = cache.service(obj.host_id(), obj.service_id());
-    service_description = _escape(svc->obj().description());
+    host_id = static_cast<storage::pb_metric const&>(d).obj().host_id();
+    service_id = static_cast<storage::pb_metric const&>(d).obj().service_id();
   }
-  is << service_description;
+  std::shared_ptr<neb::pb_service> svc = cache.service(host_id, service_id);
+  if (!svc) {
+    throw msg_fmt("graphite: could not find information on service {}:{}",
+                  service_id, host_id);
+  }
+  is << _escape(svc->obj().description());
 }
 
 /**
@@ -378,10 +381,10 @@ void query::_get_service_id(io::data const& d, std::ostream& is) {
  */
 void query::_get_instance(io::data const& d, std::ostream& is) {
   auto& cache = config::applier::state::instance().cache();
-  auto instance = _escape(cache.instance(d.source_id));
+  std::string instance = _escape(cache.instance(d.source_id));
 
   if (instance.empty())
     throw msg_fmt("graphite: could not find information on instance {}",
                   d.source_id);
-  is << _escape(cache.instance(d.source_id));
+  is << instance;
 }

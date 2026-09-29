@@ -19,6 +19,8 @@
 # Global options.
 project("Centreon common" C CXX)
 
+add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(log_v2)
   add_subdirectory(engine_conf)
@@ -52,7 +54,6 @@ endif()
 include_directories(${INCLUDE_DIR} ${HTTP_INCLUDE_DIR} ${VCPKG_INCLUDE_DIR}
                     ${PROCESS_INCLUDE_DIR})
 
-add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_library(centreon_common STATIC ${SOURCES})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 

@@ -18,6 +18,7 @@
 
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include <google/protobuf/util/json_util.h>
+#include "com/centreon/common/file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/state_helper.hh"
 #include "common/log_v2/log_v2.hh"
@@ -98,28 +99,21 @@ void extended_conf::reload() {
 void extended_conf::update_diff_state(DiffState& diff) {
   for (const auto& conf_file : _confs) {
     conf_file->reload();
-    std::ifstream f(conf_file->_path, std::ios::in);
     std::string content;
-    if (f) {
-      f.seekg(0, std::ios::end);
-      content.resize(f.tellg());
-      f.seekg(0, std::ios::beg);
-      f.read(&content[0], content.size());
-      f.close();
-      DiffState ext_diff;
-      google::protobuf::util::JsonParseOptions options;
-      options.ignore_unknown_fields = true;
-      options.case_insensitive_enum_parsing = true;
-      auto status [[maybe_unused]] =
-          google::protobuf::util::JsonStringToMessage(content, &ext_diff,
-                                                      options);
-      diff.MergeFrom(ext_diff);
-    } else {
-      SPDLOG_LOGGER_ERROR(
-          conf_file->_logger,
-          "extended_conf::extended_conf : fail to read json content '{}': {}",
-          conf_file->_path, strerror(errno));
+    try {
+      content = common::read_file_content(conf_file->_path);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(conf_file->_logger,
+                          "extended_conf::extended_conf : {}", e.what());
+      continue;
     }
+    DiffState ext_diff;
+    google::protobuf::util::JsonParseOptions options;
+    options.ignore_unknown_fields = true;
+    options.case_insensitive_enum_parsing = true;
+    auto status [[maybe_unused]] = google::protobuf::util::JsonStringToMessage(
+        content, &ext_diff, options);
+    diff.MergeFrom(ext_diff);
   }
 }
 
@@ -132,26 +126,20 @@ void extended_conf::update_diff_state(DiffState& diff) {
 void extended_conf::update_state(State* pb_config) {
   for (const auto& conf_file : _confs) {
     conf_file->reload();
-    std::ifstream f(conf_file->_path, std::ios::in);
     std::string content;
-    if (f) {
-      f.seekg(0, std::ios::end);
-      content.resize(f.tellg());
-      f.seekg(0, std::ios::beg);
-      f.read(&content[0], content.size());
-      f.close();
-      State new_conf;
-      google::protobuf::util::JsonParseOptions options;
-      options.ignore_unknown_fields = false;
-      options.case_insensitive_enum_parsing = true;
-      auto status [[maybe_unused]] =
-          google::protobuf::util::JsonStringToMessage(content, &new_conf);
-      pb_config->MergeFrom(new_conf);
-    } else {
-      SPDLOG_LOGGER_ERROR(
-          conf_file->_logger,
-          "extended_conf::extended_conf : fail to read json content '{}': {}",
-          conf_file->_path, strerror(errno));
+    try {
+      content = common::read_file_content(conf_file->_path);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(conf_file->_logger,
+                          "extended_conf::extended_conf : {}", e.what());
+      continue;
     }
+    State new_conf;
+    google::protobuf::util::JsonParseOptions options;
+    options.ignore_unknown_fields = false;
+    options.case_insensitive_enum_parsing = true;
+    auto status [[maybe_unused]] =
+        google::protobuf::util::JsonStringToMessage(content, &new_conf);
+    pb_config->MergeFrom(new_conf);
   }
 }

@@ -18,6 +18,7 @@
  */
 #include "common/engine_conf/indexed_state.hh"
 #include <google/protobuf/util/message_differencer.h>
+#include "com/centreon/common/file.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
@@ -36,54 +37,35 @@ indexed_state::indexed_state(std::unique_ptr<State>&& state)
   _index(_state.get());
 }
 
+template <typename key_type, typename value_type>
+void copy_map(const absl::flat_hash_map<key_type, value_type>& src,
+              absl::flat_hash_map<key_type, value_type>& dst) {
+  dst.reserve(src.size());
+  for (const auto& [k, v] : src) {
+    dst.emplace(k, std::make_unique<typename value_type::element_type>(*v));
+  }
+}
+
 indexed_state::indexed_state(const indexed_state& other) {
   if (other._state) {
     _state.reset(new State(*other._state));
-    for (auto& [k, v] : other._timeperiods) {
-      _timeperiods.emplace(k, std::make_unique<Timeperiod>(*v));
-    }
-    for (auto& [k, v] : other._commands) {
-      _commands.emplace(k, std::make_unique<Command>(*v));
-    }
-    for (auto& [k, v] : other._connectors) {
-      _connectors.emplace(k, std::make_unique<Connector>(*v));
-    }
-    for (auto& [k, v] : other._severities) {
-      _severities.emplace(k, std::make_unique<Severity>(*v));
-    }
-    for (auto& [k, v] : other._tags) {
-      _tags.emplace(k, std::make_unique<Tag>(*v));
-    }
-    for (auto& [k, v] : other._contacts) {
-      _contacts.emplace(k, std::make_unique<Contact>(*v));
-    }
-    for (auto& [k, v] : other._contactgroups) {
-      _contactgroups.emplace(k, std::make_unique<Contactgroup>(*v));
-    }
-    for (auto& [k, v] : other._hosts) {
-      _hosts.emplace(k, std::make_unique<Host>(*v));
-    }
-    for (auto& [k, v] : other._services) {
-      _services.emplace(k, std::make_unique<Service>(*v));
-    }
-    for (auto& [k, v] : other._anomalydetections) {
-      _anomalydetections.emplace(k, std::make_unique<Anomalydetection>(*v));
-    }
-    for (auto& [k, v] : other._servicegroups) {
-      _servicegroups.emplace(k, std::make_unique<Servicegroup>(*v));
-    }
-    for (auto& [k, v] : other._hostdependencies) {
-      _hostdependencies.emplace(k, std::make_unique<Hostdependency>(*v));
-    }
-    for (auto& [k, v] : other._servicedependencies) {
-      _servicedependencies.emplace(k, std::make_unique<Servicedependency>(*v));
-    }
-    for (auto& [k, v] : other._hostescalations) {
-      _hostescalations.emplace(k, std::make_unique<Hostescalation>(*v));
-    }
-    for (auto& [k, v] : other._serviceescalations) {
-      _serviceescalations.emplace(k, std::make_unique<Serviceescalation>(*v));
-    }
+
+    copy_map(other._timeperiods, _timeperiods);
+    copy_map(other._commands, _commands);
+    copy_map(other._connectors, _connectors);
+    copy_map(other._hostgroups, _hostgroups);
+    copy_map(other._severities, _severities);
+    copy_map(other._tags, _tags);
+    copy_map(other._contacts, _contacts);
+    copy_map(other._contactgroups, _contactgroups);
+    copy_map(other._hosts, _hosts);
+    copy_map(other._services, _services);
+    copy_map(other._anomalydetections, _anomalydetections);
+    copy_map(other._servicegroups, _servicegroups);
+    copy_map(other._hostdependencies, _hostdependencies);
+    copy_map(other._servicedependencies, _servicedependencies);
+    copy_map(other._hostescalations, _hostescalations);
+    copy_map(other._serviceescalations, _serviceescalations);
   }
 }
 
@@ -93,9 +75,20 @@ indexed_state::indexed_state(const indexed_state& other) {
  *
  * @param state
  */
-void indexed_state::set_state(std::unique_ptr<State>&& state) {
+void indexed_state::_set_state_no_lock(std::unique_ptr<State>&& state) {
   _state = std::move(state);
   _index(_state.get());
+}
+
+/**
+ * @brief Set the State object to this. The State containers are emptied
+ * and their items are stored directly in the indexed_state.
+ *
+ * @param state
+ */
+void indexed_state::set_state(std::unique_ptr<State>&& state) {
+  absl::MutexLock l(&_state_m);
+  _set_state_no_lock(std::move(state));
 }
 
 void indexed_state::merge_state(State* state) {
@@ -113,7 +106,7 @@ void indexed_state::merge_state(const State& state) {
  *
  * @return State* The State object contained in the indexed_state.
  */
-State* indexed_state::release() {
+State* indexed_state::_release_no_lock() {
   State* retval;
   if (_state) {
     _apply_containers();
@@ -125,9 +118,22 @@ State* indexed_state::release() {
 }
 
 /**
+ * @brief Reset the indexed_state. The contained State has its containers
+ * filled with the items stored in the indexed_state. And the contained State
+ * is returned. If there is no State object, nullptr is returned.
+ *
+ * @return State* The State object contained in the indexed_state.
+ */
+State* indexed_state::release() {
+  absl::MutexLock l(&_state_m);
+  return _release_no_lock();
+}
+
+/**
  * @brief Reset the indexed_state. The contained State is deleted.
  */
 void indexed_state::reset() {
+  absl::MutexLock l(&_state_m);
   if (_state)
     _state.reset();
   _clear_containers();
@@ -220,49 +226,60 @@ void indexed_state::_clear_containers() {
  * the indexed_state. But in case of a merge, it can be another State.
  */
 void indexed_state::_index(const State& state) {
+  _timeperiods.reserve(state.timeperiods().size());
   for (auto& tp : state.timeperiods()) {
     _timeperiods.emplace(tp.timeperiod_name(),
                          std::make_unique<Timeperiod>(tp));
   }
+  _commands.reserve(state.commands().size());
   for (auto& cmd : state.commands()) {
     _commands.emplace(cmd.command_name(), std::make_unique<Command>(cmd));
   }
+  _connectors.reserve(state.connectors().size());
   for (auto& conn : state.connectors()) {
     _connectors.emplace(conn.connector_name(),
                         std::make_unique<Connector>(conn));
   }
+  _severities.reserve(state.severities().size());
   for (auto& sev : state.severities()) {
     _severities.emplace(
         std::make_tuple(sev.key().id(), (uint32_t)sev.key().type(),
                         state.poller_id()),
         std::make_unique<Severity>(sev));
   }
+  _tags.reserve(state.tags().size());
   for (auto& tag : state.tags()) {
     _tags.emplace(std::make_tuple(tag.key().id(), (uint32_t)tag.key().type(),
                                   state.poller_id()),
                   std::make_unique<Tag>(tag));
   }
+  _contacts.reserve(state.contacts().size());
   for (auto& contact : state.contacts()) {
     _contacts.emplace(contact.contact_name(),
                       std::make_unique<Contact>(contact));
   }
+  _contactgroups.reserve(state.contactgroups().size());
   for (auto& contactgroup : state.contactgroups()) {
     _contactgroups.emplace(contactgroup.contactgroup_name(),
                            std::make_unique<Contactgroup>(contactgroup));
   }
+  _hosts.reserve(state.hosts().size());
   for (auto& host : state.hosts()) {
     _hosts.emplace(host.host_id(), std::make_unique<Host>(host));
   }
+  _hostgroups.reserve(state.hostgroups().size());
   for (auto& hostgroup : state.hostgroups()) {
     _hostgroups.emplace(
         std::make_pair(hostgroup.hostgroup_name(), state.poller_id()),
         std::make_unique<Hostgroup>(hostgroup));
   }
+  _services.reserve(state.services().size());
   for (auto& service : state.services()) {
     assert(service.host_id() > 0 && service.service_id() > 0);
     _services.emplace(std::make_pair(service.host_id(), service.service_id()),
                       std::make_unique<Service>(service));
   }
+  _anomalydetections.reserve(state.anomalydetections().size());
   for (auto& anomalydetection : state.anomalydetections()) {
     assert(anomalydetection.host_id() > 0 && anomalydetection.service_id() > 0);
     _anomalydetections.emplace(
@@ -270,24 +287,29 @@ void indexed_state::_index(const State& state) {
                        anomalydetection.service_id()),
         std::make_unique<Anomalydetection>(anomalydetection));
   }
+  _servicegroups.reserve(state.servicegroups().size());
   for (auto& servicegroup : state.servicegroups()) {
     _servicegroups.emplace(
         std::make_pair(servicegroup.servicegroup_name(), state.poller_id()),
         std::make_unique<Servicegroup>(servicegroup));
   }
+  _hostdependencies.reserve(state.hostdependencies().size());
   for (auto& hostdependency : state.hostdependencies()) {
     _hostdependencies.emplace(hostdependency_key(hostdependency),
                               std::make_unique<Hostdependency>(hostdependency));
   }
+  _servicedependencies.reserve(state.servicedependencies().size());
   for (auto& servicedependency : state.servicedependencies()) {
     _servicedependencies.emplace(
         servicedependency_key(servicedependency),
         std::make_unique<Servicedependency>(servicedependency));
   }
+  _hostescalations.reserve(state.hostescalations().size());
   for (auto& hostescalation : state.hostescalations()) {
     _hostescalations.emplace(hostescalation_key(hostescalation),
                              std::make_unique<Hostescalation>(hostescalation));
   }
+  _serviceescalations.reserve(state.serviceescalations().size());
   for (auto& serviceescalation : state.serviceescalations()) {
     _serviceescalations.emplace(
         serviceescalation_key(serviceescalation),
@@ -729,12 +751,57 @@ void indexed_state::diff_with_new_config(
   SET_IF_CHANGED(config_version);
 }
 
-void indexed_state::serialize_to_ostream(std::ostream* os) {
-  std::unique_ptr<State> state(release());
+/**
+ * @brief Serialize the whole configuration State to a file.
+ *
+ * The indexed objects (hosts, services, commands...) are stored outside of
+ * _state, so release() is used to move them back into a complete State
+ * message. Once it has been saved, the State is given back with set_state()
+ * so the indexes are rebuilt. This is also done if the save fails, so the
+ * indexed_state stays usable, and the exception is rethrown.
+ * If there is no State, nothing is written.
+ *
+ * @param file_path Path of the destination file.
+ * @throw std::exception if the file cannot be written.
+ */
+void indexed_state::serialize_to_disk(const std::filesystem::path& file_path) {
+  absl::MutexLock l(&_state_m);
+  std::unique_ptr<State> state(_release_no_lock());
   if (state) {
-    state->SerializeToOstream(os);
-    set_state(std::move(state));
+    try {
+      com::centreon::common::save_proto_to_disk(file_path, *state);
+    } catch (const std::exception&) {
+      _set_state_no_lock(std::move(state));
+      throw;
+    }
+    _set_state_no_lock(std::move(state));
   }
+}
+
+/**
+ * @brief Tell if legacy broker data logging is enabled, ie the
+ * BROKER_LOGGED_DATA event broker option is set and log v2 is enabled.
+ *
+ * @return true if legacy broker data logging should be performed.
+ */
+bool indexed_state::broker_log_data(uint32_t event_broker_options_mask) const {
+  absl::MutexLock l(&_state_m);
+  return _state &&
+         (state().event_broker_options() & event_broker_options_mask) &&
+         state().log_v2_enabled();
+}
+
+bool indexed_state::accept_passive_service_checks() const {
+  absl::MutexLock l(&_state_m);
+  return _state && _state->accept_passive_service_checks();
+}
+
+int32_t indexed_state::external_command_buffer_slots() const {
+  absl::MutexLock l(&_state_m);
+  if (!_state) {
+    return 0;
+  }
+  return _state->external_command_buffer_slots();
 }
 
 }  // namespace com::centreon::engine::configuration

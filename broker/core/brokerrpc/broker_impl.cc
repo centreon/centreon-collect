@@ -511,11 +511,14 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
                                       const LogLevel* request,
                                       ::google::protobuf::Empty*) {
   const std::string& logger_name{request->logger()};
-  std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
+  auto& log_v2_instance = log_v2::instance();
+
+  std::shared_ptr<spdlog::logger> logger =
+      log_v2_instance.get(log_v2_instance.get_id(logger_name));
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
+    SPDLOG_LOGGER_ERROR(log_v2_instance.get(log_v2::CORE), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     logger->set_level(spdlog::level::level_enum(request->level()));

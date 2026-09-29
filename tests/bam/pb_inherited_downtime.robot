@@ -145,6 +145,7 @@ BEBAMIDTU2
     Should Be True    ${result}    We should only have two downtimes
 
     FOR    ${i}    IN RANGE    2
+        Sleep    5
         # Engine is restarted
         Ctn Stop Engine
         ${start}    Ctn Get Round Current Date

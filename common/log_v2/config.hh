@@ -23,6 +23,7 @@
 #include "spdlog/spdlog.h"
 
 #include <filesystem>
+#include <ostream>
 #include <string>
 
 namespace com::centreon::common::log_v2 {
@@ -38,6 +39,7 @@ class config {
   const std::string _name;
   /* This is a little hack to avoid to replace the log file set by centengine */
   bool _only_atomic_changes = false;
+  bool _allow_change_pattern_and_path = true;
   logger_type _log_type;
   std::string _dirname;
   std::string _filename;
@@ -70,13 +72,16 @@ class config {
   }
 
   config(const config& other)
-      : _log_type{other._log_type},
+      : _only_atomic_changes(other._only_atomic_changes),
+        _allow_change_pattern_and_path(other._allow_change_pattern_and_path),
+        _log_type{other._log_type},
         _dirname{other._dirname},
         _filename{other._filename},
         _max_size{other._max_size},
         _flush_interval{other._flush_interval},
         _log_pid{other._log_pid},
         _log_source{other._log_source} {}
+
   std::string log_path() const {
     return _dirname.empty() ? _filename
                             : fmt::format("{}/{}", _dirname, _filename);
@@ -129,9 +134,44 @@ class config {
   const absl::flat_hash_set<std::string>& loggers_with_custom_sinks() const {
     return _loggers_with_custom_sinks;
   }
-  //  const std::string& name() const { return _name; }
   void allow_only_atomic_changes(bool slave) { _only_atomic_changes = slave; }
   bool only_atomic_changes() const { return _only_atomic_changes; }
+  void allow_change_pattern_and_path(bool allow) {
+    _allow_change_pattern_and_path = allow;
+  }
+  bool allow_change_pattern_and_path() const {
+    return _allow_change_pattern_and_path;
+  }
 };
+
+inline std::ostream& operator<<(std::ostream& s, config::logger_type type) {
+  switch (type) {
+    case config::logger_type::LOGGER_STDOUT:
+      return s << "stdout";
+    case config::logger_type::LOGGER_FILE:
+      return s << "file";
+    case config::logger_type::LOGGER_SYSLOG:
+      return s << "syslog";
+  }
+  return s << "unknown";
+}
+
+inline std::ostream& operator<<(std::ostream& s, const config& c) {
+  s << "log_type=" << c.log_type() << " path=" << c.log_path()
+    << " max_size=" << c.max_size() << " flush_interval=" << c.flush_interval()
+    << " log_pid=" << c.log_pid() << " log_source=" << c.log_source()
+    << " only_atomic_changes=" << c.only_atomic_changes()
+    << " allow_change_pattern_and_path=" << c.allow_change_pattern_and_path()
+    << " loggers={";
+  bool first = true;
+  for (const auto& [name, level] : c.loggers()) {
+    if (!first)
+      s << ", ";
+    s << name << ':' << level;
+    first = false;
+  }
+  s << '}';
+  return s;
+}
 }  // namespace com::centreon::common::log_v2
 #endif

@@ -312,6 +312,7 @@ CREATE TABLE `cb_list` (
   `default_value` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`cb_list_id`,`cb_field_id`),
   UNIQUE KEY `cb_field_idx_01` (`cb_field_id`),
+  UNIQUE KEY (`cb_list_id`),
   KEY `fk_cb_list_1` (`cb_field_id`),
   CONSTRAINT `fk_cb_list_1` FOREIGN KEY (`cb_field_id`) REFERENCES `cb_field` (`cb_field_id`) ON DELETE CASCADE ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -2351,7 +2352,7 @@ CREATE TABLE `topology` (
   `readonly` enum('0','1') NOT NULL DEFAULT '1',
   `is_react` enum('0','1') NOT NULL DEFAULT '0',
   PRIMARY KEY (`topology_id`),
-  KEY `topology_page` (`topology_page`),
+  UNIQUE KEY `topology_page` (`topology_page`),
   KEY `topology_parent` (`topology_parent`),
   KEY `topology_order` (`topology_order`),
   KEY `topology_group` (`topology_group`)
@@ -2398,7 +2399,7 @@ CREATE TABLE `traps` (
   `traps_customcode` text,
   `traps_comments` text,
   UNIQUE KEY `traps_name` (`traps_name`,`traps_oid`),
-  KEY `traps_id` (`traps_id`),
+  UNIQUE KEY `traps_id` (`traps_id`),
   KEY `traps_ibfk_1` (`manufacturer_id`),
   KEY `traps_ibfk_2` (`severity_id`),
   CONSTRAINT `traps_ibfk_1` FOREIGN KEY (`manufacturer_id`) REFERENCES `traps_vendor` (`id`) ON DELETE CASCADE,

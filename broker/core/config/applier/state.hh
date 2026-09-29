@@ -90,6 +90,8 @@ class state {
                            const std::string& poller_name,
                            const std::string& broker_name) = 0;
   const std::string& cache_dir() const noexcept;
+  static std::filesystem::path calc_cache_dir(const config::state& s);
+
   uint32_t rpc_port() const noexcept;
   bbdo::bbdo_version get_bbdo_version() const noexcept;
   uint32_t poller_id() const noexcept;

@@ -34,8 +34,10 @@
 #include <unordered_map>
 
 #include <absl/container/btree_map.h>
+#include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/functional/function_ref.h>
 #include <absl/hash/hash.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
@@ -47,6 +49,10 @@
 #include <boost/optional.hpp>
 
 #include <boost/asio.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>

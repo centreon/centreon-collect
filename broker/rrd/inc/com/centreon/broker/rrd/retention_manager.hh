@@ -19,13 +19,10 @@
 #ifndef CCB_RRD_RETENTION_MANAGER_HH
 #define CCB_RRD_RETENTION_MANAGER_HH
 
-#include <absl/container/flat_hash_map.h>
 #include <filesystem>
-#include <vector>
 
 #include "absl/synchronization/mutex.h"
 #include "rrd_retention.pb.h"
-#include "spdlog/logger.h"
 
 namespace com::centreon::broker::rrd {
 
@@ -65,7 +62,7 @@ struct retention_state {
   explicit retention_state(std::filesystem::path path)
       : current_path(std::move(path)) {}
 
-  absl::Mutex mutex;
+  mutable absl::Mutex mutex;
   uint32_t step ABSL_GUARDED_BY(mutex) = 0;  ///< Metric step in seconds
   uint64_t last_retention_time ABSL_GUARDED_BY(mutex) =
       0;  ///< Timestamp of last buffered point
@@ -114,13 +111,15 @@ class retention_manager {
   retention_config _config;
   std::shared_ptr<spdlog::logger> _logger;
 
-  absl::Mutex _metrics_m;
-  absl::flat_hash_map<uint64_t, std::unique_ptr<metric_retention_state>>
-      _metrics ABSL_GUARDED_BY(_metrics_m);
+  mutable absl::Mutex _metrics_m;
+  using metric_cont =
+      absl::flat_hash_map<uint64_t, std::unique_ptr<metric_retention_state>>;
+  metric_cont _metrics ABSL_GUARDED_BY(_metrics_m);
 
-  absl::Mutex _statuses_m;
-  absl::flat_hash_map<uint64_t, std::unique_ptr<status_retention_state>>
-      _statuses ABSL_GUARDED_BY(_statuses_m);
+  mutable absl::Mutex _statuses_m;
+  using status_cont =
+      absl::flat_hash_map<uint64_t, std::unique_ptr<status_retention_state>>;
+  status_cont _statuses ABSL_GUARDED_BY(_statuses_m);
 
   // ---- internal helpers ----
 
@@ -149,6 +148,10 @@ class retention_manager {
 
   template <typename StateT>
   void _remove_state(StateT& state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+
+  template <typename StateT>
+  bool _check_partial_merge(uint64_t metric_id_or_index_id,
+                            const StateT& state) const;
 
   static std::vector<std::pair<uint64_t, double>> _read_metric_points(
       const std::vector<std::filesystem::path>& files,
@@ -251,8 +254,15 @@ class retention_manager {
    * Returns false if the state is not yet initialised (@c last_partial_merge_ts
    * == 0) to avoid a spurious trigger on the very first write.
    */
-  bool check_metric_partial_merge(uint64_t metric_id);
-  bool check_status_partial_merge(uint64_t index_id);
+  inline bool check_metric_partial_merge(uint64_t metric_id) const {
+    absl::ReaderMutexLock lk(&_metrics_m);
+    return _check_partial_merge(metric_id, _metrics);
+  }
+
+  inline bool check_status_partial_merge(uint64_t index_id) const {
+    absl::ReaderMutexLock lk(&_statuses_m);
+    return _check_partial_merge(index_id, _statuses);
+  }
 
   /**
    * @brief Check whether the junction condition is met for a metric.

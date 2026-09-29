@@ -19,10 +19,20 @@
 #define CCCM_FILE_HH
 #include <filesystem>
 
+namespace google::protobuf {
+class Message;
+}
 namespace com::centreon::common {
 std::string read_file_content(const std::filesystem::path& file_path);
 std::string hash_directory(const std::filesystem::path& dir_path,
                            std::error_code& ec) noexcept;
+
+bool load_proto_from_disk(const std::filesystem::path& file_path,
+                          ::google::protobuf::Message& data);
+
+void save_proto_to_disk(const std::filesystem::path& file_path,
+                        const ::google::protobuf::Message& data);
+
 }  // namespace com::centreon::common
 
 #endif /* !CCCM_FILE_HH */

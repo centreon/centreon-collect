@@ -496,6 +496,7 @@ message Anomalydetection {
   optional uint64 icon_id = 49;      // Optional
   repeated PairUint64_32 tags = 50;
   double sensitivity = 51;
+  uint64 poller_id = 52;
 }
 
 /* Ignore */
@@ -811,6 +812,7 @@ message Service {
   optional uint64 severity_id = 46;  // Optional
   optional uint64 icon_id = 47;      // Optional
   repeated PairUint64_32 tags = 48;
+  uint64 poller_id = 49;
 }
 
 /* Ignore */

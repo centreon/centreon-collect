@@ -222,7 +222,7 @@ static void command_file_worker_thread() {
     }
 
     external_command_buffer.set_capacity(
-        pb_indexed_config.state().external_command_buffer_slots());
+        pb_indexed_config.external_command_buffer_slots());
 
     /* process all commands in the file (named pipe) if there's some space in
      * the buffer */

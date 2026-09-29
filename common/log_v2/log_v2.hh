@@ -18,13 +18,6 @@
 #ifndef CCC_LOG_V2_HH
 #define CCC_LOG_V2_HH
 
-#include <spdlog/spdlog.h>
-
-#include <array>
-#include <chrono>
-#include <memory>
-#include <string>
-
 #include "config.hh"
 
 namespace com::centreon::common::log_v2 {
@@ -38,10 +31,6 @@ constexpr uint32_t log_v2_configuration = 3;
  * @brief Unified log module for broker and engine.
  *
  * To instance a logger with a name, we call the static internal function
- * create_logger(name). It creates the logger and returns an ID useful to
- * get back the logger. We know that spdlog is able to return the logger from
- * its name, but by this way it gets the logger in a hashtable protected by
- * a mutex which is more expensive.
  *
  * With the ID, we can get the logger with the static internal function get(ID).
  * During a reload, only atomic changes are allowed. So we cannot change the
@@ -49,8 +38,6 @@ constexpr uint32_t log_v2_configuration = 3;
  *
  */
 class log_v2 {
-  std::atomic_bool _not_threadsafe_configuration = false;
-
  public:
   enum logger_id {
     CORE = 0,
@@ -91,12 +78,12 @@ class log_v2 {
   static log_v2* _instance;
   std::string _log_name;
   std::chrono::seconds _flush_interval;
-  std::string _file_path;
-  std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
-  size_t _current_max_size = 0U;
-  bool _log_pid = false;
-  bool _log_source = false;
-  bool _absl_sink = false;
+  std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers
+      ABSL_GUARDED_BY(_loggers_m);
+  mutable absl::Mutex _loggers_m;
+  config::logger_type _log_type;
+  bool _configured = false;
+  bool _broker_sink_added = false;
 
  public:
   static void load(std::string name);
@@ -110,20 +97,15 @@ class log_v2 {
 
   std::chrono::seconds flush_interval();
   void set_flush_interval(uint32_t second_flush_interval);
-  void create_loggers(config::logger_type typ, size_t length = 0);
-  std::shared_ptr<spdlog::logger> create_logger(const logger_id id);
   std::shared_ptr<spdlog::logger> get(const logger_id idx);
   void apply(const config& conf);
   bool contains_logger(std::string_view logger) const;
   bool contains_level(const std::string& level) const;
-  const std::string& filename() const { return _file_path; }
+  std::string filename() const;
   std::vector<std::pair<std::string, spdlog::level::level_enum>> levels() const;
   const std::string& log_name() const;
   void disable();
   void disable(std::initializer_list<logger_id> ilist);
-  bool not_threadsafe_configuration() const {
-    return _not_threadsafe_configuration;
-  }
 };
 }  // namespace com::centreon::common::log_v2
 #endif /* !CCC_LOG_V2_HH */

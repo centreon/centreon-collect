@@ -37,6 +37,15 @@ namespace asio = boost::asio;
 namespace com::centreon::broker {
 
 namespace rrd {
+/* Real-time events received while a metric/status is being rebuilt are
+ * postponed until the end of the rebuild. last_rebuilt_time is the most
+ * recent timestamp written by the rebuild: postponed events older or equal
+ * are already in the rebuilt file and must not be written again. */
+struct rebuild_entry {
+  std::list<std::shared_ptr<io::data>> postponed;
+  uint64_t last_rebuilt_time = 0;
+};
+
 /**
  *  @class stream stream.hh "com/centreon/broker/rrd/stream.hh"
  *  @brief RRD stream class.
@@ -45,8 +54,7 @@ namespace rrd {
  */
 template <typename T>
 class stream : public io::stream {
-  using rebuild_cache =
-      absl::flat_hash_map<uint64_t, std::list<std::shared_ptr<io::data>>>;
+  using rebuild_cache = absl::flat_hash_map<uint64_t, rebuild_entry>;
 
   using rebuild_metric_to_index =
       boost::container::flat_map<uint64_t, uint64_t>;
@@ -106,6 +114,7 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger;
 
   void _rebuild_data(const RebuildMessage& rm);
+  void _write_postponed(rebuild_entry& entry, uint64_t id, bool is_status);
   void _do_metric_merge(uint64_t metric_id, const std::filesystem::path& rrd_path);
   void _do_status_merge(uint64_t index_id, const std::filesystem::path& rrd_path);
   void _startup_merge();

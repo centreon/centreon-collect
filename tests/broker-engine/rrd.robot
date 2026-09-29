@@ -285,7 +285,7 @@ BRRDRM1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    rrd    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    rrd    perfdata    trace
     Ctn Broker Config Flush Log    central    0
@@ -354,7 +354,7 @@ BRRDRMU1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    rrd    rrd    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
@@ -427,8 +427,8 @@ RRD1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    Ctn Broker Config Log    rrd    rrd    trace
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    central    0

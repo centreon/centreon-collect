@@ -38,6 +38,7 @@ namespace po = boost::program_options;
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
@@ -343,16 +344,23 @@ int main(int argc, char* argv[]) {
           configuration::error_cnt err;
           auto new_conf = std::make_unique<configuration::State>();
           bool proto_valid = false;
+          std::filesystem::path proto_conf_file;
           if (!proto_conf.empty()) {
-            std::filesystem::path proto_conf_file(proto_conf / "state.prot");
-            std::ifstream ifs(proto_conf_file);
-            if (ifs.good()) {
-              new_conf->ParseFromIstream(&ifs);
-              ifs.close();
-              proto_valid = true;
+            proto_conf_file = proto_conf / "state.prot";
+            try {
+              proto_valid = com::centreon::common::load_proto_from_disk(
+                  proto_conf_file.c_str(), *new_conf);
+              if (!proto_valid) {
+                std::cout << time(nullptr) << ": " << proto_conf_file
+                          << " does not exist" << std::endl;
+              }
+            } catch (const std::exception& e) {
+              std::cerr << time(nullptr) << ":Fail to load " << proto_conf_file
+                        << " : " << e.what() << std::endl;
             }
           }
           if (!proto_valid) {
+            new_conf = std::make_unique<configuration::State>();
             configuration::state_helper state_hlp(new_conf.get());
             configuration::parser p;
             p.parse(config_file, new_conf.get(), err);
@@ -405,12 +413,29 @@ int main(int argc, char* argv[]) {
 
           configuration::applier::state::instance().apply_log_config(*new_conf);
 
+          if (proto_valid) {
+            SPDLOG_LOGGER_INFO(
+                config_logger, "Configuration loaded from: {} version: {}",
+                proto_conf_file.c_str(), new_conf->config_version());
+          } else {
+            SPDLOG_LOGGER_INFO(
+                config_logger,
+                "No configuration file => default configuration");
+          }
+
+          init_loggers();
+          com::centreon::common::pool::instance().set_logger(runtime_logger);
+
           neb_init_callback_list();
 
           for (auto& m : new_conf->broker_module()) {
-            std::pair<std::string, std::string> p =
-                absl::StrSplit(m, absl::MaxSplits(' ', 1));
-            broker::loader::instance().add_module(p.first, p.second);
+            size_t file_arg_sep = m.find(' ');
+            std::string file_path = m.substr(0, file_arg_sep);
+            std::string args;
+            if (file_arg_sep != std::string::npos) {
+              args = m.substr(file_arg_sep + 1);
+            }
+            broker::loader::instance().add_module(file_path, args);
           }
 
           // Apply configuration.

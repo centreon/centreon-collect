@@ -77,7 +77,9 @@ ESSCTOWC
     ...    And the Engine starts and stops two times as a result
     [Tags]    engine    start-stop
     Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    0    log_level_commands    trace
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Engine Command Remove Connector    ${0}    *
     Ctn Config Broker    module
     Repeat Keyword    4 times    Ctn Start Stop Instances    20s
 

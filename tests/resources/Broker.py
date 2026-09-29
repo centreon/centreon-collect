@@ -297,12 +297,12 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "trace",
+                "core": "info",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
                 "perfdata": "error",
-                "bbdo": "info",
+                "bbdo": "error",
                 "tcp": "info",
                 "tls": "trace",
                 "lua": "error",
@@ -566,7 +566,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
 
     else:
         buf = config[name].format(broker_id, broker_name,
-                                    DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT)
+                                  DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT)
         conf = json.loads(buf)
         current_configs[key] = conf
 
@@ -641,7 +641,7 @@ def ctn_change_broker_tcp_input_to_grpc(name: str):
     _apply_conf(name, input_to_grpc)
 
 
-def ctn_broker_config_flush(is_broker: bool=True):
+def ctn_broker_config_flush(is_broker: bool = True):
     """
     Write the current configurations of broker instances to their configuration files.
 
@@ -1159,7 +1159,7 @@ def ctn_broker_config_remove_item(name, key):
     cc.pop(key)
 
 
-def ctn_broker_config_add_lua_output(name, output, luafile, params = {}):
+def ctn_broker_config_add_lua_output(name, output, luafile, params={}):
     """
     Add a lua output to the broker configuration.
 
@@ -1174,7 +1174,7 @@ def ctn_broker_config_add_lua_output(name, output, luafile, params = {}):
     """
     conf = current_configs[name]
     output_dict = conf["centreonBroker"]["output"]
-    lua_conf_content ={
+    lua_conf_content = {
         "name": output,
         "path": luafile,
         "type": "lua"
@@ -1625,7 +1625,8 @@ def ctn_create_metric_retention_file(metric_id, *points: str):
     path = f"{VAR_ROOT}/lib/centreon/metrics/{metric_id}.prot"
     with open(path, 'wb') as f:
         f.write(batch.SerializeToString())
-    logger.console(f"Created metric retention file {path} with {len(points)} point(s)")
+    logger.console(
+        f"Created metric retention file {path} with {len(points)} point(s)")
 
 
 def ctn_create_status_retention_file(index_id, *points: str):
@@ -1652,7 +1653,8 @@ def ctn_create_status_retention_file(index_id, *points: str):
     path = f"{VAR_ROOT}/lib/centreon/status/{index_id}.prot"
     with open(path, 'wb') as f:
         f.write(batch.SerializeToString())
-    logger.console(f"Created status retention file {path} with {len(points)} point(s)")
+    logger.console(
+        f"Created status retention file {path} with {len(points)} point(s)")
 
 
 def ctn_delete_all_rrd_metrics():
@@ -1696,7 +1698,8 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
             if (line_search.match(line)):
                 return True
         time.sleep(5)
-    logger.console(f"Failed to find: {to_search} in rrd info for metric {metric_id}")
+    logger.console(
+        f"Failed to find: {to_search} in rrd info for metric {metric_id}")
     return False
 
 
@@ -2755,7 +2758,7 @@ def ctn_get_broker_topology(port: int = 51001, timeout: int = TIMEOUT):
 
 
 def ctn_check_broker_topology(relay_poller_id, engine_poller_ids,
-                               port: int = 51001, timeout: int = TIMEOUT):
+                              port: int = 51001, timeout: int = TIMEOUT):
     """
     Verify the topology returned by GetTopology: a relay with the given
     poller_id must appear in direct_brokers, with engine_poller_ids as its
@@ -3421,6 +3424,7 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
         time.sleep(2)
     return False
 
+
 def ctn_wait_for_broker_to_be_ready(port: int = 51001, timeout=TIMEOUT):
     """
     Wait until the Broker gRPC server on the given port answers.
@@ -3500,7 +3504,8 @@ def ctn_get_service_ids(port: int, expected_count=None, timeout=TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
                 res = stub.GetServiceIds(empty_pb2.Empty())
-                retval = [(pair.host_id, pair.service_id) for pair in res.pairs]
+                retval = [(pair.host_id, pair.service_id)
+                          for pair in res.pairs]
                 if expected_count is None or len(retval) == expected_count:
                     return retval
             except Exception:
@@ -3558,6 +3563,7 @@ def ctn_get_host_poller_id(port: int, host_id: int, timeout=TIMEOUT):
             except Exception:
                 logger.console("gRPC server not ready")
         time.sleep(1)
+
 
 def ctn_get_host_name(port: int, host_id: int, timeout=TIMEOUT):
     """
@@ -3667,6 +3673,7 @@ def ctn_get_servicegroup(port: int, servicegroup_id: int, timeout=TIMEOUT):
         time.sleep(1)
     return None
 
+
 def ctn_get_hosts_by_tag(port: int, tag_name: str, tag_type: int,
                          timeout=TIMEOUT):
     """
@@ -3759,7 +3766,8 @@ def ctn_check_hosts_by_tag_count_with_timeout(
         if hosts is not None and len(hosts) == expected_count:
             return True
         time.sleep(1)
-    logger.console(f"Expected {expected_count} hosts with tag {tag_name} (type {tag_type}), but got {len(hosts) if hosts is not None else 'None'}")
+    logger.console(
+        f"Expected {expected_count} hosts with tag {tag_name} (type {tag_type}), but got {len(hosts) if hosts is not None else 'None'}")
     return False
 
 
@@ -4099,7 +4107,7 @@ def ctn_check_severities_empty_with_timeout(port: int, timeout=TIMEOUT):
 
 
 def ctn_check_severities_count_with_timeout(port: int, expected_count: int,
-                                             timeout=TIMEOUT):
+                                            timeout=TIMEOUT):
     """
     Poll the Broker cache until exactly expected_count severity entries are
     present, or timeout.

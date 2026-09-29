@@ -149,28 +149,12 @@ START_STOP_CBD
 *** Keywords ***
 Ctn Start Stop Service
     [Arguments]    ${interval}
-    Ctn Broker Config Flush
-    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
-    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
+    Ctn Start Broker
     Sleep    ${interval}
-    Send Signal To Process    SIGTERM    b1
-    ${result}    Wait For Process    b1    timeout=60s    on_timeout=kill
-    Should Be True
-    ...    ${result.rc} == -15 or ${result.rc} == 0
-    ...    Broker service badly stopped with code ${result.rc}
-    Send Signal To Process    SIGTERM    b2
-    ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
-    Should Be True
-    ...    ${result.rc} == -15 or ${result.rc} == 0
-    ...    Broker service badly stopped with code ${result.rc}
+    Ctn Kindly Stop Broker
 
 Ctn Start Stop Instance
     [Arguments]    ${interval}
-    Ctn Broker Config Flush
-    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
+    Ctn Start Broker    only_central=True
     Sleep    ${interval}
-    Send Signal To Process    SIGTERM    b1
-    ${result}    Wait For Process    b1    timeout=60s    on_timeout=kill
-    Should Be True
-    ...    ${result.rc} == -15 or ${result.rc} == 0
-    ...    Broker instance badly stopped with code ${result.rc}
+    Ctn Kindly Stop Broker    only_central=True

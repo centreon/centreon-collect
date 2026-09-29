@@ -74,12 +74,12 @@ class filter {
       _files_metadata;
 
   std::shared_ptr<filters::filter_combinator> _file_filter;
-  std::shared_ptr<spdlog::logger> _logger;
+  const std::shared_ptr<spdlog::logger> _logger;
 
-  std::string _root_path;
-  std::string _pattern;
-  int _max_depth;
-  bool _line_count_needed;
+  const std::string _root_path;
+  const std::string _pattern;
+  const int _max_depth;
+  const bool _line_count_needed;
 
   filter(const filter&) = delete;
   // Delete copy assignment operator
@@ -92,12 +92,12 @@ class filter {
          bool line_count_needed,
          std::shared_ptr<filters::filter_combinator> file_filter,
          std::shared_ptr<spdlog::logger> logger)
-      : _root_path(root_path),
+      : _file_filter(file_filter),
+        _logger(logger),
+        _root_path(root_path),
         _pattern(pattern),
         _max_depth(max_depth),
-        _line_count_needed(line_count_needed),
-        _file_filter(file_filter),
-        _logger(logger) {}
+        _line_count_needed(line_count_needed) {}
 
   void find_files();
   const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
