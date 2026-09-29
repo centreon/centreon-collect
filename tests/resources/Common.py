@@ -1705,8 +1705,7 @@ def ctn_delete_service_downtime(hst: str, svc: str):
 
     if did != 0:
         logger.console(f"delete downtime internal_id={did}")
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(f"[{now}] DEL_SVC_DOWNTIME;{did}\n")
+        Engine.ctn_send_external_command(f"DEL_SVC_DOWNTIME;{did}")
 
 
 def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):

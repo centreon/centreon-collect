@@ -1,5 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
+...                 The BBDO3 tests send their legacy external commands through Broker
+...                 (Ctn Set External Command Mode broker), the BBDO2 ones through the command pipe.
 
 Resource    ../resources/import.resource
 
@@ -18,6 +20,7 @@ BEEXTCMD1
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -96,6 +99,7 @@ BEEXTCMD3
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -168,6 +172,7 @@ BEEXTCMD5
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -246,6 +251,7 @@ BEEXTCMD7
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -323,6 +329,7 @@ BEEXTCMD9
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0 use_grpc=${use_grpc}
@@ -406,6 +413,7 @@ BEEXTCMD11
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -493,6 +501,7 @@ BEEXTCMD13
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -572,6 +581,7 @@ BEEXTCMD15
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -651,6 +661,7 @@ BEEXTCMD17
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -734,6 +745,7 @@ BEEXTCMD19
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -817,6 +829,7 @@ BEEXTCMD21
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -942,6 +955,7 @@ BEEXTCMD23
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -1074,6 +1088,7 @@ BEEXTCMD25
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -1173,6 +1188,7 @@ BEEXTCMD27
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
@@ -1272,6 +1288,7 @@ BEEXTCMD29
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace

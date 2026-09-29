@@ -1,5 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
+...                 The BBDO3 tests send their legacy external commands through Broker
+...                 (Ctn Set External Command Mode broker), the BBDO2 ones through the command pipe.
 
 Resource    ../resources/import.resource
 
@@ -21,6 +23,7 @@ BEACK2
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
@@ -73,6 +76,7 @@ BEACK4
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
@@ -121,6 +125,7 @@ BEACK6
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
 
@@ -174,6 +179,7 @@ BEACK8
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    sql    debug
@@ -235,6 +241,7 @@ BEACK9
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Broker Cache
 
@@ -283,6 +290,7 @@ BEACK10
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Broker Cache
 
