@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/cache/protobuf.hh"
 
+#include <absl/strings/match.h>
 #include <boost/thread/lock_types.hpp>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
@@ -70,6 +71,20 @@
 using namespace com::centreon::broker::cache;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
+
+/* Field of the OTel service identity a custom variable sets, if any. */
+enum class otel_service_field { none, name, name_space };
+
+static otel_service_field otel_service_field_of(uint64_t service_id,
+                                                std::string_view var_name) {
+  if (service_id)
+    return otel_service_field::none;
+  if (absl::EqualsIgnoreCase(var_name, "OTEL_SERVICE_NAME"))
+    return otel_service_field::name;
+  if (absl::EqualsIgnoreCase(var_name, "OTEL_SERVICE_NAMESPACE"))
+    return otel_service_field::name_space;
+  return otel_service_field::none;
+}
 
 global_cache_data::global_cache_data(
     const std::shared_ptr<asio::io_context> io_context,
@@ -142,6 +157,8 @@ void global_cache_data::managed_map(bool create) {
             "id_to_dimension_ba_bv_relation")(_file->get_segment_manager());
     _id_to_tag = _file->find_or_construct<id_to_tag>("id_to_tag")(
         _file->get_segment_manager());
+    _id_to_otel_service = _file->find_or_construct<id_to_otel_service>(
+        "id_to_otel_service")(_file->get_segment_manager());
   } else {
     _index_id_mapping = _file->find<index_id_mapping>("index_id_mapping").first;
     if (!_index_id_mapping) {
@@ -203,6 +220,11 @@ void global_cache_data::managed_map(bool create) {
     _id_to_tag = _file->find<id_to_tag>("id_to_tag").first;
     if (!_id_to_tag) {
       throw std::invalid_argument("id_to_tag not found");
+    }
+    _id_to_otel_service =
+        _file->find<id_to_otel_service>("id_to_otel_service").first;
+    if (!_id_to_otel_service) {
+      throw std::invalid_argument("id_to_otel_service not found");
     }
   }
 }
@@ -361,6 +383,12 @@ void global_cache_data::_write_conf(const std::shared_ptr<io::data>& data) {
     case neb::pb_custom_variable::static_type():
       _process_pb_custom_variable(data);
       break;
+    case neb::custom_variable_status::static_type():
+      _process_pb_custom_variable_status(bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_custom_variable_status::static_type():
+      _process_pb_custom_variable_status(data);
+      break;
     case storage::pb_index_mapping::static_type():
       _process_index_mapping(data);
       break;
@@ -433,6 +461,22 @@ void global_cache_data::_process_pb_instance(
       _set_dirty_and_increment_modif();
     }
   }
+
+  /* A starting engine dumps its custom variables again but sends no deletion
+   * for the ones removed while it was stopped, so its hosts start blank. */
+  if (in->obj().running()) {
+    for (auto it = _id_to_otel_service->begin();
+         it != _id_to_otel_service->end();) {
+      auto h = _id_to_host->find(it->first);
+      if (h != _id_to_host->end() && h->second.first &&
+          h->second.first->instance_id() == in->obj().instance_id()) {
+        it = _id_to_otel_service->erase(it);
+        _set_dirty_and_increment_modif();
+      } else {
+        ++it;
+      }
+    }
+  }
 }
 
 /**
@@ -456,6 +500,19 @@ void global_cache_data::_process_pb_host(
   } else {
     if (in.enabled()) {
       if (exist->second.first) {
+        /* Host moved to another poller: its OTel identity is now given only
+         * by the custom variables this poller sends after the host. */
+        const uint64_t previous_instance = exist->second.first->instance_id();
+        if (in.instance_id() && previous_instance &&
+            in.instance_id() != previous_instance &&
+            _id_to_otel_service->erase(in.host_id())) {
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "cache: host {} moved from poller {} to {}, "
+                              "OTel service identity reset",
+                              in.host_id(), previous_instance,
+                              in.instance_id());
+          _set_dirty_and_increment_modif();
+        }
         if (exist->second.first->update(in, *_allocators)) {
           _set_dirty_and_increment_modif();
         }
@@ -479,6 +536,8 @@ void global_cache_data::_process_pb_host(
         _file->get_segment_manager()->destroy_ptr(exist->second.first.get());
       }
       _id_to_host->erase(exist);
+      /* engine sends no custom variable deletion for a removed host */
+      _id_to_otel_service->erase(in.host_id());
       _set_dirty_and_increment_modif();
     }
   }
@@ -725,7 +784,7 @@ void global_cache_data::_process_pb_host_group_member(
 /**
  *  Process a custom variable event.
  *  The goal is to keep in cache only custom variables concerning severity on
- *  hosts and services.
+ *  hosts and services, and the OTel service identity of hosts.
  *
  *  @param data  The event.
  */
@@ -733,7 +792,13 @@ void global_cache_data::_process_pb_custom_variable(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_custom_variable>(data)->obj();
-  if (in.name() == "CRITICALITY_LEVEL") {
+  const otel_service_field otel_field =
+      otel_service_field_of(in.service_id(), in.name());
+  if (otel_field != otel_service_field::none) {
+    /* a deletion has enabled=false and no value */
+    _set_host_otel_service(in.host_id(), otel_field == otel_service_field::name,
+                           in.enabled() ? in.value() : std::string_view());
+  } else if (in.name() == "CRITICALITY_LEVEL") {
     int32_t value;
     if (absl::SimpleAtoi(in.value(), &value)) {
       SPDLOG_LOGGER_TRACE(_logger,
@@ -777,6 +842,61 @@ void global_cache_data::_process_pb_custom_variable(
                           "criticality level for "
                           "host_id {} and service_id {} incorrect value {}",
                           in.host_id(), in.service_id(), in.value());
+    }
+  }
+}
+
+/**
+ *  Process a custom variable status event, sent on CHANGE_CUSTOM_HOST_VAR and
+ *  CHANGE_CUSTOM_SVC_VAR. Only the OTel service identity of hosts is kept.
+ *
+ *  @param data  The event.
+ */
+void global_cache_data::_process_pb_custom_variable_status(
+    const std::shared_ptr<io::data>& data) {
+  const auto& in =
+      std::static_pointer_cast<neb::pb_custom_variable_status>(data)->obj();
+  const otel_service_field otel_field =
+      otel_service_field_of(in.service_id(), in.name());
+  if (otel_field != otel_service_field::none)
+    _set_host_otel_service(in.host_id(), otel_field == otel_service_field::name,
+                           in.value());
+}
+
+/**
+ * @brief Store the OTEL_SERVICE_NAME (is_name) or OTEL_SERVICE_NAMESPACE
+ * custom variable of a host; an empty value clears it. An entry is erased once
+ * both are cleared.
+ *
+ * @param host_id
+ * @param is_name true for OTEL_SERVICE_NAME, false for OTEL_SERVICE_NAMESPACE.
+ * @param value
+ */
+void global_cache_data::_set_host_otel_service(uint64_t host_id,
+                                               bool is_name,
+                                               std::string_view value) {
+  SPDLOG_LOGGER_TRACE(_logger, "cache: OTel service {} of host {}: '{}'",
+                      is_name ? "name" : "namespace", host_id, value);
+  boost::unique_lock l(_protect);
+  auto exist = _id_to_otel_service->find(host_id);
+  if (!value.empty()) {
+    if (exist == _id_to_otel_service->end())
+      exist = _id_to_otel_service
+                  ->emplace(host_id, host_otel_service(_allocators->char_alloc))
+                  .first;
+    string& field = is_name ? exist->second.name : exist->second.name_space;
+    /* Not the string/string_view operator!=, which only compares a prefix. */
+    if (std::string_view(field.c_str(), field.length()) != value) {
+      field.assign(value.data(), value.length());
+      _set_dirty_and_increment_modif();
+    }
+  } else if (exist != _id_to_otel_service->end()) {
+    string& field = is_name ? exist->second.name : exist->second.name_space;
+    if (!field.empty()) {
+      field.clear();
+      if (exist->second.name.empty() && exist->second.name_space.empty())
+        _id_to_otel_service->erase(exist);
+      _set_dirty_and_increment_modif();
     }
   }
 }
@@ -1773,6 +1893,27 @@ std::optional<int32_t> global_cache_data::get_severity(
       return {};
     }
   }
+}
+
+/**
+ * @brief OTel service identity set by the OTEL_SERVICE_NAME and
+ * OTEL_SERVICE_NAMESPACE custom variables of a host.
+ *
+ * @param host_id
+ * @return otel_service with empty fields for the unset custom variables.
+ */
+otel_service global_cache_data::get_otel_service(uint64_t host_id) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // custom variables are only in conf cache
+    return _conf_cache->get_otel_service(host_id);
+  }
+  boost::shared_lock l(_protect);
+  auto search = _id_to_otel_service->find(host_id);
+  if (search == _id_to_otel_service->end())
+    return {};
+  const host_otel_service& found = search->second;
+  return {std::string(found.name.c_str(), found.name.length()),
+          std::string(found.name_space.c_str(), found.name_space.length())};
 }
 
 /**

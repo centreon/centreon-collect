@@ -20,6 +20,10 @@
 #include <gtest/gtest.h>
 
 #include "../../timeperiod/utils.hh"
+#include "cbmod_test.hh"
+#include "com/centreon/broker/neb/custom_variable.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
@@ -106,6 +110,49 @@ TEST_F(ApplierPbHost, ModifiedCustomVariableKeepsIsSent) {
   h1 = engine::host::hosts.begin()->second;
   ASSERT_EQ(h1->custom_variables["OTEL_SERVICE_NAME"].value(), "billing");
   ASSERT_TRUE(h1->custom_variables["OTEL_SERVICE_NAME"].is_sent());
+}
+
+// Given a host configuration with a custom variable
+// When the applier adds the host
+// Then broker receives the host before its custom variables, as in the
+// startup dump, so it can tell them from the ones of a previous poller.
+TEST_F(ApplierPbHost, AddedHostIsSentBeforeItsCustomVariables) {
+  auto* test_cbm =
+      static_cast<com::centreon::broker::neb::cbmod_test*>(cbm.get());
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_hlp.set_default_values();
+  configuration::CustomVariable* cv = hst.add_customvariables();
+  cv->set_name("OTEL_SERVICE_NAME");
+  cv->set_value("payment-api");
+  cv->set_is_sent(true);
+
+  test_cbm->written.clear();
+  test_cbm->record = true;
+  hst_aply.add_object(hst);
+  test_cbm->record = false;
+
+  namespace neb = com::centreon::broker::neb;
+  auto first_of = [&](std::initializer_list<uint32_t> types) {
+    for (size_t i = 0; i < test_cbm->written.size(); ++i)
+      for (uint32_t t : types)
+        if (test_cbm->written[i]->type() == t)
+          return i;
+    return test_cbm->written.size();
+  };
+  const size_t host_pos =
+      first_of({neb::pb_host::static_type(), neb::host::static_type()});
+  const size_t cv_pos = first_of({neb::pb_custom_variable::static_type(),
+                                  neb::custom_variable::static_type()});
+  const size_t nb_written = test_cbm->written.size();
+  test_cbm->written.clear();
+  ASSERT_LT(host_pos, nb_written);
+  ASSERT_LT(cv_pos, nb_written);
+  ASSERT_LT(host_pos, cv_pos);
 }
 
 TEST_F(ApplierPbHost, PbHostRemoved) {
