@@ -45,6 +45,10 @@ The collector records every datapoint in the Broker log directory as
 `otlp.jsonl`; on failure, `Ctn Save Logs If Failed` copies it with the process
 output, Broker/Engine logs and configurations to `failed/<test name>/`.
 
+Each test prints its steps on the console and in `log.html`, tagged `config`,
+`action`, `runtime`, `event` or `check`; a `check` line is printed once its
+assertions pass. `log.html` also holds every datapoint an assertion matched.
+
 The metadata tests inject `AgentHostInfo` at Broker's input; they do not run CMA
 or test OS discovery. The legacy test transports BBDO2-layout payloads in gRPC's
 raw buffer envelope to exercise Broker's binary decoder and conversion; it does
