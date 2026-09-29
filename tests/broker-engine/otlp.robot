@@ -121,6 +121,57 @@ OTLP_ENGINE_RESTART_REMOVAL
     Ctn Wait For Engine To Be Ready    ${start}    ${2}
     Ctn Check OTLP Identity    centreon-broker    centreon
 
+OTLP_POLLER_MIGRATION
+    [Documentation]    Scenario: Delayed updates from the old poller cannot overwrite a moved host identity
+    ...    Given host_1 is monitored by poller 0 with name and namespace "old"
+    ...    When host_1 moves to poller 1 with name and namespace "new" and poller 1 is reloaded
+    ...    Then exports through poller 1 carry new/new
+    ...    When poller 0, not reloaded yet, sends "stale" runtime updates for host_1
+    ...    Then exports through poller 0 still carry new/new
+    ...    When poller 0 is reloaded
+    ...    Then exports through poller 1 still carry new/new
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    old
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    old
+    Ctn Start OTLP Stack
+    Ctn Check OTLP Identity    old    old
+    Ctn Engine Config Move Host To Engine    0    1    host_1
+    Ctn Engine Config Move Services To Engine    0    1    host_1
+    Ctn Set OTLP Host Macro    1    host_1    OTEL_SERVICE_NAME    new
+    Ctn Set OTLP Host Macro    1    host_1    OTEL_SERVICE_NAMESPACE    new
+    Ctn Reload Engine And Wait    1
+    Ctn Check OTLP Identity    new    new    1
+    # When poller 0, which keeps host_1 in memory until its reload, sends stale updates
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    stale
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAMESPACE    stale
+    # Then a probe on the same old stream, queued after both updates, still sees new/new
+    Ctn Check OTLP Identity    new    new    0
+    Ctn Reload Engine And Wait    0
+    Ctn Check OTLP Identity    new    new    1
+
+OTLP_MIGRATION_WITHOUT_MACROS
+    [Documentation]    Scenario: Moving a host to a poller without macros clears its old identity
+    ...    Given host_1 is monitored by poller 0 with name and namespace "old"
+    ...    When host_1 moves to poller 1 without OTel macros and poller 1 is reloaded
+    ...    Then exports through poller 1 carry centreon-broker/centreon
+    ...    When poller 0, not reloaded yet, sends a "stale" runtime name for host_1
+    ...    Then exports through poller 0 still carry centreon-broker/centreon
+    ...    When poller 0 is reloaded
+    ...    Then exports through poller 1 still carry centreon-broker/centreon
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    old
+    Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    old
+    Ctn Start OTLP Stack
+    Ctn Check OTLP Identity    old    old
+    Ctn Engine Config Move Host To Engine    0    1    host_1
+    Ctn Engine Config Move Services To Engine    0    1    host_1
+    Ctn Engine Config Delete Value In Hosts    1    host_1    _OTEL_SERVICE_NAME${SPACE}
+    Ctn Engine Config Delete Value In Hosts    1    host_1    _OTEL_SERVICE_NAMESPACE${SPACE}
+    Ctn Reload Engine And Wait    1
+    Ctn Check OTLP Identity    centreon-broker    centreon    1
+    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    stale
+    Ctn Check OTLP Identity    centreon-broker    centreon    0
+    Ctn Reload Engine And Wait    0
+    Ctn Check OTLP Identity    centreon-broker    centreon    1
+
 
 *** Keywords ***
 Ctn Config OTLP Stack
