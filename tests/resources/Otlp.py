@@ -12,19 +12,41 @@ satisfy a later assertion. The JSONL capture is kept for failure diagnosis.
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 import json
+import os
 from pathlib import Path
 import queue
 import struct
+import sys
 import threading
 import time
+
+# Robot's Process library forks to start cbd and centengine while the gRPC
+# threads of this collector run, and gRPC then logs "Other threads are
+# currently calling into gRPC, skipping fork() handlers" at each fork. These
+# handlers only matter to a child that keeps using gRPC; ours exec at once.
+# Read when the process creates its first gRPC channel or server.
+os.environ.setdefault("GRPC_ENABLE_FORK_SUPPORT", "false")
 
 import grpc
 from google.protobuf.json_format import Parse
 import grpc_stream_pb2
 import grpc_stream_pb2_grpc
+from robot.api import logger
 from robot.api.deco import keyword, library
 from opentelemetry.proto.collector.metrics.v1 import metrics_service_pb2
 from opentelemetry.proto.collector.metrics.v1 import metrics_service_pb2_grpc
+
+
+def _step(kind, message):
+    """Show a test step in log.html and, aligned, on the console.
+
+    On a terminal, Robot writes a marker after each keyword on the current
+    console line, and writes the test name again after a few markers, so the
+    step starts by clearing that line.
+    """
+    logger.info(f"{kind}: {message}")
+    clear = "\r\x1b[2K" if sys.__stdout__.isatty() else ""
+    logger.console(f"{clear}    {kind:<7} {message}")
 
 
 def _value(value):
@@ -119,10 +141,17 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
         self._peer = None
 
     @keyword
+    def ctn_log_otlp_step(self, kind: str, message: str):
+        """Show what a test does (kind: config, action, runtime, event or
+        check) in log.html and on the console."""
+        _step(kind, message)
+
+    @keyword
     def ctn_connect_otlp_bbdo_peer(self, endpoint: str, poller_id: int = 10):
         """Inject BBDO events for delayed/deleted hosts and pre-upgrade senders."""
         self.ctn_disconnect_otlp_bbdo_peer()
         self._peer = _BbdoPeer(endpoint, poller_id)
+        _step("action", f"BBDO test peer connected to {endpoint}")
 
     @keyword
     def ctn_disconnect_otlp_bbdo_peer(self):
@@ -133,6 +162,10 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
     @keyword
     def ctn_send_otlp_bbdo_event(self, event_name: str, content: str):
         """Queue a protobuf event; content uses the protobuf JSON field names."""
+        self._send_bbdo_event(event_name, content)
+        _step("event", f"{event_name} {content}")
+
+    def _send_bbdo_event(self, event_name, content):
         if self._peer is None or self._peer.error:
             raise AssertionError("BBDO test peer is not connected")
         event = grpc_stream_pb2.CentreonEvent(source_id=999)
@@ -163,6 +196,9 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
         header = struct.pack("!HIII", len(payload), event_type, 999, 0)
         packet = struct.pack("!H", _bbdo_crc(header)) + header + payload
         self._peer.queue.put(grpc_stream_pb2.CentreonEvent(buffer=packet))
+        kind = "custom_variable_status" if status else "custom_variable"
+        state = "" if status else f" enabled={enabled}"
+        _step("event", f"BBDO2 {kind} {name}='{value}'{state}")
 
     @keyword
     def ctn_otlp_next_probe(self):
@@ -173,7 +209,7 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
     @keyword
     def ctn_otlp_bbdo_probe(self, host_id: int = 101, host: str = "robot-host"):
         probe = self.ctn_otlp_next_probe()
-        self.ctn_send_otlp_bbdo_event("ServiceStatus", json.dumps({
+        self._send_bbdo_event("ServiceStatus", json.dumps({
             "host_id": host_id, "service_id": 1,
             "last_check": int(time.time()),
             "perfdata": f"robot_probe={probe}",
@@ -253,6 +289,7 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
                     if (point["resource"].get("host.name") == host
                             and point["metric"] == metric
                             and point["value"] == value):
+                        logger.info(f"OTLP point received: {point}")
                         return point
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:

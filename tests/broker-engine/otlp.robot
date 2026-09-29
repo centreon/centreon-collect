@@ -38,10 +38,12 @@ OTLP_HOST_MACROS
     Ctn Set OTLP Host Macro    0    host_1    SECRET    do-not-export
     Ctn Set OTLP Host Macro    1    host_2    OTEL_SERVICE_NAMESPACE    production
     Ctn Engine Config Set Value In Services    0    service_1    _OTEL_SERVICE_NAME    wrong-service
+    Ctn Log OTLP Step    config    poller 0: service_1 _OTEL_SERVICE_NAME=wrong-service (service macro)
     Ctn Start OTLP Stack
     Ctn Check OTLP Identity    payments    shop
     Ctn Check OTLP Identity    centreon-broker    production    1    host_2    service_2
     Ctn Change Custom Svc Var Command    host_1    service_1    OTEL_SERVICE_NAME    still-wrong
+    Ctn Log OTLP Step    runtime    Engine 0: CHANGE_CUSTOM_SVC_VAR host_1 service_1 OTEL_SERVICE_NAME='still-wrong'
     Ctn Check OTLP Identity    payments    shop
 
 OTLP_RUNTIME_MACROS
@@ -57,12 +59,12 @@ OTLP_RUNTIME_MACROS
     Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    initial
     Ctn Start OTLP Stack
     Ctn Check OTLP Identity    initial    initial
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    ${SPACE}${SPACE}payments${SPACE}${SPACE}
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAMESPACE    ${SPACE}shop${SPACE}
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAME    ${SPACE}${SPACE}payments${SPACE}${SPACE}
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAMESPACE    ${SPACE}shop${SPACE}
     Ctn Check OTLP Identity    payments    shop
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    ${SPACE}${SPACE}
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAME    ${SPACE}${SPACE}
     Ctn Check OTLP Identity    centreon-broker    shop
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAMESPACE    ${EMPTY}
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAMESPACE    ${EMPTY}
     Ctn Check OTLP Identity    centreon-broker    centreon
 
 OTLP_RELOAD_AND_REMOVAL
@@ -82,10 +84,10 @@ OTLP_RELOAD_AND_REMOVAL
     Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    changed
     Ctn Reload Engine And Wait    0
     Ctn Check OTLP Identity    changed    shop
-    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAME${SPACE}
+    Ctn Delete OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME
     Ctn Reload Engine And Wait    0
     Ctn Check OTLP Identity    centreon-broker    shop
-    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAMESPACE${SPACE}
+    Ctn Delete OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE
     Ctn Reload Engine And Wait    0
     Ctn Check OTLP Identity    centreon-broker    centreon
 
@@ -98,9 +100,9 @@ OTLP_BROKER_RESTART
     ...    Then exports still carry runtime/centreon
     Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME    configured
     Ctn Start OTLP Stack
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    runtime
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAME    runtime
     Ctn Check OTLP Identity    runtime    centreon
-    Ctn Restart Broker    only_central=${True}
+    Ctn Restart OTLP Broker
     Ctn Check OTLP Identity    runtime    centreon
 
 OTLP_ENGINE_RESTART_REMOVAL
@@ -114,11 +116,13 @@ OTLP_ENGINE_RESTART_REMOVAL
     Ctn Start OTLP Stack
     Ctn Check OTLP Identity    removed    removed
     Ctn Stop Engine
-    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAME${SPACE}
-    Ctn Engine Config Delete Value In Hosts    0    host_1    _OTEL_SERVICE_NAMESPACE${SPACE}
+    Ctn Log OTLP Step    action    Engines stopped
+    Ctn Delete OTLP Host Macro    0    host_1    OTEL_SERVICE_NAME
+    Ctn Delete OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${2}
+    Ctn Log OTLP Step    action    Engines started
     Ctn Check OTLP Identity    centreon-broker    centreon
 
 OTLP_POLLER_MIGRATION
@@ -134,15 +138,14 @@ OTLP_POLLER_MIGRATION
     Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    old
     Ctn Start OTLP Stack
     Ctn Check OTLP Identity    old    old
-    Ctn Engine Config Move Host To Engine    0    1    host_1
-    Ctn Engine Config Move Services To Engine    0    1    host_1
+    Ctn Move OTLP Host    0    1    host_1
     Ctn Set OTLP Host Macro    1    host_1    OTEL_SERVICE_NAME    new
     Ctn Set OTLP Host Macro    1    host_1    OTEL_SERVICE_NAMESPACE    new
     Ctn Reload Engine And Wait    1
     Ctn Check OTLP Identity    new    new    1
     # When poller 0, which keeps host_1 in memory until its reload, sends stale updates
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    stale
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAMESPACE    stale
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAME    stale
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAMESPACE    stale
     # Then a probe on the same old stream, queued after both updates, still sees new/new
     Ctn Check OTLP Identity    new    new    0
     Ctn Reload Engine And Wait    0
@@ -161,13 +164,12 @@ OTLP_MIGRATION_WITHOUT_MACROS
     Ctn Set OTLP Host Macro    0    host_1    OTEL_SERVICE_NAMESPACE    old
     Ctn Start OTLP Stack
     Ctn Check OTLP Identity    old    old
-    Ctn Engine Config Move Host To Engine    0    1    host_1
-    Ctn Engine Config Move Services To Engine    0    1    host_1
-    Ctn Engine Config Delete Value In Hosts    1    host_1    _OTEL_SERVICE_NAME${SPACE}
-    Ctn Engine Config Delete Value In Hosts    1    host_1    _OTEL_SERVICE_NAMESPACE${SPACE}
+    Ctn Move OTLP Host    0    1    host_1
+    Ctn Delete OTLP Host Macro    1    host_1    OTEL_SERVICE_NAME
+    Ctn Delete OTLP Host Macro    1    host_1    OTEL_SERVICE_NAMESPACE
     Ctn Reload Engine And Wait    1
     Ctn Check OTLP Identity    centreon-broker    centreon    1
-    Ctn Change Custom Host Var Command    host_1    OTEL_SERVICE_NAME    stale
+    Ctn Change OTLP Host Macro    host_1    OTEL_SERVICE_NAME    stale
     Ctn Check OTLP Identity    centreon-broker    centreon    0
     Ctn Reload Engine And Wait    0
     Ctn Check OTLP Identity    centreon-broker    centreon    1
@@ -241,7 +243,7 @@ OTLP_CACHE_PERSISTENCE
     Ctn Send OTLP Macro    CustomVariableStatus    OTEL_SERVICE_NAMESPACE    runtime    10
     Ctn Check BBDO OTLP Identity    persisted    runtime
     Ctn Disconnect Otlp Bbdo Peer
-    Ctn Restart Broker    only_central=${True}
+    Ctn Restart OTLP Broker
     Ctn Connect Otlp Bbdo Peer    127.0.0.1:5669
     Ctn Check BBDO OTLP Identity    persisted    runtime
 
@@ -321,6 +323,7 @@ OTLP_MAPPING_RELOAD
     Create File    ${mapping}
     ...    {"metrics":{"robot_cpu":{"name":"system.cpu.utilization","unit":"1","scale":0.01,"attributes":{"cpu.mode":"user"}}}}
     Ctn Broker Config Output Set    central    robot-otlp    mapping_file    ${mapping}
+    Ctn Log OTLP Step    config    mapping_file: robot_cpu -> system.cpu.utilization, unit 1, scale 0.01, cpu.mode=user
     Ctn Start OTLP Event Stream
     Ctn Send OTLP Host    10
     Ctn Send Otlp Bbdo Event    ServiceStatus
@@ -328,33 +331,42 @@ OTLP_MAPPING_RELOAD
     ${point}    Ctn Wait For Otlp Point    robot-host    system.cpu.utilization    0.25
     Dictionary Should Contain Item    ${point}    unit    1
     Dictionary Should Contain Item    ${point}[attributes]    cpu.mode    user
+    Ctn Log OTLP Step    check    robot_cpu=25% exported as system.cpu.utilization=0.25, unit 1, cpu.mode=user
 
     ${start}    Get Current Date
     Create File    ${mapping}
     ...    {"metrics":{"robot_cpu":{"name":"robot.cpu.percent","unit":"%"}}}
+    Ctn Log OTLP Step    config    mapping_file rewritten: robot_cpu -> robot.cpu.percent, unit %
     ${content}    Create List    metric mappings reloaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should reload the valid metric mapping.
+    Ctn Log OTLP Step    check    Broker logged "metric mappings reloaded"
     Ctn Send Otlp Bbdo Event    ServiceStatus
     ...    {"host_id":101,"service_id":1,"last_check":101,"perfdata":"robot_cpu=26%"}
     ${point}    Ctn Wait For Otlp Point    robot-host    robot.cpu.percent    26
     Dictionary Should Contain Item    ${point}    unit    %
     Dictionary Should Not Contain Key    ${point}[attributes]    cpu.mode
+    Ctn Log OTLP Step    check    robot_cpu=26% exported as robot.cpu.percent=26, unit %, without cpu.mode
 
     ${start}    Get Current Date
     Create File    ${mapping}    invalid-json
+    Ctn Log OTLP Step    config    mapping_file replaced by invalid JSON
     ${content}    Create List    keeping the previous mapping
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should keep the previous mapping on an invalid file.
+    Ctn Log OTLP Step    check    Broker logged "keeping the previous mapping"
     Ctn Send Otlp Bbdo Event    ServiceStatus
     ...    {"host_id":101,"service_id":1,"last_check":102,"perfdata":"robot_cpu=27%"}
     Ctn Wait For Otlp Point    robot-host    robot.cpu.percent    27
+    Ctn Log OTLP Step    check    robot_cpu=27% still exported as robot.cpu.percent=27
 
 
 *** Keywords ***
 Ctn Config OTLP Stack
     [Documentation]    Given two passive pollers, host_1 on poller 0 and host_2 on poller 1
     ...    And a central Broker whose only output is the local OTLP collector, so neither SQL nor RRD is needed
+    # Ends the test name line, so that the test steps are printed below it
+    Log To Console    ${EMPTY}
     Ctn Stop Processes
     Ctn Clear Retention
     Ctn Clear Engine Logs
@@ -390,7 +402,15 @@ Ctn Config OTLP Stack
 Ctn Stop OTLP Stack
     TRY
         Ctn Disconnect Otlp Bbdo Peer
-        Ctn Stop Engine Broker And Save Logs    only_central=${True}
+        # Ctn Stop Engine stops every configured Engine. The event stream scenarios
+        # start none, so it would print "Failed to stop centengine" for each.
+        ${engine_started}    Run Keyword And Return Status    Get Process Object    e0
+        IF    ${engine_started}
+            Ctn Stop Engine Broker And Save Logs    only_central=${True}
+        ELSE
+            Ctn Kindly Stop Broker    only_central=${True}
+            Ctn Save Logs If Failed
+        END
     FINALLY
         Ctn Stop Otlp Collector
     END
@@ -400,6 +420,7 @@ Ctn Start OTLP Stack
     Ctn Start Broker    only_central=${True}
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${2}
+    Ctn Log OTLP Step    action    Broker and Engines started
 
 Ctn Reload Engine And Wait
     [Documentation]    When Engine is reloaded
@@ -411,6 +432,7 @@ Ctn Reload Engine And Wait
     ${content}    Create List    Reload configuration finished
     ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config${poller}/centengine.log    ${start}    ${content}    60
     Should Be True    ${result}    Engine ${poller} should finish its reload.
+    Ctn Log OTLP Step    action    Engine ${poller} reloaded
 
 Ctn Set OTLP Host Macro
     [Arguments]    ${poller}    ${host}    ${name}    ${value}
@@ -418,6 +440,29 @@ Ctn Set OTLP Host Macro
     # OTEL_SERVICE_NAME cannot match OTEL_SERVICE_NAMESPACE.
     Ctn Engine Config Delete Value In Hosts    ${poller}    ${host}    _${name}${SPACE}
     Ctn Engine Config Set Value In Hosts    ${poller}    ${host}    _${name}    ${value}
+    Ctn Log OTLP Step    config    poller ${poller}: ${host} _${name}=${value}
+
+Ctn Delete OTLP Host Macro
+    [Arguments]    ${poller}    ${host}    ${name}
+    # Same separator as in Ctn Set OTLP Host Macro.
+    Ctn Engine Config Delete Value In Hosts    ${poller}    ${host}    _${name}${SPACE}
+    Ctn Log OTLP Step    config    poller ${poller}: ${host} _${name} removed
+
+Ctn Change OTLP Host Macro
+    [Documentation]    When Engine 0 receives CHANGE_CUSTOM_HOST_VAR for a host macro
+    [Arguments]    ${host}    ${name}    ${value}
+    Ctn Change Custom Host Var Command    ${host}    ${name}    ${value}
+    Ctn Log OTLP Step    runtime    Engine 0: CHANGE_CUSTOM_HOST_VAR ${host} ${name}='${value}'
+
+Ctn Move OTLP Host
+    [Arguments]    ${from}    ${to}    ${host}
+    Ctn Engine Config Move Host To Engine    ${from}    ${to}    ${host}
+    Ctn Engine Config Move Services To Engine    ${from}    ${to}    ${host}
+    Ctn Log OTLP Step    config    ${host} and its services moved from poller ${from} to poller ${to}
+
+Ctn Restart OTLP Broker
+    Ctn Restart Broker    only_central=${True}
+    Ctn Log OTLP Step    action    Broker restarted
 
 Ctn Check OTLP Identity
     [Documentation]    When a passive result with a new probe value is sent through the poller
@@ -431,6 +476,8 @@ Ctn Check OTLP Identity
     Dictionary Should Contain Item    ${point}[resource]    host.name    ${host}
     Dictionary Should Contain Item    ${point}[attributes]    centreon.service.description    ${service}
     Dictionary Should Not Contain Key    ${point}[resource]    centreon.service.description
+    Ctn Log OTLP Step    check
+    ...    ${host} via poller ${poller}: service.name=${name}, service.namespace=${namespace} (probe ${probe})
     RETURN    ${point}
 
 Ctn Assert OTLP Resource Identity
@@ -454,6 +501,7 @@ Ctn Start OTLP Event Stream
     Ctn Broker Config Add Item    central    bbdo_version    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Start Broker    only_central=${True}
+    Ctn Log OTLP Step    action    Broker started, without Engine
     Ctn Connect Otlp Bbdo Peer    127.0.0.1:5669
 
 Ctn Send OTLP Host
@@ -476,17 +524,21 @@ Ctn Check BBDO OTLP Identity
     ${point}    Ctn Otlp Bbdo Probe
     Ctn Assert OTLP Resource Identity    ${point}    ${name}    ${namespace}
     Dictionary Should Contain Item    ${point}[resource]    centreon.host.id    ${101}
+    ${probe}    Convert To Integer    ${point}[value]
+    Ctn Log OTLP Step    check    robot-host: service.name=${name}, service.namespace=${namespace} (probe ${probe})
     RETURN    ${point}
 
 Ctn Check Agent Host Metadata
     [Arguments]    ${exclude_link_local}
     IF    ${exclude_link_local}
         Ctn Broker Config Output Set    central    robot-otlp    host_ip_exclude_link_local    true
+        Ctn Log OTLP Step    config    OTLP output host_ip_exclude_link_local=true
     END
     Ctn Start OTLP Event Stream
     Ctn Send OTLP Host    10
     ${before}    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
     Dictionary Should Not Contain Key    ${before}[resource]    host.id
+    Ctn Log OTLP Step    check    no host.id before any AgentHostInfo
     Ctn Send Otlp Bbdo Event    AgentHostInfo
     ...    {"host_id":101,"poller_id":10,"host_name":"robot-host","observed_at":100,"machine_id":"robot-machine","arch":"amd64","os_type":"linux","os_name":"Robot Linux","os_version":"1.0","ips":["192.0.2.10","169.254.1.2","fe80::1","2001:db8::1"]}
     ${point}    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
@@ -501,6 +553,8 @@ Ctn Check Agent Host Metadata
         ${ips}    Create List    192.0.2.10    169.254.1.2    fe80::1    2001:db8::1
     END
     Lists Should Be Equal    ${point}[resource][host.ip]    ${ips}    ignore_order=${True}
+    Ctn Log OTLP Step    check
+    ...    host.id=robot-machine, host.arch=amd64, os.type=linux, os.name=Robot Linux, os.version=1.0, host.ip=${ips}
     # When a later observation is empty, then no field of the previous one is kept
     Ctn Send Otlp Bbdo Event    AgentHostInfo
     ...    {"host_id":101,"poller_id":10,"host_name":"robot-host","observed_at":101}
@@ -508,3 +562,4 @@ Ctn Check Agent Host Metadata
     FOR    ${key}    IN    host.id    host.arch    host.ip    os.type    os.name    os.version
         Dictionary Should Not Contain Key    ${empty}[resource]    ${key}
     END
+    Ctn Log OTLP Step    check    the empty AgentHostInfo removed host.id, host.arch, host.ip and os.*
