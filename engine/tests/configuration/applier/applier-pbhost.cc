@@ -81,6 +81,33 @@ TEST_F(ApplierPbHost, HostRenamed) {
   ASSERT_EQ(get_host_id(h1->name()), 12u);
 }
 
+// Given a host with a custom variable sent to broker
+// When its custom variables are modified
+// Then the variable is still sent, so a later removal reaches broker.
+TEST_F(ApplierPbHost, ModifiedCustomVariableKeepsIsSent) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_hlp.set_default_values();
+  configuration::CustomVariable* cv = hst.add_customvariables();
+  cv->set_name("OTEL_SERVICE_NAME");
+  cv->set_value("payment-api");
+  cv->set_is_sent(true);
+  hst_aply.add_object(hst);
+  std::shared_ptr<com::centreon::engine::host> h1(
+      engine::host::hosts.begin()->second);
+  ASSERT_TRUE(h1->custom_variables["OTEL_SERVICE_NAME"].is_sent());
+
+  hst.mutable_customvariables(0)->set_value("billing");
+  hst_aply.modify_object(&pb_config.mutable_hosts()->at(0), hst);
+  h1 = engine::host::hosts.begin()->second;
+  ASSERT_EQ(h1->custom_variables["OTEL_SERVICE_NAME"].value(), "billing");
+  ASSERT_TRUE(h1->custom_variables["OTEL_SERVICE_NAME"].is_sent());
+}
+
 TEST_F(ApplierPbHost, PbHostRemoved) {
   configuration::applier::host hst_aply;
   configuration::Host hst;
