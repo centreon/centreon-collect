@@ -88,7 +88,8 @@ ENV TYPE= \
     CENTRAL_HOST= \
     CENTRAL_PORT= \
     APP_SECRET= \
-    SALT=
+    SALT= \
+    GORGONE_LOG_LEVEL=info
 
 ARG VERSION
 ARG IS_CLOUD
@@ -282,4 +283,4 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
 
 ENTRYPOINT ["/usr/local/lib/centreon-gorgone/container.sh"]
 
-CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug", "--flushoutput"]
+CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--flushoutput"]
