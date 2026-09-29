@@ -290,6 +290,24 @@ OTLP_HOST_AND_INSTANCE_CLEANUP
     Ctn Send OTLP Host    10
     Ctn Check BBDO OTLP Identity    centreon-broker    centreon
 
+OTLP_AGENT_HOST_METADATA
+    [Documentation]    Scenario: CMA host information becomes host and os resource attributes
+    ...    Given poller 10 owns the host and link-local filtering is left disabled
+    ...    And exports carry no host.id
+    ...    When an AgentHostInfo event is received for the host
+    ...    Then exports carry typed host.* and os.* resource attributes
+    ...    And host.ip keeps the IPv4 and IPv6 link-local addresses
+    ...    When a later AgentHostInfo event is empty
+    ...    Then all these attributes are removed
+    Ctn Check Agent Host Metadata    ${False}
+
+OTLP_EXCLUDE_LINK_LOCAL
+    [Documentation]    Scenario: The opt-in filter removes link-local addresses from host.ip
+    ...    Given host_ip_exclude_link_local is enabled on the OTLP output
+    ...    When an AgentHostInfo event lists link-local and other IPv4 and IPv6 addresses
+    ...    Then host.ip only keeps 192.0.2.10 and 2001:db8::1
+    Ctn Check Agent Host Metadata    ${True}
+
 
 *** Keywords ***
 Ctn Config OTLP Stack
@@ -417,3 +435,34 @@ Ctn Check BBDO OTLP Identity
     Ctn Assert OTLP Resource Identity    ${point}    ${name}    ${namespace}
     Dictionary Should Contain Item    ${point}[resource]    centreon.host.id    ${101}
     RETURN    ${point}
+
+Ctn Check Agent Host Metadata
+    [Arguments]    ${exclude_link_local}
+    IF    ${exclude_link_local}
+        Ctn Broker Config Output Set    central    robot-otlp    host_ip_exclude_link_local    true
+    END
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    ${before}    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    Dictionary Should Not Contain Key    ${before}[resource]    host.id
+    Ctn Send Otlp Bbdo Event    AgentHostInfo
+    ...    {"host_id":101,"poller_id":10,"host_name":"robot-host","observed_at":100,"machine_id":"robot-machine","arch":"amd64","os_type":"linux","os_name":"Robot Linux","os_version":"1.0","ips":["192.0.2.10","169.254.1.2","fe80::1","2001:db8::1"]}
+    ${point}    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    Dictionary Should Contain Item    ${point}[resource]    host.id    robot-machine
+    Dictionary Should Contain Item    ${point}[resource]    host.arch    amd64
+    Dictionary Should Contain Item    ${point}[resource]    os.type    linux
+    Dictionary Should Contain Item    ${point}[resource]    os.name    Robot Linux
+    Dictionary Should Contain Item    ${point}[resource]    os.version    1.0
+    IF    ${exclude_link_local}
+        ${ips}    Create List    192.0.2.10    2001:db8::1
+    ELSE
+        ${ips}    Create List    192.0.2.10    169.254.1.2    fe80::1    2001:db8::1
+    END
+    Lists Should Be Equal    ${point}[resource][host.ip]    ${ips}    ignore_order=${True}
+    # When a later observation is empty, then no field of the previous one is kept
+    Ctn Send Otlp Bbdo Event    AgentHostInfo
+    ...    {"host_id":101,"poller_id":10,"host_name":"robot-host","observed_at":101}
+    ${empty}    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    FOR    ${key}    IN    host.id    host.arch    host.ip    os.type    os.name    os.version
+        Dictionary Should Not Contain Key    ${empty}[resource]    ${key}
+    END
