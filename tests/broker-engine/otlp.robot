@@ -308,6 +308,48 @@ OTLP_EXCLUDE_LINK_LOCAL
     ...    Then host.ip only keeps 192.0.2.10 and 2001:db8::1
     Ctn Check Agent Host Metadata    ${True}
 
+OTLP_MAPPING_RELOAD
+    [Documentation]    Scenario: The JSON metric mapping is applied and reloaded live
+    ...    Given a mapping file renames robot_cpu to system.cpu.utilization with a 0.01 scale
+    ...    When a check result with robot_cpu=25% is received
+    ...    Then the exported point is system.cpu.utilization=0.25 with unit 1 and cpu.mode user
+    ...    When the mapping file is rewritten to rename robot_cpu to robot.cpu.percent
+    ...    Then Broker reloads it and the next point is robot.cpu.percent=26 with unit %
+    ...    When the mapping file is replaced by invalid JSON
+    ...    Then Broker keeps the previous mapping and the next point is robot.cpu.percent=27
+    ${mapping}    Set Variable    ${EtcRoot}/centreon-broker/otlp-mapping.json
+    Create File    ${mapping}
+    ...    {"metrics":{"robot_cpu":{"name":"system.cpu.utilization","unit":"1","scale":0.01,"attributes":{"cpu.mode":"user"}}}}
+    Ctn Broker Config Output Set    central    robot-otlp    mapping_file    ${mapping}
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    Ctn Send Otlp Bbdo Event    ServiceStatus
+    ...    {"host_id":101,"service_id":1,"last_check":100,"perfdata":"robot_cpu=25%"}
+    ${point}    Ctn Wait For Otlp Point    robot-host    system.cpu.utilization    0.25
+    Dictionary Should Contain Item    ${point}    unit    1
+    Dictionary Should Contain Item    ${point}[attributes]    cpu.mode    user
+
+    ${start}    Get Current Date
+    Create File    ${mapping}
+    ...    {"metrics":{"robot_cpu":{"name":"robot.cpu.percent","unit":"%"}}}
+    ${content}    Create List    metric mappings reloaded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker should reload the valid metric mapping.
+    Ctn Send Otlp Bbdo Event    ServiceStatus
+    ...    {"host_id":101,"service_id":1,"last_check":101,"perfdata":"robot_cpu=26%"}
+    ${point}    Ctn Wait For Otlp Point    robot-host    robot.cpu.percent    26
+    Dictionary Should Contain Item    ${point}    unit    %
+    Dictionary Should Not Contain Key    ${point}[attributes]    cpu.mode
+
+    ${start}    Get Current Date
+    Create File    ${mapping}    invalid-json
+    ${content}    Create List    keeping the previous mapping
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker should keep the previous mapping on an invalid file.
+    Ctn Send Otlp Bbdo Event    ServiceStatus
+    ...    {"host_id":101,"service_id":1,"last_check":102,"perfdata":"robot_cpu=27%"}
+    Ctn Wait For Otlp Point    robot-host    robot.cpu.percent    27
+
 
 *** Keywords ***
 Ctn Config OTLP Stack
