@@ -5844,8 +5844,12 @@ process go to the poller named in the request (`PollerIdentifier`, mandatory: no
 implicit broadcast of a `RESTART_PROGRAM`). Groups are no longer emitted by PHP, and
 downtimes / comments designated by id stay `UNIMPLEMENTED`. In
 `notification_mode = broker`, the commands Broker owns (acknowledgements, downtimes,
-comments, notification switches) are refused `FAILED_PRECONDITION` with the name of
-the typed RPC to use: routed to the poller, they would be silently ignored by Broker.
+comments, notification switches) are **executed by Broker itself**: `legacy_commands`
+converts the positional arguments into the typed request and the existing RPC method is
+called as a plain method, no business logic duplicated
+(`broker_impl::_execute_native_command`). Routed to the poller, they would be silently
+ignored by Broker. Only downtime deletions by criteria, which have no typed RPC, stay
+`UNIMPLEMENTED`.
 
 > For the PHP side of moving external commands to gRPC and the Engine/Broker routing
 > rule based on `notification_mode`, see

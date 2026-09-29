@@ -316,8 +316,8 @@ synchronous:
 | `INVALID_ARGUMENT`    | unknown or empty command, malformed timestamp prefix, missing host, service or contact name, `poller` missing for a global or process command |
 | `NOT_FOUND`           | host, service or poller unknown to the Broker cache                                          |
 | `UNAVAILABLE`         | the target poller is not connected (no poller connected for a contact command)              |
-| `UNIMPLEMENTED`       | group command, or downtime / comment designated by id                                        |
-| `FAILED_PRECONDITION` | in `notification_mode = broker`, a command Broker owns: the message names the typed RPC to call (`AcknowledgeServiceProblem`, `ScheduleDowntime`, `SetHostNotifications`…) |
+| `UNIMPLEMENTED`       | group command; outside broker mode, downtime / comment designated by id; in broker mode, downtime deletion by criteria (`DEL_*_DOWNTIME_FULL`, `DEL_DOWNTIME_BY_*`) |
+| typed RPC error       | in `notification_mode = broker`, a command Broker owns (acknowledgement, downtime, comment, notification switch): Broker executes it itself through the equivalent typed RPC and returns its status; a missing or non-numeric argument gives `INVALID_ARGUMENT` naming the field |
 
 Routing by target:
 
@@ -326,6 +326,17 @@ Routing by target:
 | host, service            | the poller supervising the host                                    |
 | contact, contactgroup    | every connected poller (each has its copy of the contacts)         |
 | global, process          | the poller named in `poller`                                       |
+| native in `broker` mode  | Broker itself, through the typed RPC (`ACKNOWLEDGE_SVC_PROBLEM` → `AcknowledgeServiceProblem`, `SCHEDULE_HOST_DOWNTIME` → `ScheduleDowntime`, `DISABLE_HOST_NOTIFICATIONS` → `SetHostNotifications`…) |
+
+**PHP therefore no longer needs to know `notification_mode`** for external commands: the
+same legacy line is accepted in every mode, and Broker chooses between the poller and
+itself. The typed RPCs remain the structured API, the only one returning an id
+(`downtime_id`, comment `internal_id`). Two legacy commands stand for several typed
+calls and are fanned out by Broker: `SCHEDULE_HOST_SVC_DOWNTIME` (one downtime per
+service of the host) and `SCHEDULE_AND_PROPAGATE(_TRIGGERED)_HOST_DOWNTIME` (the host and
+its descendants, triggered by the top downtime in the `TRIGGERED` form).
+`ENABLE/DISABLE_HOST_SVC_NOTIFICATIONS` only touches the services, as on Engine, not the
+`HOST_AND_SERVICES` scope which includes the host.
 
 **Ids win over names.** Broker attaches to the line the `host_id` / `service_id` it
 resolved, and the poller rewrites the host name and service description from these
