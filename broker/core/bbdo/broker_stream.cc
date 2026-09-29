@@ -142,7 +142,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
                 }
               } catch (const std::exception& e) {
                 SPDLOG_LOGGER_ERROR(_logger,
-                                    "BBDO: can't load diff state file. {}",
+                                    "BBDO: can't load diff state file. {}: {}",
                                     poller_id_str, e.what());
               }
             } else {

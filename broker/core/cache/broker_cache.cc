@@ -2716,8 +2716,9 @@ void broker_cache::_load_cache() {
       return;
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot parse cache file '{}'",
-                        _cache_file.string());
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "broker_cache: cannot parse cache file '{}' : {}",
+                        _cache_file.string(), e.what());
     return;
   }
 

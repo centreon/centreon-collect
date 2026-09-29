@@ -18,8 +18,10 @@
 #ifndef CCCM_FILE_HH
 #define CCCM_FILE_HH
 #include <filesystem>
-#include "google/protobuf/message.h"
 
+namespace google::protobuf {
+class Message;
+}
 namespace com::centreon::common {
 std::string read_file_content(const std::filesystem::path& file_path);
 std::string hash_directory(const std::filesystem::path& dir_path,

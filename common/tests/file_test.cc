@@ -15,10 +15,10 @@
  * For more information : contact@centreon.com
  */
 
-#include <boost/interprocess/exceptions.hpp>
 #include <google/protobuf/struct.pb.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <gtest/gtest.h>
+#include <boost/interprocess/exceptions.hpp>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "file.hh"
@@ -239,8 +239,7 @@ TEST_F(TestProtoFile, load_empty_file) {
   ASSERT_NO_THROW(save_proto_to_disk(file_path, empty));
 
   google::protobuf::Struct loaded;
-  ASSERT_THROW(load_proto_from_disk(file_path, loaded),
-               boost::interprocess::interprocess_exception);
+  ASSERT_TRUE(load_proto_from_disk(file_path, loaded));
 }
 
 TEST_F(TestProtoFile, load_corrupted_file) {

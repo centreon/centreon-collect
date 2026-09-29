@@ -407,6 +407,10 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
         found->second.engine_conf.clear();
         have_to_send_all_conf = true;
       }
+    } else {
+      SPDLOG_LOGGER_INFO(_logger,
+                         "Unable to fill global cache: cannot open '{}'",
+                         prot_file.string());
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "Fail to load {} : {}", prot_file, e.what());
@@ -975,54 +979,59 @@ bool broker_state::_prepare_diff_for_poller(
   std::unique_ptr<engine::configuration::DiffState> diff_state =
       std::make_unique<engine::configuration::DiffState>();
   std::string new_version = state->config_version();
-  try {
-    auto previous_state = std::make_unique<engine::configuration::State>();
-    if (common::load_proto_from_disk(previous_prot_conf, *previous_state)) {
-      /* If the known configuration by Broker is the same as the one
-       * sent by the poller, we can compute the diff. */
-      if (previous_state->config_version() == peer.engine_conf) {
-        if (_logger->level() <= spdlog::level::trace) {
-          std::string debug;
-          auto dummy [[maybe_unused]] =
-              ::google::protobuf::json::MessageToJsonString(*previous_state,
-                                                            &debug);
-          SPDLOG_LOGGER_TRACE(_logger,
-                              "previous state for poller {} from file {}: {}",
-                              poller_id, previous_prot_conf, debug);
-        }
-        auto previous_indexed_state =
-            engine::configuration::indexed_state(std::move(previous_state));
+  bool previous_loaded = false;
+  auto previous_state = std::make_unique<engine::configuration::State>();
 
-        previous_indexed_state.diff_with_new_config(*state, _logger,
-                                                    diff_state.get());
-        if (_logger->level() <= spdlog::level::trace) {
-          std::string debug;
-          auto dummy [[maybe_unused]] =
-              ::google::protobuf::json::MessageToJsonString(*diff_state,
-                                                            &debug);
-          SPDLOG_LOGGER_TRACE(_logger, "diff for poller {}: {}", poller_id,
-                              debug);
-        }
-      } else {
-        /* Otherwise, we do as if there was no previous configuration,
-         * so the diff will be the whole new configuration. */
-        SPDLOG_LOGGER_WARN(
-            _logger,
-            "Poller '{}' with id {} has a new configuration available, but "
-            "the previous configuration is not the same as the one sent by "
-            "the poller (previous: '{}', new: '{}'). The diff will be the "
-            "whole new configuration.",
-            peer.poller_name, poller_id, peer.engine_conf,
-            state->config_version());
-        diff_state->set_allocated_state(state.release());
-      }
-    } else {
-      /* No previous configuration */
-      diff_state->set_allocated_state(state.release());
-    }
+  try {
+    previous_loaded =
+        common::load_proto_from_disk(previous_prot_conf, *previous_state);
   } catch (const std::exception& e) {
-    // fail to load previous config => no previous config => all conf in
-    // diff_state
+    SPDLOG_LOGGER_WARN(_logger, "Cannot load {} : {}", previous_prot_conf,
+                       e.what());
+  }
+
+  /* If the known configuration by Broker is the same as the one
+   * sent by the poller, we can compute the diff. */
+  if (previous_loaded && previous_state->config_version() == peer.engine_conf) {
+    if (_logger->level() <= spdlog::level::trace) {
+      std::string debug;
+      auto dummy [[maybe_unused]] =
+          ::google::protobuf::json::MessageToJsonString(*previous_state,
+                                                        &debug);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "previous state for poller {} from file {}: {}",
+                          poller_id, previous_prot_conf, debug);
+    }
+    auto previous_indexed_state =
+        engine::configuration::indexed_state(std::move(previous_state));
+
+    previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                diff_state.get());
+    if (_logger->level() <= spdlog::level::trace) {
+      std::string debug;
+      auto dummy [[maybe_unused]] =
+          ::google::protobuf::json::MessageToJsonString(*diff_state, &debug);
+      SPDLOG_LOGGER_TRACE(_logger, "diff for poller {}: {}", poller_id, debug);
+    }
+  } else {
+    if (previous_loaded) {
+      /* Otherwise, we do as if there was no previous configuration,
+       * so the diff will be the whole new configuration. */
+      SPDLOG_LOGGER_WARN(
+          _logger,
+          "Poller '{}' with id {} has a new configuration available, but "
+          "the previous configuration is not the same as the one sent by "
+          "the poller (previous: '{}', new: '{}'). The diff will be the "
+          "whole new configuration.",
+          peer.poller_name, poller_id, peer.engine_conf,
+          state->config_version());
+    } else {
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "No previous or corrupted configuration for poller {}, "
+          "sending the whole configuration",
+          poller_id);
+    }
     diff_state->set_allocated_state(state.release());
   }
 
@@ -1337,8 +1346,8 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       }
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(_logger,
-                          "Failed to parse {}.prot for relay poller {}",
-                          engine_id, engine_id);
+                          "Failed to parse {}.prot for relay poller {} : {}",
+                          engine_id, engine_id, e.what());
       return relay_config_response::unknown;
     }
   }

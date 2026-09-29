@@ -110,7 +110,7 @@ static void increase_fd_limit(uint32_t soft_fd_limit) {
 void applier::state::get_current_state(configuration::State& state) {
   if (!proto_conf.empty()) {
     try {
-      if (!common::load_proto_from_disk(proto_conf.c_str(), state)) {
+      if (!common::load_proto_from_disk(proto_conf / "state.prot", state)) {
         throw std::runtime_error("File not readable");
       }
     } catch (const std::exception& e) {

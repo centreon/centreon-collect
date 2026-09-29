@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/strings/str_join.h>
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
+#include <absl/strings/str_join.h>
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
@@ -360,7 +360,7 @@ void line_protocol_query::_throw_on_invalid(data_type macro_type) {
  */
 template <typename T, typename U, T(U::*member)>
 void line_protocol_query::_get_member(io::data const& d,
-                                      unsigned& string_index [[maybe_unused]],
+                                      unsigned&,
                                       std::ostream& is) const {
   is << static_cast<U const&>(d).*member;
 }

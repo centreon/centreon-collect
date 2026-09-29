@@ -16,10 +16,12 @@
  * For more information : contact@centreon.com
  */
 
-#include "file.hh"
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "google/protobuf/message.h"
+
+#include "file.hh"
 
 namespace com::centreon::common {
 
@@ -110,15 +112,14 @@ std::string hash_directory(const std::filesystem::path& dir_path,
  * @brief Maps file_path in memory and parses its content into data. The file
  * is read without any copy in an intermediate buffer.
  *
- * @param file_path The file to read. It must be null-terminated as it is
- * passed as is to file_mapping.
+ * @param file_path The file to read.
  * @param data The message to fill.
  *
  * @return false if the file doesn't exist or isn't readable (data is left
  * untouched), true if data has been filled.
  *
  * @throw boost::interprocess::interprocess_exception if the file can't be
- * mapped (an empty file can't be mapped).
+ * mapped.
  * @throw exceptions::msg_fmt if the content is not a valid serialization of
  * data.
  */
@@ -126,6 +127,11 @@ bool load_proto_from_disk(const std::filesystem::path& file_path,
                           ::google::protobuf::Message& data) {
   if (::access(file_path.c_str(), R_OK)) {
     return false;
+  }
+  std::error_code ec;
+  if (std::filesystem::file_size(file_path, ec) == 0 && !ec) {
+    data.Clear();
+    return true;
   }
   boost::interprocess::file_mapping file_map(file_path.c_str(),
                                              boost::interprocess::read_only);
@@ -142,8 +148,7 @@ bool load_proto_from_disk(const std::filesystem::path& file_path,
  * file_path, then renames it to file_path. So readers never see a partially
  * written file.
  *
- * @param file_path The destination file. It must be null-terminated as it is
- * passed as is to rename.
+ * @param file_path The destination file.
  * @param data The message to serialize.
  *
  * @throw exceptions::msg_fmt if the temporary file can't be created, resized
@@ -166,22 +171,22 @@ void save_proto_to_disk(const std::filesystem::path& file_path,
                               tmp_path, strerror(errno));
   }
 
-  if (::ftruncate(fd, needed) < 0) {
-    ::close(fd);
-    ::unlink(tmp_path.c_str());
-    throw exceptions::msg_fmt("Fail to resize {} to {} bytes: {}", tmp_path,
-                              needed, strerror(errno));
-  }
-
-  // mmap refuses a zero length, an empty message needs no mapping
   if (needed > 0) {
+    // posix_fallocate refuses a zero length
+    if (int err = ::posix_fallocate(fd, 0, needed); err) {
+      ::close(fd);
+      ::unlink(tmp_path.c_str());
+      throw exceptions::msg_fmt("Fail to resize {} to {} bytes: {}", tmp_path,
+                                needed, strerror(err));
+    }
+    // mmap refuses a zero length, an empty message needs no mapping
     void* addr =
         ::mmap(nullptr, needed, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (addr == MAP_FAILED) {
+      int err = errno;
       ::close(fd);
       ::unlink(tmp_path.c_str());
-      throw exceptions::msg_fmt("Fail to map {}: {}", tmp_path,
-                                strerror(errno));
+      throw exceptions::msg_fmt("Fail to map {}: {}", tmp_path, strerror(err));
     }
     data.SerializeWithCachedSizesToArray(static_cast<uint8_t*>(addr));
     ::munmap(addr, needed);
@@ -190,9 +195,10 @@ void save_proto_to_disk(const std::filesystem::path& file_path,
   ::close(fd);
 
   if (::rename(tmp_path.c_str(), file_path.c_str()) < 0) {
+    int err = errno;
     ::unlink(tmp_path.c_str());
     throw exceptions::msg_fmt("Fail to rename {} to {}: {}", tmp_path,
-                              file_path.string(), strerror(errno));
+                              file_path.string(), strerror(err));
   }
 }
 
