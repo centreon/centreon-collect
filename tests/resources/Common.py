@@ -1355,6 +1355,45 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
 #    return False
 
 
+def ctn_get_downtime_id(hostname: str, service_desc: str, timeout: int = 30):
+    """
+    Return the internal_id (the downtime manager's id) of the active downtime
+    of a service, polling the downtimes table until it appears.
+
+    Args:
+        hostname (str): Host name of the service.
+        service_desc (str): Service description.
+        timeout (int): How long to wait, in seconds.
+
+    Returns:
+        The internal_id, or 0 if none within the timeout.
+
+    *Example:*
+
+    | ${dt_id}    Ctn Get Downtime Id    host_1    service_1 |
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT d.internal_id FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id "
+                    "INNER JOIN services s ON d.service_id=s.service_id AND d.host_id=s.host_id "
+                    f"WHERE d.deletion_time IS NULL AND s.description='{service_desc}' AND h.name='{hostname}' "
+                    "ORDER BY d.internal_id DESC LIMIT 1")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['internal_id'] is not None:
+                    return int(result[0]['internal_id'])
+        time.sleep(1)
+    return 0
+
+
 def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
