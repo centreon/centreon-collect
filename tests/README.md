@@ -81,6 +81,11 @@ And it is also possible to execute a specific test, for example:
 ```
 robot broker/sql.robot
 ```
+
+For Broker OTLP export tests using a local Python gRPC collector, see
+[OTLP integration tests](broker-engine/otlp.md). These tests do not require SQL
+or an external OpenTelemetry collector.
+
 In order to execute bench tests (broker-engine/bench.robot), you need also to
 install py-cpuinfo, cython, unqlite and boto3
 
