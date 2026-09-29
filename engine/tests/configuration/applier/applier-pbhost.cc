@@ -17,18 +17,23 @@
  *
  */
 
+#include <fstream>
 #include <gtest/gtest.h>
+#include <unistd.h>
 
 #include "../../timeperiod/utils.hh"
 #include "cbmod_test.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "common/engine_conf/command_helper.hh"
 #include "common/engine_conf/host_helper.hh"
@@ -45,6 +50,55 @@ class ApplierPbHost : public ::testing::Test {
   void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
+};
+
+class ProtobufHostEvents : public ApplierPbHost {
+ protected:
+  class recording_cbmod : public com::centreon::broker::neb::cbmod {
+   public:
+    explicit recording_cbmod(const std::string& path) : cbmod(path) {}
+    bool record = false;
+    std::vector<std::shared_ptr<com::centreon::broker::io::data>> written;
+    void write(
+        const std::shared_ptr<com::centreon::broker::io::data>& event) override {
+      if (record)
+        written.push_back(event);
+    }
+  };
+
+  std::string _config_file;
+
+ public:
+  void SetUp() override {
+    // The default cbmod mock uses BBDO 2. Exercise the actual BBDO 3 sender.
+    cbm.reset();
+    char config_path[] = "/tmp/engine-macro-events-XXXXXX";
+    int fd = mkstemp(config_path);
+    ASSERT_NE(fd, -1);
+    close(fd);
+    _config_file = config_path;
+    {
+      std::ofstream config(_config_file);
+      ASSERT_TRUE(config.is_open());
+      config << R"({"centreonBroker": {
+        "broker_id": 999,
+        "broker_name": "macro-events-test",
+        "poller_id": 20,
+        "uid": 4294967316,
+        "poller_name": "test-poller",
+        "bbdo_version": "3.0.0",
+        "cache_directory": "/tmp"
+      }})";
+    }
+    cbm = std::make_unique<recording_cbmod>(_config_file);
+    ApplierPbHost::SetUp();
+  }
+
+  void TearDown() override {
+    ApplierPbHost::TearDown();
+    cbm.reset();
+    ::remove(_config_file.c_str());
+  }
 };
 
 // Given host configuration without host_id
@@ -153,6 +207,82 @@ TEST_F(ApplierPbHost, AddedHostIsSentBeforeItsCustomVariables) {
   ASSERT_LT(host_pos, nb_written);
   ASSERT_LT(cv_pos, nb_written);
   ASSERT_LT(host_pos, cv_pos);
+}
+
+TEST_F(ProtobufHostEvents, CustomVariableEventsIdentifyOriginatingPoller) {
+  namespace neb = com::centreon::broker::neb;
+  auto* test_cbm = static_cast<recording_cbmod*>(cbm.get());
+  ASSERT_TRUE(test_cbm->use_protobuf());
+  ASSERT_EQ(test_cbm->poller_id(), 4294967316ULL);
+
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_hlp.set_default_values();
+  hst_aply.add_object(hst);
+
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd_aply.add_object(cmd);
+  configuration::applier::service svc_aply;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_description("test_service");
+  svc.set_service_id(3);
+  svc.set_check_command("cmd");
+  svc_hlp.set_default_values();
+  svc_aply.add_object(svc);
+
+  auto host = engine::host::hosts_by_id.at(12);
+  auto service = engine::service::services_by_id.at({12, 3});
+  test_cbm->written.clear();
+  test_cbm->record = true;
+  for (int type : {NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
+                   NEBTYPE_HOSTCUSTOMVARIABLE_DELETE})
+    broker_custom_variable(type, host.get(), "OTEL_SERVICE_NAME", "api",
+                           nullptr);
+  for (int type : {NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+                   NEBTYPE_SERVICECUSTOMVARIABLE_DELETE})
+    broker_custom_variable(type, service.get(), "OTEL_SERVICE_NAME", "api",
+                           nullptr);
+  char host_args[] = "test_host;OTEL_SERVICE_NAME;updated";
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START,
+                          CMD_CHANGE_CUSTOM_HOST_VAR, host_args);
+  char service_args[] = "test_host;test_service;OTEL_SERVICE_NAME;updated";
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START,
+                          CMD_CHANGE_CUSTOM_SVC_VAR, service_args);
+  test_cbm->record = false;
+  auto written = std::move(test_cbm->written);
+  test_cbm->written.clear();
+
+  ASSERT_EQ(written.size(), 6u);
+  for (size_t i = 0; i < 4; ++i) {
+    ASSERT_EQ(written[i]->type(), neb::pb_custom_variable::static_type());
+    const auto& event =
+        std::static_pointer_cast<neb::pb_custom_variable>(written[i])->obj();
+    EXPECT_EQ(event.instance_id(), test_cbm->poller_id());
+    EXPECT_EQ(event.host_id(), 12u);
+    EXPECT_EQ(event.service_id(), i < 2 ? 0u : 3u);
+    EXPECT_EQ(event.enabled(), i % 2 == 0);
+  }
+  for (size_t i = 4; i < 6; ++i) {
+    ASSERT_EQ(written[i]->type(), neb::pb_custom_variable_status::static_type());
+    const auto& event =
+        std::static_pointer_cast<neb::pb_custom_variable_status>(written[i])
+            ->obj();
+    EXPECT_EQ(event.instance_id(), test_cbm->poller_id());
+    EXPECT_EQ(event.host_id(), 12u);
+    EXPECT_EQ(event.service_id(), i == 4 ? 0u : 3u);
+    EXPECT_EQ(event.value(), "updated");
+  }
 }
 
 TEST_F(ApplierPbHost, PbHostRemoved) {

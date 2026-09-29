@@ -341,6 +341,7 @@ class global_cache_data : public global_cache {
   void _process_pb_custom_variable_status(
       const std::shared_ptr<io::data>& data);
   void _set_host_otel_service(uint64_t host_id,
+                              uint64_t instance_id,
                               bool is_name,
                               std::string_view value);
   void _process_pb_service(std::shared_ptr<io::data> const& data);

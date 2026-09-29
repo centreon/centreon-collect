@@ -492,6 +492,7 @@ TEST(bbdo2_to_bbdo3, custom_variable) {
       comp_pb, ,
       (enabled)(default_value)(enabled)(host_id)(modified)(name)(service_id)(update_time)(value));
   EXPECT_EQ(pb.type(), bbdo2->var_type);
+  EXPECT_EQ(pb.instance_id(), 0u);  // Legacy events do not identify the poller.
 }
 
 TEST(bbdo2_to_bbdo3, custom_variable_status) {
@@ -513,6 +514,7 @@ TEST(bbdo2_to_bbdo3, custom_variable_status) {
   const auto& pb_bbdo3 =
       *static_cast<neb::pb_custom_variable_status*>(bbdo3.get());
   const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb.instance_id(), 0u);
   EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
   EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
 
