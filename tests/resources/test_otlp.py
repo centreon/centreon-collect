@@ -8,7 +8,7 @@ import grpc
 from opentelemetry.proto.collector.metrics.v1 import metrics_service_pb2
 from opentelemetry.proto.collector.metrics.v1 import metrics_service_pb2_grpc
 
-from Otlp import Otlp
+from Otlp import Otlp, _bbdo_crc
 
 
 class CollectorTest(unittest.TestCase):
@@ -63,6 +63,9 @@ class CollectorTest(unittest.TestCase):
         point = self.collector.ctn_wait_for_otlp_point(
             "host_1", "centreon.robot_probe", 3, 0)
         self.assertEqual(point["kind"], "sum")
+
+    def test_legacy_header_checksum(self):
+        self.assertEqual(_bbdo_crc(b"123456789"), 0x906e)
 
     def test_restart_discards_previous_capture(self):
         self.export(4)

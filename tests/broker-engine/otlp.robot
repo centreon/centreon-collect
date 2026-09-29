@@ -172,6 +172,124 @@ OTLP_MIGRATION_WITHOUT_MACROS
     Ctn Reload Engine And Wait    0
     Ctn Check OTLP Identity    centreon-broker    centreon    1
 
+OTLP_STALE_CONFIGURATION_EVENTS
+    [Documentation]    Scenario: Macro events are only accepted from the poller owning the host
+    ...    Given a BBDO test peer replaces the pollers on the Broker input
+    ...    When macros arrive before their host, or from a poller not owning it
+    ...    Then they are ignored and the identity stays centreon-broker/centreon
+    ...    When poller 10 owns the host and sends name and namespace "old"
+    ...    Then exports carry old/old
+    ...    When the host moves to poller 20
+    ...    Then the identity falls back to centreon-broker/centreon
+    ...    When poller 20 sends name and namespace "new"
+    ...    And poller 10 sends stale updates and deletions of both macros
+    ...    Then exports still carry new/new
+    ...    When poller 20 removes both macros
+    ...    Then the identity falls back to centreon-broker/centreon
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAME    before-host    10
+    Ctn Send OTLP Host    0
+    Ctn Send OTLP Macro    CustomVariableStatus    OTEL_SERVICE_NAME    unknown-owner    10
+    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    Ctn Send OTLP Host    10
+    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAME    old    10
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAMESPACE    old    10
+    Ctn Check BBDO OTLP Identity    old    old
+    Ctn Send OTLP Host    20
+    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAME    new    20
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAMESPACE    new    20
+    FOR    ${event}    IN    CustomVariable    CustomVariableStatus
+        FOR    ${macro}    IN    OTEL_SERVICE_NAME    OTEL_SERVICE_NAMESPACE
+            Ctn Send OTLP Macro    ${event}    ${macro}    stale    10
+            Ctn Check BBDO OTLP Identity    new    new
+            Ctn Send OTLP Macro    ${event}    ${macro}    ${EMPTY}    10    false
+            Ctn Check BBDO OTLP Identity    new    new
+        END
+    END
+    # When poller 20, the current owner, removes both macros
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAME    ${EMPTY}    20    false
+    Ctn Send OTLP Macro    CustomVariableStatus    OTEL_SERVICE_NAMESPACE    ${EMPTY}    20
+    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+
+OTLP_OLDER_PROTOBUF_SENDERS
+    [Documentation]    Scenario: Macro events without instance_id from older senders are still accepted
+    ...    Given a BBDO test peer whose transport source_id is not a poller ID
+    ...    And the host moved from poller 10 to poller 20
+    ...    When lowercase macro events without instance_id are received
+    ...    Then exports carry legacy/compatibility
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    Ctn Send OTLP Host    20
+    Ctn Send Otlp Bbdo Event    CustomVariable
+    ...    {"host_id":101,"name":"otel_service_name","value":"legacy","enabled":true}
+    Ctn Send Otlp Bbdo Event    CustomVariableStatus
+    ...    {"host_id":101,"name":"otel_service_namespace","value":"compatibility"}
+    Ctn Check BBDO OTLP Identity    legacy    compatibility
+
+OTLP_CACHE_PERSISTENCE
+    [Documentation]    Scenario: Broker restores both macros from its persisted cache
+    ...    Given poller 10 owns the host
+    ...    And it sends name "persisted" as configuration and namespace "runtime" as status
+    ...    And exports carry persisted/runtime
+    ...    When Broker is restarted and the test peer reconnects without replaying any event
+    ...    Then exports still carry persisted/runtime
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAME    persisted    10
+    Ctn Send OTLP Macro    CustomVariableStatus    OTEL_SERVICE_NAMESPACE    runtime    10
+    Ctn Check BBDO OTLP Identity    persisted    runtime
+    Ctn Disconnect Otlp Bbdo Peer
+    Ctn Restart Broker    only_central=${True}
+    Ctn Connect Otlp Bbdo Peer    127.0.0.1:5669
+    Ctn Check BBDO OTLP Identity    persisted    runtime
+
+OTLP_BBDO2_MACRO_CONVERSION
+    [Documentation]    Scenario: Broker converts BBDO2 custom variable payloads
+    ...    Given poller 10 owns the host
+    ...    When BBDO2 configuration events set name "legacy" and namespace "initial"
+    ...    Then exports carry legacy/initial
+    ...    When a BBDO2 status event changes the namespace to "runtime"
+    ...    Then exports carry legacy/runtime
+    ...    When a disabled BBDO2 configuration event removes the name
+    ...    Then exports carry centreon-broker/runtime
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    Ctn Send Otlp Legacy Macro    OTEL_SERVICE_NAME    legacy
+    Ctn Send Otlp Legacy Macro    OTEL_SERVICE_NAMESPACE    initial
+    Ctn Check BBDO OTLP Identity    legacy    initial
+    Ctn Send Otlp Legacy Macro    OTEL_SERVICE_NAMESPACE    runtime    status=${True}
+    Ctn Check BBDO OTLP Identity    legacy    runtime
+    Ctn Send Otlp Legacy Macro    OTEL_SERVICE_NAME    ${EMPTY}    enabled=${False}
+    Ctn Check BBDO OTLP Identity    centreon-broker    runtime
+
+OTLP_HOST_AND_INSTANCE_CLEANUP
+    [Documentation]    Scenario: Owner poller startup and host deletion clear the host identity
+    ...    Given poller 10 owns the host and sends name "configured"
+    ...    When poller 20 starts
+    ...    Then exports still carry configured/centreon
+    ...    When poller 10 starts
+    ...    Then the identity falls back to centreon-broker/centreon
+    ...    When poller 10 sends name "deleted"
+    ...    Then exports carry deleted/centreon
+    ...    When poller 10 deletes the host
+    ...    And a status update arrives before the host is created again
+    ...    Then exports carry centreon-broker/centreon
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAME    configured    10
+    Ctn Send Otlp Bbdo Event    Instance    {"instance_id":20,"running":true}
+    Ctn Check BBDO OTLP Identity    configured    centreon
+    Ctn Send Otlp Bbdo Event    Instance    {"instance_id":10,"running":true}
+    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    Ctn Send OTLP Macro    CustomVariable    OTEL_SERVICE_NAME    deleted    10
+    Ctn Check BBDO OTLP Identity    deleted    centreon
+    Ctn Send Otlp Bbdo Event    Host    {"host_id":101,"instance_id":10,"enabled":false}
+    Ctn Send OTLP Macro    CustomVariableStatus    OTEL_SERVICE_NAME    after-deletion    10
+    Ctn Send OTLP Host    10
+    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+
 
 *** Keywords ***
 Ctn Config OTLP Stack
@@ -211,6 +329,7 @@ Ctn Config OTLP Stack
 
 Ctn Stop OTLP Stack
     TRY
+        Ctn Disconnect Otlp Bbdo Peer
         Ctn Stop Engine Broker And Save Logs    only_central=${True}
     FINALLY
         Ctn Stop Otlp Collector
@@ -267,3 +386,34 @@ Ctn Assert OTLP Resource Identity
     ELSE
         Dictionary Should Not Contain Key    ${point}[resource]    service.version
     END
+
+Ctn Start OTLP Event Stream
+    [Documentation]    Given a BBDO 3.1 test peer replaces the pollers on Broker's input
+    ...    And Engine is not started
+    Ctn Config Broker Bbdo Input    central    bbdo_server    5669    grpc
+    Ctn Broker Config Add Item    central    bbdo_version    3.1.0
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Start Broker    only_central=${True}
+    Ctn Connect Otlp Bbdo Peer    127.0.0.1:5669
+
+Ctn Send OTLP Host
+    [Arguments]    ${poller}
+    Ctn Send Otlp Bbdo Event    Host
+    ...    {"host_id":101,"instance_id":${poller},"name":"robot-host","enabled":true}
+
+Ctn Send OTLP Macro
+    [Arguments]    ${event}    ${name}    ${value}    ${poller}    ${enabled}=true
+    IF    $event == 'CustomVariable'
+        Ctn Send Otlp Bbdo Event    ${event}
+        ...    {"host_id":101,"instance_id":${poller},"name":"${name}","value":"${value}","enabled":${enabled}}
+    ELSE
+        Ctn Send Otlp Bbdo Event    ${event}
+        ...    {"host_id":101,"instance_id":${poller},"name":"${name}","value":"${value}"}
+    END
+
+Ctn Check BBDO OTLP Identity
+    [Arguments]    ${name}    ${namespace}
+    ${point}    Ctn Otlp Bbdo Probe
+    Ctn Assert OTLP Resource Identity    ${point}    ${name}    ${namespace}
+    Dictionary Should Contain Item    ${point}[resource]    centreon.host.id    ${101}
+    RETURN    ${point}
