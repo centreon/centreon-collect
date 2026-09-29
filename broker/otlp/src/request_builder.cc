@@ -33,6 +33,13 @@ constexpr const char* k_scope_name = "com.centreon.broker.otlp";
 constexpr std::string_view k_service_name = "centreon-broker";
 constexpr std::string_view k_service_namespace = "centreon";
 
+/**
+ * @brief Fill a string attribute.
+ *
+ * @param kv attribute to fill
+ * @param key attribute name
+ * @param value attribute value
+ */
 void set_attribute(otel_common::KeyValue* kv,
                    std::string_view key,
                    std::string_view value) {
@@ -40,6 +47,13 @@ void set_attribute(otel_common::KeyValue* kv,
   kv->mutable_value()->set_string_value(std::string(value));
 }
 
+/**
+ * @brief Fill an integer attribute.
+ *
+ * @param kv attribute to fill
+ * @param key attribute name
+ * @param value attribute value
+ */
 void set_attribute(otel_common::KeyValue* kv,
                    std::string_view key,
                    int64_t value) {
@@ -47,6 +61,13 @@ void set_attribute(otel_common::KeyValue* kv,
   kv->mutable_value()->set_int_value(value);
 }
 
+/**
+ * @brief Fill a string array attribute, such as host.ip.
+ *
+ * @param kv attribute to fill
+ * @param key attribute name
+ * @param values array items, in this order
+ */
 void set_attribute(otel_common::KeyValue* kv,
                    std::string_view key,
                    const std::vector<std::string_view>& values) {
@@ -80,6 +101,15 @@ uint64_t to_unix_nano(int64_t seconds) {
 
 }  // namespace
 
+/**
+ * @brief Construct an empty builder.
+ *
+ * @param conf endpoint configuration (send_* options, link-local filter)
+ * @param enricher resolves host names, service descriptions and OTel identity
+ * @param mapping provider of the semantic convention mapping table
+ * @param logger
+ * @param host_metadata CMA host information, may be null
+ */
 request_builder::request_builder(
     const otlp_config::pointer& conf,
     const std::shared_ptr<resource_enricher>& enricher,
@@ -92,6 +122,18 @@ request_builder::request_builder(
       _logger(logger),
       _host_metadata(host_metadata) {}
 
+/**
+ * @brief Return the ScopeMetrics of a host in the current request, creating its
+ * ResourceMetrics on first use.
+ *
+ * The resource is built once per host and per batch: host.name, service.name
+ * and service.namespace (host macros or defaults), service.version when the
+ * default name is used, centreon.host.id and the CMA host information.
+ *
+ * @param host_id
+ * @param host_name value of host.name
+ * @return the scope to add the metrics of this host to
+ */
 request_builder::ScopeMetrics* request_builder::_scope_for_host(
     uint64_t host_id,
     const std::string& host_name) {
@@ -169,6 +211,20 @@ void request_builder::_add_host_metadata(
     set_attribute(resource->add_attributes(), "host.ip", ips);
 }
 
+/**
+ * @brief Return the Metric of a host with this name, creating it on first use
+ * in the current request.
+ *
+ * The instrument is only used at creation: gauge, or cumulative sum, monotonic
+ * or not.
+ *
+ * @param host_id
+ * @param host_name value of host.name if the host resource must be created
+ * @param name emitted metric name
+ * @param unit emitted unit
+ * @param instr instrument of a new metric
+ * @return the metric to append datapoints to
+ */
 request_builder::Metric* request_builder::_metric_for(
     uint64_t host_id,
     const std::string& host_name,
@@ -220,6 +276,17 @@ request_builder::Metric* request_builder::_metric_for(
   return m;
 }
 
+/**
+ * @brief Append a datapoint to a metric.
+ *
+ * The point follows the instrument the metric already has: gauge and sum share
+ * a protobuf oneof, so calling mutable_sum() on a gauge would discard its
+ * datapoints.
+ *
+ * @param m metric to append to
+ * @param instr unused
+ * @return the new datapoint
+ */
 request_builder::NumberDataPoint* request_builder::_new_point(
     Metric* m,
     instrument instr [[maybe_unused]]) {
@@ -228,6 +295,22 @@ request_builder::NumberDataPoint* request_builder::_new_point(
   return m->mutable_sum()->add_data_points();
 }
 
+/**
+ * @brief Parse a perfdata string and append its datapoints.
+ *
+ * For each value: a point of the mapped (or centreon.* fallback) metric, then a
+ * point per finite threshold if send_thresholds is set and per finite min/max
+ * if send_min_max is set. Every point carries centreon.metric.name, the mapping
+ * attributes and, when service_id is not 0, the service identity. The mapping
+ * table is read once for the whole perfdata string.
+ *
+ * @param host_id
+ * @param host_name
+ * @param service_id 0 for a host check
+ * @param description service description, may be empty
+ * @param perfdata_str raw perfdata
+ * @param ts timestamp of the datapoints, in nanoseconds
+ */
 void request_builder::_add_perfdata(uint64_t host_id,
                                     const std::string& host_name,
                                     uint64_t service_id,
@@ -320,6 +403,13 @@ void request_builder::_add_perfdata(uint64_t host_id,
   }
 }
 
+/**
+ * @brief Append the datapoints of a service status: its perfdata and, if
+ * send_status is set, a centreon.check.state point with its state type.
+ *
+ * @param status
+ * @return false if the host name is unknown; the status is then skipped
+ */
 bool request_builder::add_service_status(const ServiceStatus& status) {
   std::optional<std::string> host_name = _enricher->host_name(status.host_id());
   if (!host_name) {
@@ -361,6 +451,15 @@ bool request_builder::add_service_status(const ServiceStatus& status) {
   return true;
 }
 
+/**
+ * @brief Append the datapoints of a host status: its perfdata and, if
+ * send_status is set, a centreon.host.state point with its state type.
+ *
+ * Nothing is done when send_status is not set and the perfdata is empty.
+ *
+ * @param status
+ * @return false if the host name is unknown; the status is then skipped
+ */
 bool request_builder::add_host_status(const HostStatus& status) {
   if (!_conf->send_status && status.perfdata().empty())
     return true;
@@ -391,6 +490,12 @@ bool request_builder::add_host_status(const HostStatus& status) {
   return true;
 }
 
+/**
+ * @brief Hand over the accumulated request and reset the builder, including its
+ * host and metric indexes.
+ *
+ * @return the request to export
+ */
 request_builder::ExportRequest request_builder::take() {
   ExportRequest out;
   out.Swap(&_request);

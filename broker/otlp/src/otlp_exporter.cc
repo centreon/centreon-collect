@@ -20,6 +20,14 @@
 
 using namespace com::centreon::broker::otlp;
 
+/**
+ * @brief Construct the exporter and its MetricsService stub.
+ *
+ * The gRPC channel is created by grpc_client_base from conf->grpc.
+ *
+ * @param conf endpoint configuration (gRPC options, export_timeout)
+ * @param logger
+ */
 otlp_exporter::otlp_exporter(const otlp_config::pointer& conf,
                              const std::shared_ptr<spdlog::logger>& logger)
     : com::centreon::common::grpc::grpc_client_base(conf->grpc, logger),
@@ -27,6 +35,19 @@ otlp_exporter::otlp_exporter(const otlp_config::pointer& conf,
                 NewStub(_channel)),
       _conf(conf) {}
 
+/**
+ * @brief Send a batch with a unary MetricsService::Export call, without waiting
+ * for the collector.
+ *
+ * The client context, request and response are kept in a pending_call held by
+ * the completion lambda. The call deadline is export_timeout seconds. On
+ * completion, a failed call or datapoints rejected by the collector
+ * (partial_success) are logged, then cb is called on a gRPC thread.
+ *
+ * @param request batch to send, moved into the pending call
+ * @param nb_data number of datapoints of the batch, passed back to cb
+ * @param cb completion callback
+ */
 void otlp_exporter::export_async(ExportRequest&& request,
                                  uint64_t nb_data,
                                  export_callback cb) {

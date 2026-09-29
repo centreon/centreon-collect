@@ -62,6 +62,14 @@ constexpr std::string_view k_test_table = R"({
   }
 })";
 
+/**
+ * @brief map_metric() with the test table k_test_table.
+ *
+ * @param perfdata_name raw label
+ * @param unit perfdata unit
+ * @param value_type perfdata data type
+ * @return the resolved mapping
+ */
 mapping map_test(std::string_view perfdata_name,
                  std::string_view unit,
                  perfdata::data_type value_type) {

@@ -27,6 +27,17 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::otlp;
 
+/**
+ * @brief Construct the stream and its request builder.
+ *
+ * @param conf endpoint configuration
+ * @param enricher resolves host names, service descriptions and OTel identity
+ * @param mapping semantic convention mapping, shared with the endpoint
+ * @param exporter sends the batches
+ * @param logger
+ * @param host_metadata CMA host information, shared with the endpoint, may be
+ * null
+ */
 stream::stream(const otlp_config::pointer& conf,
                const std::shared_ptr<resource_enricher>& enricher,
                const mapping_provider::pointer& mapping,
@@ -47,18 +58,40 @@ stream::stream(const otlp_config::pointer& conf,
                                                  host_metadata)),
       _last_send(std::time(nullptr)) {}
 
+/**
+ * @brief This stream is write-only.
+ *
+ * @param d reset
+ * @param deadline unused
+ * @throw exceptions::shutdown always
+ */
 bool stream::read(std::shared_ptr<io::data>& d,
                   time_t deadline [[maybe_unused]]) {
   d.reset();
   throw exceptions::shutdown("cannot read from OTLP stream");
 }
 
+/**
+ * @brief Return the number of events to acknowledge and reset it.
+ *
+ * Call with _protect held.
+ *
+ * @return number of events to report to the muxer
+ */
 int stream::_take_acknowledged_locked() {
   const int acknowledged = static_cast<int>(_acknowledged);
   _acknowledged = 0;
   return acknowledged;
 }
 
+/**
+ * @brief Detach the current batch, unless it is empty or max_inflight_requests
+ * exports are already in flight.
+ *
+ * Call with _protect held, and dispatch the result after releasing it.
+ *
+ * @return the batch to dispatch, or nullopt
+ */
 std::optional<stream::pending_export> stream::_prepare_send_locked() {
   if (_builder->empty())
     return std::nullopt;
@@ -77,6 +110,14 @@ std::optional<stream::pending_export> stream::_prepare_send_locked() {
   return batch;
 }
 
+/**
+ * @brief Hand a detached batch to the exporter. Call without _protect held.
+ *
+ * The completion callback runs on a gRPC thread: it takes _protect, releases
+ * the in-flight slot, updates the statistics and logs the batch sent.
+ *
+ * @param batch
+ */
 void stream::_dispatch(pending_export&& batch) {
   const uint64_t nb_data = batch.nb_data;
   const int nb_hosts = batch.request.resource_metrics_size();
@@ -107,6 +148,17 @@ void stream::_dispatch(pending_export&& batch) {
       });
 }
 
+/**
+ * @brief Add an event to the current batch.
+ *
+ * Service and host statuses go to the request builder, AgentHostInfo to the
+ * host information store. Every event is acknowledged, including a status whose
+ * host name is unknown (counted in dropped_no_host_name). The batch is sent
+ * once it holds max_datapoints_per_batch datapoints.
+ *
+ * @param d event
+ * @return number of events to acknowledge
+ */
 int stream::write(std::shared_ptr<io::data> const& d) {
   SPDLOG_LOGGER_TRACE(_logger, "OTLP: event category:{}, element:{}",
                       category_of_type(d->type()), element_of_type(d->type()));
@@ -166,6 +218,12 @@ int stream::write(std::shared_ptr<io::data> const& d) {
   return acknowledged;
 }
 
+/**
+ * @brief Send the current batch if max_send_interval seconds have passed since
+ * the last send.
+ *
+ * @return number of events to acknowledge
+ */
 int stream::flush() {
   std::optional<pending_export> to_send;
   int acknowledged;
@@ -183,6 +241,12 @@ int stream::flush() {
   return acknowledged;
 }
 
+/**
+ * @brief Send the current batch whatever its age, without waiting for the
+ * export to complete.
+ *
+ * @return number of events to acknowledge
+ */
 int32_t stream::stop() {
   SPDLOG_LOGGER_TRACE(_logger, "OTPL: stream Try to stop");
   std::optional<pending_export> to_send;
@@ -199,6 +263,13 @@ int32_t stream::stop() {
   return acknowledged;
 }
 
+/**
+ * @brief Fill the stream statistics: batches and datapoints sent, export
+ * errors, statuses dropped for an unknown host name, host information received
+ * and known, in-flight exports and pending datapoints.
+ *
+ * @param tree
+ */
 void stream::statistics(nlohmann::json& tree) const {
   std::lock_guard<std::mutex> l(_protect);
   tree["batches_sent"] = _stat_batches_sent;

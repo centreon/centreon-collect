@@ -23,6 +23,13 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::otlp;
 
+/**
+ * @brief Host name, from the global cache.
+ *
+ * @param host_id
+ * @return the name, or nullopt if the cache is not loaded or the host is
+ * unknown
+ */
 std::optional<std::string> global_cache_enricher::host_name(uint64_t host_id) {
   auto instance = cache::global_cache::instance_ptr();
   if (!instance)
@@ -35,6 +42,14 @@ std::optional<std::string> global_cache_enricher::host_name(uint64_t host_id) {
   return std::string(h->name().c_str(), h->name().length());
 }
 
+/**
+ * @brief Service description, from the global cache.
+ *
+ * @param host_id
+ * @param service_id
+ * @return the description, or nullopt if the cache is not loaded or the service
+ * is unknown
+ */
 std::optional<std::string> global_cache_enricher::service_description(
     uint64_t host_id,
     uint64_t service_id) {
@@ -49,6 +64,14 @@ std::optional<std::string> global_cache_enricher::service_description(
   return std::string(s->description().c_str(), s->description().length());
 }
 
+/**
+ * @brief OTEL_SERVICE_NAME and OTEL_SERVICE_NAMESPACE of a host, from the
+ * global cache.
+ *
+ * @param host_id
+ * @return the identity; a field is empty when its custom variable is not set or
+ * the cache is not loaded
+ */
 otel_service global_cache_enricher::host_otel_service(uint64_t host_id) {
   auto instance = cache::global_cache::instance_ptr();
   if (!instance)

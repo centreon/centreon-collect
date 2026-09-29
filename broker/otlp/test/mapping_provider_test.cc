@@ -47,6 +47,12 @@ constexpr std::string_view k_one_rule = R"({
   }
 })";
 
+/**
+ * @brief Replace the content of a file.
+ *
+ * @param path file to write
+ * @param content new content
+ */
 void write_file(const std::filesystem::path& path, std::string_view content) {
   std::ofstream f(path, std::ios::trunc);
   f << content;

@@ -20,23 +20,50 @@
 
 using namespace com::centreon::broker::otlp;
 
+/**
+ * @brief Construct a provider serving table. It does not watch path: load()
+ * starts the watcher.
+ *
+ * @param path mapping file, empty when there is none
+ * @param table initial table
+ * @param logger
+ */
 mapping_provider::mapping_provider(
     const std::filesystem::path& path,
     const mapping_table::pointer& table,
     const std::shared_ptr<spdlog::logger>& logger)
     : _path(path), _logger(logger), _table(table) {}
 
+/**
+ * @brief Stop the file watcher, if any.
+ */
 mapping_provider::~mapping_provider() {
   if (_watcher)
     _watcher->stop();
 }
 
+/**
+ * @brief Provider serving the empty table, with no file to watch: every metric
+ * falls back to centreon.*.
+ *
+ * @param logger
+ * @return the provider
+ */
 mapping_provider::pointer mapping_provider::empty(
     const std::shared_ptr<spdlog::logger>& logger) {
   return std::make_shared<mapping_provider>(std::filesystem::path(),
                                             mapping_table::empty(), logger);
 }
 
+/**
+ * @brief Read the mapping file and start watching it.
+ *
+ * @param io_context context running the file watcher and the reloads
+ * @param path mapping file
+ * @param logger
+ * @return the provider
+ * @throw msg_fmt if the file can't be read or is not a valid mapping
+ */
 mapping_provider::pointer mapping_provider::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::filesystem::path& path,
@@ -49,6 +76,14 @@ mapping_provider::pointer mapping_provider::load(
   return provider;
 }
 
+/**
+ * @brief Watch the mapping file and reload it on each change.
+ *
+ * The handler holds a weak pointer, so it does nothing once the provider is
+ * destroyed.
+ *
+ * @param io_context context running the watcher
+ */
 void mapping_provider::_start_watcher(
     const std::shared_ptr<asio::io_context>& io_context) {
   _watcher = com::centreon::common::file_watcher::load(
@@ -59,11 +94,22 @@ void mapping_provider::_start_watcher(
       });
 }
 
+/**
+ * @brief Current mapping table.
+ *
+ * @return the table; it stays valid after a reload replaces it
+ */
 mapping_table::pointer mapping_provider::get() const {
   absl::MutexLock lock(_protect);
   return _table;
 }
 
+/**
+ * @brief Re-read the mapping file and replace the table if the file is valid.
+ * Otherwise the error is logged and the current table is kept.
+ *
+ * @return true if the table was replaced
+ */
 bool mapping_provider::reload() {
   if (_path.empty())
     return false;
