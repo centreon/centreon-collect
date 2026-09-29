@@ -42,6 +42,7 @@ class fake_enricher : public resource_enricher {
                                                  uint64_t s) override {
     return "svc-" + std::to_string(s);
   }
+  otel_service host_otel_service(uint64_t) override { return {}; }
 };
 
 /* Records exports instead of performing them; lets the test decide when (and

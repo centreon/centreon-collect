@@ -22,6 +22,15 @@
 namespace com::centreon::broker::otlp {
 
 /**
+ * @brief service.name and service.namespace a host asks for through its custom
+ * macros. An empty field means the macro is not set.
+ */
+struct otel_service {
+  std::string name;
+  std::string name_space;
+};
+
+/**
  * @brief Resolves the names OTel resource attributes need.
  *
  */
@@ -40,6 +49,12 @@ class resource_enricher {
   virtual std::optional<std::string> service_description(
       uint64_t host_id,
       uint64_t service_id) = 0;
+
+  /**
+   * @brief OTEL_SERVICE_NAME and OTEL_SERVICE_NAMESPACE custom macros of a
+   * host.
+   */
+  virtual otel_service host_otel_service(uint64_t host_id) = 0;
 };
 
 /**
@@ -55,6 +70,7 @@ class global_cache_enricher : public resource_enricher {
   std::optional<std::string> host_name(uint64_t host_id) override;
   std::optional<std::string> service_description(uint64_t host_id,
                                                  uint64_t service_id) override;
+  otel_service host_otel_service(uint64_t host_id) override;
 };
 
 }  // namespace com::centreon::broker::otlp
