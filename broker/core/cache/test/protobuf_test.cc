@@ -891,6 +891,7 @@ TEST_F(protobuf_test, custom_variable_to_protobuf) {
   srand(time(nullptr));
   CustomVariable pb;
   *pb.mutable_header() = create_random_bbdo_header();
+  pb.set_instance_id(rand() + 1);
   pb.set_host_id(rand() + 1);
   pb.set_service_id(rand() + 1);
   pb.set_modified(rand() % 2);

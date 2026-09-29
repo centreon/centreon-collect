@@ -552,6 +552,7 @@ message CustomVariable {
   bool enabled = 9;
   bool password = 10;
   VarType type = 11;
+  uint64 instance_id = 12;
 }
 
 enum CheckType {
@@ -873,6 +874,7 @@ message CustomVariableStatus {
   bool enabled = 9;
   bool password = 10;
   VarType type = 11;
+  uint64 instance_id = 12;
 }
 
 /* Host information of a cma connected to engine OpenTelemetry host and os.

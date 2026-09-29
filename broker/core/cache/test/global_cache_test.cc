@@ -1041,6 +1041,136 @@ TEST_F(global_cache_test, OtelServiceTakenFromNewPollerWhenHostMoves) {
 }
 
 // ---------------------------------------------------------------------------
+// Events from an old poller must not overwrite or clear the new identity.
+// Both configuration and runtime events affect both identity fields.
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, OtelServiceRejectsPreviousPollerEvents) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  auto obj = global_cache::load(g_io_context, "/tmp/cache_test");
+
+  for (bool status : {false, true}) {
+    for (const std::string name :
+         {"OTEL_SERVICE_NAME", "OTEL_SERVICE_NAMESPACE"}) {
+      SCOPED_TRACE(fmt::format("status={} name={}", status, name));
+      auto send = [&](uint64_t poller, const std::string& value, bool enabled) {
+        if (status) {
+          auto cv = std::make_shared<neb::pb_custom_variable_status>();
+          cv->mut_obj().set_host_id(1);
+          cv->mut_obj().set_instance_id(poller);
+          cv->mut_obj().set_name(name);
+          cv->mut_obj().set_value(value);
+          cv->mut_obj().set_modified(true);
+          obj->write(cv);
+        } else {
+          auto cv = otel_var(1, name, value);
+          cv->mut_obj().set_instance_id(poller);
+          cv->mut_obj().set_enabled(enabled);
+          obj->write(cv);
+        }
+      };
+      auto value = [&]() {
+        const auto identity = obj->get_otel_service(1);
+        return name == "OTEL_SERVICE_NAME" ? identity.name : identity.name_space;
+      };
+
+      obj->write(otel_host(1, 10));
+      send(10, "old", true);
+      EXPECT_EQ(value(), "old");
+      obj->write(otel_host(1, 20));
+      EXPECT_TRUE(value().empty());
+
+      // A delayed update must not repopulate an identity removed on migration.
+      send(10, "stale", true);
+      EXPECT_TRUE(value().empty());
+      send(20, "new", true);
+      EXPECT_EQ(value(), "new");
+      send(10, "stale", true);
+      EXPECT_EQ(value(), "new");
+      send(10, "", false);
+      EXPECT_EQ(value(), "new");
+
+      // The new owner can still update and clear its own identity.
+      send(20, "updated", true);
+      EXPECT_EQ(value(), "updated");
+      send(20, "", false);
+      EXPECT_TRUE(value().empty());
+    }
+  }
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, OtelServiceTaggedEventsRequireKnownOwner) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  auto obj = global_cache::load(g_io_context, "/tmp/cache_test");
+  auto cv = otel_var(1, "OTEL_SERVICE_NAME", "payment-api");
+  cv->mut_obj().set_instance_id(10);
+
+  obj->write(cv);
+  EXPECT_TRUE(obj->get_otel_service(1).name.empty());
+  obj->write(otel_host(1, 0));
+  obj->write(cv);
+  EXPECT_TRUE(obj->get_otel_service(1).name.empty());
+  obj->write(otel_host(1, 10));
+  obj->write(cv);
+  EXPECT_EQ(obj->get_otel_service(1).name, "payment-api");
+
+  auto host = otel_host(1, 10);
+  host->mut_obj().set_enabled(false);
+  obj->write(host);
+  obj->write(cv);
+  EXPECT_TRUE(obj->get_otel_service(1).name.empty());
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, OtelServiceOlderSendersRemainAcceptedAfterMove) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  auto obj = global_cache::load(g_io_context, "/tmp/cache_test");
+  obj->write(otel_host(1, 10));
+  obj->write(otel_host(1, 20));
+
+  // Old protobuf senders omit instance_id; their updates remain unvalidated.
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "old-protobuf"));
+  EXPECT_EQ(obj->get_otel_service(1).name, "old-protobuf");
+  auto status = std::make_shared<neb::pb_custom_variable_status>();
+  status->mut_obj().set_host_id(1);
+  status->mut_obj().set_name("OTEL_SERVICE_NAME");
+  status->mut_obj().set_value("old-protobuf-status");
+  obj->write(status);
+  EXPECT_EQ(obj->get_otel_service(1).name, "old-protobuf-status");
+
+  // BBDO 2 source_id is a broker ID, not the poller ID.
+  auto legacy = std::make_shared<neb::custom_variable>();
+  legacy->host_id = 1;
+  legacy->source_id = 999;
+  legacy->name = "OTEL_SERVICE_NAME";
+  legacy->value = "legacy";
+  legacy->enabled = true;
+  obj->write(legacy);
+  EXPECT_EQ(obj->get_otel_service(1).name, "legacy");
+  auto legacy_status = std::make_shared<neb::custom_variable_status>();
+  legacy_status->host_id = 1;
+  legacy_status->source_id = 999;
+  legacy_status->name = "OTEL_SERVICE_NAME";
+  legacy_status->value = "legacy-status";
+  obj->write(legacy_status);
+  EXPECT_EQ(obj->get_otel_service(1).name, "legacy-status");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
 // Instance lifecycle
 // ---------------------------------------------------------------------------
 

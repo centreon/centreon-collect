@@ -796,7 +796,8 @@ void global_cache_data::_process_pb_custom_variable(
       otel_service_field_of(in.service_id(), in.name());
   if (otel_field != otel_service_field::none) {
     /* a deletion has enabled=false and no value */
-    _set_host_otel_service(in.host_id(), otel_field == otel_service_field::name,
+    _set_host_otel_service(in.host_id(), in.instance_id(),
+                           otel_field == otel_service_field::name,
                            in.enabled() ? in.value() : std::string_view());
   } else if (in.name() == "CRITICALITY_LEVEL") {
     int32_t value;
@@ -859,7 +860,8 @@ void global_cache_data::_process_pb_custom_variable_status(
   const otel_service_field otel_field =
       otel_service_field_of(in.service_id(), in.name());
   if (otel_field != otel_service_field::none)
-    _set_host_otel_service(in.host_id(), otel_field == otel_service_field::name,
+    _set_host_otel_service(in.host_id(), in.instance_id(),
+                           otel_field == otel_service_field::name,
                            in.value());
 }
 
@@ -869,15 +871,31 @@ void global_cache_data::_process_pb_custom_variable_status(
  * both are cleared.
  *
  * @param host_id
+ * @param instance_id originating poller, or zero for older senders.
  * @param is_name true for OTEL_SERVICE_NAME, false for OTEL_SERVICE_NAMESPACE.
  * @param value
  */
 void global_cache_data::_set_host_otel_service(uint64_t host_id,
+                                               uint64_t instance_id,
                                                bool is_name,
                                                std::string_view value) {
   SPDLOG_LOGGER_TRACE(_logger, "cache: OTel service {} of host {}: '{}'",
                       is_name ? "name" : "namespace", host_id, value);
   boost::unique_lock l(_protect);
+  /* New senders publish the host first. Check its owner while holding the
+   * same lock as the update, including when clearing a variable. Older
+   * senders have no instance id and retain their previous behavior. */
+  if (instance_id) {
+    auto host = _id_to_host->find(host_id);
+    if (host == _id_to_host->end() || !host->second.first ||
+        host->second.first->instance_id() != instance_id) {
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "cache: ignoring OTel custom variable of host {} "
+                          "from poller {}: no matching host owner",
+                          host_id, instance_id);
+      return;
+    }
+  }
   auto exist = _id_to_otel_service->find(host_id);
   if (!value.empty()) {
     if (exist == _id_to_otel_service->end())
