@@ -32,7 +32,15 @@ class cbmod_test : public com::centreon::broker::neb::cbmod {
   cbmod_test() : cbmod() {}
   ~cbmod_test() noexcept = default;
 
-  void write(const std::shared_ptr<io::data>&) {}
+  /* Events written while record is set, for tests checking what engine sends
+   * to broker. */
+  bool record = false;
+  std::vector<std::shared_ptr<io::data>> written;
+
+  void write(const std::shared_ptr<io::data>& d) override {
+    if (record)
+      written.push_back(d);
+  }
   uint64_t poller_id() const { return 1; }
   const std::string& poller_name() const { return _poller_name; }
 };

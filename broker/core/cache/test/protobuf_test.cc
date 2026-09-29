@@ -105,6 +105,8 @@ class simple_global_cache : public global_cache {
     return 0;
   }
 
+  otel_service get_otel_service(uint64_t) const override { return {}; }
+
   const dimension_ba_event* get_dimension_ba_event(uint64_t,
                                                    lock&) const override {
     return nullptr;
