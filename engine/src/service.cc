@@ -526,6 +526,7 @@ std::ostream& operator<<(std::ostream& os,
   for (size_t i{0}, end{obj.get_state_history().size()}; i < end; ++i)
     os << obj.get_state_history()[i] << (i + 1 < end ? ", " : "\n");
 
+  auto hst = obj.get_host_ptr();
   os << "  state_history_index:                  "
      << obj.get_state_history_index()
      << "\n  is_flapping:                          " << obj.get_is_flapping()
@@ -536,7 +537,7 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  modified_attributes:                  "
      << obj.get_modified_attributes()
      << "\n  host_ptr:                             "
-     << (obj.get_host_ptr() ? obj.get_host_ptr()->name() : "\"nullptr\"")
+     << (hst ? hst->name() : "\"nullptr\"")
      << "\n  event_handler_ptr:                    " << evt_str
      << "\n  event_handler_args:                   "
      << obj.get_event_handler_args()
@@ -831,11 +832,11 @@ void service::check_for_expired_acknowledgement() {
       if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of service '" << description() << "' on host '"
-            << this->get_host_ptr()->name() << "' just expired";
+            << _hostname << "' just expired";
         SPDLOG_LOGGER_INFO(
             events_logger,
             "Acknowledgement of service '{}' on host '{}' just expired",
-            description(), this->get_host_ptr()->name());
+            description(), _hostname);
         set_acknowledgement(AckType::NONE);
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
@@ -1095,6 +1096,14 @@ int service::handle_async_check_result(
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "service::handle_async_check_result() service {} res:{}",
                       name(), queued_check_result);
+
+  auto hst = get_host_ptr();
+  if (!hst) {
+    SPDLOG_LOGGER_ERROR(functions_logger,
+                        "no host for service {} => ignore check result",
+                        name());
+    return ERROR;
+  }
 
   /* get the current time */
   time_t current_time = std::time(nullptr);
@@ -1391,7 +1400,6 @@ int service::handle_async_check_result(
                        get_plugin_output());
   }
 
-  auto hst = get_host_ptr();
   /* if the service check was okay... */
   if (hst && _current_state == service::state_ok) {
     /* if the host has never been checked before, verify its status
@@ -2184,6 +2192,7 @@ void service::check_for_flapping(bool update,
 
   update_history = update;
 
+  auto hst = get_host_ptr();
   /* should we update state history for this state? */
   if (update_history) {
     if ((_current_state == service::state_ok && !get_flap_detection_on(ok)) ||
@@ -2193,7 +2202,7 @@ void service::check_for_flapping(bool update,
          !get_flap_detection_on(unknown)) ||
         (_current_state == service::state_critical &&
          !get_flap_detection_on(critical)) ||
-        (get_host_ptr()->get_current_state() != host::state_up))
+        (hst && hst->get_current_state() != host::state_up))
       update_history = false;
   }
 
@@ -2616,12 +2625,12 @@ int service::run_async_check_local(int check_options,
   if (!get_check_command_ptr()) {
     engine_logger(log_runtime_error, basic)
         << "Error: Attempt to run active check on service '" << description()
-        << "' on host '" << get_host_ptr()->name() << "' with no check command";
+        << "' on host '" << _hostname << "' with no check command";
     SPDLOG_LOGGER_ERROR(
         runtime_logger,
         "Error: Attempt to run active check on service '{}' on host '{}' with "
         "no check command",
-        description(), get_host_ptr()->name());
+        description(), _hostname);
     return ERROR;
   }
 
@@ -3848,7 +3857,7 @@ void service::resolve(uint32_t& w, uint32_t& e) {
           "Error: Host '{}' specified in service '{}' not defined anywhere!",
           _hostname, name());
       errors++;
-      set_host_ptr({});
+      set_host_ptr(nullptr);
     } else {
       /* save the host pointer for later */
       set_host_ptr(it->second);
