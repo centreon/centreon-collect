@@ -53,9 +53,21 @@ cat > "$CONFIGD/cron.d/43-centreon-helios.yaml.disabled" <<'EOF'
       timeout: 120
 EOF
 
+# DEBUG=true sets -x on the whole entrypoint; without this guard the plain
+# assignment below traces the password itself straight into `docker logs`
+# (the heredoc further down that also embeds it is not affected - set -x
+# traces the `cat` command line, never a heredoc's body).
+central_config_debug_was_on=0
+if [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then
+    central_config_debug_was_on=1
+fi
+set +x
 CENTREON_API_BASE_URL="${CENTREON_API_BASE_URL:?ERROR: CENTREON_API_BASE_URL must be set for central mode}"
 CENTREON_API_USERNAME="${CENTREON_API_USERNAME:?ERROR: CENTREON_API_USERNAME must be set for central mode}"
 CENTREON_API_PASSWORD="${CENTREON_API_PASSWORD:?ERROR: CENTREON_API_PASSWORD must be set for central mode}"
+if [ "$central_config_debug_was_on" = "1" ]; then
+    set -x
+fi
 
 # Real production splits DB connectivity into 30-centreon.yaml, which does
 # `centreon: !include /etc/centreon/config.d/*.yaml` — a directory centreon-
