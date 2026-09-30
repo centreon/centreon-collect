@@ -3575,7 +3575,7 @@ timeperiod* service::get_notification_timeperiod() const {
   /* if the service has no notification period, inherit one from the host */
   return get_notification_period_ptr()
              ? get_notification_period_ptr()
-             : _host_ptr->get_notification_period_ptr();
+             : (_host_ptr ? _host_ptr->get_notification_period_ptr() : nullptr);
 }
 
 /**
@@ -3800,7 +3800,7 @@ bool service::get_notify_on_current_state() const {
 
 bool service::is_in_downtime() const {
   return get_scheduled_downtime_depth() > 0 ||
-         _host_ptr->get_scheduled_downtime_depth() > 0;
+         (_host_ptr && _host_ptr->get_scheduled_downtime_depth() > 0);
 }
 
 void service::set_host_ptr(host* h) {
