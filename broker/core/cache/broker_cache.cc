@@ -176,10 +176,13 @@ broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
     _cache_file = std::filesystem::path{cache_dir + ".cache"};
   }
 
-  /* In legacy mode the whole cache is reloaded; in centralized mode only the
-   * persisted active downtimes are read back (the rest of the cache is rebuilt
-   * from the Engine configuration). _load_cache() handles both: it applies the
-   * heavy sections only in legacy mode but always reads active_downtimes. */
+  /* The heavy sections (instances, hosts, services, groups -- severities and
+   * tags are declared in the proto but never serialized) are reloaded only in
+   * legacy mode: in centralized mode they are rebuilt from
+   * the pollers' configurations. The state Broker owns in its own right --
+   * started downtimes, downtime-comment id counter, acknowledgements,
+   * notification states and the notification overrides -- is read back in both
+   * modes. _load_cache() handles both cases. */
   _load_cache();
 }
 
@@ -187,9 +190,11 @@ broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
  * @brief Destructor
  */
 broker_cache::~broker_cache() noexcept {
-  /* Save the cache. In legacy mode the whole cache is persisted; in centralized
-   * mode _save_cache() persists only the active downtimes (the rest is rebuilt
-   * from the Engine configuration on restart). */
+  /* Save the cache. The heavy sections are persisted only in legacy mode (in
+   * centralized mode they are rebuilt from the pollers' configurations on
+   * restart); the state Broker owns -- started downtimes, downtime-comment id
+   * counter, acknowledgements, notification states and notification
+   * overrides -- is persisted in both modes. */
   _save_cache();
 }
 
@@ -5193,8 +5198,10 @@ void broker_cache::_load_cache() {
     } else {
       absl::WriterMutexLock lck{&_mutex};
       /* The heavy cache sections are reloaded only in legacy mode; in
-       * centralized mode they are rebuilt from the Engine configuration. The
-       * active downtimes (below) are read back in both modes. */
+       * centralized mode they are rebuilt from the pollers' configurations.
+       * The Broker-owned state (below: started downtimes, comment id counter,
+       * acknowledgements, notification states, overrides) is read back in
+       * both modes. */
       if (!config::applier::state::instance().supports_centralized_conf()) {
         for (const auto& inst_pair : to_load.instances())
           _instances.insert({inst_pair.id(), instance_info{inst_pair.name()}});
@@ -5299,8 +5306,9 @@ void broker_cache::_load_cache() {
    * constructor, and the re-injection path reaches back into
    * config::applier::state::instance().cache() (via the downtime callbacks'
    * resource_exists()), which would assert: _global_cache is not assigned until
-   * make_unique<broker_cache> returns. The persisted active downtimes are kept
-   * in _pending_active_downtimes and re-injected once _global_cache is set:
+   * make_unique<broker_cache> returns. The persisted started downtimes and
+   * notification states are kept in _pending_active_downtimes /
+   * _pending_notification_states and re-injected once _global_cache is set:
    * right after construction (state::initialize_cache, covering legacy mode)
    * and again after each merge() (centralized mode, from
    * _process_engine_state). */
@@ -5317,8 +5325,10 @@ void broker_cache::_save_cache() {
   {
     absl::ReaderMutexLock lck{&_mutex};
     /* The heavy cache sections are persisted only in legacy mode; in
-     * centralized mode they are rebuilt from the Engine configuration, so only
-     * the active downtimes (below) are persisted. */
+     * centralized mode they are rebuilt from the pollers' configurations. The
+     * Broker-owned state (below: started downtimes, comment id counter,
+     * acknowledgements, notification states, overrides) is persisted in both
+     * modes. */
     if (!config::applier::state::instance().supports_centralized_conf()) {
       for (const auto& [id, info] : _instances) {
         auto* inst_pair = to_save.add_instances();
