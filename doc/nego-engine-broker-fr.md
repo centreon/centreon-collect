@@ -56,12 +56,13 @@ Négociation entre Engine et Broker
       * [Arrêt](#arrêt)
 * [Streams sql/storage](#streams-sqlstorage)
 * [Cache centralisé Broker](#cache-centralisé-broker)
-  * [Fonctionnement en configuration centralisée](#fonctionnement-en-configuration-centralisée)
+  * [Alimentation du cache](#alimentation-du-cache)
+  * [Ce qui est persisté à l'arrêt](#ce-qui-est-persisté-à-larrêt)
   * [Renseignement du `poller_id` des hosts dans le cache](#renseignement-du-poller_id-des-hosts-dans-le-cache)
     * [Le problème](#le-problème)
     * [Le correctif — deux changements complémentaires](#le-correctif--deux-changements-complémentaires)
     * [Pourquoi le diff global n'a pas de `poller_id`](#pourquoi-le-diff-global-na-pas-de-poller_id)
-  * [Fonctionnement en mode *legacy*](#fonctionnement-en-mode-legacy)
+  * [Mode *legacy*](#mode-legacy)
   * [Evolutions possibles](#evolutions-possibles)
 * [Rétention et stream RRD](#rétention-et-stream-rrd)
   * [Problème actuel](#problème-actuel)
@@ -157,6 +158,7 @@ Négociation entre Engine et Broker
     * [Règles d'escalade](#règles-descalade)
     * [pb\_notification\_execute](#pb_notification_execute)
   * [Stratégie de test](#stratégie-de-test)
+  * [Prérequis 5 : élimination de `retention.dat`](#prérequis-5--élimination-de-retentiondat)
 * [Poller HA](#poller-ha)
   * [Arborescence de configuration des pollers](#arborescence-de-configuration-des-pollers)
   * [Auto-surveillance d'Engine](#auto-surveillance-dengine)
@@ -2541,7 +2543,7 @@ sequenceDiagram
     S->>CACHE: destruction de _global_cache → ~broker_cache
     activate CACHE
     CACHE->>CACHE: _save_cache() → écrit <cache_dir>.cache
-    Note over CACHE: active_downtimes persistés dans les deux modes<br/>sections lourdes seulement en mode legacy
+    Note over CACHE: sections 8-14 persistées dans les deux modes<br/>sections lourdes seulement en mode legacy<br/>(voir « Ce qui est persisté à l'arrêt »)
     deactivate CACHE
 ```
 
@@ -2557,130 +2559,190 @@ avec le stream unifié SQL et que les tests soient adaptés en conséquence.
 
 # Cache centralisé Broker
 
-## Fonctionnement en configuration centralisée
+## Alimentation du cache
 
-Comme les caches avant l'introduction du cache centralisé stockaient des `neb::services`, `neb::hosts`, le nouveau
-cache va aussi contenir ces événements. Ça impose des conversions à partir de la configuration, mais vu le besoin
-du Lua, il est difficile de faire autrement.
+Le cache global (`broker_cache`) est possédé par `config::applier::state` et
+partagé par tous les modules du processus. Comme les anciens caches de stream
+stockaient des `neb::host`, `neb::service` et consorts, il contient les mêmes
+messages, sous leur forme protobuf (`pb_host`, `pb_service`, groupes, sévérités,
+tags, mappings). Cela impose des conversions depuis la configuration, mais le
+stream Lua expose ces objets tels quels et il est difficile de faire autrement.
 
-Le cache global, contrairement à la situation d'avant, n'est plus mis à jour par des `neb::services` et autres,
-c'est essentiellement la configuration qui le remplit puis des `service_status`, `host_status` pour quelques mises
-à jour.
+Il est alimenté par trois sources, dans cet ordre au cours de la vie du
+processus.
 
-Cette mise à jour est faite dans le multiplexeur. Quand son *engine* reçoit les événements, il en profite pour mettre
-à jour le cache.
+**1. La configuration des pollers.** C'est elle qui crée et supprime les
+objets. Elle arrive sous deux formes :
 
-Il faut aussi regarder comment la configuration agit sur le cache.
+* un `State` complet, appliqué par `merge()`, qui remplace tout ce que le poller
+  définit. Au démarrage, `broker_state` relit les `<poller_id>.prot` stockés et
+  les fusionne un à un (`_merge_stored_config_in_cache`). En cours de vie, un
+  `pb_engine_state` envoyé par un Engine qui redémarre est traité par
+  `stream::_process_engine_state` d'unified_sql, qui fait le `merge()` puis
+  réécrit la configuration en base ;
+* une différence `DiffState`, appliquée par `apply()`. Quand un poller acquitte
+  sa nouvelle configuration, `broker_stream` renomme `new-<ID>.prot` en
+  `<ID>.prot` puis appelle `broker_state::apply_poller_diff_in_cache()`. Le
+  cache suit donc la différence acquittée **avant** que le diff global soit
+  publié, de sorte que quiconque traite ce diff global trouve un cache déjà à
+  jour. La différence est la seule forme qui dise ce qu'un export a retiré, d'où
+  son emploi plutôt qu'un `pb_engine_state`.
 
-Ce diagramme est à mettre à jour avec la mise à jour du cache...
+`merge()` comme `apply()` recréent l'entrée d'un host ou d'un service à partir
+de la configuration (`_fill_host`). L'état de check qu'elle portait est perdu à
+ce moment-là, jusqu'au prochain status ; voir
+[Ce qui n'est pas persisté](#ce-qui-nest-pas-persisté).
 
-```mermaid
-sequenceDiagram
-    participant E1 as Engine 1
-    participant E2 as Engine 2
-    participant B as Broker
-    participant C as Broker Cache
-    participant php
-    php ->> B: Envoi de configurations pour E1 et E2
-    B ->> B: Validation des confs E1 & E2<br/>(parse + expand + resolve)
-    Note right of B: Une configuration invalide est refusée :<br/>ni new-X.prot, ni diff, son X.lck est consommé.
-    B ->> B: Calcul de la différence de conf de E1
-    B ->> B: Calcul de la différence de conf de E2
-    B ->> B: Calcul de la différence globale.
-    Note right of B: La différence globale est très utile pour<br/>la mise à jour de la base de données
-    par Envoi diff conf à E1
-        B ->> E1: nouvelle configuration pour E1
-        E1 ->> B: Acquittement avec un event BBDO
-        Note right of E1: Engine vient de récupérer la configuration.<br/> Il acquitte avec un event BBDO<br/>afin que l'event n'attende pas en queue.
-    and Envoi diff conf à E2
-        B ->> E2: nouvelle configuration pour E2
-        E2 ->> B: Acquittement avec un event BBDO
-        Note right of E2: Engine vient de récupérer la configuration.<br/> Il acquitte avec un event BBDO<br/>afin que l'event n'attende pas en queue.
-    and Traitement des messages par le multiplexeur
-        loop Boucle principale du multiplexeur
-            E1 ->> B: Message venant de E1
-            activate B
-            B ->> C: Mise à jour du cache à partir du message
-            Note right of B: Nouveauté dans<br/>ce diagramme
-            deactivate B
-            E2 ->> B: Message venant de E2
-            activate B
-            B ->> C: Mise à jour du cache à partir du message
-            Note right of B: Nouveauté dans<br/>ce diagramme
-            deactivate B
-        end
-    end
+**2. Les événements, via le multiplexeur.** Après avoir distribué un lot aux
+muxers, le moteur de multiplexing appelle `cache().publish(lot)`. Le cache
+traite lui-même les événements qui le concernent, dans `_publish()` : status
+d'hôte et de service (état, sortie, perfdata, `last_check`, flapping,
+compteurs de notification…), acquittements, sévérités, tags, groupes et
+adhésions, `index_mapping` et `metric_mapping`, dimensions BAM, et le diff
+global `pb_global_diff_state`. Il n'y a donc ni thread ni abonnement dédié : la
+mise à jour est faite dans le fil du multiplexeur, avant la remise du lot au
+driver de notification en `notification_mode=broker`, qui compte sur un cache
+déjà à jour.
 
-    B ->> B: Préparation de la DB à partir du diff global.<br/>Tous les changements sont traités d'un coup.
-    activate B
-    B ->> C: Mise à jour du cache à partir du diff global.
-    deactivate B
-    E1 ->> B: neb::InstanceConfiguration
-    Note right of E1: A partir de maintenant,<br/> tous les events sont compatibles<br/> avec la nouvelle conf.
-    E2 ->> B: neb::InstanceConfiguration
-    Note right of E2: A partir de maintenant,<br/> tous les events sont compatibles<br/> avec la nouvelle conf.
-```
-
-Le comportement de `Broker` est adapté avec l'ajout du cache centralisé.
-
-**Remarques.**
-
-1. Un point intéressant est de voir si on peut appliquer un DiffState au cache directement avant même l'écriture
-en base de données. Ça simplifierait l'écriture du cache. Par contre, cela peut poser des soucis au moment
-de la mise à jour de la base de données car elle utilise beaucoup le cache.
-
-2. Sinon, on peut mettre le cache à jour au fur et à mesure de l'écriture dans la base de données. Mais que
-se passe t-il si un jour la base est supprimée ?
-
-Dans le cas où la mise à jour du cache est faite en amont de l'écriture en base de données, on obtient le schéma
-suivant :
+**3. unified_sql, pour les mappings.** Les `index_mapping` et `metric_mapping`
+ne sont pas dans le fichier de cache : ils vivent en base, où PHP peut aussi
+écrire. Au démarrage, `stream::_load_caches` les lit en SQL et les **republie**
+comme événements `pb_index_mapping` / `pb_metric_mapping` dans le multiplexeur.
+Le cache les reçoit par la source 2, sans faire lui-même de requête SQL, et les
+brokers voisins connectés en BBDO les reçoivent aussi : un stream Lua déporté
+dispose donc de l'`index_mapping`. La seule écriture directe d'unified_sql dans
+le cache est `update_host(pb_host)` dans `_process_host`, sur le chemin BBDO2.
 
 ```mermaid
 sequenceDiagram
-    participant S as State Applier
-    participant BBDO as BBDO Stream
-    participant USQL as Unified SQL Stream
+    participant BS as broker_state
+    participant BBDO as broker_stream
+    participant MUX as multiplexeur
+    participant C as broker_cache
+    participant USQL as unified_sql
 
-    par Côté State applier
-        par Thread principal de Broker
-            S ->> S: add_peer
-            note right of S: Ajout d'un nouveau poller.<br/>Démarrage du timer inotify si nécessaire.
-        and Worker de configuration
-            loop À chaque annonce (regroupée), ou 5 min
-                S ->> S: _run_config_cycle(lot)
-                note right of S: Lot venu des X.lck regroupés<br/>ou d'un pollers.lck lu d'un coup.<br/>Préparation des new-ID.prot et diff-ID.prot
-            end
-        end
-    and Lecture sur le stream BBDO
-        BBDO ->> BBDO: read()
-        activate BBDO
-        BBDO ->> BBDO: lecture d'événements
-        BBDO ->> BBDO: traitement des événements BBDO
-        alt Cas d'un acquittement de configuration reçu
-            BBDO ->> BBDO: mise à jour de la liste des peers<br/>pour signifier que le poller est à jour.
-            alt Tous les pollers sont à jour
-                BBDO ->> BBDO: préparation du diff global
-                BBDO ->> BBDO: suppression des fichiers diff-ID.prot
-                BBDO ->> S: Application du diff global au cache
-                BBDO ->> USQL: Envoi du diff global
-            end
-        end
-        alt Nouvelle configuration disponible pour le poller
-            BBDO ->> BBDO: lecture du fichier diff-ID.prot
-            BBDO ->> BBDO: envoi de la différence de configuration<br/>au poller
-            BBDO ->> S: Mise à jour de la liste des peers<br/>pour ne pas l'envoyer une seconde fois.
-        end
-        deactivate BBDO
-    and Lecture sur le stream Unified SQL
-        USQL ->> USQL: read()
-        activate USQL
-        USQL ->> USQL: lecture d'événements
-        alt Cas d'un diff global reçu
-            USQL ->> USQL: mise à jour de la base de données<br/>à partir du diff global
-        end
-        deactivate USQL
+    Note over BS,C: Démarrage
+    BS ->> C: merge(State) pour chaque <ID>.prot stocké
+    USQL ->> USQL: _load_caches() : SELECT index_data, metrics
+    USQL ->> MUX: publie pb_index_mapping / pb_metric_mapping
+    MUX ->> C: publish(lot) → update_index_mapping / update_metric_mapping
+
+    Note over BS,USQL: Cycle de configuration
+    BBDO ->> BBDO: pb_diff_state_ack du poller N
+    BBDO ->> BBDO: renomme new-N.prot → N.prot
+    BBDO ->> BS: apply_poller_diff_in_cache(N)
+    BS ->> C: apply(DiffState de N)
+    alt tous les pollers ont acquitté
+        BBDO ->> MUX: publie pb_global_diff_state
+        MUX ->> C: publish(lot) → apply(diff global)
+        MUX ->> USQL: pb_global_diff_state
+        USQL ->> USQL: database_configurator::process_diff → base
     end
+
+    Note over MUX,C: Régime permanent
+    MUX ->> C: publish(lot) : status, acks, groupes, tags, sévérités…
+    Note over C: état de check tenu en mémoire seulement
 ```
+
+Le diff global atteint donc le cache deux fois : par poller à l'acquittement,
+puis en entier via le multiplexeur. `apply()` doit rester idempotent pour que
+ce second passage soit sans effet.
+
+## Ce qui est persisté à l'arrêt
+
+Trois fichiers sont écrits par `cbd` à l'arrêt propre. Aucun n'est réécrit
+périodiquement : un crash laisse la version du dernier arrêt propre, ou aucun
+fichier au premier démarrage.
+
+| Fichier | Écrit par | Contenu | Après un crash |
+|---|---|---|---|
+| `<cache_dir>.cache` | `~broker_cache` (`_save_cache`, appelé depuis `~state`) | message protobuf `BrokerCache` (`bbdo/neb.proto`), détaillé ci-dessous | version du dernier arrêt propre ; les downtimes démarrés, acks et états de notification sont donc périmés |
+| `<pollers_config_dir>/topology.cache` | `~broker_state` (`save_topology_cache`) | paires `poller_id → remote_id`, voir [Persistance de la topologie](#persistance-de-la-topologie) | absent ou périmé, non bloquant : simple indice |
+| `<cache_dir>.cache.centreon-bam-monitoring` | `~monitoring_stream` (`_write_cache`) | états des BA/KPI, voir [Le démarrage, dans les deux régimes](#le-démarrage-dans-les-deux-régimes) | version du dernier arrêt propre |
+
+### Contenu du `.cache`
+
+Le message `BrokerCache` a quatorze sections. Cinq sont réservées au mode
+*legacy* : en configuration centralisée le cache est reconstruit à partir des
+`.prot` des pollers, elles ne sont donc ni écrites ni lues. Deux sont déclarées
+mais mortes : sévérités et tags ne sont jamais sérialisés, dans aucun mode. Les sept autres
+sont écrites et relues dans les deux modes : elles portent l'état que Broker
+possède en propre et qu'aucune configuration ne saurait reconstruire.
+
+| # | Section | Mode | Ce qu'elle porte |
+|---|---|---|---|
+| 1 | `instances` | legacy | `(id, name)` des pollers |
+| 2 | `severities` | aucun | déclarée dans le proto, **jamais écrite ni relue** |
+| 3 | `tags` | aucun | déclarée dans le proto, **jamais écrite ni relue** |
+| 4 | `hosts` | legacy | message `Host` complet, dont l'état de check |
+| 5 | `services` | legacy | message `Service` complet, dont l'état de check |
+| 6 | `hostgroups` | legacy | groupe, pollers, membres |
+| 7 | `servicegroups` | legacy | groupe, pollers, membres |
+| 8 | `active_downtimes` | les deux | downtimes **démarrés** (`is_in_effect()`), avec leur `comment_id` |
+| 9 | `next_downtime_comment_id` | les deux | compteur des commentaires fabriqués par Broker (base `0x3FFFFFFF`) |
+| 10 | `acknowledgements` | les deux | la map des acquittements vivants |
+| 11 | `notification_states` | les deux | chaînes de notification vivantes : numéro, id courant, dernière, prochaine, événements |
+| 12 | `notification_overrides` | les deux | bascules `notify` et `notification_period` posées par commande externe sur un host ou un service |
+| 13 | `contact_notification_overrides` | les deux | bascules et périodes de notification posées sur un contact |
+| 14 | `poller_notification_overrides` | les deux | `ENABLE/DISABLE_NOTIFICATIONS` global par poller |
+
+Les sections 8 et 11 ne sont pas alimentées par le cache lui-même mais remises
+par `~broker_state`, juste avant la destruction du cache : les downtimes en
+cours viennent de `downtime_manager::get_scheduled_downtimes()` filtrés sur
+`is_in_effect()`, les états de notification de
+`notification_manager::snapshot_states()`, qui ne garde que les chaînes non
+vides. Les sections 9, 10, 12, 13 et 14 vivent dans le cache en permanence.
+
+### Réinjection au démarrage
+
+`_load_cache()` s'exécute dans le constructeur du cache, avant que
+`_global_cache` soit affecté : il ne fait que ranger les sections 8 et 11 dans
+des tampons `_pending_*`. La réinjection dans les gestionnaires a lieu plus
+tard, à deux endroits selon le mode, et toujours **à l'intérieur de Broker** :
+
+* mode *legacy* : `broker_state::_on_barrier_released()` ;
+* configuration centralisée : `stream::_process_engine_state()` d'unified_sql,
+  après le `merge()` de la configuration du poller.
+
+Dans les deux cas, l'ordre est : downtimes (`reinject_pending_downtimes` →
+`downtime_manager::reload_started_downtime`, qui conserve id et `comment_id`
+puis recalcule la profondeur), états de notification
+(`reinject_pending_notification_states` → `notification_manager::restore()`),
+acquittements (`reinject_pending_acknowledgements`, qui remet
+`acknowledgement_type` sur la ressource et publie un `pb_adaptive_*_status`
+pour la base), puis overrides de notification.
+
+**Rien de tout cela ne redescend vers Engine.** En `notification_mode=broker`,
+Engine n'est jamais informé des acquittements ni des états de notification ;
+il n'en a pas besoin puisque la décision est prise par Broker. Les seuls
+messages descendants sont `pb_diff_state`, `pb_notification_execute` et
+`pb_external_command`.
+
+Le fichier de cache est aussi la **seule** source de restauration : Broker ne
+relit jamais les tables `downtimes`, `acknowledgements`, `comments` ni les
+colonnes d'état de `hosts`/`services`/`resources` au démarrage. `_load_caches`
+d'unified_sql ne lit que `instances`, `index_data`, `metrics`, les ids de
+`resources`, `severities` et `tags`.
+
+### Ce qui n'est pas persisté
+
+* **L'état de check des ressources** (état, `state_type`, tentative,
+  `last_check`, sortie, perfdata, historique de flapping…). Le cache le tient
+  en mémoire via `update_host(pb_host_status)`, mais en configuration
+  centralisée il n'est jamais écrit, et il est **perdu à chaque `merge()`**
+  puisque `_fill_host` recrée l'entrée depuis la configuration. Il ne survit que
+  dans la base et dans le `retention.dat` local du poller.
+* **Les downtimes futurs**, dont la fenêtre n'a pas commencé : ils ne sont ni
+  dans le cache ni relus depuis la base. Après un redémarrage de Broker, seule la
+  table `downtimes` en garde trace.
+* **Les overrides d'attributs modifiés** autres que ceux de notification :
+  bascules de checks actifs/passifs, event handler, flap detection, obsess,
+  changements de commande, d'intervalles, de `max_attempts`, de custom
+  variables, sensibilité des anomalydetection. Le cache les reçoit par
+  `pb_adaptive_host` mais ne les écrit pas.
+
+Ces trois points sont exactement ce qui empêche de supprimer le `retention.dat`
+du poller ; voir [Soucis potentiels à résoudre](#soucis-potentiels-à-résoudre).
 
 ## Renseignement du `poller_id` des hosts dans le cache
 
@@ -2765,87 +2827,42 @@ diff global porte son propre `poller_id` (positionné par l'estampillage ci-dess
 de sorte que l'association par host est préservée même si l'identifiant au niveau
 du message est absent.
 
-## Fonctionnement en mode *legacy*
+## Mode *legacy*
 
-Si la configuration centralisée n'est pas activée, le cache doit remplacer les anciens
-caches de stream de manière assez analogue. Ce ne sera pas à l'identique, on sait qu'on peut
-perdre avec le nouveau cache la synchronisation entre un poller et le central pendant
-des mises à jour de configuration.
+Sans configuration centralisée, le cache remplace les anciens caches de stream de
+manière analogue, mais pas à l'identique : il peut perdre la synchronisation
+entre un poller et le central pendant une mise à jour de configuration, faute
+d'acquittement.
 
-Lorsqu'un Engine démarre, il envoie sa configuration au Broker. Le cache est donc mis
-à jour. Par contre, si le broker est redémarré, le cache est perdu. Le cache doit
-donc être sauvegardé sur le disque lors de l'arrêt de Broker de manière à pouvoir
-être rechargé à l'identique au redémarrage de Broker.
+Les différences avec le mode centralisé tiennent en trois points :
 
-Dans le cas *legacy*, on obtient donc un fonctionnement de la forme :
+* **La source 1 est le poller lui-même.** Un Engine qui démarre envoie ses
+  objets (`pb_instance`, `pb_host`, `pb_service`, groupes…) et c'est
+  `_publish()` qui les range, il n'y a ni `.prot` ni `DiffState`.
+* **Les sections lourdes sont persistées.** Comme rien ne permet de reconstruire
+  le cache sans les pollers, `_save_cache()` écrit aussi les sections 1 et 4 à 7
+  (instances, hosts, services, groupes) et `_load_cache()` les relit. Sévérités
+  et tags ne sont pas sauvegardés : un redémarrage legacy les perd jusqu'au
+  prochain envoi par les pollers. En centralisé, ces sections sont reconstruites depuis les `.prot` et
+  ignorées. Les sections 8 à 14 sont écrites et relues dans les deux modes ; voir
+  [Ce qui est persisté à l'arrêt](#ce-qui-est-persisté-à-larrêt).
+* **La réinjection** des downtimes, états de notification, acks et overrides a
+  lieu dans `broker_state::_on_barrier_released()`, et non dans
+  `_process_engine_state`.
 
-```mermaid
-sequenceDiagram
-    participant S as State Applier
-    participant BBDO as BBDO Stream
-    participant USQL as Unified SQL Stream
-
-    alt Si configuration centralisée désactivée
-        activate S
-        S ->> S: _load_cache()
-        note right of S: Chargement du cache depuis<br/>le fichier sur disque.
-        deactivate S
-    end
-    par Dans le Thread principal de Broker
-        S ->> S: add_peer
-        note right of S: Ajout d'un nouveau poller.
-    and Lecture sur le stream BBDO
-        BBDO ->> BBDO: read()
-        activate BBDO
-        BBDO ->> BBDO: lecture d'événements
-        BBDO ->> BBDO: traitement des événements BBDO
-        deactivate BBDO
-    and Lecture sur le stream Unified SQL
-        USQL ->> USQL: read()
-        activate USQL
-        USQL ->> USQL: lecture d'événements
-        deactivate USQL
-        activate S
-        alt Arrêt de Broker et configuration centralisée désactivée
-            S ->> S: _save_cache()
-            note right of S: Sauvegarde du cache dans<br/>un fichier sur disque.
-        end
-        deactivate S
-    end
-```
-
-Un point d'attention sur le mode *legacy* et peut-être aussi en configuration centralisée concerne
-les index mappings et les metric mappings. Ces deux objets sont stockés de manière très complète dans
-le cache d'`unified_sql`. Ils sont obtenus en grande partie grace à une requête SQL faite lors du démarrage
-du stream.
-
-Lorsque les autres streams utilisent ces deux informations, ils en utilisent une petite partie.
-
-Plusieurs points :
-
-* inutile de sauvegarder dans le fichier de cache ces informations puisqu'elles sont récupérées au démarrage et
-qu'elles seront beaucoup plus à jour. Surtout que le php peut aussi y écrire directement.
-* cela signifie aussi que le cache, même s'il est en grande partie mis à jour par la configuration et par les envois
-d'`engine`, est aussi mis à jour par les requêtes SQL faites au démarrage d'`unified_sql` et pour le moment il
-semble difficile de s'en passer.
-* Le plus simple est de mettre à jour les metrics et `index_mapping` qu'en passant par `unified_sql`. Et le cache n'a
-pas à faire de requête SQL pour les récupérer.
-
-En dehors de `unified_sql`, le seul stream à utiliser `index_mapping` est le stream lua.
-
-Habituellement, ce stream est sur le broker central donc il a bien accès à la donnée.
-
-Par contre, le jour où on veut déplacer le stream lua sur un broker déporté, `index_mapping` n'est plus
-disponible.
+Les sources 2 et 3 sont identiques dans les deux modes.
 
 ## Evolutions possibles
 
-Plutôt que d'accéder au cache en écriture depuis `unified_sql`, on pourrait passer par le multiplexeur.
-L'`index_mapping` pourrait être transmis aux brokers voisins. Ça résoudrait déjà le souci du stream lua.
+Une évolution serait que le cache devienne un module Broker à part entière,
+porté par un broker, auquel les brokers voisins accéderaient en lecture et en
+écriture par messages BBDO. Cette solution prend son sens avec un cluster de
+brokers. Rien n'est engagé dans cette direction : aujourd'hui, chaque processus
+`cbd` a son propre cache, alimenté par ce qui transite dans son multiplexeur.
 
-Une seconde évolution serait que le cache devienne un module broker. Ce cache pourrait être porté par un broker
-et les brokers voisins pourraient y accéder en lecture/écriture via des messages BBDO. Cette solution est
-particulièrement intéressante avec le cluster de brokers.
+L'idée de transmettre l'`index_mapping` aux brokers voisins par le multiplexeur
+plutôt que d'écrire dans le cache depuis unified_sql est réalisée, voir la
+source 3 ci-dessus.
 
 # Rétention et stream RRD
 
@@ -4190,15 +4207,17 @@ disparaît — il n'existe plus de copie côté Engine susceptible de se désync
 
 ## Persistance
 
-Broker stocke les downtimes et acquittements dans sa base de données persistante, y compris les
-downtimes futurs dont la fenêtre n'a pas encore commencé. Au redémarrage de Broker, ces objets
-sont rechargés depuis la base — aucune interaction avec Engine n'est nécessaire.
+Les downtimes et acquittements sont écrits en base pour l'affichage, mais ce n'est pas la base
+qui sert à les restaurer : au redémarrage, Broker relit son fichier `<cache_dir>.cache`, qui
+contient les downtimes **démarrés**, les acquittements vivants et les états de notification
+(voir [Ce qui est persisté à l'arrêt](#ce-qui-est-persisté-à-larrêt)). Les downtimes futurs ne
+sont ni dans ce fichier ni relus depuis la base. Aucune interaction avec Engine n'est nécessaire.
 
 ## Migration et downtimes / acquittements
 
 Aucune action n'est requise lors d'une migration de host. Les downtimes et acquittements vivent
 dans la base de Broker et restent accessibles quel que soit le poller qui supervise le host
-après la migration. Le `MigrationStateSnapshot` ne contient aucune donnée de downtime ou
+après la migration. Le `RuntimeState` ne contient aucune donnée de downtime ou
 d'acquittement en mode configuration centralisée.
 
 ## Pilotage de la décision de notification côté Broker
@@ -5208,6 +5227,117 @@ Les deux modes sont validés sur des zones mono-poller avant de commencer le tra
 Une fois les deux modes stables, le Poller HA peut être implémenté avec la certitude que
 l'infrastructure de notification et de downtime est solide.
 
+## Prérequis 5 : élimination de `retention.dat`
+
+Dernier des cinq prérequis au Poller HA. Le `retention.dat` local d'un poller ne survit pas au
+changement de poller d'une ressource : le poller cible n'a pas le fichier. Il faut donc que l'état
+runtime des ressources soit détenu par Broker et redescende au poller qui en a besoin. Design
+discuté et arrêté le 2026-09-30 ; rien n'est implémenté à ce jour.
+
+### État des lieux
+
+Ce que `retention.dat` porte, par famille, et son sort en configuration centralisée :
+
+| Famille | Contenu | Sort |
+|---|---|---|
+| Notifications, acquittements, overrides de notification, downtimes, contacts | dernière notification, numéro, `notified_on`, slots `notification_0..5`, `acknowledgement_*`, `notifications_enabled`, `notification_period`, blocs downtime, dates de notification des contacts | **Déjà chez Broker** (sections 8 à 14 du `.cache`, voir [Ce qui est persisté à l'arrêt](#ce-qui-est-persisté-à-larrêt)). Poids mort côté Engine en `notification_mode=broker` |
+| État de check | état courant, `last_hard_state`, `state_type`, tentative, `last_check`, `last_*_change`, sortie, perfdata, temps d'exécution, ids d'événement et de problème, historique de flapping | **Le trou.** Broker l'a en mémoire par les status mais ne le persiste pas en centralisé, le perd à chaque `merge()`, et aucun message descendant ne le porte |
+| Overrides « modified_attributes » | checks actifs/passifs, event handler, flap detection, obsess, commande, intervalles, `max_attempts`, période de check, custom variables modifiées, sensibilité des anomalydetection | Broker les reçoit par `pb_adaptive_host` mais ne les persiste pas. Rien de descendant |
+| Scheduling | `next_check`, `check_options` | Quasi inerte : `use_retained_scheduling_info` est faux par défaut et le scheduler écrase `next_check` |
+| Program | flags globaux, compteurs `next_*_id` | Flags **déjà inertes** : l'applier écrit des globals legacy que le runtime ne lit plus. Seuls les compteurs servent |
+
+Deux faits cadrent le design. `retention.dat` est écrit toutes les 60 minutes et à l'arrêt
+propre, sans fichier temporaire ni renommage : Broker, alimenté par événement, est plus frais que
+lui, et la base `centreon_storage` plus fraîche encore après un crash, puisque le `.cache` date du
+dernier arrêt propre. Et la base porte déjà presque tout : les tables `hosts`, `services` et
+`resources` ont une colonne pour chaque champ d'état de `pb_host` et `pb_service`, à neuf
+exceptions près qui sont toutes de la configuration (`recovery_notification_delay`, `timezone`
+et `dependent_service_id` des services, `alias` et `poller_id` des groupes, `engine_config_version`,
+`password` des custom variables) ou dérivables (`long_output`, concaténé dans `output` ;
+`host_name`).
+
+L'inventaire de l'applier de rétention a aussi montré qu'il est déjà à moitié cassé, ce qui plaide
+pour le remplacer plutôt que le réparer : `is_command_exist` retourne toujours faux, les flags du
+bloc program vont dans des globals morts, la condition sur `last_hard_state_change` est inversée
+côté service, la branche event handler du host appelle `set_check_command`, et le masque host
+s'applique aux services.
+
+### Cible
+
+Quatre étapes, dans cet ordre.
+
+**Étape 1 — un module « référence » alimente l'état du cache depuis la base.** Voir
+[Alimentation du cache](#alimentation-du-cache) pour les trois sources actuelles. En
+configuration centralisée, les `.prot` donnent au cache ses objets mais pas leur état ; la base
+a l'état. Le module unified_sql, déclaré référence, lit au démarrage les colonnes d'état de
+`hosts`, `services` et `resources` et les **superpose** aux entrées que le cache possède déjà.
+Il ne crée ni ne supprime rien : une ligne sans entrée en cache est un objet supprimé ou un
+poller retiré, une entrée sans ligne est un objet nouveau dont le premier status viendra. La
+colonne `enabled` ne compte pas dans ce mode. L'écriture se fait **directement dans le cache**,
+dans `_load_caches` donc pendant le premier `open()` du stream, avant `notify_output_ready` :
+la barrière de démarrage l'attend sans mécanisme nouveau, et le multiplexeur, pas encore
+démarré, n'est pas sollicité, ce qui évite de fabriquer 200 000 pseudo-status que unified_sql
+recevrait en retour.
+
+Le legacy n'est pas concerné : rien ne remplit le cache avant unified_sql, et le `.cache` y
+porte déjà les messages `Host` et `Service` complets, donc l'état. On le garde tel quel. Le
+flag référence et son arbitrage n'ont de sens qu'en centralisé.
+
+*Arbitrage.* Si plusieurs modules se déclarent référence, le premier déclaré l'emporte : la
+déclaration renvoie un booléen, les suivants reçoivent faux, loguent un avertissement nommant
+l'élu et ne chargent rien. Pas d'erreur bloquante, une configuration fausse ne doit jamais
+empêcher Broker de démarrer. Attention : `_endpoints` est un `btree_map` trié par
+`endpoint::operator<`, l'ordre du fichier de configuration n'est donc pas garanti tel quel, à
+vérifier au moment de coder.
+
+*Base injoignable au premier `open()`.* La barrière lâche au timeout, les status des pollers
+commencent à arriver, et la superposition se fait plus tard, à la connexion réussie. Elle ne
+doit alors remplir que les entrées encore vierges, ou comparer `last_check`, pour ne pas
+remettre un état vieux sur un état neuf.
+
+*`merge()` et `apply()` conservent l'état.* Aujourd'hui ils recréent l'entrée depuis la
+configuration et perdent les champs runtime. Ils doivent les reprendre de l'entrée remplacée,
+sinon la superposition du démarrage est perdue au premier `pb_engine_state`.
+
+*`broker_cache::on_ready`.* Un module qui a besoin du cache complet n'a pas à connaître la
+barrière. Le cache expose `on_ready(callback)`, exécuté tout de suite si le cache est déjà
+prêt, sinon à `set_ready()`, appelé une fois par `broker_state::_on_barrier_released`. Les
+callbacks tournent hors du mutex du cache et chaque abonné poste lui-même sur son exécuteur.
+BAM en est le premier client : il charge les définitions de BA et KPI dans `open()` puis lit
+l'état initial des KPI dans `on_ready`, et abandonne son rattrapage SQL sur hosts et services,
+dans les deux modes. C'est ce qui uniformise le comportement de cbd : un module attend le
+cache, et ce qui le remplit derrière est l'affaire du noyau. La dépendance
+`broker_module_parents` ne convenait pas : elle n'ordonne que le `dlopen`, alors que les
+sorties s'ouvrent ensuite en parallèle, chacune dans son thread de failover.
+
+**Étape 2 — un snapshot descendant dans `DiffState`.** Le message `RuntimeState`
+décrit dans [Préservation de l'état lors de la migration](#préservation-de-létat-lors-de-la-migration)
+est envoyé **à chaque connexion d'un poller**, et non seulement en migration : c'est ce qui
+remplace `retention.dat` au démarrage ordinaire. Engine l'applique après la configuration, là
+où la rétention s'appliquait.
+
+**Étape 3 — les overrides d'attributs modifiés.** La base a `modified_attributes` et les
+colonnes correspondantes ; le module référence les recharge par le même chemin que l'état de
+check, et le snapshot les redescend. La sensibilité des anomalydetection en fait partie.
+
+**Étape 4 — Engine.** En configuration centralisée, Engine cesse de lire `retention.dat` dès
+qu'un snapshot arrive, et continue de l'écrire en filet jusqu'à validation. Le scheduling et
+les flags du bloc program ne sont pas repris. Le sort des compteurs `next_*_id` reste à décider.
+Le legacy et BBDO2 sont inchangés.
+
+### Ce qui reste hors du snapshot
+
+Acquittements, downtimes démarrés et chaînes de notification restent dans le `.cache` : leur
+sémantique est propre à Broker et la base ne porte pas la chaîne de notification. Les downtimes
+futurs ne sont persistés nulle part côté Broker hors base, c'est un trou connu, indépendant de ce
+prérequis.
+
+### Tests concernés
+
+`SDER`, les six `ANO_*`/`CANO_*_SENSITIVITY_*`, `BECMT_RETENTION` et `BECMT_RETENTION_ACK`
+dépendent du contenu de `retention.dat`. Les 98 fichiers qui appellent `Ctn Clear Retention` ne
+font que du nettoyage.
+
 # Poller HA
 
 > Ce chapitre décrit le **mécanisme** de la HA des pollers (zones,
@@ -5836,7 +5966,7 @@ message ServiceRuntimeState {
   int32  current_notification_number = 13;  // mode legacy uniquement
 }
 
-message MigrationStateSnapshot {
+message RuntimeState {
   repeated HostRuntimeState    hosts            = 1;
   repeated ServiceRuntimeState services         = 2;
   repeated Downtime            downtimes        = 3;  // mode non-HA uniquement
@@ -5847,7 +5977,7 @@ message MigrationStateSnapshot {
 // Broker y embarque l'état de son cache pour les hosts/services ajoutés.
 message DiffState {
   // ... champs existants (hosts, services, hostgroups, etc.) ...
-  optional MigrationStateSnapshot runtime_state = N;
+  optional RuntimeState runtime_state = N;
 }
 ```
 
@@ -5874,7 +6004,7 @@ dans `centreon_storage.downtimes` / `centreon_storage.acknowledgements`.
 Ce chemin ne change pas. Les déploiements existants continuent de fonctionner sans modification.
 
 Lors d'une migration de host, Broker lit les downtimes et acquittements actifs depuis
-`centreon_storage` et les inclut dans `MigrationStateSnapshot` (champs 3 et 4). Le moteur
+`centreon_storage` et les inclut dans `RuntimeState` (champs 3 et 4). Le moteur
 récepteur recrée ces enregistrements localement avant son premier check.
 
 #### notification_mode = broker
@@ -5914,7 +6044,7 @@ le host après la migration.
 comme indicateurs d'affichage pour l'UI, mais Engine ne prend aucune décision sur leur base
 quand notification_mode=broker.
 
-Les champs 3 et 4 de `MigrationStateSnapshot` (`downtimes`, `acknowledgements`) ne sont pas
+Les champs 3 et 4 de `RuntimeState` (`downtimes`, `acknowledgements`) ne sont pas
 utilisés quand notification_mode=broker. Ils n'existent que pour notification_mode=engine.
 
 ### Notifications en mode HA
@@ -5931,7 +6061,7 @@ poller récepteur reprend la chaîne de notification exactement là où le polle
 laissée, évitant à la fois les notifications en double et les ruptures de chaîne d'escalade.
 
 Lors d'une migration de host, Broker lit également les downtimes et acquittements
-actifs pour les hosts migrés depuis `centreon_storage` et les inclut dans `MigrationStateSnapshot`
+actifs pour les hosts migrés depuis `centreon_storage` et les inclut dans `RuntimeState`
 (champs 3 et 4) pour que le moteur récepteur puisse recréer les enregistrements localement avant
 son premier check.
 
@@ -5978,7 +6108,7 @@ Avantages :
   reste sur le poller, qui a déjà le contexte de la ressource.
 - Les règles d'escalade peuvent s'étendre sur plusieurs pollers.
 
-Avec `notification_mode = broker`, `MigrationStateSnapshot` ne contient ni état de notification,
+Avec `notification_mode = broker`, `RuntimeState` ne contient ni état de notification,
 ni downtimes, ni acquittements — Engine ne détient aucune de ces informations.
 
 ### Rebalancing par seuil
@@ -6212,7 +6342,8 @@ La prise en compte par Broker du Health doit permettre le rééquilibrage des co
 * commandes externes
 * services passifs problématiques
 * agent
-* retention.dat (côté poller, si ça change on n'a plus l'info)
+* retention.dat (côté poller, si ça change on n'a plus l'info) : design arrêté, voir
+[Prérequis 5 : élimination de `retention.dat`](#prérequis-5--élimination-de-retentiondat).
 * hostdependencies / servicedependencies, dépendances d'**exécution** : évaluées localement
 par le poller (`host::authorized_by_dependencies`, `service::authorized_by_dependencies`) et
 elles inhibent le check lui-même, décision synchrone dans le chemin chaud du scheduler — la
