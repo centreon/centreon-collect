@@ -912,6 +912,7 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_instance(const std::shared_ptr<neb::pb_instance>& instance)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  bool has_instance(uint64_t instance_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   void update_hostgroup(const std::shared_ptr<neb::pb_host_group>& group)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_servicegroup(const std::shared_ptr<neb::pb_service_group>& group)

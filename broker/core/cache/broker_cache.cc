@@ -1890,6 +1890,14 @@ void broker_cache::_fill_anomaly_detection(
 /**
  * @brief Update an instance in the cache.
  *
+ * A stopped poller is forgotten in legacy mode only. In centralized mode its
+ * configuration stays in the cache (its hosts and services are kept, and so
+ * are its settings): the stored .prot file is the source of that
+ * configuration, it is merged once at startup, and the reconnection does not
+ * merge it again (see unified_sql _process_engine_state). Erasing the settings
+ * here would leave the poller with the defaults (notifications enabled,
+ * interval_length 60...) until its next configuration export.
+ *
  * @param instance The instance to update
  */
 void broker_cache::update_instance(
@@ -1905,8 +1913,25 @@ void broker_cache::update_instance(
     instance_info& info = _instances[obj.instance_id()];
     info.name = obj.name();
     _apply_poller_override(obj.instance_id(), info);
-  } else
+  } else if (!config::applier::state::instance().supports_centralized_conf())
     _instances.erase(obj.instance_id());
+}
+
+/**
+ * @brief Tell whether the cache holds the configuration of a poller.
+ *
+ * In centralized mode this is what says whether the poller's stored
+ * configuration was already merged (at startup, or when it was rebuilt from
+ * Engine): a poller that is known does not need to be merged again when it
+ * connects.
+ *
+ * @param instance_id The poller ID.
+ *
+ * @return true if the poller is known to the cache.
+ */
+bool broker_cache::has_instance(uint64_t instance_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  return _instances.contains(instance_id);
 }
 
 /**

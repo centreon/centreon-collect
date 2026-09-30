@@ -219,13 +219,16 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
   state::apply(s, run_mux);
 
   /* The persisted active downtimes are re-injected from
-   * _maybe_release_barrier() once the startup readiness barrier releases (i.e.
+   * _on_barrier_released() once the startup readiness barrier releases (i.e.
    * after every output stream has emitted its startup definitions and the
    * engine has flushed them). Doing it here, before the barrier, would let a
    * stale BA service definition clobber the re-injected inherited-downtime
-   * depth. In centralized mode the resources are not known yet and the
-   * re-injection is a no-op anyway (done later from _process_engine_state after
-   * merge). */
+   * depth. In centralized mode the stored .prot files are merged into the
+   * cache before the endpoints are created, so at the barrier the resources of
+   * every poller are known, connected or not, and the re-injection covers them
+   * all. Only a poller whose configuration was lost and rebuilt from Engine is
+   * still unknown then; its entries stay pending and are re-injected from
+   * _process_engine_state after the merge. */
 }
 
 /**
@@ -262,8 +265,11 @@ void broker_state::_configure_cache_directories(
  * @brief Invoked by the base startup readiness barrier right after the
  * multiplexing engine is started. Re-inject the persisted active downtimes so
  * they are ordered after the startup definitions the engine just flushed (e.g.
- * the BA virtual service definitions). No-op in centralized mode (resources not
- * known yet; re-injected later from _process_engine_state after merge).
+ * the BA virtual service definitions). In centralized mode the cache already
+ * holds every stored poller configuration at this point, so the re-injection
+ * also covers the pollers that are not connected; only the entries of a poller
+ * whose configuration had to be rebuilt from Engine stay pending, and
+ * _process_engine_state re-injects them after the merge.
  */
 void broker_state::_on_barrier_released() {
   if (_notification_mode == notification_mode_broker) {

@@ -4567,8 +4567,24 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   /* The cache first, then the database. That order is not free to choose: the
    * database side resolves the members of groups and the parents of hosts by
    * name, and it asks the cache for them -- so the cache has to describe this
-   * configuration before it is applied, not after. */
-  cache.merge(state->obj());
+   * configuration before it is applied, not after.
+   *
+   * But the cache usually describes it already: every stored .prot file is
+   * merged at startup, whether its poller is connected or not, and a poller
+   * that connects afterwards brings nothing new to the cache. Merging again
+   * would only rebuild its entries from the configuration and drop the runtime
+   * state they carry (check results, adaptive changes). The merge is for the
+   * poller the cache does not know: its configuration was lost and has just
+   * been rebuilt from what Engine sent. The database side runs in both cases,
+   * since waking the poller's resources up is what this event is for. */
+  uint64_t poller_id = state->obj().poller_id();
+  if (cache.has_instance(poller_id))
+    SPDLOG_LOGGER_INFO(_logger_sql,
+                       "unified_sql: poller {} is already known to the cache, "
+                       "its configuration is not merged again",
+                       poller_id);
+  else
+    cache.merge(state->obj());
   database_configurator cfg(this, _logger_sql);
   cfg.process_state(state->obj());
   /* The cache knows this poller's hosts/services: re-inject any active
