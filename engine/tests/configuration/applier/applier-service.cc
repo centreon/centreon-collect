@@ -813,5 +813,5 @@ TEST_F(ApplierService, ServicesCheckValidityTags) {
   ASSERT_EQ(sm.size(), 1u);
 
   host_map const& hm(engine::host::hosts);
-  ASSERT_EQ(sm.begin()->second->get_host_ptr(), hm.begin()->second.get());
+  ASSERT_EQ(sm.begin()->second->get_host_ptr(), hm.begin()->second);
 }

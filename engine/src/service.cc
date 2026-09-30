@@ -1099,9 +1099,10 @@ int service::handle_async_check_result(
 
   auto hst = get_host_ptr();
   if (!hst) {
-    SPDLOG_LOGGER_ERROR(functions_logger,
-                        "no host for service {} => ignore check result",
-                        name());
+    SPDLOG_LOGGER_ERROR(
+        checks_logger, "no host for service {} => ignore check result", name());
+    set_is_being_freshened(false);
+    set_is_executing(false);
     return ERROR;
   }
 
@@ -1401,7 +1402,7 @@ int service::handle_async_check_result(
   }
 
   /* if the service check was okay... */
-  if (hst && _current_state == service::state_ok) {
+  if (_current_state == service::state_ok) {
     /* if the host has never been checked before, verify its status
      * only do this if 1) the initial state was set to non-UP or 2) the host
      * is not scheduled to be checked soon (next 5 minutes)
