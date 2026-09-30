@@ -135,7 +135,6 @@ service::service(const std::string& hostname,
       _current_state{_initial_state},
       _last_hard_state{_initial_state},
       _last_state{_initial_state},
-      _host_ptr{nullptr},
       _host_problem_at_last_check{false} {
   if (st == NONE) {
     if (absl::StartsWith(hostname, "_Module_Meta") &&
@@ -1392,9 +1391,9 @@ int service::handle_async_check_result(
                        get_plugin_output());
   }
 
-  host* hst{get_host_ptr()};
+  auto hst = get_host_ptr();
   /* if the service check was okay... */
-  if (_current_state == service::state_ok) {
+  if (hst && _current_state == service::state_ok) {
     /* if the host has never been checked before, verify its status
      * only do this if 1) the initial state was set to non-UP or 2) the host
      * is not scheduled to be checked soon (next 5 minutes)
@@ -2310,7 +2309,10 @@ int service::handle_service_event() {
     return ERROR;
 
   /* update service macros */
-  grab_host_macros_r(mac, get_host_ptr());
+  auto hst = get_host_ptr();
+  if (hst) {
+    grab_host_macros_r(mac, hst.get());
+  }
   grab_service_macros_r(mac, this);
 
   /* run the global service event handler */
@@ -2331,7 +2333,7 @@ int service::handle_service_event() {
 int service::obsessive_compulsive_service_check_processor() {
   std::string raw_command;
   std::string processed_command;
-  host* temp_host{get_host_ptr()};
+  auto temp_host = get_host_ptr();
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
@@ -2359,11 +2361,11 @@ int service::obsessive_compulsive_service_check_processor() {
     return ERROR;
 
   /* find the associated host */
-  if (temp_host == nullptr)
+  if (!temp_host)
     return ERROR;
 
   /* update service macros */
-  grab_host_macros_r(mac, temp_host);
+  grab_host_macros_r(mac, temp_host.get());
   grab_service_macros_r(mac, this);
 
   /* get the raw command line */
@@ -3178,7 +3180,10 @@ bool service::verify_check_viability(int check_options,
 }
 
 void service::grab_macros_r(nagios_macros* mac) {
-  grab_host_macros_r(mac, _host_ptr);
+  auto hst = get_host_ptr();
+  if (hst) {
+    grab_host_macros_r(mac, hst.get());
+  }
   grab_service_macros_r(mac, this);
 }
 
@@ -3572,10 +3577,12 @@ std::list<servicegroup*>& service::get_parent_groups() {
 }
 
 timeperiod* service::get_notification_timeperiod() const {
+  auto hst = get_host_ptr();
   /* if the service has no notification period, inherit one from the host */
-  return get_notification_period_ptr()
-             ? get_notification_period_ptr()
-             : _host_ptr->get_notification_period_ptr();
+  if (get_notification_period_ptr()) {
+    return get_notification_period_ptr();
+  }
+  return hst ? hst->get_notification_period_ptr() : nullptr;
 }
 
 /**
@@ -3791,28 +3798,22 @@ const std::string& service::get_current_state_as_string() const {
 
 bool service::get_notify_on_current_state() const {
   bool soft_state_dependencies = pb_config.soft_state_dependencies();
-  if (_host_ptr->get_current_state() != host::state_up &&
-      (_host_ptr->get_state_type() || soft_state_dependencies))
+  auto hst = get_host_ptr();
+  if (hst && hst->get_current_state() != host::state_up &&
+      (hst->get_state_type() || soft_state_dependencies))
     return false;
   notification_flag type[]{ok, warning, critical, unknown};
   return get_notify_on(type[get_current_state()]);
 }
 
 bool service::is_in_downtime() const {
+  auto hst = get_host_ptr();
   return get_scheduled_downtime_depth() > 0 ||
-         _host_ptr->get_scheduled_downtime_depth() > 0;
+         (hst && hst->get_scheduled_downtime_depth() > 0);
 }
 
-void service::set_host_ptr(host* h) {
+void service::set_host_ptr(const std::shared_ptr<host>& h) {
   _host_ptr = h;
-}
-
-const host* service::get_host_ptr() const {
-  return _host_ptr;
-}
-
-host* service::get_host_ptr() {
-  return _host_ptr;
 }
 
 void service::resolve(uint32_t& w, uint32_t& e) {
@@ -3847,10 +3848,10 @@ void service::resolve(uint32_t& w, uint32_t& e) {
           "Error: Host '{}' specified in service '{}' not defined anywhere!",
           _hostname, name());
       errors++;
-      set_host_ptr(nullptr);
+      set_host_ptr({});
     } else {
       /* save the host pointer for later */
-      set_host_ptr(it->second.get());
+      set_host_ptr(it->second);
 
       /* add a reverse link from the host to the service for faster lookups
        * later
@@ -3858,8 +3859,8 @@ void service::resolve(uint32_t& w, uint32_t& e) {
       it->second->services.insert({{_hostname, name()}, this});
 
       // Notify event broker.
-      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), nullptr, nullptr,
-                           this);
+      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr().get(), nullptr,
+                           nullptr, this);
     }
   }
 
@@ -3980,7 +3981,10 @@ void service::set_check_command_ptr(
  */
 std::string service::get_check_command_line(nagios_macros* macros) {
   if (get_check_command_ptr()) {
-    grab_host_macros_r(macros, get_host_ptr());
+    auto host = get_host_ptr();
+    if (host) {
+      grab_host_macros_r(macros, host.get());
+    }
     grab_service_macros_r(macros, this);
     std::string tmp;
     get_raw_command_line_r(macros, get_check_command_ptr(),

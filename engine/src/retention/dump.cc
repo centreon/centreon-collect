@@ -595,8 +595,9 @@ std::ostream& dump::service(std::ostream& os,
                             const std::string_view& class_name,
                             class service const& obj) {
   std::string hostname;
-  if (obj.get_host_ptr())
-    hostname = obj.get_host_ptr()->name();
+  auto hst = obj.get_host_ptr();
+  if (hst)
+    hostname = hst->name();
 
   os << class_name
      << " {\n"
