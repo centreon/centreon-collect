@@ -21,21 +21,23 @@ EOF
 # anything engine/connector-specific here, so the bulk COPY below can copy
 # the whole extracted tree without bundling unrelated binaries into this image.
 RUN --mount=type=bind,source=packages-centreon,target=/packages \
-    mkdir -p /extracted && \
-    cd /packages/${TARGETARCH} && \
-    for deb in *.deb; do \
-        case "$deb" in \
-            *centreon-engine*|*connector*) continue ;; \
-        esac; \
-        dpkg-deb -x "$deb" /extracted/; \
-    done && \
-    rm -rf /extracted/usr/share/doc/* \
-           /extracted/usr/share/man/* \
-           /extracted/usr/share/info/* \
-           /extracted/usr/share/locale/* \
-           /extracted/usr/share/licenses/* \
-           /extracted/var/cache/* \
-           /extracted/var/log/*
+    bash -e <<'EOF'
+mkdir -p /extracted
+cd /packages/${TARGETARCH}
+for deb in *.deb; do
+    case "$deb" in
+        *centreon-engine*|*connector*) continue ;;
+    esac
+    dpkg-deb -x "$deb" /extracted/
+done
+rm -rf /extracted/usr/share/doc/* \
+       /extracted/usr/share/man/* \
+       /extracted/usr/share/info/* \
+       /extracted/usr/share/locale/* \
+       /extracted/usr/share/licenses/* \
+       /extracted/var/cache/* \
+       /extracted/var/log/*
+EOF
 
 #############################################
 # Stage 2: Runtime - Minimal final image
@@ -66,7 +68,6 @@ usermod -aG centreon-broker centreon-engine
 usermod -aG centreon-engine centreon-broker
 usermod -aG centreon-gorgone centreon-broker
 usermod -aG centreon centreon-broker
-usermod -aG sudo centreon-broker
 EOF
 
 # Configure APT for optimal container usage
@@ -94,7 +95,6 @@ apt-get install -y --no-install-recommends \
     libssh2-1t64 \
     libcurl4t64 \
     zlib1g \
-    sudo \
     ca-certificates
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/* /var/cache/apt/* /var/log/*
 EOF
@@ -144,11 +144,12 @@ COPY --from=extractor --chown=centreon-broker:centreon-broker --chmod=664 \
 
 # COPY --chmod applies the same mode to every copied entry, files and
 # directories alike — if the .deb package ever ships a subdirectory directly
-# under /etc/centreon-broker/, the 664 above would clobber the 775 already
-# set on it, making it non-traversable (this exact bug broke centengine.cfg
-# on the sibling centreon-engine image). Re-asserted defensively here since
-# broker has no boot-test/config-wiring-test in CI to catch it if it recurs.
-RUN chmod 0775 /etc/centreon-broker
+# under /etc/centreon-broker/ or /etc/centreon-engine/, the 664 above would
+# clobber the 775 already set on it, making it non-traversable (this exact
+# bug broke centengine.cfg on the sibling centreon-engine image). Re-asserted
+# defensively here since broker has no boot-test/config-wiring-test in CI to
+# catch it if it recurs.
+RUN chmod 0775 /etc/centreon-broker /etc/centreon-engine
 
 # Copy entrypoint scripts (from source repo, not from .deb packages)
 COPY --chmod=755 --chown=centreon-broker:centreon-broker \
@@ -157,8 +158,9 @@ COPY --chmod=755 --chown=centreon-broker:centreon-broker \
 # Fingerprint of the package-default config (no SQL/storage output - cbd
 # would run but persist nothing). container.sh refuses to start if the
 # config it's given still matches this, instead of running uselessly.
-RUN sha256sum /etc/centreon-broker/central-broker.json | cut -d' ' -f1 \
-    > /etc/centreon-broker/.default-config.sha256
+RUN bash -eo pipefail <<'EOF'
+sha256sum /etc/centreon-broker/central-broker.json | cut -d' ' -f1 > /etc/centreon-broker/.default-config.sha256
+EOF
 
 # Verify critical runtime files. Checking the dynamic linker can actually
 # resolve cbd/cbwd's shared libs (rather than guessing libcentreon_clib.so's
