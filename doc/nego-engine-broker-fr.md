@@ -137,6 +137,7 @@ Négociation entre Engine et Broker
     * [Le reporting stream](#le-reporting-stream)
     * [Le rebuild](#le-rebuild)
   * [Le démarrage, dans les deux régimes](#le-démarrage-dans-les-deux-régimes)
+    * [Deux signaux du cache global : prêt, et configuration changée](#deux-signaux-du-cache-global--prêt-et-configuration-changée)
   * [Les définitions circulaires](#les-définitions-circulaires)
   * [Ce qui a été mesuré, et où](#ce-qui-a-été-mesuré-et-où)
 * [Travaux préparatoires avant le Poller HA](#travaux-préparatoires-avant-le-poller-ha)
@@ -4664,6 +4665,103 @@ rejouée par Engine à la connexion du poller, ou trouvée dans le `downtime_man
 la première application quand Broker possède les downtimes — la reprend comme sa downtime
 héritée et recalcule aussitôt, ce qui la lève si les KPI ne la justifient plus
 (`ba::adopt_inherited_downtime` ; `BEBAMIDT3`, `BECBAMIDTU3`).
+
+### Deux signaux du cache global : prêt, et configuration changée
+
+Depuis 2026-10, BAM ne dépend plus seulement du moment où son failover l'ouvre. Le cache global
+de Broker lui envoie deux signaux, et BAM y répond toujours de la même façon : il demande à
+l'applier d'endpoints un `update_endpoint("centreon-bam-monitoring")`, c'est-à-dire le
+`failover::update()` qu'un `SIGHUP` enverrait à toutes les sorties, limité à la sienne. Le
+failover lève son drapeau et appelle `monitoring_stream::update()` au tour suivant de sa boucle,
+sur son propre thread et sous le verrou du stream : rien dans BAM n'a à devenir thread-safe, et
+plusieurs signaux rapprochés ne coûtent qu'un `update()`, le drapeau étant un booléen.
+
+* **`on_ready`** — le cache est *prêt* quand la barrière de démarrage est levée, une fois que
+  chaque sortie a ouvert son stream une première fois et que `broker_state` a réinjecté les
+  downtimes, acquittements, états et bascules de notification qu'il persiste
+  (`broker_cache::set_ready()`, appelé depuis `_on_barrier_released()`). Un abonné enregistré
+  après coup est servi immédiatement. BAM s'y abonne à la création de son connecteur : c'est
+  là qu'il **amorce l'état de ses KPI service depuis le cache global**.
+* **`configuration_changed`** — émis hors verrou à la fin de chaque `merge()` et `apply()`,
+  c'est-à-dire chaque fois que la configuration que le cache décrit a changé : tour de conf
+  clos après acquittement des pollers, configuration perdue reconstruite depuis Engine. BAM
+  relit alors ses tables et re-résout ses règles et KPI contre un cache qui connaît les nouveaux
+  objets. C'est ce qui remplace, en configuration centralisée, le rechargement de cbd que PHP
+  faisait après chaque export en legacy ; sans lui, une BA créée dans l'interface n'était vue
+  qu'au prochain `SIGHUP`.
+
+L'amorçage depuis le cache global suit une règle simple, *le plus frais gagne* : pour chaque
+couple suivi par le `service_book`, l'entrée du cache n'est injectée que si le service a été
+contrôlé (`checked`) et si son `last_check` est au moins celui que BAM détient déjà, qu'il
+vienne de son fichier `.cache.centreon-bam-monitoring` ou d'un status reçu entre-temps. Une
+entrée de configuration seule, au statut PENDING, n'écrase donc rien.
+
+```mermaid
+sequenceDiagram
+    title Configuration legacy (BBDO 2, ou BBDO 3 sans configuration centralisée)
+    participant BS as broker_state
+    participant GC as cache global
+    participant EA as applier d'endpoints
+    participant F as failover BAM
+    participant MS as monitoring_stream
+    participant E as Engine
+    BS->>GC: constructeur : relit le .cache (hôtes, services et leur état, downtimes, acks...)
+    BS->>EA: apply() : crée les sorties
+    F->>MS: open() puis update()
+    MS->>MS: lit BA/KPI/règles en base, local_hst_svc_mapping depuis les tables host/service
+    MS->>MS: _read_cache() : états des services suivis (fichier BAM)
+    Note over MS,GC: le cache n'est pas encore prêt : l'amorçage attend
+    F->>BS: notify_output_ready()
+    BS->>BS: barrière levée : réinjections (downtimes, acks, états de notification)
+    BS->>GC: set_ready()
+    GC-->>EA: on_ready -> update_endpoint("centreon-bam-monitoring")
+    EA->>F: update() (drapeau)
+    F->>MS: update()
+    MS->>GC: service(host_id, service_id) pour chaque couple suivi
+    MS->>MS: injecte si checked et last_check >= celui détenu
+    MS->>MS: initialize() : les BA publient leur état amorcé
+    E->>GC: pb_host / pb_service / status au fil de l'eau (dump initial du poller)
+    Note over E,MS: le flux habituel prend le relais ; un export PHP passe toujours par un SIGHUP
+```
+
+```mermaid
+sequenceDiagram
+    title Configuration centralisée (BBDO 3)
+    participant BS as broker_state
+    participant GC as cache global
+    participant EA as applier d'endpoints
+    participant F as failover BAM
+    participant MS as monitoring_stream
+    participant E as Engine
+    BS->>GC: constructeur : relit du .cache les seules sections possédées par Broker
+    BS->>GC: merge() de chaque <id>.prot stocké (configuration, sans état de check)
+    GC-->>EA: configuration_changed (aucun abonné encore)
+    BS->>EA: apply() : crée les sorties
+    F->>MS: open() puis update()
+    MS->>GC: global_hst_svc_mapping : service_key() pour chaque règle, service() pour chaque KPI
+    MS->>MS: _read_cache() : états des services suivis (fichier BAM)
+    F->>BS: notify_output_ready()
+    BS->>BS: barrière levée : réinjections
+    BS->>GC: set_ready()
+    GC-->>EA: on_ready -> update_endpoint("centreon-bam-monitoring")
+    F->>MS: update() : amorçage « le plus frais gagne » depuis le cache
+    Note over GC,MS: l'état de check n'est dans le cache qu'une fois la superposition DB faite par le module référence (prérequis 5, étape 4)
+    E->>BS: connexion, DiffState / acquittement
+    alt Broker connaissait la configuration
+        BS->>GC: apply(diff) à l'acquittement
+    else configuration perdue (.prot effacé, premier démarrage)
+        E->>BS: configuration complète
+        BS->>GC: merge() (poller inconnu du cache)
+    end
+    GC-->>EA: configuration_changed -> update_endpoint("centreon-bam-monitoring")
+    F->>MS: update() : BA/KPI relus, règles re-résolues contre le cache à jour
+    Note over E,MS: un export PHP (pollers.lck) finit de la même façon : apply(diff) -> configuration_changed -> update()
+```
+
+Les tests qui fixent ce comportement : `CBA_CONF_PUSHED_NO_RELOAD` (BA créée après le démarrage,
+poussée par `.lck`, visible sans rechargement), `CBA_PROT_LOST_RESTART` (`1.prot` effacé puis cbd
+redémarré), `CBA_KPI_SERVICE_ADDED_LATER` (KPI dont le service n'existe qu'après un export).
+
 
 ## Les définitions circulaires
 
