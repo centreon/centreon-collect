@@ -1579,6 +1579,67 @@ BA_RELOAD_KEEPS_KPI
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
+BAM_KPI_STATE_SEEDED_FROM_GLOBAL_CACHE
+    [Documentation]    Scenario: after a Broker restart, BAM seeds the state of its KPI services from the Broker global cache
+    ...    Given a BA of type "worst" on two services, in legacy configuration with BBDO 3
+    ...    And one of its services is CRITICAL, so the BA is CRITICAL
+    ...    When Engine is stopped, then Broker is stopped and BAM's own cache file is deleted
+    ...    And Broker is started again, Engine still stopped so that no service definition is replayed
+    ...    Then once the global cache is ready, BAM seeds its KPI services from it
+    ...    And the BA is still CRITICAL
+    [Tags]    broker    engine    bam    cache    MON-187019
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    seeded    worst    ${svc}
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${result}    Ctn Check Ba Status With Timeout    seeded    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should be OK
+
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_303    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) should be CRITICAL
+    ${result}    Ctn Check Ba Status With Timeout    seeded    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should be CRITICAL
+
+    # Engine first, so that nothing replays the service definitions to BAM
+    # after the restart; then Broker, whose global cache file keeps the service
+    # states. BAM's own cache file is removed: the global cache is the only
+    # source left.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Remove File    ${VarRoot}/lib/centreon-broker/central-broker-master.cache.centreon-bam-monitoring
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    service state(s) seeded from the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    BAM should seed its KPI services from the global cache once it is ready
+    ${content}    Create List    BAM: 0 service state(s) seeded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one service should have been seeded
+
+    ${result}    Ctn Check Ba Status With Timeout    seeded    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should still be CRITICAL after the restart
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Process Service Result Hard    host_16    service_303    0    output ok for 303
+    ${result}    Ctn Check Ba Status With Timeout    seeded    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should be OK again
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
 *** Keywords ***
 Ctn Reactivate Service 303
     [Documentation]    Undo what BA_DEACTIVATED_SERVICE did to the shared platform.
