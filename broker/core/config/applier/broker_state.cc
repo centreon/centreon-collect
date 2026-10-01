@@ -232,14 +232,37 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
 }
 
 /**
- * @brief Resolve the directories holding the stored poller configurations.
+ * @brief Resolve the directory holding the stored poller configurations.
  *
- * Invoked from apply(), after the cache directory is known and before the
- * endpoints are applied -- and the order is not free. Applying the endpoints is
- * what declares the cache sections and then fills the global cache from these
- * very directories; resolving them afterwards, as this used to do, meant the
- * fill ran against an empty path, found nothing, and consumed its call_once.
- * The cache then stayed empty for the life of the process.
+ * Invoked from apply() once the cache directory is known and *before the
+ * global cache is constructed*: the cache reads supports_centralized_conf() in
+ * its constructor to decide whether the heavy sections of its on-disk file are
+ * to be loaded (legacy) or rebuilt from the stored configurations
+ * (centralized), and this directory is what that answer is made of. Resolved
+ * later, as it used to be, the cache took the legacy branch in both modes.
+ *
+ * @param s The configuration being applied.
+ */
+void broker_state::_resolve_pollers_config_dir(
+    const com::centreon::broker::config::state& s) {
+  if (s.get_bbdo_version().major_v < 3)
+    return;
+
+  if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
+    set_pollers_config_dir(std::filesystem::path(cache_dir()) /
+                           "pollers-configuration/");
+    load_topology_cache();
+  } else
+    set_pollers_config_dir(s.pollers_config_dir());
+}
+
+/**
+ * @brief Start watching the configuration cache directory PHP writes to.
+ *
+ * Invoked from apply(), after the modules are loaded and before the endpoints
+ * are applied -- and the order is not free. Applying the endpoints is what
+ * fills the global cache from the stored configurations; a watcher started
+ * later could hand a poller a configuration before the cache knows it.
  *
  * @param s The configuration being applied.
  */
@@ -247,15 +270,6 @@ void broker_state::_configure_cache_directories(
     const com::centreon::broker::config::state& s) {
   if (s.get_bbdo_version().major_v < 3)
     return;
-
-  /* The cache directory is set first, so that the watcher is started and the
-   * topology cache can be loaded. */
-  if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
-    set_pollers_config_dir(std::filesystem::path(cache_dir()) /
-                           "pollers-configuration/");
-    load_topology_cache();
-  } else
-    set_pollers_config_dir(s.pollers_config_dir());
 
   // Configuration cache directory (for broker, from php).
   set_cache_config_dir(s.cache_config_dir());

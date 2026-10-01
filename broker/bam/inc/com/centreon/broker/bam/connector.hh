@@ -37,8 +37,13 @@ class connector : public io::endpoint {
   const database_config _db_cfg;
   std::string _ext_cmd_file;
   std::string _storage_db_name;
+  /* Monitoring connector only: ID to remember the subscription to the global
+   * cache configuration changes (0 when not subscribed). When the configuration
+   * changes, the BAM stream reloads its configuration. */
+  uint64_t _config_subscription = 0;
 
-  connector(const std::string& name, stream_type type,
+  connector(const std::string& name,
+            stream_type type,
             const database_config& db_cfg,
             const multiplexing::muxer_filter& mandatory_filter,
             const multiplexing::muxer_filter& forbidden_filter);
@@ -48,12 +53,13 @@ class connector : public io::endpoint {
       const std::string& name,
       const std::string& ext_cmd_file,
       const database_config& db_cfg,
-      const std::string& storage_db_name);
+      const std::string& storage_db_name,
+      const std::string& endpoint_name);
 
   static std::unique_ptr<connector> create_reporting_connector(
       const std::string& name,
       const database_config& db_cfg);
-  ~connector() noexcept = default;
+  ~connector() noexcept;
   connector() = delete;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;

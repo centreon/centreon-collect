@@ -399,6 +399,36 @@ std::timed_mutex& endpoint::endpoints_mutex() {
  *
  *  @return Class instance.
  */
+/**
+ * @brief Ask one endpoint to reload its stream's configuration.
+ *
+ * The same request a reload sends to every endpoint (see apply()), aimed at a
+ * single one: its failover raises its update flag and calls stream::update()
+ * from its own thread at the next turn of its loop. Used by a module whose
+ * configuration depends on what the global cache knows (BAM) once that
+ * knowledge changed.
+ *
+ * @param name The endpoint name, as in the Broker configuration.
+ *
+ * @return true if an endpoint of that name exists.
+ */
+bool endpoint::update_endpoint(const std::string& name) {
+  std::lock_guard<std::timed_mutex> lock(_endpointsm);
+  for (auto& [cfg, endp] : _endpoints) {
+    if (cfg.name == name) {
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "endpoint applier: update requested for endpoint {}",
+                          name);
+      endp->update();
+      return true;
+    }
+  }
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "endpoint applier: update requested for unknown endpoint {}",
+                      name);
+  return false;
+}
+
 endpoint& endpoint::instance() {
   assert(gl_endpoint);
   return *gl_endpoint;

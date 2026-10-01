@@ -183,6 +183,7 @@ broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
    * started downtimes, downtime-comment id counter, acknowledgements,
    * notification states and the notification overrides -- is read back in both
    * modes. _load_cache() handles both cases. */
+  _centralized = config::applier::state::instance().supports_centralized_conf();
   _load_cache();
 }
 
@@ -275,9 +276,11 @@ bool broker_cache::_replace_servicegroup(
 }
 
 /**
- * @brief Merge a configuration state into the cache. Used when a poller
- * established a connection to Broker (i.e. when a `pb_engine_state` event is
- * received).
+ * @brief Merge a configuration state into the cache. Used at startup for each
+ * stored poller configuration, and when a poller the cache does not know yet
+ * connects (its configuration was rebuilt from Engine, see unified_sql
+ * _process_engine_state). An entry that already exists is rebuilt from the
+ * configuration but keeps its runtime state (_keep_host_runtime()).
  *
  * In centralized configuration mode the protobuf `State` message carries a
  * top-level `poller_id` field, but the individual `Hostgroup` and
@@ -292,8 +295,20 @@ bool broker_cache::_replace_servicegroup(
  */
 void broker_cache::merge(
     const com::centreon::engine::configuration::State& state) {
-  absl::WriterMutexLock lck{&_mutex};
+  {
+    absl::WriterMutexLock lck{&_mutex};
+    _merge_locked(state);
+  }
+  _notify_configuration_changed();
+}
 
+/**
+ * @brief The body of merge(), run under the cache lock.
+ *
+ * @param state Configuration state to merge
+ */
+void broker_cache::_merge_locked(
+    const com::centreon::engine::configuration::State& state) {
   /* Work on instances */
   if (section_enabled(CACHE_INSTANCES))
     _instances.insert_or_assign(
@@ -357,8 +372,10 @@ void broker_cache::merge(
       auto h = std::make_shared<neb::pb_host>();
       _fill_host(&h->mut_obj(), host, state.poller_id());
       auto [it, inserted] = index.insert(h);
-      if (!inserted)
+      if (!inserted) {
+        _keep_host_runtime(&h->mut_obj(), (*it)->obj());
         index.replace(it, h);
+      }
       if (section_enabled(CACHE_NOTIFICATIONS))
         _insert_resource_contacts(host.host_id(), 0, host.contacts(),
                                   host.contactgroups(), state.poller_id());
@@ -450,8 +467,10 @@ void broker_cache::merge(
       auto s = std::make_shared<neb::pb_service>();
       _fill_service(&s->mut_obj(), svc);
       auto [it, inserted] = index_svc.insert(s);
-      if (!inserted)
+      if (!inserted) {
+        _keep_service_runtime(&s->mut_obj(), (*it)->obj());
         index_svc.replace(it, s);
+      }
       if (section_enabled(CACHE_NOTIFICATIONS))
         _insert_resource_contacts(svc.host_id(), svc.service_id(),
                                   svc.contacts(), svc.contactgroups(),
@@ -465,8 +484,10 @@ void broker_cache::merge(
       auto s = std::make_shared<neb::pb_service>();
       _fill_anomaly_detection(&s->mut_obj(), ad);
       auto [it, inserted] = index_svc.insert(s);
-      if (!inserted)
+      if (!inserted) {
+        _keep_service_runtime(&s->mut_obj(), (*it)->obj());
         index_svc.replace(it, s);
+      }
       _anomaly_detection_index[std::make_pair(ad.host_id(),
                                               ad.dependent_service_id())]
           .insert(ad.service_id());
@@ -894,8 +915,20 @@ void broker_cache::_remove_poller_from_contacts(uint64_t poller_id) {
  */
 void broker_cache::apply(
     const com::centreon::engine::configuration::DiffState& diff) {
-  absl::WriterMutexLock lck{&_mutex};
+  {
+    absl::WriterMutexLock lck{&_mutex};
+    _apply_locked(diff);
+  }
+  _notify_configuration_changed();
+}
 
+/**
+ * @brief The body of apply(), run under the cache lock.
+ *
+ * @param diff The configuration diff to apply.
+ */
+void broker_cache::_apply_locked(
+    const com::centreon::engine::configuration::DiffState& diff) {
   _logger->debug("Applying configuration diff for poller id {} and name '{}'",
                  diff.poller_id(), diff.poller_name());
 
@@ -1104,8 +1137,10 @@ void broker_cache::apply(
       auto h = std::make_shared<neb::pb_host>();
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
-      if (!inserted)
+      if (!inserted) {
+        _keep_host_runtime(&h->mut_obj(), (*it)->obj());
         hosts_by_id.replace(it, h);
+      }
       if (section_enabled(CACHE_NOTIFICATIONS))
         _insert_resource_contacts(host.host_id(), 0, host.contacts(),
                                   host.contactgroups(), diff.poller_id());
@@ -1116,8 +1151,10 @@ void broker_cache::apply(
       auto h = std::make_shared<neb::pb_host>();
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
-      if (!inserted)
+      if (!inserted) {
+        _keep_host_runtime(&h->mut_obj(), (*it)->obj());
         hosts_by_id.replace(it, h);
+      }
       if (section_enabled(CACHE_NOTIFICATIONS))
         _insert_resource_contacts(host.host_id(), 0, host.contacts(),
                                   host.contactgroups(), diff.poller_id());
@@ -1279,8 +1316,10 @@ void broker_cache::apply(
       auto s = std::make_shared<neb::pb_service>();
       _fill_service(&s->mut_obj(), svc);
       auto [it, inserted] = s_index.insert(s);
-      if (!inserted)
+      if (!inserted) {
+        _keep_service_runtime(&s->mut_obj(), (*it)->obj());
         s_index.replace(it, s);
+      }
       if (section_enabled(CACHE_NOTIFICATIONS))
         _insert_resource_contacts(svc.host_id(), svc.service_id(),
                                   svc.contacts(), svc.contactgroups(),
@@ -1293,8 +1332,10 @@ void broker_cache::apply(
       auto s = std::make_shared<neb::pb_service>();
       _fill_service(&s->mut_obj(), svc);
       auto [it, inserted] = s_index.insert(s);
-      if (!inserted)
+      if (!inserted) {
+        _keep_service_runtime(&s->mut_obj(), (*it)->obj());
         s_index.replace(it, s);
+      }
       if (section_enabled(CACHE_NOTIFICATIONS))
         _insert_resource_contacts(svc.host_id(), svc.service_id(),
                                   svc.contacts(), svc.contactgroups(),
@@ -1324,8 +1365,10 @@ void broker_cache::apply(
       auto s = std::make_shared<neb::pb_service>();
       _fill_anomaly_detection(&s->mut_obj(), ad);
       auto [it, inserted] = s_index.insert(s);
-      if (!inserted)
+      if (!inserted) {
+        _keep_service_runtime(&s->mut_obj(), (*it)->obj());
         s_index.replace(it, s);
+      }
       _anomaly_detection_index[std::make_pair(ad.host_id(),
                                               ad.dependent_service_id())]
           .insert(ad.service_id());
@@ -1347,8 +1390,10 @@ void broker_cache::apply(
       auto s = std::make_shared<neb::pb_service>();
       _fill_anomaly_detection(&s->mut_obj(), ad);
       auto [it, inserted] = s_index.insert(s);
-      if (!inserted)
+      if (!inserted) {
+        _keep_service_runtime(&s->mut_obj(), (*it)->obj());
         s_index.replace(it, s);
+      }
       _anomaly_detection_index[std::make_pair(ad.host_id(),
                                               ad.dependent_service_id())]
           .insert(ad.service_id());
@@ -1887,6 +1932,125 @@ void broker_cache::_fill_anomaly_detection(
 #undef translate
 #undef set_proto
 
+/* The runtime fields of a cached host/service: what the check results, the
+ * adaptive events and the Broker-owned managers write, as opposed to what the
+ * configuration defines. When a configuration rebuilds an entry that already
+ * exists (merge()/apply()), these fields are carried over from the entry being
+ * replaced -- an export must not reset a host to PENDING/unchecked. The list
+ * is explicit and mirrors update_host(pb_host_status)/update_service(
+ * pb_service_status): the configuration keeps the last word on every other
+ * field. The `notify` switch is not here: _fill_*() seeds it from the
+ * configuration on purpose, and the persisted notification overrides are
+ * re-applied on top (see _restore_notification_override). */
+#define keep(field) dst->set_##field(src.field())
+#define keep_common_runtime()                                              \
+  keep(checked);                                                           \
+  keep(check_type);                                                        \
+  keep(state);                                                             \
+  keep(state_type);                                                        \
+  keep(last_state_change);                                                 \
+  keep(last_hard_state);                                                   \
+  keep(last_hard_state_change);                                            \
+  keep(output);                                                            \
+  keep(perfdata);                                                          \
+  keep(flapping);                                                          \
+  keep(percent_state_change);                                              \
+  keep(latency);                                                           \
+  keep(execution_time);                                                    \
+  keep(last_check);                                                        \
+  keep(next_check);                                                        \
+  keep(should_be_scheduled);                                               \
+  keep(check_attempt);                                                     \
+  keep(notification_number);                                               \
+  keep(no_more_notifications);                                             \
+  keep(last_notification);                                                 \
+  keep(acknowledged);                                                      \
+  keep(acknowledgement_type);                                              \
+  keep(scheduled_downtime_depth);                                          \
+  keep(last_update)
+
+/**
+ * @brief Carry the runtime fields of a cached host over to its rebuilt entry.
+ *
+ * @param dst The entry just built from the configuration.
+ * @param src The entry it replaces.
+ */
+void broker_cache::_keep_host_runtime(Host* dst, const Host& src) {
+  keep_common_runtime();
+  keep(last_time_up);
+  keep(last_time_down);
+  keep(last_time_unreachable);
+  keep(next_host_notification);
+}
+
+/**
+ * @brief Carry the runtime fields of a cached service over to its rebuilt
+ * entry.
+ *
+ * @param dst The entry just built from the configuration.
+ * @param src The entry it replaces.
+ */
+void broker_cache::_keep_service_runtime(Service* dst, const Service& src) {
+  keep_common_runtime();
+  keep(long_output);
+  keep(last_time_ok);
+  keep(last_time_warning);
+  keep(last_time_critical);
+  keep(last_time_unknown);
+  keep(next_notification);
+}
+#undef keep_common_runtime
+#undef keep
+
+/**
+ * @brief Register a callback invoked after every configuration change of the
+ * cache (end of merge()/apply()).
+ *
+ * @param cb The callback.
+ *
+ * @return The subscription id.
+ */
+uint64_t broker_cache::subscribe_configuration_changed(
+    std::function<void()> cb) {
+  absl::MutexLock l{&_config_listeners_m};
+  uint64_t id = _next_config_listener_id++;
+  _config_listeners.emplace_back(id, std::move(cb));
+  return id;
+}
+
+/**
+ * @brief Remove a configuration-change callback.
+ *
+ * @param id The subscription id returned by subscribe_configuration_changed().
+ */
+void broker_cache::unsubscribe_configuration_changed(uint64_t id) {
+  absl::MutexLock l{&_config_listeners_m};
+  auto it = absl::c_find_if(_config_listeners,
+                            [id](const auto& p) { return p.first == id; });
+  if (it != _config_listeners.end())
+    _config_listeners.erase(it);
+}
+
+/**
+ * @brief Invoke the configuration-change callbacks, outside every cache lock.
+ *
+ * The list is copied under its own mutex, so a callback may unsubscribe
+ * itself (or another one) without deadlocking.
+ */
+void broker_cache::_notify_configuration_changed() {
+  std::vector<std::function<void()>> listeners;
+  {
+    absl::MutexLock l{&_config_listeners_m};
+    if (_config_listeners.empty())
+      return;
+    listeners.reserve(_config_listeners.size());
+    for (const auto& p : _config_listeners)
+      listeners.push_back(p.second);
+  }
+  for (const auto& cb : listeners)
+    cb();
+}
+
 /**
  * @brief Update an instance in the cache.
  *
@@ -1913,7 +2077,7 @@ void broker_cache::update_instance(
     instance_info& info = _instances[obj.instance_id()];
     info.name = obj.name();
     _apply_poller_override(obj.instance_id(), info);
-  } else if (!config::applier::state::instance().supports_centralized_conf())
+  } else if (!_centralized)
     _instances.erase(obj.instance_id());
 }
 
@@ -2328,7 +2492,7 @@ std::optional<AckType> broker_cache::_restore_acknowledgement_type(
 }
 
 /**
- * @brief Add a host to the cache (used in legacy mode).
+ * @brief Add a host to the cache (only used in legacy mode).
  *
  * @param host The host to add
  */
@@ -2582,7 +2746,7 @@ void broker_cache::update_host(
 }
 
 /**
- * @brief Add a service to the cache (used in legacy mode).
+ * @brief Add a service to the cache (only used in legacy mode).
  *
  * @param svc The service to add
  */
@@ -5227,7 +5391,7 @@ void broker_cache::_load_cache() {
        * The Broker-owned state (below: started downtimes, comment id counter,
        * acknowledgements, notification states, overrides) is read back in
        * both modes. */
-      if (!config::applier::state::instance().supports_centralized_conf()) {
+      if (!_centralized) {
         for (const auto& inst_pair : to_load.instances())
           _instances.insert({inst_pair.id(), instance_info{inst_pair.name()}});
 
@@ -5354,7 +5518,7 @@ void broker_cache::_save_cache() {
      * Broker-owned state (below: started downtimes, comment id counter,
      * acknowledgements, notification states, overrides) is persisted in both
      * modes. */
-    if (!config::applier::state::instance().supports_centralized_conf()) {
+    if (!_centralized) {
       for (const auto& [id, info] : _instances) {
         auto* inst_pair = to_save.add_instances();
         inst_pair->set_id(id);

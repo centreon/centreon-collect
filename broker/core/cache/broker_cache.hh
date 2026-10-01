@@ -18,15 +18,13 @@
 #ifndef CCB_CACHE_BROKER_CACHE_HH
 #define CCB_CACHE_BROKER_CACHE_HH
 #include <absl/base/thread_annotations.h>
-// #include <absl/container/flat_hash_map.h>
-// #include <absl/container/flat_hash_set.h>
 #include <absl/container/node_hash_map.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-// #include <chrono>
 #include <filesystem>
+#include <functional>
 #include <optional>
 
 #include "com/centreon/broker/bam/internal.hh"
@@ -570,8 +568,26 @@ class broker_cache {
    */
   std::filesystem::path _cache_file;
   std::atomic<uint32_t> _enabled_sections{CACHE_NONE};
+  /* Whether this Broker runs the centralized configuration (the stored poller
+   * configurations are the source of the heavy sections) or the legacy one
+   * (the on-disk cache file is). Read once at construction: the destructor
+   * cannot ask the applier state any more, its derived part is gone by then. */
+  bool _centralized = false;
 
   mutable absl::Mutex _mutex;
+  /* Configuration-change listeners, under their own mutex so that they can be
+   * invoked after _mutex is released. */
+  absl::Mutex _config_listeners_m;
+  std::vector<std::pair<uint64_t, std::function<void()>>> _config_listeners
+      ABSL_GUARDED_BY(_config_listeners_m);
+  uint64_t _next_config_listener_id ABSL_GUARDED_BY(_config_listeners_m){1};
+  void _merge_locked(const com::centreon::engine::configuration::State& state)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _apply_locked(
+      const com::centreon::engine::configuration::DiffState& diff)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _notify_configuration_changed()
+      ABSL_LOCKS_EXCLUDED(_mutex, _config_listeners_m);
   absl::flat_hash_map<uint64_t, instance_info> _instances
       ABSL_GUARDED_BY(_mutex);
 
@@ -745,6 +761,8 @@ class broker_cache {
                   const com::centreon::engine::configuration::Host& cfg,
                   uint64_t poller_id_hint = 0)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  static void _keep_host_runtime(Host* dst, const Host& src);
+  static void _keep_service_runtime(Service* dst, const Service& src);
   template <typename ConfigType>
   void _fill_service_common(Service* obj, const ConfigType& cfg);
   void _fill_service(Service* service,
@@ -882,6 +900,17 @@ class broker_cache {
   }
   void merge(const com::centreon::engine::configuration::State& state)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Configuration-change listeners: a callback registered here is invoked,
+   * outside the cache lock, at the end of every merge() and apply(), i.e.
+   * whenever the configuration the cache describes changed. A module whose own
+   * configuration refers to hosts/services (BAM) uses it to reload itself once
+   * the cache knows the new objects. The callback must be cheap and must not
+   * call back into the cache synchronously from a thread that holds it.
+   * Returns a subscription id, to hand back to unsubscribe. */
+  uint64_t subscribe_configuration_changed(std::function<void()> cb)
+      ABSL_LOCKS_EXCLUDED(_config_listeners_m);
+  void unsubscribe_configuration_changed(uint64_t id)
+      ABSL_LOCKS_EXCLUDED(_config_listeners_m);
   /* Store the started downtimes to persist on the next cache save. Called by
    * broker_state at shutdown, before the downtime_manager is unloaded. */
   void set_active_downtimes(std::vector<Downtime> downtimes)

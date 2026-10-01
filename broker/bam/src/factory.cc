@@ -97,7 +97,7 @@ io::endpoint* factory::new_endpoint(
     c = connector::create_reporting_connector(name, db_cfg);
   else
     c = connector::create_monitoring_connector(name, ext_cmd_file, db_cfg,
-                                               storage_db_name);
+                                               storage_db_name, cfg.name);
   is_acceptor = false;
   return c.release();
 }

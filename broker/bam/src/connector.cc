@@ -18,6 +18,9 @@
 
 #include "com/centreon/broker/bam/connector.hh"
 
+#include "broker/core/config/applier/endpoint.hh"
+#include "broker/core/config/applier/state.hh"
+
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
@@ -125,7 +128,8 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
     const std::string& name,
     const std::string& ext_cmd_file,
     const database_config& db_cfg,
-    const std::string& storage_db_name) {
+    const std::string& storage_db_name,
+    const std::string& endpoint_name) {
   auto retval = std::unique_ptr<bam::connector>(new bam::connector(
       name, bam_monitoring_type, db_cfg, _monitoring_stream_filter,
       _monitoring_forbidden_filter));
@@ -134,7 +138,30 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
     retval->_storage_db_name = db_cfg.get_name();
   else
     retval->_storage_db_name = storage_db_name;
+  /* Here a subscription is made to the global cache by the monitoring stream.
+   * The return value is an ID to remember the subscription, needed for example
+   * to unsubscribe when the connector is destroyed.
+   * Each time a new configuration updates the cache, BAM stream loads its
+   * configuration again. */
+  retval->_config_subscription =
+      config::applier::state::instance()
+          .cache()
+          .subscribe_configuration_changed([endpoint_name] {
+            if (config::applier::endpoint::loaded())
+              config::applier::endpoint::instance().update_endpoint(
+                  endpoint_name);
+          });
   return retval;
+}
+
+/**
+ * @brief Destructor: drop the cache subscription of a monitoring connector.
+ */
+connector::~connector() noexcept {
+  if (_config_subscription)
+    config::applier::state::instance()
+        .cache()
+        .unsubscribe_configuration_changed(_config_subscription);
 }
 
 /**

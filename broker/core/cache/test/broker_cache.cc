@@ -1258,3 +1258,134 @@ TEST_F(BrokerCacheTest, AdaptiveServiceStatusFlapping) {
   _cache->publish(stop);
   ASSERT_FALSE(_cache->service(1u, 1u)->obj().flapping());
 }
+
+/**
+ * @brief A configuration that rebuilds an existing host/service (merge() of a
+ * full State, apply() of a diff) keeps the runtime state of the entry it
+ * replaces: check results, acknowledgement, downtime depth. The configuration
+ * fields, on the other hand, follow the new configuration.
+ */
+TEST_F(BrokerCacheTest, ConfigRebuildKeepsRuntimeState) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  auto make_state = [](const std::string& alias) {
+    cfg::State state;
+    state.set_poller_id(1);
+    auto* h = state.mutable_hosts()->Add();
+    h->set_host_id(1);
+    h->set_host_name("host_1");
+    h->set_alias(alias);
+    auto* s = state.mutable_services()->Add();
+    s->set_host_id(1);
+    s->set_service_id(10);
+    s->set_host_name("host_1");
+    s->set_service_description("service_10");
+    return state;
+  };
+  _cache->merge(make_state("first"));
+
+  /* Runtime state written by the poller and by the Broker-owned managers. */
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_checked(true);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_state_type(HostStatus_StateType_HARD);
+  hs->mut_obj().set_last_check(1000);
+  hs->mut_obj().set_output("host is down");
+  hs->mut_obj().set_check_attempt(3);
+  hs->mut_obj().set_scheduled_downtime_depth(1);
+  _cache->publish(hs);
+  auto ss = std::make_shared<neb::pb_service_status>();
+  ss->mut_obj().set_host_id(1);
+  ss->mut_obj().set_service_id(10);
+  ss->mut_obj().set_checked(true);
+  ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+  ss->mut_obj().set_state_type(ServiceStatus_StateType_HARD);
+  ss->mut_obj().set_last_check(2000);
+  ss->mut_obj().set_output("service is critical");
+  ss->mut_obj().set_perfdata("rta=1ms");
+  ss->mut_obj().set_acknowledgement_type(AckType::NORMAL);
+  _cache->publish(ss);
+
+  auto check = [this](const char* step, const std::string& alias) {
+    auto h = _cache->host(1u);
+    ASSERT_TRUE(h) << step;
+    EXPECT_EQ(h->obj().alias(), alias) << step;
+    EXPECT_TRUE(h->obj().checked()) << step;
+    EXPECT_EQ(h->obj().state(), Host_State_DOWN) << step;
+    EXPECT_EQ(h->obj().state_type(), Host_StateType_HARD) << step;
+    EXPECT_EQ(h->obj().last_check(), 1000) << step;
+    EXPECT_EQ(h->obj().output(), "host is down") << step;
+    EXPECT_EQ(h->obj().check_attempt(), 3) << step;
+    EXPECT_EQ(h->obj().scheduled_downtime_depth(), 1) << step;
+    auto s = _cache->service(1u, 10u);
+    ASSERT_TRUE(s) << step;
+    EXPECT_TRUE(s->obj().checked()) << step;
+    EXPECT_EQ(s->obj().state(), Service_State_CRITICAL) << step;
+    EXPECT_EQ(s->obj().last_check(), 2000) << step;
+    EXPECT_EQ(s->obj().output(), "service is critical") << step;
+    EXPECT_EQ(s->obj().perfdata(), "rta=1ms") << step;
+    EXPECT_EQ(s->obj().acknowledgement_type(), AckType::NORMAL) << step;
+  };
+  check("after status", "first");
+
+  /* A full merge of the same poller: the alias follows, the runtime stays. */
+  _cache->merge(make_state("second"));
+  check("after merge", "second");
+
+  /* A diff modifying both: same expectation. */
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  auto* mh = diff.mutable_hosts()->mutable_modified()->Add();
+  mh->set_host_id(1);
+  mh->set_poller_id(1);
+  mh->set_host_name("host_1");
+  mh->set_alias("third");
+  auto* ms = diff.mutable_services()->mutable_modified()->Add();
+  ms->set_host_id(1);
+  ms->set_service_id(10);
+  ms->set_host_name("host_1");
+  ms->set_service_description("service_10");
+  _cache->apply(diff);
+  check("after apply", "third");
+}
+
+/**
+ * @brief A configuration-change listener is called after every merge() and
+ * apply(), outside the cache lock (the callback may read the cache), and no
+ * longer once unsubscribed.
+ */
+TEST_F(BrokerCacheTest, ConfigurationChangedListener) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  int calls = 0;
+  size_t hosts_seen = 0;
+  uint64_t id = _cache->subscribe_configuration_changed([&] {
+    ++calls;
+    /* Reading the cache from the callback must not deadlock. */
+    hosts_seen = _cache->host_ids().size();
+  });
+
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  _cache->merge(st);
+  EXPECT_EQ(calls, 1);
+  EXPECT_EQ(hosts_seen, 1u);
+
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  auto* ah = diff.mutable_hosts()->mutable_added()->Add();
+  ah->set_host_id(2);
+  ah->set_poller_id(1);
+  ah->set_host_name("host_2");
+  _cache->apply(diff);
+  EXPECT_EQ(calls, 2);
+  EXPECT_EQ(hosts_seen, 2u);
+
+  _cache->unsubscribe_configuration_changed(id);
+  _cache->merge(st);
+  EXPECT_EQ(calls, 2);
+}
