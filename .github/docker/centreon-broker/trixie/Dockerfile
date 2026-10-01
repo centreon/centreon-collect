@@ -157,9 +157,12 @@ COPY --chmod=755 --chown=centreon-broker:centreon-broker \
 
 # Fingerprint of the package-default config (no SQL/storage output - cbd
 # would run but persist nothing). container.sh refuses to start if the
-# config it's given still matches this, instead of running uselessly.
+# config it's given still matches this, instead of running uselessly. Stored
+# under /var/lib/centreon-broker, NOT /etc/centreon-broker - the latter is
+# the real-world volume mount point for a real config, and an empty mount
+# would mask a fingerprint stored there too, silently disabling this check.
 RUN bash -eo pipefail <<'EOF'
-sha256sum /etc/centreon-broker/central-broker.json | cut -d' ' -f1 > /etc/centreon-broker/.default-config.sha256
+sha256sum /etc/centreon-broker/central-broker.json | cut -d' ' -f1 > /var/lib/centreon-broker/.default-config.sha256
 EOF
 
 # Verify critical runtime files. Checking the dynamic linker can actually

@@ -15,6 +15,7 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -35,6 +36,19 @@ def start_cbd():
     # Own process group so killpg targets cbd, not this wrapper too.
     cbd_proc = subprocess.Popen([CBD_BIN, CONFIG_PATH], preexec_fn=os.setpgrp)
     print(f"cbd started with PID {cbd_proc.pid}", flush=True)
+    threading.Thread(target=_watch_cbd, args=(cbd_proc,), daemon=True).start()
+
+
+def _watch_cbd(proc):
+    # If cbd exits on its own (bad config, missing file, crash...), this
+    # wrapper must not keep running and reporting "healthy" - exit so the
+    # container itself dies and the restart policy relaunches it, same as a
+    # direct `cbd <config>` invocation would.
+    code = proc.wait()
+    print(f"cbd exited with code {code}, exiting wrapper", flush=True)
+    # A negative code means cbd died from a signal (e.g. the SIGKILL
+    # fallback in /restart) - os._exit() needs a plain 0-255 status.
+    os._exit(code if code is not None and code >= 0 else 1)
 
 
 @asynccontextmanager

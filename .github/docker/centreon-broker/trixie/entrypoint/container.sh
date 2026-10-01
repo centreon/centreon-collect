@@ -25,7 +25,7 @@ fi
 # Find the config path in "$@": refuse to start on the untouched package
 # default (no SQL/storage output, would run but persist nothing), else tail
 # its log file.
-DEFAULT_SUM=$(cat /etc/centreon-broker/.default-config.sha256 2>/dev/null || true)
+DEFAULT_SUM=$(cat /var/lib/centreon-broker/.default-config.sha256 2>/dev/null || true)
 for arg in "$@"; do
     case "$arg" in
         *.json)
