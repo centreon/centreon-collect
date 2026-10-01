@@ -1,33 +1,14 @@
 #!/usr/bin/env python3
 """
-Minimal HTTP shim for cbd reload/restart, standing in for a real gRPC RPC
-until broker gets one of its own. centreon-engine already replaced an
-equivalent shim with direct gRPC (Engine/SignalProcess, see commit
-b486e99591 "replace api_control.py with direct gRPC management") - broker
-never got the same treatment: broker.proto declares no Shutdown/Reload/
-SignalProcess RPC, only stats/getters/setters (confirmed by reading it).
+HTTP shim for cbd reload/restart, standing in until broker gets a real gRPC
+RPC for this (engine already has one; broker.proto doesn't).
 
-Signal semantics verified directly in broker/core/src/main.cc's own
-signal_handler(), not assumed:
-  - SIGHUP: a real in-process config reload - re-parses the config file,
-    re-applies it, and refreshes the AES decrypt key via
-    reload_engine_context() too (see container.sh's engine-context.json
-    writer). cbd keeps running, no restart.
-  - SIGTERM: clean shutdown (gl_term = true, event loop exits).
-
-/restart sends SIGTERM and then exits this wrapper itself, rather than
-respawning cbd in-place - mirrors the engine/gRPC convention (SignalProcess
-(SHUTDOWN) + Docker's restart policy relaunches the whole container) instead
-of a long-lived supervisor process accumulating state across restarts.
+Signal semantics verified in broker/core/src/main.cc: SIGHUP reloads config
+in-place (also refreshes the AES decrypt key), SIGTERM shuts down cleanly.
+/restart exits this wrapper after SIGTERM rather than respawning cbd
+in-place, so the container's restart policy relaunches it.
 
 Usage: api_control.py <path-to-broker-config.json>
-Meant to be the container's real CMD in place of a direct `cbd <config>`
-invocation, e.g.:
-  python3 api_control.py /etc/centreon-broker/central-broker.json
-container.sh's own `.json` arg detection (for log-tail.sh) still finds this
-same argument in "$@" unchanged - this script doesn't own log streaming,
-that stays log-tail.sh's job (cbd never logs to stdout, only to its own
-file).
 """
 import asyncio
 import os
@@ -51,9 +32,7 @@ cbd_proc = None
 
 def start_cbd():
     global cbd_proc
-    # preexec_fn=os.setpgrp puts cbd in its own process group so a signal
-    # sent via killpg reaches cbd (and any children it spawns) without also
-    # hitting this wrapper process.
+    # Own process group so killpg targets cbd, not this wrapper too.
     cbd_proc = subprocess.Popen([CBD_BIN, CONFIG_PATH], preexec_fn=os.setpgrp)
     print(f"cbd started with PID {cbd_proc.pid}", flush=True)
 
@@ -83,9 +62,7 @@ async def restart_cbd():
             cbd_proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             os.killpg(os.getpgid(cbd_proc.pid), signal.SIGKILL)
-    # Exit after the response is sent, not before - an immediate os._exit()
-    # here would kill uvicorn mid-response and the caller would see a
-    # connection reset instead of a clean 200.
+    # Delay exit so the HTTP response is sent before the process dies.
     asyncio.get_event_loop().call_later(0.5, lambda: os._exit(0))
     return {"restart": "cbd stopped, exiting for the container restart policy to relaunch"}
 

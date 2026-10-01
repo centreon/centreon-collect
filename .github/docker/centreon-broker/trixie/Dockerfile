@@ -48,10 +48,7 @@ ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Documented image contract — values are normally injected via docker compose / -e flags.
-# APP_SECRET/SALT are optional: only needed when this broker's own config has an
-# AES-encrypted db_password to decrypt (see container.sh). Must be the SAME pair
-# web/engine were given, since broker decrypts what web encrypted with it.
+# APP_SECRET/SALT: optional, needed only to decrypt an AES-encrypted db_password.
 ENV APP_SECRET= \
     SALT=
 
@@ -123,12 +120,7 @@ chmod 775 /etc/centreon-broker \
 chmod 0755 /var/spool/centreon
 chmod 0755 /var/lib/centreon-engine
 chmod 0755 /var/lib/centreon-gorgone
-# Not a shared volume with a real centengine container (deliberately
-# decoupled, see container.sh) - owned by the centreon-engine group and
-# group-writable so centreon-broker (already a member, see usermod above)
-# can write its own private engine-context.json here without running as
-# root. Same convention the centreon-engine image itself uses for this
-# directory (centreon-engine:centreon-engine, 775).
+# Private engine-context.json, not a shared volume - group-writable so centreon-broker (already a member) can write it without root.
 chown centreon-engine:centreon-engine /etc/centreon-engine
 chmod 775 /etc/centreon-engine
 EOF
@@ -162,6 +154,12 @@ RUN chmod 0775 /etc/centreon-broker
 COPY --chmod=755 --chown=centreon-broker:centreon-broker \
      ./.github/docker/centreon-broker/trixie/entrypoint /var/lib/centreon-broker
 
+# Fingerprint of the package-default config (no SQL/storage output - cbd
+# would run but persist nothing). container.sh refuses to start if the
+# config it's given still matches this, instead of running uselessly.
+RUN sha256sum /etc/centreon-broker/central-broker.json | cut -d' ' -f1 \
+    > /etc/centreon-broker/.default-config.sha256
+
 # Verify critical runtime files. Checking the dynamic linker can actually
 # resolve cbd/cbwd's shared libs (rather than guessing libcentreon_clib.so's
 # exact path with a glob) is what caught the equivalent bug on the sibling
@@ -176,11 +174,7 @@ ls /etc/centreon-broker/*.json >/dev/null
 ! ldd /usr/sbin/cbwd | grep -q "not found"
 EOF
 
-# Pre-install Python API dependencies at build time (10-15s startup improvement).
-# api_control.py (reload/restart shim, see entrypoint/) is the only consumer.
-# Unpinned on purpose: this is a small internal reload/restart shim, not a
-# library with an API surface to protect - floating versions keep it current
-# without manual bumps, at the cost of reproducibility a pin would give.
+# Deps for api_control.py (reload/restart shim). Unpinned: internal shim, not a published library.
 RUN bash -e <<EOF
 python3 -m venv /opt/centreon/venv
 /opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip
@@ -221,7 +215,7 @@ EXPOSE 51001
 EXPOSE 5670
 # gRPC central-rrd
 EXPOSE 51002
-# api_control.py reload/restart shim (opt-in, see CMD below)
+# api_control.py (reload/restart shim)
 EXPOSE 8080
 
 WORKDIR /var/lib/centreon-broker
@@ -234,18 +228,10 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
 
 ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
 
-# Real invocation is supplied at `docker run`/compose time, e.g.:
-#   cbd /etc/centreon-broker/central-broker.json
-# `-c`/`--check` does NOT mean "config path" - it means "validate this config
-# and exit", skipping the event loop entirely. `cbd -c <path>` loads and
-# applies the config, then exit(0)s cleanly after a few seconds - looks
-# exactly like a normal, successful startup-then-stop in the logs, not a
-# crash. The config path is a plain positional argument, with no flag.
-#
-# For reload/restart without a shell into the container, run api_control.py
-# instead of cbd directly - a small HTTP shim (POST /reload, POST /restart,
-# GET /health) standing in until broker gets a real gRPC RPC for this
-# (centreon-engine already has one, Engine/SignalProcess; broker.proto has no
-# equivalent today):
-#   python3 /var/lib/centreon-broker/api_control.py /etc/centreon-broker/central-broker.json
-CMD ["/bin/bash"]
+# Runs cbd under the reload/restart shim by default (POST /reload, POST
+# /restart, GET /health on :8080). Override CMD with
+# ["cbd", "/etc/centreon-broker/central-broker.json"] to run cbd directly.
+# Note: cbd's `-c`/`--check` validates and exits, it is not a config-path flag.
+# A real config must be mounted over central-broker.json - container.sh
+# refuses to start on the untouched package default.
+CMD ["/opt/centreon/venv/bin/python3", "/var/lib/centreon-broker/api_control.py", "/etc/centreon-broker/central-broker.json"]
