@@ -176,14 +176,17 @@ ls /etc/centreon-broker/*.json >/dev/null
 ! ldd /usr/sbin/cbwd | grep -q "not found"
 EOF
 
-# Pre-install Python API dependencies at build time (10-15s startup improvement)
+# Pre-install Python API dependencies at build time (10-15s startup improvement).
+# api_control.py (reload/restart shim, see entrypoint/) is the only consumer.
+# Unpinned on purpose: this is a small internal reload/restart shim, not a
+# library with an API surface to protect - floating versions keep it current
+# without manual bumps, at the cost of reproducibility a pin would give.
 RUN bash -e <<EOF
 python3 -m venv /opt/centreon/venv
 /opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip
 /opt/centreon/venv/bin/pip install --no-cache-dir \
-    fastapi==0.140.0 \
-    starlette==1.3.1 \
-    uvicorn==0.32.0
+    fastapi \
+    uvicorn
 chown -R centreon-broker:centreon-broker /opt/centreon/venv
 EOF
 
@@ -218,6 +221,8 @@ EXPOSE 51001
 EXPOSE 5670
 # gRPC central-rrd
 EXPOSE 51002
+# api_control.py reload/restart shim (opt-in, see CMD below)
+EXPOSE 8080
 
 WORKDIR /var/lib/centreon-broker
 
@@ -237,5 +242,10 @@ ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
 # exactly like a normal, successful startup-then-stop in the logs, not a
 # crash. The config path is a plain positional argument, with no flag.
 #
-# TODO: CMD depend on restart/reload management (grpc) TBD later
+# For reload/restart without a shell into the container, run api_control.py
+# instead of cbd directly - a small HTTP shim (POST /reload, POST /restart,
+# GET /health) standing in until broker gets a real gRPC RPC for this
+# (centreon-engine already has one, Engine/SignalProcess; broker.proto has no
+# equivalent today):
+#   python3 /var/lib/centreon-broker/api_control.py /etc/centreon-broker/central-broker.json
 CMD ["/bin/bash"]
