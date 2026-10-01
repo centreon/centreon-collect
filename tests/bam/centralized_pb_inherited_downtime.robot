@@ -106,6 +106,7 @@ BECBAMIDTU2
     Ctn Clear Commands Status
     Ctn Clear Downtimes
     Ctn Clear Retention
+    Ctn Clear Prot Files
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module
     Ctn Config Broker    central
@@ -235,6 +236,7 @@ BECBAMIDTU3
     Ctn Clear Commands Status
     Ctn Clear Downtimes
     Ctn Clear Retention
+    Ctn Clear Prot Files
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module
     Ctn Config Broker    central
@@ -304,6 +306,7 @@ BECBAMIGNDTU1
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
     Ctn Clear Retention
+    Ctn Clear Prot Files
     Ctn Clear Downtimes
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module

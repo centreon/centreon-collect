@@ -102,7 +102,7 @@ them. Each section is introduced by its number of tests.
 
 ## Table of contents
 
-- [Bam](#bam) (83 tests)
+- [Bam](#bam) (86 tests)
 - [Benchmarks](#benchmarks) (14 tests)
 - [Broker](#broker) (94 tests)
 - [Broker/database](#brokerdatabase) (15 tests)
@@ -117,7 +117,7 @@ them. Each section is introduced by its number of tests.
 
 ### Bam
 
-This chapter contains 83 tests.
+This chapter contains 86 tests.
 
 1. **BABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
 2. **BABOO**: With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
@@ -463,9 +463,17 @@ This chapter contains 83 tests.
      * **WHEN** the service KPI is replaced by a boolean rule KPI
      * **AND** Broker is reloaded
      * **THEN** the BA is correctly updated with the new KPI configuration
-76. **CBA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
-77. **CBA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
-78. **CBA_IMPACT_IMPACT**:
+76. **CBA_CONF_PUSHED_NO_RELOAD**:
+     * **SCENARIO:** a BA created after Broker started is taken into account when its configuration is pushed, without any Broker reload
+     * **GIVEN** Broker and Engine are started in centralized mode with no BA
+     * **WHEN** a BA of type "worst" on two services is created and the Engine configuration is pushed through the .lck file
+     * **THEN** Broker asks the BAM endpoint to reload once the poller configuration is applied to the global cache
+     * **AND** the BA becomes OK without any reload of Broker
+     * **WHEN** one of its services becomes CRITICAL
+     * **THEN** the BA becomes CRITICAL
+77. **CBA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
+78. **CBA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
+79. **CBA_IMPACT_IMPACT**:
      * **GIVEN** a Business Activity (BA) of type "impact"
      * **AND** it has two child BAs of type "impact"
      * **AND** the first child has an impact of 90
@@ -474,11 +482,25 @@ This chapter contains 83 tests.
      * **THEN** the parent BA should be "critical"
      * **WHEN** both child BAs are not impacting
      * **THEN** the parent BA should be "ok"
-79. **CBA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-80. **CBA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
-81. **CBA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-82. **CBA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
-83. **CBA_SERVICE_PNAME_AFTER_RELOAD**:
+80. **CBA_KPI_SERVICE_ADDED_LATER**:
+     * **SCENARIO:** a KPI whose service does not exist yet becomes active when the service is added to the configuration
+     * **GIVEN** a BA of type "worst" with two KPIs, one on service_314 and one on service_303
+     * **AND** service_303 is not in the Engine configuration when Broker starts, so BAM drops that KPI
+     * **WHEN** service_303 is added to the Engine configuration and pushed
+     * **THEN** Broker asks the BAM endpoint to reload once the diff is applied to the global cache
+     * **AND** a CRITICAL result on service_303 makes the BA CRITICAL, without any reload of Broker
+81. **CBA_PROT_LOST_RESTART**:
+     * **SCENARIO:** a BA survives the loss of the stored poller configuration across a Broker restart
+     * **GIVEN** a BA of type "worst" on two services is OK
+     * **WHEN** Broker is stopped, its stored poller configuration (1.prot) is deleted and Broker is started again
+     * **THEN** BAM cannot resolve the KPI services when it opens, since the global cache is empty
+     * **AND** Engine sends its configuration back, Broker stores it, feeds the cache and asks the BAM endpoint to reload
+     * **AND** the BA reacts to a CRITICAL service without any reload of Broker
+82. **CBA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+83. **CBA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
+84. **CBA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+85. **CBA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
+86. **CBA_SERVICE_PNAME_AFTER_RELOAD**:
      * **SCENARIO:** Verify that the parent_name of a BA service is not erased after a broker reload
      * **GIVEN** a BA "test" of type "worst" with its service "host_16:service_302"
      * **WHEN** I start broker and engine
@@ -4061,4 +4083,4 @@ This chapter contains 22 tests.
      * **THEN** broker logs an error about the bad base64 encoding
 
 
-940 tests currently implemented.
+943 tests currently implemented.
