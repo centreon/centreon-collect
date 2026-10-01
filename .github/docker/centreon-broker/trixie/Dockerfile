@@ -48,6 +48,13 @@ ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Documented image contract — values are normally injected via docker compose / -e flags.
+# APP_SECRET/SALT are optional: only needed when this broker's own config has an
+# AES-encrypted db_password to decrypt (see container.sh). Must be the SAME pair
+# web/engine were given, since broker decrypts what web encrypted with it.
+ENV APP_SECRET= \
+    SALT=
+
 # Create users and groups (must match current setup for compatibility)
 RUN bash -e <<EOF
 groupadd -g 900 centreon
@@ -101,7 +108,8 @@ mkdir -p /etc/centreon-broker \
          /var/lib/centreon-broker \
          /var/log/centreon-broker \
          /usr/share/centreon/lib/centreon-broker \
-         /usr/share/centreon-broker/lua
+         /usr/share/centreon-broker/lua \
+         /etc/centreon-engine
 chown -R centreon-broker:centreon-broker \
          /etc/centreon-broker \
          /var/lib/centreon-broker \
@@ -115,6 +123,14 @@ chmod 775 /etc/centreon-broker \
 chmod 0755 /var/spool/centreon
 chmod 0755 /var/lib/centreon-engine
 chmod 0755 /var/lib/centreon-gorgone
+# Not a shared volume with a real centengine container (deliberately
+# decoupled, see container.sh) - owned by the centreon-engine group and
+# group-writable so centreon-broker (already a member, see usermod above)
+# can write its own private engine-context.json here without running as
+# root. Same convention the centreon-engine image itself uses for this
+# directory (centreon-engine:centreon-engine, 775).
+chown centreon-engine:centreon-engine /etc/centreon-engine
+chmod 775 /etc/centreon-engine
 EOF
 
 # Copy runtime files from extractor in bulk (binaries, libraries, modules).
@@ -213,5 +229,13 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
 
 ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
 
+# Real invocation is supplied at `docker run`/compose time, e.g.:
+#   cbd /etc/centreon-broker/central-broker.json
+# `-c`/`--check` does NOT mean "config path" - it means "validate this config
+# and exit", skipping the event loop entirely. `cbd -c <path>` loads and
+# applies the config, then exit(0)s cleanly after a few seconds - looks
+# exactly like a normal, successful startup-then-stop in the logs, not a
+# crash. The config path is a plain positional argument, with no flag.
+#
 # TODO: CMD depend on restart/reload management (grpc) TBD later
 CMD ["/bin/bash"]
