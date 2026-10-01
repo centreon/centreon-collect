@@ -2032,6 +2032,52 @@ void broker_cache::unsubscribe_configuration_changed(uint64_t id) {
 }
 
 /**
+ * @brief Register a callback run once the cache is ready (see is_ready()).
+ *
+ * Run at once, on the calling thread, if the cache is already ready.
+ *
+ * @param cb The callback.
+ */
+void broker_cache::on_ready(std::function<void()> cb) {
+  {
+    absl::MutexLock l{&_ready_m};
+    if (!_ready) {
+      _ready_listeners.push_back(std::move(cb));
+      return;
+    }
+  }
+  cb();
+}
+
+/**
+ * @brief Mark the cache ready and run the callbacks waiting for it, outside
+ * every cache lock. Called once by broker_state when the startup barrier is
+ * released; a second call is a no-op.
+ */
+void broker_cache::set_ready() {
+  std::vector<std::function<void()>> listeners;
+  {
+    absl::MutexLock l{&_ready_m};
+    if (_ready)
+      return;
+    _ready = true;
+    listeners.swap(_ready_listeners);
+  }
+  SPDLOG_LOGGER_INFO(_logger, "broker_cache: ready, {} listener(s) notified",
+                     listeners.size());
+  for (const auto& cb : listeners)
+    cb();
+}
+
+/**
+ * @brief Whether the cache is ready (startup barrier released).
+ */
+bool broker_cache::is_ready() const {
+  absl::MutexLock l{&_ready_m};
+  return _ready;
+}
+
+/**
  * @brief Invoke the configuration-change callbacks, outside every cache lock.
  *
  * The list is copied under its own mutex, so a callback may unsubscribe

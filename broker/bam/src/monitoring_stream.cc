@@ -221,6 +221,17 @@ void monitoring_stream::update() {
      * fully-restored, coherent state once, instead of first publishing a
      * partial DB-only state and then overwriting it from the cache. */
     _read_cache();
+    /* Then the global cache, once it is ready (startup barrier released): it
+     * knows the state of every service -- read back from its own file in
+     * legacy mode, overlaid from the database by the reference module in
+     * centralized mode -- and the book keeps whichever is the freshest. Not
+     * ready yet: the connector asked for this update() to be run again at
+     * readiness (broker_cache::on_ready), the seeding happens then. */
+    {
+      const auto& cache = config::applier::state::instance().cache();
+      if (cache.is_ready())
+        _applier.book_service().seed_from_cache(cache);
+    }
     /* When Broker owns the downtimes, nobody replays them to us: ask the
      * downtime_manager which BAs carry the inherited downtime on their virtual
      * service, so that a BA whose KPIs left downtime while cbd was down lifts

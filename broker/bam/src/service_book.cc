@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/bam/service_book.hh"
 
+#include "broker/core/cache/broker_cache.hh"
+
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -268,6 +270,42 @@ void service_book::save_to_cache(ServicesBookState* cache) const {
     svc->set_state_type(state.state_type);
     svc->set_acknowledged(state.acknowledged);
   }
+}
+
+/**
+ * @brief Seed the followed services from the Broker global cache.
+ *
+ * For every couple the book follows, the cache entry is injected as a full
+ * service definition would be -- if it says more than what the book already
+ * holds. "Freshest wins": an entry that was never checked (a configuration
+ * alone, still PENDING) is skipped, and so is one whose last check is older
+ * than the one the book holds, which may come from the BAM cache file or from
+ * a status received meanwhile. Called from monitoring_stream::update() once
+ * the cache is ready, on the failover thread like every other update of the
+ * book.
+ *
+ * @param cache The Broker global cache.
+ *
+ * @return The number of services seeded.
+ */
+size_t service_book::seed_from_cache(const cache::broker_cache& cache) {
+  size_t seeded = 0;
+  for (auto& [key, entry] : _book) {
+    auto svc = cache.service(key.first, key.second);
+    if (!svc)
+      continue;
+    const auto& o = svc->obj();
+    if (!o.checked() || time_is_undefined(o.last_check()))
+      continue;
+    if (static_cast<time_t>(o.last_check()) < entry.state.last_check)
+      continue;
+    update(svc, nullptr);
+    ++seeded;
+  }
+  _logger->info(
+      "BAM: {} service state(s) seeded from the global cache ({} followed)",
+      seeded, _book.size());
+  return seeded;
 }
 
 /**

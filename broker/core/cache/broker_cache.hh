@@ -581,6 +581,9 @@ class broker_cache {
   std::vector<std::pair<uint64_t, std::function<void()>>> _config_listeners
       ABSL_GUARDED_BY(_config_listeners_m);
   uint64_t _next_config_listener_id ABSL_GUARDED_BY(_config_listeners_m){1};
+  mutable absl::Mutex _ready_m;
+  bool _ready ABSL_GUARDED_BY(_ready_m) = false;
+  std::vector<std::function<void()>> _ready_listeners ABSL_GUARDED_BY(_ready_m);
   void _merge_locked(const com::centreon::engine::configuration::State& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _apply_locked(
@@ -911,6 +914,15 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_config_listeners_m);
   void unsubscribe_configuration_changed(uint64_t id)
       ABSL_LOCKS_EXCLUDED(_config_listeners_m);
+  /* Readiness: the cache is ready once the startup barrier is released, i.e.
+   * once every output stream opened a first time and broker_state re-injected
+   * the Broker-owned state it persists (downtimes, acknowledgements,
+   * notification states and overrides). A callback registered with on_ready()
+   * runs once, outside every cache lock: at set_ready() if the cache is not
+   * ready yet, immediately otherwise. */
+  void on_ready(std::function<void()> cb) ABSL_LOCKS_EXCLUDED(_ready_m);
+  void set_ready() ABSL_LOCKS_EXCLUDED(_ready_m);
+  bool is_ready() const ABSL_LOCKS_EXCLUDED(_ready_m);
   /* Store the started downtimes to persist on the next cache save. Called by
    * broker_state at shutdown, before the downtime_manager is unloaded. */
   void set_active_downtimes(std::vector<Downtime> downtimes)

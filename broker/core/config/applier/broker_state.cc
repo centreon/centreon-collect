@@ -292,6 +292,10 @@ void broker_state::_on_barrier_released() {
     cache().reinject_pending_acknowledgements();
     cache().reinject_pending_notification_overrides();
   }
+  /* After the re-injections: whoever waits for the cache (BAM seeds its KPI
+   * states from it) must find the downtime depths and acknowledgement flags
+   * already restored on the entries. */
+  cache().set_ready();
 }
 
 /**

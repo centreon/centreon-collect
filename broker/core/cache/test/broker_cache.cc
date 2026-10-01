@@ -1389,3 +1389,24 @@ TEST_F(BrokerCacheTest, ConfigurationChangedListener) {
   _cache->merge(st);
   EXPECT_EQ(calls, 2);
 }
+
+/**
+ * @brief on_ready() queues a callback until set_ready(), which runs the queued
+ * callbacks once; a callback registered afterwards runs immediately, and a
+ * second set_ready() is a no-op.
+ */
+TEST_F(BrokerCacheTest, OnReady) {
+  int before = 0;
+  int after = 0;
+  EXPECT_FALSE(_cache->is_ready());
+  _cache->on_ready([&] { ++before; });
+  EXPECT_EQ(before, 0);
+  _cache->set_ready();
+  EXPECT_TRUE(_cache->is_ready());
+  EXPECT_EQ(before, 1);
+  _cache->on_ready([&] { ++after; });
+  EXPECT_EQ(after, 1);
+  _cache->set_ready();
+  EXPECT_EQ(before, 1);
+  EXPECT_EQ(after, 1);
+}
