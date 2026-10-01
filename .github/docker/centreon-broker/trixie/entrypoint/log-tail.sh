@@ -48,4 +48,11 @@ while [ ! -f "$LOG_PATH" ] && [ "$i" -lt 30 ]; do
 done
 touch "$LOG_PATH" 2>/dev/null || true
 
-exec tail -F "$LOG_PATH" > /proc/1/fd/1 2>&1
+# No explicit /proc/1/fd/1 redirect: this script is backgrounded directly
+# from container.sh (plain `&`, no stdout redirection in between), so its
+# own stdout/stderr are already the container's real stdout/stderr by
+# normal fd inheritance - reaching into /proc/1/fd/1 is both unnecessary and
+# can fail with "Permission denied" depending on the container runtime/init
+# setup (confirmed: a direct `cbd`-owned PID 1 in one environment; real
+# failure observed once PID 1 became the api_control.py wrapper instead).
+exec tail -F "$LOG_PATH"
