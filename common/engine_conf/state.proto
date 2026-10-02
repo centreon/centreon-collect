@@ -976,6 +976,119 @@ message Timeperiod {
   DaysArray timeranges = 6;
 }
 
+/* The three enums below mirror their namesakes of the neb protocol
+ * (bbdo/neb.proto), same names and same values, so that a value converts
+ * from one to the other by a plain cast. They are declared again here because
+ * neither proto imports the other; the `Runtime` prefix keeps them from
+ * clashing with the neb ones in code that uses both. */
+
+/* Whether a state is confirmed. */
+enum RuntimeStateType {
+  SOFT = 0;
+  HARD = 1;
+}
+
+/* How the last check result was obtained. */
+enum RuntimeCheckType {
+  ACTIVE = 0;
+  PASSIVE = 1;
+}
+
+/* How a problem is acknowledged. */
+enum RuntimeAckType {
+  NONE = 0;
+  NORMAL = 1;
+  STICKY = 2;
+}
+
+/* The runtime part of a host: what checks, acknowledgements, downtimes and
+ * notifications have made of it, as opposed to what the configuration says.
+ * Broker holds it in its global cache (restored from the database at startup,
+ * kept across configuration changes) and hands it to Engine in the DiffState
+ * sent at connection, where retention.dat used to be read: a poller that has
+ * no retention file, or that takes over resources it never supervised, starts
+ * from the last known state instead of PENDING.
+ *
+ * The check result fields are the ones Engine needs in every mode. `output`
+ * and `long_output` feed the macros of a command run before the first check
+ * (a custom notification, the host output in a service notification).
+ * `perfdata` has a single reader, anomalydetection, which parses the perfdata
+ * of the service it depends on at its own check: Broker fills it only for the
+ * services an anomalydetection depends on, and leaves it empty otherwise. The
+ * acknowledgement, downtime and notification fields are meaningful only when
+ * Engine owns them (notification_mode=engine): when Broker does, it replays
+ * them to Engine itself and these fields are left at their defaults. */
+message HostRuntime {
+  uint64 host_id = 1;
+  bool checked = 2;
+  RuntimeCheckType check_type = 3;
+  HostStatus state = 4;
+  RuntimeStateType state_type = 5;
+  int64 last_state_change = 6;
+  HostStatus last_hard_state = 7;
+  int64 last_hard_state_change = 8;
+  int64 last_time_up = 9;
+  int64 last_time_down = 10;
+  int64 last_time_unreachable = 11;
+  string output = 12;
+  string perfdata = 13;
+  bool flapping = 14;
+  double percent_state_change = 15;
+  double latency = 16;
+  double execution_time = 17;
+  int64 last_check = 18;
+  int32 check_attempt = 19;
+  /* notification_mode=engine only, see above. */
+  bool acknowledged = 20;
+  RuntimeAckType acknowledgement_type = 21;
+  int32 scheduled_downtime_depth = 22;
+  int32 notification_number = 23;
+  bool no_more_notifications = 24;
+  int64 last_notification = 25;
+  int64 next_notification = 26;
+}
+
+/* The runtime part of a service, see HostRuntime. */
+message ServiceRuntime {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+  bool checked = 3;
+  RuntimeCheckType check_type = 4;
+  ServiceStatus state = 5;
+  RuntimeStateType state_type = 6;
+  int64 last_state_change = 7;
+  ServiceStatus last_hard_state = 8;
+  int64 last_hard_state_change = 9;
+  int64 last_time_ok = 10;
+  int64 last_time_warning = 11;
+  int64 last_time_critical = 12;
+  int64 last_time_unknown = 13;
+  string output = 14;
+  string long_output = 15;
+  string perfdata = 16;
+  bool flapping = 17;
+  double percent_state_change = 18;
+  double latency = 19;
+  double execution_time = 20;
+  int64 last_check = 21;
+  int32 check_attempt = 22;
+  /* notification_mode=engine only, see HostRuntime. */
+  bool acknowledged = 23;
+  RuntimeAckType acknowledgement_type = 24;
+  int32 scheduled_downtime_depth = 25;
+  int32 notification_number = 26;
+  bool no_more_notifications = 27;
+  int64 last_notification = 28;
+  int64 next_notification = 29;
+}
+
+/* The runtime part of every resource Broker knows for a poller: the snapshot
+ * that replaces retention.dat in centralized configuration. */
+message RuntimeState {
+  repeated HostRuntime hosts = 1;
+  repeated ServiceRuntime services = 2;
+}
+
 /* io::neb, neb::de_pb_global_diff_state, 52, DiffState */
 message DiffState {
   /* Modifications concerning timeperiods */
@@ -1167,4 +1280,12 @@ message DiffState {
    * Before adding/modifying elements, we have to disable the previous ones. */
   repeated uint64 full_conf_poller_id = 146;
   bool unknown = 147;
+
+  /* The runtime part of the poller's resources, as Broker knows it. Set on
+   * every DiffState sent to a connecting poller in centralized configuration,
+   * including the empty one that closes the handshake when the poller is up
+   * to date. Engine applies it once the objects of the diff exist, where it
+   * used to apply retention.dat. Absent when Broker has nothing to say
+   * (unknown configuration, relay). */
+  RuntimeState runtime_state = 148;
 }
