@@ -1428,3 +1428,52 @@ TEST_F(BrokerCacheTest, ReferenceArbitration) {
   EXPECT_FALSE(_cache->reference_endpoint().has_value());
   EXPECT_TRUE(_cache->declare_reference("sql-2"));
 }
+
+/**
+ * @brief restore_*_runtime() hands the entry to the setter when the row is
+ * fresher than what the cache holds, and never for an unknown resource, a
+ * never-checked row, or a row older than the entry's own check.
+ */
+TEST_F(BrokerCacheTest, RestoreRuntime) {
+  publish_hosts(1, 1);
+  publish_services(1, 1, 1);
+
+  auto down_from_db = [](Host& h) {
+    h.set_checked(true);
+    h.set_state(Host_State_DOWN);
+    h.set_last_hard_state(Host_State_DOWN);
+    h.set_last_check(1000);
+    h.set_output("from db");
+    h.set_scheduled_downtime_depth(2);
+  };
+  EXPECT_TRUE(_cache->restore_host_runtime(1, 1000, down_from_db));
+  auto h = _cache->host(1u);
+  ASSERT_TRUE(h);
+  EXPECT_EQ(h->obj().state(), Host_State_DOWN);
+  EXPECT_EQ(h->obj().last_check(), 1000);
+  EXPECT_EQ(h->obj().output(), "from db");
+  EXPECT_EQ(h->obj().scheduled_downtime_depth(), 2);
+  EXPECT_EQ(h->obj().name(), "host_1") << "configuration fields are untouched";
+
+  /* An older row does not win over the state the cache holds. */
+  int calls = 0;
+  auto count = [&calls](Host&) { ++calls; };
+  EXPECT_FALSE(_cache->restore_host_runtime(1, 500, count));
+  /* A never-checked row, or an unknown host, changes nothing. */
+  EXPECT_FALSE(_cache->restore_host_runtime(1, 0, count));
+  EXPECT_FALSE(_cache->restore_host_runtime(42, 5000, count));
+  EXPECT_EQ(calls, 0);
+  EXPECT_EQ(_cache->host(1u)->obj().state(), Host_State_DOWN);
+
+  EXPECT_TRUE(_cache->restore_service_runtime(1, 1, 2000, [](Service& s) {
+    s.set_checked(true);
+    s.set_state(Service_State_CRITICAL);
+    s.set_last_check(2000);
+    s.set_output("crit");
+  }));
+  auto s = _cache->service(1u, 1u);
+  ASSERT_TRUE(s);
+  EXPECT_EQ(s->obj().state(), Service_State_CRITICAL);
+  EXPECT_EQ(s->obj().output(), "crit");
+  EXPECT_EQ(s->obj().description(), "service_1");
+}

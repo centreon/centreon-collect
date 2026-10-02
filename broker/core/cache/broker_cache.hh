@@ -766,8 +766,12 @@ class broker_cache {
                   const com::centreon::engine::configuration::Host& cfg,
                   uint64_t poller_id_hint = 0)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
-  static void _keep_host_runtime(Host* dst, const Host& src);
-  static void _keep_service_runtime(Service* dst, const Service& src);
+  static void _keep_host_runtime(Host* dst, const Host& src) {
+    copy_host_runtime(dst, src);
+  }
+  static void _keep_service_runtime(Service* dst, const Service& src) {
+    copy_service_runtime(dst, src);
+  }
   template <typename ConfigType>
   void _fill_service_common(Service* obj, const ConfigType& cfg);
   void _fill_service(Service* service,
@@ -916,28 +920,26 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_config_listeners_m);
   void unsubscribe_configuration_changed(uint64_t id)
       ABSL_LOCKS_EXCLUDED(_config_listeners_m);
-  /* Readiness: the cache is ready once the startup barrier is released, i.e.
-   * once every output stream opened a first time and broker_state re-injected
-   * the Broker-owned state it persists (downtimes, acknowledgements,
-   * notification states and overrides). A callback registered with on_ready()
-   * runs once, outside every cache lock: at set_ready() if the cache is not
-   * ready yet, immediately otherwise. */
   void on_ready(std::function<void()> cb) ABSL_LOCKS_EXCLUDED(_ready_m);
   void set_ready() ABSL_LOCKS_EXCLUDED(_ready_m);
   bool is_ready() const ABSL_LOCKS_EXCLUDED(_ready_m);
-  /* The reference of the cache: the one output (unified_sql) whose database
-   * holds the runtime state of the resources and which, in centralized
-   * configuration, overlays that state onto the cache at startup. Outputs
-   * declare themselves in configuration order; the first wins, the others are
-   * told so and load nothing. A declaration never fails the configuration. */
   bool declare_reference(const std::string& endpoint_name)
       ABSL_LOCKS_EXCLUDED(_reference_m);
   void release_reference(const std::string& endpoint_name)
       ABSL_LOCKS_EXCLUDED(_reference_m);
   std::optional<std::string> reference_endpoint() const
       ABSL_LOCKS_EXCLUDED(_reference_m);
-  /* Store the started downtimes to persist on the next cache save. Called by
-   * broker_state at shutdown, before the downtime_manager is unloaded. */
+  static void copy_host_runtime(Host* dst, const Host& src);
+  static void copy_service_runtime(Service* dst, const Service& src);
+  bool restore_host_runtime(uint64_t host_id,
+                            time_t last_check,
+                            const std::function<void(Host&)>& set)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool restore_service_runtime(uint64_t host_id,
+                               uint64_t service_id,
+                               time_t last_check,
+                               const std::function<void(Service&)>& set)
+      ABSL_LOCKS_EXCLUDED(_mutex);
   void set_active_downtimes(std::vector<Downtime> downtimes)
       ABSL_LOCKS_EXCLUDED(_mutex);
   /* Return the next internal_id for a Broker-originated downtime comment and
@@ -945,22 +947,10 @@ class broker_cache {
   uint64_t next_downtime_comment_id() noexcept {
     return _next_downtime_comment_id.fetch_add(1, std::memory_order_relaxed);
   }
-  /* Re-inject into the downtime_manager every pending active downtime whose
-   * host/service is now known to the cache, restoring its scheduled depth.
-   * Idempotent; drains _pending_active_downtimes as resources become known
-   * (called after _load_cache in legacy mode and after merge() — via
-   * _process_engine_state — in centralized mode). */
   void reinject_pending_downtimes() ABSL_LOCKS_EXCLUDED(_mutex);
-  /* Store the per-resource notification states to persist on the next cache
-   * save. Called by broker_state at shutdown, before the notification_manager
-   * is unloaded. */
   void set_notification_states(
       std::vector<BrokerCache::NotificationState> states)
       ABSL_LOCKS_EXCLUDED(_mutex);
-  /* Re-inject the pending notification states into the notification_manager,
-   * restoring the notification chain (number, timings, notified contacts) after
-   * a restart. Drains _pending_notification_states; a no-op if the manager is
-   * not loaded (notification_mode != broker). */
   void reinject_pending_notification_states() ABSL_LOCKS_EXCLUDED(_mutex);
   void apply(const com::centreon::engine::configuration::DiffState& diff)
       ABSL_LOCKS_EXCLUDED(_mutex);

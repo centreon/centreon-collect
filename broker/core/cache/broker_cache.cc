@@ -110,10 +110,18 @@ uint32_t host_options_to_flags(uint32_t opts) {
  * are (host_id, service_id) / severity_id / (host_name, description), none of
  * which is written by a status or an adaptive event. Adding an index on a
  * status field would require revisiting every mutable_entry user.
+ *
+ * The handle publishes the clone, when there is one, in its destructor: it is
+ * meant to live in the scope of the write lock, declared after it so that it
+ * is destroyed before the lock is released. Nothing to call once the fields
+ * are modified.
  */
-template <typename T>
+template <typename Index>
 class mutable_entry {
-  /* Set only when the entry had to be cloned; drives commit(). */
+  using T = typename Index::value_type::element_type;
+  Index& _index;
+  typename Index::iterator _it;
+  /* Set only when the entry had to be cloned; drives the destructor. */
   std::shared_ptr<T> _clone;
   T* _entry;
 
@@ -121,17 +129,42 @@ class mutable_entry {
   /**
    * @brief Constructor.
    *
-   * @param stored The entry as stored in the container. It must be passed by
-   * reference straight from the container: copying it into a local variable
-   * first would bump the use count and always force the clone path.
+   * @param index The index the entry belongs to.
+   * @param it An iterator on the entry, in that index. The stored shared_ptr is
+   * inspected in place: copying it into a local variable first would bump the
+   * use count and always force the clone path.
    */
-  explicit mutable_entry(const std::shared_ptr<T>& stored)
-      : _entry{stored.get()} {
-    if (stored.use_count() != 1) {
-      _clone = std::make_shared<T>(*stored);
+  mutable_entry(Index& index, typename Index::iterator it)
+      : _index{index}, _it{it}, _entry{it->get()} {
+    if (it->use_count() != 1) {
+      _clone = std::make_shared<T>(**it);
       _entry = _clone.get();
     }
   }
+  mutable_entry(const mutable_entry&) = delete;
+  mutable_entry& operator=(const mutable_entry&) = delete;
+
+  /**
+   * @brief Publish the clone to the container now, rather than at
+   * destruction. A no-op when the entry was modified in place, since the
+   * container already holds the modified object. The object stays readable
+   * through operator->() afterwards: it is the one the container holds.
+   *
+   * For the sites where unrelated work follows the modifications under the
+   * lock, so that the published state does not wait for the end of the scope.
+   */
+  void release() {
+    if (_clone) {
+      _index.replace(_it, _clone);
+      _clone.reset();
+    }
+  }
+
+  /**
+   * @brief Destructor: publish the clone to the container if release() was
+   * not called.
+   */
+  ~mutable_entry() { release(); }
 
   /**
    * @brief Access the object to modify, be it the cached one or the clone.
@@ -139,21 +172,6 @@ class mutable_entry {
    * @return A pointer to the object to modify.
    */
   T* operator->() const { return _entry; }
-
-  /**
-   * @brief Publish the modifications to the container.
-   *
-   * A no-op when the entry was modified in place, since the container already
-   * holds the modified object.
-   *
-   * @param index The index @a it belongs to.
-   * @param it An iterator to the entry this handle was built from.
-   */
-  template <typename Index, typename Iterator>
-  void commit(Index& index, Iterator it) {
-    if (_clone)
-      index.replace(it, _clone);
-  }
 };
 
 }  // namespace
@@ -1970,12 +1988,14 @@ void broker_cache::_fill_anomaly_detection(
   keep(last_update)
 
 /**
- * @brief Carry the runtime fields of a cached host over to its rebuilt entry.
+ * @brief Copy the runtime fields of a host (see the header). Used when a
+ * configuration rebuilds an entry (the old entry is the source) and when a
+ * full database row restores one (the row is the source).
  *
- * @param dst The entry just built from the configuration.
- * @param src The entry it replaces.
+ * @param dst The host receiving the runtime fields.
+ * @param src The host they are read from.
  */
-void broker_cache::_keep_host_runtime(Host* dst, const Host& src) {
+void broker_cache::copy_host_runtime(Host* dst, const Host& src) {
   keep_common_runtime();
   keep(last_time_up);
   keep(last_time_down);
@@ -1984,13 +2004,12 @@ void broker_cache::_keep_host_runtime(Host* dst, const Host& src) {
 }
 
 /**
- * @brief Carry the runtime fields of a cached service over to its rebuilt
- * entry.
+ * @brief Copy the runtime fields of a service (see the header).
  *
- * @param dst The entry just built from the configuration.
- * @param src The entry it replaces.
+ * @param dst The service receiving the runtime fields.
+ * @param src The service they are read from.
  */
-void broker_cache::_keep_service_runtime(Service* dst, const Service& src) {
+void broker_cache::copy_service_runtime(Service* dst, const Service& src) {
   keep_common_runtime();
   keep(long_output);
   keep(last_time_ok);
@@ -2001,6 +2020,66 @@ void broker_cache::_keep_service_runtime(Service* dst, const Service& src) {
 }
 #undef keep_common_runtime
 #undef keep
+
+/**
+ * @brief Restore the runtime part of a host from a row of the reference
+ * database onto its cache entry (see the header for the rule).
+ *
+ * @param host_id The host.
+ * @param last_check The last check time the row carries, 0 if never checked.
+ * @param set Sets the runtime fields the source knows on the entry.
+ *
+ * @return true if the setter ran.
+ */
+bool broker_cache::restore_host_runtime(
+    uint64_t host_id,
+    time_t last_check,
+    const std::function<void(Host&)>& set) {
+  if (!section_enabled(CACHE_HOSTS) || last_check == 0)
+    return false;
+  absl::WriterMutexLock l{&_mutex};
+  auto& index = _hosts.get<by_id>();
+  auto found = index.find(host_id);
+  if (found == index.end())
+    return false;
+  const Host& current = (*found)->obj();
+  if (current.checked() && current.last_check() > last_check)
+    return false;
+  mutable_entry entry{index, found};
+  set(entry->mut_obj());
+  return true;
+}
+
+/**
+ * @brief Restore the runtime part of a service from a row of the reference
+ * database onto its cache entry (see the header for the rule).
+ *
+ * @param host_id The host of the service.
+ * @param service_id The service.
+ * @param last_check The last check time the row carries, 0 if never checked.
+ * @param set Sets the runtime fields the source knows on the entry.
+ *
+ * @return true if the setter ran.
+ */
+bool broker_cache::restore_service_runtime(
+    uint64_t host_id,
+    uint64_t service_id,
+    time_t last_check,
+    const std::function<void(Service&)>& set) {
+  if (!section_enabled(CACHE_SERVICES) || last_check == 0)
+    return false;
+  absl::WriterMutexLock l{&_mutex};
+  auto& index = _services.get<by_id>();
+  auto found = index.find(std::make_pair(host_id, service_id));
+  if (found == index.end())
+    return false;
+  const Service& current = (*found)->obj();
+  if (current.checked() && current.last_check() > last_check)
+    return false;
+  mutable_entry entry{index, found};
+  set(entry->mut_obj());
+  return true;
+}
 
 /**
  * @brief Register a callback invoked after every configuration change of the
@@ -2584,9 +2663,8 @@ std::optional<AckType> broker_cache::_restore_acknowledgement_type(
       ack->second->obj().sticky() ? AckType::STICKY : AckType::NORMAL;
   if ((*it)->obj().acknowledgement_type() == type)
     return std::nullopt;
-  mutable_entry<T> entry{*it};
+  mutable_entry entry{index, it};
   entry->mut_obj().set_acknowledgement_type(type);
-  entry.commit(index, it);
   return type;
 }
 
@@ -2656,7 +2734,7 @@ void broker_cache::update_host(
     if (found != index.end()) {
       /* Modified in place when the cache is the sole owner of the host,
        * otherwise cloned then swapped. */
-      mutable_entry<neb::pb_host> entry{*found};
+      mutable_entry entry{index, found};
       auto& hst = entry->mut_obj();
       hst.set_checked(hs.checked());
       hst.set_check_type(static_cast<Host_CheckType>(hs.check_type()));
@@ -2693,8 +2771,9 @@ void broker_cache::update_host(
        * overwrite it. */
       if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
         hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
-      entry.commit(index, found);
       updated = true;
+
+      entry.release();
 
       /* Acknowledgement event: decide under the lock, publish after release. */
       ack_to_close =
@@ -2740,7 +2819,7 @@ void broker_cache::update_host(
   if (found != index.end()) {
     /* Modified in place when the cache is the sole owner of the host, otherwise
      * cloned then swapped. */
-    mutable_entry<neb::pb_host> entry{*found};
+    mutable_entry entry{index, found};
     auto& h = entry->mut_obj();
     SPDLOG_LOGGER_DEBUG(_logger,
                         "Updating adaptive host for host '{}' in Broker cache.",
@@ -2784,7 +2863,6 @@ void broker_cache::update_host(
     if (ah.has_notification_period() && !com::centreon::common::notifications::
                                             notification_manager::is_loaded())
       h.set_notification_period(ah.notification_period());
-    entry.commit(index, found);
   } else
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -2811,7 +2889,7 @@ void broker_cache::update_host(
     if (found != index.end()) {
       /* Modified in place when the cache is the sole owner of the host,
        * otherwise cloned then swapped. */
-      mutable_entry<neb::pb_host> entry{*found};
+      mutable_entry entry{index, found};
       auto& hst = entry->mut_obj();
       SPDLOG_LOGGER_DEBUG(
           _logger,
@@ -2826,11 +2904,12 @@ void broker_cache::update_host(
       if (hs.has_flapping())
         hst.set_flapping(hs.flapping());
 
+      entry.release();
+
       /* Acknowledgement event: decide under the lock, publish after release. */
       ack_to_close = _take_expired_acknowledgement(
           hs.host_id(), 0u, hst.acknowledgement_type(),
           static_cast<uint16_t>(hst.state()));
-      entry.commit(index, found);
     } else {
       SPDLOG_LOGGER_WARN(
           _logger,
@@ -2923,7 +3002,7 @@ void broker_cache::update_service(
 
     /* Modified in place when the cache is the sole owner of the service,
      * otherwise cloned then swapped. */
-    mutable_entry<neb::pb_service> entry{*it};
+    mutable_entry entry{index, it};
     auto& svc = entry->mut_obj();
 
     svc.set_checked(obj.checked());
@@ -2962,7 +3041,8 @@ void broker_cache::update_service(
      * Engine must not overwrite it. */
     if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
       svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-    entry.commit(index, it);
+
+    entry.release();
 
     /* Acknowledgement event: decide under the lock, publish after release. */
     ack_to_close = _take_expired_acknowledgement(
@@ -3058,19 +3138,17 @@ std::shared_ptr<neb::pb_acknowledgement> broker_cache::set_acknowledgement_type(
     auto found = index.find(host_id);
     if (found == index.end())
       return nullptr;
-    mutable_entry<neb::pb_host> entry{*found};
+    mutable_entry entry{index, found};
     entry->mut_obj().set_acknowledgement_type(type);
     st = static_cast<uint16_t>(entry->obj().state());
-    entry.commit(index, found);
   } else {
     auto& index = _services.get<by_id>();
     auto found = index.find(std::make_pair(host_id, service_id));
     if (found == index.end())
       return nullptr;
-    mutable_entry<neb::pb_service> entry{*found};
+    mutable_entry entry{index, found};
     entry->mut_obj().set_acknowledgement_type(type);
     st = static_cast<uint16_t>(entry->obj().state());
-    entry.commit(index, found);
   }
   return _take_expired_acknowledgement(host_id, service_id, type,
                                        state.value_or(st));
@@ -3118,12 +3196,11 @@ broker_cache::_restore_notification_override(Index& index,
     restored.notification_period = ov.notification_period;
   if (!restored.notify && !restored.notification_period)
     return std::nullopt;
-  mutable_entry<T> entry{*it};
+  mutable_entry entry{index, it};
   if (restored.notify)
     entry->mut_obj().set_notify(*restored.notify);
   if (restored.notification_period)
     entry->mut_obj().set_notification_period(*restored.notification_period);
-  entry.commit(index, it);
   return restored;
 }
 
@@ -3183,12 +3260,11 @@ bool broker_cache::_set_notification_override(
   auto found = index.find(key);
   if (found == index.end())
     return false;
-  mutable_entry<T> entry{*found};
+  mutable_entry entry{index, found};
   if (o.notify)
     entry->mut_obj().set_notify(*o.notify);
   if (o.notification_period)
     entry->mut_obj().set_notification_period(*o.notification_period);
-  entry.commit(index, found);
   resource_notification_override& ov =
       _notification_overrides[std::make_pair(host_id, service_id)];
   if (o.notify)
@@ -3592,18 +3668,16 @@ void broker_cache::reinject_pending_acknowledgements() {
         if (found == index.end() ||
             (*found)->obj().acknowledgement_type() == type)
           continue;
-        mutable_entry<neb::pb_host> entry{*found};
+        mutable_entry entry{index, found};
         entry->mut_obj().set_acknowledgement_type(type);
-        entry.commit(index, found);
       } else {
         auto& index = _services.get<by_id>();
         auto found = index.find(key);
         if (found == index.end() ||
             (*found)->obj().acknowledgement_type() == type)
           continue;
-        mutable_entry<neb::pb_service> entry{*found};
+        mutable_entry entry{index, found};
         entry->mut_obj().set_acknowledgement_type(type);
-        entry.commit(index, found);
       }
       restored.emplace_back(key.first, key.second, type);
     }
@@ -3725,7 +3799,7 @@ void broker_cache::update_service(
   if (it != _services.end()) {
     /* Modified in place when the cache is the sole owner of the service,
      * otherwise cloned then swapped. */
-    mutable_entry<neb::pb_service> entry{*it};
+    mutable_entry entry{index, it};
     auto& s = entry->mut_obj();
     /* Same as for hosts: Broker owns the switch in notification_mode=broker. */
     if (as.has_notify() && !com::centreon::common::notifications::
@@ -3760,7 +3834,6 @@ void broker_cache::update_service(
     if (as.has_notification_period() && !com::centreon::common::notifications::
                                             notification_manager::is_loaded())
       s.set_notification_period(as.notification_period());
-    entry.commit(index, it);
   } else {
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -3802,7 +3875,7 @@ void broker_cache::update_service(
 
     /* Modified in place when the cache is the sole owner of the service,
      * otherwise cloned then swapped. */
-    mutable_entry<neb::pb_service> entry{*it};
+    mutable_entry entry{index, it};
     auto& svc = entry->mut_obj();
     if (obj.has_acknowledgement_type())
       svc.set_acknowledgement_type(obj.acknowledgement_type());
@@ -3812,7 +3885,8 @@ void broker_cache::update_service(
       svc.set_notification_number(obj.notification_number());
     if (obj.has_flapping())
       svc.set_flapping(obj.flapping());
-    entry.commit(index, it);
+
+    entry.release();
 
     /* Acknowledgement event: decide under the lock, publish after release. */
     ack_to_close = _take_expired_acknowledgement(

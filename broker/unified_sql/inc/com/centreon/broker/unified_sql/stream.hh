@@ -436,6 +436,15 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
+  void _restore_runtime_in_cache();
+  void _restore_runtime_from_resources(size_t& hosts_read,
+                                       size_t& hosts_restored,
+                                       size_t& services_read,
+                                       size_t& services_restored);
+  void _restore_runtime_from_hosts_services(size_t& hosts_read,
+                                            size_t& hosts_restored,
+                                            size_t& services_read,
+                                            size_t& services_restored);
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
