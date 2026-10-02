@@ -5384,9 +5384,20 @@ flag référence et son arbitrage n'ont de sens qu'en centralisé.
 *Arbitrage.* Si plusieurs modules se déclarent référence, le premier déclaré l'emporte : la
 déclaration renvoie un booléen, les suivants reçoivent faux, loguent un avertissement nommant
 l'élu et ne chargent rien. Pas d'erreur bloquante, une configuration fausse ne doit jamais
-empêcher Broker de démarrer. Attention : `_endpoints` est un `btree_map` trié par
-`endpoint::operator<`, l'ordre du fichier de configuration n'est donc pas garanti tel quel, à
-vérifier au moment de coder.
+empêcher Broker de démarrer.
+
+*Fait le 2026-10-01.* La sortie `unified_sql` porte une clé JSON `reference`, **vraie par
+défaut** : une plateforme à une seule sortie `unified_sql` n'a rien à écrire, et PHP n'a pas
+à changer. `"reference": false` exclut une sortie, par exemple une seconde `unified_sql` vers
+une autre base. La déclaration se fait dans `factory::new_endpoint`, pas à l'`open()` du
+stream : l'applier d'endpoints crée les sorties une à une, dans l'ordre du fichier de
+configuration, sur le thread principal, donc « premier déclaré gagne » est déterministe — le
+`btree_map` trié des endpoints n'intervient pas, il ne sert qu'après la création. Côté cache :
+`declare_reference(nom)` renvoie le verdict, `release_reference(nom)` est appelé par le
+destructeur du connecteur quand un rechargement supprime la sortie, et
+`reference_endpoint()` dit qui est l'élu. Le verdict descend du connecteur au stream, qui le
+logue à l'ouverture (« this output is / is not the reference of the global cache ») et s'en
+servira pour la superposition. Tests : `CBSS_REFERENCE`, `CBSS_REFERENCE_OPT_OUT`.
 
 *Base injoignable au premier `open()`.* La barrière lâche au timeout, les status des pollers
 commencent à arriver, et la superposition se fait plus tard, à la connexion réussie. Elle ne
