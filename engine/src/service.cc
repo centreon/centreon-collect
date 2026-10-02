@@ -135,7 +135,6 @@ service::service(const std::string& hostname,
       _current_state{_initial_state},
       _last_hard_state{_initial_state},
       _last_state{_initial_state},
-      _host_ptr{nullptr},
       _host_problem_at_last_check{false} {
   if (st == NONE) {
     if (absl::StartsWith(hostname, "_Module_Meta") &&
@@ -527,6 +526,7 @@ std::ostream& operator<<(std::ostream& os,
   for (size_t i{0}, end{obj.get_state_history().size()}; i < end; ++i)
     os << obj.get_state_history()[i] << (i + 1 < end ? ", " : "\n");
 
+  auto hst = obj.get_host_ptr();
   os << "  state_history_index:                  "
      << obj.get_state_history_index()
      << "\n  is_flapping:                          " << obj.get_is_flapping()
@@ -537,7 +537,7 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  modified_attributes:                  "
      << obj.get_modified_attributes()
      << "\n  host_ptr:                             "
-     << (obj.get_host_ptr() ? obj.get_host_ptr()->name() : "\"nullptr\"")
+     << (hst ? hst->name() : "\"nullptr\"")
      << "\n  event_handler_ptr:                    " << evt_str
      << "\n  event_handler_args:                   "
      << obj.get_event_handler_args()
@@ -832,11 +832,11 @@ void service::check_for_expired_acknowledgement() {
       if (last_acknowledgement() + acknowledgement_timeout() >= now) {
         engine_logger(log_info_message, basic)
             << "Acknowledgement of service '" << description() << "' on host '"
-            << this->get_host_ptr()->name() << "' just expired";
+            << _hostname << "' just expired";
         SPDLOG_LOGGER_INFO(
             events_logger,
             "Acknowledgement of service '{}' on host '{}' just expired",
-            description(), this->get_host_ptr()->name());
+            description(), _hostname);
         set_acknowledgement(AckType::NONE);
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
@@ -1096,6 +1096,15 @@ int service::handle_async_check_result(
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "service::handle_async_check_result() service {} res:{}",
                       name(), queued_check_result);
+
+  auto hst = get_host_ptr();
+  if (!hst) {
+    SPDLOG_LOGGER_ERROR(
+        checks_logger, "no host for service {} => ignore check result", name());
+    set_is_being_freshened(false);
+    set_is_executing(false);
+    return ERROR;
+  }
 
   /* get the current time */
   time_t current_time = std::time(nullptr);
@@ -1392,7 +1401,6 @@ int service::handle_async_check_result(
                        get_plugin_output());
   }
 
-  host* hst{get_host_ptr()};
   /* if the service check was okay... */
   if (_current_state == service::state_ok) {
     /* if the host has never been checked before, verify its status
@@ -2185,6 +2193,7 @@ void service::check_for_flapping(bool update,
 
   update_history = update;
 
+  auto hst = get_host_ptr();
   /* should we update state history for this state? */
   if (update_history) {
     if ((_current_state == service::state_ok && !get_flap_detection_on(ok)) ||
@@ -2194,7 +2203,7 @@ void service::check_for_flapping(bool update,
          !get_flap_detection_on(unknown)) ||
         (_current_state == service::state_critical &&
          !get_flap_detection_on(critical)) ||
-        (get_host_ptr()->get_current_state() != host::state_up))
+        (hst && hst->get_current_state() != host::state_up))
       update_history = false;
   }
 
@@ -2310,7 +2319,10 @@ int service::handle_service_event() {
     return ERROR;
 
   /* update service macros */
-  grab_host_macros_r(mac, get_host_ptr());
+  auto hst = get_host_ptr();
+  if (hst) {
+    grab_host_macros_r(mac, hst.get());
+  }
   grab_service_macros_r(mac, this);
 
   /* run the global service event handler */
@@ -2331,7 +2343,7 @@ int service::handle_service_event() {
 int service::obsessive_compulsive_service_check_processor() {
   std::string raw_command;
   std::string processed_command;
-  host* temp_host{get_host_ptr()};
+  auto temp_host = get_host_ptr();
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
@@ -2359,11 +2371,11 @@ int service::obsessive_compulsive_service_check_processor() {
     return ERROR;
 
   /* find the associated host */
-  if (temp_host == nullptr)
+  if (!temp_host)
     return ERROR;
 
   /* update service macros */
-  grab_host_macros_r(mac, temp_host);
+  grab_host_macros_r(mac, temp_host.get());
   grab_service_macros_r(mac, this);
 
   /* get the raw command line */
@@ -2614,12 +2626,12 @@ int service::run_async_check_local(int check_options,
   if (!get_check_command_ptr()) {
     engine_logger(log_runtime_error, basic)
         << "Error: Attempt to run active check on service '" << description()
-        << "' on host '" << get_host_ptr()->name() << "' with no check command";
+        << "' on host '" << _hostname << "' with no check command";
     SPDLOG_LOGGER_ERROR(
         runtime_logger,
         "Error: Attempt to run active check on service '{}' on host '{}' with "
         "no check command",
-        description(), get_host_ptr()->name());
+        description(), _hostname);
     return ERROR;
   }
 
@@ -3178,7 +3190,10 @@ bool service::verify_check_viability(int check_options,
 }
 
 void service::grab_macros_r(nagios_macros* mac) {
-  grab_host_macros_r(mac, _host_ptr);
+  auto hst = get_host_ptr();
+  if (hst) {
+    grab_host_macros_r(mac, hst.get());
+  }
   grab_service_macros_r(mac, this);
 }
 
@@ -3572,10 +3587,12 @@ std::list<servicegroup*>& service::get_parent_groups() {
 }
 
 timeperiod* service::get_notification_timeperiod() const {
+  auto hst = get_host_ptr();
   /* if the service has no notification period, inherit one from the host */
-  return get_notification_period_ptr()
-             ? get_notification_period_ptr()
-             : _host_ptr->get_notification_period_ptr();
+  if (get_notification_period_ptr()) {
+    return get_notification_period_ptr();
+  }
+  return hst ? hst->get_notification_period_ptr() : nullptr;
 }
 
 /**
@@ -3791,28 +3808,22 @@ const std::string& service::get_current_state_as_string() const {
 
 bool service::get_notify_on_current_state() const {
   bool soft_state_dependencies = pb_config.soft_state_dependencies();
-  if (_host_ptr->get_current_state() != host::state_up &&
-      (_host_ptr->get_state_type() || soft_state_dependencies))
+  auto hst = get_host_ptr();
+  if (hst && hst->get_current_state() != host::state_up &&
+      (hst->get_state_type() || soft_state_dependencies))
     return false;
   notification_flag type[]{ok, warning, critical, unknown};
   return get_notify_on(type[get_current_state()]);
 }
 
 bool service::is_in_downtime() const {
+  auto hst = get_host_ptr();
   return get_scheduled_downtime_depth() > 0 ||
-         _host_ptr->get_scheduled_downtime_depth() > 0;
+         (hst && hst->get_scheduled_downtime_depth() > 0);
 }
 
-void service::set_host_ptr(host* h) {
+void service::set_host_ptr(const std::shared_ptr<host>& h) {
   _host_ptr = h;
-}
-
-const host* service::get_host_ptr() const {
-  return _host_ptr;
-}
-
-host* service::get_host_ptr() {
-  return _host_ptr;
 }
 
 void service::resolve(uint32_t& w, uint32_t& e) {
@@ -3850,7 +3861,7 @@ void service::resolve(uint32_t& w, uint32_t& e) {
       set_host_ptr(nullptr);
     } else {
       /* save the host pointer for later */
-      set_host_ptr(it->second.get());
+      set_host_ptr(it->second);
 
       /* add a reverse link from the host to the service for faster lookups
        * later
@@ -3858,8 +3869,8 @@ void service::resolve(uint32_t& w, uint32_t& e) {
       it->second->services.insert({{_hostname, name()}, this});
 
       // Notify event broker.
-      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr(), nullptr, nullptr,
-                           this);
+      broker_relation_data(NEBTYPE_PARENT_ADD, get_host_ptr().get(), nullptr,
+                           nullptr, this);
     }
   }
 
@@ -3980,7 +3991,10 @@ void service::set_check_command_ptr(
  */
 std::string service::get_check_command_line(nagios_macros* macros) {
   if (get_check_command_ptr()) {
-    grab_host_macros_r(macros, get_host_ptr());
+    auto host = get_host_ptr();
+    if (host) {
+      grab_host_macros_r(macros, host.get());
+    }
     grab_service_macros_r(macros, this);
     std::string tmp;
     get_raw_command_line_r(macros, get_check_command_ptr(),

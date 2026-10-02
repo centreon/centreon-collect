@@ -219,7 +219,7 @@ absl::flat_hash_map<std::string, std::string>& applier::state::user_macros() {
  *  @return  Iterator to user macros.
  */
 absl::flat_hash_map<std::string, std::string>::const_iterator
-applier::state::user_macros_find(const std::string_view & key) const {
+applier::state::user_macros_find(const std::string_view& key) const {
   return _user_macros.find(key);
 }
 
@@ -1077,8 +1077,9 @@ void applier::state::_check_hosts() const {
     throw engine_error() << "This is a bug";
   }
 
-  for (auto const& p : engine::service::services)
-    find_host_by_name(p.second->get_host_ptr(), "service");
+  for (auto const& p : engine::service::services) {
+    find_host_by_name(p.second->get_host_ptr().get(), "service");
+  }
 }
 
 #endif
