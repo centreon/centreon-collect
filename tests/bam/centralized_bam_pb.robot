@@ -1562,6 +1562,153 @@ CBA_KPI_SERVICE_ADDED_LATER
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
+CBA_KPI_RUNTIME_RESTORED_FROM_RESOURCES
+    [Documentation]    Scenario: after a Broker restart in centralized configuration, the reference output restores the resources runtime from the resources table into the global cache, and BAM seeds its KPIs from it
+    ...    Given a BA of type "worst" on two services, in centralized configuration
+    ...    And one of its services is CRITICAL, so the BA is CRITICAL
+    ...    When Engine is stopped, then Broker is stopped and BAM's own cache file is deleted
+    ...    And Broker is started again, Engine still stopped so that no status is replayed
+    ...    Then unified_sql, the reference of the global cache, restores the hosts and services runtime from the resources table into the cache
+    ...    And once the cache is ready, BAM seeds its KPI services from it
+    ...    And the BA is still CRITICAL
+    [Tags]    broker    engine    bam    centralized    cache    MON-187019
+    Ctn BAM Init
+    Ctn Broker Config Log    central    sql    info
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    overlaid    worst    ${svc}
+    Ctn Start Broker    newGeneration=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${result}    Ctn Check Ba Status With Timeout    overlaid    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA overlaid should be OK
+
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_303    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) should be CRITICAL
+    ${result}    Ctn Check Ba Status With Timeout    overlaid    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA overlaid should be CRITICAL
+
+    # Engine first, so that no status reaches BAM after the restart; then
+    # Broker. In centralized configuration the global cache file carries no
+    # resource state: the database, through the reference output, is the only
+    # source left once BAM's own cache file is removed.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Remove File    ${VarRoot}/lib/centreon-broker/central-broker-master.cache.centreon-bam-monitoring
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+
+    ${content}    Create List    restored into the global cache from the resources table
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    unified_sql should restore the resources runtime into the global cache from the resources table
+    ${content}    Create List    runtime of 0 hosts and 0 services restored
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one resource should have been restored
+    ${content}    Create List    service state(s) seeded from the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    BAM should seed its KPI services from the global cache once it is ready
+    ${content}    Create List    BAM: 0 service state(s) seeded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one service should have been seeded
+
+    ${result}    Ctn Check Ba Status With Timeout    overlaid    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA overlaid should still be CRITICAL after the restart
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Process Service Result Hard    host_16    service_303    0    output ok for 303
+    ${result}    Ctn Check Ba Status With Timeout    overlaid    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA overlaid should be OK again
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
+CBA_KPI_RUNTIME_RESTORED_FROM_HOSTS_SERVICES
+    [Documentation]    Scenario: after a Broker restart in centralized configuration, the reference output restores the resources runtime from the hosts and services tables into the global cache (store_in_resources is false), and BAM seeds its KPIs from it
+    ...    Given a BA of type "worst" on two services, in centralized configuration
+    ...    And one of its services is CRITICAL, so the BA is CRITICAL
+    ...    When Engine is stopped, then Broker is stopped and BAM's own cache file is deleted
+    ...    And Broker is started again, Engine still stopped so that no status is replayed
+    ...    Then unified_sql, the reference of the global cache, restores the hosts and services runtime from the hosts and services tables into the cache
+    ...    And once the cache is ready, BAM seeds its KPI services from it
+    ...    And the BA is still CRITICAL
+    [Tags]    broker    engine    bam    centralized    cache    MON-187019
+    Ctn BAM Init
+    Ctn Broker Config Log    central    sql    info
+    # What Ctn Start Broker newGeneration=True does, done here: Ctn Config BBDO3
+    # rewrites the whole unified_sql output, so the key has to come after it.
+    Ctn Config BBDO3    ${1}    3.1.0
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    false
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    restored_hs    worst    ${svc}
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${result}    Ctn Check Ba Status With Timeout    restored_hs    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA restored_hs should be OK
+
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_303    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) should be CRITICAL
+    ${result}    Ctn Check Ba Status With Timeout    restored_hs    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA restored_hs should be CRITICAL
+
+    # Engine first, so that no status reaches BAM after the restart; then
+    # Broker. In centralized configuration the global cache file carries no
+    # resource state: the database, through the reference output, is the only
+    # source left once BAM's own cache file is removed.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Remove File    ${VarRoot}/lib/centreon-broker/central-broker-master.cache.centreon-bam-monitoring
+    # Ctn Start Engine newGeneration=True went through Ctn Config BBDO3 too, which
+    # rewrote the unified_sql output: the key has to be set again before the
+    # configuration is flushed by this start.
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    false
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    restored into the global cache from the hosts/services table
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    unified_sql should restore the resources runtime into the global cache from the hosts/services tables
+    ${content}    Create List    runtime of 0 hosts and 0 services restored
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one resource should have been restored
+    ${content}    Create List    service state(s) seeded from the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    BAM should seed its KPI services from the global cache once it is ready
+    ${content}    Create List    BAM: 0 service state(s) seeded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one service should have been seeded
+
+    ${result}    Ctn Check Ba Status With Timeout    restored_hs    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA restored_hs should still be CRITICAL after the restart
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Process Service Result Hard    host_16    service_303    0    output ok for 303
+    ${result}    Ctn Check Ba Status With Timeout    restored_hs    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA restored_hs should be OK again
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
 *** Keywords ***
 Ctn BAM Setup
     [Documentation]    Test setup of the suite. It stops any Broker and Engine left
@@ -1598,6 +1745,12 @@ Ctn BAM Init
     Ctn Clear Commands Status
     Ctn Clear Retention
     Ctn Clear Prot Files
+    # The reference output overlays the resources state kept in the database
+    # onto the global cache at startup: a state left by a previous test would
+    # be believed. Start from a blank platform.
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
     Ctn Clear Db Conf    mod_bam
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module

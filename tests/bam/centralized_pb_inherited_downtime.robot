@@ -107,6 +107,12 @@ BECBAMIDTU2
     Ctn Clear Downtimes
     Ctn Clear Retention
     Ctn Clear Prot Files
+    # The reference output overlays the resources state kept in the database
+    # onto the global cache at startup: a state left by a previous test would
+    # be believed. Start from a blank platform.
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module
     Ctn Config Broker    central
@@ -237,6 +243,12 @@ BECBAMIDTU3
     Ctn Clear Downtimes
     Ctn Clear Retention
     Ctn Clear Prot Files
+    # The reference output overlays the resources state kept in the database
+    # onto the global cache at startup: a state left by a previous test would
+    # be believed. Start from a blank platform.
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module
     Ctn Config Broker    central
@@ -307,6 +319,12 @@ BECBAMIGNDTU1
     Ctn Clear Commands Status
     Ctn Clear Retention
     Ctn Clear Prot Files
+    # The reference output overlays the resources state kept in the database
+    # onto the global cache at startup: a state left by a previous test would
+    # be believed. Start from a blank platform.
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
     Ctn Clear Downtimes
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module
