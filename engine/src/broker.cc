@@ -1580,6 +1580,7 @@ static void forward_pb_custom_variable(int type,
 
   auto cv = std::make_shared<neb::pb_custom_variable>();
   neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
+  obj.set_instance_id(cbm->poller_id());
   bool ok_to_send = false;
   if (!var_name.empty() && !var_value.empty()) {
     // Host custom variable.
@@ -1960,6 +1961,7 @@ static void forward_pb_external_command(int type,
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
             com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
+            data.set_instance_id(cbm->poller_id());
             data.set_host_id(host_id);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
@@ -1997,6 +1999,7 @@ static void forward_pb_external_command(int type,
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
             com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
+            data.set_instance_id(cbm->poller_id());
             data.set_host_id(p.first);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
@@ -4876,6 +4879,20 @@ void broker_agent_stats(nebstruct_agent_stats_data& stats) {
 void broker_agent_unknown_host(
     const com::centreon::broker::UnknownHost& event) {
   auto to_send = std::make_shared<neb::pb_unknown_host>(event);
+  to_send->mut_obj().set_poller_id(cbm->poller_id());
+  cbm->write(to_send);
+}
+
+/**
+ * @brief called by opentelemetry module to send host information of a
+ * connected agent (os, arch, machine id, ips) to broker
+ *
+ * @param event
+ */
+void broker_agent_host_info(const com::centreon::broker::AgentHostInfo& event) {
+  if (!cbm)
+    return;
+  auto to_send = std::make_shared<neb::pb_agent_host_info>(event);
   to_send->mut_obj().set_poller_id(cbm->poller_id());
   cbm->write(to_send);
 }

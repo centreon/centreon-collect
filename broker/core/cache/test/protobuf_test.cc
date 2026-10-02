@@ -105,6 +105,8 @@ class simple_global_cache : public global_cache {
     return 0;
   }
 
+  otel_service get_otel_service(uint64_t) const override { return {}; }
+
   const dimension_ba_event* get_dimension_ba_event(uint64_t,
                                                    lock&) const override {
     return nullptr;
@@ -889,6 +891,7 @@ TEST_F(protobuf_test, custom_variable_to_protobuf) {
   srand(time(nullptr));
   CustomVariable pb;
   *pb.mutable_header() = create_random_bbdo_header();
+  pb.set_instance_id(rand() + 1);
   pb.set_host_id(rand() + 1);
   pb.set_service_id(rand() + 1);
   pb.set_modified(rand() % 2);
