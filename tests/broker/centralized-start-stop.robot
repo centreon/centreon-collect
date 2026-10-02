@@ -108,6 +108,62 @@ CBSS_CBD
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Stop Broker
 
 
+CBSS_REFERENCE
+    [Documentation]    Scenario: in centralized configuration, the unified_sql output is the reference of the global cache by default
+    ...    Given central and rrd brokers configured in new generation mode, without any "reference" key on the unified_sql output
+    ...    When the central broker is started
+    ...    Then the global cache logs that central-broker-unified-sql is its reference
+    ...    And the unified_sql stream logs that it is the reference
+    [Tags]    broker    start-stop    unified_sql    cache
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Broker Config Log    central    cache    info
+    Ctn Broker Config Log    central    sql    info
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+
+    ${content}    Create List    endpoint 'central-broker-unified-sql' is the reference of the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    The unified_sql output should be declared as the reference of the global cache
+    ${content}    Create List    unified_sql: this output is the reference of the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    The unified_sql stream should know it is the reference
+    [Teardown]    Run Keywords    Ctn Stop Broker    AND    Ctn Save Logs If Failed
+
+CBSS_REFERENCE_OPT_OUT
+    [Documentation]    Scenario: "reference": false on the unified_sql output keeps it from being the reference of the global cache
+    ...    Given central and rrd brokers configured in new generation mode, with "reference": false on the unified_sql output
+    ...    When the central broker is started
+    ...    Then the global cache declares no reference
+    ...    And the unified_sql stream logs that it is not the reference
+    [Tags]    broker    start-stop    unified_sql    cache
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Broker Config Log    central    cache    info
+    Ctn Broker Config Log    central    sql    info
+    # What Ctn Start Broker newGeneration=True does, done here: Ctn Config BBDO3
+    # rewrites the whole unified_sql output, so the key has to come after it.
+    Ctn Config BBDO3    ${1}    3.1.0
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    reference    false
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    unified_sql: this output is not the reference of the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    The unified_sql stream should not be the reference
+    ${content}    Create List    is the reference of the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
+    Should Not Be True    ${result}    No output should be declared as the reference
+    [Teardown]    Run Keywords    Ctn Stop Broker    AND    Ctn Save Logs If Failed
+
+
 *** Keywords ***
 Ctn Start Stop Service
     [Arguments]    ${interval}
