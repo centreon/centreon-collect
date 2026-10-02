@@ -583,6 +583,8 @@ class broker_cache {
   uint64_t _next_config_listener_id ABSL_GUARDED_BY(_config_listeners_m){1};
   mutable absl::Mutex _ready_m;
   bool _ready ABSL_GUARDED_BY(_ready_m) = false;
+  mutable absl::Mutex _reference_m;
+  std::string _reference_endpoint ABSL_GUARDED_BY(_reference_m);
   std::vector<std::function<void()>> _ready_listeners ABSL_GUARDED_BY(_ready_m);
   void _merge_locked(const com::centreon::engine::configuration::State& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
@@ -923,6 +925,17 @@ class broker_cache {
   void on_ready(std::function<void()> cb) ABSL_LOCKS_EXCLUDED(_ready_m);
   void set_ready() ABSL_LOCKS_EXCLUDED(_ready_m);
   bool is_ready() const ABSL_LOCKS_EXCLUDED(_ready_m);
+  /* The reference of the cache: the one output (unified_sql) whose database
+   * holds the runtime state of the resources and which, in centralized
+   * configuration, overlays that state onto the cache at startup. Outputs
+   * declare themselves in configuration order; the first wins, the others are
+   * told so and load nothing. A declaration never fails the configuration. */
+  bool declare_reference(const std::string& endpoint_name)
+      ABSL_LOCKS_EXCLUDED(_reference_m);
+  void release_reference(const std::string& endpoint_name)
+      ABSL_LOCKS_EXCLUDED(_reference_m);
+  std::optional<std::string> reference_endpoint() const
+      ABSL_LOCKS_EXCLUDED(_reference_m);
   /* Store the started downtimes to persist on the next cache save. Called by
    * broker_state at shutdown, before the downtime_manager is unloaded. */
   void set_active_downtimes(std::vector<Downtime> downtimes)

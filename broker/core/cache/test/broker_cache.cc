@@ -1410,3 +1410,21 @@ TEST_F(BrokerCacheTest, OnReady) {
   EXPECT_EQ(before, 1);
   EXPECT_EQ(after, 1);
 }
+
+/**
+ * @brief The reference of the cache is the first output to declare itself;
+ * a second declaration is refused and names nobody else; releasing the role
+ * lets the next declaration win; releasing from a non-reference is a no-op.
+ */
+TEST_F(BrokerCacheTest, ReferenceArbitration) {
+  EXPECT_FALSE(_cache->reference_endpoint().has_value());
+  EXPECT_TRUE(_cache->declare_reference("sql-1"));
+  EXPECT_FALSE(_cache->declare_reference("sql-2"));
+  EXPECT_TRUE(_cache->declare_reference("sql-1"));
+  EXPECT_EQ(_cache->reference_endpoint().value_or(""), "sql-1");
+  _cache->release_reference("sql-2");
+  EXPECT_EQ(_cache->reference_endpoint().value_or(""), "sql-1");
+  _cache->release_reference("sql-1");
+  EXPECT_FALSE(_cache->reference_endpoint().has_value());
+  EXPECT_TRUE(_cache->declare_reference("sql-2"));
+}

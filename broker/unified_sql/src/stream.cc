@@ -139,7 +139,8 @@ stream::stream(const database_config& dbcfg,
                bool store_in_data_bin,
                bool store_in_resources,
                bool store_in_hosts_services,
-               uint32_t max_perfdata)
+               uint32_t max_perfdata,
+               bool is_reference)
     : io::stream("unified_sql"),
       _state{not_started},
       _processed{0},
@@ -159,6 +160,7 @@ stream::stream(const database_config& dbcfg,
       _interval_length{interval_length},
       _max_perfdata{max_perfdata},
       _max_perfdata_queries{_max_pending_queries},
+      _is_reference{is_reference},
       _max_metrics_queries{_max_pending_queries},
       _max_cv_queries{_max_pending_queries},
       _max_log_queries{_max_pending_queries},
@@ -230,6 +232,9 @@ stream::stream(const database_config& dbcfg,
   _bulk_prepared_statement = _mysql.support_bulk_statement();
   _logger_sql->info("Unified sql stream connected to '{}' Server",
                     _mysql.get_server_version());
+  _logger_sql->info(
+      "unified_sql: this output {} the reference of the global cache",
+      _is_reference ? "is" : "is not");
 
   try {
     _init_statements();
@@ -1362,9 +1367,9 @@ void stream::_init_statements() {
       // COALESCE so a NULL bind (Broker owns the acknowledgements) keeps the
       // flag set by Broker.
       "acknowledged=COALESCE(?,acknowledged),"
-                                   // 25: acknowledgement_type != NONE
+      // 25: acknowledgement_type != NONE
       "acknowledgement_type=COALESCE(?,acknowledgement_type),"
-                                   // 26: acknowledgement_type
+      // 26: acknowledgement_type
       // COALESCE so a NULL bind (Broker owns downtimes)
       // keeps the depth already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "

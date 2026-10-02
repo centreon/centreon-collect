@@ -197,6 +197,10 @@ class stream : public io::stream {
    * statement: this one caps what a single output is allowed to produce. */
   uint32_t _max_perfdata = 0u;
   uint32_t _max_perfdata_queries = 0u;
+  /* Whether this output is the reference of the global cache (centralized
+   * configuration only): the one that overlays the runtime state of the
+   * resources, read from its database, onto the cache at startup. */
+  bool _is_reference = false;
   uint32_t _max_metrics_queries = 0u;
   uint32_t _max_cv_queries = 0u;
   uint32_t _max_log_queries = 0u;
@@ -456,7 +460,8 @@ class stream : public io::stream {
          bool store_in_data_bin,
          bool store_in_resources,
          bool store_in_hosts_services,
-         uint32_t max_perfdata = 0);
+         uint32_t max_perfdata = 0,
+         bool is_reference = false);
   stream() = delete;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

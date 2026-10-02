@@ -20,9 +20,7 @@
 
 #include "broker/core/cache/broker_cache.hh"
 
-#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/downtime.hh"
-#include "com/centreon/broker/neb/service_status.hh"
 
 using namespace com::centreon::broker::bam;
 

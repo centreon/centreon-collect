@@ -2078,6 +2078,59 @@ bool broker_cache::is_ready() const {
 }
 
 /**
+ * @brief Declare an output as the reference of the cache (see the header).
+ *
+ * @param endpoint_name The endpoint name, as in the Broker configuration.
+ *
+ * @return true if this output is the reference, false if another one was
+ * declared before it.
+ */
+bool broker_cache::declare_reference(const std::string& endpoint_name) {
+  absl::MutexLock l{&_reference_m};
+  if (_reference_endpoint.empty() || _reference_endpoint == endpoint_name) {
+    _reference_endpoint = endpoint_name;
+    SPDLOG_LOGGER_INFO(_logger,
+                       "broker_cache: endpoint '{}' is the reference of the "
+                       "global cache",
+                       endpoint_name);
+    return true;
+  }
+  SPDLOG_LOGGER_WARN(_logger,
+                     "broker_cache: endpoint '{}' asks to be the reference of "
+                     "the global cache, but '{}' already is: it will load "
+                     "nothing into the cache",
+                     endpoint_name, _reference_endpoint);
+  return false;
+}
+
+/**
+ * @brief Forget the reference if it is this output (its endpoint is going
+ * away, typically removed by a reload). A later declaration may then win.
+ *
+ * @param endpoint_name The endpoint name.
+ */
+void broker_cache::release_reference(const std::string& endpoint_name) {
+  absl::MutexLock l{&_reference_m};
+  if (_reference_endpoint == endpoint_name) {
+    SPDLOG_LOGGER_INFO(_logger,
+                       "broker_cache: endpoint '{}' is no longer the reference "
+                       "of the global cache",
+                       endpoint_name);
+    _reference_endpoint.clear();
+  }
+}
+
+/**
+ * @brief The endpoint declared as the reference of the cache, if any.
+ */
+std::optional<std::string> broker_cache::reference_endpoint() const {
+  absl::MutexLock l{&_reference_m};
+  if (_reference_endpoint.empty())
+    return std::nullopt;
+  return _reference_endpoint;
+}
+
+/**
  * @brief Invoke the configuration-change callbacks, outside every cache lock.
  *
  * The list is copied under its own mutex, so a callback may unsubscribe
