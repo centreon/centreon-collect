@@ -30,6 +30,12 @@ on:
           - cloud
           - onprem
 
+# Tagging is not idempotent: the tag loop exits mid-way if a tag already exists, leaving a release
+# half cut. Two release managers dispatching the same train must queue, not interleave.
+concurrency:
+  group: release-new-${{ inputs.release_scope }}-${{ inputs.release_branch }}
+  cancel-in-progress: false
+
 jobs:
   dependency-scan:
     uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
@@ -162,3 +168,25 @@ jobs:
           release_branch: ${{ inputs.release_branch }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
           major_version: ${{ steps.build_release_bundle_tag.outputs.major_version }}
+
+  # Aggregates the source tarballs the component workflows publish and opens the download-site PR.
+  # always(): the release job's own outcome does not decide whether tags landed, and a component
+  # that failed must still be reported rather than silently skipped.
+  publish-sources:
+    needs: [release]
+    # not always(): a cancelled release must not publish. A failed one still can, because the
+    # tags it managed to push are real and their components are already building.
+    if: |
+      !cancelled() &&
+      github.repository == 'centreon/centreon-collect' &&
+      needs.release.outputs.new_release_bundle_tag != ''
+    # a called workflow can only narrow the caller's token, never widen it
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/publish-sources-download-site.yml
+    # only what the callee uses; GITHUB_TOKEN is provided to it automatically
+    secrets:
+      CENTREON_TECHNIQUE_PAT: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+    with:
+      bundle_tag: ${{ needs.release.outputs.new_release_bundle_tag }}
