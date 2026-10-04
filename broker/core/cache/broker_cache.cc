@@ -2022,6 +2022,106 @@ void broker_cache::copy_service_runtime(Service* dst, const Service& src) {
 #undef keep
 
 /**
+ * @brief Fill the runtime snapshot of a poller's resources (see the header).
+ *
+ * @param poller_id The poller.
+ * @param out The snapshot to fill.
+ */
+void broker_cache::fill_runtime_state(
+    uint64_t poller_id,
+    com::centreon::engine::configuration::RuntimeState* out) const {
+  namespace cfg = com::centreon::engine::configuration;
+  const bool broker_owns_notifications = com::centreon::common::notifications::
+      notification_manager::is_loaded();
+  const bool broker_owns_downtimes =
+      com::centreon::common::downtimes::downtime_manager::is_loaded();
+  absl::ReaderMutexLock l{&_mutex};
+  auto& by_poller = _hosts.get<by_instance>();
+  auto& svc_index = _services.get<by_id>();
+  for (auto [it, end] = by_poller.equal_range(poller_id); it != end; ++it) {
+    const Host& h = (*it)->obj();
+    if (h.checked()) {
+      cfg::HostRuntime* r = out->add_hosts();
+      r->set_host_id(h.host_id());
+      r->set_checked(true);
+      r->set_check_type(static_cast<cfg::RuntimeCheckType>(h.check_type()));
+      r->set_state(static_cast<cfg::HostStatus>(h.state()));
+      r->set_state_type(static_cast<cfg::RuntimeStateType>(h.state_type()));
+      r->set_last_state_change(h.last_state_change());
+      r->set_last_hard_state(static_cast<cfg::HostStatus>(h.last_hard_state()));
+      r->set_last_hard_state_change(h.last_hard_state_change());
+      r->set_last_time_up(h.last_time_up());
+      r->set_last_time_down(h.last_time_down());
+      r->set_last_time_unreachable(h.last_time_unreachable());
+      r->set_output(h.output());
+      r->set_flapping(h.flapping());
+      r->set_percent_state_change(h.percent_state_change());
+      r->set_latency(h.latency());
+      r->set_execution_time(h.execution_time());
+      r->set_last_check(h.last_check());
+      r->set_check_attempt(h.check_attempt());
+      if (!broker_owns_notifications) {
+        r->set_acknowledged(h.acknowledged());
+        r->set_acknowledgement_type(
+            static_cast<cfg::RuntimeAckType>(h.acknowledgement_type()));
+        r->set_notification_number(h.notification_number());
+        r->set_no_more_notifications(h.no_more_notifications());
+        r->set_last_notification(h.last_notification());
+        r->set_next_notification(h.next_host_notification());
+      }
+      if (!broker_owns_downtimes)
+        r->set_scheduled_downtime_depth(h.scheduled_downtime_depth());
+    }
+    /* The services of this host: the by_id index is ordered by
+     * (host_id, service_id), so they are contiguous. */
+    for (auto sit = svc_index.lower_bound(std::make_pair(h.host_id(), 0ull));
+         sit != svc_index.end() && (*sit)->obj().host_id() == h.host_id();
+         ++sit) {
+      const Service& s = (*sit)->obj();
+      if (!s.checked())
+        continue;
+      cfg::ServiceRuntime* r = out->add_services();
+      r->set_host_id(s.host_id());
+      r->set_service_id(s.service_id());
+      r->set_checked(true);
+      r->set_check_type(static_cast<cfg::RuntimeCheckType>(s.check_type()));
+      r->set_state(static_cast<cfg::ServiceStatus>(s.state()));
+      r->set_state_type(static_cast<cfg::RuntimeStateType>(s.state_type()));
+      r->set_last_state_change(s.last_state_change());
+      r->set_last_hard_state(
+          static_cast<cfg::ServiceStatus>(s.last_hard_state()));
+      r->set_last_hard_state_change(s.last_hard_state_change());
+      r->set_last_time_ok(s.last_time_ok());
+      r->set_last_time_warning(s.last_time_warning());
+      r->set_last_time_critical(s.last_time_critical());
+      r->set_last_time_unknown(s.last_time_unknown());
+      r->set_output(s.output());
+      r->set_long_output(s.long_output());
+      if (_anomaly_detection_index.contains(
+              std::make_pair(s.host_id(), s.service_id())))
+        r->set_perfdata(s.perfdata());
+      r->set_flapping(s.flapping());
+      r->set_percent_state_change(s.percent_state_change());
+      r->set_latency(s.latency());
+      r->set_execution_time(s.execution_time());
+      r->set_last_check(s.last_check());
+      r->set_check_attempt(s.check_attempt());
+      if (!broker_owns_notifications) {
+        r->set_acknowledged(s.acknowledged());
+        r->set_acknowledgement_type(
+            static_cast<cfg::RuntimeAckType>(s.acknowledgement_type()));
+        r->set_notification_number(s.notification_number());
+        r->set_no_more_notifications(s.no_more_notifications());
+        r->set_last_notification(s.last_notification());
+        r->set_next_notification(s.next_notification());
+      }
+      if (!broker_owns_downtimes)
+        r->set_scheduled_downtime_depth(s.scheduled_downtime_depth());
+    }
+  }
+}
+
+/**
  * @brief Restore the runtime part of a host from a row of the reference
  * database onto its cache entry (see the header for the rule).
  *

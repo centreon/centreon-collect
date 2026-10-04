@@ -931,6 +931,10 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_reference_m);
   static void copy_host_runtime(Host* dst, const Host& src);
   static void copy_service_runtime(Service* dst, const Service& src);
+  void fill_runtime_state(
+      uint64_t poller_id,
+      com::centreon::engine::configuration::RuntimeState* out) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   bool restore_host_runtime(uint64_t host_id,
                             time_t last_check,
                             const std::function<void(Host&)>& set)

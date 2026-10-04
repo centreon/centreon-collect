@@ -1477,3 +1477,66 @@ TEST_F(BrokerCacheTest, RestoreRuntime) {
   EXPECT_EQ(s->obj().output(), "crit");
   EXPECT_EQ(s->obj().description(), "service_1");
 }
+
+/**
+ * @brief fill_runtime_state() describes the checked hosts and services of
+ * the poller only, leaves out a never-checked resource and another poller's,
+ * and copies the perfdata only for a service an anomalydetection depends on.
+ */
+TEST_F(BrokerCacheTest, FillRuntimeState) {
+  namespace cfg = com::centreon::engine::configuration;
+  publish_hosts(1, 2, 1);
+  publish_hosts(3, 3, 2);
+  publish_services(1, 2, 1);
+
+  /* An anomalydetection on host 1 depending on service (1, 1). */
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* ad = st.mutable_anomalydetections()->Add();
+  ad->set_host_id(1);
+  ad->set_service_id(100);
+  ad->set_host_name("host_1");
+  ad->set_service_description("ad_100");
+  ad->set_dependent_service_id(1);
+  _cache->merge(st);
+
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_checked(true);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_last_check(1000);
+  hs->mut_obj().set_output("host down");
+  _cache->publish(hs);
+  for (uint64_t svc : {1u, 2u}) {
+    auto ss = std::make_shared<neb::pb_service_status>();
+    ss->mut_obj().set_host_id(1);
+    ss->mut_obj().set_service_id(svc);
+    ss->mut_obj().set_checked(true);
+    ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+    ss->mut_obj().set_state_type(ServiceStatus_StateType_HARD);
+    ss->mut_obj().set_last_check(2000);
+    ss->mut_obj().set_perfdata("rta=1ms");
+    _cache->publish(ss);
+  }
+
+  cfg::RuntimeState out;
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.hosts_size(), 1) << "host 2 was never checked, host 3 is poller 2's";
+  EXPECT_EQ(out.hosts(0).host_id(), 1u);
+  EXPECT_EQ(out.hosts(0).state(), cfg::state_down);
+  EXPECT_EQ(out.hosts(0).output(), "host down");
+  ASSERT_EQ(out.services_size(), 2);
+  for (const auto& s : out.services()) {
+    EXPECT_EQ(s.state(), cfg::state_critical);
+    EXPECT_EQ(s.state_type(), cfg::HARD);
+    if (s.service_id() == 1)
+      EXPECT_EQ(s.perfdata(), "rta=1ms") << "an anomalydetection depends on it";
+    else
+      EXPECT_TRUE(s.perfdata().empty()) << "nobody reads it on the Engine side";
+  }
+
+  cfg::RuntimeState other;
+  _cache->fill_runtime_state(2, &other);
+  EXPECT_EQ(other.hosts_size(), 0) << "host 3 was never checked";
+  EXPECT_EQ(other.services_size(), 0);
+}
