@@ -201,12 +201,12 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    runs-on: centreon-collect
+    runs-on: ${{ matrix.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}${{ matrix.arch == 'arm64' && '-arm64' || '' }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -226,6 +226,7 @@ jobs:
       - name: Compile centreon-collect
         env:
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
+          TRIPLET: ${{ matrix.arch == 'arm64' && 'arm64-linux' || 'x64-linux' }}
         run: |
           CMAKE="cmake"
 
@@ -239,7 +240,7 @@ jobs:
           CXXFLAGS="-Wall -Wextra" $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-                  -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+                  -DVCPKG_TARGET_TRIPLET=$TRIPLET \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \

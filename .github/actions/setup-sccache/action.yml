@@ -1,14 +1,10 @@
 name: Set up sccache
-description: Install and start sccache, backed by the S3 cache when AWS credentials are available.
+description: Start the sccache of the packaging image, backed by the S3 cache when AWS credentials are available.
 
 inputs:
   aws_role_arn:
     description: ARN of the role giving access to the cache bucket (output aws_ci_role_arn of get-environment.yml).
     required: true
-  version:
-    description: sccache release to install.
-    required: false
-    default: "0.12.0"
   bucket:
     description: S3 bucket of the cache.
     required: false
@@ -23,18 +19,14 @@ runs:
       with:
         role_arn: ${{ inputs.aws_role_arn }}
 
-    - name: Install and start sccache
+    - name: Start sccache
       shell: bash
       env:
-        SCCACHE_VERSION: ${{ inputs.version }}
         S3_AVAILABLE: ${{ steps.aws.outputs.available }}
         S3_BUCKET: ${{ inputs.bucket }}
       run: |
-        name="sccache-v${SCCACHE_VERSION}-$(uname -m)-unknown-linux-musl"
-        wget -q "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${name}.tar.gz"
-        tar xzf "${name}.tar.gz"
-        mv "${name}/sccache" /usr/bin/
-        rm -rf "${name}" "${name}.tar.gz"
+        # Installed by .github/docker/Dockerfile.packaging-* (pinned version and checksum).
+        /usr/bin/sccache --version
 
         if [ "$S3_AVAILABLE" = "true" ]; then
           export SCCACHE_BUCKET="$S3_BUCKET" SCCACHE_REGION=eu-west-1

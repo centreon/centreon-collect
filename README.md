@@ -184,7 +184,7 @@ git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 mkdir build
 cmake -B build \
       -DVCPKG_OVERLAY_TRIPLETS=custom-triplets \
-      -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+      -DVCPKG_TARGET_TRIPLET=x64-linux \
       -DVCPKG_OVERLAY_PORTS=overlays \
       -DWITH_TESTING=On \
       -DWITH_CREATE_FILES=OFF \

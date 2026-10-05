@@ -6,6 +6,12 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Rebuild the images even if their tag already exists (base OS updates)"
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - develop
@@ -13,10 +19,14 @@ on:
     paths:
       - ".github/docker/Dockerfile.packaging-*"
       - "vcpkg.json"
+      - "overlays/**"
+      - "custom-triplets/**"
   pull_request:
     paths:
       - ".github/docker/Dockerfile.packaging-*"
       - "vcpkg.json"
+      - "overlays/**"
+      - "custom-triplets/**"
 
 jobs:
   dependency-scan:
@@ -86,7 +96,23 @@ jobs:
         with:
           driver-opts: image=${{ vars.DOCKER_PROXY_REGISTRY_URL }}/moby/buildkit:buildx-stable-1
 
+      # The tag is a hash of every file copied into the image: an existing tag needs no rebuild.
+      - name: Check if the image already exists
+        id: image-exists
+        env:
+          IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+          FORCE: ${{ inputs.force || false }}
+        run: |
+          if [ "$FORCE" != "true" ] && docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "::notice::$IMAGE already exists, build skipped"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
       - name: Build image ${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+        if: steps.image-exists.outputs.exists != 'true'
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
@@ -105,6 +131,7 @@ jobs:
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
 
       - name: Build image ${{ env.IMAGE_BASE_NAME }}-vcpk-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+        if: steps.image-exists.outputs.exists != 'true'
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
