@@ -85,6 +85,10 @@ sub deleteEntriesForRebuild {
 	} else {
         my $structure = $biTables->dumpTableStructure($options{name});
         my $partitionsPerf = $utils->getRangePartitionDate($options{start}, $options{end});
+        # RANGE partitions can only be appended above the current highest one, so
+        # remember where that is: anything below it either already has a partition
+        # to truncate, or was dropped by the retention and holds no row at all.
+        my $lastPartition = $biTables->getLastPartRange($options{name});
         foreach (@$partitionsPerf) {
             if ($structure =~ /p$_->{name}/m) {
                 push @$sql,
@@ -92,13 +96,16 @@ sub deleteEntriesForRebuild {
                         "[PURGE] Truncate partition $_->{name} on table [$options{name}]",
                         "ALTER TABLE $options{name} TRUNCATE PARTITION p$_->{name}"
                     ];
-            } else {
+            } elsif ($_->{date} gt $lastPartition) {
                 push @$sql,
                     [
                         '[PARTITIONS] Add partition [p' . $_->{name} . '] on table [' . $options{name} . ']',
                         "ALTER TABLE `$options{name}` ADD PARTITION (PARTITION `p$_->{name}` VALUES LESS THAN(" . $_->{epoch} . "))"
                     ];
             }
+            # else: the partition is older than the oldest one kept by the retention.
+            # There is nothing to delete, and the rebuild inserts above that floor,
+            # so adding it would only make MySQL reject the whole statement (error 1493).
         }
 	}
 
@@ -174,7 +181,7 @@ sub purgeTables {
             name => 'mod_bi_metricdailyvalue',
             active => $granularity ne 'hour' && !$monthOnly && !$centileOnly,
             start => $daily_start,
-          end => $daily_end
+            end => $daily_end
         },
         {
             name => 'mod_bi_metrichourlyvalue',
@@ -182,7 +189,7 @@ sub purgeTables {
                               ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && $granularity ne 'day')
                               : ($granularity ne 'day' && !$monthOnly && !$centileOnly),
             start => $hourly_start,
-          end => $hourly_end
+            end => $hourly_end
         },
         {
             name => 'mod_bi_metricmonthcapacity',
@@ -190,20 +197,20 @@ sub purgeTables {
                               ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && !$startAndEndSameMonth)
                               : ($granularity ne 'hour' && !$monthOnly && !$centileOnly),
             start => $firstDayOfMonth,
-          end => $daily_end,
+            end => $daily_end,
             full_empty_on_purge => 1
         },
         {
             name => 'mod_bi_metriccentiledailyvalue',
             active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.day'}),
             start => $daily_start,
-          end => $daily_end
+            end => $daily_end
         },
         {
             name => 'mod_bi_metriccentileweeklyvalue',
             active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.week'}),
             start => $daily_start,
-          end => $daily_end,
+            end => $daily_end,
             # the table is dropped and recreated when purging, so the period only
             # needs to be realigned on the weeks when keeping the existing data
             align_on_week => $noPurge

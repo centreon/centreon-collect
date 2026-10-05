@@ -48,6 +48,11 @@ BEGIN {
         my ($self, $date, $num) = @_;
         return _date(_epoch($date) - $num * 86400);
     }
+    sub getDateEpoch {
+        my ($self, $date) = @_;
+        my $epoch = _epoch($date);
+        return wantarray ? ($epoch, $date =~ s/-//gr) : $epoch;
+    }
     sub getRangePartitionDate {
         my ($self, $start, $end) = @_;
         my ($epoch, $epoch_end) = (_epoch($start), _epoch($end));
@@ -748,6 +753,71 @@ subtest 'Focus: mod_bi_metriccentilemonthlyvalue' => sub {
 
         my @monthly_calls = grep { ($_->{name} // '') eq 'mod_bi_metriccentilemonthlyvalue' } @calls;
         is(scalar @monthly_calls, 0, 'In No-Purge, if same month, the table is ignored');
+    };
+};
+
+# The subtests above mock deleteEntriesForRebuild to observe which table is purged
+# over which period. Drop that mock to exercise the real implementation, which is
+# what decides between TRUNCATE PARTITION and ADD PARTITION.
+undef $mock;
+
+subtest 'deleteEntriesForRebuild on a partitioned table' => sub {
+    # the retention dropped everything below 2026-01-05, and the daily ETL has not
+    # created a partition past 2026-01-31 yet
+    my @existing = map { sprintf('202601%02d', $_) } (5 .. 31);
+    my $structure = 'CREATE TABLE `mod_bi_metriccentileweeklyvalue` (...) PARTITION BY RANGE(`time_id`) ('
+        . join(',', map { "PARTITION `p$_` VALUES LESS THAN (0)" } @existing) . ')';
+
+    my $tables_mock = mock 'gorgone::modules::centreon::mbi::libs::bi::MySQLTables' => (
+        add => [
+            'isTablePartitioned' => sub { return 1; },
+            'dumpTableStructure' => sub { return $structure; },
+            'getLastPartRange'   => sub { return '2026-01-31'; }
+        ],
+    );
+
+    my $run = sub {
+        my ($start, $end) = @_;
+        my $etl = { run => { schedule => { perfdata => { stages => [ [] ] } } } };
+        gorgone::modules::centreon::mbi::etl::perfdata::main::deleteEntriesForRebuild(
+            $etl, name => 'mod_bi_metriccentileweeklyvalue', start => $start, end => $end);
+        return [ map { @{$_->{sql}} } @{$etl->{run}->{schedule}->{perfdata}->{stages}->[0]} ];
+    };
+
+    subtest 'no partition is added below the oldest one kept by the retention' => sub {
+        # a weekly centile rebuild starts up to 7 days before the retention period,
+        # so the window reaches dates whose partitions no longer exist
+        my $sql = $run->('2025-12-31', '2026-01-20');
+
+        my @added = grep { $_->[1] =~ /ADD PARTITION/ } @$sql;
+        is(scalar(@added), 0, 'no ADD PARTITION below the oldest partition');
+
+        my @truncated = map { $_->[1] =~ /TRUNCATE PARTITION p(\d+)/ ? $1 : () } @$sql;
+        is($truncated[0], '20260105', 'the first truncated partition is the oldest existing one');
+        is($truncated[-1], '20260120', 'the last truncated partition is the end of the period');
+        is(scalar(@truncated), 16, 'only the existing partitions of the period are truncated');
+    };
+
+    subtest 'partitions are still added above the last existing one' => sub {
+        my $sql = $run->('2026-01-25', '2026-02-03');
+
+        my @added = map { $_->[1] =~ /ADD PARTITION \(PARTITION `p(\d+)`/ ? $1 : () } @$sql;
+        is(\@added, ['20260201', '20260202', '20260203'], 'the missing partitions above the range are added');
+
+        my @truncated = map { $_->[1] =~ /TRUNCATE PARTITION p(\d+)/ ? $1 : () } @$sql;
+        is(\@truncated, ['20260126', '20260127', '20260128', '20260129', '20260130', '20260131'],
+            'the existing partitions of the period are truncated');
+    };
+
+    subtest 'a non partitioned table is still emptied with a DELETE' => sub {
+        my $plain_mock = mock 'gorgone::modules::centreon::mbi::libs::bi::MySQLTables' => (
+            override => [ 'isTablePartitioned' => sub { return 0; } ],
+        );
+
+        my $sql = $run->('2025-12-31', '2026-01-20');
+        is(scalar(@$sql), 1, 'a single statement is issued');
+        like($sql->[0]->[1], qr/^DELETE FROM mod_bi_metriccentileweeklyvalue WHERE time_id >= \d+ AND time_id < \d+$/,
+            'the rows are deleted by time_id range');
     };
 };
 
