@@ -21,21 +21,23 @@ EOF
 # anything engine/connector-specific here, so the bulk COPY below can copy
 # the whole extracted tree without bundling unrelated binaries into this image.
 RUN --mount=type=bind,source=packages-centreon,target=/packages \
-    mkdir -p /extracted && \
-    cd /packages/${TARGETARCH} && \
-    for deb in *.deb; do \
-        case "$deb" in \
-            *centreon-engine*|*connector*) continue ;; \
-        esac; \
-        dpkg-deb -x "$deb" /extracted/; \
-    done && \
-    rm -rf /extracted/usr/share/doc/* \
-           /extracted/usr/share/man/* \
-           /extracted/usr/share/info/* \
-           /extracted/usr/share/locale/* \
-           /extracted/usr/share/licenses/* \
-           /extracted/var/cache/* \
-           /extracted/var/log/*
+    bash -e <<'EOF'
+mkdir -p /extracted
+cd /packages/${TARGETARCH}
+for deb in *.deb; do
+    case "$deb" in
+        *centreon-engine*|*connector*) continue ;;
+    esac
+    dpkg-deb -x "$deb" /extracted/
+done
+rm -rf /extracted/usr/share/doc/* \
+       /extracted/usr/share/man/* \
+       /extracted/usr/share/info/* \
+       /extracted/usr/share/locale/* \
+       /extracted/usr/share/licenses/* \
+       /extracted/var/cache/* \
+       /extracted/var/log/*
+EOF
 
 #############################################
 # Stage 2: Runtime - Minimal final image
@@ -47,6 +49,10 @@ ARG IS_CLOUD
 ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+# APP_SECRET/SALT: optional, needed only to decrypt an AES-encrypted db_password.
+ENV APP_SECRET= \
+    SALT=
 
 # Create users and groups (must match current setup for compatibility)
 RUN bash -e <<EOF
@@ -62,7 +68,6 @@ usermod -aG centreon-broker centreon-engine
 usermod -aG centreon-engine centreon-broker
 usermod -aG centreon-gorgone centreon-broker
 usermod -aG centreon centreon-broker
-usermod -aG sudo centreon-broker
 EOF
 
 # Configure APT for optimal container usage
@@ -90,7 +95,6 @@ apt-get install -y --no-install-recommends \
     libssh2-1t64 \
     libcurl4t64 \
     zlib1g \
-    sudo \
     ca-certificates
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/* /var/cache/apt/* /var/log/*
 EOF
@@ -101,7 +105,8 @@ mkdir -p /etc/centreon-broker \
          /var/lib/centreon-broker \
          /var/log/centreon-broker \
          /usr/share/centreon/lib/centreon-broker \
-         /usr/share/centreon-broker/lua
+         /usr/share/centreon-broker/lua \
+         /etc/centreon-engine
 chown -R centreon-broker:centreon-broker \
          /etc/centreon-broker \
          /var/lib/centreon-broker \
@@ -115,6 +120,9 @@ chmod 775 /etc/centreon-broker \
 chmod 0755 /var/spool/centreon
 chmod 0755 /var/lib/centreon-engine
 chmod 0755 /var/lib/centreon-gorgone
+# Private engine-context.json, not a shared volume - group-writable so centreon-broker (already a member) can write it without root.
+chown centreon-engine:centreon-engine /etc/centreon-engine
+chmod 775 /etc/centreon-engine
 EOF
 
 # Copy runtime files from extractor in bulk (binaries, libraries, modules).
@@ -136,15 +144,26 @@ COPY --from=extractor --chown=centreon-broker:centreon-broker --chmod=664 \
 
 # COPY --chmod applies the same mode to every copied entry, files and
 # directories alike — if the .deb package ever ships a subdirectory directly
-# under /etc/centreon-broker/, the 664 above would clobber the 775 already
-# set on it, making it non-traversable (this exact bug broke centengine.cfg
-# on the sibling centreon-engine image). Re-asserted defensively here since
-# broker has no boot-test/config-wiring-test in CI to catch it if it recurs.
-RUN chmod 0775 /etc/centreon-broker
+# under /etc/centreon-broker/ or /etc/centreon-engine/, the 664 above would
+# clobber the 775 already set on it, making it non-traversable (this exact
+# bug broke centengine.cfg on the sibling centreon-engine image). Re-asserted
+# defensively here since broker has no boot-test/config-wiring-test in CI to
+# catch it if it recurs.
+RUN chmod 0775 /etc/centreon-broker /etc/centreon-engine
 
 # Copy entrypoint scripts (from source repo, not from .deb packages)
 COPY --chmod=755 --chown=centreon-broker:centreon-broker \
      ./.github/docker/centreon-broker/trixie/entrypoint /var/lib/centreon-broker
+
+# Fingerprint of the package-default config (no SQL/storage output - cbd
+# would run but persist nothing). container.sh refuses to start if the
+# config it's given still matches this, instead of running uselessly. Stored
+# under /var/lib/centreon-broker, NOT /etc/centreon-broker - the latter is
+# the real-world volume mount point for a real config, and an empty mount
+# would mask a fingerprint stored there too, silently disabling this check.
+RUN bash -eo pipefail <<'EOF'
+sha256sum /etc/centreon-broker/central-broker.json | cut -d' ' -f1 > /var/lib/centreon-broker/.default-config.sha256
+EOF
 
 # Verify critical runtime files. Checking the dynamic linker can actually
 # resolve cbd/cbwd's shared libs (rather than guessing libcentreon_clib.so's
@@ -160,14 +179,13 @@ ls /etc/centreon-broker/*.json >/dev/null
 ! ldd /usr/sbin/cbwd | grep -q "not found"
 EOF
 
-# Pre-install Python API dependencies at build time (10-15s startup improvement)
+# Deps for api_control.py (reload/restart shim). Unpinned: internal shim, not a published library.
 RUN bash -e <<EOF
 python3 -m venv /opt/centreon/venv
 /opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip
 /opt/centreon/venv/bin/pip install --no-cache-dir \
-    fastapi==0.140.0 \
-    starlette==1.3.1 \
-    uvicorn==0.32.0
+    fastapi \
+    uvicorn
 chown -R centreon-broker:centreon-broker /opt/centreon/venv
 EOF
 
@@ -202,6 +220,8 @@ EXPOSE 51001
 EXPOSE 5670
 # gRPC central-rrd
 EXPOSE 51002
+# api_control.py (reload/restart shim)
+EXPOSE 8080
 
 WORKDIR /var/lib/centreon-broker
 
@@ -213,5 +233,10 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
 
 ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
 
-# TODO: CMD depend on restart/reload management (grpc) TBD later
-CMD ["/bin/bash"]
+# Runs cbd under the reload/restart shim by default (POST /reload, POST
+# /restart, GET /health on :8080). Override CMD with
+# ["cbd", "/etc/centreon-broker/central-broker.json"] to run cbd directly.
+# Note: cbd's `-c`/`--check` validates and exits, it is not a config-path flag.
+# A real config must be mounted over central-broker.json - container.sh
+# refuses to start on the untouched package default.
+CMD ["/opt/centreon/venv/bin/python3", "/var/lib/centreon-broker/api_control.py", "/etc/centreon-broker/central-broker.json"]
