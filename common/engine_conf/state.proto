@@ -1009,10 +1009,12 @@ enum RuntimeAckType {
  * no retention file, or that takes over resources it never supervised, starts
  * from the last known state instead of PENDING.
  *
- * The check result fields are the ones Engine needs in every mode. `output`
- * and `long_output` feed the macros of a command run before the first check
- * (a custom notification, the host output in a service notification).
- * `perfdata` has a single reader, anomalydetection, which parses the perfdata
+ * The check result fields are the ones Engine needs in every mode. The check
+ * output is deliberately left out: Engine reads it only through the macros of
+ * a command run before the first check (a custom notification, the host
+ * output in a service notification), and those macros are to be reworked so
+ * that they do without it. `perfdata` has a single reader, anomalydetection,
+ * which parses the perfdata
  * of the service it depends on at its own check: Broker fills it only for the
  * services an anomalydetection depends on, and leaves it empty otherwise. The
  * acknowledgement, downtime and notification fields are meaningful only when
@@ -1030,22 +1032,21 @@ message HostRuntime {
   int64 last_time_up = 9;
   int64 last_time_down = 10;
   int64 last_time_unreachable = 11;
-  string output = 12;
-  string perfdata = 13;
-  bool flapping = 14;
-  double percent_state_change = 15;
-  double latency = 16;
-  double execution_time = 17;
-  int64 last_check = 18;
-  int32 check_attempt = 19;
+  string perfdata = 12;
+  bool flapping = 13;
+  double percent_state_change = 14;
+  double latency = 15;
+  double execution_time = 16;
+  int64 last_check = 17;
+  int32 check_attempt = 18;
   /* notification_mode=engine only, see above. */
-  bool acknowledged = 20;
-  RuntimeAckType acknowledgement_type = 21;
-  int32 scheduled_downtime_depth = 22;
-  int32 notification_number = 23;
-  bool no_more_notifications = 24;
-  int64 last_notification = 25;
-  int64 next_notification = 26;
+  bool acknowledged = 19;
+  RuntimeAckType acknowledgement_type = 20;
+  int32 scheduled_downtime_depth = 21;
+  int32 notification_number = 22;
+  bool no_more_notifications = 23;
+  int64 last_notification = 24;
+  int64 next_notification = 25;
 }
 
 /* The runtime part of a service, see HostRuntime. */
@@ -1063,23 +1064,21 @@ message ServiceRuntime {
   int64 last_time_warning = 11;
   int64 last_time_critical = 12;
   int64 last_time_unknown = 13;
-  string output = 14;
-  string long_output = 15;
-  string perfdata = 16;
-  bool flapping = 17;
-  double percent_state_change = 18;
-  double latency = 19;
-  double execution_time = 20;
-  int64 last_check = 21;
-  int32 check_attempt = 22;
+  string perfdata = 14;
+  bool flapping = 15;
+  double percent_state_change = 16;
+  double latency = 17;
+  double execution_time = 18;
+  int64 last_check = 19;
+  int32 check_attempt = 20;
   /* notification_mode=engine only, see HostRuntime. */
-  bool acknowledged = 23;
-  RuntimeAckType acknowledgement_type = 24;
-  int32 scheduled_downtime_depth = 25;
-  int32 notification_number = 26;
-  bool no_more_notifications = 27;
-  int64 last_notification = 28;
-  int64 next_notification = 29;
+  bool acknowledged = 21;
+  RuntimeAckType acknowledgement_type = 22;
+  int32 scheduled_downtime_depth = 23;
+  int32 notification_number = 24;
+  bool no_more_notifications = 25;
+  int64 last_notification = 26;
+  int64 next_notification = 27;
 }
 
 /* The runtime part of every resource Broker knows for a poller: the snapshot
@@ -1288,4 +1287,10 @@ message DiffState {
    * used to apply retention.dat. Absent when Broker has nothing to say
    * (unknown configuration, relay). */
   RuntimeState runtime_state = 148;
+  /* Set by Broker when this DiffState carries no configuration change, only
+   * `runtime_state`: the poller connected with the configuration Broker knows
+   * (config_version is that one). Engine applies the snapshot, acknowledges
+   * with the same version, and leaves its configuration, scheduler and
+   * modules alone. */
+  bool runtime_only = 149;
 }

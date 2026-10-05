@@ -1524,7 +1524,6 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
   ASSERT_EQ(out.hosts_size(), 1) << "host 2 was never checked, host 3 is poller 2's";
   EXPECT_EQ(out.hosts(0).host_id(), 1u);
   EXPECT_EQ(out.hosts(0).state(), cfg::state_down);
-  EXPECT_EQ(out.hosts(0).output(), "host down");
   ASSERT_EQ(out.services_size(), 2);
   for (const auto& s : out.services()) {
     EXPECT_EQ(s.state(), cfg::state_critical);

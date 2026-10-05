@@ -2053,7 +2053,6 @@ void broker_cache::fill_runtime_state(
       r->set_last_time_up(h.last_time_up());
       r->set_last_time_down(h.last_time_down());
       r->set_last_time_unreachable(h.last_time_unreachable());
-      r->set_output(h.output());
       r->set_flapping(h.flapping());
       r->set_percent_state_change(h.percent_state_change());
       r->set_latency(h.latency());
@@ -2095,8 +2094,6 @@ void broker_cache::fill_runtime_state(
       r->set_last_time_warning(s.last_time_warning());
       r->set_last_time_critical(s.last_time_critical());
       r->set_last_time_unknown(s.last_time_unknown());
-      r->set_output(s.output());
-      r->set_long_output(s.long_output());
       if (_anomaly_detection_index.contains(
               std::make_pair(s.host_id(), s.service_id())))
         r->set_perfdata(s.perfdata());
