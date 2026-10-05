@@ -1,0 +1,31 @@
+name: sccache statistics
+description: Print the sccache statistics, warn on cache write errors, and optionally keep the ninja log of the build.
+
+inputs:
+  ninja_log_artifact:
+    description: Name of the artifact receiving build/.ninja_log (per-target build times); empty to skip the upload.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Cache statistics
+      shell: bash
+      run: |
+        /usr/bin/sccache --show-stats | tee /tmp/sccache-stats.txt
+        # Failed writes leave the next builds cold without failing this one.
+        errors=$(awk '/^Cache write errors/ {print $NF}' /tmp/sccache-stats.txt)
+        if [ "${errors:-0}" != "0" ]; then
+          echo "::warning::sccache: ${errors} cache write errors, the next builds will miss these objects"
+        fi
+
+    - name: Upload the ninja log
+      if: inputs.ninja_log_artifact != ''
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.ninja_log_artifact }}
+        path: build/.ninja_log
+        include-hidden-files: true
+        retention-days: 7
+        if-no-files-found: warn

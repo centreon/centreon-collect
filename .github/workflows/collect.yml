@@ -273,8 +273,9 @@ jobs:
         shell: bash
 
       - name: Cache statistics
-        run: ${SCCACHE_PATH} --show-stats
-        shell: bash
+        uses: ./.github/actions/sccache-stats
+        with:
+          ninja_log_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' && format('ninja-log-unit-test-{0}-{1}', matrix.operating_system, matrix.arch) || '' }}
 
       - name: Stop sccache server
         run: ${SCCACHE_PATH} --stop-server
