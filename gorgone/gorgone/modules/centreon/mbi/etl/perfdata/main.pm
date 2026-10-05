@@ -85,10 +85,9 @@ sub deleteEntriesForRebuild {
 	} else {
         my $structure = $biTables->dumpTableStructure($options{name});
         my $partitionsPerf = $utils->getRangePartitionDate($options{start}, $options{end});
-        # RANGE partitions can only be appended above the current highest one, so
-        # remember where that is: anything below it either already has a partition
-        # to truncate, or was dropped by the retention and holds no row at all.
+        # RANGE partitions can only be appended above the current highest one
         my $lastPartition = $biTables->getLastPartRange($options{name});
+        my $dropped = [];
         foreach (@$partitionsPerf) {
             if ($structure =~ /p$_->{name}/m) {
                 push @$sql,
@@ -102,10 +101,23 @@ sub deleteEntriesForRebuild {
                         '[PARTITIONS] Add partition [p' . $_->{name} . '] on table [' . $options{name} . ']',
                         "ALTER TABLE `$options{name}` ADD PARTITION (PARTITION `p$_->{name}` VALUES LESS THAN(" . $_->{epoch} . "))"
                     ];
+            } else {
+                push @$dropped, $_;
             }
-            # else: the partition is older than the oldest one kept by the retention.
-            # There is nothing to delete, and the rebuild inserts above that floor,
-            # so adding it would only make MySQL reject the whole statement (error 1493).
+        }
+
+        # Partitions dropped by the retention cannot be recreated: MySQL only accepts
+        # new RANGE partitions above the highest one. Their rows are not gone though,
+        # they all sit in the oldest remaining partition, which acts as a catch-all.
+        # Delete them by time_id instead, otherwise the rebuild hits a duplicate key
+        # when it rewrites the weeks it was asked to recompute.
+        if (scalar(@$dropped)) {
+            my $start = $utils->subtractDateDays($dropped->[0]->{date}, 1);
+            push @$sql,
+                [
+                    "[PURGE] Delete table [$options{name}] from $start to " . $dropped->[-1]->{date},
+                    "DELETE FROM $options{name} WHERE time_id >= " . $utils->getDateEpoch($start) . " AND time_id < " . $dropped->[-1]->{epoch}
+                ];
         }
 	}
 

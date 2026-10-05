@@ -784,18 +784,30 @@ subtest 'deleteEntriesForRebuild on a partitioned table' => sub {
         return [ map { @{$_->{sql}} } @{$etl->{run}->{schedule}->{perfdata}->{stages}->[0]} ];
     };
 
-    subtest 'no partition is added below the oldest one kept by the retention' => sub {
+    subtest 'dropped partitions are emptied by time_id instead of being recreated' => sub {
         # a weekly centile rebuild starts up to 7 days before the retention period,
-        # so the window reaches dates whose partitions no longer exist
+        # so the window reaches dates whose partitions the retention already dropped
         my $sql = $run->('2025-12-31', '2026-01-20');
 
         my @added = grep { $_->[1] =~ /ADD PARTITION/ } @$sql;
-        is(scalar(@added), 0, 'no ADD PARTITION below the oldest partition');
+        is(scalar(@added), 0, 'no partition is added below the oldest existing one');
 
         my @truncated = map { $_->[1] =~ /TRUNCATE PARTITION p(\d+)/ ? $1 : () } @$sql;
         is($truncated[0], '20260105', 'the first truncated partition is the oldest existing one');
         is($truncated[-1], '20260120', 'the last truncated partition is the end of the period');
-        is(scalar(@truncated), 16, 'only the existing partitions of the period are truncated');
+        is(scalar(@truncated), 16, 'the existing partitions of the period are truncated');
+
+        # the rows of the dropped partitions are not gone, they all sit in the oldest
+        # remaining partition, so they must still be deleted or the rebuild will hit a
+        # duplicate key when it rewrites those weeks
+        my $utils = gorgone::modules::centreon::mbi::libs::Utils->new();
+        my @deletes = grep { $_->[1] =~ /^DELETE FROM/ } @$sql;
+        is(scalar(@deletes), 1, 'a single DELETE covers the dropped partitions');
+        is($deletes[0]->[1],
+            'DELETE FROM mod_bi_metriccentileweeklyvalue WHERE time_id >= '
+                . $utils->getDateEpoch('2025-12-31')
+                . ' AND time_id < ' . $utils->getDateEpoch('2026-01-04'),
+            'the DELETE spans exactly the days held by the dropped partitions');
     };
 
     subtest 'partitions are still added above the last existing one' => sub {
@@ -807,6 +819,9 @@ subtest 'deleteEntriesForRebuild on a partitioned table' => sub {
         my @truncated = map { $_->[1] =~ /TRUNCATE PARTITION p(\d+)/ ? $1 : () } @$sql;
         is(\@truncated, ['20260126', '20260127', '20260128', '20260129', '20260130', '20260131'],
             'the existing partitions of the period are truncated');
+
+        my @deletes = grep { $_->[1] =~ /^DELETE FROM/ } @$sql;
+        is(scalar(@deletes), 0, 'no DELETE is needed when no partition was dropped');
     };
 
     subtest 'a non partitioned table is still emptied with a DELETE' => sub {
