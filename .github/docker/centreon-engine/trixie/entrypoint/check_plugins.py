@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Check which plugins from plugins.json need to be installed or upgraded.
-Prints a space-separated list of '<pkg>-*' patterns for packages that are
+Prints a space-separated list of exact package names for packages that are
 missing or whose installed version does not start with the requested version.
 
 Usage: check_plugins.py <plugins_json_path>
@@ -41,12 +41,12 @@ def main():
         installed = result.stdout.strip()
         if result.returncode != 0 or not installed:
             print(f'  {pkg}: not installed -> queuing', file=sys.stderr)
-            to_install.append(pkg + '-*')
+            to_install.append(pkg)
         elif installed.startswith(ver_str):
             print(f'  {pkg}: up-to-date ({installed})', file=sys.stderr)
         else:
             print(f'  {pkg}: outdated ({installed} != {ver_str}) -> queuing', file=sys.stderr)
-            to_install.append(pkg + '-*')
+            to_install.append(pkg)
 
     print(' '.join(to_install))
 

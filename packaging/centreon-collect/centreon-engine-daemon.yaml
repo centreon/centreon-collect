@@ -62,6 +62,8 @@ contents:
   - src: "../../engine/scripts/logrotate.conf"
     dst: "/etc/logrotate.d/centengine"
     type: config|noreplace
+    file_info:
+      mode: 0644
 
   - src: "../../engine/scripts/centengine.service"
     dst: "/usr/lib/systemd/system/centengine.service"
