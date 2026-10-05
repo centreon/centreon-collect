@@ -15,8 +15,9 @@ runs:
       run: |
         /usr/bin/sccache --show-stats | tee /tmp/sccache-stats.txt
         # Failed writes leave the next builds cold without failing this one.
+        # A read-only backend (reader role) counts every skipped write as an error: nothing to report then.
         errors=$(awk '/^Cache write errors/ {print $NF}' /tmp/sccache-stats.txt)
-        if [ "${errors:-0}" != "0" ]; then
+        if [ "${SCCACHE_S3_RW_MODE:-}" != "READ_ONLY" ] && [ "${errors:-0}" != "0" ]; then
           echo "::warning::sccache: ${errors} cache write errors, the next builds will miss these objects"
         fi
 
