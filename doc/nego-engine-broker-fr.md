@@ -5541,6 +5541,17 @@ définition complète ; la branche adaptative part dans les deux modes. Test : `
 (`DISABLE/ENABLE_HOST_CHECK` et `_SVC_CHECK` envoyés à Broker, vérifiés dans `hosts`, `services`
 et `resources`).
 
+*Lot 2, fait le 2026-10-05 : le masque dans le cache.* `neb.proto` gagne l'enum
+`ModifiedAttribute`, mêmes valeurs que les `MODATTR_*` d'Engine sous le préfixe `MOD_`, et un
+champ `modified_attributes` sur `Host` et `Service`, qu'Engine n'envoie jamais : c'est le cache
+qui le tient. Un `pb_adaptive_host` ou `pb_adaptive_service` ne porte que l'attribut basculé ; en
+l'appliquant, le cache pose aussi son bit. `notify` et `notification_period` ne posent le bit que
+lorsque Broker ne possède pas les notifications, leur bascule étant sinon un override natif déjà
+persisté. `copy_*_runtime` reporte le masque, puis chaque attribut de check seulement si son bit
+est posé : un export de configuration reprend la main sur ce qui n'a pas été basculé, et la
+bascule survit sur le reste, exactement ce que l'applier de rétention faisait avec son masque.
+Test unitaire : `AdaptiveOverrideSurvivesRebuild`.
+
 **Étape 4 — Engine.** En configuration centralisée, Engine cesse de lire `retention.dat` dès
 qu'un snapshot arrive, et continue de l'écrire en filet jusqu'à validation. Le scheduling et
 les flags du bloc program ne sont pas repris. Le sort des compteurs `next_*_id` reste à décider.
