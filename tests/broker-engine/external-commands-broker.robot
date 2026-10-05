@@ -275,3 +275,62 @@ BEEXTBRK4
     Should Be Empty    ${err}
     ${result}    Ctn Check Resource Notifications Enabled With Timeout    host_1    service_1    ${True}    60
     Should Be True    ${result}    service_1 notifications should be enabled again
+
+BEEXTBRK_ADAPTIVE
+    [Documentation]    Scenario: a check toggle sent to a centralized poller reaches the database
+    ...    Given one poller in centralized configuration, external commands routed by Broker
+    ...    When DISABLE_HOST_CHECK on host_1 and DISABLE_SVC_CHECK on host_1/service_1 are sent to Broker
+    ...    Then the poller applies them and sends the adaptive events back, so the hosts, services and resources tables show the checks disabled
+    ...    When ENABLE_HOST_CHECK and ENABLE_SVC_CHECK are sent
+    ...    Then the tables show the checks enabled again
+    [Tags]    broker    engine    external_commands    broker_external_commands    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Clear Prot Files
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    ${content}    Create List    BBDO: all engine peers have acknowledged their configuration
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The poller did not acknowledge its configuration
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    ${err}    Ctn Broker Execute External Command    DISABLE_HOST_CHECK;host_1
+    Should Be Empty    ${err}
+    ${err}    Ctn Broker Execute External Command    DISABLE_SVC_CHECK;host_1;service_1
+    Should Be Empty    ${err}
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query    SELECT h.active_checks, s.active_checks, r.active_checks_enabled FROM hosts h JOIN services s ON s.host_id=h.host_id JOIN resources r ON r.id=h.host_id AND r.parent_id=0 WHERE h.name='host_1' AND s.description='service_1'
+        IF    "${output}" == "((0, 0, 0),)"    BREAK
+        Sleep    1s
+    END
+    Should Be Equal As Strings    ${output}    ((0, 0, 0),)    The check toggles should reach the hosts, services and resources tables
+
+    ${err}    Ctn Broker Execute External Command    ENABLE_HOST_CHECK;host_1
+    Should Be Empty    ${err}
+    ${err}    Ctn Broker Execute External Command    ENABLE_SVC_CHECK;host_1;service_1
+    Should Be Empty    ${err}
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query    SELECT h.active_checks, s.active_checks, r.active_checks_enabled FROM hosts h JOIN services s ON s.host_id=h.host_id JOIN resources r ON r.id=h.host_id AND r.parent_id=0 WHERE h.name='host_1' AND s.description='service_1'
+        IF    "${output}" == "((1, 1, 1),)"    BREAK
+        Sleep    1s
+    END
+    Should Be Equal As Strings    ${output}    ((1, 1, 1),)    The checks should be enabled again
+
+    Disconnect From Database
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
