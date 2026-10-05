@@ -295,7 +295,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    runs-on: ${{ matrix.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'centreon-ubuntu-26.04-arm-xlarge' || 'centreon-ubuntu-26.04-xlarge' }}
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
 
@@ -304,7 +304,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 4 --ulimit core=-1 --privileged
+      options: --cpus 8 --ulimit core=-1 --privileged
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -488,7 +488,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -534,7 +534,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -582,7 +582,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -633,7 +633,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -742,7 +742,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
       id-token: write
@@ -794,7 +794,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -840,7 +840,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -935,7 +935,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, deliver-windows-pulp]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
       id-token: write
@@ -977,7 +977,7 @@ jobs:
         (github.event_name == 'workflow_dispatch' && inputs.publish_cma_version != '')
       )
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
 

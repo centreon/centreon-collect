@@ -74,7 +74,7 @@ on:
         required: true
 jobs:
   package:
-    runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
+    runs-on: ${{ inputs.arch == 'arm64' && 'centreon-ubuntu-26.04-arm-xlarge' || 'centreon-ubuntu-26.04-xlarge' }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -85,7 +85,7 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
-      options: --cpus 4
+      options: --cpus 8
 
     name: package
 

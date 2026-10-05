@@ -50,27 +50,27 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: alma8
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: alma9
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: alma10
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: trixie
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: trixie
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: bookworm
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: bookworm
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: jammy
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: jammy
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: noble
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: noble
 
     runs-on: ${{ matrix.runner }}

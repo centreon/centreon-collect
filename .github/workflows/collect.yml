@@ -201,7 +201,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    runs-on: ${{ matrix.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'centreon-ubuntu-26.04-arm-xlarge' || 'centreon-ubuntu-26.04-xlarge' }}
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
 
@@ -210,7 +210,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 4 --ulimit core=-1 --privileged
+      options: --cpus 8 --ulimit core=-1 --privileged
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -992,7 +992,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect' &&
       needs.get-environment.outputs.is_cloud == 'false'
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
       packages: write
@@ -1104,7 +1104,7 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: centreon-ubuntu-26.04-slim
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -1184,7 +1184,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -1271,7 +1271,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -1348,7 +1348,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
