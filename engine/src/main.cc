@@ -506,16 +506,21 @@ int main(int argc, char* argv[]) {
           phase_begin = log_startup_phase("rpc-server", phase_begin,
                                           startup_clock::now());
 
-          // Parse retention.
+          /* Parse retention in legacy configuration only. In centralized
+           * configuration the runtime state of the resources comes from Broker
+           * in the DiffState it sends at connection (RuntimeState). */
           retention::state state;
-          {
+          if (proto_conf.empty()) {
             retention::parser p;
             try {
               p.parse(new_conf->state_retention_file(), state);
             } catch (const std::exception& e) {
               config_logger->error("{}", e.what());
             }
-          }
+          } else
+            config_logger->info(
+                "Startup: centralized configuration, retention.dat is not "
+                "read: the runtime state comes from Broker");
           phase_begin =
               log_startup_phase("retention", phase_begin, startup_clock::now());
 

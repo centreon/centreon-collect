@@ -1030,6 +1030,15 @@ bool processing::is_thread_safe(std::string_view cmd) {
 }
 
 void processing::_wrapper_read_state_information() {
+  /* The retention file is not a source of state in centralized
+   * configuration: Broker holds it and hands it over at connection. */
+  if (cbm && cbm->centralized_conf()) {
+    SPDLOG_LOGGER_WARN(runtime_logger,
+                       "READ_STATE_INFORMATION ignored: in centralized "
+                       "configuration the runtime state comes from Broker, "
+                       "not from retention.dat");
+    return;
+  }
   try {
     retention::state state;
     retention::parser p;
