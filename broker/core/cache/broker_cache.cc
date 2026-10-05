@@ -118,7 +118,7 @@ void broker_cache::merge(
 
   /* Work on hosts */
   if (section_enabled(CACHE_HOSTS)) {
-    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts fro poller {}",
+    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts for poller {}",
                         state.hosts().size(), state.poller_id());
     // remove all host for this poller
     SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} before clean",
