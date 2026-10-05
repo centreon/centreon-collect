@@ -40,6 +40,35 @@ enum AckType {
   STICKY = 2;
 }
 
+/* The attributes of a host/service an external command may override, as bits
+ * of the `modified_attributes` mask. Same values as Engine's MODATTR_* (see
+ * engine/inc/com/centreon/engine/common.hh): a bit set says the attribute no
+ * longer follows the configuration but the last toggle, and survives a
+ * configuration reload -- the retention file used to carry that. Broker sets
+ * the bits from the adaptive events Engine sends, keeps the overridden
+ * attributes when a configuration rebuilds a cache entry, and hands them back
+ * to a poller with the runtime snapshot. */
+enum ModifiedAttribute {
+  MOD_NONE = 0;
+  MOD_NOTIFICATIONS_ENABLED = 1;
+  MOD_ACTIVE_CHECKS_ENABLED = 2;
+  MOD_PASSIVE_CHECKS_ENABLED = 4;
+  MOD_EVENT_HANDLER_ENABLED = 8;
+  MOD_FLAP_DETECTION_ENABLED = 16;
+  MOD_FAILURE_PREDICTION_ENABLED = 32;
+  MOD_PERFORMANCE_DATA_ENABLED = 64;
+  MOD_OBSESSIVE_HANDLER_ENABLED = 128;
+  MOD_EVENT_HANDLER_COMMAND = 256;
+  MOD_CHECK_COMMAND = 512;
+  MOD_NORMAL_CHECK_INTERVAL = 1024;
+  MOD_RETRY_CHECK_INTERVAL = 2048;
+  MOD_MAX_CHECK_ATTEMPTS = 4096;
+  MOD_FRESHNESS_CHECKS_ENABLED = 8192;
+  MOD_CHECK_TIMEPERIOD = 16384;
+  MOD_CUSTOM_VARIABLE = 32768;
+  MOD_NOTIFICATION_TIMEPERIOD = 65536;
+}
+
 /* io::neb, neb::de_pb_service, 5 */
 message Service {
   uint64 host_id = 1;
@@ -167,6 +196,8 @@ message Service {
 
   /* Empty means "inherit the host timezone". */
   string timezone = 90;
+  /* ModifiedAttribute bits, see Host.modified_attributes. */
+  uint32 modified_attributes = 91;
 }
 
 /**
@@ -385,6 +416,9 @@ message Host {
   uint64 icon_id = 82;
   /* In interval_length units, like first_notification_delay. */
   uint32 recovery_notification_delay = 83;
+  /* ModifiedAttribute bits of the attributes an external command overrode.
+   * Never sent by Engine: Broker's cache maintains it. */
+  uint32 modified_attributes = 84;
 }
 
 /**

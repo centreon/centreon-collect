@@ -1539,3 +1539,66 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
   EXPECT_EQ(other.hosts_size(), 0) << "host 3 was never checked";
   EXPECT_EQ(other.services_size(), 0);
 }
+
+/**
+ * @brief An attribute toggled by an external command (adaptive event) gets
+ * its ModifiedAttribute bit and survives a configuration rebuild of the
+ * entry, while an attribute left alone follows the new configuration.
+ */
+TEST_F(BrokerCacheTest, AdaptiveOverrideSurvivesRebuild) {
+  namespace cfg = com::centreon::engine::configuration;
+  auto make_state = [](uint32_t check_interval) {
+    cfg::State st;
+    st.set_poller_id(1);
+    auto* h = st.mutable_hosts()->Add();
+    h->set_host_id(1);
+    h->set_host_name("host_1");
+    h->set_checks_active(true);
+    h->set_check_interval(check_interval);
+    auto* s = st.mutable_services()->Add();
+    s->set_host_id(1);
+    s->set_service_id(10);
+    s->set_host_name("host_1");
+    s->set_service_description("service_10");
+    s->set_checks_active(true);
+    s->set_check_interval(check_interval);
+    return st;
+  };
+  _cache->merge(make_state(5));
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(), 0u);
+
+  /* DISABLE_HOST_CHECK / DISABLE_SVC_CHECK: active_checks toggled. */
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(1);
+  ah->mut_obj().set_active_checks(false);
+  _cache->publish(ah);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(10);
+  as->mut_obj().set_active_checks(false);
+  _cache->publish(as);
+  EXPECT_FALSE(_cache->host(1u)->obj().active_checks());
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+  EXPECT_FALSE(_cache->service(1u, 10u)->obj().active_checks());
+  EXPECT_EQ(_cache->service(1u, 10u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+
+  /* A new configuration: check_interval changes and follows it, the toggled
+   * active_checks keeps the override. */
+  _cache->merge(make_state(7));
+  EXPECT_EQ(_cache->host(1u)->obj().check_interval(), 7);
+  EXPECT_FALSE(_cache->host(1u)->obj().active_checks());
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+  EXPECT_EQ(_cache->service(1u, 10u)->obj().check_interval(), 7);
+  EXPECT_FALSE(_cache->service(1u, 10u)->obj().active_checks());
+
+  /* ENABLE_HOST_CHECK: the override now says enabled; the bit stays, the
+   * attribute still follows the toggles, not the configuration. */
+  ah->mut_obj().set_active_checks(true);
+  _cache->publish(ah);
+  EXPECT_TRUE(_cache->host(1u)->obj().active_checks());
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+}

@@ -1961,6 +1961,27 @@ void broker_cache::_fill_anomaly_detection(
  * configuration on purpose, and the persisted notification overrides are
  * re-applied on top (see _restore_notification_override). */
 #define keep(field) dst->set_##field(src.field())
+/* An overridden attribute follows the last toggle, not the configuration: it
+ * is carried over only when its ModifiedAttribute bit is set, so that an
+ * export of the configuration takes the lead back on the others. */
+#define keep_if(bit, field)                                                \
+  if (src.modified_attributes() & bit)                                     \
+  dst->set_##field(src.field())
+#define keep_common_overrides()                                            \
+  keep(modified_attributes);                                               \
+  keep_if(MOD_NOTIFICATIONS_ENABLED, notify);                              \
+  keep_if(MOD_ACTIVE_CHECKS_ENABLED, active_checks);                       \
+  keep_if(MOD_PASSIVE_CHECKS_ENABLED, passive_checks);                     \
+  keep_if(MOD_EVENT_HANDLER_ENABLED, event_handler_enabled);               \
+  keep_if(MOD_FLAP_DETECTION_ENABLED, flap_detection);                     \
+  keep_if(MOD_EVENT_HANDLER_COMMAND, event_handler);                       \
+  keep_if(MOD_CHECK_COMMAND, check_command);                               \
+  keep_if(MOD_NORMAL_CHECK_INTERVAL, check_interval);                      \
+  keep_if(MOD_RETRY_CHECK_INTERVAL, retry_interval);                       \
+  keep_if(MOD_MAX_CHECK_ATTEMPTS, max_check_attempts);                     \
+  keep_if(MOD_FRESHNESS_CHECKS_ENABLED, check_freshness);                  \
+  keep_if(MOD_CHECK_TIMEPERIOD, check_period);                             \
+  keep_if(MOD_NOTIFICATION_TIMEPERIOD, notification_period)
 #define keep_common_runtime()                                              \
   keep(checked);                                                           \
   keep(check_type);                                                        \
@@ -2001,6 +2022,8 @@ void broker_cache::copy_host_runtime(Host* dst, const Host& src) {
   keep(last_time_down);
   keep(last_time_unreachable);
   keep(next_host_notification);
+  keep_common_overrides();
+  keep_if(MOD_OBSESSIVE_HANDLER_ENABLED, obsess_over_host);
 }
 
 /**
@@ -2017,7 +2040,11 @@ void broker_cache::copy_service_runtime(Service* dst, const Service& src) {
   keep(last_time_critical);
   keep(last_time_unknown);
   keep(next_notification);
+  keep_common_overrides();
+  keep_if(MOD_OBSESSIVE_HANDLER_ENABLED, obsess_over_service);
 }
+#undef keep_common_overrides
+#undef keep_if
 #undef keep_common_runtime
 #undef keep
 
@@ -2925,41 +2952,74 @@ void broker_cache::update_host(
      * a toggle Engine would report is not authoritative: the cached value and
      * the persisted override are. Broker's own adaptive re-enters here too,
      * already applied by set_notify(). */
+    /* Each attribute an adaptive event carries is one an external command
+     * overrode: its ModifiedAttribute bit is set along with the value, so
+     * that a configuration rebuilding this entry keeps the override. */
+    uint32_t mask = h.modified_attributes();
     if (ah.has_notify() && !com::centreon::common::notifications::
-                               notification_manager::is_loaded())
+                               notification_manager::is_loaded()) {
       h.set_notify(ah.notify());
-    if (ah.has_active_checks())
+      mask |= MOD_NOTIFICATIONS_ENABLED;
+    }
+    if (ah.has_active_checks()) {
       h.set_active_checks(ah.active_checks());
+      mask |= MOD_ACTIVE_CHECKS_ENABLED;
+    }
     if (ah.has_should_be_scheduled())
       h.set_should_be_scheduled(ah.should_be_scheduled());
-    if (ah.has_passive_checks())
+    if (ah.has_passive_checks()) {
       h.set_passive_checks(ah.passive_checks());
-    if (ah.has_event_handler_enabled())
+      mask |= MOD_PASSIVE_CHECKS_ENABLED;
+    }
+    if (ah.has_event_handler_enabled()) {
       h.set_event_handler_enabled(ah.event_handler_enabled());
-    if (ah.has_flap_detection())
+      mask |= MOD_EVENT_HANDLER_ENABLED;
+    }
+    if (ah.has_flap_detection()) {
       h.set_flap_detection(ah.flap_detection());
-    if (ah.has_obsess_over_host())
+      mask |= MOD_FLAP_DETECTION_ENABLED;
+    }
+    if (ah.has_obsess_over_host()) {
       h.set_obsess_over_host(ah.obsess_over_host());
-    if (ah.has_event_handler())
+      mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
+    }
+    if (ah.has_event_handler()) {
       h.set_event_handler(ah.event_handler());
-    if (ah.has_check_command())
+      mask |= MOD_EVENT_HANDLER_COMMAND;
+    }
+    if (ah.has_check_command()) {
       h.set_check_command(ah.check_command());
-    if (ah.has_check_interval())
+      mask |= MOD_CHECK_COMMAND;
+    }
+    if (ah.has_check_interval()) {
       h.set_check_interval(ah.check_interval());
-    if (ah.has_retry_interval())
+      mask |= MOD_NORMAL_CHECK_INTERVAL;
+    }
+    if (ah.has_retry_interval()) {
       h.set_retry_interval(ah.retry_interval());
-    if (ah.has_max_check_attempts())
+      mask |= MOD_RETRY_CHECK_INTERVAL;
+    }
+    if (ah.has_max_check_attempts()) {
       h.set_max_check_attempts(ah.max_check_attempts());
-    if (ah.has_check_freshness())
+      mask |= MOD_MAX_CHECK_ATTEMPTS;
+    }
+    if (ah.has_check_freshness()) {
       h.set_check_freshness(ah.check_freshness());
-    if (ah.has_check_period())
+      mask |= MOD_FRESHNESS_CHECKS_ENABLED;
+    }
+    if (ah.has_check_period()) {
       h.set_check_period(ah.check_period());
+      mask |= MOD_CHECK_TIMEPERIOD;
+    }
     /* Same rule as `notify`: in notification_mode=broker the notification
      * timeperiod is set through the Broker API (CHANGE_*_NOTIFICATION_
      * TIMEPERIOD counterpart), an Engine adaptive must not override it. */
     if (ah.has_notification_period() && !com::centreon::common::notifications::
-                                            notification_manager::is_loaded())
+                                            notification_manager::is_loaded()) {
       h.set_notification_period(ah.notification_period());
+      mask |= MOD_NOTIFICATION_TIMEPERIOD;
+    }
+    h.set_modified_attributes(mask);
   } else
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -3898,39 +3958,70 @@ void broker_cache::update_service(
      * otherwise cloned then swapped. */
     mutable_entry entry{index, it};
     auto& s = entry->mut_obj();
-    /* Same as for hosts: Broker owns the switch in notification_mode=broker. */
+    /* Same as for hosts: Broker owns the switch in notification_mode=broker,
+     * and each attribute carried gets its ModifiedAttribute bit. */
+    uint32_t mask = s.modified_attributes();
     if (as.has_notify() && !com::centreon::common::notifications::
-                               notification_manager::is_loaded())
+                               notification_manager::is_loaded()) {
       s.set_notify(as.notify());
-    if (as.has_active_checks())
+      mask |= MOD_NOTIFICATIONS_ENABLED;
+    }
+    if (as.has_active_checks()) {
       s.set_active_checks(as.active_checks());
+      mask |= MOD_ACTIVE_CHECKS_ENABLED;
+    }
     if (as.has_should_be_scheduled())
       s.set_should_be_scheduled(as.should_be_scheduled());
-    if (as.has_passive_checks())
+    if (as.has_passive_checks()) {
       s.set_passive_checks(as.passive_checks());
-    if (as.has_event_handler_enabled())
+      mask |= MOD_PASSIVE_CHECKS_ENABLED;
+    }
+    if (as.has_event_handler_enabled()) {
       s.set_event_handler_enabled(as.event_handler_enabled());
-    if (as.has_flap_detection_enabled())
+      mask |= MOD_EVENT_HANDLER_ENABLED;
+    }
+    if (as.has_flap_detection_enabled()) {
       s.set_flap_detection(as.flap_detection_enabled());
-    if (as.has_obsess_over_service())
+      mask |= MOD_FLAP_DETECTION_ENABLED;
+    }
+    if (as.has_obsess_over_service()) {
       s.set_obsess_over_service(as.obsess_over_service());
-    if (as.has_event_handler())
+      mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
+    }
+    if (as.has_event_handler()) {
       s.set_event_handler(as.event_handler());
-    if (as.has_check_command())
+      mask |= MOD_EVENT_HANDLER_COMMAND;
+    }
+    if (as.has_check_command()) {
       s.set_check_command(as.check_command());
-    if (as.has_check_interval())
+      mask |= MOD_CHECK_COMMAND;
+    }
+    if (as.has_check_interval()) {
       s.set_check_interval(as.check_interval());
-    if (as.has_retry_interval())
+      mask |= MOD_NORMAL_CHECK_INTERVAL;
+    }
+    if (as.has_retry_interval()) {
       s.set_retry_interval(as.retry_interval());
-    if (as.has_max_check_attempts())
+      mask |= MOD_RETRY_CHECK_INTERVAL;
+    }
+    if (as.has_max_check_attempts()) {
       s.set_max_check_attempts(as.max_check_attempts());
-    if (as.has_check_freshness())
+      mask |= MOD_MAX_CHECK_ATTEMPTS;
+    }
+    if (as.has_check_freshness()) {
       s.set_check_freshness(as.check_freshness());
-    if (as.has_check_period())
+      mask |= MOD_FRESHNESS_CHECKS_ENABLED;
+    }
+    if (as.has_check_period()) {
       s.set_check_period(as.check_period());
+      mask |= MOD_CHECK_TIMEPERIOD;
+    }
     if (as.has_notification_period() && !com::centreon::common::notifications::
-                                            notification_manager::is_loaded())
+                                            notification_manager::is_loaded()) {
       s.set_notification_period(as.notification_period());
+      mask |= MOD_NOTIFICATION_TIMEPERIOD;
+    }
+    s.set_modified_attributes(mask);
   } else {
     SPDLOG_LOGGER_WARN(
         _logger,
