@@ -37,8 +37,10 @@ class fifo_client {
   fifo_client(std::string filename) : _filename{std::move(filename)} {}
   ~fifo_client() noexcept { close(); }
   void close() {
-    if (_fd > 0)
+    if (_fd >= 0) {
       ::close(_fd);
+      _fd = -1;
+    }
     _step = step::OPEN;
   }
 
@@ -74,8 +76,8 @@ class fifo_client {
             static_cast<ssize_t>(buffer.size())) {
           fprintf(stderr, "%s\n", strerror(errno));
 
-          // We go back to step::OPEN
-          _step = step::OPEN;
+          // We close the fifo and go back to step::OPEN
+          close();
           retval = -2;
         } else
           retval = 0;
