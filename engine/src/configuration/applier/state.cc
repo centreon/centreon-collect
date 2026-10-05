@@ -38,6 +38,7 @@
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
+#include "com/centreon/engine/configuration/applier/runtime_state.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
@@ -165,6 +166,16 @@ void applier::state::apply(configuration::State& new_cfg,
 void applier::state::apply_diff(configuration::DiffState& diff_conf,
                                 error_cnt& err,
                                 retention::state* state [[maybe_unused]]) {
+  /* Nothing to apply but the runtime snapshot: the poller connected with the
+   * configuration Broker knows. The configuration, the scheduler, the modules
+   * and state.prot are left alone; only the acknowledgement goes back, with
+   * the version Broker put in, which is the one this Engine runs. */
+  if (diff_conf.runtime_only()) {
+    if (diff_conf.has_runtime_state())
+      runtime_state::apply(diff_conf.runtime_state());
+    cbm->set_diff_state_applied(diff_conf.config_version());
+    return;
+  }
   configuration::indexed_state save(pb_indexed_config);
   try {
     _processing_state = state_ready;
@@ -1787,6 +1798,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     config_logger->info("Processing full configuration from diff.");
 
     _processing(*diff_conf.mutable_state(), err, state);
+    if (diff_conf.has_runtime_state())
+      runtime_state::apply(diff_conf.runtime_state());
     cbm->set_diff_state_applied(diff_conf.state().config_version());
     return;
   } else
@@ -1808,6 +1821,10 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
   try {
     std::lock_guard<std::mutex> lock(_apply_lock);
     _apply_diff_conf(diff_conf, &tv, err);
+    /* The runtime snapshot, once the objects of the diff exist and before the
+     * scheduler and the initial states look at them. */
+    if (diff_conf.has_runtime_state())
+      runtime_state::apply(diff_conf.runtime_state());
 
     /* Same wording as the startup phases, but left at debug: unlike them this
      * runs on every configuration change, and one burst of info lines per diff

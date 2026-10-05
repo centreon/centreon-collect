@@ -972,6 +972,13 @@ std::string broker_state::poller_timezone(uint64_t poller_id) const {
 }
 
 /**
+ * @brief The configuration version an Engine peer runs (see peer_registry).
+ */
+std::string broker_state::poller_engine_conf(uint64_t poller_id) const {
+  return _peers.poller_engine_conf(poller_id);
+}
+
+/**
  * @brief Whether a `<poller_id>.lck` is still waiting in the cache directory.
  *
  * That file is the announcement *and* the pending-delivery marker, which is why
@@ -1877,6 +1884,9 @@ bool broker_state::_prepare_diff_for_poller(
     diff_state = std::make_unique<engine::configuration::DiffState>();
     diff_state->set_allocated_state(state.release());
   }
+  /* The diff names the poller it is for: whoever sends it reads it there,
+   * and the embedded full state is not always present to say so. */
+  diff_state->set_poller_id(static_cast<uint32_t>(poller_id));
   std::filesystem::path diff_prot_conf =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
   std::ofstream df(diff_prot_conf);

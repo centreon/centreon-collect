@@ -222,6 +222,8 @@ class peer_registry {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_instance_running(uint64_t poller_id, bool running) noexcept
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  std::string poller_engine_conf(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::string poller_timezone(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool broker_knows_poller_conf(uint64_t poller_id) const
