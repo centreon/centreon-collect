@@ -1,0 +1,121 @@
+name: build-benchmark
+
+# Experiment only (never merged): cold then warm build of centreon-collect with several compiler caches.
+
+on:
+  push:
+    branches:
+      - MON-211287-build-benchmark
+    paths:
+      - .github/workflows/build-benchmark.yml
+
+jobs:
+  image-version:
+    runs-on: centreon-ubuntu-26.04-slim
+    outputs:
+      packaging_img_version: ${{ steps.version.outputs.packaging_img_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Packaging image version (same hash as get-environment.yml)
+        id: version
+        run: |
+          echo "packaging_img_version=$(cat .github/docker/Dockerfile.packaging-* vcpkg.json $(find overlays custom-triplets -type f | LC_ALL=C sort) | md5sum | awk '{print substr($1, 0, 8)}')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+  benchmark:
+    needs: [image-version]
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - sccache-disk
+          - sccache-disk-client-side
+          - sccache-disk-direct
+          - sccache-disk-client-side-direct
+          - ccache-direct
+          - ccache-direct-mold
+    runs-on: centreon-ubuntu-26.04-xlarge
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-trixie:${{ needs.image-version.outputs.packaging_img_version }}
+      credentials:
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      options: --cpus 8 --ulimit core=-1 --privileged
+
+    name: ${{ matrix.variant }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up the compiler cache
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          case "$VARIANT" in
+            sccache-*)
+              echo "LAUNCHER=/usr/bin/sccache" >> "$GITHUB_ENV"
+              echo "SCCACHE_DIR=/tmp/compiler-cache" >> "$GITHUB_ENV"
+              echo "SCCACHE_CACHE_SIZE=20G" >> "$GITHUB_ENV"
+              [[ "$VARIANT" == *client-side* ]] && echo "SCCACHE_CLIENT_SIDE=1" >> "$GITHUB_ENV"
+              [[ "$VARIANT" == *direct* ]] && echo "SCCACHE_DIRECT=true" >> "$GITHUB_ENV"
+              ;;
+            ccache-*)
+              apt-get update -q && apt-get install -y -q ccache > /dev/null
+              echo "LAUNCHER=/usr/bin/ccache" >> "$GITHUB_ENV"
+              echo "CCACHE_DIR=/tmp/compiler-cache" >> "$GITHUB_ENV"
+              echo "CCACHE_MAXSIZE=20G" >> "$GITHUB_ENV"
+              echo "CCACHE_DIRECT=true" >> "$GITHUB_ENV"
+              # PCH used by the project: same sloppiness as the ccache documentation recommends.
+              echo "CCACHE_SLOPPINESS=pch_defines,time_macros,include_file_mtime,include_file_ctime" >> "$GITHUB_ENV"
+              ;;
+          esac
+          if [[ "$VARIANT" == *mold* ]]; then
+            apt-get update -q && apt-get install -y -q mold > /dev/null
+            echo "LINKER_FLAGS=-fuse-ld=mold" >> "$GITHUB_ENV"
+          fi
+          mv /root/.cache /github/home/ || true
+        shell: bash
+
+      - name: Cold build, then warm build from a clean build directory
+        run: |
+          export VCPKG_ROOT=/vcpkg VCPKG_MAX_CONCURRENCY=8 VCPKG_FORCE_SYSTEM_BINARIES=1
+          export PATH=$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH
+          [[ "$LAUNCHER" == */sccache ]] && /usr/bin/sccache --start-server
+          build() {
+            rm -rf build
+            local start=$(date +%s)
+            CXXFLAGS="-Wall -Wextra" cmake -B build \
+              -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS=/overlays \
+              -GNinja -DDEBUG_ROBOT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_TESTING=On -DWITH_MODULE_SIMU=On \
+              -DWITH_PREFIX=/usr -DWITH_PREFIX_BIN=/usr/sbin -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker \
+              -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ \
+              -DCMAKE_C_COMPILER_LAUNCHER=$LAUNCHER -DCMAKE_CXX_COMPILER_LAUNCHER=$LAUNCHER \
+              ${LINKER_FLAGS:+-DCMAKE_EXE_LINKER_FLAGS=$LINKER_FLAGS -DCMAKE_SHARED_LINKER_FLAGS=$LINKER_FLAGS} \
+              -DLEGACY_ENGINE=OFF -DONLY_ROBOT_CMA=OFF -S . > /dev/null
+            local configured=$(date +%s)
+            ninja -C build > /dev/null
+            local end=$(date +%s)
+            echo "$1: configure $((configured - start)) s, build $((end - configured)) s"
+            echo "| $1 | $((configured - start)) | $((end - configured)) |" >> "$GITHUB_STEP_SUMMARY"
+            cp build/.ninja_log "ninja_log_$1"
+          }
+          echo "### ${{ matrix.variant }} (8 CPUs)" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Pass | Configure (s) | Build (s) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          build cold
+          [[ "$LAUNCHER" == */sccache ]] && /usr/bin/sccache --zero-stats > /dev/null
+          [[ "$LAUNCHER" == */ccache ]] && ccache --zero-stats > /dev/null
+          build warm
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$LAUNCHER" == */sccache ]]; then /usr/bin/sccache --show-stats | tee -a "$GITHUB_STEP_SUMMARY"; else ccache --show-stats -v | tee -a "$GITHUB_STEP_SUMMARY"; fi
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+      - name: Upload the ninja logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ninja-log-${{ matrix.variant }}
+          path: ninja_log_*
+          retention-days: 7
