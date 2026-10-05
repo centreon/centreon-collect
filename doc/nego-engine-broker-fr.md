@@ -5454,6 +5454,21 @@ est envoyé **à chaque connexion d'un poller**, et non seulement en migration :
 remplace `retention.dat` au démarrage ordinaire. Engine l'applique après la configuration, là
 où la rétention s'appliquait.
 
+*Fait le 2026-10-05.* Côté Broker, `broker_cache::fill_runtime_state(poller_id, out)` remplit le
+snapshot depuis les entrées contrôlées du poller et `broker_stream::_add_runtime_state` l'ajoute au
+`DiffState`. Un poller reçoit son snapshot **une fois par connexion**, drapeau sur le stream : avec le
+`DiffState` de la configuration qu'il doit recevoir, ou, s'il est à jour, dans un `DiffState` qui ne
+porte que lui, marqué `runtime_only` et portant la version qu'il court déjà, pour que son
+acquittement ne change rien au registre des pairs. Rien n'est envoyé au poller dont la configuration
+est inconnue. Côté Engine, `configuration::applier::runtime_state` pose le snapshot sur les objets,
+calqué sur la partie « status » de l'applier de rétention et respectant `retain_status_information` ;
+il est appelé après `_apply_diff_conf` dans un diff, après `_processing` dans un état complet, et
+seul, sans toucher à la configuration, à l'ordonnanceur, aux modules ni à `state.prot`, quand le
+`DiffState` est `runtime_only`. Les champs d'acquittement, de downtime et de notification ne sont
+posés que si Engine les possède. Test : `CERS1` (`engine/centralized-runtime-state.robot`) : Engine
+redémarré sans `retention.dat`, un résultat OK est logué comme un rétablissement depuis CRITICAL, ce
+qui prouve l'état restauré.
+
 **Étape 3 — les overrides d'attributs modifiés.** La base a `modified_attributes` et les
 colonnes correspondantes ; le module référence les recharge par le même chemin que l'état de
 check, et le snapshot les redescend. La sensibilité des anomalydetection en fait partie.
@@ -6090,29 +6105,28 @@ message HostRuntime {
   int64      last_time_up = 9;
   int64      last_time_down = 10;
   int64      last_time_unreachable = 11;
-  string     output = 12;      // pour les macros d'une commande lancée avant le 1er check
-  string     perfdata = 13;    // rempli seulement pour les services dont une anomalydetection dépend
-  bool       flapping = 14;
-  double     percent_state_change = 15;
-  double     latency = 16;
-  double     execution_time = 17;
-  int64      last_check = 18;
-  int32      check_attempt = 19;
+  string     perfdata = 12;    // rempli seulement pour les services dont une anomalydetection dépend
+  bool       flapping = 13;
+  double     percent_state_change = 14;
+  double     latency = 15;
+  double     execution_time = 16;
+  int64      last_check = 17;
+  int32      check_attempt = 18;
   // notification_mode=engine seulement : quand Broker possède acquittements,
   // downtimes et notifications, il les rejoue lui-même et ces champs restent
   // à leur valeur par défaut.
-  bool       acknowledged = 20;
-  RuntimeAckType    acknowledgement_type = 21;
-  int32      scheduled_downtime_depth = 22;
-  int32      notification_number = 23;
-  bool       no_more_notifications = 24;
-  int64      last_notification = 25;
-  int64      next_notification = 26;
+  bool       acknowledged = 19;
+  RuntimeAckType    acknowledgement_type = 20;
+  int32      scheduled_downtime_depth = 21;
+  int32      notification_number = 22;
+  bool       no_more_notifications = 23;
+  int64      last_notification = 24;
+  int64      next_notification = 25;
 }
 
 message ServiceRuntime {
-  // mêmes champs, plus service_id = 2, long_output = 15 et
-  // last_time_ok/warning/critical/unknown = 10..13 ; numérotés 1..29.
+  // mêmes champs, plus service_id = 2 et last_time_ok/warning/critical/unknown
+  // = 10..13 ; numérotés 1..27. La sortie du check n'est pas envoyée, voir ci-dessous.
 }
 
 message RuntimeState {
@@ -6123,8 +6137,15 @@ message RuntimeState {
 message DiffState {
   // ... champs existants ...
   RuntimeState runtime_state = 148;  // présent sur tout DiffState envoyé à un poller qui se connecte
+  bool runtime_only = 149;           // rien d'autre à appliquer : poller à jour, Engine n'applique que le snapshot
 }
 ```
+
+La sortie du check (`output`, `long_output`) est volontairement absente du snapshot (décision du
+2026-10-05). Engine ne la lisait que par les macros `$HOSTOUTPUT$`, `$SERVICEOUTPUT$` et
+`$LONGSERVICEOUTPUT$` d'une commande lancée avant le premier check de la ressource : notification
+personnalisée par commande externe, ou sortie de l'hôte dans la notification d'un service. Ces macros
+seront revues pour s'en passer, chantier séparé.
 
 Engine initialise l'état interne de chaque host/service à partir de ce snapshot avant de commencer
 à les superviser. Il planifie le prochain check à `last_check + check_interval` plutôt

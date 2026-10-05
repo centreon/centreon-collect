@@ -5082,6 +5082,20 @@ is sent **on every poller connection**, not only on migration: this is what repl
 `retention.dat` at an ordinary startup. Engine applies it after the configuration, where the
 retention used to apply.
 
+*Done on 2026-10-05.* On the Broker side, `broker_cache::fill_runtime_state(poller_id, out)` fills
+the snapshot from the checked entries of the poller and `broker_stream::_add_runtime_state` adds it
+to the `DiffState`. A poller gets its snapshot **once per connection**, a flag on the stream: with the
+`DiffState` of the configuration it owes, or, when it is up to date, in a `DiffState` carrying nothing
+else, flagged `runtime_only` and bearing the version it already runs, so that its acknowledgement
+changes nothing in the peer registry. Nothing is sent to a poller whose configuration is unknown. On
+the Engine side, `configuration::applier::runtime_state` lays the snapshot onto the objects, modelled
+on the "status" part of the retention applier and honouring `retain_status_information`; it is called
+after `_apply_diff_conf` in a diff, after `_processing` in a full state, and alone, leaving the
+configuration, the scheduler, the modules and `state.prot` untouched, when the `DiffState` is
+`runtime_only`. Acknowledgement, downtime and notification fields are set only when Engine owns
+them. Test: `CERS1` (`engine/centralized-runtime-state.robot`): Engine restarted without
+`retention.dat`, an OK result is logged as a recovery from CRITICAL, which proves the restored state.
+
 **Step 3 — modified-attribute overrides.** The database has `modified_attributes` and the
 matching columns; the reference module reloads them through the same path as the check state,
 and the snapshot sends them back down. Anomalydetection sensitivity is part of it.
@@ -5700,29 +5714,28 @@ message HostRuntime {
   int64      last_time_up = 9;
   int64      last_time_down = 10;
   int64      last_time_unreachable = 11;
-  string     output = 12;      // for the macros of a command run before the first check
-  string     perfdata = 13;    // filled only for the services an anomalydetection depends on
-  bool       flapping = 14;
-  double     percent_state_change = 15;
-  double     latency = 16;
-  double     execution_time = 17;
-  int64      last_check = 18;
-  int32      check_attempt = 19;
+  string     perfdata = 12;    // filled only for the services an anomalydetection depends on
+  bool       flapping = 13;
+  double     percent_state_change = 14;
+  double     latency = 15;
+  double     execution_time = 16;
+  int64      last_check = 17;
+  int32      check_attempt = 18;
   // notification_mode=engine only: when Broker owns acknowledgements,
   // downtimes and notifications, it replays them itself and these fields
   // are left at their defaults.
-  bool       acknowledged = 20;
-  RuntimeAckType    acknowledgement_type = 21;
-  int32      scheduled_downtime_depth = 22;
-  int32      notification_number = 23;
-  bool       no_more_notifications = 24;
-  int64      last_notification = 25;
-  int64      next_notification = 26;
+  bool       acknowledged = 19;
+  RuntimeAckType    acknowledgement_type = 20;
+  int32      scheduled_downtime_depth = 21;
+  int32      notification_number = 22;
+  bool       no_more_notifications = 23;
+  int64      last_notification = 24;
+  int64      next_notification = 25;
 }
 
 message ServiceRuntime {
-  // same fields, plus service_id = 2, long_output = 15 and
-  // last_time_ok/warning/critical/unknown = 10..13; numbered 1..29.
+  // same fields, plus service_id = 2 and last_time_ok/warning/critical/unknown
+  // = 10..13; numbered 1..27. The check output is not sent, see below.
 }
 
 message RuntimeState {
@@ -5733,8 +5746,15 @@ message RuntimeState {
 message DiffState {
   // ... existing fields ...
   RuntimeState runtime_state = 148;  // set on every DiffState sent to a connecting poller
+  bool runtime_only = 149;           // nothing else to apply: poller up to date, Engine applies the snapshot only
 }
 ```
+
+The check output (`output`, `long_output`) is deliberately left out of the snapshot (decided on
+2026-10-05). Engine only read it through the `$HOSTOUTPUT$`, `$SERVICEOUTPUT$` and
+`$LONGSERVICEOUTPUT$` macros of a command run before the first check of the resource: a custom
+notification sent by external command, or the host output in a service notification. Those macros
+are to be reworked to do without it, as a separate piece of work.
 
 Engine initialises the internal state of each host/service from this snapshot before starting to
 monitor them. It schedules the next check at `last_check + check_interval` rather than
