@@ -5149,9 +5149,23 @@ the stream serving it sends it at the next turn, alone. The stream never sends a
 poller the cache does not know yet anyway: it would be empty. Test: `CERS2` (Broker restarted
 without its `1.prot`, Engine running: the configuration comes back, the state follows).
 
-**Step 3 — modified-attribute overrides.** The database has `modified_attributes` and the
-matching columns; the reference module reloads them through the same path as the check state,
-and the snapshot sends them back down. Anomalydetection sensitivity is part of it.
+**Step 3 — modified-attribute overrides.** The database has the attribute columns, but no
+mask: `modified_attributes` exists neither in `neb.proto`, nor in the cache, nor in what
+unified_sql writes. It is therefore to be rebuilt: from the fields present in an adaptive event,
+which carries the modified attribute only, and at startup by comparing the database with the
+configuration. The reference module then reloads these attributes through the same path as the
+check state, and the snapshot sends them back down under the mask. Custom variables and
+anomalydetection sensitivity, unknown to the cache, stay out of scope.
+
+*Batch 1, done on 2026-10-05: adaptive events in centralized mode.* Before it, Engine emitted
+none in that mode: `forward_pb_host` and `forward_pb_service` started with
+`if (cbm->centralized_conf()) return;`, placed before the `NEBTYPE_ADAPTIVE*_UPDATE` branch. The
+return was meant for the full definition, which Broker already has from the `.prot`, but it took
+`pb_adaptive_host` and `pb_adaptive_service` with it: a `DISABLE_HOST_CHECK` sent to a
+centralized poller reached neither the cache nor the database. The return moved down into the
+full-definition branch; the adaptive branch goes out in both modes. Test: `BEEXTBRK_ADAPTIVE`
+(`DISABLE/ENABLE_HOST_CHECK` and `_SVC_CHECK` sent to Broker, checked in `hosts`, `services`
+and `resources`).
 
 **Step 4 — Engine.** In centralized configuration, Engine stops reading `retention.dat` as soon
 as a snapshot arrives, and keeps writing it as a safety net until validated. Scheduling and
