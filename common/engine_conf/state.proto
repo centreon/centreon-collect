@@ -1020,6 +1020,7 @@ enum RuntimeAckType {
  * acknowledgement, downtime and notification fields are meaningful only when
  * Engine owns them (notification_mode=engine): when Broker does, it replays
  * them to Engine itself and these fields are left at their defaults. */
+/* Ignore */
 message HostRuntime {
   uint64 host_id = 1;
   bool checked = 2;
@@ -1050,6 +1051,7 @@ message HostRuntime {
 }
 
 /* The runtime part of a service, see HostRuntime. */
+/* Ignore */
 message ServiceRuntime {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -1083,6 +1085,7 @@ message ServiceRuntime {
 
 /* The runtime part of every resource Broker knows for a poller: the snapshot
  * that replaces retention.dat in centralized configuration. */
+/* Ignore */
 message RuntimeState {
   repeated HostRuntime hosts = 1;
   repeated ServiceRuntime services = 2;

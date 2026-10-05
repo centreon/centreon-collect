@@ -465,14 +465,13 @@ static void forward_pb_host(int type,
                             int flags [[maybe_unused]],
                             uint64_t modified_attribute,
                             const engine::host* eh) {
-  if (cbm->centralized_conf())
-    return;
-
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb host {} event protobuf",
                       eh->host_id());
 
+  /* An adaptive change is sent in every mode: it is runtime, Broker and the
+   * database must see it. */
   if (type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
       modified_attribute != MODATTR_ALL) {
     auto h = std::make_shared<neb::pb_adaptive_host>();
@@ -525,6 +524,8 @@ static void forward_pb_host(int type,
                           "callbacks: host '{}' has no ID (yet) defined",
                           (!eh->name().empty() ? eh->name() : "(unknown)"));
   } else {
+    if (cbm->centralized_conf())
+      return;
     auto h = std::make_shared<neb::pb_host>();
     auto& host = h->mut_obj();
 
@@ -928,9 +929,6 @@ static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
                                const engine::service* es) {
-  if (cbm->centralized_conf())
-    return;
-
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
@@ -1022,6 +1020,9 @@ static void forward_pb_service(int type,
           !es->get_hostname().empty() ? es->get_hostname() : "(unknown)",
           !es->description().empty() ? es->description() : "(unknown)");
   } else {
+    /* Adaptive change above is sent in every mode. */
+    if (cbm->centralized_conf())
+      return;
     auto s{std::make_shared<neb::pb_service>()};
     com::centreon::broker::Service& srv = s.get()->mut_obj();
 
