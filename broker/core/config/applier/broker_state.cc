@@ -972,10 +972,39 @@ std::string broker_state::poller_timezone(uint64_t poller_id) const {
 }
 
 /**
- * @brief The configuration version an Engine peer runs (see peer_registry).
+ * @brief The configuration version an Engine peer told us it runs (see
+ * peer_registry::poller_engine_conf()).
+ *
+ * @param poller_id The poller.
+ *
+ * @return Its configuration version, empty if the poller is unknown.
  */
 std::string broker_state::poller_engine_conf(uint64_t poller_id) const {
   return _peers.poller_engine_conf(poller_id);
+}
+
+/**
+ * @brief Whether the poller is still owed the runtime snapshot of its
+ * resources (see peer_registry::runtime_state_owed()).
+ *
+ * @param poller_id The poller.
+ *
+ * @return true if the snapshot is still owed.
+ */
+bool broker_state::runtime_state_owed(uint64_t poller_id) const {
+  return _peers.runtime_state_owed(poller_id);
+}
+
+/**
+ * @brief Record whether the poller is owed the runtime snapshot (see
+ * peer_registry::set_runtime_state_owed()).
+ *
+ * @param poller_id The poller.
+ * @param owed true when its configuration was rebuilt, false once the snapshot
+ * was sent.
+ */
+void broker_state::set_runtime_state_owed(uint64_t poller_id, bool owed) {
+  _peers.set_runtime_state_owed(poller_id, owed);
 }
 
 /**

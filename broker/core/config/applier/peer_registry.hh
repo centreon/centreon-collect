@@ -79,6 +79,12 @@ class peer_registry {
      * to tell a real Engine stop from a running=false event replayed on
      * Broker reconnect. */
     bool engine_running = false;
+    /* Whether the poller is still owed the runtime snapshot of its
+     * resources: true by construction, a peer that was just registered got
+     * nothing yet, and again once Broker rebuilt and restored a configuration
+     * it had lost; false once the stream serving the poller sent the
+     * snapshot, with a configuration diff or alone. */
+    bool runtime_state_owed = true;
 
     /* Local timezone (IANA name) of the poller machine, advertised in the
      * Welcome message. Empty when the peer did not send one (e.g. legacy
@@ -232,6 +238,10 @@ class peer_registry {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
   /* --- Configuration round --------------------------------------------- */
+  bool runtime_state_owed(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_runtime_state_owed(uint64_t poller_id, bool owed)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool poller_needs_update(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_poller_engine_conf(uint64_t poller_id,

@@ -21,6 +21,7 @@
 #include <rapidjson/writer.h>
 #include <boost/preprocessor/seq/for_each.hpp>
 #include "bbdo/storage/index_mapping.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
@@ -4578,13 +4579,34 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
    * been rebuilt from what Engine sent. The database side runs in both cases,
    * since waking the poller's resources up is what this event is for. */
   uint64_t poller_id = state->obj().poller_id();
+  /* The runtime snapshot owed to a poller whose configuration is rebuilt here
+   * is a Broker-only notion, hence the downcast behind its guard (same as BAM
+   * for set_instance_running). */
+  auto set_runtime_state_owed = [](uint64_t poller_id, bool owed) {
+    auto& applier_state = config::applier::state::instance();
+    if (applier_state.peer_type() == com::centreon::common::BROKER)
+      static_cast<config::applier::broker_state&>(applier_state)
+          .set_runtime_state_owed(poller_id, owed);
+  };
+  bool merged = false;
   if (cache.has_instance(poller_id))
     SPDLOG_LOGGER_INFO(_logger_sql,
                        "unified_sql: poller {} is already known to the cache, "
                        "its configuration is not merged again",
                        poller_id);
-  else
+  else {
+    /* Not before the entries carry their runtime: as soon as the merge is
+     * done the cache knows the poller, and the stream serving it would send
+     * an empty snapshot if the flag were still up from the connection. */
+    set_runtime_state_owed(poller_id, false);
     cache.merge(state->obj());
+    merged = true;
+    /* Its entries are fresh from the configuration: the reference output
+     * gives them back the runtime the database kept, as it did at startup for
+     * the pollers it knew then. */
+    if (_is_reference)
+      _restore_runtime_in_cache();
+  }
   database_configurator cfg(this, _logger_sql);
   cfg.process_state(state->obj());
   /* The cache knows this poller's hosts/services: re-inject any active
@@ -4598,6 +4620,10 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   cache.reinject_pending_acknowledgements();
   /* And the notification switches toggled through the Broker API. */
   cache.reinject_pending_notification_overrides();
+  /* The poller whose configuration was just rebuilt is owed its runtime
+   * snapshot: nothing could be sent to it at its connection. */
+  if (merged)
+    set_runtime_state_owed(poller_id, true);
 }
 
 /**
