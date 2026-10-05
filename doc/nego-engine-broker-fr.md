@@ -5532,6 +5532,14 @@ qu'un snapshot arrive, et continue de l'écrire en filet jusqu'à validation. Le
 les flags du bloc program ne sont pas repris. Le sort des compteurs `next_*_id` reste à décider.
 Le legacy et BBDO2 sont inchangés.
 
+*Fait le 2026-10-05.* Au démarrage, `main.cc` ne parse `retention.dat` que si Engine n'a pas de
+répertoire `proto-conf`, c'est-à-dire en legacy ; en centralisé il le dit dans son log
+(« retention.dat is not read: the runtime state comes from Broker ») et part de l'état que le
+`DiffState` de connexion apportera. La commande externe `READ_STATE_INFORMATION` est ignorée avec
+un avertissement dans ce mode, elle poserait un état périmé sur un état plus frais. L'écriture
+du fichier, toutes les 60 minutes et à l'arrêt, est conservée telle quelle. `CERS1` vérifie que
+le message apparaît et que plus aucune tentative de lecture n'est faite.
+
 ### Ce qui reste hors du snapshot
 
 Acquittements, downtimes démarrés et chaînes de notification restent dans le `.cache` : leur

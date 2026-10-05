@@ -5158,6 +5158,14 @@ as a snapshot arrives, and keeps writing it as a safety net until validated. Sch
 program block flags are not carried over. The fate of the `next_*_id` counters is still to be
 decided. Legacy and BBDO2 are unchanged.
 
+*Done on 2026-10-05.* At startup, `main.cc` parses `retention.dat` only when Engine has no
+`proto-conf` directory, i.e. in legacy mode; in centralized mode it says so in its log
+("retention.dat is not read: the runtime state comes from Broker") and starts from the state
+the connection `DiffState` will bring. The `READ_STATE_INFORMATION` external command is ignored
+with a warning in that mode, it would lay a stale state over a fresher one. Writing the file,
+every 60 minutes and at shutdown, is kept as is. `CERS1` checks that the message shows up and
+that no read is attempted any more.
+
 ### What stays out of the snapshot
 
 Acknowledgements, started downtimes and notification chains stay in the `.cache`: their
