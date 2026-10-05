@@ -56,6 +56,14 @@ CERS1
     ${content}    Create List    is up to date, sending it its runtime state alone
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
     Should Be True    ${result}    Broker should send the runtime state to the poller it finds up to date
+    # The retention phase runs before the log file is opened: its lines go to
+    # the standard output of centengine.
+    ${content}    Create List    retention.dat is not read: the runtime state comes from Broker
+    ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    30
+    Should Be True    ${result}    Engine should say it does not read retention.dat in centralized configuration
+    ${content}    Create List    Parsing of retention file failed
+    ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    5
+    Should Not Be True    ${result}    Engine should not even try to read retention.dat
     ${content}    Create List    runtime state: 0 hosts and 0 services restored
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    5
     Should Not Be True    ${result}    The snapshot should restore at least one resource
