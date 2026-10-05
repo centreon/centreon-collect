@@ -118,9 +118,6 @@ jobs:
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
       labels: ${{ inputs.labels || '' }}
 
-  get-aws-environment:
-    uses: ./.github/workflows/get-aws-environment.yml
-
   check-version-consistency:
     runs-on: ubuntu-24.04
     needs: [get-environment]
@@ -192,7 +189,7 @@ jobs:
       labels: ${{ needs.get-environment.outputs.labels }}
 
   unit-test:
-    needs: [get-environment, get-aws-environment, changes]
+    needs: [get-environment, changes]
     if: |
       needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -201,11 +198,12 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
+    permissions:
+      contents: read
+      id-token: write
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
@@ -213,11 +211,6 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       options: --cpus 4 --ulimit core=-1 --privileged
-      env:
-        AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
-        AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
-      volumes:
-        - ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}:${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -225,14 +218,10 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install sccache
-        run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.12.0-x86_64-unknown-linux-musl/sccache /usr/bin/
-
-          ${SCCACHE_PATH} --start-server
-        shell: bash
+      - name: Set up sccache
+        uses: ./.github/actions/setup-sccache
+        with:
+          aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
 
       - name: Compile centreon-collect
         env:
@@ -310,7 +299,7 @@ jobs:
 
   package:
     needs:
-      [get-environment, get-aws-environment, changes, check-version-consistency]
+      [get-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -325,6 +314,9 @@ jobs:
 
     name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
 
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/package-collect.yml
 
     with:
@@ -344,8 +336,7 @@ jobs:
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: false
-      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
-      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+      aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -453,7 +444,7 @@ jobs:
     # job alone doesn't guarantee the resulting image is validated:
     # docker-boot-test/docker-config-wiring-test below are what actually gate
     # version_tag and promote-docker-tag/promote-docker-to-ghcr.
-    needs: [get-environment, get-aws-environment, changes, package, robot-test]
+    needs: [get-environment, changes, package, robot-test]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -1075,7 +1066,7 @@ jobs:
         shell: bash
 
   robot-test:
-    needs: [get-environment, get-aws-environment, changes, package]
+    needs: [get-environment, changes, package]
     if: |
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -1093,6 +1084,12 @@ jobs:
 
     name: robot-test ${{ matrix.operating_system }} ${{ matrix.database_type }} ${{ matrix.arch }} ${{ contains(matrix.tests_params, 'grpc') && 'grpc' || '' }}
 
+    permissions:
+      actions: write
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
     uses: ./.github/workflows/robot-test.yml
     with:
       distrib: ${{ matrix.operating_system }}
@@ -1102,8 +1099,7 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       features_pattern: ${{ inputs.robot_pattern }}
-      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
-      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+      aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}

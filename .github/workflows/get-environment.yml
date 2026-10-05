@@ -64,6 +64,9 @@ on:
       collect_robot_matrix:
         description: "matrix to use for collect jobs (contains arch)"
         value: ${{ jobs.get-environment.outputs.collect_robot_matrix }}
+      aws_ci_role_arn:
+        description: "AWS role for the GitHub OIDC token: read-write on non-canary branches, read-only otherwise"
+        value: ${{ jobs.get-environment.outputs.aws_ci_role_arn }}
       cma_matrix:
         description: "matrix to use for cma jobs (contains arch)"
         value: ${{ jobs.get-environment.outputs.cma_matrix }}
@@ -114,6 +117,7 @@ jobs:
       cma_robot_matrix: ${{ steps.get_os_database_matrix.outputs.cma_robot_matrix }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
+      aws_ci_role_arn: ${{ steps.get_aws_ci_role.outputs.aws_ci_role_arn }}
       packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
       test_img_version: ${{ steps.get_docker_images_version.outputs.test_img_version }}
       skip_workflow: ${{ steps.skip_workflow.outputs.result }}
@@ -406,6 +410,21 @@ jobs:
             }
 
             core.setOutput('is_targeting_feature_branch', isTargetingFeatureBranch);
+
+      # Must match the writer refs of the sccache stack in centreon/Infrastructure.
+      - name: Get AWS CI role
+        id: get_aws_ci_role
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          STABILITY: ${{ steps.get_stability.outputs.stability }}
+        run: |
+          role=collect-sccache-github-reader
+          if [[ "$EVENT_NAME" != "pull_request" && "$REF_TYPE" == "branch" && "$STABILITY" != "canary" ]]; then
+            role=collect-sccache-github-writer
+          fi
+          echo "aws_ci_role_arn=arn:aws:iam::625664829291:role/$role" >> "$GITHUB_OUTPUT"
+        shell: bash
 
       - name: Get version from ${{ inputs.version_file }}
         id: get_version

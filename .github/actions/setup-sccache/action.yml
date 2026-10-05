@@ -1,0 +1,46 @@
+name: Set up sccache
+description: Install and start sccache, backed by the S3 cache when AWS credentials are available.
+
+inputs:
+  aws_role_arn:
+    description: ARN of the role giving access to the cache bucket (output aws_ci_role_arn of get-environment.yml).
+    required: true
+  version:
+    description: sccache release to install.
+    required: false
+    default: "0.12.0"
+  bucket:
+    description: S3 bucket of the cache.
+    required: false
+    default: centreon-github-sccache
+
+runs:
+  using: composite
+  steps:
+    - name: Get AWS credentials
+      id: aws
+      uses: ./.github/actions/aws-ci-credentials
+      with:
+        role_arn: ${{ inputs.aws_role_arn }}
+
+    - name: Install and start sccache
+      shell: bash
+      env:
+        SCCACHE_VERSION: ${{ inputs.version }}
+        S3_AVAILABLE: ${{ steps.aws.outputs.available }}
+        S3_BUCKET: ${{ inputs.bucket }}
+      run: |
+        name="sccache-v${SCCACHE_VERSION}-$(uname -m)-unknown-linux-musl"
+        wget -q "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${name}.tar.gz"
+        tar xzf "${name}.tar.gz"
+        mv "${name}/sccache" /usr/bin/
+        rm -rf "${name}" "${name}.tar.gz"
+
+        if [ "$S3_AVAILABLE" = "true" ]; then
+          export SCCACHE_BUCKET="$S3_BUCKET" SCCACHE_REGION=eu-west-1
+          echo "SCCACHE_BUCKET=$S3_BUCKET" >> "$GITHUB_ENV"
+          echo "SCCACHE_REGION=eu-west-1" >> "$GITHUB_ENV"
+        else
+          echo "::notice::No AWS credentials, sccache uses its local disk cache"
+        fi
+        /usr/bin/sccache --start-server
