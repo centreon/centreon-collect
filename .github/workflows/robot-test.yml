@@ -23,9 +23,6 @@ on:
         required: false
         type: string
         default: .robot
-      aws_role_arn:
-        required: true
-        type: string
       store_docker_image_in_cache:
         required: false
         type: boolean
@@ -176,12 +173,6 @@ jobs:
           username: ${{ secrets.registry_username }}
           password: ${{ secrets.registry_password }}
 
-      # Robot reports are uploaded to S3 by the test script.
-      - name: Get AWS credentials
-        uses: ./.github/actions/aws-ci-credentials
-        with:
-          role_arn: ${{ inputs.aws_role_arn }}
-
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         env:
@@ -197,8 +188,6 @@ jobs:
           fi
           docker run --rm $privilege_status --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \
             -v "$(pwd):/test_collect"  \
-            --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --env AWS_SESSION_TOKEN --env AWS_REGION \
-            --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
             "$REGISTRY_URL/$IMAGE_NAME:$TEST_IMG_VERSION" \
             ./.github/scripts/collect-test-robot.sh \

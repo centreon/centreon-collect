@@ -1084,12 +1084,6 @@ jobs:
 
     name: robot-test ${{ matrix.operating_system }} ${{ matrix.database_type }} ${{ matrix.arch }} ${{ contains(matrix.tests_params, 'grpc') && 'grpc' || '' }}
 
-    permissions:
-      actions: write
-      contents: write
-      id-token: write
-      issues: write
-      pull-requests: write
     uses: ./.github/workflows/robot-test.yml
     with:
       distrib: ${{ matrix.operating_system }}
@@ -1099,7 +1093,6 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       features_pattern: ${{ inputs.robot_pattern }}
-      aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
