@@ -1,6 +1,7 @@
 #!/bin/sh
-# TYPE=central: write config.d/{30-centreon,31-centreon-api,40-gorgoned}.yaml
-# directly, the same standard config.yaml -> !include config.d/*.yaml path
+# TYPE=central: write config.d/{30-centreon,31-centreon-api,40-gorgoned,
+# 41-autodiscovery}.yaml directly, the same standard
+# config.yaml -> !include config.d/*.yaml path
 # TYPE=poller already uses (not a shell-generated file there, but the same
 # destination) — so no compose `command:` override is needed for central mode
 # any more than for poller mode, and 39-action.yaml/whitelist.conf.d (baked
@@ -51,6 +52,17 @@ cat > "$CONFIGD/cron.d/43-centreon-helios.yaml.disabled" <<'EOF'
   parameters:
     - command: "/usr/bin/php -q /usr/share/centreon/cron/centreon-helios.php >> /var/log/centreon-gorgone/centreon-helios.log 2>&1"
       timeout: 120
+EOF
+
+# Ships with centreon-auto-discovery-server (web-side package, not installed
+# here) - literal content, written directly like cron.d above.
+cat > "$CONFIGD/41-autodiscovery.yaml" <<'EOF'
+gorgone:
+  modules:
+    - name: autodiscovery
+      package: "gorgone::modules::centreon::autodiscovery::hooks"
+      enable: true
+      no_shell_interpretation: true
 EOF
 
 # DEBUG=true sets -x on the whole entrypoint; without this guard the plain
@@ -135,9 +147,9 @@ EOF
 # process doesn't share /var/lib/centreon-engine/rw with centengine —
 # gorgone-central-poller does, for exactly that reason — RELOAD/RESTART and
 # ENGINECOMMAND still go through that second process today), `statistics`,
-# `audit`, `autodiscovery` (cron.d/41-service-discovery.yaml's
-# LAUNCHSERVICEDISCOVERY job is already scheduled, matching production, but
-# has no handler until this module is added).
+# `audit`. `autodiscovery` IS enabled (see 41-autodiscovery.yaml above),
+# giving cron.d/41-service-discovery.yaml's LAUNCHSERVICEDISCOVERY job a
+# real handler.
 cat > "$CONFIGD/40-gorgoned.yaml" <<'EOF'
 name: 40-gorgoned.yaml
 gorgone:
@@ -189,5 +201,5 @@ gorgone:
       remote_dir: "/var/cache/centreon/config/remote-data/"
 EOF
 
-echo "✓ Central config.d written (30/31/40 + cron.d)"
+echo "✓ Central config.d written (30/31/40/41 + cron.d)"
 echo ""

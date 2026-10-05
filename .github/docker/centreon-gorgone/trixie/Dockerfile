@@ -193,7 +193,10 @@ apt-get install -y --no-install-recommends \
     tzdata \
     ca-certificates \
     libnetaddr-ip-perl \
-    libprotocol-http2-perl
+    libprotocol-http2-perl \
+    libdatetime-perl \
+    libdatetime-format-strptime-perl
+    # real deps of the autodiscovery module, missing until it was enabled
 apt-get remove -y --purge gnupg
 apt-get autoremove -y
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
