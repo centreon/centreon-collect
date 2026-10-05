@@ -268,7 +268,7 @@ jobs:
                   -DONLY_ROBOT_CMA=OFF \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 8 -Cbuild
           ninja -Cbuild install
         shell: bash
 
@@ -283,11 +283,24 @@ jobs:
 
       - name: Run unit tests
         run: |
+          # Each binary runs with its own /tmp (collect-ut.sh): they can run at the same time.
+          pids=()
           for test in common broker engine clib connector; do
-            echo "::group::Running unit tests for $test"
-            .github/scripts/collect-ut.sh $test
+            .github/scripts/collect-ut.sh "$test" > "build/ut_$test.log" 2>&1 &
+            pids+=("$!:$test")
+          done
+          rc=0
+          for entry in "${pids[@]}"; do
+            test=${entry#*:}
+            if ! wait "${entry%%:*}"; then
+              rc=1
+              echo "::error::unit tests failed: $test"
+            fi
+            echo "::group::Unit tests for $test"
+            cat "build/ut_$test.log"
             echo "::endgroup::"
           done
+          exit $rc
         working-directory: .
         shell: bash
 

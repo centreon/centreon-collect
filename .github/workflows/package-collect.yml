@@ -181,7 +181,7 @@ jobs:
                   -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 8 -Cbuild
         shell: bash
 
       - name: Cache statistics
