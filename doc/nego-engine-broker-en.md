@@ -3524,6 +3524,10 @@ struct engine_peer {
      * read by the BAM module only, which relies on reading it before flipping
      * it to tell a real stop from a running=false replayed on reconnect. */
     bool        engine_running = false;
+    /* Whether the poller is still owed the runtime snapshot of its resources
+     * (RuntimeState). True by construction, true again when Broker rebuilds
+     * a lost configuration, false once the snapshot was sent. */
+    bool        runtime_state_owed = true;
     std::string timezone;            // IANA name advertised at negotiation
 };
 
@@ -3630,6 +3634,45 @@ and BAM reaches them by downcasting the state — guarded by `peer_type()`
 rather than asserted in a comment, because a module is loaded by configuration
 and a configuration that loaded this one outside cbd should lose the downtime
 reset, not the process.
+
+**Owed its snapshot** — `engine_peer::runtime_state_owed` says whether the
+poller is still owed the `RuntimeState` that replaces `retention.dat`. True by
+construction, false once the snapshot left, true again once a lost
+configuration was rebuilt. The registry is the single source of truth, the
+stream keeps nothing of its own.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine
+    participant S as broker_stream
+    participant R as peer_registry
+    participant C as global cache
+    participant U as unified_sql (reference)
+    E->>S: Welcome
+    S->>R: add_peer() → runtime_state_owed = true
+    loop on every read()
+        alt a configuration is owed (poller_needs_update)
+            S->>E: DiffState(diff + runtime_state)
+            S->>R: runtime_state_owed = false
+        else up to date, configuration known and cache.has_instance(poller)
+            S->>E: DiffState(runtime_only, known config_version, runtime_state)
+            S->>R: runtime_state_owed = false
+        else configuration unknown to Broker
+            Note over S,C: nothing to describe: the cache does not know the poller
+        end
+    end
+    opt Broker had lost the poller's .prot
+        S->>E: DiffState(unknown=true)
+        E->>S: its full configuration
+        S->>C: create_prot_file(), pb_engine_state to unified_sql
+        U->>R: set_runtime_state_owed(poller, false)
+        U->>C: merge() then runtime restored from the database
+        U->>R: set_runtime_state_owed(poller, true)
+        S->>E: at the next read(): DiffState(runtime_only, runtime_state)
+        S->>R: runtime_state_owed = false
+    end
+    E-->>S: DiffStateAck (unchanged version for a runtime_only)
+```
 
 > **Why the split matters.** These three used to be a single method,
 > `has_connection_from_poller()`, which returned the *running* flag. unified_sql's
@@ -5095,6 +5138,16 @@ configuration, the scheduler, the modules and `state.prot` untouched, when the `
 `runtime_only`. Acknowledgement, downtime and notification fields are set only when Engine owns
 them. Test: `CERS1` (`engine/centralized-runtime-state.robot`): Engine restarted without
 `retention.dat`, an OK result is logged as a recovery from CRITICAL, which proves the restored state.
+
+*The unknown-configuration case, done the same day.* When Broker lost a poller's `.prot`, it has
+nothing to send it at connection: the cache does not know its resources. Engine sends its
+configuration back, Broker stores it, and the reference output, in `_process_engine_state`,
+merges the poller's entries into the cache **then restores their runtime from the database at
+once**, before raising the flag again through `set_runtime_state_owed(poller_id, true)`; the flag is lowered right before the merge, so that no empty snapshot leaves between the merge and the restoration. `broker_state` then
+marks the poller as owed its snapshot, the `runtime_state_owed` flag of the peer registry, and
+the stream serving it sends it at the next turn, alone. The stream never sends a snapshot for a
+poller the cache does not know yet anyway: it would be empty. Test: `CERS2` (Broker restarted
+without its `1.prot`, Engine running: the configuration comes back, the state follows).
 
 **Step 3 — modified-attribute overrides.** The database has `modified_attributes` and the
 matching columns; the reference module reloads them through the same path as the check state,
