@@ -759,9 +759,8 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
         selectedservice->get_percent_state_change());
     service->set_modified_attributes(
         selectedservice->get_modified_attributes());
-    service->set_host_ptr(selectedservice->get_host_ptr()
-                              ? selectedservice->get_host_ptr()->name()
-                              : "");
+    auto srv_hst = selectedservice->get_host_ptr();
+    service->set_host_ptr(srv_hst ? srv_hst->name() : "");
     service->set_event_handler_args(selectedservice->get_event_handler_args());
     service->set_check_command_args(selectedservice->get_check_command_args());
     service->set_timezone(selectedservice->get_timezone());
