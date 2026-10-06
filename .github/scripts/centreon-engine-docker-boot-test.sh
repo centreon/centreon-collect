@@ -122,6 +122,39 @@ if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Segmentation fault|core dumped
 fi
 summary_step_pass
 
+# Guards against the CMA/OpenTelemetry regression where /etc/pki/centreon-
+# engine was non-traversable and the CA was never generated at all (MON-211450):
+# libopentelemetry.so failed to load with no clear signal short of this file
+# check (the "No crash signature" step above doesn't catch it - centengine
+# keeps running fine, just without that one module).
+summary_step_start "CMA CA generated with correct permissions and valid"
+echo "=== [boot] Checking /etc/pki/centreon-engine/default_cma_ca.{crt,key} ==="
+CA_DIR=/etc/pki/centreon-engine
+if ! docker exec "$CONTAINER_NAME" test -f "$CA_DIR/default_cma_ca.crt"; then
+  echo "::error::$CA_DIR/default_cma_ca.crt was not generated"
+  exit 1
+fi
+if ! docker exec "$CONTAINER_NAME" test -f "$CA_DIR/default_cma_ca.key"; then
+  echo "::error::$CA_DIR/default_cma_ca.key was not generated"
+  exit 1
+fi
+crt_perms=$(docker exec "$CONTAINER_NAME" stat -c '%a' "$CA_DIR/default_cma_ca.crt")
+if [ "$crt_perms" != "644" ]; then
+  echo "::error::default_cma_ca.crt has mode $crt_perms, expected 644"
+  exit 1
+fi
+key_perms=$(docker exec "$CONTAINER_NAME" stat -c '%a' "$CA_DIR/default_cma_ca.key")
+if [ "$key_perms" != "600" ]; then
+  echo "::error::default_cma_ca.key has mode $key_perms, expected 600"
+  exit 1
+fi
+if ! docker exec "$CONTAINER_NAME" openssl x509 -in "$CA_DIR/default_cma_ca.crt" -noout -checkend 0 > /dev/null 2>&1; then
+  echo "::error::default_cma_ca.crt is not a valid, currently-valid X.509 certificate"
+  docker exec "$CONTAINER_NAME" openssl x509 -in "$CA_DIR/default_cma_ca.crt" -noout -text || true
+  exit 1
+fi
+summary_step_pass
+
 summary_step_start "Stops cleanly"
 echo "=== [boot] Stopping container (validates entrypoint cleanup) ==="
 if ! docker stop "$CONTAINER_NAME" > /dev/null; then
