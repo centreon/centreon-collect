@@ -184,7 +184,7 @@ void request_builder::_add_host_metadata(
     ::opentelemetry::proto::resource::v1::Resource* resource) {
   if (!_host_metadata)
     return;
-  std::optional<host_metadata> meta = _host_metadata->get(host_id);
+  std::optional<AgentHostInfo> meta = _host_metadata->get(host_id);
   if (!meta)
     return;
 
@@ -193,15 +193,15 @@ void request_builder::_add_host_metadata(
     if (!value.empty())
       set_attribute(resource->add_attributes(), key, value);
   };
-  add_if_not_empty("host.id", meta->machine_id);
-  add_if_not_empty("host.arch", meta->arch);
-  add_if_not_empty("os.type", meta->os_type);
-  add_if_not_empty("os.name", meta->os_name);
-  add_if_not_empty("os.version", meta->os_version);
+  add_if_not_empty("host.id", meta->machine_id());
+  add_if_not_empty("host.arch", meta->arch());
+  add_if_not_empty("os.type", meta->os_type());
+  add_if_not_empty("os.name", meta->os_name());
+  add_if_not_empty("os.version", meta->os_version());
 
   std::vector<std::string_view> ips;
-  ips.reserve(meta->ips.size());
-  for (const std::string& ip : meta->ips) {
+  ips.reserve(meta->ips_size());
+  for (const std::string& ip : meta->ips()) {
     if (!_conf->host_ip_exclude_link_local || !is_link_local(ip))
       ips.push_back(ip);
   }

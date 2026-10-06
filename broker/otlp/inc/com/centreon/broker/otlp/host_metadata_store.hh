@@ -28,28 +28,6 @@ class persistent_cache;
 namespace com::centreon::broker::otlp {
 
 /**
- * @brief Host information of a Centreon Monitoring Agent, as last received
- * from engine (AgentHostInfo event).
- */
-struct host_metadata {
-  std::string os_type;
-  std::string os_name;
-  std::string os_version;
-  std::string arch;
-  std::string machine_id;
-  std::vector<std::string> ips;
-
-  bool operator==(const host_metadata& other) const {
-    return os_type == other.os_type && os_name == other.os_name &&
-           os_version == other.os_version && arch == other.arch &&
-           machine_id == other.machine_id && ips == other.ips;
-  }
-  bool operator!=(const host_metadata& other) const {
-    return !(*this == other);
-  }
-};
-
-/**
  * @brief In-memory store of CMA host information, keyed by host id.
  *
  * An agent sends its host information only at connection and it doesn't
@@ -64,7 +42,8 @@ struct host_metadata {
  */
 class host_metadata_store {
   mutable absl::Mutex _protect;
-  absl::flat_hash_map<uint64_t, host_metadata> _data ABSL_GUARDED_BY(_protect);
+  /* AgentHostInfo without poller_id, host_name nor observed_at */
+  absl::flat_hash_map<uint64_t, AgentHostInfo> _data ABSL_GUARDED_BY(_protect);
   const std::shared_ptr<persistent_cache> _cache;
   /* records changed since the last save */
   bool _modified ABSL_GUARDED_BY(_protect) = false;
@@ -82,7 +61,7 @@ class host_metadata_store {
   /**
    * @brief information of a host, nullopt if unknown
    */
-  std::optional<host_metadata> get(uint64_t host_id) const;
+  std::optional<AgentHostInfo> get(uint64_t host_id) const;
 
   size_t size() const;
 

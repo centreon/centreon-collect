@@ -18,9 +18,12 @@
 
 #include "com/centreon/broker/otlp/host_metadata_store.hh"
 
+#include <google/protobuf/util/message_differencer.h>
+
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
+using namespace com::centreon::broker;
 using namespace com::centreon::broker::otlp;
 
 /**
@@ -34,33 +37,31 @@ host_metadata_store::host_metadata_store(
 
 /**
  * @brief store the information of an AgentHostInfo event, it replaces the
- * whole record of its host
+ * whole record of its host. The poller, host name and reception time are not
+ * kept: they don't describe the machine, so the same information re-sent by
+ * engine or received from another poller is not a change.
  *
  * @param info
  * @return true if the record is new or changed
  */
 bool host_metadata_store::set(const AgentHostInfo& info) {
-  host_metadata received;
-  received.os_type = info.os_type();
-  received.os_name = info.os_name();
-  received.os_version = info.os_version();
-  received.arch = info.arch();
-  received.machine_id = info.machine_id();
-  received.ips.assign(info.ips().begin(), info.ips().end());
+  AgentHostInfo received(info);
+  received.clear_poller_id();
+  received.clear_host_name();
+  received.clear_observed_at();
 
   absl::MutexLock l(_protect);
   auto found = _data.find(info.host_id());
-  if (found == _data.end())
-    _data.emplace(info.host_id(), std::move(received));
-  else if (found->second != received)
-    found->second = std::move(received);
-  else
+  if (found != _data.end() &&
+      google::protobuf::util::MessageDifferencer::Equals(found->second,
+                                                         received))
     return false;
+  _data.insert_or_assign(info.host_id(), std::move(received));
   _modified = true;
   return true;
 }
 
-std::optional<host_metadata> host_metadata_store::get(uint64_t host_id) const {
+std::optional<AgentHostInfo> host_metadata_store::get(uint64_t host_id) const {
   absl::MutexLock l(_protect);
   auto found = _data.find(host_id);
   if (found == _data.end())
@@ -112,18 +113,8 @@ bool host_metadata_store::save(std::chrono::seconds min_interval) {
   /* a failing cache is retried after min_interval, not on each call */
   _last_save = now;
   _cache->transaction();
-  for (const auto& [host_id, meta] : _data) {
-    auto to_save = std::make_shared<neb::pb_agent_host_info>();
-    AgentHostInfo& info = to_save->mut_obj();
-    info.set_host_id(host_id);
-    info.set_os_type(meta.os_type);
-    info.set_os_name(meta.os_name);
-    info.set_os_version(meta.os_version);
-    info.set_arch(meta.arch);
-    info.set_machine_id(meta.machine_id);
-    info.mutable_ips()->Add(meta.ips.begin(), meta.ips.end());
-    _cache->add(to_save);
-  }
+  for (const auto& host : _data)
+    _cache->add(std::make_shared<neb::pb_agent_host_info>(host.second));
   _cache->commit();
   _modified = false;
   return true;

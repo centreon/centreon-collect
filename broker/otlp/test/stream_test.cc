@@ -277,7 +277,7 @@ TEST_F(StreamTest, host_info_is_saved_when_received) {
 
   host_metadata_store loaded(open_cache());
   EXPECT_EQ(loaded.load(), 1u);
-  EXPECT_EQ(loaded.get(1)->machine_id, "m1");
+  EXPECT_EQ(loaded.get(1)->machine_id(), "m1");
 
   remove_files();
   file::disk_accessor::unload();

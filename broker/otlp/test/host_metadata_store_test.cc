@@ -47,6 +47,10 @@ AgentHostInfo make_info(uint64_t poller_id,
   return info;
 }
 
+std::vector<std::string> ips_of(const AgentHostInfo& info) {
+  return {info.ips().begin(), info.ips().end()};
+}
+
 }  // namespace
 
 TEST(otlp_host_metadata_store, unknown_host) {
@@ -59,12 +63,12 @@ TEST(otlp_host_metadata_store, first_event_is_stored) {
   store.set(make_info(1));
   auto meta = store.get(42);
   ASSERT_TRUE(meta);
-  EXPECT_EQ(meta->os_type, "linux");
-  EXPECT_EQ(meta->os_name, "AlmaLinux");
-  EXPECT_EQ(meta->os_version, "9.4");
-  EXPECT_EQ(meta->arch, "amd64");
-  EXPECT_EQ(meta->machine_id, "machine-1");
-  EXPECT_EQ(meta->ips, std::vector<std::string>{"10.0.0.1"});
+  EXPECT_EQ(meta->os_type(), "linux");
+  EXPECT_EQ(meta->os_name(), "AlmaLinux");
+  EXPECT_EQ(meta->os_version(), "9.4");
+  EXPECT_EQ(meta->arch(), "amd64");
+  EXPECT_EQ(meta->machine_id(), "machine-1");
+  EXPECT_EQ(ips_of(*meta), std::vector<std::string>{"10.0.0.1"});
   EXPECT_EQ(store.size(), 1u);
 }
 
@@ -79,13 +83,11 @@ TEST(otlp_host_metadata_store, event_replaces_the_whole_record) {
   store.set(info);
   auto meta = store.get(42);
   ASSERT_TRUE(meta);
-  EXPECT_TRUE(meta->ips.empty());
-  EXPECT_TRUE(meta->os_name.empty());
+  EXPECT_TRUE(meta->ips().empty());
+  EXPECT_TRUE(meta->os_name().empty());
   EXPECT_EQ(store.size(), 1u);
 }
 
-/* no ordering between events: the last received one wins, whatever its
- * poller */
 /* engine re-sends the information periodically, an identical copy is not a
  * change */
 TEST(otlp_host_metadata_store, set_tells_whether_the_record_changed) {
@@ -96,11 +98,13 @@ TEST(otlp_host_metadata_store, set_tells_whether_the_record_changed) {
   EXPECT_TRUE(store.set(make_info(1, "machine-2")));
 }
 
+/* no ordering between events: the last received one wins, whatever its
+ * poller */
 TEST(otlp_host_metadata_store, last_event_wins) {
   host_metadata_store store;
   store.set(make_info(2, "machine-2"));
   store.set(make_info(1, "machine-1"));
-  EXPECT_EQ(store.get(42)->machine_id, "machine-1");
+  EXPECT_EQ(store.get(42)->machine_id(), "machine-1");
 }
 
 namespace {
@@ -169,17 +173,17 @@ TEST_F(otlp_host_metadata_cache, saved_records_are_loaded) {
   EXPECT_EQ(loaded.size(), 2u);
   auto meta = loaded.get(42);
   ASSERT_TRUE(meta);
-  EXPECT_EQ(meta->os_type, "linux");
-  EXPECT_EQ(meta->os_name, "AlmaLinux");
-  EXPECT_EQ(meta->os_version, "9.4");
-  EXPECT_EQ(meta->arch, "amd64");
-  EXPECT_EQ(meta->machine_id, "machine-1");
-  EXPECT_EQ(meta->ips, std::vector<std::string>{"10.0.0.1"});
+  EXPECT_EQ(meta->os_type(), "linux");
+  EXPECT_EQ(meta->os_name(), "AlmaLinux");
+  EXPECT_EQ(meta->os_version(), "9.4");
+  EXPECT_EQ(meta->arch(), "amd64");
+  EXPECT_EQ(meta->machine_id(), "machine-1");
+  EXPECT_EQ(ips_of(*meta), std::vector<std::string>{"10.0.0.1"});
   meta = loaded.get(43);
   ASSERT_TRUE(meta);
-  EXPECT_TRUE(meta->os_name.empty());
-  EXPECT_EQ(meta->machine_id, "machine-2");
-  EXPECT_EQ(meta->ips, (std::vector<std::string>{"10.0.0.1", "fe80::1"}));
+  EXPECT_TRUE(meta->os_name().empty());
+  EXPECT_EQ(meta->machine_id(), "machine-2");
+  EXPECT_EQ(ips_of(*meta), (std::vector<std::string>{"10.0.0.1", "fe80::1"}));
 }
 
 /* the cache is only written when a record changed */
@@ -210,7 +214,7 @@ TEST_F(otlp_host_metadata_cache, saves_are_spaced_by_the_interval) {
 
   host_metadata_store loaded(_open_cache());
   loaded.load();
-  EXPECT_EQ(loaded.get(42)->machine_id, "machine-2");
+  EXPECT_EQ(loaded.get(42)->machine_id(), "machine-2");
 }
 
 /* a save replaces the whole cache, it is not appended to the previous one */
