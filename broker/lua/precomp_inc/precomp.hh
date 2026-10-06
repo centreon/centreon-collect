@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <ctime>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <future>
 #include <limits>

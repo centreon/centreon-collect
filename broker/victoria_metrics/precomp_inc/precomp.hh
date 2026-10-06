@@ -22,6 +22,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <filesystem>
 #include <future>
 #include <list>
 #include <set>

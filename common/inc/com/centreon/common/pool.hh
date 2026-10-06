@@ -50,8 +50,9 @@ class pool {
   static std::unique_ptr<pool> _instance;
 
   const std::shared_ptr<boost::asio::io_context> _io_context;
-  const std::shared_ptr<spdlog::logger> _logger;
-  boost::asio::executor_work_guard<boost::asio::io_context::executor_type> _worker;
+  std::shared_ptr<spdlog::logger> _logger ABSL_GUARDED_BY(_pool_m);
+  boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+      _worker;
   size_t _pool_size;
   std::forward_list<std::thread>* _pool ABSL_GUARDED_BY(_pool_m);
   pid_t _original_pid;
@@ -66,6 +67,8 @@ class pool {
   pool(const pool&) = delete;
   pool& operator=(const pool&) = delete;
   ~pool();
+
+  void set_logger(const std::shared_ptr<spdlog::logger>& logger);
 
   static void load(const std::shared_ptr<boost::asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger);

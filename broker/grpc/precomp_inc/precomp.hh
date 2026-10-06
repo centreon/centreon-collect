@@ -46,6 +46,7 @@
 #include <grpcpp/security/credentials.h>
 
 #include <absl/container/btree_map.h>
+#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/match.h>
 
@@ -53,6 +54,5 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
 
 #endif  // CCB_GRPC_PRECOMP_HH

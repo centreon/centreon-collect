@@ -20,6 +20,7 @@
 #define CC__BAM_PRECOMP_HH
 
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <list>
 #include <queue>

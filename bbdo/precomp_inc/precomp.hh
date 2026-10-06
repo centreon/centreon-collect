@@ -32,6 +32,7 @@
 #include <ctime>
 #include <deque>
 #include <exception>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -55,5 +56,6 @@
 #include <absl/container/flat_hash_set.h>
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #endif
