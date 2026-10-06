@@ -44,7 +44,7 @@ if (WITH_BUILD_AGENT_INSTALLER)
 
 # Download plugins
 ## Define GitHub URL
-set(PLUGINS_RELEASE_URL "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest")
+set(PLUGINS_RELEASE_URL "https://api.github.com/repos/centreon/centreon-plugins/releases/latest")
 set(RELEASE_JSON "${CMAKE_CURRENT_BINARY_DIR}/plugins_release.json")
 file(DOWNLOAD "${PLUGINS_RELEASE_URL}" "${RELEASE_JSON}"
      STATUS status

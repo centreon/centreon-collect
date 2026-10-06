@@ -5,7 +5,7 @@
 #define AppURL "https://www.centreon.com/"
 #define AppExeName "centagent.exe"
 #define PluginExePath "@PLUGIN_DOWNLOAD_PATH@"
-#define BaseUrl "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"
+#define BaseUrl "https://api.github.com/repos/centreon/centreon-plugins/releases/latest"
 #define PluginSize "@PLUGIN_SIZE@"
 #define EmbeddedPluginVer "@PLUGIN_VERSION@"
 #define ModifierPathexe "@OUTPUT_DIR@/@OUTPUT_BASE_FILENAME_MODIFIER@.exe"
@@ -1096,7 +1096,7 @@ begin
   WizardForm.ClientWidth := 630;
   WizardForm.ClientHeight := 570;
   PluginURL := GetBrowserDownloadURL(
-         'https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest',
+         'https://api.github.com/repos/centreon/centreon-plugins/releases/latest',
          'centreon_plugins.exe');
   PluginVer := ExtractVersionFromURL(PluginURL);
 
