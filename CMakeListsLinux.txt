@@ -175,6 +175,26 @@ add_subdirectory(clib)
 add_subdirectory(common)
 add_subdirectory(broker)
 add_subdirectory(bbdo)
+
+# Meta target aggregating every protobuf-generated pb_..._lib target, so
+# consumers only need a single add_dependencies() entry instead of listing
+# each pb_..._lib individually.
+add_custom_target(pb_all_libs)
+add_dependencies(pb_all_libs
+  pb_bam_lib
+  pb_bbdo_lib
+  pb_broker_lib
+  pb_common_lib
+  pb_extcmd_lib
+  pb_header_lib
+  pb_neb_lib
+  pb_open_telemetry_lib
+  pb_rebuild_message_lib
+  pb_remove_graph_message_lib
+  pb_rrd_retention_lib
+  pb_storage_lib
+  )
+
 add_subdirectory(engine)
 if(NOT ONLY_ROBOT_CMA)
   add_subdirectory(connectors)

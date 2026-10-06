@@ -27,9 +27,7 @@ namespace com::centreon::common {
 namespace detail {
 // here to limit included files
 struct boost_process;
-}  // namespace detail
 
-namespace detail {
 template <bool use_mutex>
 class mutex;
 
@@ -53,8 +51,6 @@ class lock<false> {
  public:
   lock(mutex<false>* /* dummy_mut*/) {}
 };
-
-struct boost_process;
 
 }  // namespace detail
 

@@ -40,9 +40,9 @@ BECNHG1
     Ctn Notify Broker Of Engine Config Change    0
 
     ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
-    ...    enabling membership of host 1 to host group 1 on instance 1
+    ...    enabling membership of host 3 to host group 1
+    ...    enabling membership of host 2 to host group 1
+    ...    enabling membership of host 1 to host group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
@@ -127,8 +127,8 @@ BECNHG4
     Ctn Notify Broker Of Engine Config Change    0
 
     ${content}    Create List
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
+    ...    enabling membership of host 3 to host group 1
+    ...    enabling membership of host 2 to host group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
@@ -183,15 +183,15 @@ BECNHG5
     Ctn Notify Broker Of Engine Config Change    2
 
     ${content}    Create List
-    ...    enabling membership of host 1 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1 on instance 1
-    ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 21 to host group 1 on instance 2
-    ...    enabling membership of host 22 to host group 1 on instance 2
-    ...    enabling membership of host 23 to host group 1 on instance 2
-    ...    enabling membership of host 35 to host group 1 on instance 3
-    ...    enabling membership of host 36 to host group 1 on instance 3
-    ...    enabling membership of host 37 to host group 1 on instance 3
+    ...    enabling membership of host 1 to host group 1
+    ...    enabling membership of host 2 to host group 1
+    ...    enabling membership of host 3 to host group 1
+    ...    enabling membership of host 21 to host group 1
+    ...    enabling membership of host 22 to host group 1
+    ...    enabling membership of host 23 to host group 1
+    ...    enabling membership of host 35 to host group 1
+    ...    enabling membership of host 36 to host group 1
+    ...    enabling membership of host 37 to host group 1
 
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True

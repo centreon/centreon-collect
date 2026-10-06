@@ -114,7 +114,7 @@ add_library(
   "bbdo/bbdo_version.hh")
 set_target_properties(bbdo_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hh)
-add_dependencies(bbdo_bbdo pb_bbdo_lib pb_extcmd_lib)
+add_dependencies(bbdo_bbdo pb_all_libs)
 
 add_library(
   bbdo_storage STATIC
@@ -128,7 +128,7 @@ add_library(
   "storage/status.hh")
 set_target_properties(bbdo_storage PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_storage REUSE_FROM bbdo_bbdo)
-add_dependencies(bbdo_storage table_max_size pb_storage_lib)
+add_dependencies(bbdo_storage table_max_size pb_all_libs)
 add_library(
   bbdo_bam STATIC
   "bam/ba_duration_event.cc"
@@ -161,4 +161,4 @@ add_library(
   "bam/kpi_event.hh")
 set_target_properties(bbdo_bam PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bam REUSE_FROM bbdo_bbdo)
-add_dependencies(bbdo_bam table_max_size pb_bam_lib)
+add_dependencies(bbdo_bam table_max_size pb_all_libs)

@@ -70,7 +70,7 @@ endif(WITH_SQL_TESTS)
 add_definitions(-DBROKERRPC_TESTS_PATH="${TESTS_DIR}/rpc")
 
 add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
-add_dependencies(rpc_client centreon_common pb_neb_lib)
+add_dependencies(rpc_client centreon_common pb_all_libs)
 
 target_link_libraries(
   rpc_client PRIVATE

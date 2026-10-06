@@ -239,7 +239,7 @@ bool luabinding::_parse_event(std::shared_ptr<io::data>& d) {
       }
 #endif
       else if (lua_isstring(_L, -1))
-        map.insert({key, variant(lua_tostring(_L, -1))});
+        map.insert({key, variant(std::string(lua_tostring(_L, -1)))});
       else
         throw msg_fmt(
             "simu: item with key {}"

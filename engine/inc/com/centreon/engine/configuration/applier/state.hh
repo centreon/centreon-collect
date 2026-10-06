@@ -92,63 +92,7 @@ class state {
 
   state& operator=(state const&);
   void _apply(const configuration::State& new_cfg, error_cnt& err);
-  template <typename Applier,
-            typename DiffType,
-            typename KeyType,
-            typename ObjType,
-            typename ProtoKeyType>
-  void _apply_ng(
-      const DiffType& diff,
-      absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
-      std::function<KeyType(const ObjType&)>&& build_key,
-      std::function<KeyType(const ProtoKeyType&)>&& convert_key) {
-    Applier aplyr;
 
-    // Modify objects.
-    for (auto& m : diff.modified()) {
-      KeyType key = build_key(m);
-      auto* current_obj = current_list.at(key).get();
-      aplyr.modify_object(current_obj, m);
-    }
-
-    // Erase objects.
-    for (auto& key : diff.removed()) {
-      aplyr.remove_object(convert_key(key));
-    }
-
-    // Add objects.
-    for (auto& obj : diff.added()) {
-      aplyr.add_object(obj);
-    }
-  }
-
-  template <typename Applier,
-            typename DiffType,
-            typename KeyType,
-            typename ObjType>
-  void _apply_ng(
-      const DiffType& diff,
-      absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
-      std::function<KeyType(const ObjType&)>&& build_key) {
-    Applier aplyr;
-
-    // Modify objects.
-    for (auto& m : diff.modified()) {
-      KeyType key = build_key(m);
-      auto* current_obj = current_list.at(key).get();
-      aplyr.modify_object(current_obj, m);
-    }
-
-    // Erase objects.
-    for (auto& key : diff.removed()) {
-      aplyr.remove_object(key);
-    }
-
-    // Add objects.
-    for (auto& obj : diff.added()) {
-      aplyr.add_object(obj);
-    }
-  }
   void _apply(configuration::State& new_cfg,
               retention::state& state,
               error_cnt& err);

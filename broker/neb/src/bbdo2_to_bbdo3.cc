@@ -35,7 +35,9 @@
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
+#include "storage/metric.hh"
 #include "storage/metric_mapping.hh"
+#include "storage/status.hh"
 
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 
@@ -435,6 +437,42 @@ static std::shared_ptr<io::data> _downtime_to_pb(
   return pb;
 }
 
+static std::shared_ptr<io::data> _status_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<storage::status>(d).get();
+  auto pb = std::make_shared<storage::pb_status>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  obj.set_index_id(in.index_id);
+  obj.set_interval(in.interval);
+  obj.set_rrd_len(in.rrd_len.get_time_t());
+  obj.set_time(in.time.get_time_t());
+  obj.set_state(in.state);
+
+  return pb;
+}
+
+static std::shared_ptr<io::data> _metric_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<storage::metric>(d).get();
+  auto pb = std::make_shared<storage::pb_metric>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  obj.set_metric_id(in.metric_id);
+  obj.set_rrd_len(in.rrd_len);
+  obj.set_interval(in.interval);
+  obj.set_value_type(static_cast<Metric_ValueType>(in.value_type));
+  obj.set_time(in.time.get_time_t());
+  obj.set_value(in.value);
+  obj.set_name(in.name);
+  obj.set_host_id(in.host_id);
+  obj.set_service_id(in.service_id);
+
+  return pb;
+}
+
 /**
  * @brief Convert a BBDO v2 event to BBDO v3
  *
@@ -484,6 +522,10 @@ std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
       return _inherited_downtime_to_pb(d);
     case neb::downtime::static_type():
       return _downtime_to_pb(d);
+    case storage::status::static_type():
+      return _status_to_pb(d);
+    case storage::metric::static_type():
+      return _metric_to_pb(d);
     default:
       return d;
   }

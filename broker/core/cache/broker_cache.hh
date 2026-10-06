@@ -17,13 +17,6 @@
  */
 #ifndef CCB_CACHE_BROKER_CACHE_HH
 #define CCB_CACHE_BROKER_CACHE_HH
-#include <absl/base/thread_annotations.h>
-#include <absl/container/btree_set.h>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index_container.hpp>
-#include <filesystem>
 
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -36,6 +29,8 @@ class Service;
 }  // namespace com::centreon::engine::configuration
 
 namespace com::centreon::broker {
+
+namespace bm = boost::multi_index;
 
 class Host;
 class Service;
@@ -75,19 +70,13 @@ struct host_instance_extractor {
   }
 };
 
-using HostContainer = boost::multi_index::multi_index_container<
+using HostContainer = bm::multi_index_container<
     std::shared_ptr<neb::pb_host>,
-    boost::multi_index::indexed_by<
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_id>,
-                                          host_id_extractor>,
-        boost::multi_index::hashed_non_unique<
-            boost::multi_index::tag<by_instance>,
-            host_instance_extractor>,
-        boost::multi_index::hashed_non_unique<
-            boost::multi_index::tag<by_severity>,
-            host_severity_extractor>,
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_name>,
-                                          host_name_extractor>>>;
+    bm::indexed_by<
+        bm::hashed_unique<bm::tag<by_id>, host_id_extractor>,
+        bm::hashed_non_unique<bm::tag<by_instance>, host_instance_extractor>,
+        bm::hashed_non_unique<bm::tag<by_severity>, host_severity_extractor>,
+        bm::hashed_unique<bm::tag<by_name>, host_name_extractor>>>;
 
 struct service_id_extractor {
   using result_type = std::pair<uint64_t, uint64_t>;
@@ -110,16 +99,21 @@ struct service_name_extractor {
   }
 };
 
-using ServiceContainer = boost::multi_index::multi_index_container<
+struct service_instance_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const std::shared_ptr<neb::pb_service>& s) const {
+    return s->obj().instance_id();
+  }
+};
+
+using ServiceContainer = bm::multi_index_container<
     std::shared_ptr<neb::pb_service>,
-    boost::multi_index::indexed_by<
-        boost::multi_index::ordered_unique<boost::multi_index::tag<by_id>,
-                                           service_id_extractor>,
-        boost::multi_index::hashed_non_unique<
-            boost::multi_index::tag<by_severity>,
-            service_severity_extractor>,
-        boost::multi_index::ordered_unique<boost::multi_index::tag<by_name>,
-                                           service_name_extractor>>>;
+    bm::indexed_by<
+        bm::ordered_unique<bm::tag<by_id>, service_id_extractor>,
+        bm::hashed_non_unique<bm::tag<by_severity>, service_severity_extractor>,
+        bm::ordered_unique<bm::tag<by_name>, service_name_extractor>,
+        bm::ordered_non_unique<bm::tag<by_instance>,
+                               service_instance_extractor>>>;
 
 struct hostgroup_id_extractor {
   using result_type = uint64_t;
@@ -139,14 +133,12 @@ struct hostgroup_name_extractor {
   }
 };
 
-using HostgroupContainer = boost::multi_index::multi_index_container<
+using HostgroupContainer = bm::multi_index_container<
     std::pair<std::shared_ptr<neb::pb_host_group>,
               absl::flat_hash_set<uint64_t>>,
-    boost::multi_index::indexed_by<
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_id>,
-                                          hostgroup_id_extractor>,
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_name>,
-                                          hostgroup_name_extractor>>>;
+    bm::indexed_by<
+        bm::ordered_unique<bm::tag<by_id>, hostgroup_id_extractor>,
+        bm::hashed_unique<bm::tag<by_name>, hostgroup_name_extractor>>>;
 
 struct by_pair {};
 struct by_host {};
@@ -155,11 +147,15 @@ struct by_servicegroup {};
 
 struct indexed_host_hostgroup {
   uint64_t host_id;
+  uint64_t poller_id;
   std::shared_ptr<neb::pb_host_group> hostgroup;
 
   indexed_host_hostgroup(uint64_t host_id,
+                         uint64_t poller_id,
                          std::shared_ptr<neb::pb_host_group> hostgroup)
-      : host_id{host_id}, hostgroup{std::move(hostgroup)} {}
+      : host_id{host_id},
+        poller_id(poller_id),
+        hostgroup{std::move(hostgroup)} {}
 };
 
 struct host_hostgroup_pair_extractor {
@@ -176,31 +172,41 @@ struct host_hostgroup_second_extractor {
   }
 };
 
-using HostHostgroupContainer = boost::multi_index::multi_index_container<
+struct host_hostgroup_poller_id_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const indexed_host_hostgroup& hh) const {
+    return hh.poller_id;
+  }
+};
+
+using HostHostgroupContainer = bm::multi_index_container<
     indexed_host_hostgroup,
-    boost::multi_index::indexed_by<
-        boost::multi_index::ordered_unique<boost::multi_index::tag<by_pair>,
-                                           host_hostgroup_pair_extractor>,
-        boost::multi_index::ordered_non_unique<
-            boost::multi_index::tag<by_host>,
-            boost::multi_index::member<indexed_host_hostgroup,
-                                       uint64_t,
-                                       &indexed_host_hostgroup::host_id>>,
-        boost::multi_index::ordered_non_unique<
-            boost::multi_index::tag<by_hostgroup>,
-            host_hostgroup_second_extractor>>>;
+    bm::indexed_by<
+        bm::ordered_unique<bm::tag<by_pair>, host_hostgroup_pair_extractor>,
+        bm::ordered_non_unique<bm::tag<by_host>,
+                               bm::member<indexed_host_hostgroup,
+                                          uint64_t,
+                                          &indexed_host_hostgroup::host_id>>,
+        bm::ordered_non_unique<bm::tag<by_hostgroup>,
+                               host_hostgroup_second_extractor>,
+        bm::ordered_non_unique<bm::tag<by_instance>,
+                               host_hostgroup_poller_id_extractor>>>;
 
 struct indexed_service_servicegroup {
   uint64_t host_id;
   uint64_t service_id;
+  uint64_t poller_id;
+
   std::shared_ptr<neb::pb_service_group> servicegroup;
 
   indexed_service_servicegroup(
       uint64_t host_id,
       uint64_t service_id,
+      uint64_t poller_id,
       std::shared_ptr<neb::pb_service_group> servicegroup)
       : host_id{host_id},
         service_id{service_id},
+        poller_id{poller_id},
         servicegroup{std::move(servicegroup)} {}
 };
 
@@ -226,18 +232,24 @@ struct service_servicegroup_by_servicegroup_extractor {
   }
 };
 
-using ServiceServicegroupContainer = boost::multi_index::multi_index_container<
+struct service_servicegroup_poller_id_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const indexed_service_servicegroup& ss) const {
+    return ss.poller_id;
+  }
+};
+
+using ServiceServicegroupContainer = bm::multi_index_container<
     indexed_service_servicegroup,
-    boost::multi_index::indexed_by<
-        boost::multi_index::ordered_unique<
-            boost::multi_index::tag<by_pair>,
-            service_servicegroup_triplet_extractor>,
-        boost::multi_index::ordered_non_unique<
-            boost::multi_index::tag<by_service>,
-            service_servicegroup_by_service_extractor>,
-        boost::multi_index::ordered_non_unique<
-            boost::multi_index::tag<by_servicegroup>,
-            service_servicegroup_by_servicegroup_extractor>>>;
+    bm::indexed_by<
+        bm::ordered_unique<bm::tag<by_pair>,
+                           service_servicegroup_triplet_extractor>,
+        bm::ordered_non_unique<bm::tag<by_service>,
+                               service_servicegroup_by_service_extractor>,
+        bm::ordered_non_unique<bm::tag<by_servicegroup>,
+                               service_servicegroup_by_servicegroup_extractor>,
+        bm::ordered_non_unique<bm::tag<by_instance>,
+                               service_servicegroup_poller_id_extractor>>>;
 
 struct servicegroup_id_extractor {
   using result_type = uint64_t;
@@ -257,14 +269,12 @@ struct servicegroup_name_extractor {
   }
 };
 
-using ServicegroupContainer = boost::multi_index::multi_index_container<
+using ServicegroupContainer = bm::multi_index_container<
     std::pair<std::shared_ptr<neb::pb_service_group>,
               absl::flat_hash_set<uint64_t>>,
-    boost::multi_index::indexed_by<
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_id>,
-                                          servicegroup_id_extractor>,
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_name>,
-                                          servicegroup_name_extractor>>>;
+    bm::indexed_by<
+        bm::hashed_unique<bm::tag<by_id>, servicegroup_id_extractor>,
+        bm::hashed_unique<bm::tag<by_name>, servicegroup_name_extractor>>>;
 
 struct indexmapping_index_id_extractor {
   using result_type = uint64_t;
@@ -283,13 +293,12 @@ struct indexmapping_service_id_extractor {
   }
 };
 
-using IndexMappingContainer = boost::multi_index::multi_index_container<
+using IndexMappingContainer = bm::multi_index_container<
     std::shared_ptr<storage::pb_index_mapping>,
-    boost::multi_index::indexed_by<
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_id>,
-                                          indexmapping_index_id_extractor>,
-        boost::multi_index::hashed_unique<boost::multi_index::tag<by_service>,
-                                          indexmapping_service_id_extractor>>>;
+    bm::indexed_by<
+        bm::hashed_unique<bm::tag<by_id>, indexmapping_index_id_extractor>,
+        bm::hashed_unique<bm::tag<by_service>,
+                          indexmapping_service_id_extractor>>>;
 
 class broker_cache {
  public:
@@ -360,16 +369,17 @@ class broker_cache {
 
   /* Key for severities is {severity_id, severity_type},
    * value is the struct severity defined earlier (fields are level and ID) */
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
-                      std::pair<severity, absl::flat_hash_set<uint64_t>>>
+  absl::flat_hash_map<std::pair<uint64_t /* id */, uint32_t /* type */>,
+                      std::pair<severity /* level*/,
+                                absl::flat_hash_set<uint64_t>> /*poller ids*/>
       _severities ABSL_GUARDED_BY(_mutex);
 
   /* Key for tags is {tag_id, tag_type}.
    * Value is the pb_tag plus the set of poller IDs that define this tag.
    * The tag is removed only when no poller references it anymore. */
-  absl::flat_hash_map<
-      std::pair<uint64_t, TagType>,
-      std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
+  absl::flat_hash_map<std::pair<uint64_t /*tag id*/, TagType>,
+                      std::pair<std::shared_ptr<neb::pb_tag>,
+                                absl::flat_hash_set<uint64_t /*poller ids*/>>>
       _tags ABSL_GUARDED_BY(_mutex);
 
   /* BAM relations from BA to BV */
@@ -455,6 +465,10 @@ class broker_cache {
   std::shared_ptr<neb::pb_host> host(uint64_t host_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<uint64_t> host_ids() const ABSL_LOCKS_EXCLUDED(_mutex);
+  void visit_hosts_of_instance(
+      uint64_t instance_id,
+      const absl::FunctionRef<void(const Host&)>& visitor) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_service> service(const std::string& hostname,
                                            const std::string& description) const
       ABSL_LOCKS_EXCLUDED(_mutex);
@@ -470,6 +484,11 @@ class broker_cache {
       uint64_t metric_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<std::pair<uint64_t, uint64_t>> service_ids() const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  void visit_services_of_instance(
+      uint64_t instance_id,
+      const absl::FunctionRef<void(const Service&)>& visitor) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+
   std::shared_ptr<neb::pb_host_group> hostgroup(uint64_t hostgroup_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host_group> hostgroup(const std::string& name) const

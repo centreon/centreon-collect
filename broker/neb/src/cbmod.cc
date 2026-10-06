@@ -254,6 +254,57 @@ static std::shared_ptr<neb::downtime> translate_to_legacy_downtime(
 }
 
 /**
+ * @brief Publish a downtime event, in the wire format negotiated with the
+ * peer.
+ *
+ * Once this method has been called on an event, that event is shared with the
+ * multiplexing engine and must be considered immutable (see
+ * _update_downtime()).
+ *
+ * @param dt The downtime to publish.
+ */
+void cbmod::_publish_downtime(const std::shared_ptr<pb_downtime>& dt) {
+  if (_use_protobuf)
+    write(dt);
+  else
+    write(translate_to_legacy_downtime(dt));
+}
+
+/**
+ * @brief Apply a mutation to a stored downtime and publish the result.
+ *
+ * This is the only legal way to change a downtime held in _downtimes. The
+ * stored event has already been handed to _publish_downtime() and may still be
+ * pending serialization in the muxer thread: mutating it in place would race
+ * with that thread and put a corrupted (unparsable) event on the wire. So we
+ * work on a fresh copy, replace the cached entry with it, then publish it.
+ *
+ * @param downtime_id The downtime ID.
+ * @param mutator Applied to the copy before it is published.
+ *
+ * @return The published copy, or nullptr if no such downtime is known.
+ */
+std::shared_ptr<pb_downtime> cbmod::_update_downtime(
+    uint64_t downtime_id,
+    absl::FunctionRef<void(Downtime&)> mutator) {
+  auto found = _downtimes.find(downtime_id);
+  if (found == _downtimes.end()) {
+    SPDLOG_LOGGER_ERROR(_neb_logger,
+                        "cbmod: no downtime with ID {} to update", downtime_id);
+    return nullptr;
+  }
+
+  const auto& stored = found->second;
+  auto copy = std::make_shared<pb_downtime>(*stored);
+  copy->source_id = stored->source_id;
+  copy->destination_id = stored->destination_id;
+  mutator(copy->mut_obj());
+  found->second = copy;
+  _publish_downtime(copy);
+  return copy;
+}
+
+/**
  * @brief Add a downtime to the cbmod list.
  *
  * @param downtime_id The downtime ID.
@@ -315,10 +366,7 @@ void cbmod::add_downtime(uint64_t downtime_id,
                         obj.ShortDebugString());
   }
   _downtimes[downtime_id] = pb_dt;
-  if (_use_protobuf)
-    write(pb_dt);
-  else
-    write(translate_to_legacy_downtime(pb_dt));
+  _publish_downtime(pb_dt);
 }
 
 /**
@@ -327,24 +375,13 @@ void cbmod::add_downtime(uint64_t downtime_id,
  * @param downtime_id The downtime ID.
  */
 void cbmod::start_downtime(uint64_t downtime_id) {
-  auto stored = _downtimes[downtime_id];
-  assert(stored);
-  /* Work on a fresh copy: the shared_ptr previously handed to write() may
-   * still be pending serialization in the output queue. Mutating it in place
-   * would race with the muxer thread and produce a corrupted (unparsable)
-   * event on the wire. */
-  auto pb_dt = std::make_shared<pb_downtime>();
-  pb_dt->mut_obj() = stored->obj();
-  _downtimes[downtime_id] = pb_dt;
-  auto& obj = pb_dt->mut_obj();
-  obj.set_started(true);
-  obj.set_actual_start_time(time(nullptr));
-  if (_use_protobuf)
-    write(pb_dt);
-  else
-    write(translate_to_legacy_downtime(pb_dt));
-  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime started: {}",
-                      obj.ShortDebugString());
+  auto published = _update_downtime(downtime_id, [](Downtime& obj) {
+    obj.set_started(true);
+    obj.set_actual_start_time(time(nullptr));
+  });
+  if (published)
+    SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime started: {}",
+                        published->obj().ShortDebugString());
 }
 
 /**
@@ -356,22 +393,13 @@ void cbmod::start_downtime(uint64_t downtime_id) {
 void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
   SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: stopping downtime ID {}",
                       downtime_id);
-  auto stored = _downtimes[downtime_id];
-  assert(stored);
-  /* Copy before mutating: the previously published event may still be pending
-   * serialization (see start_downtime). */
-  auto pb_dt = std::make_shared<pb_downtime>();
-  pb_dt->mut_obj() = stored->obj();
-  _downtimes[downtime_id] = pb_dt;
-  auto& obj = pb_dt->mut_obj();
-  obj.set_cancelled(cancelled);
-  obj.set_actual_end_time(time(nullptr));
-  if (_use_protobuf)
-    write(pb_dt);
-  else
-    write(translate_to_legacy_downtime(pb_dt));
-  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} stopped: {}",
-                      downtime_id, obj.ShortDebugString());
+  auto published = _update_downtime(downtime_id, [cancelled](Downtime& obj) {
+    obj.set_cancelled(cancelled);
+    obj.set_actual_end_time(time(nullptr));
+  });
+  if (published)
+    SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} stopped: {}",
+                        downtime_id, published->obj().ShortDebugString());
 }
 
 /**
@@ -380,30 +408,18 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
  * @param downtime_id The downtime ID.
  */
 void cbmod::remove_downtime(uint64_t downtime_id) {
-  auto found = _downtimes.find(downtime_id);
-  if (found != _downtimes.end()) {
-    /* Copy before mutating: the previously published event may still be pending
-     * serialization (see start_downtime). */
-    auto pb_dt = std::make_shared<pb_downtime>();
-    pb_dt->mut_obj() = found->second->obj();
-    auto& obj = pb_dt->mut_obj();
+  auto published = _update_downtime(downtime_id, [](Downtime& obj) {
     if (!obj.started())
       obj.set_cancelled(true);
     time_t now = time(nullptr);
     obj.set_deletion_time(now);
     if (time_is_undefined(obj.actual_end_time()))
       obj.set_actual_end_time(now);
-    if (_use_protobuf)
-      write(pb_dt);
-    else
-      write(translate_to_legacy_downtime(pb_dt));
+  });
+  if (published) {
     SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} removed: {}",
-                        downtime_id, obj.ShortDebugString());
-    _downtimes.erase(found);
-  } else {
-    SPDLOG_LOGGER_ERROR(_neb_logger,
-                        "cbmod: remove_downtime: Downtime with ID {} not found",
-                        downtime_id);
+                        downtime_id, published->obj().ShortDebugString());
+    _downtimes.erase(downtime_id);
   }
 }
 
