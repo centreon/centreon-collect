@@ -340,6 +340,8 @@ jobs:
                   -DDEBUG_ROBOT=OFF \
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
+                  "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
                   -DWITH_PREFIX=/usr \
                   -DWITH_PREFIX_BIN=/usr/sbin \
                   -DWITH_USER_BROKER=centreon-broker \
