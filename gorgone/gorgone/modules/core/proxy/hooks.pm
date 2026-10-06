@@ -1083,7 +1083,6 @@ sub register_subnodes {
         my $entry = shift(@$subnodes);
         foreach (keys %$entry) {
             $register_subnodes->{$_}->{dynamic}->{ $options{id} } = 1;
-            link_subnode_uid(id => $_, uid => $entry->{$_}->{uid}) if (ref($entry->{$_}) eq 'HASH');
         }
         push @$subnodes, $entry->{nodes} if (defined($entry->{nodes}));
     }
@@ -1091,6 +1090,7 @@ sub register_subnodes {
 
 # A subnode (poller behind a remote server used as proxy) can be targeted by both its id and uid.
 # Both keys point to the same hash (this is not a copy), so static and dynamic routes are shared.
+# Only call it with database data: a remote node must not be able to redirect another node uid.
 sub link_subnode_uid {
     my (%options) = @_;
 

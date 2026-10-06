@@ -20,7 +20,7 @@ sub main {
 my $check_action_ran = {};
 my $action_expected = {
     'SETCOREID'     => { id => 1, uid => '' },
-    'UNREGISTERNODES'     => { nodes =>[]},
+    'UNREGISTERNODESFROMCENTRAL' => { nodes => [] },
     'REGISTERNODESFROMDB' => {
         'nodes' => [
             {
@@ -85,7 +85,7 @@ sub test_centreonnodessync {
         if ($action_name eq 'SETCOREID') {
             is($_[1]->{data}, $action_expected->{ $action_name }, "checking action " . $_[1]->{action});
         }
-        elsif ($action_name eq 'REGISTERNODESFROMDB' or $action_name eq 'UNREGISTERNODES') {
+        elsif ($action_name eq 'REGISTERNODESFROMDB' or $action_name eq 'UNREGISTERNODESFROMCENTRAL') {
             # let's sort nodes array before comparing
             my @got_nodes = sort {$a->{id} <=> $b->{id}} @{$_[1]->{data}->{nodes}};
             is(\@got_nodes, $action_expected->{ $action_name}->{nodes}, "checking action " . $_[1]->{action});
@@ -111,7 +111,7 @@ sub test_centreonnodessync {
     $sqlquery->do(request =>  "DELETE FROM nagios_server WHERE id != 1;");
     $action_expected->{REGISTERNODESFROMDB}->{nodes} = [ ];; # expecting no nodes now.
     $check_action_ran = {};
-    $action_expected->{UNREGISTERNODES} = { nodes => [
+    $action_expected->{UNREGISTERNODESFROMCENTRAL} = { nodes => [
             { id => 11, 'uid' => '' },
             { id => 12, 'uid' => '' },
             { id => 13, 'uid' => 3999456 },
@@ -121,6 +121,7 @@ sub test_centreonnodessync {
         ]
     };
     $self->action_centreonnodessync();
+    is($check_action_ran->{UNREGISTERNODESFROMCENTRAL}, 1, "UNREGISTERNODESFROMCENTRAL action was called");
 
 }
 # create a sqlite db with centreon nodes data. This should be a mariadb database but for unit test we use sqlite for simplicity.
