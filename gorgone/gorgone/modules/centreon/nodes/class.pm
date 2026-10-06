@@ -117,7 +117,8 @@ sub action_centreonnodessync {
         return 1;
     }
 
-    my $request = 'SELECT remote_server_id, poller_server_id FROM rs_poller_relation';
+    my $request = 'SELECT rs_poller_relation.remote_server_id, rs_poller_relation.poller_server_id, nagios_server.uid ' .
+        'FROM rs_poller_relation LEFT JOIN nagios_server ON nagios_server.id = rs_poller_relation.poller_server_id';
     my ($status, $datas) = $self->{class_object}->custom_execute(request => $request, mode => 2);
     if ($status == -1) {
         $self->{resync_time} = 10;
@@ -130,7 +131,7 @@ sub action_centreonnodessync {
     my $register_subnodes = {};
     foreach (@$datas) {
         $register_subnodes->{$_->[0]} = [] if (!defined($register_subnodes->{$_->[0]}));
-        unshift @{$register_subnodes->{$_->[0]}}, { id => $_->[1], pathscore => 100 };
+        unshift @{$register_subnodes->{$_->[0]}}, { id => $_->[1], uid => $_->[2], pathscore => 100 };
     }
 
     $request = "
@@ -159,7 +160,7 @@ sub action_centreonnodessync {
         # remote_server_use_as_proxy = 1 means: pass through the remote. otherwise directly.
         if (defined($node->{remote_id}) && $node->{remote_id} =~ /\d+/ && $node->{remote_server_use_as_proxy} == 1) {
             $register_subnodes->{$node->{remote_id}} = [] if (!defined($register_subnodes->{$node->{remote_id}}));
-            unshift @{$register_subnodes->{$node->{remote_id}}}, { id => $node->{id}, pathscore => 1 };
+            unshift @{$register_subnodes->{$node->{remote_id}}}, { id => $node->{id}, uid => $node->{uid}, pathscore => 1 };
             next;
         }
         $self->{register_nodes}->{$node->{id}} = {uid => $node->{uid}};
