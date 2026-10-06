@@ -19,9 +19,6 @@
 #include "com/centreon/broker/otlp/request_builder.hh"
 
 #include <gtest/gtest.h>
-#include <spdlog/common.h>
-#include <chrono>
-#include <thread>
 
 #include "common/log_v2/log_v2.hh"
 

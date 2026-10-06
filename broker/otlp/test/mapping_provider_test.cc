@@ -19,8 +19,6 @@
 #include "com/centreon/broker/otlp/mapping_provider.hh"
 
 #include <gtest/gtest.h>
-#include <fstream>
-#include <thread>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"

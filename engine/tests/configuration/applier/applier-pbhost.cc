@@ -19,7 +19,6 @@
 
 #include <fstream>
 #include <gtest/gtest.h>
-#include <unistd.h>
 
 #include "../../timeperiod/utils.hh"
 #include "cbmod_test.hh"
@@ -27,7 +26,6 @@
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"

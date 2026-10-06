@@ -17,8 +17,6 @@
  */
 
 #include "com/centreon/broker/otlp/request_builder.hh"
-#include "com/centreon/broker/otlp/semconv_mapping.hh"
-#include "com/centreon/common/perfdata.hh"
 
 using namespace com::centreon::broker::otlp;
 using com::centreon::common::perfdata;

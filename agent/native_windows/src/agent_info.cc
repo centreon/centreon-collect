@@ -18,8 +18,6 @@
 
 #include <iphlpapi.h>
 
-#include <set>
-
 #include "agent_info.hh"
 #include "ntdll.hh"
 #include "version.hh"

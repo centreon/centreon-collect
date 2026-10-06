@@ -19,9 +19,9 @@
 #ifndef CC_OTLP_PRECOMP_HH
 #define CC_OTLP_PRECOMP_HH
 
+#include <chrono>
 #include <cmath>
 #include <ctime>
-#include <chrono>
 #include <filesystem>
 #include <functional>
 #include <list>
@@ -33,7 +33,6 @@
 #include <utility>
 #include <vector>
 
-#include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
 #include <nlohmann/json.hpp>
@@ -48,18 +47,10 @@
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
-/* The global_cache headers declare their own interprocess/container aliases
- * but expect these to already be included, as http_tsdb's precomp does. */
-#include <boost/container/flat_map.hpp>
-#include <boost/container/flat_set.hpp>
 #include <boost/container/string.hpp>
 #include <boost/container/vector.hpp>
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index_container.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
 #include <grpcpp/grpcpp.h>
 

@@ -17,11 +17,8 @@
  */
 
 #include "com/centreon/broker/otlp/stream.hh"
-#include <spdlog/spdlog.h>
 
-#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
 using namespace com::centreon::broker;
