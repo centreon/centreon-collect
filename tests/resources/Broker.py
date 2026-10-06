@@ -68,7 +68,7 @@ config = {
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
-                "perfdata": "error",
+                "perfdata": "warning",
                 "bbdo": "error",
                 "tcp": "debug",
                 "tls": "error",
