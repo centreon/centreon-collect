@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Wire the email notification path (both options: native msmtp/mail command
-# and the centreon-plugin-notification-email connector) from SMTP_* env vars.
+# Wire the native msmtp/mail notification command from SMTP_* env vars.
 # If SMTP_HOST is empty, notifications simply won't have anywhere to send
 # mail to (consistent with the previous no-op state) but boot never fails.
 
@@ -31,12 +30,4 @@ from $SMTP_FROM
 account default : relay
 EOF
     chmod 600 /etc/msmtprc
-fi
-
-RESOURCE_CFG="/etc/centreon-engine/resource.cfg"
-
-if [ -f "$RESOURCE_CFG" ]; then
-    sed -i "s|^\$SMTPADDRESS\$=.*|\$SMTPADDRESS\$=$SMTP_HOST|" "$RESOURCE_CFG"
-    sed -i "s|^\$SMTPPORT\$=.*|\$SMTPPORT\$=$SMTP_PORT|" "$RESOURCE_CFG"
-    sed -i "s|^\$SMTPFROMADDRESS\$=.*|\$SMTPFROMADDRESS\$=$SMTP_FROM|" "$RESOURCE_CFG"
 fi
