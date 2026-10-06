@@ -22,6 +22,9 @@
 
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
+#include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/persistent_cache.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -247,6 +250,37 @@ TEST_F(StreamTest, host_info_is_acknowledged_and_stored) {
   EXPECT_EQ(resource_attr(exporter->calls[0].request.resource_metrics(0),
                           "host.id"),
             "m1");
+}
+
+/* the host information is saved when it is received, not only when the
+ * endpoint stops, so that it survives a crash */
+TEST_F(StreamTest, host_info_is_saved_when_received) {
+  const std::string path =
+      (std::filesystem::temp_directory_path() / "otlp_stream_test.cache")
+          .string();
+  auto remove_files = [&path] {
+    for (const char* suffix : {"", ".new", ".old"})
+      std::filesystem::remove(path + suffix);
+  };
+  file::disk_accessor::load(100000);
+  io::events::instance().register_event(
+      neb::pb_agent_host_info::static_type(), "AgentHostInfo",
+      &neb::pb_agent_host_info::operations, "no_table");
+  remove_files();
+  auto open_cache = [&path, this] {
+    return std::make_shared<persistent_cache>(path, logger);
+  };
+
+  auto store = std::make_shared<host_metadata_store>(open_cache());
+  auto s = make_stream(store);
+  s->write(host_info_event(1, "m1"));
+
+  host_metadata_store loaded(open_cache());
+  EXPECT_EQ(loaded.load(), 1u);
+  EXPECT_EQ(loaded.get(1)->machine_id, "m1");
+
+  remove_files();
+  file::disk_accessor::unload();
 }
 
 TEST_F(StreamTest, host_info_is_counted) {

@@ -154,6 +154,16 @@ otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
 }
 
 /**
+ * @brief Enable the persistent cache of the endpoint, whatever the "cache"
+ * setting: the connector keeps the CMA host information in it.
+ *
+ * @param cfg endpoint configuration
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.cache_enabled = true;
+}
+
+/**
  * @brief Create the connector of an OTLP output.
  *
  * The global cache is loaded first when the applier state is loaded, because
@@ -162,7 +172,8 @@ otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
  * @param cfg endpoint configuration
  * @param global_params unused
  * @param is_acceptor set to false: an OTLP output is always a connector
- * @param cache unused
+ * @param cache persistent cache of the endpoint, it keeps the CMA host
+ * information across restarts
  * @return the new connector
  * @throw msg_fmt if the configuration is invalid or the mapping file can't be
  * loaded
@@ -171,7 +182,7 @@ io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
+    std::shared_ptr<persistent_cache> cache) const {
   is_acceptor = false;
 
   auto conf = parse_config(cfg);
@@ -187,5 +198,5 @@ io::endpoint* factory::new_endpoint(
                      "otlp: endpoint '{}' exporting to {}", cfg.name,
                      conf->grpc->get_hostport());
 
-  return new connector(conf);
+  return new connector(conf, std::move(cache));
 }

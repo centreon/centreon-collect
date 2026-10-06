@@ -22,6 +22,7 @@
 #include "com/centreon/broker/otlp/otlp_exporter.hh"
 #include "com/centreon/broker/otlp/resource_enricher.hh"
 #include "com/centreon/broker/otlp/stream.hh"
+#include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -44,18 +45,48 @@ static constexpr multiplexing::muxer_filter _otlp_forbidden_filter =
 /**
  * @brief Construct the endpoint and load its metric mapping.
  *
+ * @param cache persistent cache of the endpoint, may be null
  * @throw msg_fmt if a mapping file is configured but can't be loaded.
  */
-connector::connector(const otlp_config::pointer& conf)
+connector::connector(const otlp_config::pointer& conf,
+                     std::shared_ptr<persistent_cache> cache)
     : io::endpoint(false, _otlp_stream_filter, _otlp_forbidden_filter),
       _conf(conf),
-      _host_metadata(std::make_shared<host_metadata_store>()) {
+      _cache_file(cache ? cache->get_cache_file() : std::string()),
+      _host_metadata(std::make_shared<host_metadata_store>(cache)) {
   auto logger = log_v2::instance().get(log_v2::OTL);
   _mapping = _conf->mapping_file.empty()
                  ? mapping_provider::empty(logger)
                  : mapping_provider::load(
                        com::centreon::common::pool::io_context_ptr(),
                        _conf->mapping_file, logger);
+  if (cache) {
+    try {
+      size_t loaded = _host_metadata->load();
+      SPDLOG_LOGGER_INFO(logger, "otlp: {} CMA host information loaded from {}",
+                         loaded, _cache_file);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(logger, "otlp: fail to read cache {}: {}",
+                          _cache_file, e.what());
+    }
+  }
+}
+
+/**
+ * @brief Save the CMA host information changed since the last save of the
+ * streams. They are already stopped by the failover, so the store no longer
+ * changes.
+ */
+connector::~connector() noexcept {
+  auto logger = log_v2::instance().get(log_v2::OTL);
+  try {
+    if (_host_metadata->save())
+      SPDLOG_LOGGER_INFO(logger, "otlp: {} CMA host information saved to {}",
+                         _host_metadata->size(), _cache_file);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(logger, "otlp: fail to save cache {}: {}", _cache_file,
+                        e.what());
+  }
 }
 
 /**

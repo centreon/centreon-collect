@@ -310,6 +310,33 @@ OTLP_EXCLUDE_LINK_LOCAL
     ...    Then host.ip only keeps 192.0.2.10 and 2001:db8::1
     Ctn Check Agent Host Metadata    ${True}
 
+OTLP_AGENT_HOST_METADATA_PERSISTENCE
+    [Documentation]    Scenario: Broker restores CMA host information from the OTLP output cache after a crash
+    ...    Given poller 10 owns the host
+    ...    And an AgentHostInfo event gave it host.id robot-machine
+    ...    And Broker saved it in the OTLP output cache
+    ...    When Broker is killed and restarted, and the test peer sends the host again but no AgentHostInfo
+    ...    Then exports still carry host.id robot-machine
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    ${start}    Get Current Date
+    Ctn Send Otlp Bbdo Event    AgentHostInfo
+    ...    {"host_id":101,"poller_id":10,"host_name":"robot-host","observed_at":100,"machine_id":"robot-machine","os_name":"Robot Linux"}
+    ${content}    Create List    otlp: 1 CMA host information saved
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker should save the CMA host information when it receives it.
+    Ctn Log OTLP Step    check    Broker logged "otlp: 1 CMA host information saved"
+    Ctn Check OTLP Host Id    robot-machine
+    Ctn Disconnect Otlp Bbdo Peer
+    Ctn Kill Broker
+    Ctn Log OTLP Step    action    Broker killed
+    Ctn Start Broker    only_central=${True}
+    Ctn Log OTLP Step    action    Broker started
+    Ctn Connect Otlp Bbdo Peer    127.0.0.1:5669
+    # The global cache may have been discarded by the crash: the host is sent again
+    Ctn Send OTLP Host    10
+    Ctn Check OTLP Host Id    robot-machine
+
 OTLP_MAPPING_RELOAD
     [Documentation]    Scenario: The JSON metric mapping is applied and reloaded live
     ...    Given a mapping file renames robot_cpu to system.cpu.utilization with a 0.01 scale
@@ -527,6 +554,13 @@ Ctn Check BBDO OTLP Identity
     ${probe}    Convert To Integer    ${point}[value]
     Ctn Log OTLP Step    check    robot-host: service.name=${name}, service.namespace=${namespace} (probe ${probe})
     RETURN    ${point}
+
+Ctn Check OTLP Host Id
+    [Arguments]    ${machine_id}
+    ${point}    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+    Dictionary Should Contain Item    ${point}[resource]    host.id    ${machine_id}
+    Dictionary Should Contain Item    ${point}[resource]    os.name    Robot Linux
+    Ctn Log OTLP Step    check    host.id=${machine_id}, os.name=Robot Linux
 
 Ctn Check Agent Host Metadata
     [Arguments]    ${exclude_link_local}

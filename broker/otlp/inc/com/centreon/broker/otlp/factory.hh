@@ -36,6 +36,7 @@ class factory : public io::factory {
 
   bool has_endpoint(const config::endpoint& cfg,
                     io::extension* ext) const override;
+  void set_default_values(config::endpoint& cfg) const override;
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const std::map<std::string, std::string>& global_params,

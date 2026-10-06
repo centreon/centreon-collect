@@ -74,6 +74,7 @@ class stream : public io::stream {
   /** Hand a detached batch to the exporter. Call without _protect held. */
   void _dispatch(pending_export&& batch);
   int _take_acknowledged_locked();
+  void _save_host_metadata();
 
  public:
   stream(const otlp_config::pointer& conf,

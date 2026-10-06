@@ -21,6 +21,10 @@
 
 #include "bbdo/neb.pb.h"
 
+namespace com::centreon::broker {
+class persistent_cache;
+}
+
 namespace com::centreon::broker::otlp {
 
 /**
@@ -34,6 +38,15 @@ struct host_metadata {
   std::string arch;
   std::string machine_id;
   std::vector<std::string> ips;
+
+  bool operator==(const host_metadata& other) const {
+    return os_type == other.os_type && os_name == other.os_name &&
+           os_version == other.os_version && arch == other.arch &&
+           machine_id == other.machine_id && ips == other.ips;
+  }
+  bool operator!=(const host_metadata& other) const {
+    return !(*this == other);
+  }
 };
 
 /**
@@ -52,11 +65,19 @@ struct host_metadata {
 class host_metadata_store {
   mutable absl::Mutex _protect;
   absl::flat_hash_map<uint64_t, host_metadata> _data ABSL_GUARDED_BY(_protect);
+  const std::shared_ptr<persistent_cache> _cache;
+  /* records changed since the last save */
+  bool _modified ABSL_GUARDED_BY(_protect) = false;
+  std::chrono::steady_clock::time_point _last_save ABSL_GUARDED_BY(_protect) =
+      std::chrono::steady_clock::time_point::min();
 
  public:
   using pointer = std::shared_ptr<host_metadata_store>;
 
-  void set(const AgentHostInfo& info);
+  explicit host_metadata_store(
+      std::shared_ptr<persistent_cache> cache = nullptr);
+
+  bool set(const AgentHostInfo& info);
 
   /**
    * @brief information of a host, nullopt if unknown
@@ -64,6 +85,9 @@ class host_metadata_store {
   std::optional<host_metadata> get(uint64_t host_id) const;
 
   size_t size() const;
+
+  size_t load();
+  bool save(std::chrono::seconds min_interval = std::chrono::seconds(0));
 };
 
 }  // namespace com::centreon::broker::otlp

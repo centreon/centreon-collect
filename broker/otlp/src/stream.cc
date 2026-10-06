@@ -24,6 +24,10 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::otlp;
 
+/* Minimum delay between two saves of the CMA host information: a burst of
+ * changes, when many agents connect, is saved in a few writes. */
+static constexpr std::chrono::seconds _host_metadata_save_interval(5);
+
 /**
  * @brief Construct the stream and its request builder.
  *
@@ -212,12 +216,13 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 
   if (to_send)
     _dispatch(std::move(*to_send));
+  _save_host_metadata();
   return acknowledged;
 }
 
 /**
  * @brief Send the current batch if max_send_interval seconds have passed since
- * the last send.
+ * the last send, and save the CMA host information changes still pending.
  *
  * @return number of events to acknowledge
  */
@@ -235,7 +240,28 @@ int stream::flush() {
 
   if (to_send)
     _dispatch(std::move(*to_send));
+  _save_host_metadata();
   return acknowledged;
+}
+
+/**
+ * @brief Save the CMA host information to the endpoint cache if it changed,
+ * at most every _host_metadata_save_interval. Called after each write() and
+ * flush(): flush() is only called by an idle failover, and write() saves the
+ * changes delayed by the interval on a busy one. A failure is only logged, the
+ * export goes on.
+ */
+void stream::_save_host_metadata() {
+  if (!_host_metadata)
+    return;
+  try {
+    if (_host_metadata->save(_host_metadata_save_interval))
+      SPDLOG_LOGGER_DEBUG(_logger, "otlp: {} CMA host information saved",
+                          _host_metadata->size());
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "otlp: fail to save CMA host information: {}",
+                        e.what());
+  }
 }
 
 /**

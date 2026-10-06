@@ -59,6 +59,15 @@ TEST(otlp_factory, matches_its_own_type_only) {
   EXPECT_FALSE(f.has_endpoint(cfg, nullptr));
 }
 
+/* the connector keeps the CMA host information in the endpoint cache */
+TEST(otlp_factory, cache_is_always_enabled) {
+  factory f;
+  config::endpoint cfg = make_cfg();
+  cfg.cache_enabled = false;
+  f.set_default_values(cfg);
+  EXPECT_TRUE(cfg.cache_enabled);
+}
+
 TEST(otlp_factory, endpoint_is_mandatory) {
   config::endpoint cfg(config::endpoint::io_type::output);
   cfg.name = "otlp-export";

@@ -36,11 +36,14 @@ namespace com::centreon::broker::otlp {
 class connector : public io::endpoint {
   const otlp_config::pointer _conf;
   mapping_provider::pointer _mapping;
+  /* name of the persistent cache file, empty without cache */
+  const std::string _cache_file;
   host_metadata_store::pointer _host_metadata;
 
  public:
-  explicit connector(const otlp_config::pointer& conf);
-  ~connector() noexcept override = default;
+  explicit connector(const otlp_config::pointer& conf,
+                     std::shared_ptr<persistent_cache> cache = nullptr);
+  ~connector() noexcept override;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
 
