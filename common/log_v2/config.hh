@@ -17,14 +17,6 @@
  */
 #ifndef CCC_LOG_V2_CONFIG_HH
 #define CCC_LOG_V2_CONFIG_HH
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
-#include <fmt/format.h>
-#include "spdlog/spdlog.h"
-
-#include <filesystem>
-#include <ostream>
-#include <string>
 
 namespace com::centreon::common::log_v2 {
 class config {

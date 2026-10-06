@@ -23,6 +23,7 @@
 #include <condition_variable>
 #include <ctime>
 #include <deque>
+#include <filesystem>
 #include <future>
 #include <limits>
 #include <list>

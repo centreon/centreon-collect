@@ -1432,8 +1432,8 @@ void broker_comment_data(int type,
  * @param cvar custom variable data.
  */
 template <typename R>
-static void forward_custom_variable(int type,
-                                    R* object_ptr,
+static void forward_custom_variable(int type [[maybe_unused]],
+                                    R* object_ptr [[maybe_unused]],
                                     const std::string_view& var_name,
                                     const std::string_view& var_value,
                                     const struct timeval* timestamp) {
@@ -1573,8 +1573,8 @@ static void forward_custom_variable(int type,
  * @param cvar custom variable data.
  */
 template <typename R>
-static void forward_pb_custom_variable(int type,
-                                       R* object_ptr,
+static void forward_pb_custom_variable(int type [[maybe_unused]],
+                                       R* object_ptr [[maybe_unused]],
                                        const std::string_view& var_name,
                                        const std::string_view& var_value,
                                        const struct timeval* timestamp) {
@@ -2051,7 +2051,7 @@ void broker_external_command(int type, int command_type, char* command_args) {
 }
 
 template <typename G>
-static void forward_group(int type, const G* group_data) {
+static void forward_group(int type, const G* group_data [[maybe_unused]]) {
   if (cbm->centralized_conf())
     return;
 
@@ -2130,7 +2130,7 @@ static void forward_group(int type, const G* group_data) {
  *  @return 0 on success.
  */
 template <typename G>
-static void forward_pb_group(int type, const G* group_data) {
+static void forward_pb_group(int type, const G* group_data [[maybe_unused]]) {
   if (cbm->centralized_conf())
     return;
 
