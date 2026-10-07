@@ -1172,6 +1172,7 @@ mysql_connection::mysql_connection(
   _thread = std::make_unique<std::thread>(&mysql_connection::_run, this);
   _start_condition.wait(lck, [this] { return _state != not_started; });
   if (_state == finished) {
+    lck.unlock();
     _thread->join();
     SPDLOG_LOGGER_ERROR(
         _logger, "mysql_connection {:p}: error while starting connection: {}",
