@@ -1,7 +1,8 @@
 #!/bin/sh
 
+getent group centreon-engine > /dev/null 2>&1 || groupadd -r centreon-engine 2> /dev/null || :
 if ! id centreon-engine > /dev/null 2>&1; then
-  useradd -d /var/lib/centreon-engine -r centreon-engine > /dev/null 2>&1
+  useradd -g centreon-engine -d /var/lib/centreon-engine -r centreon-engine > /dev/null 2>&1
 fi
 
 if id centreon-broker > /dev/null 2>&1; then
