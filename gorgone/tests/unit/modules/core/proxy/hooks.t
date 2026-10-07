@@ -5,6 +5,7 @@ use Test2::V0;
 use FindBin;
 use lib "$FindBin::Bin/../../../../../";
 use tests::unit::lib::mockLogger;
+use tests::unit::lib::mockCentreonvault;
 use gorgone::class::core;
 use gorgone::standard::library;
 use gorgone::modules::core::proxy::hooks;
