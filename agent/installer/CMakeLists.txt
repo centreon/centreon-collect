@@ -44,44 +44,64 @@ if (WITH_BUILD_AGENT_INSTALLER)
 
 # Download plugins
 ## Define GitHub URL
-set(PLUGINS_RELEASE_URL "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest")
-set(RELEASE_JSON "${CMAKE_CURRENT_BINARY_DIR}/plugins_release.json")
-file(DOWNLOAD "${PLUGINS_RELEASE_URL}" "${RELEASE_JSON}"
+## The most recent releases do not all embed centreon_plugins.exe, so we walk
+## the release list (most recent first) until we find one that provides it.
+set(PLUGINS_RELEASES_URL "https://api.github.com/repos/centreon/centreon-plugins/releases?per_page=20")
+set(RELEASES_JSON "${CMAKE_CURRENT_BINARY_DIR}/plugins_releases.json")
+file(DOWNLOAD "${PLUGINS_RELEASES_URL}" "${RELEASES_JSON}"
      STATUS status
      TIMEOUT 10)
 
 list(GET status 0 status_code)
 if(NOT status_code EQUAL 0)
   message(FATAL_ERROR "Failed to download release status: ${status}")
-  exit(1)
 endif()
 
-file(READ "${RELEASE_JSON}" RELEASE_CONTENT)
+file(READ "${RELEASES_JSON}" RELEASES_CONTENT)
 
-# Get latest tag
-string(JSON RELEASE_TAG GET "${RELEASE_CONTENT}" "tag_name")
+# Get the number of returned releases
+string(JSON RELEASES_LENGTH LENGTH "${RELEASES_CONTENT}")
+if(RELEASES_LENGTH EQUAL 0)
+  message(FATAL_ERROR "No release returned by ${PLUGINS_RELEASES_URL}")
+endif()
 
-# Get array length
-string(JSON ASSETS_LENGTH LENGTH "${RELEASE_CONTENT}" "assets")
-
-# Search for asset by name
+# Walk the releases until one of them provides centreon_plugins.exe
 set(CENTREON_PLUGIN_URL "")
-math(EXPR LAST_INDEX "${ASSETS_LENGTH} - 1")
-foreach(i RANGE 0 ${LAST_INDEX})
-  # Extract the whole asset object
-  string(JSON ASSET_JSON GET "${RELEASE_CONTENT}" "assets" "${i}")
+set(RELEASE_TAG "")
+math(EXPR LAST_RELEASE_INDEX "${RELEASES_LENGTH} - 1")
+foreach(release_index RANGE 0 ${LAST_RELEASE_INDEX})
+  string(JSON RELEASE_CONTENT GET "${RELEASES_CONTENT}" "${release_index}")
+  string(JSON CURRENT_RELEASE_TAG GET "${RELEASE_CONTENT}" "tag_name")
 
-  # Extract the 'name' field from the object
-  string(JSON ASSET_NAME GET "${ASSET_JSON}" "name")
-  if(ASSET_NAME STREQUAL "centreon_plugins.exe")
+  # Get assets array length
+  string(JSON ASSETS_LENGTH LENGTH "${RELEASE_CONTENT}" "assets")
+  if(ASSETS_LENGTH EQUAL 0)
+    continue()
+  endif()
+
+  # Search for asset by name
+  math(EXPR LAST_INDEX "${ASSETS_LENGTH} - 1")
+  foreach(i RANGE 0 ${LAST_INDEX})
+    # Extract the whole asset object
+    string(JSON ASSET_JSON GET "${RELEASE_CONTENT}" "assets" "${i}")
+
+    # Extract the 'name' field from the object
+    string(JSON ASSET_NAME GET "${ASSET_JSON}" "name")
+    if(ASSET_NAME STREQUAL "centreon_plugins.exe")
       string(JSON CENTREON_PLUGIN_URL GET "${ASSET_JSON}" "browser_download_url")
+      set(RELEASE_TAG "${CURRENT_RELEASE_TAG}")
       break()
     endif()
+  endforeach()
+
+  if(NOT CENTREON_PLUGIN_URL STREQUAL "")
+    message(STATUS "centreon_plugins.exe found in release ${RELEASE_TAG}")
+    break()
+  endif()
 endforeach()
 
 if(CENTREON_PLUGIN_URL STREQUAL "")
-  message(FATAL_ERROR "centreon_plugins.exe not found in latest release.")
-  exit(1)
+  message(FATAL_ERROR "centreon_plugins.exe not found in the ${RELEASES_LENGTH} most recent releases.")
 endif()
 
 # Extract version number between /download/ and /centreon_plugins
@@ -89,17 +109,18 @@ string(REGEX MATCH "/download/([0-9]+)/centreon_plugins\\.exe" _match "${CENTREO
 
 if(CMAKE_MATCH_COUNT GREATER 0)
     set(PLUGIN_VERSION "${CMAKE_MATCH_1}")
-    message(STATUS "Latest centreon_plugins.exe version: ${PLUGIN_VERSION}")
+    message(STATUS "centreon_plugins.exe version: ${PLUGIN_VERSION}")
 else()
-    message(WARNING "Could not extract version from centreon_plugins.exe URL: ${CENTREON_PLUGIN_URL}")
-    set(PLUGIN_VERSION "")
+    message(WARNING "Could not extract version from centreon_plugins.exe URL: ${CENTREON_PLUGIN_URL}, falling back on the release tag ${RELEASE_TAG}")
+    set(PLUGIN_VERSION "${RELEASE_TAG}")
 endif()
 
 # Download the centreon_plugins.exe
 set(PLUGIN_DOWNLOAD_PATH "${CMAKE_CURRENT_BINARY_DIR}/centreon_plugins.exe")
+message(STATUS "Download from url ${CENTREON_PLUGIN_URL} into ${PLUGIN_DOWNLOAD_PATH}")
 file(DOWNLOAD "${CENTREON_PLUGIN_URL}" "${PLUGIN_DOWNLOAD_PATH}"
   STATUS status
-  TIMEOUT 10)
+  TIMEOUT 120)
 
 #signning setup
 if (WITH_INSTALLER_SIGNING)
@@ -158,7 +179,7 @@ endif()
 if (WITH_BUILD_AGENT_INSTALLER )
   add_custom_command(
     OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
-    DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
+    DEPENDS "${PROJECT_SOURCE_DIR}/installer_configured.iss" "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
     COMMAND ${ISCC_EXECUTABLE} ${INNO_SIGN_CMD} "${PROJECT_SOURCE_DIR}/installer_configured.iss"
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Building installer using Inno Setup"
