@@ -206,7 +206,11 @@ COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
 # silently clobbered the 775 already set on them above, making the
 # directories non-traversable and centengine.cfg unreadable
 # ("Permission denied") even though the file itself was still mode 664.
-RUN chmod 0775 /etc/centreon-engine /etc/centreon-engine/conf.d /etc/centreon-broker
+# Same issue on /etc/pki/centreon-engine (the CMA/OpenTelemetry CA dir): a
+# non-traversable dir there fails libopentelemetry.so's load with "cannot
+# get file time: Permission denied" on default_cma_ca.crt.
+RUN chmod 0775 /etc/centreon-engine /etc/centreon-engine/conf.d /etc/centreon-broker \
+    /etc/pki /etc/pki/centreon-engine
 
 # Copy entrypoint and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 --chown=centreon-engine:centreon-engine \

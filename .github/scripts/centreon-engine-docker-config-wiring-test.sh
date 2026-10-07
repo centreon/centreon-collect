@@ -404,9 +404,21 @@ if [ "$mailpit_up" != "true" ]; then
 fi
 
 MAIL_TEST_CONTAINER="centreon-engine-wiring-mail-$$"
+# Connector uses resource.cfg macros, which must not be rewritten from SMTP_*.
+mail_resource_file=$(mktemp)
+sed -e "s|^\$SMTPADDRESS\$=.*|\$SMTPADDRESS\$=$MAILPIT|" \
+    -e "s|^\$SMTPPORT\$=.*|\$SMTPPORT\$=1025|" \
+    -e "s|^\$SMTPFROMADDRESS\$=.*|\$SMTPFROMADDRESS\$=centreon-plugin@example.test|" \
+    "$FIXTURE_DIR/engine/resource.cfg" > "$mail_resource_file"
 CREATE_EXTRA_ARGS="--network $MAIL_NET -e SMTP_HOST=$MAILPIT -e SMTP_PORT=1025 -e SMTP_FROM=centreon-engine@example.test" \
-  create_with_configs "$MAIL_TEST_CONTAINER"
+  create_with_configs "$MAIL_TEST_CONTAINER" "$mail_resource_file" resource.cfg
+rm -f "$mail_resource_file"
 wait_ready "$MAIL_TEST_CONTAINER" || exit 1
+if ! docker exec "$MAIL_TEST_CONTAINER" grep -qx '\$SMTPFROMADDRESS\$=centreon-plugin@example.test' /etc/centreon-engine/resource.cfg; then
+  echo "::error::resource.cfg SMTP macros were rewritten at container start"
+  docker exec "$MAIL_TEST_CONTAINER" cat /etc/centreon-engine/resource.cfg || true
+  exit 1
+fi
 
 # Go through the real external-command pipe (SEND_CUSTOM_HOST/SVC_NOTIFICATION)
 # rather than invoking mail/the connector by hand: this is what actually

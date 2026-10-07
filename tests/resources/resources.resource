@@ -141,6 +141,16 @@ Ctn Kindly Stop Broker
         ELSE
             ${Bbdo2}   Ctn In Bbdo2
             IF    not ${Bbdo2} and not ${no_rrd_test}
+                # We have to check if central logs contain errors about data sent in the past.
+                ${centralLog_exists}    Run Keyword And Return Status    File Should Exist    ${centralLog}
+                IF    ${centralLog_exists}
+                    ${old_status}    Grep File    ${centralLog}    We have received old status for service
+                    IF    len("""${old_status}""") > 0
+                        Log To Console    The central logs contain errors about duplicate metric status.
+                        Ctn Save Logs
+                        Fail    "The central logs contain errors about duplicate metric status."
+                    END
+                END
                 IF    not ${only_central}
                         Log To Console    We are in BBDO3, so we also check RRD duplicates
                         Log To Console    central broker stopped

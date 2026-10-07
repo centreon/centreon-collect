@@ -307,31 +307,36 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
  */
 TEST_F(ProtocolTest, AsyncSendRecvExecute) {
   auto pipe = make_pipe();
-  protocol proto;
+  auto proto = std::make_shared<protocol>();
 
   absl::Mutex recv_mu;
   bool recv_done = false;
   boost::system::error_code recv_ec;
   std::shared_ptr<ConnectorMess> received;
 
-  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
-                                const std::shared_ptr<ConnectorMess>& msg) {
-    absl::MutexLock l(recv_mu);
-    recv_ec = ec;
-    received = msg;
-    recv_done = true;
+  asio::post(*g_io_context, [&, proto] {
+    proto->async_recv(pipe.rp,
+                      [&, proto](const boost::system::error_code& ec,
+                                 const std::shared_ptr<ConnectorMess>& msg) {
+                        absl::MutexLock l(recv_mu);
+                        recv_ec = ec;
+                        received = msg;
+                        recv_done = true;
+                      });
   });
 
   absl::Mutex send_mu;
   bool send_done = false;
   boost::system::error_code send_ec;
 
-  proto.async_send(pipe.wp, make_execute(42),
-                   [&](const boost::system::error_code& ec) {
-                     absl::MutexLock l(send_mu);
-                     send_ec = ec;
-                     send_done = true;
-                   });
+  asio::post(*g_io_context, [&, proto] {
+    proto->async_send(pipe.wp, make_execute(42),
+                      [&, proto](const boost::system::error_code& ec) {
+                        absl::MutexLock l(send_mu);
+                        send_ec = ec;
+                        send_done = true;
+                      });
+  });
 
   {
     absl::MutexLock l(send_mu);
@@ -357,31 +362,36 @@ TEST_F(ProtocolTest, AsyncSendRecvExecute) {
  */
 TEST_F(ProtocolTest, AsyncSendRecvResult) {
   auto pipe = make_pipe();
-  protocol proto;
+  auto proto = std::make_shared<protocol>();
 
   absl::Mutex recv_mu;
   bool recv_done = false;
   boost::system::error_code recv_ec;
   std::shared_ptr<ConnectorMess> received;
 
-  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
-                                const std::shared_ptr<ConnectorMess>& msg) {
-    absl::MutexLock l(recv_mu);
-    recv_ec = ec;
-    received = msg;
-    recv_done = true;
+  asio::post(*g_io_context, [&, proto] {
+    proto->async_recv(pipe.rp,
+                      [&, proto](const boost::system::error_code& ec,
+                                 const std::shared_ptr<ConnectorMess>& msg) {
+                        absl::MutexLock l(recv_mu);
+                        recv_ec = ec;
+                        received = msg;
+                        recv_done = true;
+                      });
   });
 
   absl::Mutex send_mu;
   bool send_done = false;
   boost::system::error_code send_ec;
 
-  proto.async_send(pipe.wp, make_result(99, 2),
-                   [&](const boost::system::error_code& ec) {
-                     absl::MutexLock l(send_mu);
-                     send_ec = ec;
-                     send_done = true;
-                   });
+  asio::post(*g_io_context, [&, proto] {
+    proto->async_send(pipe.wp, make_result(99, 2),
+                      [&, proto](const boost::system::error_code& ec) {
+                        absl::MutexLock l(send_mu);
+                        send_ec = ec;
+                        send_done = true;
+                      });
+  });
 
   {
     absl::MutexLock l(send_mu);
@@ -406,7 +416,7 @@ TEST_F(ProtocolTest, AsyncSendRecvResult) {
  */
 TEST_F(ProtocolTest, AsyncRecvOnClosedPipeReturnsError) {
   auto pipe = make_pipe();
-  protocol proto;
+  auto proto = std::make_shared<protocol>();
 
   pipe.wp.close();
 
@@ -414,11 +424,14 @@ TEST_F(ProtocolTest, AsyncRecvOnClosedPipeReturnsError) {
   bool done = false;
   boost::system::error_code result_ec;
 
-  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
-                                const std::shared_ptr<ConnectorMess>&) {
-    absl::MutexLock l(mu);
-    result_ec = ec;
-    done = true;
+  asio::post(*g_io_context, [&, proto] {
+    proto->async_recv(pipe.rp,
+                      [&, proto](const boost::system::error_code& ec,
+                                 const std::shared_ptr<ConnectorMess>&) {
+                        absl::MutexLock l(mu);
+                        result_ec = ec;
+                        done = true;
+                      });
   });
 
   absl::MutexLock l(mu);
@@ -432,7 +445,7 @@ TEST_F(ProtocolTest, AsyncRecvOnClosedPipeReturnsError) {
  */
 TEST_F(ProtocolTest, AsyncRecvEmptyFrameReturnsProtocolError) {
   auto pipe = make_pipe();
-  protocol proto;
+  auto proto = std::make_shared<protocol>();
 
   size_t bad_len = sizeof(size_t);
   boost::system::error_code write_ec;
@@ -444,11 +457,14 @@ TEST_F(ProtocolTest, AsyncRecvEmptyFrameReturnsProtocolError) {
   bool done = false;
   boost::system::error_code result_ec;
 
-  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
-                                const std::shared_ptr<ConnectorMess>&) {
-    absl::MutexLock l(mu);
-    result_ec = ec;
-    done = true;
+  asio::post(*g_io_context, [&, proto] {
+    proto->async_recv(pipe.rp,
+                      [&, proto](const boost::system::error_code& ec,
+                                 const std::shared_ptr<ConnectorMess>&) {
+                        absl::MutexLock l(mu);
+                        result_ec = ec;
+                        done = true;
+                      });
   });
 
   absl::MutexLock l(mu);
@@ -466,22 +482,25 @@ TEST_F(ProtocolTest, AsyncRecvEmptyFrameReturnsProtocolError) {
  */
 TEST_F(ProtocolTest, AsyncSendQueuesMultiple) {
   auto pipe = make_pipe();
-  protocol proto;
+  auto proto = std::make_shared<protocol>();
 
   constexpr int N = 5;
   absl::Mutex mu;
   int completed = 0;
   bool all_done = false;
 
-  for (int i = 0; i < N; ++i) {
-    proto.async_send(
-        pipe.wp, make_execute(i), [&, i](const boost::system::error_code& ec) {
-          EXPECT_FALSE(ec) << "async_send #" << i << ": " << ec.message();
-          absl::MutexLock l(mu);
-          if (++completed == N)
-            all_done = true;
-        });
-  }
+  asio::post(*g_io_context, [&, proto] {
+    for (int i = 0; i < N; ++i) {
+      proto->async_send(pipe.wp, make_execute(i),
+                        [&, i, proto](const boost::system::error_code& ec) {
+                          EXPECT_FALSE(ec)
+                              << "async_send #" << i << ": " << ec.message();
+                          absl::MutexLock l(mu);
+                          if (++completed == N)
+                            all_done = true;
+                        });
+    }
+  });
 
   {
     absl::MutexLock l(mu);
@@ -491,7 +510,7 @@ TEST_F(ProtocolTest, AsyncSendQueuesMultiple) {
 
   for (int i = 0; i < N; ++i) {
     ConnectorMess received;
-    ASSERT_FALSE(proto.recv(pipe.rp, received)) << "recv #" << i;
+    ASSERT_FALSE(proto->recv(pipe.rp, received)) << "recv #" << i;
     ASSERT_TRUE(received.has_execute());
     EXPECT_EQ(received.execute().cmd_id(), static_cast<uint64_t>(i));
   }
@@ -506,30 +525,33 @@ TEST_F(ProtocolTest, AsyncSendQueuesMultiple) {
  */
 TEST_F(ProtocolTest, AsyncRoundTrip) {
   auto pipe = make_pipe();
-  protocol proto;
+  auto proto = std::make_shared<protocol>();
 
   absl::Mutex mu;
   bool done = false;
   boost::system::error_code final_ec;
   std::shared_ptr<ConnectorMess> received_msg;
 
-  proto.async_send(
-      pipe.wp, make_execute(77), [&](const boost::system::error_code& send_ec) {
-        if (send_ec) {
-          absl::MutexLock l(mu);
-          final_ec = send_ec;
-          done = true;
-          return;
-        }
-        proto.async_recv(pipe.rp,
-                         [&](const boost::system::error_code& recv_ec,
-                             const std::shared_ptr<ConnectorMess>& msg) {
-                           absl::MutexLock l(mu);
-                           final_ec = recv_ec;
-                           received_msg = msg;
-                           done = true;
-                         });
-      });
+  asio::post(*g_io_context, [&, proto] {
+    proto->async_send(
+        pipe.wp, make_execute(77),
+        [&, proto](const boost::system::error_code& send_ec) {
+          if (send_ec) {
+            absl::MutexLock l(mu);
+            final_ec = send_ec;
+            done = true;
+            return;
+          }
+          proto->async_recv(
+              pipe.rp, [&, proto](const boost::system::error_code& recv_ec,
+                                  const std::shared_ptr<ConnectorMess>& msg) {
+                absl::MutexLock l(mu);
+                final_ec = recv_ec;
+                received_msg = msg;
+                done = true;
+              });
+        });
+  });
 
   absl::MutexLock l(mu);
   mu.Await(absl::Condition(&done));
