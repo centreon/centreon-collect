@@ -117,9 +117,10 @@ endif()
 
 # Download the centreon_plugins.exe
 set(PLUGIN_DOWNLOAD_PATH "${CMAKE_CURRENT_BINARY_DIR}/centreon_plugins.exe")
+message(STATUS "Download from url ${CENTREON_PLUGIN_URL} into ${PLUGIN_DOWNLOAD_PATH}")
 file(DOWNLOAD "${CENTREON_PLUGIN_URL}" "${PLUGIN_DOWNLOAD_PATH}"
   STATUS status
-  TIMEOUT 10)
+  TIMEOUT 120)
 
 #signning setup
 if (WITH_INSTALLER_SIGNING)
@@ -178,7 +179,7 @@ endif()
 if (WITH_BUILD_AGENT_INSTALLER )
   add_custom_command(
     OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
-    DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
+    DEPENDS "${PROJECT_SOURCE_DIR}/installer_configured.iss" "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
     COMMAND ${ISCC_EXECUTABLE} ${INNO_SIGN_CMD} "${PROJECT_SOURCE_DIR}/installer_configured.iss"
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Building installer using Inno Setup"
