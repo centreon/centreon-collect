@@ -5847,21 +5847,23 @@ message HostRuntime {
   double     execution_time = 16;
   int64      last_check = 17;
   int32      check_attempt = 18;
-  // notification_mode=engine only: when Broker owns acknowledgements,
-  // downtimes and notifications, it replays them itself and these fields
-  // are left at their defaults.
+  // notification_mode=engine only: when Broker owns acknowledgements and
+  // notifications, it replays them itself and these fields are left at
+  // their defaults.
   bool       acknowledged = 19;
   RuntimeAckType    acknowledgement_type = 20;
-  int32      scheduled_downtime_depth = 21;
-  int32      notification_number = 22;
-  bool       no_more_notifications = 23;
-  int64      last_notification = 24;
-  int64      next_notification = 25;
+  // The downtime depth is never carried: it is the count of the downtimes
+  // in progress, which Engine rebuilds as they start. A number restored
+  // without them would be counted again by the next downtime.
+  int32      notification_number = 21;
+  bool       no_more_notifications = 22;
+  int64      last_notification = 23;
+  int64      next_notification = 24;
 }
 
 message ServiceRuntime {
   // same fields, plus service_id = 2 and last_time_ok/warning/critical/unknown
-  // = 10..13; numbered 1..27. The check output is not sent, see below.
+  // = 10..13; numbered 1..26. The check output is not sent, see below.
 }
 
 message RuntimeState {
