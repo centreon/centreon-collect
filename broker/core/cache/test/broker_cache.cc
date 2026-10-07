@@ -1538,6 +1538,110 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
   _cache->fill_runtime_state(2, &other);
   EXPECT_EQ(other.hosts_size(), 0) << "host 3 was never checked";
   EXPECT_EQ(other.services_size(), 0);
+
+  /* DISABLE_HOST_CHECK on the never-checked host 2 and
+   * CHANGE_NORMAL_SVC_CHECK_INTERVAL on service (1, 2): an override puts a
+   * resource into the snapshot even without check state, and only the
+   * attributes under the mask are carried. */
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(2);
+  ah->mut_obj().set_active_checks(false);
+  _cache->publish(ah);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(2);
+  as->mut_obj().set_check_interval(42);
+  _cache->publish(as);
+  out.Clear();
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.hosts_size(), 2);
+  for (const auto& h : out.hosts()) {
+    if (h.host_id() == 2) {
+      EXPECT_FALSE(h.checked());
+      ASSERT_TRUE(h.has_overrides());
+      EXPECT_EQ(h.overrides().modified_attributes(),
+                static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+      EXPECT_FALSE(h.overrides().active_checks());
+    } else
+      EXPECT_FALSE(h.has_overrides());
+  }
+  ASSERT_EQ(out.services_size(), 2);
+  for (const auto& s : out.services()) {
+    if (s.service_id() == 2) {
+      EXPECT_TRUE(s.checked());
+      ASSERT_TRUE(s.has_overrides());
+      EXPECT_EQ(s.overrides().modified_attributes(),
+                static_cast<uint32_t>(MOD_NORMAL_CHECK_INTERVAL));
+      EXPECT_EQ(s.overrides().check_interval(), 42u);
+    } else
+      EXPECT_FALSE(s.has_overrides());
+  }
+}
+
+/**
+ * @brief The reference output restores the overrides of a row of the
+ * hosts/services tables onto a cache entry: the mask and the attributes it
+ * protects only, never over an entry already carrying a mask.
+ */
+TEST_F(BrokerCacheTest, OverridesRestoredFromReference) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->set_checks_active(true);
+  h->set_check_interval(5);
+  h->set_notifications_enabled(true);
+  auto* s = st.mutable_services()->Add();
+  s->set_host_id(1);
+  s->set_service_id(10);
+  s->set_host_name("host_1");
+  s->set_service_description("service_10");
+  s->set_notifications_enabled(true);
+  _cache->merge(st);
+
+  /* A row of the reference database: the mask protects active_checks and
+   * check_interval only, the other columns are noise and must be ignored. */
+  Host row;
+  row.set_modified_attributes(MOD_ACTIVE_CHECKS_ENABLED |
+                              MOD_NORMAL_CHECK_INTERVAL);
+  row.set_active_checks(false);
+  row.set_check_interval(42);
+  row.set_notify(false);
+  EXPECT_TRUE(_cache->restore_host_overrides(1u, [&row](Host& dst) {
+    cache::broker_cache::copy_host_overrides(&dst, row);
+  }));
+  const auto& host = _cache->host(1u)->obj();
+  EXPECT_FALSE(host.active_checks());
+  EXPECT_EQ(host.check_interval(), 42);
+  EXPECT_TRUE(host.notify());
+  EXPECT_EQ(host.modified_attributes(), row.modified_attributes());
+
+  /* The entry already carries an override: the database does not win. */
+  row.set_check_interval(43);
+  EXPECT_FALSE(_cache->restore_host_overrides(1u, [&row](Host& dst) {
+    cache::broker_cache::copy_host_overrides(&dst, row);
+  }));
+  EXPECT_EQ(_cache->host(1u)->obj().check_interval(), 42);
+
+  /* Unknown host: nothing to restore on. */
+  EXPECT_FALSE(_cache->restore_host_overrides(2u, [](Host&) {}));
+
+  Service srow;
+  srow.set_modified_attributes(MOD_NOTIFICATIONS_ENABLED);
+  srow.set_notify(false);
+  srow.set_check_interval(42);
+  EXPECT_TRUE(
+      _cache->restore_service_overrides(1u, 10u, [&srow](Service& dst) {
+        cache::broker_cache::copy_service_overrides(&dst, srow);
+      }));
+  const auto& svc = _cache->service(1u, 10u)->obj();
+  EXPECT_FALSE(svc.notify());
+  EXPECT_NE(svc.check_interval(), 42u);
+  EXPECT_EQ(svc.modified_attributes(),
+            static_cast<uint32_t>(MOD_NOTIFICATIONS_ENABLED));
+  EXPECT_FALSE(_cache->restore_service_overrides(1u, 11u, [](Service&) {}));
 }
 
 /**

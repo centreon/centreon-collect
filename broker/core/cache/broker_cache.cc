@@ -1974,8 +1974,6 @@ void broker_cache::_fill_anomaly_detection(
   keep_if(MOD_PASSIVE_CHECKS_ENABLED, passive_checks);                     \
   keep_if(MOD_EVENT_HANDLER_ENABLED, event_handler_enabled);               \
   keep_if(MOD_FLAP_DETECTION_ENABLED, flap_detection);                     \
-  keep_if(MOD_EVENT_HANDLER_COMMAND, event_handler);                       \
-  keep_if(MOD_CHECK_COMMAND, check_command);                               \
   keep_if(MOD_NORMAL_CHECK_INTERVAL, check_interval);                      \
   keep_if(MOD_RETRY_CHECK_INTERVAL, retry_interval);                       \
   keep_if(MOD_MAX_CHECK_ATTEMPTS, max_check_attempts);                     \
@@ -2022,6 +2020,16 @@ void broker_cache::copy_host_runtime(Host* dst, const Host& src) {
   keep(last_time_down);
   keep(last_time_unreachable);
   keep(next_host_notification);
+  copy_host_overrides(dst, src);
+}
+
+/**
+ * @brief Copy the overrides of a host (see the header).
+ *
+ * @param dst The host receiving them.
+ * @param src The host they are read from.
+ */
+void broker_cache::copy_host_overrides(Host* dst, const Host& src) {
   keep_common_overrides();
   keep_if(MOD_OBSESSIVE_HANDLER_ENABLED, obsess_over_host);
 }
@@ -2040,6 +2048,16 @@ void broker_cache::copy_service_runtime(Service* dst, const Service& src) {
   keep(last_time_critical);
   keep(last_time_unknown);
   keep(next_notification);
+  copy_service_overrides(dst, src);
+}
+
+/**
+ * @brief Copy the overrides of a service (see the header).
+ *
+ * @param dst The service receiving them.
+ * @param src The service they are read from.
+ */
+void broker_cache::copy_service_overrides(Service* dst, const Service& src) {
   keep_common_overrides();
   keep_if(MOD_OBSESSIVE_HANDLER_ENABLED, obsess_over_service);
 }
@@ -2047,6 +2065,54 @@ void broker_cache::copy_service_runtime(Service* dst, const Service& src) {
 #undef keep_if
 #undef keep_common_runtime
 #undef keep
+
+namespace {
+/**
+ * @brief Fill the overrides of a snapshot entry from a cache Host or Service:
+ * the mask and, for each bit set, the attribute it protects.
+ *
+ * @tparam Message The cache object type (Host or Service), which only differ
+ * by the name of their obsess_over_* field.
+ *
+ * @param src The cache object.
+ * @param out The overrides of the snapshot entry.
+ */
+template <typename Message>
+void fill_overrides(
+    const Message& src,
+    com::centreon::engine::configuration::RuntimeOverrides* out) {
+  uint32_t mask = src.modified_attributes();
+  out->set_modified_attributes(mask);
+  if (mask & MOD_NOTIFICATIONS_ENABLED)
+    out->set_notify(src.notify());
+  if (mask & MOD_ACTIVE_CHECKS_ENABLED)
+    out->set_active_checks(src.active_checks());
+  if (mask & MOD_PASSIVE_CHECKS_ENABLED)
+    out->set_passive_checks(src.passive_checks());
+  if (mask & MOD_EVENT_HANDLER_ENABLED)
+    out->set_event_handler_enabled(src.event_handler_enabled());
+  if (mask & MOD_FLAP_DETECTION_ENABLED)
+    out->set_flap_detection(src.flap_detection());
+  if (mask & MOD_OBSESSIVE_HANDLER_ENABLED) {
+    if constexpr (std::is_same_v<Message, Host>)
+      out->set_obsess_over(src.obsess_over_host());
+    else
+      out->set_obsess_over(src.obsess_over_service());
+  }
+  if (mask & MOD_NORMAL_CHECK_INTERVAL)
+    out->set_check_interval(src.check_interval());
+  if (mask & MOD_RETRY_CHECK_INTERVAL)
+    out->set_retry_interval(src.retry_interval());
+  if (mask & MOD_MAX_CHECK_ATTEMPTS)
+    out->set_max_check_attempts(src.max_check_attempts());
+  if (mask & MOD_FRESHNESS_CHECKS_ENABLED)
+    out->set_check_freshness(src.check_freshness());
+  if (mask & MOD_CHECK_TIMEPERIOD)
+    out->set_check_period(src.check_period());
+  if (mask & MOD_NOTIFICATION_TIMEPERIOD)
+    out->set_notification_period(src.notification_period());
+}
+}  // namespace
 
 /**
  * @brief Fill the runtime snapshot of a poller's resources (see the header).
@@ -2067,10 +2133,12 @@ void broker_cache::fill_runtime_state(
   auto& svc_index = _services.get<by_id>();
   for (auto [it, end] = by_poller.equal_range(poller_id); it != end; ++it) {
     const Host& h = (*it)->obj();
-    if (h.checked()) {
+    /* A host goes into the snapshot when it has a check state or an
+     * override to carry. */
+    if (h.checked() || h.modified_attributes()) {
       cfg::HostRuntime* r = out->add_hosts();
       r->set_host_id(h.host_id());
-      r->set_checked(true);
+      r->set_checked(h.checked());
       r->set_check_type(static_cast<cfg::RuntimeCheckType>(h.check_type()));
       r->set_state(static_cast<cfg::HostStatus>(h.state()));
       r->set_state_type(static_cast<cfg::RuntimeStateType>(h.state_type()));
@@ -2097,6 +2165,8 @@ void broker_cache::fill_runtime_state(
       }
       if (!broker_owns_downtimes)
         r->set_scheduled_downtime_depth(h.scheduled_downtime_depth());
+      if (h.modified_attributes())
+        fill_overrides(h, r->mutable_overrides());
     }
     /* The services of this host: the by_id index is ordered by
      * (host_id, service_id), so they are contiguous. */
@@ -2104,12 +2174,12 @@ void broker_cache::fill_runtime_state(
          sit != svc_index.end() && (*sit)->obj().host_id() == h.host_id();
          ++sit) {
       const Service& s = (*sit)->obj();
-      if (!s.checked())
+      if (!s.checked() && !s.modified_attributes())
         continue;
       cfg::ServiceRuntime* r = out->add_services();
       r->set_host_id(s.host_id());
       r->set_service_id(s.service_id());
-      r->set_checked(true);
+      r->set_checked(s.checked());
       r->set_check_type(static_cast<cfg::RuntimeCheckType>(s.check_type()));
       r->set_state(static_cast<cfg::ServiceStatus>(s.state()));
       r->set_state_type(static_cast<cfg::RuntimeStateType>(s.state_type()));
@@ -2141,8 +2211,60 @@ void broker_cache::fill_runtime_state(
       }
       if (!broker_owns_downtimes)
         r->set_scheduled_downtime_depth(s.scheduled_downtime_depth());
+      if (s.modified_attributes())
+        fill_overrides(s, r->mutable_overrides());
     }
   }
+}
+
+/**
+ * @brief Restore the overrides of a host from a row of the reference database
+ * (see the header for the rule).
+ *
+ * @param host_id The host.
+ * @param set Sets the mask and the overridden attributes on the entry.
+ *
+ * @return true if the setter ran.
+ */
+bool broker_cache::restore_host_overrides(
+    uint64_t host_id,
+    const std::function<void(Host&)>& set) {
+  if (!section_enabled(CACHE_HOSTS))
+    return false;
+  absl::WriterMutexLock l{&_mutex};
+  auto& index = _hosts.get<by_id>();
+  auto found = index.find(host_id);
+  if (found == index.end() || (*found)->obj().modified_attributes() != 0)
+    return false;
+  mutable_entry entry{index, found};
+  set(entry->mut_obj());
+  return true;
+}
+
+/**
+ * @brief Restore the overrides of a service from a row of the reference
+ * database (see the header for the rule).
+ *
+ * @param host_id The host of the service.
+ * @param service_id The service.
+ * @param set Sets the mask and the overridden attributes on the entry.
+ *
+ * @return true if the setter ran.
+ */
+bool broker_cache::restore_service_overrides(
+    uint64_t host_id,
+    uint64_t service_id,
+    const std::function<void(Service&)>& set) {
+  if (!section_enabled(CACHE_SERVICES))
+    return false;
+  absl::WriterMutexLock l{&_mutex};
+  auto& index = _services.get<by_id>();
+  auto found = index.find(std::make_pair(host_id, service_id));
+  if (found == index.end() || (*found)->obj().modified_attributes() != 0)
+    return false;
+  mutable_entry entry{index, found};
+  set(entry->mut_obj());
+  return true;
 }
 
 /**
@@ -2983,14 +3105,12 @@ void broker_cache::update_host(
       h.set_obsess_over_host(ah.obsess_over_host());
       mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
     }
-    if (ah.has_event_handler()) {
+    /* event_handler and check_command: no bit, the external commands
+     * changing them are disabled in Engine. */
+    if (ah.has_event_handler())
       h.set_event_handler(ah.event_handler());
-      mask |= MOD_EVENT_HANDLER_COMMAND;
-    }
-    if (ah.has_check_command()) {
+    if (ah.has_check_command())
       h.set_check_command(ah.check_command());
-      mask |= MOD_CHECK_COMMAND;
-    }
     if (ah.has_check_interval()) {
       h.set_check_interval(ah.check_interval());
       mask |= MOD_NORMAL_CHECK_INTERVAL;
@@ -3988,14 +4108,12 @@ void broker_cache::update_service(
       s.set_obsess_over_service(as.obsess_over_service());
       mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
     }
-    if (as.has_event_handler()) {
+    /* event_handler and check_command: no bit, the external commands
+     * changing them are disabled in Engine. */
+    if (as.has_event_handler())
       s.set_event_handler(as.event_handler());
-      mask |= MOD_EVENT_HANDLER_COMMAND;
-    }
-    if (as.has_check_command()) {
+    if (as.has_check_command())
       s.set_check_command(as.check_command());
-      mask |= MOD_CHECK_COMMAND;
-    }
     if (as.has_check_interval()) {
       s.set_check_interval(as.check_interval());
       mask |= MOD_NORMAL_CHECK_INTERVAL;

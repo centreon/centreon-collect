@@ -445,6 +445,7 @@ class stream : public io::stream {
                                             size_t& hosts_restored,
                                             size_t& services_read,
                                             size_t& services_restored);
+  void _restore_overrides_from_hosts_services();
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();

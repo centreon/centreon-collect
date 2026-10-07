@@ -32,6 +32,7 @@
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -2048,63 +2049,102 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
                        ah.host_id());
     return;
   }
-  if (_store_in_hosts_services) {
+  /* Whatever this output writes, the toggled attributes and their mask go
+   * to the hosts table: it is the only place that keeps them, and the
+   * reference output restores them from there at startup. */
+  {
     constexpr std::string_view buf("UPDATE hosts SET");
     std::string query{buf.data(), buf.size()};
-    if (ah.has_notify())
+    uint32_t mask = 0;
+    /* Same rule as the cache: notify and notification_period are check
+     * overrides only when Broker does not own the notifications. */
+    const bool broker_notifies =
+        com::centreon::common::notifications::notification_manager::is_loaded();
+    if (ah.has_notify()) {
       query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
-    if (ah.has_active_checks())
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATIONS_ENABLED;
+    }
+    if (ah.has_active_checks()) {
       query += fmt::format(" active_checks='{}',", ah.active_checks() ? 1 : 0);
+      mask |= MOD_ACTIVE_CHECKS_ENABLED;
+    }
     if (ah.has_should_be_scheduled())
       query += fmt::format(" should_be_scheduled='{}',",
                            ah.should_be_scheduled() ? 1 : 0);
-    if (ah.has_passive_checks())
+    if (ah.has_passive_checks()) {
       query +=
           fmt::format(" passive_checks='{}',", ah.passive_checks() ? 1 : 0);
-    if (ah.has_event_handler_enabled())
+      mask |= MOD_PASSIVE_CHECKS_ENABLED;
+    }
+    if (ah.has_event_handler_enabled()) {
       query += fmt::format(" event_handler_enabled='{}',",
                            ah.event_handler_enabled() ? 1 : 0);
-    if (ah.has_flap_detection())
+      mask |= MOD_EVENT_HANDLER_ENABLED;
+    }
+    if (ah.has_flap_detection()) {
       query +=
           fmt::format(" flap_detection='{}',", ah.flap_detection() ? 1 : 0);
-    if (ah.has_obsess_over_host())
+      mask |= MOD_FLAP_DETECTION_ENABLED;
+    }
+    if (ah.has_obsess_over_host()) {
       query +=
           fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
-    if (ah.has_event_handler())
+      mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
+    }
+    if (ah.has_event_handler()) {
       query += fmt::format(
           " event_handler='{}',",
           misc::string::escape(ah.event_handler(),
                                get_centreon_storage_hosts_col_size(
                                    centreon_storage_hosts_event_handler)));
-    if (ah.has_check_command())
+    }
+    if (ah.has_check_command()) {
       query += fmt::format(
           " check_command='{}',",
           misc::string::escape(ah.check_command(),
                                get_centreon_storage_hosts_col_size(
                                    centreon_storage_hosts_check_command)));
-    if (ah.has_check_interval())
+    }
+    if (ah.has_check_interval()) {
       query += fmt::format(" check_interval={},", ah.check_interval());
-    if (ah.has_retry_interval())
+      mask |= MOD_NORMAL_CHECK_INTERVAL;
+    }
+    if (ah.has_retry_interval()) {
       query += fmt::format(" retry_interval={},", ah.retry_interval());
-    if (ah.has_max_check_attempts())
+      mask |= MOD_RETRY_CHECK_INTERVAL;
+    }
+    if (ah.has_max_check_attempts()) {
       query += fmt::format(" max_check_attempts={},", ah.max_check_attempts());
-    if (ah.has_check_freshness())
+      mask |= MOD_MAX_CHECK_ATTEMPTS;
+    }
+    if (ah.has_check_freshness()) {
       query +=
           fmt::format(" check_freshness='{}',", ah.check_freshness() ? 1 : 0);
-    if (ah.has_check_period())
+      mask |= MOD_FRESHNESS_CHECKS_ENABLED;
+    }
+    if (ah.has_check_period()) {
       query += fmt::format(
           " check_period='{}',",
           misc::string::escape(ah.check_period(),
                                get_centreon_storage_hosts_col_size(
                                    centreon_storage_hosts_check_period)));
-    if (ah.has_notification_period())
+      mask |= MOD_CHECK_TIMEPERIOD;
+    }
+    if (ah.has_notification_period()) {
       query +=
           fmt::format(" notification_period='{}',",
                       misc::string::escape(
                           ah.notification_period(),
                           get_centreon_storage_services_col_size(
                               centreon_storage_services_notification_period)));
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATION_TIMEPERIOD;
+    }
 
+    if (mask)
+      query += fmt::format(
+          " modified_attributes=COALESCE(modified_attributes,0)|{},", mask);
     // If nothing was added to query, we can exit immediately.
     if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
@@ -3660,63 +3700,101 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
                        as.host_id(), as.service_id());
     return;
   }
-  if (_store_in_hosts_services) {
+  /* Same as for hosts: the toggled attributes and their mask always go to
+   * the services table, the reference output restores them from there. */
+  {
     constexpr std::string_view buf("UPDATE services SET");
     std::string query{buf.data(), buf.size()};
-    if (as.has_notify())
+    uint32_t mask = 0;
+    /* Same rule as the cache: notify and notification_period are check
+     * overrides only when Broker does not own the notifications. */
+    const bool broker_notifies =
+        com::centreon::common::notifications::notification_manager::is_loaded();
+    if (as.has_notify()) {
       query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
-    if (as.has_active_checks())
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATIONS_ENABLED;
+    }
+    if (as.has_active_checks()) {
       query += fmt::format(" active_checks='{}',", as.active_checks() ? 1 : 0);
+      mask |= MOD_ACTIVE_CHECKS_ENABLED;
+    }
     if (as.has_should_be_scheduled())
       query += fmt::format(" should_be_scheduled='{}',",
                            as.should_be_scheduled() ? 1 : 0);
-    if (as.has_passive_checks())
+    if (as.has_passive_checks()) {
       query +=
           fmt::format(" passive_checks='{}',", as.passive_checks() ? 1 : 0);
-    if (as.has_event_handler_enabled())
+      mask |= MOD_PASSIVE_CHECKS_ENABLED;
+    }
+    if (as.has_event_handler_enabled()) {
       query += fmt::format(" event_handler_enabled='{}',",
                            as.event_handler_enabled() ? 1 : 0);
-    if (as.has_flap_detection_enabled())
+      mask |= MOD_EVENT_HANDLER_ENABLED;
+    }
+    if (as.has_flap_detection_enabled()) {
       query += fmt::format(" flap_detection='{}',",
                            as.flap_detection_enabled() ? 1 : 0);
-    if (as.has_obsess_over_service())
+      mask |= MOD_FLAP_DETECTION_ENABLED;
+    }
+    if (as.has_obsess_over_service()) {
       query += fmt::format(" obsess_over_service='{}',",
                            as.obsess_over_service() ? 1 : 0);
-    if (as.has_event_handler())
+      mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
+    }
+    if (as.has_event_handler()) {
       query += fmt::format(
           " event_handler='{}',",
           misc::string::escape(as.event_handler(),
                                get_centreon_storage_services_col_size(
                                    centreon_storage_services_event_handler)));
-    if (as.has_check_command())
+    }
+    if (as.has_check_command()) {
       query += fmt::format(
           " check_command='{}',",
           misc::string::escape(as.check_command(),
                                get_centreon_storage_services_col_size(
                                    centreon_storage_services_check_command)));
-    if (as.has_check_interval())
+    }
+    if (as.has_check_interval()) {
       query += fmt::format(" check_interval={},", as.check_interval());
-    if (as.has_retry_interval())
+      mask |= MOD_NORMAL_CHECK_INTERVAL;
+    }
+    if (as.has_retry_interval()) {
       query += fmt::format(" retry_interval={},", as.retry_interval());
-    if (as.has_max_check_attempts())
+      mask |= MOD_RETRY_CHECK_INTERVAL;
+    }
+    if (as.has_max_check_attempts()) {
       query += fmt::format(" max_check_attempts={},", as.max_check_attempts());
-    if (as.has_check_freshness())
+      mask |= MOD_MAX_CHECK_ATTEMPTS;
+    }
+    if (as.has_check_freshness()) {
       query +=
           fmt::format(" check_freshness='{}',", as.check_freshness() ? 1 : 0);
-    if (as.has_check_period())
+      mask |= MOD_FRESHNESS_CHECKS_ENABLED;
+    }
+    if (as.has_check_period()) {
       query += fmt::format(
           " check_period='{}',",
           misc::string::escape(as.check_period(),
                                get_centreon_storage_services_col_size(
                                    centreon_storage_services_check_period)));
-    if (as.has_notification_period())
+      mask |= MOD_CHECK_TIMEPERIOD;
+    }
+    if (as.has_notification_period()) {
       query +=
           fmt::format(" notification_period='{}',",
                       misc::string::escape(
                           as.notification_period(),
                           get_centreon_storage_services_col_size(
                               centreon_storage_services_notification_period)));
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATION_TIMEPERIOD;
+    }
 
+    if (mask)
+      query += fmt::format(
+          " modified_attributes=COALESCE(modified_attributes,0)|{},", mask);
     // If nothing was added to query, we can exit immediately.
     if (query.size() > buf.size()) {
       query.resize(query.size() - 1);

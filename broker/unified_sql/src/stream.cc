@@ -699,6 +699,124 @@ void stream::_restore_runtime_in_cache() {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - started_at)
           .count());
+
+  /* The overrides live only in hosts/services (the resources table has no
+   * modified_attributes column), whatever the source of the state above. */
+  _restore_overrides_from_hosts_services();
+}
+
+/**
+ * @brief Restore into the global cache the attributes overridden by external
+ * commands (ENABLE_HOST_NOTIFICATIONS, CHANGE_NORMAL_SVC_CHECK_INTERVAL, ...)
+ * from the modified_attributes column and the attribute columns of the
+ * hosts and services tables. Only the rows carrying a mask are read, and the
+ * cache ignores an entry already carrying one (see
+ * broker_cache::restore_host_overrides).
+ */
+void stream::_restore_overrides_from_hosts_services() {
+  const auto started_at = std::chrono::steady_clock::now();
+  auto& cache = config::applier::state::instance().cache();
+  size_t hosts_read = 0;
+  size_t hosts_restored = 0;
+  size_t services_read = 0;
+  size_t services_restored = 0;
+
+  try {
+    std::promise<mysql_result> promise;
+    std::future<mysql_result> future = promise.get_future();
+    _mysql.run_query_and_get_result(
+        "SELECT host_id, modified_attributes, notify, active_checks, "
+        "passive_checks, event_handler_enabled, flap_detection, "
+        "obsess_over_host, event_handler, check_command, check_interval, "
+        "retry_interval, max_check_attempts, check_freshness, check_period, "
+        "notification_period FROM hosts WHERE modified_attributes<>0",
+        std::move(promise), 0);
+    mysql_result res{future.get()};
+    while (_mysql.fetch_row(res)) {
+      ++hosts_read;
+      Host row;
+      row.set_host_id(res.value_as_u64(0));
+      row.set_modified_attributes(res.value_as_u32(1));
+      row.set_notify(res.value_as_bool(2));
+      row.set_active_checks(res.value_as_bool(3));
+      row.set_passive_checks(res.value_as_bool(4));
+      row.set_event_handler_enabled(res.value_as_bool(5));
+      row.set_flap_detection(res.value_as_bool(6));
+      row.set_obsess_over_host(res.value_as_bool(7));
+      row.set_event_handler(res.value_as_str(8));
+      row.set_check_command(res.value_as_str(9));
+      row.set_check_interval(res.value_as_i32(10));
+      row.set_retry_interval(res.value_as_f64(11));
+      row.set_max_check_attempts(res.value_as_i32(12));
+      row.set_check_freshness(res.value_as_bool(13));
+      row.set_check_period(res.value_as_str(14));
+      row.set_notification_period(res.value_as_str(15));
+      if (cache.restore_host_overrides(row.host_id(), [&row](Host& h) {
+            cache::broker_cache::copy_host_overrides(&h, row);
+          }))
+        ++hosts_restored;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger_sql,
+                        "unified_sql: could not read the hosts table to "
+                        "restore the overrides into the global cache: {}",
+                        e.what());
+  }
+
+  try {
+    std::promise<mysql_result> promise;
+    std::future<mysql_result> future = promise.get_future();
+    _mysql.run_query_and_get_result(
+        "SELECT host_id, service_id, modified_attributes, notify, "
+        "active_checks, passive_checks, event_handler_enabled, "
+        "flap_detection, obsess_over_service, event_handler, check_command, "
+        "check_interval, retry_interval, max_check_attempts, check_freshness, "
+        "check_period, notification_period FROM services WHERE "
+        "modified_attributes<>0",
+        std::move(promise), 0);
+    mysql_result res{future.get()};
+    while (_mysql.fetch_row(res)) {
+      ++services_read;
+      Service row;
+      row.set_host_id(res.value_as_u64(0));
+      row.set_service_id(res.value_as_u64(1));
+      row.set_modified_attributes(res.value_as_u32(2));
+      row.set_notify(res.value_as_bool(3));
+      row.set_active_checks(res.value_as_bool(4));
+      row.set_passive_checks(res.value_as_bool(5));
+      row.set_event_handler_enabled(res.value_as_bool(6));
+      row.set_flap_detection(res.value_as_bool(7));
+      row.set_obsess_over_service(res.value_as_bool(8));
+      row.set_event_handler(res.value_as_str(9));
+      row.set_check_command(res.value_as_str(10));
+      row.set_check_interval(res.value_as_u32(11));
+      row.set_retry_interval(res.value_as_f64(12));
+      row.set_max_check_attempts(res.value_as_u32(13));
+      row.set_check_freshness(res.value_as_bool(14));
+      row.set_check_period(res.value_as_str(15));
+      row.set_notification_period(res.value_as_str(16));
+      if (cache.restore_service_overrides(
+              row.host_id(), row.service_id(), [&row](Service& s) {
+                cache::broker_cache::copy_service_overrides(&s, row);
+              }))
+        ++services_restored;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger_sql,
+                        "unified_sql: could not read the services table to "
+                        "restore the overrides into the global cache: {}",
+                        e.what());
+  }
+
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: overrides of {} hosts and {} services restored into the "
+      "global cache from the hosts/services tables ({} host rows and {} "
+      "service rows read) in {} ms",
+      hosts_restored, services_restored, hosts_read, services_read,
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - started_at)
+          .count());
 }
 
 /**

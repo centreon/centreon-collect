@@ -1001,6 +1001,29 @@ enum RuntimeAckType {
   STICKY = 2;
 }
 
+/* The attributes of a host or a service overridden by external commands, what
+ * retention.dat kept under modified_attributes. Each attribute is meaningful
+ * only when its bit (neb ModifiedAttribute, same values as Engine's MODATTR_*)
+ * is set in the mask. notify and notification_period are sent only when Engine
+ * owns the notifications. The check command and the event handler are not
+ * overridable: the external commands changing them are disabled in Engine. */
+/* Ignore */
+message RuntimeOverrides {
+  uint32 modified_attributes = 1;
+  bool notify = 2;
+  bool active_checks = 3;
+  bool passive_checks = 4;
+  bool event_handler_enabled = 5;
+  bool flap_detection = 6;
+  bool obsess_over = 7;
+  uint32 check_interval = 8;
+  double retry_interval = 9;
+  int32 max_check_attempts = 10;
+  bool check_freshness = 11;
+  string check_period = 12;
+  string notification_period = 13;
+}
+
 /* The runtime part of a host: what checks, acknowledgements, downtimes and
  * notifications have made of it, as opposed to what the configuration says.
  * Broker holds it in its global cache (restored from the database at startup,
@@ -1048,6 +1071,7 @@ message HostRuntime {
   bool no_more_notifications = 23;
   int64 last_notification = 24;
   int64 next_notification = 25;
+  RuntimeOverrides overrides = 26;
 }
 
 /* The runtime part of a service, see HostRuntime. */
@@ -1081,6 +1105,7 @@ message ServiceRuntime {
   bool no_more_notifications = 25;
   int64 last_notification = 26;
   int64 next_notification = 27;
+  RuntimeOverrides overrides = 28;
 }
 
 /* The runtime part of every resource Broker knows for a poller: the snapshot
