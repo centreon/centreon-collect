@@ -7,6 +7,10 @@ cd build
 
 sysctl -w kernel.core_pattern=/tmp/core-$test
 
+echo
+echo "---------------------------   Execute tests/ut_$test   ---------------------------------"
+echo
+
 tests/ut_$test --gtest_output=xml:ut_$test.xml
 
 
