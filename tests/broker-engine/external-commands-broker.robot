@@ -320,6 +320,8 @@ BEEXTBRK_ADAPTIVE
         Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((0, 0, 0),)    The check toggles should reach the hosts, services and resources tables
+    ${output}    Query    SELECT h.modified_attributes, s.modified_attributes FROM hosts h JOIN services s ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+    Should Be Equal As Strings    ${output}    ((2, 2),)    The toggles should set the MOD_ACTIVE_CHECKS_ENABLED bit of modified_attributes
 
     ${err}    Ctn Broker Execute External Command    ENABLE_HOST_CHECK;host_1
     Should Be Empty    ${err}
@@ -331,6 +333,88 @@ BEEXTBRK_ADAPTIVE
         Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((1, 1, 1),)    The checks should be enabled again
+    ${output}    Query    SELECT h.modified_attributes, s.modified_attributes FROM hosts h JOIN services s ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+    Should Be Equal As Strings    ${output}    ((2, 2),)    The bit stays once an attribute has been overridden
 
     Disconnect From Database
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+BEEXTBRK_ADAPTIVE_RESTART
+    [Documentation]    Scenario: a check toggle survives a restart of Broker and of Engine through the reference database
+    ...    Given one poller in centralized configuration, Broker's unified_sql output being the reference of the global cache
+    ...    When DISABLE_HOST_CHECK and CHANGE_HOST_CHECK_TIMEPERIOD (workhours) on host_1 and DISABLE_SVC_CHECK on host_1/service_1 are sent to Broker
+    ...    Then the hosts and services tables carry the overrides and their modified_attributes bits
+    ...    When Broker is restarted
+    ...    Then unified_sql restores the overrides of one host and one service into the global cache from the hosts/services tables
+    ...    When Engine is restarted, without retention.dat
+    ...    Then the snapshot of its connection brings the overrides back: host_1 and service_1 have their active checks disabled with the MOD_ACTIVE_CHECKS_ENABLED bit, and host_1 checks during workhours with the MOD_CHECK_TIMEPERIOD bit
+    [Tags]    broker    engine    external_commands    broker_external_commands    cache    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Clear Prot Files
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    central    cache    info
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    ${content}    Create List    BBDO: all engine peers have acknowledged their configuration
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The poller did not acknowledge its configuration
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${err}    Ctn Broker Execute External Command    DISABLE_HOST_CHECK;host_1
+    Should Be Empty    ${err}
+    ${err}    Ctn Broker Execute External Command    DISABLE_SVC_CHECK;host_1;service_1
+    Should Be Empty    ${err}
+    ${err}    Ctn Broker Execute External Command    CHANGE_HOST_CHECK_TIMEPERIOD;host_1;workhours
+    Should Be Empty    ${err}
+    # host_1: MOD_ACTIVE_CHECKS_ENABLED (2) | MOD_CHECK_TIMEPERIOD (16384) = 16386
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query    SELECT h.active_checks, h.check_period, h.modified_attributes, s.active_checks, s.modified_attributes FROM hosts h JOIN services s ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
+        IF    "${output}" == "((0, 'workhours', 16386, 0, 2),)"    BREAK
+        Sleep    1s
+    END
+    Should Be Equal As Strings    ${output}    ((0, 'workhours', 16386, 0, 2),)    The overrides and their bits should reach the hosts and services tables
+    Disconnect From Database
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Kindly Stop Broker
+    Ctn Start Broker    newGeneration=True
+    ${content}    Create List    unified_sql: overrides of 1 hosts and 1 services restored into the global cache from the hosts/services tables
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The override should be restored into the global cache from the hosts/services tables
+    # The poller is up to date: Broker sends it its runtime state alone and the
+    # poller acknowledges it.
+    ${content}    Create List    BBDO: received diff state ack from poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The poller did not acknowledge its runtime state after the restart of Broker
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Stop Engine
+    Ctn Clear Retention
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    ${content}    Create List    2 resources with overridden attributes
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The snapshot should bring the two overrides back to Engine
+    ${output}    Ctn Get Host Info Grpc    ${1}
+    Should Be Equal As Strings    ${output}[checksEnabled]    False    host_1 active checks should still be disabled after the restart
+    Should Be Equal As Strings    ${output}[checkPeriod]    workhours    host_1 should still check during workhours after the restart
+    Should Be Equal As Integers    ${output}[modifiedAttributes]    16386    host_1 should carry the MOD_ACTIVE_CHECKS_ENABLED and MOD_CHECK_TIMEPERIOD bits
+    ${output}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${output}[activeChecksEnabled]    False    service_1 active checks should still be disabled after the restart
+    Should Be Equal As Integers    ${output}[modifiedAttributes]    2    service_1 should carry the MOD_ACTIVE_CHECKS_ENABLED bit
     [Teardown]    Ctn Stop Engine Broker And Save Logs
