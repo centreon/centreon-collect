@@ -1040,9 +1040,12 @@ message RuntimeOverrides {
  * which parses the perfdata
  * of the service it depends on at its own check: Broker fills it only for the
  * services an anomalydetection depends on, and leaves it empty otherwise. The
- * acknowledgement, downtime and notification fields are meaningful only when
- * Engine owns them (notification_mode=engine): when Broker does, it replays
- * them to Engine itself and these fields are left at their defaults. */
+ * acknowledgement and notification fields are meaningful only when Engine
+ * owns them (notification_mode=engine): when Broker does, it replays them to
+ * Engine itself and these fields are left at their defaults. The downtime
+ * depth is never carried: it is a count of the downtimes in progress, which
+ * Engine derives from the downtimes themselves as they start; a bare number
+ * restored without them would be counted again by the next downtime. */
 /* Ignore */
 message HostRuntime {
   uint64 host_id = 1;
@@ -1066,12 +1069,11 @@ message HostRuntime {
   /* notification_mode=engine only, see above. */
   bool acknowledged = 19;
   RuntimeAckType acknowledgement_type = 20;
-  int32 scheduled_downtime_depth = 21;
-  int32 notification_number = 22;
-  bool no_more_notifications = 23;
-  int64 last_notification = 24;
-  int64 next_notification = 25;
-  RuntimeOverrides overrides = 26;
+  int32 notification_number = 21;
+  bool no_more_notifications = 22;
+  int64 last_notification = 23;
+  int64 next_notification = 24;
+  RuntimeOverrides overrides = 25;
 }
 
 /* The runtime part of a service, see HostRuntime. */
@@ -1100,12 +1102,11 @@ message ServiceRuntime {
   /* notification_mode=engine only, see HostRuntime. */
   bool acknowledged = 21;
   RuntimeAckType acknowledgement_type = 22;
-  int32 scheduled_downtime_depth = 23;
-  int32 notification_number = 24;
-  bool no_more_notifications = 25;
-  int64 last_notification = 26;
-  int64 next_notification = 27;
-  RuntimeOverrides overrides = 28;
+  int32 notification_number = 23;
+  bool no_more_notifications = 24;
+  int64 last_notification = 25;
+  int64 next_notification = 26;
+  RuntimeOverrides overrides = 27;
 }
 
 /* The runtime part of every resource Broker knows for a poller: the snapshot

@@ -30,6 +30,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     engine_conf/expand_conf.cc
     engine_conf/resolve_conf.cc
     engine_conf/indexed_diff_state.cc
+    engine_conf/indexed_state.cc
     file_test.cc
     jwt_test.cc
     hex_dump_test.cc

@@ -2126,8 +2126,6 @@ void broker_cache::fill_runtime_state(
   namespace cfg = com::centreon::engine::configuration;
   const bool broker_owns_notifications = com::centreon::common::notifications::
       notification_manager::is_loaded();
-  const bool broker_owns_downtimes =
-      com::centreon::common::downtimes::downtime_manager::is_loaded();
   absl::ReaderMutexLock l{&_mutex};
   auto& by_poller = _hosts.get<by_instance>();
   auto& svc_index = _services.get<by_id>();
@@ -2163,8 +2161,6 @@ void broker_cache::fill_runtime_state(
         r->set_last_notification(h.last_notification());
         r->set_next_notification(h.next_host_notification());
       }
-      if (!broker_owns_downtimes)
-        r->set_scheduled_downtime_depth(h.scheduled_downtime_depth());
       if (h.modified_attributes())
         fill_overrides(h, r->mutable_overrides());
     }
@@ -2209,8 +2205,6 @@ void broker_cache::fill_runtime_state(
         r->set_last_notification(s.last_notification());
         r->set_next_notification(s.next_notification());
       }
-      if (!broker_owns_downtimes)
-        r->set_scheduled_downtime_depth(s.scheduled_downtime_depth());
       if (s.modified_attributes())
         fill_overrides(s, r->mutable_overrides());
     }

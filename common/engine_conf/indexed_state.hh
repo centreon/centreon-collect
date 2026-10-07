@@ -289,7 +289,7 @@ class indexed_state {
   void diff_with_new_config(State& new_state,
                             const std::shared_ptr<spdlog::logger>& logger,
                             DiffState* result);
-  void serialize_to_ostream(std::ostream* os);
+  void serialize_to_ostream(std::ostream* os) const;
 };
 }  // namespace com::centreon::engine::configuration
 #endif /* !CCE_CONFIGURATION_INDEXED_STATE */

@@ -3698,10 +3698,13 @@ void broker_log_data_legacy(std::string_view data, time_t entry_time) {
  *  @param[in] entry_time Entry time.
  */
 void broker_log_data(std::string_view data, time_t entry_time) {
-  // Config check.
-  if (!(pb_indexed_config.state().event_broker_options() &
+  /* cbm first: this sink runs on every log line of every thread, possibly
+   * before the configuration is loaded. Without cbm there is nobody to send
+   * to, and the configuration must not be read for nothing. */
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() &
         BROKER_LOGGED_DATA) ||
-      !pb_indexed_config.state().log_v2_enabled() || !cbm)
+      !pb_indexed_config.state().log_v2_enabled())
     return;
 
   // Make callbacks.
