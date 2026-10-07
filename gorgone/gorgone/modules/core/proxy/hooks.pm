@@ -1087,6 +1087,19 @@ sub register_subnodes {
         push @$subnodes, $entry->{nodes} if (defined($entry->{nodes}));
     }
 }
+
+# A subnode (poller behind a remote server used as proxy) can be targeted by both its id and uid.
+# Both keys point to the same hash (this is not a copy), so static and dynamic routes are shared.
+# Only call it with database data: a remote node must not be able to redirect another node uid.
+sub link_subnode_uid {
+    my (%options) = @_;
+
+    return if (!defined($options{uid}) || $options{uid} eq '' || $options{uid} eq $options{id});
+
+    $register_subnodes->{ $options{id} } = { static => {}, dynamic => {} } if (!defined($register_subnodes->{ $options{id} }));
+    $register_subnodes->{ $options{uid} } = $register_subnodes->{ $options{id} };
+}
+
 # this message is sent by a poller on connection and by register module
 sub register_nodes {
     my (%options) = @_;
@@ -1169,6 +1182,7 @@ sub register_nodes_from_db {
                 foreach my $subnode (@{$node->{nodes}}) {
                     $register_subnodes->{ $subnode->{id} } = { static => {}, dynamic => {} } if (!defined($register_subnodes->{ $subnode->{id} }));
                     $register_subnodes->{ $subnode->{id} }->{static}->{ $node->{id} } = defined($subnode->{pathscore}) && $subnode->{pathscore} =~ /[0-9]+/ ? $subnode->{pathscore} : 1;
+                    link_subnode_uid(id => $subnode->{id}, uid => $subnode->{uid});
 
                     # subnodes also prevails. we try to unregister it
                     if (defined($node->{prevail}) && $node->{prevail} == 1) {

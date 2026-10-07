@@ -20,7 +20,7 @@ sub main {
 my $check_action_ran = {};
 my $action_expected = {
     'SETCOREID'     => { id => 1, uid => '' },
-    'UNREGISTERNODES'     => { nodes =>[]},
+    'UNREGISTERNODESFROMCENTRAL' => { nodes => [] },
     'REGISTERNODESFROMDB' => {
         'nodes' => [
             {
@@ -53,6 +53,27 @@ my $action_expected = {
                 'type'  => 'pullwss',
                 'token' => '',
             },
+            {
+                'address' => '127.0.0.6',
+                'type'    => 'push_zmq',
+                'port'    => 5556,
+                'id'      => 15,
+                'token'   => '',
+                'uid'     => 555123456,
+                # pollers behind this remote server must be reachable by both id and uid.
+                'nodes'   => [
+                    { 'id' => 16, 'uid' => 666123456, 'pathscore' => 1 },
+                    { 'id' => 17, 'uid' => 777123456, 'pathscore' => 100 },
+                ],
+            },
+            {
+                'address' => '127.0.0.8',
+                'type'    => 'push_zmq',
+                'port'    => 5556,
+                'id'      => 17,
+                'token'   => '',
+                'uid'     => 777123456,
+            },
 
         ] } };
 
@@ -64,7 +85,7 @@ sub test_centreonnodessync {
         if ($action_name eq 'SETCOREID') {
             is($_[1]->{data}, $action_expected->{ $action_name }, "checking action " . $_[1]->{action});
         }
-        elsif ($action_name eq 'REGISTERNODESFROMDB' or $action_name eq 'UNREGISTERNODES') {
+        elsif ($action_name eq 'REGISTERNODESFROMDB' or $action_name eq 'UNREGISTERNODESFROMCENTRAL') {
             # let's sort nodes array before comparing
             my @got_nodes = sort {$a->{id} <=> $b->{id}} @{$_[1]->{data}->{nodes}};
             is(\@got_nodes, $action_expected->{ $action_name}->{nodes}, "checking action " . $_[1]->{action});
@@ -90,14 +111,17 @@ sub test_centreonnodessync {
     $sqlquery->do(request =>  "DELETE FROM nagios_server WHERE id != 1;");
     $action_expected->{REGISTERNODESFROMDB}->{nodes} = [ ];; # expecting no nodes now.
     $check_action_ran = {};
-    $action_expected->{UNREGISTERNODES} = { nodes => [
+    $action_expected->{UNREGISTERNODESFROMCENTRAL} = { nodes => [
             { id => 11, 'uid' => '' },
             { id => 12, 'uid' => '' },
             { id => 13, 'uid' => 3999456 },
             { id => 14, 'uid' => 499456456 },
+            { id => 15, 'uid' => 555123456 },
+            { id => 17, 'uid' => 777123456 },
         ]
     };
     $self->action_centreonnodessync();
+    is($check_action_ran->{UNREGISTERNODESFROMCENTRAL}, 1, "UNREGISTERNODESFROMCENTRAL action was called");
 
 }
 # create a sqlite db with centreon nodes data. This should be a mariadb database but for unit test we use sqlite for simplicity.
@@ -153,7 +177,11 @@ sub prepare_db {
 (11,'poller_push','0',0,NULL,'127.0.0.2','1',22,'1',5556,'',NULL),
 (12,'poller_ssh','0',0,NULL,'127.0.0.3','1',22,'2',22,'',NULL),
 (13,'poller_pull','0',0,NULL,'127.0.0.4','1',22,'3',NULL,3999456,NULL),
-(14,'poller_pullwss','0',0,NULL,'127.0.0.5','1',22,'4',NULL,499456456,NULL);");
+(14,'poller_pullwss','0',0,NULL,'127.0.0.5','1',22,'4',NULL,499456456,NULL),
+(15,'remote_push','0',0,NULL,'127.0.0.6','1',22,'1',5556,555123456,NULL),
+(16,'poller_behind_remote','0',0,'1','127.0.0.7','1',22,'1',5556,666123456,15),
+(17,'poller_rs_relation','0',0,NULL,'127.0.0.8','1',22,'1',5556,777123456,NULL);");
+    $sqlquery->do(request => "INSERT INTO `rs_poller_relation` VALUES (15, 17);");
 return $sqlquery;
 }
 &main;
