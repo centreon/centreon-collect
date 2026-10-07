@@ -5,7 +5,6 @@
 #define AppURL "https://www.centreon.com/"
 #define AppExeName "centagent.exe"
 #define PluginExePath "@PLUGIN_DOWNLOAD_PATH@"
-#define BaseUrl "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"
 #define PluginSize "@PLUGIN_SIZE@"
 #define EmbeddedPluginVer "@PLUGIN_VERSION@"
 #define ModifierPathexe "@OUTPUT_DIR@/@OUTPUT_BASE_FILENAME_MODIFIER@.exe"
@@ -816,15 +815,117 @@ begin
   end;
  end;
 
+// Returns the position of the closing brace matching the opening brace located
+// at StartPos. Braces appearing inside JSON strings are ignored.
+// Parameters:
+//   S        - The JSON document to scan.
+//   StartPos - The position of the opening '{' (1-based).
+// Returns:
+//   Integer - The position of the matching '}', or 0 if there is none.
+function FindMatchingBrace(const S: string; StartPos: Integer): Integer;
+var
+  i, Depth: Integer;
+  C: Char;
+  InString, Escaped: Boolean;
+begin
+  Result := 0;
+  Depth := 0;
+  InString := False;
+  Escaped := False;
+  for i := StartPos to Length(S) do
+  begin
+    C := S[i];
+    if InString then
+    begin
+      if Escaped then
+        Escaped := False
+      else if C = '\' then
+        Escaped := True
+      else if C = '"' then
+        InString := False;
+    end
+    else if C = '"' then
+      InString := True
+    else if C = '{' then
+      Depth := Depth + 1
+    else if C = '}' then
+    begin
+      Depth := Depth - 1;
+      if Depth = 0 then
+      begin
+        Result := i;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+// Tells whether C is a JSON insignificant whitespace character.
+function IsJsonSpace(C: Char): Boolean;
+begin
+  Result := (C = ' ') or (C = #9) or (C = #13) or (C = #10);
+end;
+
+// Locates the string field named Key and returns the position of the first character
+// of its value, searching from StartPos. Whitespace around the ':' separator is
+// tolerated, as the API is free to return pretty printed JSON.
+// Returns 0 when the field is missing or does not hold a string value.
+function FindJsonStringValue(const Json, Key: string; StartPos: Integer): Integer;
+var
+  p, i, L: Integer;
+begin
+  Result := 0;
+  L := Length(Json);
+  p := StartPos;
+  repeat
+    p := PosEx('"' + Key + '"', Json, p);
+    if p = 0 then Exit;
+
+    // Skip the key, then expect ':' and the opening quote of the value
+    i := p + Length(Key) + 2;
+    while (i <= L) and IsJsonSpace(Json[i]) do
+      i := i + 1;
+    if (i <= L) and (Json[i] = ':') then
+    begin
+      i := i + 1;
+      while (i <= L) and IsJsonSpace(Json[i]) do
+        i := i + 1;
+      if (i <= L) and (Json[i] = '"') then
+      begin
+        Result := i + 1;
+        Exit;
+      end;
+    end;
+
+    // Not a "Key": "value" pair, keep looking
+    p := p + 1;
+  until False;
+end;
+
+// Extracts the value of the string field named Key, searching from StartPos.
+// Returns an empty string when the field is missing or holds an empty value.
+function ExtractJsonStringField(const Json, Key: string; StartPos: Integer): string;
+var
+  p, p2: Integer;
+begin
+  Result := '';
+  p := FindJsonStringValue(Json, Key, StartPos);
+  if p = 0 then Exit;
+  p2 := PosEx('"', Json, p);
+  if p2 > p then
+    Result := Copy(Json, p, p2 - p);
+end;
+
 // Retrieves the browser download URL for a specific asset from a JSON API response.
-// Makes an HTTP GET request to the given ApiUrl and searches for AssetName.
+// Makes an HTTP GET request to the given ApiUrl, which must return a release list
+// (most recent first), then walks the releases until one of them provides AssetName.
 // Returns the download URL if found, otherwise returns an empty string.
 // Logs an error if the HTTP request fails.
 function GetBrowserDownloadURL(const ApiUrl, AssetName: string): string;
 var
-  Json: string;
+  Json, Release, Tag, CurrentAsset: string;
   Status: Integer;
-  p, p2: Integer;
+  SearchFrom, ReleasePos, ReleaseEnd, p, p2, AssetBegin, AssetEnd: Integer;
 begin
   Result := '';
   if not HttpGet(ApiUrl, Json, Status) then
@@ -833,22 +934,58 @@ begin
     Exit;
   end;
 
-  // First try: find the specific asset by name, then its URL after
-  p := Pos('"name":"' + AssetName + '"', Json);
-  if p > 0 then
-  begin
-    p := PosEx('"browser_download_url":"', Json, p);
-    if p > 0 then
-    begin
-      p := p + Length('"browser_download_url":"');
-      p2 := PosEx('"', Json, p);
-      if p2 > p then
+  // Releases are returned most recent first, and they do not all embed AssetName:
+  // walk the release objects until one of them provides it.
+  SearchFrom := 1;
+  repeat
+    // Only ',' and whitespace separate two top-level objects of the release array,
+    // so the next '{' after the previous release is the next release.
+    ReleasePos := PosEx('{', Json, SearchFrom);
+    if ReleasePos = 0 then Break;
+
+    ReleaseEnd := FindMatchingBrace(Json, ReleasePos);
+    if ReleaseEnd = 0 then Break;
+
+    // Work on this release alone, so the lookups below cannot spill over the next one
+    Release := Copy(Json, ReleasePos, ReleaseEnd - ReleasePos + 1);
+    Tag := ExtractJsonStringField(Release, 'tag_name', 1);
+
+    // Find the asset whose 'name' is AssetName, then its URL after. Walk the objects
+    // nested in the release, starting past its own opening brace. Objects other than
+    // the assets ('author', 'reactions') simply carry no matching 'name'.
+    AssetBegin := 2;
+    repeat
+      AssetBegin := PosEx('{', Release, AssetBegin);
+      if (AssetBegin = 0) then Break;
+      AssetEnd := FindMatchingBrace(Release, AssetBegin);
+      if (AssetEnd = 0) then Break;
+
+      CurrentAsset := Copy(Release, AssetBegin, AssetEnd - AssetBegin + 1);
+      AssetBegin := AssetEnd + 1;
+
+      p := FindJsonStringValue(CurrentAsset, 'name', 1);
+      if p = 0 then Continue;
+
+      if Copy(CurrentAsset, p, Length(AssetName) + 1) = AssetName + '"' then
       begin
-        Result := Copy(Json, p, p2 - p);
-        Exit;
+        p := FindJsonStringValue(CurrentAsset, 'browser_download_url', 1);
+        if p > 0 then
+        begin
+          p2 := PosEx('"', CurrentAsset, p);
+          if p2 > p then
+          begin
+            Result := Copy(CurrentAsset, p, p2 - p);
+            Log(Format('%s found in release %s', [AssetName, Tag]));
+            Exit;
+          end;
+        end;
       end;
-    end;
-  end;
+    until False;
+
+    SearchFrom := ReleaseEnd + 1;
+  until False;
+
+  Log(Format('%s not found in any release returned by %s', [AssetName, ApiUrl]));
 end;
 
 // Extracts the version string from a given URL.
@@ -1096,7 +1233,7 @@ begin
   WizardForm.ClientWidth := 630;
   WizardForm.ClientHeight := 570;
   PluginURL := GetBrowserDownloadURL(
-         'https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest',
+         'https://api.github.com/repos/centreon/centreon-plugins/releases?per_page=20',
          'centreon_plugins.exe');
   PluginVer := ExtractVersionFromURL(PluginURL);
 
