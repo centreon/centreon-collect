@@ -46,47 +46,47 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: alma8
             database: mariadb
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: alma9
             database: mariadb
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: alma10
             database: mariadb
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: alma8
             database: mysql
             dockerfile: centreon-collect-mysql-alma8-test
             image: centreon-collect-mysql-alma8-test
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: alma9
             database: mysql
             dockerfile: centreon-collect-mysql-alma9-test
             image: centreon-collect-mysql-alma9-test
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: bookworm
             database: mariadb
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-small
             distrib: bookworm
             database: mariadb
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: trixie
             database: mariadb
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-small
             distrib: trixie
             database: mariadb
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-small
             distrib: jammy
             database: mariadb
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-small
             distrib: jammy
             database: mariadb
-          # - runner: centreon-collect
+          # - runner: centreon-ubuntu-26.04-small
           #   distrib: noble
           #   database: mariadb
-          # - runner: centreon-collect-arm64
+          # - runner: centreon-ubuntu-26.04-arm-small
           #   distrib: noble
           #   database: mariadb
 
