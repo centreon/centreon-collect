@@ -250,9 +250,11 @@ class service : public notifier {
 
   std::list<servicegroup*> const& get_parent_groups() const;
   std::list<servicegroup*>& get_parent_groups();
-  void set_host_ptr(host* h);
-  host const* get_host_ptr() const;
-  host* get_host_ptr();
+  void set_host_ptr(const std::shared_ptr<host>& h);
+  inline std::shared_ptr<const host> get_host_ptr() const {
+    return _host_ptr.lock();
+  }
+  inline std::shared_ptr<host> get_host_ptr() { return _host_ptr.lock(); }
   bool get_host_problem_at_last_check() const;
 
   void set_check_command_ptr(
@@ -284,7 +286,7 @@ class service : public notifier {
   enum service_state _last_hard_state;
   enum service_state _last_state;
   std::list<servicegroup*> _servicegroups;
-  host* _host_ptr;
+  std::weak_ptr<host> _host_ptr;
   bool _host_problem_at_last_check;
   bool _is_cma_service{false};
 };

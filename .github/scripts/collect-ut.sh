@@ -13,6 +13,10 @@ cd build
 mkdir -p /var/tmp
 sysctl -w kernel.core_pattern=/var/tmp/core-%e.%p > /dev/null
 
+echo
+echo "---------------------------   Execute tests/ut_$test   ---------------------------------"
+echo
+
 # Some tests of different components use the same /tmp paths (/tmp/toto, /tmp/test.txt...).
 unshare --mount --propagation private sh -c 'mount -t tmpfs tmpfs /tmp && exec "$@"' sh \
     tests/ut_$test --gtest_output=xml:ut_$test.xml
