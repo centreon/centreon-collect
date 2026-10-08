@@ -789,6 +789,388 @@ TEST_F(global_cache_test, SeverityDisabledCustomVarIsIgnored) {
 }
 
 // ---------------------------------------------------------------------------
+// OTel service identity via OTEL_SERVICE_NAME / OTEL_SERVICE_NAMESPACE
+// ---------------------------------------------------------------------------
+
+static std::shared_ptr<neb::pb_custom_variable> otel_var(
+    uint64_t host_id,
+    const std::string& name,
+    const std::string& value,
+    uint64_t service_id = 0) {
+  auto cv = std::make_shared<neb::pb_custom_variable>();
+  cv->mut_obj().set_host_id(host_id);
+  cv->mut_obj().set_service_id(service_id);
+  cv->mut_obj().set_name(name);
+  cv->mut_obj().set_value(value);
+  cv->mut_obj().set_enabled(true);
+  return cv;
+}
+
+/* The deletion engine sends: enabled false and no value. */
+static std::shared_ptr<neb::pb_custom_variable> otel_var_deleted(
+    uint64_t host_id,
+    const std::string& name) {
+  auto cv = std::make_shared<neb::pb_custom_variable>();
+  cv->mut_obj().set_host_id(host_id);
+  cv->mut_obj().set_name(name);
+  cv->mut_obj().set_enabled(false);
+  cv->mut_obj().set_modified(true);
+  return cv;
+}
+
+static std::shared_ptr<neb::pb_host> otel_host(uint64_t host_id,
+                                               uint64_t instance_id) {
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(host_id);
+  host->mut_obj().set_instance_id(instance_id);
+  host->mut_obj().set_name(fmt::format("h{}", host_id));
+  host->mut_obj().set_enabled(true);
+  return host;
+}
+
+TEST_F(global_cache_test, OtelServiceFromCustomVars) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  obj->write(otel_host(1, 10));
+  EXPECT_EQ(obj->get_otel_service(1).name, "");
+  EXPECT_EQ(obj->get_otel_service(1).name_space, "");
+
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAMESPACE", "shop"));
+  EXPECT_EQ(obj->get_otel_service(1).name, "payment-api");
+  EXPECT_EQ(obj->get_otel_service(1).name_space, "shop");
+
+  // A shorter value replaces a longer one.
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "pay"));
+  EXPECT_EQ(obj->get_otel_service(1).name, "pay");
+
+  // Names are matched whatever their case.
+  obj->write(otel_var(1, "otel_service_name", "billing"));
+  EXPECT_EQ(obj->get_otel_service(1).name, "billing");
+
+  // Service custom variables do not change the host identity.
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "from-service", 5));
+  EXPECT_EQ(obj->get_otel_service(1).name, "billing");
+
+  // Deleting one keeps the other.
+  obj->write(otel_var_deleted(1, "OTEL_SERVICE_NAME"));
+  EXPECT_EQ(obj->get_otel_service(1).name, "");
+  EXPECT_EQ(obj->get_otel_service(1).name_space, "shop");
+
+  obj->write(otel_var_deleted(1, "OTEL_SERVICE_NAMESPACE"));
+  EXPECT_EQ(obj->get_otel_service(1).name_space, "");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, OtelServiceSurvivesReload) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  obj->write(otel_host(1, 10));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+
+  global_cache::unload();
+  obj.reset();
+  obj = global_cache::load(g_io_context, "/tmp/cache_test");
+
+  EXPECT_EQ(obj->get_otel_service(1).name, "payment-api");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, OtelServiceErasedWithHost) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto host = otel_host(1, 10);
+  obj->write(host);
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+
+  host->mut_obj().set_enabled(false);
+  obj->write(host);
+  EXPECT_EQ(obj->get_otel_service(1).name, "");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+/* A restarting engine dumps its custom variables again but never deletes the
+ * ones removed while it was down: its hosts are reset, not the others. */
+TEST_F(global_cache_test, OtelServiceResetOnEngineStart) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  obj->write(otel_host(1, 10));
+  obj->write(otel_host(2, 20));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+  obj->write(otel_var(2, "OTEL_SERVICE_NAME", "orders-db"));
+
+  auto instance = std::make_shared<neb::pb_instance>();
+  instance->mut_obj().set_instance_id(10);
+  instance->mut_obj().set_running(true);
+  obj->write(instance);
+
+  EXPECT_EQ(obj->get_otel_service(1).name, "");
+  EXPECT_EQ(obj->get_otel_service(2).name, "orders-db");
+
+  // Then the dump sets it back.
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+  EXPECT_EQ(obj->get_otel_service(1).name, "payment-api");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+/* CHANGE_CUSTOM_HOST_VAR: engine sends a custom variable status, with the
+ * variable name as typed in the command. */
+TEST_F(global_cache_test, OtelServiceFromCustomVarStatus) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  obj->write(otel_host(1, 10));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+
+  auto cvs = std::make_shared<neb::pb_custom_variable_status>();
+  cvs->mut_obj().set_host_id(1);
+  cvs->mut_obj().set_name("otel_service_name");
+  cvs->mut_obj().set_value("billing");
+  cvs->mut_obj().set_modified(true);
+  obj->write(cvs);
+  EXPECT_EQ(obj->get_otel_service(1).name, "billing");
+
+  // A service custom variable status leaves the host alone.
+  cvs->mut_obj().set_service_id(5);
+  cvs->mut_obj().set_value("from-service");
+  obj->write(cvs);
+  EXPECT_EQ(obj->get_otel_service(1).name, "billing");
+
+  // An empty value falls back to the default.
+  cvs->mut_obj().set_service_id(0);
+  cvs->mut_obj().set_value("");
+  obj->write(cvs);
+  EXPECT_EQ(obj->get_otel_service(1).name, "");
+
+  // BBDO 2 poller.
+  auto legacy = std::make_shared<neb::custom_variable_status>();
+  legacy->host_id = 1;
+  legacy->name = "OTEL_SERVICE_NAMESPACE";
+  legacy->value = "shop";
+  legacy->modified = true;
+  obj->write(legacy);
+  EXPECT_EQ(obj->get_otel_service(1).name_space, "shop");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+/* A host moved from poller 10 to poller 20, whose new configuration has no
+ * OTel macro: poller 20 sends the host, then its custom variables (none of
+ * them OTel), and poller 10's deletion comes last and is stale. */
+TEST_F(global_cache_test, OtelServiceClearedWhenHostMovesWithoutMacros) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  obj->write(otel_host(1, 10));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAMESPACE", "shop"));
+
+  obj->write(otel_host(1, 20));
+  obj->write(otel_var(1, "SNMPCOMMUNITY", "public"));
+  auto stale_deletion = otel_host(1, 10);
+  stale_deletion->mut_obj().set_enabled(false);
+  obj->write(stale_deletion);
+
+  EXPECT_EQ(obj->get_otel_service(1).name, "");
+  EXPECT_EQ(obj->get_otel_service(1).name_space, "");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+/* Same move, poller 20 starting: its dump sends the host before its custom
+ * variables, so the new ones win. */
+TEST_F(global_cache_test, OtelServiceTakenFromNewPollerWhenHostMoves) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  obj->write(otel_host(1, 10));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "payment-api"));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAMESPACE", "shop"));
+
+  auto instance = std::make_shared<neb::pb_instance>();
+  instance->mut_obj().set_instance_id(20);
+  instance->mut_obj().set_running(true);
+  obj->write(instance);
+  obj->write(otel_host(1, 20));
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "billing"));
+
+  EXPECT_EQ(obj->get_otel_service(1).name, "billing");
+  EXPECT_EQ(obj->get_otel_service(1).name_space, "");
+
+  // An update from the same poller keeps it.
+  obj->write(otel_host(1, 20));
+  EXPECT_EQ(obj->get_otel_service(1).name, "billing");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Events from an old poller must not overwrite or clear the new identity.
+// Both configuration and runtime events affect both identity fields.
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, OtelServiceRejectsPreviousPollerEvents) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  auto obj = global_cache::load(g_io_context, "/tmp/cache_test");
+
+  for (bool status : {false, true}) {
+    for (const std::string name :
+         {"OTEL_SERVICE_NAME", "OTEL_SERVICE_NAMESPACE"}) {
+      SCOPED_TRACE(fmt::format("status={} name={}", status, name));
+      auto send = [&](uint64_t poller, const std::string& value, bool enabled) {
+        if (status) {
+          auto cv = std::make_shared<neb::pb_custom_variable_status>();
+          cv->mut_obj().set_host_id(1);
+          cv->mut_obj().set_instance_id(poller);
+          cv->mut_obj().set_name(name);
+          cv->mut_obj().set_value(value);
+          cv->mut_obj().set_modified(true);
+          obj->write(cv);
+        } else {
+          auto cv = otel_var(1, name, value);
+          cv->mut_obj().set_instance_id(poller);
+          cv->mut_obj().set_enabled(enabled);
+          obj->write(cv);
+        }
+      };
+      auto value = [&]() {
+        const auto identity = obj->get_otel_service(1);
+        return name == "OTEL_SERVICE_NAME" ? identity.name : identity.name_space;
+      };
+
+      obj->write(otel_host(1, 10));
+      send(10, "old", true);
+      EXPECT_EQ(value(), "old");
+      obj->write(otel_host(1, 20));
+      EXPECT_TRUE(value().empty());
+
+      // A delayed update must not repopulate an identity removed on migration.
+      send(10, "stale", true);
+      EXPECT_TRUE(value().empty());
+      send(20, "new", true);
+      EXPECT_EQ(value(), "new");
+      send(10, "stale", true);
+      EXPECT_EQ(value(), "new");
+      send(10, "", false);
+      EXPECT_EQ(value(), "new");
+
+      // The new owner can still update and clear its own identity.
+      send(20, "updated", true);
+      EXPECT_EQ(value(), "updated");
+      send(20, "", false);
+      EXPECT_TRUE(value().empty());
+    }
+  }
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, OtelServiceTaggedEventsRequireKnownOwner) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  auto obj = global_cache::load(g_io_context, "/tmp/cache_test");
+  auto cv = otel_var(1, "OTEL_SERVICE_NAME", "payment-api");
+  cv->mut_obj().set_instance_id(10);
+
+  obj->write(cv);
+  EXPECT_TRUE(obj->get_otel_service(1).name.empty());
+  obj->write(otel_host(1, 0));
+  obj->write(cv);
+  EXPECT_TRUE(obj->get_otel_service(1).name.empty());
+  obj->write(otel_host(1, 10));
+  obj->write(cv);
+  EXPECT_EQ(obj->get_otel_service(1).name, "payment-api");
+
+  auto host = otel_host(1, 10);
+  host->mut_obj().set_enabled(false);
+  obj->write(host);
+  obj->write(cv);
+  EXPECT_TRUE(obj->get_otel_service(1).name.empty());
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, OtelServiceOlderSendersRemainAcceptedAfterMove) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  auto obj = global_cache::load(g_io_context, "/tmp/cache_test");
+  obj->write(otel_host(1, 10));
+  obj->write(otel_host(1, 20));
+
+  // Old protobuf senders omit instance_id; their updates remain unvalidated.
+  obj->write(otel_var(1, "OTEL_SERVICE_NAME", "old-protobuf"));
+  EXPECT_EQ(obj->get_otel_service(1).name, "old-protobuf");
+  auto status = std::make_shared<neb::pb_custom_variable_status>();
+  status->mut_obj().set_host_id(1);
+  status->mut_obj().set_name("OTEL_SERVICE_NAME");
+  status->mut_obj().set_value("old-protobuf-status");
+  obj->write(status);
+  EXPECT_EQ(obj->get_otel_service(1).name, "old-protobuf-status");
+
+  // BBDO 2 source_id is a broker ID, not the poller ID.
+  auto legacy = std::make_shared<neb::custom_variable>();
+  legacy->host_id = 1;
+  legacy->source_id = 999;
+  legacy->name = "OTEL_SERVICE_NAME";
+  legacy->value = "legacy";
+  legacy->enabled = true;
+  obj->write(legacy);
+  EXPECT_EQ(obj->get_otel_service(1).name, "legacy");
+  auto legacy_status = std::make_shared<neb::custom_variable_status>();
+  legacy_status->host_id = 1;
+  legacy_status->source_id = 999;
+  legacy_status->name = "OTEL_SERVICE_NAME";
+  legacy_status->value = "legacy-status";
+  obj->write(legacy_status);
+  EXPECT_EQ(obj->get_otel_service(1).name, "legacy-status");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
 // Instance lifecycle
 // ---------------------------------------------------------------------------
 

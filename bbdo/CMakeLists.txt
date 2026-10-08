@@ -89,6 +89,39 @@ target_include_directories(pb_open_telemetry_lib BEFORE PRIVATE ${CMAKE_SOURCE_D
 set_target_properties(pb_open_telemetry_lib
                       PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# gRPC service stub for the OTLP metrics collector.
+#
+# Generated here, next to the messages, on purpose: agent/src and
+# engine/modules/opentelemetry/src each carry their own generated copy of these
+# protos, and a divergence between two such trees has already caused a heap
+# corruption (mismatched sizeof on a message type). Broker modules must reuse
+# this one instead of growing a fourth tree.
+#
+# Kept in a target separate from pb_open_telemetry_lib so the six broker modules
+# that only need the messages do not pick up a gRPC dependency.
+add_custom_command(
+  OUTPUT
+    "${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc"
+  COMMENT "Generating grpc files of the otl service file metrics_service.proto"
+  DEPENDS opentelemetry-proto-files
+  COMMAND
+    protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --grpc_out=${CMAKE_SOURCE_DIR}/bbdo
+    opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+  VERBATIM)
+
+add_library(pb_otel_grpc_lib STATIC
+${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
+)
+
+target_include_directories(pb_otel_grpc_lib BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+
+target_link_libraries(pb_otel_grpc_lib pb_open_telemetry_lib)
+
+set_target_properties(pb_otel_grpc_lib
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
                               PROPERTIES GENERATED TRUE)
