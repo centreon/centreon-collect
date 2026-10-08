@@ -416,11 +416,19 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
       "kpi_service:service_update on downtime {}: was started {} ; actual end "
       "time {}",
       dt->internal_id, dt->was_started, dt->actual_end_time.get_time_t());
-  // Update information.
-  bool downtimed = dt->was_started && dt->actual_end_time.is_null();
+  // Update information. A cancelled downtime is over, even when it carries no
+  // actual_end_time (poller restart cancellation).
+  bool downtimed =
+      dt->was_started && dt->actual_end_time.is_null() && !dt->was_cancelled;
   bool changed = false;
 
-  if (_downtime_ids.contains(dt->internal_id) && dt->deletion_time.is_null()) {
+  /* Only an event that really ends the downtime may reach the code below: a
+   * plain re-announcement (engine restart re-sends DOWNTIME_ADD for every
+   * still-running downtime) or a duplicated start carries no end information
+   * and must not close the kpi event. */
+  bool ends_downtime = dt->was_cancelled || !dt->actual_end_time.is_null() ||
+                       !dt->deletion_time.is_null();
+  if (!ends_downtime && _downtime_ids.contains(dt->internal_id)) {
     _logger->trace("Downtime {} already handled in this kpi service",
                    dt->internal_id);
     return;
@@ -451,7 +459,16 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
   }
 
   if (!_event || _event->in_downtime() != _downtimed) {
-    _last_check = _downtimed ? dt->actual_start_time : dt->actual_end_time;
+    if (_downtimed)
+      _last_check = dt->actual_start_time;
+    else if (!dt->actual_end_time.is_null())
+      _last_check = dt->actual_end_time;
+    else if (!dt->deletion_time.is_null())
+      _last_check = dt->deletion_time;
+    else if (_event)
+      /* A cancelled downtime may carry no end time at all. When no event
+       * last_check is untouched */
+      _last_check = time(nullptr);
     _logger->trace("kpi service {} update, last check set to {}", _id,
                    _last_check);
   }
@@ -478,20 +495,29 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
 void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                                  io::stream* visitor) {
   auto& downtime = dt->obj();
-  // Update information.
-  bool downtimed =
-      downtime.started() && time_is_undefined(downtime.actual_end_time());
+  // Update information. A cancelled downtime is over, even when it carries no
+  // actual_end_time (poller restart cancellation).
+  bool downtimed = downtime.started() &&
+                   time_is_undefined(downtime.actual_end_time()) &&
+                   !downtime.cancelled();
   bool changed = false;
-  if (!_downtimed && downtimed) {
-    _downtimed = true;
-    changed = true;
-  }
 
-  if (_downtime_ids.contains(downtime.id()) &&
-      time_is_undefined(downtime.deletion_time())) {
+  /* Only an event that really ends the downtime may reach the code below: a
+   * plain re-announcement (engine restart re-sends DOWNTIME_ADD for every
+   * still-running downtime) or a duplicated start carries no end information
+   * and must not close the kpi event. */
+  bool ends_downtime = downtime.cancelled() ||
+                       !time_is_undefined(downtime.actual_end_time()) ||
+                       !time_is_undefined(downtime.deletion_time());
+  if (!ends_downtime && _downtime_ids.contains(downtime.id())) {
     _logger->trace("Downtime {} already handled in this kpi service",
                    downtime.id());
     return;
+  }
+
+  if (!_downtimed && downtimed) {
+    _downtimed = true;
+    changed = true;
   }
 
   if (downtimed) {
@@ -510,8 +536,16 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   }
 
   if (!_event || _event->in_downtime() != _downtimed) {
-    _last_check =
-        _downtimed ? downtime.actual_start_time() : downtime.actual_end_time();
+    if (_downtimed)
+      _last_check = downtime.actual_start_time();
+    else if (!time_is_undefined(downtime.actual_end_time()))
+      _last_check = downtime.actual_end_time();
+    else if (!time_is_undefined(downtime.deletion_time()))
+      _last_check = downtime.deletion_time();
+    else if (_event)
+      /* A cancelled downtime may carry no end time at all. When no event
+       * last_check is untouched */
+      _last_check = time(nullptr);
     _logger->trace("kpi service {} update, last check set to {}", _id,
                    _last_check);
   }

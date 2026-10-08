@@ -676,6 +676,71 @@ DT_WITH_QUOTES
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
+BEDTCANCELCLEAN
+    [Documentation]    Given a downtime running on a poller that is lost brutally
+    ...    When the poller comes back without its retention
+    ...    Then unified_sql cancels the orphaned downtime AND sets its actual_end_time
+    ...    So that availability reporting does not consider it running forever.
+    [Tags]    broker    engine    downtime    MON-198964
+    Ctn Clear Logs
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # A fixed downtime on a host also puts its 20 services in downtime.
+    Ctn Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
+    ${content}    Create List    HOST DOWNTIME ALERT: host_1;STARTED; Host has entered a period of scheduled downtime
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The downtime on host_1 should have started.
+
+    ${result}    Ctn Check Number Of Downtimes    ${21}    ${start}    ${60}
+    Should Be True    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    # The downtimes are running: neither cancelled nor terminated.
+    ${running}    Catenate    SELECT downtime_id FROM downtimes
+    ...    WHERE start_time >= ${start} AND started=1 AND cancelled=0 AND actual_end_time IS NULL
+    Check Row Count    ${running}    ==    21    retry_timeout=60s    retry_pause=2s
+
+    # The poller is lost brutally: engine has no chance to terminate its
+    # downtimes, so they stay open in the database. A graceful stop would
+    # terminate them itself and would not exercise _clean_tables().
+    Ctn Kill Engine
+    Check Row Count    ${running}    ==    21    retry_timeout=30s    retry_pause=2s
+
+    # The poller comes back with no retention: it does not resend the downtimes,
+    # and its instance event makes unified_sql run _clean_tables().
+    Ctn Clear Retention
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+
+    # Regression MON-198964: before the fix actual_end_time stayed NULL, so every
+    # consumer kept considering these downtimes as still running.
+    ${terminated}    Catenate    SELECT downtime_id FROM downtimes
+    ...    WHERE start_time >= ${start} AND cancelled=1 AND actual_end_time IS NOT NULL
+    Check Row Count    ${terminated}    ==    21    retry_timeout=60s    retry_pause=2s
+
+    ${dangling}    Catenate    SELECT downtime_id FROM downtimes
+    ...    WHERE start_time >= ${start} AND actual_end_time IS NULL
+    Check Row Count    ${dangling}    ==    0    retry_timeout=30s    retry_pause=2s
+
+    Disconnect From Database
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
 *** Keywords ***
 Ctn Clean Downtimes Before Suite
     Ctn Clean Before Suite
