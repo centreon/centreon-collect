@@ -492,6 +492,34 @@ TEST(bbdo2_to_bbdo3, custom_variable) {
       comp_pb, ,
       (enabled)(default_value)(enabled)(host_id)(modified)(name)(service_id)(update_time)(value));
   EXPECT_EQ(pb.type(), bbdo2->var_type);
+  EXPECT_EQ(pb.instance_id(), 0u);  // Legacy events do not identify the poller.
+}
+
+TEST(bbdo2_to_bbdo3, custom_variable_status) {
+  auto bbdo2 = std::make_shared<neb::custom_variable_status>();
+  bbdo2->destination_id = rand();
+  bbdo2->source_id = rand();
+  bbdo2->host_id = rand();
+  bbdo2->modified = rand() % 2;
+  bbdo2->name = "zuerife";
+  bbdo2->service_id = rand();
+  bbdo2->update_time = time(nullptr);
+  bbdo2->value = "zefzefer";
+
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
+
+  ASSERT_NE(bbdo3, nullptr);
+  ASSERT_EQ(bbdo3->type(), neb::pb_custom_variable_status::static_type());
+
+  const auto& pb_bbdo3 =
+      *static_cast<neb::pb_custom_variable_status*>(bbdo3.get());
+  const auto& pb = pb_bbdo3.obj();
+  EXPECT_EQ(pb.instance_id(), 0u);
+  EXPECT_EQ(pb_bbdo3.destination_id, bbdo2->destination_id);
+  EXPECT_EQ(pb_bbdo3.source_id, bbdo2->source_id);
+
+  BOOST_PP_SEQ_FOR_EACH(
+      comp_pb, , (host_id)(modified)(name)(service_id)(update_time)(value));
 }
 
 TEST(bbdo2_to_bbdo3, index_mapping) {

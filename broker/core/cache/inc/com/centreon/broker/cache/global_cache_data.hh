@@ -107,6 +107,25 @@ class global_cache_data : public global_cache {
           segment_manager,
           65536>>;
 
+  /**
+   * @brief OTel service identity given by the host custom variables
+   * OTEL_SERVICE_NAME and OTEL_SERVICE_NAMESPACE. Only these two are kept:
+   * the other custom variables may hold secrets.
+   */
+  struct host_otel_service {
+    explicit host_otel_service(const char_allocator& alloc)
+        : name(alloc), name_space(alloc) {}
+    string name;
+    string name_space;
+  };
+
+  using id_to_otel_service = boost::container::flat_map<
+      uint64_t /* host_id */,
+      host_otel_service,
+      std::less<uint64_t>,
+      managed_mapped_file::allocator<
+          std::pair<uint64_t, host_otel_service>>::type>;
+
   using id_to_instance = boost::container::flat_map<
       uint64_t,
       interprocess::offset_ptr<instance>,
@@ -307,6 +326,7 @@ class global_cache_data : public global_cache {
   id_to_dimension_ba_bv_relation* _id_to_dimension_ba_bv_relation
       ABSL_GUARDED_BY(_protect);
   id_to_tag* _id_to_tag ABSL_GUARDED_BY(_protect);
+  id_to_otel_service* _id_to_otel_service ABSL_GUARDED_BY(_protect);
 
   void managed_map(bool create) override;
 
@@ -318,6 +338,12 @@ class global_cache_data : public global_cache {
   void _process_pb_host_group(std::shared_ptr<io::data> const& data);
   void _process_pb_host_group_member(std::shared_ptr<io::data> const& data);
   void _process_pb_custom_variable(std::shared_ptr<io::data> const& data);
+  void _process_pb_custom_variable_status(
+      const std::shared_ptr<io::data>& data);
+  void _set_host_otel_service(uint64_t host_id,
+                              uint64_t instance_id,
+                              bool is_name,
+                              std::string_view value);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service_status(const std::shared_ptr<io::data>& data);
   void _process_pb_adaptive_service_status(
@@ -406,6 +432,7 @@ class global_cache_data : public global_cache {
   std::optional<int32_t> get_severity(uint64_t host_id,
                                       uint64_t service_id) const override
       ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  otel_service get_otel_service(uint64_t host_id) const override;
   const dimension_ba_event* get_dimension_ba_event(uint64_t ba_id,
                                                    lock& l) const override;
   const dimension_bv_event* get_dimension_bv_event(uint64_t bv_id,

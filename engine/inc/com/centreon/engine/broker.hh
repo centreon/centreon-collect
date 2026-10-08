@@ -406,4 +406,6 @@ void broker_agent_stats(nebstruct_agent_stats_data& stats);
 
 void broker_agent_unknown_host(const com::centreon::broker::UnknownHost& event);
 
+void broker_agent_host_info(const com::centreon::broker::AgentHostInfo& event);
+
 #endif /* !CCE_BROKER_HH */
