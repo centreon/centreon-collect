@@ -145,14 +145,12 @@ jobs:
       fail-fast: false
       matrix:
         distrib: [alma8, alma9, bookworm]
-    runs-on: centreon-collect
-
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: centreon-ubuntu-26.04-xlarge
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       LEGACY_ENGINE: ${{ github.event.inputs.legacy_engine != 'false' && 'ON' || 'OFF' }}
 
     container:
@@ -160,7 +158,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 4
+      options: --cpus 8 --ulimit core=-1 --privileged
 
     name: unit-test ${{ matrix.distrib }}
 
@@ -168,18 +166,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - name: Install sccache
-        run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
-
-          ${SCCACHE_PATH} --start-server
-        shell: bash
+      - name: Set up sccache
+        uses: ./.github/actions/setup-sccache
+        with:
+          aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
 
       - name: Compile centreon-collect
         env:
           DISTRIB: ${{ matrix.distrib }}
+          TRIPLET: x64-linux
         run: |
           CMAKE="cmake"
 
@@ -193,12 +188,14 @@ jobs:
           CXXFLAGS="-Wall -Wextra" $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-                  -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+                  -DVCPKG_TARGET_TRIPLET=$TRIPLET \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
+                  "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
                   -DWITH_PREFIX=/usr \
                   -DWITH_PREFIX_BIN=/usr/sbin \
                   -DWITH_USER_BROKER=centreon-broker \
@@ -221,13 +218,14 @@ jobs:
                   -DONLY_ROBOT_CMA=OFF \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 8 -Cbuild
           ninja -Cbuild install
         shell: bash
 
       - name: Cache statistics
-        run: ${SCCACHE_PATH} --show-stats
-        shell: bash
+        uses: ./.github/actions/sccache-stats
+        with:
+          ninja_log_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' && format('ninja-log-unit-test-{0}', matrix.distrib) || '' }}
 
       - name: Stop sccache server
         run: ${SCCACHE_PATH} --stop-server
@@ -266,36 +264,39 @@ jobs:
           - image: packaging-centreon-collect-vcpkg-alma8
             distrib: el8
             package_extension: rpm
-            runner: centreon-collect
+            runner: centreon-ubuntu-26.04-xlarge
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
-            runner: centreon-collect
+            runner: centreon-ubuntu-26.04-xlarge
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
-            runner: centreon-collect
+            runner: centreon-ubuntu-26.04-xlarge
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm-arm64
             distrib: bookworm
             package_extension: deb
-            runner: centreon-collect-arm64
+            runner: centreon-ubuntu-26.04-arm-xlarge
             arch: arm64
           - image: packaging-centreon-collect-vcpkg-jammy
             distrib: jammy
             package_extension: deb
-            runner: centreon-collect
+            runner: centreon-ubuntu-26.04-xlarge
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-noble
             distrib: noble
             package_extension: deb
-            runner: centreon-collect
+            runner: centreon-ubuntu-26.04-xlarge
             arch: amd64
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/package-collect.yml
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
@@ -316,6 +317,7 @@ jobs:
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: false
+      aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
@@ -419,7 +421,7 @@ jobs:
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: centreon-ubuntu-26.04-slim
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -492,7 +494,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       matrix:
         include:
@@ -570,7 +572,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       matrix:
         include:
@@ -643,7 +645,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]
