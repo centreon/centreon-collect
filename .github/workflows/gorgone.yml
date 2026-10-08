@@ -306,7 +306,7 @@ jobs:
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: centreon-ubuntu-26.04-slim
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -360,7 +360,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-rpm-pulp:
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, robot-test]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -428,7 +428,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb-pulp:
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, robot-test]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -507,7 +507,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]
