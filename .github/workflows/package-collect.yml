@@ -55,9 +55,6 @@ on:
       aws_role_arn:
         required: true
         type: string
-      aws_web_identity_token_file:
-        required: true
-        type: string
     secrets:
       registry_username:
         required: true
@@ -77,12 +74,10 @@ on:
         required: true
 jobs:
   package:
-    runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
+    runs-on: ${{ inputs.arch == 'arm64' && 'centreon-ubuntu-26.04-arm-xlarge' || 'centreon-ubuntu-26.04-xlarge' }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
       ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma && 'ON' || 'OFF' }}
 
     container:
@@ -90,12 +85,7 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
-      options: --cpus 4
-      env:
-        AWS_WEB_IDENTITY_TOKEN_FILE: ${{ inputs.aws_web_identity_token_file }}
-        AWS_ROLE_ARN: ${{ inputs.aws_role_arn }}
-      volumes:
-        - ${{ inputs.aws_web_identity_token_file }}:${{ inputs.aws_web_identity_token_file }}
+      options: --cpus 8
 
     name: package
 
@@ -109,20 +99,10 @@ jobs:
         with:
           distrib: ${{ inputs.distrib }}
 
-      - name: Install sccache
-        env:
-          ARCH: ${{ inputs.arch }}
-        run: |
-          if [ "$ARCH" = "amd64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-            mv sccache-v0.12.0-x86_64-unknown-linux-musl/sccache /usr/bin/
-          elif [ "$ARCH" = "arm64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-aarch64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.12.0-aarch64-unknown-linux-musl.tar.gz
-            mv sccache-v0.12.0-aarch64-unknown-linux-musl/sccache /usr/bin/
-          fi
-          ${SCCACHE_PATH} --start-server
+      - name: Set up sccache
+        uses: ./.github/actions/setup-sccache
+        with:
+          aws_role_arn: ${{ inputs.aws_role_arn }}
 
       - name: Generate selinux binaries
         if: ${{ steps.parse-distrib.outputs.package_extension == 'rpm' }}
@@ -161,9 +141,9 @@ jobs:
 
           if [ "$ARCH" = "arm64" ]; then
             export VCPKG_FORCE_SYSTEM_BINARIES=1
-            export TRIPLET=arm64-linux-release
+            export TRIPLET=arm64-linux
           else
-            export TRIPLET=x64-linux-release
+            export TRIPLET=x64-linux
           fi
 
           export VCPKG_ROOT="/vcpkg"
@@ -201,12 +181,13 @@ jobs:
                   -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 8 -Cbuild
         shell: bash
 
       - name: Cache statistics
-        run: ${SCCACHE_PATH} --show-stats
-        shell: bash
+        uses: ./.github/actions/sccache-stats
+        with:
+          ninja_log_artifact: ${{ inputs.is_nightly == 'true' && format('ninja-log-package-{0}-{1}{2}', inputs.distrib, inputs.arch, inputs.only_robot_cma && '-cma' || '') || '' }}
 
       - name: Stop sccache server
         run: ${SCCACHE_PATH} --stop-server
