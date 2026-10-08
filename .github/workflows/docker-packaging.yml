@@ -6,6 +6,12 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Rebuild the images even if their tag already exists (base OS updates)"
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - develop
@@ -13,10 +19,14 @@ on:
     paths:
       - ".github/docker/Dockerfile.packaging-*"
       - "vcpkg.json"
+      - "overlays/**"
+      - "custom-triplets/**"
   pull_request:
     paths:
       - ".github/docker/Dockerfile.packaging-*"
       - "vcpkg.json"
+      - "overlays/**"
+      - "custom-triplets/**"
 
 jobs:
   dependency-scan:
@@ -40,27 +50,27 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: alma8
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: alma9
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: alma10
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: trixie
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: trixie
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: bookworm
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: bookworm
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: jammy
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: jammy
-          - runner: centreon-collect
+          - runner: centreon-ubuntu-26.04-xlarge
             distrib: noble
-          - runner: centreon-collect-arm64
+          - runner: centreon-ubuntu-26.04-arm-xlarge
             distrib: noble
 
     runs-on: ${{ matrix.runner }}
@@ -86,7 +96,23 @@ jobs:
         with:
           driver-opts: image=${{ vars.DOCKER_PROXY_REGISTRY_URL }}/moby/buildkit:buildx-stable-1
 
+      # The tag is a hash of every file copied into the image: an existing tag needs no rebuild.
+      - name: Check if the image already exists
+        id: image-exists
+        env:
+          IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+          FORCE: ${{ inputs.force || false }}
+        run: |
+          if [ "$FORCE" != "true" ] && docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "::notice::$IMAGE already exists, build skipped"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
       - name: Build image ${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+        if: steps.image-exists.outputs.exists != 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
@@ -105,6 +131,7 @@ jobs:
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
 
       - name: Build image ${{ env.IMAGE_BASE_NAME }}-vcpk-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+        if: steps.image-exists.outputs.exists != 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
