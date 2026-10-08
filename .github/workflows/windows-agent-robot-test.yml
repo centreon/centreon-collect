@@ -25,6 +25,15 @@ jobs:
 
   build-collect:
     needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/package-collect.yml
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
@@ -41,10 +50,11 @@ jobs:
       image: packaging-centreon-collect-vcpkg-noble
       distrib: noble
       package_extension: deb
-      runner: centreon-collect
+      runner: centreon-ubuntu-26.04-xlarge
       arch: amd64
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: true
+      aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}

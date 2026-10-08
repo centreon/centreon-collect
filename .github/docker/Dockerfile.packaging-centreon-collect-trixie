@@ -76,6 +76,18 @@ mkdir -p /opt/cmake-4.3.3
 bash cmake-4.3.3-linux-\$(arch).sh --skip-license --prefix=/opt/cmake-4.3.3
 rm -f cmake-4.3.3-linux-\$(arch).sh
 
+# sccache, used as compiler launcher by the CI builds (checksums of the v0.18.0 release assets).
+case \$(arch) in
+  x86_64) SCCACHE_SHA256=45f1447fbe231e3037bde351ef70677dd212216c8d62ae7ca409fecc4d6acc89 ;;
+  aarch64) SCCACHE_SHA256=2b3284d5da3b46a47dc4229e75bb7b88ac4aa99c8d754fb7d2f84997e5a4354a ;;
+esac
+SCCACHE_DIR_NAME=sccache-v0.18.0-\$(arch)-unknown-linux-musl
+wget -q https://github.com/mozilla/sccache/releases/download/v0.18.0/\$SCCACHE_DIR_NAME.tar.gz -O /tmp/sccache.tar.gz
+echo "\$SCCACHE_SHA256  /tmp/sccache.tar.gz" | sha256sum -c -
+tar xzf /tmp/sccache.tar.gz -C /tmp
+mv /tmp/\$SCCACHE_DIR_NAME/sccache /usr/bin/sccache
+rm -rf /tmp/sccache.tar.gz /tmp/\$SCCACHE_DIR_NAME
+
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 EOF
@@ -108,7 +120,7 @@ cp /root/vcpkg.json /src/vcpkg.json
 /vcpkg/vcpkg install \
   --clean-after-build \
   --overlay-triplets=custom-triplets \
-  --triplet ${TRIPLET}-release \
+  --triplet ${TRIPLET} \
   --vcpkg-root vcpkg \
   --x-wait-for-lock \
   --x-manifest-root=/src \
