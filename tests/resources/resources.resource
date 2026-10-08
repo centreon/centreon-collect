@@ -121,11 +121,41 @@ Ctn Kindly Stop Broker
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
-        ELSE IF    not ${bbdo2} and not ${only_central} and not ${no_rrd_test}
-            Log To Console    "central broker stopped"
-            # We have to check if central RRD logs contain errors about data sent in the past.
-            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-            Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+        ELSE
+            ${Bbdo2}   Ctn In Bbdo2
+            IF    not ${Bbdo2} and not ${no_rrd_test}
+                # We have to check if central logs contain errors about data sent in the past.
+                ${centralLog_exists}    Run Keyword And Return Status    File Should Exist    ${centralLog}
+                IF    ${centralLog_exists}
+                    ${old_status}    Grep File    ${centralLog}    We have received old status for service
+                    IF    len("""${old_status}""") > 0
+                        Log To Console    The central logs contain errors about duplicate metric status.
+                        Ctn Save Logs
+                        Fail    "The central logs contain errors about duplicate metric status."
+                    END
+                END
+                IF    not ${only_central}
+                        Log To Console    We are in BBDO3, so we also check RRD duplicates
+                        Log To Console    central broker stopped
+                        # We have to check if central RRD logs contain errors about data sent in the past.
+                        ${rrdLog_exists}    Run Keyword And Return Status    File Should Exist    ${rrdLog}
+                        IF    ${rrdLog_exists}
+                            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                            IF    len("""${result}""") > 0
+                                Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
+                                Ctn Save Logs
+                                Remove File    ${rrdLog}
+                            END
+                            Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+                        ELSE
+                            Log To Console    ${rrdLog} does not exist, skipping RRD duplicates check
+                        END
+                ELSE
+                    Log To Console    Broker RRD was not started, so we don't check RRD duplicates
+                END
+            ELSE
+                Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
+            END
         END
     END
 

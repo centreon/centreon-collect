@@ -29,7 +29,6 @@ namespace asio = boost::asio;
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-
 #include "com/centreon/common/process_stat.hh"
 #include "com/centreon/common/time.hh"
 
