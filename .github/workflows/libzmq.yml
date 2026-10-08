@@ -255,7 +255,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       matrix:
         include:
@@ -332,7 +332,7 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       matrix:
         include:
@@ -403,7 +403,7 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]
