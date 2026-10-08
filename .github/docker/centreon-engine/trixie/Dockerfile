@@ -212,9 +212,12 @@ COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
 RUN chmod 0775 /etc/centreon-engine /etc/centreon-engine/conf.d /etc/centreon-broker \
     /etc/pki /etc/pki/centreon-engine
 
-# Copy entrypoint and sudoers (from source repo, not from .deb packages)
-COPY --chmod=755 --chown=centreon-engine:centreon-engine \
-     ./.github/docker/centreon-engine/trixie/entrypoint /var/lib/centreon-engine
+# Copy entrypoint and sudoers (from source repo, not from .deb packages).
+# Root-owned and outside /var/lib/centreon-engine (the engine user's home and
+# cbmod's default cache directory), so that directory can be persisted on a
+# volume without freezing the entrypoint at its first-install version.
+COPY --chmod=755 \
+     ./.github/docker/centreon-engine/trixie/entrypoint /usr/local/lib/centreon-engine
 
 COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d/centreon
 
@@ -259,6 +262,6 @@ USER centreon-engine
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
     CMD test -f /tmp/docker.ready || exit 1
 
-ENTRYPOINT ["/var/lib/centreon-engine/container.sh"]
+ENTRYPOINT ["/usr/local/lib/centreon-engine/container.sh"]
 
 CMD ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"]
