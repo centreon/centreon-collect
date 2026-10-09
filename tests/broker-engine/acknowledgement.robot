@@ -44,7 +44,7 @@ BEACK2
     ...    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Ctn Get Round Current Date
     Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Ctn Check Acknowledgement With Timeout
     ...    host_1    service_1
@@ -96,7 +96,7 @@ BEACK4
     ...    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Ctn Get Round Current Date
     Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Ctn Check Acknowledgement With Timeout
     ...    host_1    service_1    ${d}    2    600    HARD
@@ -142,7 +142,7 @@ BEACK6
     Ctn Process Service Result Hard    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Ctn Get Round Current Date
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
