@@ -199,7 +199,6 @@ overrides:
       - perl(Safe)
       - perl(Tie::File) # required by MBI module
       - perl(DateTime::Format::Strptime)
-    recommends:
       - logrotate
 
   deb:
@@ -240,7 +239,6 @@ overrides:
       - librrds-perl
       - perl-base
       - perl-modules
-    recommends:
       - logrotate
 
 rpm:
