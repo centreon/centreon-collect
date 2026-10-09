@@ -104,9 +104,6 @@ jobs:
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
       labels: ${{ inputs.labels || '' }}
 
-  get-aws-environment:
-    uses: ./.github/workflows/get-aws-environment.yml
-
   check-version-consistency:
     runs-on: ubuntu-24.04
     needs: [get-environment]
@@ -178,7 +175,7 @@ jobs:
       labels: ${{ needs.get-environment.outputs.labels }}
 
   unit-test:
-    needs: [get-environment, get-aws-environment, changes]
+    needs: [get-environment, changes]
     if: |
       needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -187,23 +184,19 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
-    runs-on: centreon-collect
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ${{ matrix.arch == 'arm64' && 'centreon-ubuntu-26.04-arm-xlarge' || 'centreon-ubuntu-26.04-xlarge' }}
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}${{ matrix.arch == 'arm64' && '-arm64' || '' }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 4 --ulimit core=-1 --privileged
-      env:
-        AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
-        AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
-      volumes:
-        - ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}:${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+      options: --cpus 8 --ulimit core=-1 --privileged
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -211,18 +204,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Install sccache
-        run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.12.0-x86_64-unknown-linux-musl/sccache /usr/bin/
-
-          ${SCCACHE_PATH} --start-server
-        shell: bash
+      - name: Set up sccache
+        uses: ./.github/actions/setup-sccache
+        with:
+          aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
 
       - name: Compile centreon-collect
         env:
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
+          TRIPLET: ${{ matrix.arch == 'arm64' && 'arm64-linux' || 'x64-linux' }}
         run: |
           CMAKE="cmake"
 
@@ -236,12 +226,14 @@ jobs:
           CXXFLAGS="-Wall -Wextra" $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-                  -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+                  -DVCPKG_TARGET_TRIPLET=$TRIPLET \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
+                  "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
                   -DWITH_PREFIX=/usr \
                   -DWITH_PREFIX_BIN=/usr/sbin \
                   -DWITH_USER_BROKER=centreon-broker \
@@ -264,13 +256,14 @@ jobs:
                   -DONLY_ROBOT_CMA=OFF \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 8 -Cbuild
           ninja -Cbuild install
         shell: bash
 
       - name: Cache statistics
-        run: ${SCCACHE_PATH} --show-stats
-        shell: bash
+        uses: ./.github/actions/sccache-stats
+        with:
+          ninja_log_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' && format('ninja-log-unit-test-{0}-{1}', matrix.operating_system, matrix.arch) || '' }}
 
       - name: Stop sccache server
         run: ${SCCACHE_PATH} --stop-server
@@ -278,11 +271,24 @@ jobs:
 
       - name: Run unit tests
         run: |
+          # Each binary runs with its own /tmp (collect-ut.sh): they can run at the same time.
+          pids=()
           for test in common broker engine clib connector; do
-            echo "::group::Running unit tests for $test"
-            .github/scripts/collect-ut.sh $test
+            .github/scripts/collect-ut.sh "$test" > "build/ut_$test.log" 2>&1 &
+            pids+=("$!:$test")
+          done
+          rc=0
+          for entry in "${pids[@]}"; do
+            test=${entry#*:}
+            if ! wait "${entry%%:*}"; then
+              rc=1
+              echo "::error::unit tests failed: $test"
+            fi
+            echo "::group::Unit tests for $test"
+            cat "build/ut_$test.log"
             echo "::endgroup::"
           done
+          exit $rc
         working-directory: .
         shell: bash
 
@@ -296,7 +302,7 @@ jobs:
 
   package:
     needs:
-      [get-environment, get-aws-environment, changes, check-version-consistency]
+      [get-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -311,6 +317,9 @@ jobs:
 
     name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
 
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/package-collect.yml
 
     with:
@@ -330,8 +339,7 @@ jobs:
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: false
-      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
-      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+      aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -433,7 +441,7 @@ jobs:
     # job alone doesn't guarantee the resulting image is validated:
     # docker-boot-test/docker-config-wiring-test below are what actually gate
     # version_tag and promote-docker-tag/promote-docker-to-ghcr.
-    needs: [get-environment, get-aws-environment, changes, package, robot-test]
+    needs: [get-environment, changes, package, robot-test]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -764,7 +772,7 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
       packages: write
@@ -853,7 +861,7 @@ jobs:
         shell: bash
 
   robot-test:
-    needs: [get-environment, get-aws-environment, changes, package]
+    needs: [get-environment, changes, package]
     if: |
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -880,8 +888,6 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       features_pattern: ${{ inputs.robot_pattern }}
-      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
-      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -892,7 +898,7 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: centreon-ubuntu-26.04-slim
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -973,7 +979,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -1060,7 +1066,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -1137,7 +1143,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:

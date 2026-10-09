@@ -37,6 +37,7 @@ jobs:
         run: |
           "$ACTIONLINT" \
             -ignore 'label "centreon-(ubuntu-22.04|common|collect|collect-arm64)" is unknown' \
+            -ignore 'label "centreon-ubuntu-26\.04[a-z-]*" is unknown' \
             -ignore 'label "ubuntu-24.04-arm" is unknown' \
             -ignore '"github.head_ref" is potentially untrusted' \
             -pyflakes= \
