@@ -544,11 +544,18 @@ void checkable::set_name(const std::string& name) {
  * in another place than in this). The cached command is writable to be updated
  * if needed. This method should be used with care, usually the other method
  * with the same name should be preferred.
+ * @param cma_command true if the command is executed by the Centreon Monitoring
+ * Agent (CMA). In that case, the CMA whitelist of hostname is used instead of
+ * the engine one.
+ * @param hostname name of the host the command is executed for. Only used when
+ * cma_command is true.
  * @return A boolean true if allowed, false otherwise.
  */
 bool checkable::command_is_allowed_by_whitelist(
     const std::string& process_cmd,
-    static_whitelist_last_result& cached_cmd) {
+    static_whitelist_last_result& cached_cmd,
+    bool cma_command,
+    const std::string& hostname) {
   if (process_cmd == cached_cmd.command.process_cmd &&
       configuration::whitelist::instance().instance_id() ==
           cached_cmd.whitelist_instance_id) {
@@ -558,7 +565,10 @@ bool checkable::command_is_allowed_by_whitelist(
   // something has changed => call whitelist
   cached_cmd.command.process_cmd = process_cmd;
   cached_cmd.command.allowed =
-      configuration::whitelist::instance().is_allowed_by_engine(process_cmd);
+      cma_command ? configuration::whitelist::instance().is_allowed_by_cma(
+                        process_cmd, hostname)
+                  : configuration::whitelist::instance().is_allowed_by_engine(
+                        process_cmd);
   cached_cmd.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
   return cached_cmd.command.allowed;
@@ -570,12 +580,20 @@ bool checkable::command_is_allowed_by_whitelist(
  *
  * @param process_cmd final command line (macros replaced)
  * @param typ a value among CHECK_TYPE, NOTIF_TYPE, EVH_TYPE or OBSESS_TYPE.
- * @return true allowed
- * @return false
+ * Ignored when cma_command is true.
+ * @param cma_command true if the command is executed by the Centreon Monitoring
+ * Agent (CMA). In that case, the CMA whitelist of hostname is used instead of
+ * the engine one, and the result is cached in a dedicated slot.
+ * @param hostname name of the host the command is executed for. Only used when
+ * cma_command is true.
+ * @return A boolean true if allowed, false otherwise.
  */
 bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
-                                                command_type typ) {
-  auto& cmd = _whitelist_last_result.command[typ];
+                                                command_type typ,
+                                                bool cma_command,
+                                                const std::string& hostname) {
+  auto& cmd = cma_command ? _whitelist_last_result.cma_command
+                          : _whitelist_last_result.command[typ];
   if (process_cmd == cmd.process_cmd &&
       configuration::whitelist::instance().instance_id() ==
           _whitelist_last_result.whitelist_instance_id) {
@@ -584,8 +602,11 @@ bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
 
   // something has changed => call whitelist
   cmd.process_cmd = process_cmd;
-  cmd.allowed =
-      configuration::whitelist::instance().is_allowed_by_engine(process_cmd);
+  cmd.allowed = cma_command
+                    ? configuration::whitelist::instance().is_allowed_by_cma(
+                          process_cmd, hostname)
+                    : configuration::whitelist::instance().is_allowed_by_engine(
+                          process_cmd);
   _whitelist_last_result.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
   return cmd.allowed;

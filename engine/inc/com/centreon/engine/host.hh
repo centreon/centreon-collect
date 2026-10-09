@@ -262,6 +262,12 @@ class host : public notifier {
   bool is_cma_host() const { return _is_cma_host; }
   void set_is_cma_host(bool is_cma) { _is_cma_host = is_cma; }
 
+  bool command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                       command_type typ) {
+    return checkable::command_is_allowed_by_whitelist(process_cmd, typ,
+                                                      _is_cma_host, name());
+  }
+
  private:
   void _switch_all_services_to_unknown();
 

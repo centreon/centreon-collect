@@ -57,6 +57,7 @@ class checkable {
     unsigned whitelist_instance_id;
     /* We need a command for each type of command */
     std::array<command_allowed, 4> command;
+    command_allowed cma_command;
   };
 
   std::string _name;
@@ -263,10 +264,14 @@ class checkable {
   const std::forward_list<std::shared_ptr<tag>>& tags() const;
 
   bool command_is_allowed_by_whitelist(const std::string& process_cmd,
-                                       command_type typ);
+                                       command_type typ,
+                                       bool cma_command,
+                                       const std::string& hostname);
   static bool command_is_allowed_by_whitelist(
       const std::string& process_cmd,
-      static_whitelist_last_result& cached_cmd);
+      static_whitelist_last_result& cached_cmd,
+      bool cma_command,
+      const std::string& hostname);
 
   timeperiod* check_period_ptr;
 };
