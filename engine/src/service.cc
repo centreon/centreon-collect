@@ -1149,9 +1149,11 @@ int service::handle_async_check_result(
       queued_check_result.get_exited_ok() ? "Yes" : "No", execution_time,
       queued_check_result.get_return_code(), queued_check_result.get_output());
 
-  /* decrement the number of service checks still out there... */
+  /* decrement the number of service checks still out there...
+   * CMA checks are not counted in run_async_check_local(), even when their
+   * result is an active one (agent not connected, whitelist...) */
   if (queued_check_result.get_check_type() == check_active &&
-      currently_running_service_checks > 0)
+      !is_cma_service() && currently_running_service_checks > 0)
     currently_running_service_checks--;
 
   /*
@@ -2671,7 +2673,10 @@ int service::run_async_check_local(int check_options,
   gettimeofday(&start_time, nullptr);
 
   // Update the number of running service checks.
-  ++currently_running_service_checks;
+  // A CMA check is only a request sent to the agent, its result comes back as
+  // a passive one, so it is not counted (see handle_async_check_result()).
+  if (!is_cma_service())
+    ++currently_running_service_checks;
   engine_logger(dbg_checks, basic)
       << "Current running service checks: " << currently_running_service_checks;
   SPDLOG_LOGGER_TRACE(checks_logger, "Current running service checks: {}",

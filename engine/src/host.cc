@@ -1314,8 +1314,10 @@ int host::handle_async_check_result_3x(
                       queued_check_result.get_return_code());
   SPDLOG_LOGGER_DEBUG(checks_logger, "Output:             {}",
                       queued_check_result.get_output());
-  /* decrement the number of host checks still out there... */
-  if (queued_check_result.get_check_type() == check_active &&
+  /* decrement the number of host checks still out there...
+   * CMA checks are not counted in run_async_check(), even when their result
+   * is an active one (agent not connected, whitelist...) */
+  if (queued_check_result.get_check_type() == check_active && !is_cma_host() &&
       currently_running_host_checks > 0)
     currently_running_host_checks--;
 
@@ -1821,7 +1823,10 @@ int host::run_async_check(int check_options,
     set_next_check(start_time.tv_sec);
 
   // Update the number of running host checks.
-  ++currently_running_host_checks;
+  // A CMA check is only a request sent to the agent, its result comes back as
+  // a passive one, so it is not counted (see handle_async_check_result_3x()).
+  if (!is_cma_host())
+    ++currently_running_host_checks;
 
   // Set the execution flag.
   set_is_executing(true);

@@ -36,7 +36,8 @@ using namespace com::centreon::engine::downtimes;
 /**
  *  The default constructor
  */
-command_manager::command_manager() {}
+command_manager::command_manager()
+    : _last_time(std::chrono::system_clock::now()) {}
 
 /**
  * @brief Just an accessor to the command_manager instance.
@@ -53,12 +54,19 @@ void command_manager::enqueue(std::packaged_task<int(void)>&& f) {
   _queue.emplace_back(std::move(f));
 }
 
+bool command_manager::was_executed() {
+  _last_time = std::chrono::system_clock::now();
+  return std::chrono::system_clock::now() - _last_time >
+         std::chrono::seconds(5);
+}
+
 /**
  * @brief Executes external commands stored in _queue.
  *
  */
 void command_manager::execute() {
   std::unique_lock<std::mutex> lock(_queue_m);
+  _last_time = std::chrono::system_clock::now();
   if (_queue.empty())
     return;
 

@@ -22,6 +22,7 @@
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
@@ -108,6 +109,38 @@ TEST_F(LoopTest, ServiceCheck) {
    * consumed by the loop. */
   ASSERT_NO_THROW(events::loop::instance().run());
   // It must exit
+}
+
+TEST_F(LoopTest, ForcedServiceCheckAtMaxDoesNotStarveQueuedTasks) {
+  timeval tv;
+  gettimeofday(&tv, nullptr);
+  time_t now = tv.tv_sec;
+  set_time(now);
+
+  // max_concurrent_checks is reached but a forced check bypasses it: the event
+  // is run, not nudged, and the idle branch of the loop is not reached.
+  pb_config.set_max_parallel_service_checks(1);
+  currently_running_service_checks = 1;
+  _svc->set_check_options(CHECK_OPTION_FORCE_EXECUTION);
+  auto new_event{std::make_unique<timed_event>(
+      timed_event::EVENT_SERVICE_CHECK, now, false, 0L, nullptr, true,
+      _svc.get(), nullptr, CHECK_OPTION_FORCE_EXECUTION)};
+  events::loop::instance().reschedule_event(std::move(new_event),
+                                            events::loop::low);
+
+  // A queued task (CMA result, gRPC command...).
+  auto task_executed = std::make_shared<bool>(false);
+  command_manager::instance().enqueue(
+      std::packaged_task<int()>([task_executed] {
+        *task_executed = true;
+        return OK;
+      }));
+
+  EXPECT_NO_THROW(events::loop::instance().run());
+  currently_running_service_checks = 0;
+  EXPECT_TRUE(*task_executed);
+  // Do not leave the task to the other tests.
+  command_manager::instance().execute();
 }
 
 TEST_F(LoopTest, HostCheck) {

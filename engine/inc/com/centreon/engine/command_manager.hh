@@ -36,6 +36,8 @@ namespace com::centreon::engine {
 class command_manager {
   std::mutex _queue_m;
   std::deque<std::packaged_task<int()> > _queue;
+  std::chrono::system_clock::time_point _last_time;
+
   command_manager();
 
  public:
@@ -55,6 +57,7 @@ class command_manager {
   int get_restart_stats(RestartStats* response);
   int get_services_stats(ServicesStats* sstats);
   int get_hosts_stats(HostsStats* hstats);
+  bool was_executed();
   void execute();
   static void schedule_and_propagate_downtime(host* h,
                                               time_t entry_time,
