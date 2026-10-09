@@ -161,7 +161,7 @@ static std::string get_service_macro_timezone(
 // Redirection object.
 struct grab_service_redirection {
   typedef std::unordered_map<
-      unsigned int,
+      uint32_t,
       std::pair<std::string (*)(com::centreon::engine::service&,
                                 nagios_macros* mac),
                 bool>>

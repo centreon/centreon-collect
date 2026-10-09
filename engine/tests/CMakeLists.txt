@@ -31,7 +31,8 @@ if(WITH_TESTING)
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
   include_directories(${PROJECT_SOURCE_DIR}/enginerpc)
   add_definitions("-DENGINERPC_TESTS_PATH=${TESTS_DIR}/enginerpc"
-                  "-DENGINE_CFG_TEST=\"${TESTS_DIR}/cfg_files\"")
+                  "-DENGINE_CFG_TEST=\"${TESTS_DIR}/cfg_files\""
+                  "-DENGINE_MACROS_GOLDEN=\"${TESTS_DIR}/macros/golden.txt\"")
 
   add_executable(rpc_client_engine ${TESTS_DIR}/enginerpc/client.cc)
 
@@ -107,6 +108,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/downtimes/pbdowntime_finder.cc
       ${TESTS_DIR}/enginerpc/pbenginerpc.cc
       ${TESTS_DIR}/helper.cc
+      ${TESTS_DIR}/macros/golden.cc
       ${TESTS_DIR}/macros/pbmacro.cc
       ${TESTS_DIR}/macros/pbmacro_hostname.cc
       ${TESTS_DIR}/macros/pbmacro_service.cc

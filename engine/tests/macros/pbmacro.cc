@@ -17,6 +17,8 @@
  *
  */
 
+#include <absl/strings/str_cat.h>
+#include <absl/strings/str_join.h>
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 #include <fstream>
@@ -32,25 +34,25 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
+// #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/grab_service.hh"
-#include "com/centreon/engine/macros/process.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostgroup_helper.hh"
-#include "common/engine_conf/message_helper.hh"
+// #include "com/centreon/engine/macros/grab_host.hh"
+// #include "com/centreon/engine/macros/grab_service.hh"
+// #include "com/centreon/engine/macros/process.hh"
+// #include "common/engine_conf/contact_helper.hh"
+// #include "common/engine_conf/host_helper.hh"
+// #include "common/engine_conf/hostgroup_helper.hh"
+// #include "common/engine_conf/message_helper.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/engine_conf/service_helper.hh"
-#include "common/engine_conf/servicegroup_helper.hh"
-#include "common/engine_conf/state.pb.h"
-#include "common/engine_conf/timeperiod_helper.hh"
+// #include "common/engine_conf/service_helper.hh"
+// #include "common/engine_conf/servicegroup_helper.hh"
+// #include "common/engine_conf/state.pb.h"
+// #include "common/engine_conf/timeperiod_helper.hh"
 #include "common/tests/timeperiods/utils.hh"
-#include "common/timeperiods/timeperiod.hh"
+// #include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -1211,4 +1213,167 @@ TEST_F(Macro, PbTotalHostsUnhandled) {
                    "$TOTALHOSTPROBLEMS$ $TOTALHOSTPROBLEMSUNHANDLED$",
                    out, 0);
   ASSERT_EQ(out, "1 2 1 4 2 6 3");
+}
+
+/* $CONTACTADDRESSn$ with n greater than the number of addresses of the
+ * contact (but not than MAX_CONTACT_ADDRESSES) used to read out of the
+ * addresses vector: c1 has two addresses, c2 none. */
+TEST_F(Macro, PbContactAddressOutOfRange) {
+  configuration::applier::contact ct_aply;
+  configuration::Contact c1, c2;
+  configuration::contact_helper c1_hlp(&c1), c2_hlp(&c2);
+  fill_pb_configuration_contact(&c1_hlp, "c1", true);
+  fill_pb_configuration_contact(&c2_hlp, "c2", false);
+  c1.add_address("address-one");
+  c1.add_address("address-two");
+  ct_aply.add_object(c1);
+  ct_aply.add_object(c2);
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  ct_aply.resolve_object(c1);
+  ct_aply.resolve_object(c2);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+
+  grab_contact_macros_r(mac,
+                        engine::contact::contacts.find("c1")->second.get());
+  process_macros_r(mac,
+                   "[$CONTACTADDRESS1$] [$CONTACTADDRESS2$] "
+                   "[$CONTACTADDRESS3$] [$CONTACTADDRESS6$]",
+                   out, 0);
+  ASSERT_EQ(out, "[address-one] [address-two] [] []");
+  clear_volatile_macros_r(mac);
+
+  grab_contact_macros_r(mac,
+                        engine::contact::contacts.find("c2")->second.get());
+  process_macros_r(mac, "[$CONTACTADDRESS1$]", out, 0);
+  ASSERT_EQ(out, "[]");
+  clear_volatile_macros_r(mac);
+
+  process_macros_r(mac, "[$CONTACTADDRESS2:c1$] [$CONTACTADDRESS3:c1$]", out,
+                   0);
+  ASSERT_EQ(out, "[address-two] []");
+  process_macros_r(mac, "[$CONTACTADDRESS1:c2$]", out, 0);
+  ASSERT_EQ(out, "[]");
+}
+
+/* $SERVICEGROUPMEMBERS$ used to overwrite its buffer with each member instead
+ * of appending it: only the last member was left, behind a comma. */
+TEST_F(Macro, PbServicegroupMembers) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::Host h1, h2;
+  configuration::host_helper h1_hlp(&h1), h2_hlp(&h2);
+  fill_pb_configuration_host(&h1_hlp, "h1", "", 1);
+  fill_pb_configuration_host(&h2_hlp, "h2", "", 2);
+  hst_aply.add_object(h1);
+  hst_aply.add_object(h2);
+  configuration::Service s1, s2, s3;
+  configuration::service_helper s1_hlp(&s1), s2_hlp(&s2), s3_hlp(&s3);
+  fill_pb_configuration_service(&s1_hlp, "h1", "s", "", 1);
+  fill_pb_configuration_service(&s2_hlp, "h2", "s", "", 2);
+  fill_pb_configuration_service(&s3_hlp, "h2", "t", "", 3);
+  svc_aply.add_object(s1);
+  svc_aply.add_object(s2);
+  svc_aply.add_object(s3);
+
+  configuration::applier::servicegroup sg_aply;
+  configuration::Servicegroup sg;
+  configuration::servicegroup_helper sg_hlp(&sg);
+  sg.set_servicegroup_name("sg");
+  fill_pair_string_group(sg.mutable_members(), "h1,s,h2,s,h2,t");
+  sg_aply.add_object(sg);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  hst_aply.resolve_object(h1);
+  hst_aply.resolve_object(h2);
+  svc_aply.resolve_object(s1);
+  svc_aply.resolve_object(s2);
+  svc_aply.resolve_object(s3);
+  sg_aply.resolve_object(sg);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+  process_macros_r(mac, "$SERVICEGROUPMEMBERS:sg$", out, 0);
+
+  /* The members come in no particular order: compare the sorted pairs. */
+  std::vector<std::string_view> items = absl::StrSplit(out, ',');
+  ASSERT_EQ(items.size(), 6u) << out;
+  std::vector<std::string> pairs;
+  for (size_t i = 0; i < items.size(); i += 2)
+    pairs.push_back(absl::StrCat(items[i], ",", items[i + 1]));
+  std::sort(pairs.begin(), pairs.end());
+  ASSERT_EQ(absl::StrJoin(pairs, ";"), "h1,s;h2,s;h2,t");
+}
+
+/* The $TOTALHOSTSERVICES*$ macros used to be cached for any host: once
+ * computed for an on-demand host, they were returned for the context host and
+ * for every member of a host group. h1 (context) has one critical service, h2
+ * two warning services. */
+TEST_F(Macro, PbTotalHostServicesOnDemand) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::Host h1, h2;
+  configuration::host_helper h1_hlp(&h1), h2_hlp(&h2);
+  fill_pb_configuration_host(&h1_hlp, "h1", "", 1);
+  fill_pb_configuration_host(&h2_hlp, "h2", "", 2);
+  hst_aply.add_object(h1);
+  hst_aply.add_object(h2);
+  configuration::Service s1, s2, s3;
+  configuration::service_helper s1_hlp(&s1), s2_hlp(&s2), s3_hlp(&s3);
+  fill_pb_configuration_service(&s1_hlp, "h1", "s", "", 1);
+  fill_pb_configuration_service(&s2_hlp, "h2", "s", "", 2);
+  fill_pb_configuration_service(&s3_hlp, "h2", "t", "", 3);
+  svc_aply.add_object(s1);
+  svc_aply.add_object(s2);
+  svc_aply.add_object(s3);
+
+  configuration::applier::hostgroup hg_aply;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  hg.set_hostgroup_name("hg");
+  hg_hlp.hook("members", "h1,h2");
+  hg_aply.add_object(hg);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  hst_aply.resolve_object(h1);
+  hst_aply.resolve_object(h2);
+  svc_aply.resolve_object(s1);
+  svc_aply.resolve_object(s2);
+  svc_aply.resolve_object(s3);
+  hg_aply.resolve_object(hg);
+
+  engine::service::services.find({"h1", "s"})
+      ->second->set_current_state(engine::service::state_critical);
+  engine::service::services.find({"h2", "s"})
+      ->second->set_current_state(engine::service::state_warning);
+  engine::service::services.find({"h2", "t"})
+      ->second->set_current_state(engine::service::state_warning);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+  grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
+  process_macros_r(mac,
+                   "$TOTALHOSTSERVICESWARNING:h2$ $TOTALHOSTSERVICESWARNING$ "
+                   "$TOTALHOSTSERVICESWARNING:h2$",
+                   out, 0);
+  ASSERT_EQ(out, "2 0 2");
+  process_macros_r(mac,
+                   "$TOTALHOSTSERVICESWARNING$ $TOTALHOSTSERVICESWARNING:h2$ "
+                   "$TOTALHOSTSERVICESCRITICAL$",
+                   out, 0);
+  ASSERT_EQ(out, "0 2 1");
+  clear_volatile_macros_r(mac);
+
+  /* One value per member, in no particular order. */
+  process_macros_r(mac, "$TOTALHOSTSERVICESWARNING:hg:,$", out, 0);
+  std::vector<std::string_view> values = absl::StrSplit(out, ',');
+  std::sort(values.begin(), values.end());
+  ASSERT_EQ(absl::StrJoin(values, ","), "0,2");
 }

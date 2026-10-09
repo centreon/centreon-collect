@@ -18,9 +18,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "com/centreon/engine/macros.hh"
+#include <absl/strings/str_cat.h>
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -317,7 +319,7 @@ int grab_datetime_macro_r(nagios_macros* mac,
       break;
 
     case MACRO_TIMET:
-      output = std::to_string(current_time);
+      output = fmt::to_string(current_time);
       break;
 
     case MACRO_ISVALIDTIME:
@@ -451,7 +453,8 @@ int grab_standard_servicegroup_macro_r(nagios_macros* mac,
                                     just need to write "%s,%s" */
           temp_buffer = it->first.first + "," + it->first.second;
         else /* Now we need to write ",%s,%s" */
-          temp_buffer = "," + it->first.first + "," + it->first.second;
+          absl::StrAppend(&temp_buffer, ",", it->first.first, ",",
+                          it->first.second);
       }
       output = temp_buffer;
       break;
@@ -576,8 +579,9 @@ int grab_contact_address_macro(unsigned int macro_num,
   if (temp_contact == nullptr)
     return ERROR;
 
-  /* get the macro */
-  if (!temp_contact->get_address(macro_num).empty())
+  /* get the macro, the contact may have less than MAX_CONTACT_ADDRESSES
+   * addresses */
+  if (macro_num < temp_contact->get_addresses().size())
     output = temp_contact->get_address(macro_num);
   return OK;
 }

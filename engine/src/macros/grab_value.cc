@@ -648,29 +648,29 @@ static int handle_summary_macro(nagios_macros* mac,
 
     // These macros are time-intensive to compute, and will likely be
     // r, so save them all for future use.
-    mac->x[MACRO_TOTALHOSTSUP] = std::to_string(hosts_up);
-    mac->x[MACRO_TOTALHOSTSDOWN] = std::to_string(hosts_down);
-    mac->x[MACRO_TOTALHOSTSUNREACHABLE] = std::to_string(hosts_unreachable);
+    mac->x[MACRO_TOTALHOSTSUP] = fmt::to_string(hosts_up);
+    mac->x[MACRO_TOTALHOSTSDOWN] = fmt::to_string(hosts_down);
+    mac->x[MACRO_TOTALHOSTSUNREACHABLE] = fmt::to_string(hosts_unreachable);
     mac->x[MACRO_TOTALHOSTSDOWNUNHANDLED] =
-        std::to_string(hosts_down_unhandled);
+        fmt::to_string(hosts_down_unhandled);
     mac->x[MACRO_TOTALHOSTSUNREACHABLEUNHANDLED] =
-        std::to_string(hosts_unreachable_unhandled);
-    mac->x[MACRO_TOTALHOSTPROBLEMS] = std::to_string(host_problems);
+        fmt::to_string(hosts_unreachable_unhandled);
+    mac->x[MACRO_TOTALHOSTPROBLEMS] = fmt::to_string(host_problems);
     mac->x[MACRO_TOTALHOSTPROBLEMSUNHANDLED] =
-        std::to_string(host_problems_unhandled);
-    mac->x[MACRO_TOTALSERVICESOK] = std::to_string(services_ok);
-    mac->x[MACRO_TOTALSERVICESWARNING] = std::to_string(services_warning);
-    mac->x[MACRO_TOTALSERVICESCRITICAL] = std::to_string(services_critical);
-    mac->x[MACRO_TOTALSERVICESUNKNOWN] = std::to_string(services_unknown);
+        fmt::to_string(host_problems_unhandled);
+    mac->x[MACRO_TOTALSERVICESOK] = fmt::to_string(services_ok);
+    mac->x[MACRO_TOTALSERVICESWARNING] = fmt::to_string(services_warning);
+    mac->x[MACRO_TOTALSERVICESCRITICAL] = fmt::to_string(services_critical);
+    mac->x[MACRO_TOTALSERVICESUNKNOWN] = fmt::to_string(services_unknown);
     mac->x[MACRO_TOTALSERVICESWARNINGUNHANDLED] =
-        std::to_string(services_warning_unhandled);
+        fmt::to_string(services_warning_unhandled);
     mac->x[MACRO_TOTALSERVICESCRITICALUNHANDLED] =
-        std::to_string(services_critical_unhandled);
+        fmt::to_string(services_critical_unhandled);
     mac->x[MACRO_TOTALSERVICESUNKNOWNUNHANDLED] =
-        std::to_string(services_unknown_unhandled);
-    mac->x[MACRO_TOTALSERVICEPROBLEMS] = std::to_string(service_problems);
+        fmt::to_string(services_unknown_unhandled);
+    mac->x[MACRO_TOTALSERVICEPROBLEMS] = fmt::to_string(service_problems);
     mac->x[MACRO_TOTALSERVICEPROBLEMSUNHANDLED] =
-        std::to_string(service_problems_unhandled);
+        fmt::to_string(service_problems_unhandled);
   }
 
   // Return only the macro the user requested.
@@ -1024,13 +1024,13 @@ int grab_macro_value_r(nagios_macros* mac,
 
   /***** CONTACT ADDRESS MACROS *****/
   /* NOTE: the code below should be broken out into a separate function */
-  else if (macro_name.size() > 14 &&
-           macro_name.compare(0, 14, "CONTACTADDRESS") == 0) {
-    /* which address do we want? */
-    if (!absl::SimpleAtoi(macro_name.substr(14), &x)) {
+  else if (buf.size() > 14 && buf.compare(0, 14, "CONTACTADDRESS") == 0) {
+    /* which address do we want? (buf, the name without the arguments of an
+     * on-demand macro) */
+    if (!absl::SimpleAtoi(buf.substr(14), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.substr(14));
+          buf.substr(14));
       return ERROR;
     }
     x -= 1;

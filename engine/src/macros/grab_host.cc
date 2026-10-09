@@ -20,15 +20,49 @@
 
 #include "com/centreon/engine/macros/grab_host.hh"
 
+#include <array>
+
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros/clear_host.hh"
 #include "com/centreon/engine/macros/clear_hostgroup.hh"
-#include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/macros/grab.hh"
 #include "com/centreon/engine/macros/misc.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::macros;
+
+/**
+ *  Count the services of a host by state.
+ *
+ *  @param[in] hst Host object.
+ *
+ *  @return The totals in the order of the macros MACRO_TOTALHOSTSERVICES,
+ *          MACRO_TOTALHOSTSERVICESOK, MACRO_TOTALHOSTSERVICESWARNING,
+ *          MACRO_TOTALHOSTSERVICESUNKNOWN, MACRO_TOTALHOSTSERVICESCRITICAL.
+ */
+static std::array<uint32_t, 5> count_host_services(const host& hst) {
+  std::array<uint32_t, 5> retval{};
+  for (auto& [key, temp_service] : hst.services) {
+    if (temp_service) {
+      ++retval[0];
+      switch (temp_service->get_current_state()) {
+        case service::state_ok:
+          ++retval[1];
+          break;
+        case service::state_warning:
+          ++retval[2];
+          break;
+        case service::state_unknown:
+          ++retval[3];
+          break;
+        case service::state_critical:
+          ++retval[4];
+          break;
+      }
+    }
+  }
+  return retval;
+}
 
 /**
  *  Generate total services macros.
@@ -40,44 +74,11 @@ static void generate_host_total_services(host& hst, nagios_macros* mac) {
   // Generate host service summary macros
   // (if they haven't already been computed).
   if (mac->x[MACRO_TOTALHOSTSERVICES].empty()) {
-    unsigned long total_host_services(0);
-    unsigned long total_host_services_ok(0);
-    unsigned long total_host_services_warning(0);
-    unsigned long total_host_services_unknown(0);
-    unsigned long total_host_services_critical(0);
-    for (service_map_unsafe::iterator it(hst.services.begin()),
-         end(hst.services.end());
-         it != end; ++it) {
-      service* temp_service(it->second);
-      if (temp_service) {
-        total_host_services++;
-        switch (temp_service->get_current_state()) {
-          case service::state_ok:
-            total_host_services_ok++;
-            break;
-          case service::state_warning:
-            total_host_services_warning++;
-            break;
-          case service::state_unknown:
-            total_host_services_unknown++;
-            break;
-          case service::state_critical:
-            total_host_services_critical++;
-            break;
-        }
-      }
-    }
-
     // These macros are time-intensive to compute, and will likely be
     // used together, so save them all for future use.
-    mac->x[MACRO_TOTALHOSTSERVICES] = std::to_string(total_host_services);
-    mac->x[MACRO_TOTALHOSTSERVICESOK] = std::to_string(total_host_services_ok);
-    mac->x[MACRO_TOTALHOSTSERVICESWARNING] =
-        std::to_string(total_host_services_warning);
-    mac->x[MACRO_TOTALHOSTSERVICESUNKNOWN] =
-        std::to_string(total_host_services_unknown);
-    mac->x[MACRO_TOTALHOSTSERVICESCRITICAL] =
-        std::to_string(total_host_services_critical);
+    std::array<uint32_t, 5> totals = count_host_services(hst);
+    for (size_t i = 0; i < totals.size(); ++i)
+      mac->x[MACRO_TOTALHOSTSERVICES + i] = fmt::to_string(totals[i]);
   }
 }
 
@@ -165,10 +166,17 @@ std::string get_host_state(T& t, nagios_macros* mac) {
  *
  *  @return Newly allocated string with requested value in plain text.
  */
-template <unsigned int macro_id>
+template <uint32_t macro_id>
 std::string get_host_total_services(host& hst, nagios_macros* mac) {
-  generate_host_total_services(hst, mac);
-  return mac->x[macro_id];
+  // The cache in the macros does not know its host: it only holds the totals
+  // of the context host, those of another host (on-demand macro) are
+  // computed each time.
+  if (&hst == mac->host_ptr) {
+    generate_host_total_services(hst, mac);
+    return mac->x[macro_id];
+  }
+  return fmt::to_string(
+      count_host_services(hst)[macro_id - MACRO_TOTALHOSTSERVICES]);
 }
 
 /**
@@ -244,7 +252,7 @@ static std::string get_host_macro_timezone(host& hst, nagios_macros* mac) {
 // Redirection object.
 struct grab_host_redirection {
   typedef std::unordered_map<
-      unsigned int,
+      uint32_t,
       std::pair<std::string (*)(host&, nagios_macros*), bool>>
       entry;
   entry routines{

@@ -1,22 +1,23 @@
-/*
-** Copyright 1999-2010 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2010 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2026 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_MACROS_GRAB_HH
 #define CCE_MACROS_GRAB_HH
@@ -24,9 +25,8 @@
 #include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/string.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::macros {
 
-namespace macros {
 /**
  *  Extract double.
  *
@@ -118,7 +118,7 @@ std::string get_duration_sec(T& t, nagios_macros* mac) {
   // Get duration.
   time_t now(time(nullptr));
   unsigned long duration(now - t.get_last_state_change());
-  return std::to_string(duration);
+  return fmt::to_string(duration);
 }
 
 /**
@@ -239,8 +239,7 @@ std::string get_state_type(T& t, nagios_macros* mac) {
   (void)mac;
   return (t.get_state_type() == notifier::hard) ? "HARD" : "SOFT";
 }
-}  // namespace macros
 
-}
+}  // namespace com::centreon::engine::macros
 
 #endif  // !CCE_MACROS_GRAB_HH
