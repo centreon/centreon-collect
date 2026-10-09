@@ -1134,6 +1134,62 @@ not21
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+not_remove_host_and_service_in_downtime
+    [Documentation]    Given a service in a fixed downtime whose notification options contain 's'
+    ...    When the service and its host are removed from the configuration and engine is reloaded
+    ...    Then the host is removed before the service, so the service downtime is cancelled
+    ...    and a DOWNTIMECANCELLED notification is sent for a service without host
+    ...    And engine does not crash in grab_host_macros_r()
+    [Tags]    broker    engine    services    downtime    notification    MON-207647
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Services    0    service_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    notification_options    w,c,r,s
+    Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_options    w,c,r,s
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # A fixed downtime starts immediately, so it is in effect when cancelled.
+    Ctn Schedule Service Fixed Downtime    host_2    service_2    ${3600}
+    ${content}    Create List    SERVICE DOWNTIME ALERT: host_2;service_2;STARTED;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The downtime on service_2 should have started.
+
+    # host_2 and service_2 are removed together. On reload, hosts are removed
+    # before services: when service_2 is removed, its downtime is cancelled and
+    # a notification is sent while its host does not exist anymore.
+    Ctn Engine Config Remove Service Host    ${0}    host_2
+    Ctn Engine Config Remove Host    ${0}    host_2
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${content}    Create List    SERVICE DOWNTIME ALERT: host_2;service_2;CANCELLED;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The downtime on service_2 should have been cancelled.
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_2;service_2;DOWNTIMECANCELLED
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The DOWNTIMECANCELLED notification on service_2 should have been sent.
+
+    ${content}    Create List    Reload configuration finished.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The engine reload should be finished.
+
+    Process Should Be Running    e0
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 *** Keywords ***
 Ctn Config Notifications
     [Documentation]    Configuring engine notification settings.
