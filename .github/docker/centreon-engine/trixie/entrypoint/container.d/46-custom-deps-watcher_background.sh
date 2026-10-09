@@ -3,10 +3,10 @@
 DEPS_JSON="/etc/centreon-engine/custom-deps.json"
 DEPS_DIR="/etc/centreon-engine"
 
-. /var/lib/centreon-engine/apt_install.sh
+. /usr/local/lib/centreon-engine/apt_install.sh
 
 install_custom_deps() {
-    PKGS=$(python3 /var/lib/centreon-engine/check_custom_deps.py "$DEPS_JSON")
+    PKGS=$(python3 /usr/local/lib/centreon-engine/check_custom_deps.py "$DEPS_JSON")
     if [ -n "$PKGS" ]; then
         echo "custom-deps.json changed — installing: $PKGS"
         # shellcheck disable=SC2086
