@@ -86,6 +86,8 @@ class mysql_connection {
   const int _port;
   const std::string _extension_directory;
   const unsigned _max_second_commit_delay;
+  const uint32_t _read_timeout;
+  const uint32_t _write_timeout;
   time_t _last_commit;
   std::atomic<connection_state> _state;
 
@@ -142,6 +144,7 @@ class mysql_connection {
   static void (mysql_connection::*const _task_processing_table[])(
       database::mysql_task* task);
 
+  void _set_connection_options();
   void _prepare_connection();
   void _clear_connection();
   void _update_stats() noexcept;

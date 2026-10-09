@@ -76,16 +76,27 @@ bool mysql_connection::_server_error(int code) const {
 }
 
 /**
+ * @brief Set the options that must be known before mysql_real_connect(). The
+ * MariaDB connector applies the read/write timeouts to the socket while
+ * connecting, setting them afterwards has no effect. Without them, a query (or
+ * a mysql_ping()) on a silently broken connection waits for the TCP
+ * retransmissions to give up, that is about fifteen minutes.
+ */
+void mysql_connection::_set_connection_options() {
+  uint32_t connect_timeout = 10;
+  mysql_options(_conn, MYSQL_OPT_CONNECT_TIMEOUT, &connect_timeout);
+  mysql_options(_conn, MYSQL_OPT_READ_TIMEOUT, &_read_timeout);
+  mysql_options(_conn, MYSQL_OPT_WRITE_TIMEOUT, &_write_timeout);
+  mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
+                 (const void*)_extension_directory.c_str());
+}
+
+/**
  * @brief Once the connection established, we set several parameters, this is
  * done by this function.
  */
 void mysql_connection::_prepare_connection() {
   mysql_set_character_set(_conn, "utf8mb4");
-
-  /* This is to set a timeout for the mysql_ping() function that can hang
-   * sometimes */
-  uint32_t timeout = 5;
-  mysql_optionsv(_conn, MYSQL_OPT_READ_TIMEOUT, (void*)&timeout);
 
   if (_qps > 1)
     mysql_autocommit(_conn, 0);
@@ -191,11 +202,7 @@ bool mysql_connection::_try_to_reconnect() {
     return false;
   }
 
-  uint32_t timeout = 10;
-  mysql_options(_conn, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
-
-  mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
-                 (const void*)_extension_directory.c_str());
+  _set_connection_options();
 
   if (!mysql_real_connect(_conn, _host.c_str(), _user.c_str(), _pwd.c_str(),
                           _name.c_str(), _port,
@@ -849,11 +856,7 @@ void mysql_connection::_run() {
     _start_condition.notify_all();
     return;
   } else {
-    uint32_t timeout = 10;
-    mysql_options(_conn, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
-
-    mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
-                   (const void*)_extension_directory.c_str());
+    _set_connection_options();
 
     while (config::applier::mode != config::applier::finished &&
            !mysql_real_connect(_conn, _host.c_str(), _user.c_str(),
@@ -1105,6 +1108,8 @@ mysql_connection::mysql_connection(
       _port(db_cfg.get_port()),
       _extension_directory(db_cfg.get_extension_directory()),
       _max_second_commit_delay(db_cfg.get_max_commit_delay()),
+      _read_timeout(db_cfg.get_read_timeout()),
+      _write_timeout(db_cfg.get_write_timeout()),
       _last_commit(db_cfg.get_queries_per_transaction() > 1
                        ? 0
                        : std::numeric_limits<time_t>::max()),
@@ -1249,6 +1254,8 @@ bool mysql_connection::match_config(database_config const& db_cfg) const {
          db_cfg.get_user() == _user && db_cfg.get_password() == _pwd &&
          db_cfg.get_name() == _name && db_cfg.get_port() == _port &&
          db_cfg.get_queries_per_transaction() == _qps &&
+         db_cfg.get_read_timeout() == _read_timeout &&
+         db_cfg.get_write_timeout() == _write_timeout &&
          db_cfg.get_category() == _category;
   ;
 }

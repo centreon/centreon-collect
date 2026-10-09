@@ -537,6 +537,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
       ${TEST_DIR}/config/broker_state.cc
       ${TEST_DIR}/config/init.cc
       ${TEST_DIR}/config/parser.cc
+      ${TEST_DIR}/mysql/database_config.cc
       ${TEST_DIR}/file/disk_accessor.cc
       ${TEST_DIR}/file/directory_watcher.cc
       ${TEST_DIR}/file/splitter/concurrent.cc

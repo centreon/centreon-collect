@@ -54,6 +54,12 @@ class database_config {
   bool _check_replication;
   int _connections_count;
   unsigned _max_commit_delay;
+  /* Timeouts in seconds applied to each read/write on the database socket.
+   * They must stay above innodb_lock_wait_timeout (50s by default), otherwise
+   * a query legitimately waiting for a lock would be seen as a lost
+   * connection. */
+  uint32_t _read_timeout = 60;
+  uint32_t _write_timeout = 60;
   unsigned _category;
   // where mariadb will find extension such as caching_sha2_password.so
   std::string _extension_directory;
@@ -96,6 +102,8 @@ class database_config {
   bool get_check_replication() const;
   int get_connections_count() const;
   unsigned get_max_commit_delay() const;
+  uint32_t get_read_timeout() const { return _read_timeout; }
+  uint32_t get_write_timeout() const { return _write_timeout; }
   unsigned get_category() const;
   const std::string& get_extension_directory() const {
     return _extension_directory;
@@ -112,6 +120,8 @@ class database_config {
   void set_queries_per_transaction(int qpt);
   void set_check_replication(bool check_replication);
   void set_category(unsigned category);
+  void set_read_timeout(uint32_t timeout) { _read_timeout = timeout; }
+  void set_write_timeout(uint32_t timeout) { _write_timeout = timeout; }
   void set_extension_directory(std::string const& extension_directory) {
     _extension_directory = extension_directory;
   }

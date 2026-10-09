@@ -21,13 +21,35 @@
 
 #include <gtest/gtest.h>
 
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/unified_sql/factory.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
-TEST(UnifiedSqlFactory, Factory) {
+/* The factory reads the applier state (centralized configuration or not). The
+ * state loaded by the global environment may have been unloaded by a previous
+ * test, so we load it here if needed, and only unload it if we loaded it. */
+class UnifiedSqlFactory : public ::testing::Test {
+  bool _state_loaded_here = false;
+
+ protected:
+  void SetUp() override {
+    if (!config::applier::state::loaded()) {
+      config::applier::state::load<config::applier::broker_state>("");
+      _state_loaded_here = true;
+    }
+  }
+
+  void TearDown() override {
+    if (_state_loaded_here)
+      config::applier::state::unload();
+  }
+};
+
+TEST_F(UnifiedSqlFactory, Factory) {
   database_config dbcfg("MySQL", "127.0.0.1", "/var/lib/mysql/mysql.sock", 3306,
                         "centreon", "centreon", "centreon_unified_sql", 5, true,
                         5);
@@ -57,7 +79,7 @@ TEST(UnifiedSqlFactory, Factory) {
   delete endp;
 }
 
-TEST(UnifiedSqlFactory, FactoryWithFullConf) {
+TEST_F(UnifiedSqlFactory, FactoryWithFullConf) {
   database_config dbcfg("MySQL", "", "/var/lib/mysql/mysql.sock", 3306,
                         "centreon", "centreon", "centreon_unified_sql", 5, true,
                         5);

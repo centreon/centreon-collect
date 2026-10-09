@@ -44,6 +44,8 @@ std::ostream& operator<<(std::ostream& s, const database_config cfg) {
     << " check replication:" << cfg.get_check_replication()
     << " connection count:" << cfg.get_connections_count()
     << " max commit delay:" << cfg.get_max_commit_delay() << 's'
+    << " read timeout:" << cfg.get_read_timeout() << 's'
+    << " write timeout:" << cfg.get_write_timeout() << 's'
     << " extension_directory" << cfg.get_extension_directory();
   return s;
 }
@@ -275,6 +277,20 @@ database_config::database_config(
   } else
     _max_commit_delay = 5;
 
+  // db_read_timeout / db_write_timeout
+  auto parse_timeout = [&](std::string_view key, uint32_t& value) {
+    auto it = cfg.params.find(std::string(key));
+    if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &value)) {
+      _config_logger->error(
+          "{} is a string containing an integer. Unable to read the value "
+          "'{}' - value 60 taken by default.",
+          key, it->second);
+      value = 60;
+    }
+  };
+  parse_timeout("db_read_timeout", _read_timeout);
+  parse_timeout("db_write_timeout", _write_timeout);
+
   found = cfg.params.find("extension_directory");
   if (found != cfg.params.end()) {
     _extension_directory = found->second;
@@ -318,7 +334,9 @@ bool database_config::operator==(database_config const& other) const {
                 _name == other._name &&
                 _queries_per_transaction == other._queries_per_transaction &&
                 _connections_count == other._connections_count &&
-                _max_commit_delay == other._max_commit_delay};
+                _max_commit_delay == other._max_commit_delay &&
+                _read_timeout == other._read_timeout &&
+                _write_timeout == other._write_timeout};
     if (!retval) {
       auto logger = log_v2::instance().get(log_v2::SQL);
       if (_type != other._type)
@@ -371,6 +389,16 @@ bool database_config::operator==(database_config const& other) const {
             "database configurations do not match because of their commit "
             "delay: {} != {}",
             _max_commit_delay, other._max_commit_delay);
+      else if (_read_timeout != other._read_timeout)
+        logger->debug(
+            "database configurations do not match because of their read "
+            "timeout: {} != {}",
+            _read_timeout, other._read_timeout);
+      else if (_write_timeout != other._write_timeout)
+        logger->debug(
+            "database configurations do not match because of their write "
+            "timeout: {} != {}",
+            _write_timeout, other._write_timeout);
       return false;
     }
   }
@@ -619,6 +647,8 @@ void database_config::_internal_copy(database_config const& other) {
   _check_replication = other._check_replication;
   _connections_count = other._connections_count;
   _max_commit_delay = other._max_commit_delay;
+  _read_timeout = other._read_timeout;
+  _write_timeout = other._write_timeout;
   _extension_directory = other._extension_directory;
 }
 
