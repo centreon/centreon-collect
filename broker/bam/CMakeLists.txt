@@ -148,8 +148,7 @@ target_link_libraries("${BAM}" bbdo_storage bbdo_bam centreon_pb_bbdo
 target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${BAM}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${BAM}" pb_open_telemetry_lib pb_bam_lib process_stat
-                 target_broker_message)
+add_dependencies("${BAM}" pb_all_libs process_stat target_broker_message)
 
 # Testing.
 if(WITH_TESTING)
