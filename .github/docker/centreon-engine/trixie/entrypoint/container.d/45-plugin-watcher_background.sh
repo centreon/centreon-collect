@@ -3,10 +3,10 @@
 PLUGINS_JSON="/etc/centreon-engine/plugins.json"
 PLUGINS_DIR="/etc/centreon-engine"
 
-. /var/lib/centreon-engine/apt_install.sh
+. /usr/local/lib/centreon-engine/apt_install.sh
 
 install_from_json() {
-    PKGS=$(python3 /var/lib/centreon-engine/check_plugins.py "$PLUGINS_JSON")
+    PKGS=$(python3 /usr/local/lib/centreon-engine/check_plugins.py "$PLUGINS_JSON")
     if [ -n "$PKGS" ]; then
         echo "plugins.json changed — installing: $PKGS"
         # shellcheck disable=SC2086
