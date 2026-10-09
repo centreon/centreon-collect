@@ -132,11 +132,15 @@ int grab_custom_macro_value_r(nagios_macros* mac,
     /* else and ondemand macro... */
     else {
       /* if first arg is blank, it means use the current host name */
-      if (mac->host_ptr == nullptr)
-        return ERROR;
+      std::string_view host_name = arg1;
+      if (host_name.empty()) {
+        if (mac->host_ptr == nullptr)
+          return ERROR;
+        host_name = mac->host_ptr->name();
+      }
 
-      service_map::const_iterator found = service::services.find(
-          std::make_pair(mac->host_ptr ? mac->host_ptr->name() : "", arg2));
+      service_map::const_iterator found =
+          service::services.find(std::make_pair(host_name, arg2));
 
       if (found != service::services.end() && found->second) {
         /* get the service macro value */
@@ -145,6 +149,8 @@ int grab_custom_macro_value_r(nagios_macros* mac,
       }
       /* else we have a service macro with a servicegroup name and a
          delimiter... */
+      else if (arg1.empty())
+        return ERROR;
       else {
         servicegroup_map::const_iterator sg_it{
             servicegroup::servicegroups.find(arg1)};

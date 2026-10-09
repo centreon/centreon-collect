@@ -546,7 +546,7 @@ static int handle_summary_macro(nagios_macros* mac,
           if (!it->second->active_checks_enabled())
             problem = false;
           if (problem)
-            hosts_down_unhandled++;
+            hosts_unreachable_unhandled++;
           hosts_unreachable++;
         }
       }
@@ -1095,7 +1095,7 @@ int grab_macro_value_r(nagios_macros* mac,
   else if (macro_name[0] == '_') {
     /* get the macro value */
 
-    result = grab_custom_macro_value_r(mac, macro_name, arg[0], arg[1], output);
+    result = grab_custom_macro_value_r(mac, buf, arg[0], arg[1], output);
   } else if (configuration::applier::state::instance().user_macros().find(
                  macro_name) !=
              configuration::applier::state::instance().user_macros().end()) {

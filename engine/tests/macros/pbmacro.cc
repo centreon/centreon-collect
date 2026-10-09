@@ -17,6 +17,7 @@
  *
  */
 
+#include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 #include <fstream>
 #include "../helper.hh"
@@ -37,12 +38,15 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
+#include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/macros/process.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/host_helper.hh"
+#include "common/engine_conf/hostgroup_helper.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/service_helper.hh"
+#include "common/engine_conf/servicegroup_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "common/tests/timeperiods/utils.hh"
@@ -1034,4 +1038,177 @@ TEST_F(Macro, PbContactTimeZone) {
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$CONTACTTIMEZONE:user$", out, 1);
   ASSERT_EQ(out, "time_test");
+}
+
+/* Custom variable macros on a named object ($_HOSTFOO:h1$) or on a group
+ * ($_HOSTFOO:hg:,$): two hosts h1/h2, each with a service s, two contacts
+ * c1/c2, and a host, a service and a contact group holding them all. */
+class MacroCustomOnDemand : public Macro {
+ public:
+  void SetUp() override {
+    Macro::SetUp();
+    configuration::error_cnt err;
+
+    configuration::applier::contact ct_aply;
+    configuration::Contact c1, c2;
+    configuration::contact_helper c1_hlp(&c1), c2_hlp(&c2);
+    fill_pb_configuration_contact(&c1_hlp, "c1", true);
+    fill_pb_configuration_contact(&c2_hlp, "c2", false);
+    c1_hlp.insert_customvariable("_BAZ", "baz-c1");
+    c2_hlp.insert_customvariable("_BAZ", "baz-c2");
+    ct_aply.add_object(c1);
+    ct_aply.add_object(c2);
+
+    configuration::applier::contactgroup cg_aply;
+    configuration::Contactgroup cg;
+    configuration::contactgroup_helper cg_hlp(&cg);
+    fill_pb_configuration_contactgroup(&cg_hlp, "cg", "c1,c2");
+    cg_aply.add_object(cg);
+
+    configuration::applier::host hst_aply;
+    configuration::Host h1, h2;
+    configuration::host_helper h1_hlp(&h1), h2_hlp(&h2);
+    fill_pb_configuration_host(&h1_hlp, "h1", "c1", 1);
+    fill_pb_configuration_host(&h2_hlp, "h2", "c1", 2);
+    h1_hlp.insert_customvariable("_FOO", "foo-h1");
+    h2_hlp.insert_customvariable("_FOO", "foo-h2");
+    hst_aply.add_object(h1);
+    hst_aply.add_object(h2);
+
+    configuration::applier::hostgroup hg_aply;
+    configuration::Hostgroup hg;
+    configuration::hostgroup_helper hg_hlp(&hg);
+    hg.set_hostgroup_name("hg");
+    hg_hlp.hook("members", "h1,h2");
+    hg_aply.add_object(hg);
+
+    configuration::applier::service svc_aply;
+    configuration::Service s1, s2;
+    configuration::service_helper s1_hlp(&s1), s2_hlp(&s2);
+    fill_pb_configuration_service(&s1_hlp, "h1", "s", "c1", 1);
+    fill_pb_configuration_service(&s2_hlp, "h2", "s", "c1", 2);
+    s1_hlp.insert_customvariable("_BAR", "bar-h1");
+    s2_hlp.insert_customvariable("_BAR", "bar-h2");
+    svc_aply.add_object(s1);
+    svc_aply.add_object(s2);
+
+    configuration::applier::servicegroup sg_aply;
+    configuration::Servicegroup sg;
+    configuration::servicegroup_helper sg_hlp(&sg);
+    sg.set_servicegroup_name("sg");
+    fill_pair_string_group(sg.mutable_members(), "h1,s,h2,s");
+    sg_aply.add_object(sg);
+
+    _state_hlp->expand(err);
+    ct_aply.resolve_object(c1);
+    ct_aply.resolve_object(c2);
+    cg_aply.resolve_object(cg);
+    hst_aply.resolve_object(h1);
+    hst_aply.resolve_object(h2);
+    hg_aply.resolve_object(hg);
+    svc_aply.resolve_object(s1);
+    svc_aply.resolve_object(s2);
+    sg_aply.resolve_object(sg);
+
+    init_macros();
+  }
+
+  /* Evaluate a line; with a context host h1, its service s and contact c1. */
+  std::string eval(const std::string& line, bool with_context = false) {
+    nagios_macros* mac(get_global_macros());
+    clear_volatile_macros_r(mac);
+    if (with_context) {
+      grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
+      grab_service_macros_r(
+          mac, engine::service::services.find({"h1", "s"})->second.get());
+      grab_contact_macros_r(mac,
+                            engine::contact::contacts.find("c1")->second.get());
+    }
+    std::string out;
+    process_macros_r(mac, line, out, 0);
+    clear_volatile_macros_r(mac);
+    return out;
+  }
+
+  /* The members of a group are concatenated in no particular order. */
+  static std::vector<std::string_view> sorted(const std::string& s) {
+    std::vector<std::string_view> retval = absl::StrSplit(s, ',');
+    std::sort(retval.begin(), retval.end());
+    return retval;
+  }
+};
+
+TEST_F(MacroCustomOnDemand, Host) {
+  ASSERT_EQ(eval("$_HOSTFOO$", true), "foo-h1");
+  ASSERT_EQ(eval("$_HOSTFOO:h2$"), "foo-h2");
+  ASSERT_EQ(eval("$_HOSTFOO:unknown$"), "");
+  std::string out = eval("$_HOSTFOO:hg:,$");
+  ASSERT_EQ(sorted(out), (std::vector<std::string_view>{"foo-h1", "foo-h2"}));
+}
+
+TEST_F(MacroCustomOnDemand, Service) {
+  ASSERT_EQ(eval("$_SERVICEBAR$", true), "bar-h1");
+  /* The host is given: it is not the context host. */
+  ASSERT_EQ(eval("$_SERVICEBAR:h2:s$", true), "bar-h2");
+  ASSERT_EQ(eval("$_SERVICEBAR:h2:s$"), "bar-h2");
+  /* No host given: the context host. */
+  ASSERT_EQ(eval("$_SERVICEBAR::s$", true), "bar-h1");
+  ASSERT_EQ(eval("$_SERVICEBAR::s$"), "");
+  /* A service group with a separator, its members are on both hosts. */
+  std::string out = eval("$_SERVICEBAR:sg:,$", true);
+  ASSERT_EQ(sorted(out), (std::vector<std::string_view>{"bar-h1", "bar-h2"}));
+}
+
+TEST_F(MacroCustomOnDemand, Contact) {
+  ASSERT_EQ(eval("$_CONTACTBAZ$", true), "baz-c1");
+  ASSERT_EQ(eval("$_CONTACTBAZ:c2$"), "baz-c2");
+  std::string out = eval("$_CONTACTBAZ:cg:,$");
+  ASSERT_EQ(sorted(out), (std::vector<std::string_view>{"baz-c1", "baz-c2"}));
+}
+
+/* The $TOTALHOSTS*$ summary macros: a DOWN or UNREACHABLE host is unhandled
+ * unless it is acknowledged, in downtime or with active checks disabled.
+ * Hosts: one UP, two DOWN (one acknowledged), four UNREACHABLE (two unhandled,
+ * one in downtime, one with active checks disabled). */
+TEST_F(Macro, PbTotalHostsUnhandled) {
+  configuration::applier::host hst_aply;
+  const char* names[] = {"up",   "down",   "down_ack", "unr1",
+                         "unr2", "unr_dt", "unr_nochk"};
+  std::vector<configuration::Host> hosts(std::size(names));
+  for (size_t i = 0; i < hosts.size(); ++i) {
+    configuration::host_helper hlp(&hosts[i]);
+    fill_pb_configuration_host(&hlp, names[i], "", i + 1);
+    hst_aply.add_object(hosts[i]);
+  }
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  for (auto& h : hosts)
+    hst_aply.resolve_object(h);
+
+  auto set = [](const char* name, engine::host::host_state st) {
+    auto& h = engine::host::hosts.find(name)->second;
+    h->set_current_state(st);
+    h->set_has_been_checked(true);
+    h->set_acknowledgement(AckType::NONE);
+    return h;
+  };
+  set("up", engine::host::state_up);
+  set("down", engine::host::state_down);
+  set("down_ack", engine::host::state_down)
+      ->set_acknowledgement(AckType::NORMAL);
+  set("unr1", engine::host::state_unreachable);
+  set("unr2", engine::host::state_unreachable);
+  set("unr_dt", engine::host::state_unreachable)
+      ->set_scheduled_downtime_depth(1);
+  set("unr_nochk", engine::host::state_unreachable)->set_checks_enabled(false);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+  process_macros_r(mac,
+                   "$TOTALHOSTSUP$ $TOTALHOSTSDOWN$ $TOTALHOSTSDOWNUNHANDLED$ "
+                   "$TOTALHOSTSUNREACHABLE$ $TOTALHOSTSUNREACHABLEUNHANDLED$ "
+                   "$TOTALHOSTPROBLEMS$ $TOTALHOSTPROBLEMSUNHANDLED$",
+                   out, 0);
+  ASSERT_EQ(out, "1 2 1 4 2 6 3");
 }

@@ -39,3 +39,42 @@ target_link_libraries(timeperiod_bench
     absl::flat_hash_map
     spdlog::spdlog
     fmt::fmt)
+
+# Macro evaluation, family by family (see doc/engine-macros-en.md). It builds a
+# poller with the real appliers, so it links Engine as ut_engine does, and
+# reuses the init_config_state() helper of the unit tests.
+add_executable(macros_bench macros.cc ${PROJECT_SOURCE_DIR}/tests/helper.cc)
+
+target_include_directories(macros_bench
+    PRIVATE
+    ${PROJECT_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/bbdo
+    ${CMAKE_BINARY_DIR})
+
+target_precompile_headers(macros_bench REUSE_FROM cce_core)
+
+target_link_libraries(macros_bench
+    PRIVATE
+    benchmark::benchmark
+    -Wl,-whole-archive
+    cce_core
+    log_v2
+    opentelemetry
+    centagent_lib
+    -Wl,-no-whole-archive
+    enginerpc
+    pb_open_telemetry_lib
+    centreon_grpc
+    centreon_http
+    centreon_process
+    Boost::program_options
+    pthread
+    gRPC::grpc++
+    crypto
+    ssl
+    z
+    fmt::fmt
+    ryml::ryml
+    stdc++fs
+    dl)
