@@ -21,7 +21,9 @@
 
 #include <unistd.h>
 
-#include "com/centreon/broker/timestamp.hh"
+#include <chrono>
+#include <optional>
+
 #include "com/centreon/broker/watchdog/instance_configuration.hh"
 
 namespace com {
@@ -41,13 +43,21 @@ class instance {
 
   void merge_configuration(instance_configuration const& new_config);
 
-  void restart();
   void start();
   void stop();
   void update();
 
-  void on_exit();
+  void on_stopped();
+  void restart_if_due(std::chrono::steady_clock::time_point now);
+  std::optional<std::chrono::steady_clock::time_point> restart_at() const {
+    return _restart_at;
+  }
   int get_pid() const;
+
+  /* A process stopping sooner than this after its start is not restarted
+   * before this delay is elapsed, so that a cbd failing at startup does not
+   * make the watchdog loop on it. */
+  static constexpr std::chrono::seconds min_uptime{5};
 
  private:
   instance(instance const&);
@@ -55,7 +65,8 @@ class instance {
 
   instance_configuration _config;
   bool _started;
-  timestamp _since_last_start;
+  std::chrono::steady_clock::time_point _since_last_start;
+  std::optional<std::chrono::steady_clock::time_point> _restart_at;
   pid_t _pid;
 
   static const uint32_t _exit_timeout = 10000;

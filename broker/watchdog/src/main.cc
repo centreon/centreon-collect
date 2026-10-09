@@ -1,5 +1,5 @@
 /**
- * Copyright 2015,2017 Centreon
+ * Copyright 2015,2017, 2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@
 #include <poll.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
+#include <algorithm>
 
 #include <csignal>
+#include <cstring>
 
-#include "com/centreon/broker/watchdog/configuration.hh"
 #include "com/centreon/broker/watchdog/configuration_parser.hh"
 #include "com/centreon/broker/watchdog/instance.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -55,20 +55,21 @@ static void print_help() {
  * @param cfg The new configuration to set.
  */
 static void apply_new_configuration(configuration const& cfg) {
-  auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-  console_sink->set_level(spdlog::level::warn);
+  /* The logger is only rebuilt when the log file changes, otherwise the
+   * current one, that already writes into this file, is kept. */
+  if (config.get_log_filename() != cfg.get_log_filename()) {
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::level::warn);
 
-  auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-      cfg.get_log_filename(), false);
-  file_sink->set_level(spdlog::level::trace);
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+        cfg.get_log_filename(), false);
+    file_sink->set_level(spdlog::level::trace);
 
-  if (config.get_log_filename() != cfg.get_log_filename())
-    logger.reset(new spdlog::logger("cbwd", {console_sink, file_sink}));
-  else
-    logger.reset(new spdlog::logger("cbwd", {console_sink}));
-
-  logger->flush_on(spdlog::level::trace);
-  logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [cbwd] [%l] %v");
+    logger = std::make_unique<spdlog::logger>(
+        "cbwd", spdlog::sinks_init_list{console_sink, file_sink});
+    logger->flush_on(spdlog::level::trace);
+    logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [cbwd] [%l] %v");
+  }
 
   std::set<std::string> to_update;
   std::set<std::string> to_delete;
@@ -135,36 +136,61 @@ static void apply_new_configuration(configuration const& cfg) {
 }
 
 /**
- *  @brief Signal handler
+ * @brief Block the signals the watchdog waits for. They are not handled by
+ * signal handlers but received synchronously by sigtimedwait() in the main
+ * loop, so the death of a cbd, a reload or a stop request are processed at
+ * once. This must be done before the first cbd is started (the processes
+ * created by the watchdog empty their mask before execve()).
  *
- *  There is not many things we can do in signal handlers.
- *  We convert the signal into something usable by using the
- *  writing to a self-pipe pattern.
- *
- *  @param sig  The signal.
+ * @return The set of the blocked signals.
  */
-static void signal_handler(int sig) {
-  if (sig == SIGTERM || sig == SIGINT) {
-    // Sigterm : should exit now...
-    should_exit = true;
-  } else if (sig == SIGHUP) {
-    sighup = true;
+static sigset_t block_signals() {
+  sigset_t retval;
+  sigemptyset(&retval);
+  sigaddset(&retval, SIGCHLD);
+  sigaddset(&retval, SIGHUP);
+  sigaddset(&retval, SIGINT);
+  sigaddset(&retval, SIGTERM);
+  if (sigprocmask(SIG_BLOCK, &retval, nullptr) < 0)
+    throw msg_fmt("can't block the signals: {}", strerror(errno));
+  return retval;
+}
+
+/**
+ * @brief Reap all the stopped cbd and restart them (or schedule their
+ * restart).
+ */
+static void reap_stopped_instances() {
+  int status;
+  pid_t stopped_pid;
+  while ((stopped_pid = waitpid(0, &status, WNOHANG)) > 0) {
+    logger->error("cbd instance with PID {} has stopped, attempt to restart it",
+                  stopped_pid);
+    for (auto& [name, inst] : instances) {
+      if (inst->get_pid() == stopped_pid)
+        inst->on_stopped();
+    }
   }
 }
 
 /**
- *  Set the signals handlers.
+ * @brief Restart the instances whose delayed restart is due, and compute how
+ * long the main loop can wait before the next one.
+ *
+ * @return The wait duration before the next restart (max_wait if none).
  */
-static void set_signal_handlers() {
-  struct sigaction sig;
-  sig.sa_handler = signal_handler;
-  ::sigemptyset(&sig.sa_mask);
-  ::sigfillset(&sig.sa_mask);
-  sig.sa_flags = 0;
-  if (::sigaction(SIGTERM, &sig, nullptr) < 0 ||
-      ::sigaction(SIGINT, &sig, nullptr) < 0 ||
-      ::sigaction(SIGHUP, &sig, nullptr) < 0)
-    throw msg_fmt("can't set the signal handlers");
+static std::chrono::steady_clock::duration restart_due_instances() {
+  /* The longest wait of the main loop. It is only a safety net, the death of
+   * a cbd is notified by SIGCHLD. */
+  static constexpr std::chrono::seconds max_wait{5};
+  auto now = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::duration retval = max_wait;
+  for (auto& [name, inst] : instances) {
+    inst->restart_if_due(now);
+    if (auto at = inst->restart_at())
+      retval = std::min(retval, *at - now);
+  }
+  return retval;
 }
 
 /**
@@ -180,7 +206,7 @@ int main(int argc, char** argv) {
 
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   console_sink->set_level(spdlog::level::warn);
-  logger.reset(new spdlog::logger("cbwd", {console_sink}));
+  logger = std::make_unique<spdlog::logger>("cbwd", console_sink);
   logger->flush_on(spdlog::level::trace);
   logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [cbwd] [%l] %v");
 
@@ -202,47 +228,18 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  int retval{0};
+  int retval = 0;
 
   // Create the main event loop.
   try {
-    set_signal_handlers();
+    sigset_t signals = block_signals();
     apply_new_configuration(config);
     while (!should_exit) {
-      int timeout = 5;
-      int freq = 0;
-
-      int status, stopped_pid;
-      stopped_pid = waitpid(0, &status, WNOHANG);
-      if (stopped_pid > 0) {
-        logger->error(
-            "cbd instance with PID {} has stopped, attempt to restart it",
-            stopped_pid);
-        for (std::unordered_map<std::string, instance*>::iterator
-                 it = instances.begin(),
-                 end = instances.end();
-             it != end; ++it) {
-          instance* inst{it->second};
-          if (inst->get_pid() == stopped_pid)
-            inst->restart();
-        }
-
-        /* We measure the frequency of potential restarts of cbd.
-         * - The watchdog checks every 5s.
-         * - When a cbd needs a restart, the timeout is set to 0.
-         * - If we restart cbd too often, the timeout is set again to 5.
-         */
-        freq++;
-        if (freq / instances.size() > 5) {
-          logger->error(
-              "cbd seems to stop too many times, you must look at "
-              "its configuration. The watchdog loop is slow down");
-        } else
-          timeout = 0;
-      }
+      reap_stopped_instances();
 
       if (sighup) {
         // Sighup : should reload...
+        sighup = false;
         configuration config;
         try {
           configuration_parser parser;
@@ -251,15 +248,30 @@ int main(int argc, char** argv) {
         } catch (std::exception const& e) {
           logger->error("Could not parse the new configuration: {}", e.what());
         }
-        sighup = false;
-        continue;
       }
 
-      /* Let's wait a little */
-      while (timeout > 0) {
-        timeout--;
-        sleep(1);
-        if (should_exit)
+      /* We wait for a signal, or for the next delayed restart. */
+      auto wait_duration = restart_due_instances();
+      auto secs =
+          std::chrono::duration_cast<std::chrono::seconds>(wait_duration);
+      struct timespec ts;
+      ts.tv_sec = std::max<time_t>(secs.count(), 0);
+      ts.tv_nsec =
+          std::max<long>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                             wait_duration - secs)
+                             .count(),
+                         0);
+      switch (sigtimedwait(&signals, nullptr, &ts)) {
+        case SIGTERM:
+        case SIGINT:
+          should_exit = true;
+          break;
+        case SIGHUP:
+          sighup = true;
+          break;
+        default:
+          /* SIGCHLD or timeout: stopped instances are reaped at the next
+           * iteration. */
           break;
       }
     }
@@ -268,11 +280,8 @@ int main(int argc, char** argv) {
     retval = 1;
   }
 
-  for (std::unordered_map<std::string, instance*>::iterator
-           it{instances.begin()},
-       end{instances.end()};
-       it != end; ++it) {
+  for (auto it = instances.begin(), end = instances.end(); it != end; ++it)
     it->second->stop();
-  }
+
   return retval;
 }
