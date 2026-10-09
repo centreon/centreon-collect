@@ -73,8 +73,7 @@ set_target_properties(
   PROPERTIES PREFIX ""
              POSITION_INDEPENDENT_CODE ON
              LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${STORAGE}" pb_rebuild_message_lib
-                 pb_remove_graph_message_lib table_max_size)
+add_dependencies("${STORAGE}" pb_all_libs table_max_size)
 target_link_libraries(${STORAGE} PRIVATE
   conflictmgr rokerbase bbdo_storage centreon_pb_bbdo)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
