@@ -2927,7 +2927,8 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
     expiration_time = (time_t)(event_start + freshness_threshold +
                                max_host_check_spread * interval_length);
   else
-    expiration_time = (time_t)(get_last_check() + freshness_threshold);
+    expiration_time =
+        (time_t)(get_last_check() + get_execution_time() + freshness_threshold);
 
   engine_logger(dbg_checks, most)
       << "HBC: " << has_been_checked() << ", PS: " << program_start

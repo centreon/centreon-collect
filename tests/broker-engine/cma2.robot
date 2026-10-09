@@ -2406,6 +2406,172 @@ BEOTEL_CENTREON_AGENT_FORCE_CHECK
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
 
+BEOTEL_CENTREON_AGENT_WHITE_LIST_FORCE_CHECK_HOST
+    [Documentation]    Scenario: forced checks of a CMA host use the CMA whitelist
+    ...    Given a whitelist file where the cma-whitelist accepts the CMA check command of host_1
+    ...    And the engine whitelist does not accept this command
+    ...    And the engine, broker, and agent are configured and started
+    ...    When the agent executes the check of host_1
+    ...    Then the check result is accepted and stored in the resources table
+    ...    When a forced check is scheduled on host_1
+    ...    Then no whitelist error appears in the engine log
+    ...    And the check result is stored in the resources table
+    [Tags]    broker    engine    opentelemetry    whitelist    MON-211724
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+    Create Directory    /etc/centreon-engine-whitelist
+    Empty Directory    /etc/centreon-engine-whitelist
+    ${whitelist_content}    Catenate
+    ...    {"whitelist": {"wildcard": ["/tmp/var/lib/centreon-engine/check.pl * *"]},
+    ...    "cma-whitelist": {"default": {"wildcard": ["/tmp/var/lib/centreon-engine/check.pl * *"]}, "hosts": [{"hostname": "host_1", "wildcard": ["/bin/echo \\"OK - *"]}]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive    ${0}    host_1
+
+    ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_commands    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Clear Db    resources
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    Sleep    1s
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    90    ${start_int}    0    HARD    OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated for host_1
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Schedule Forced Host Check    host_1
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start_int}    0    HARD    OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated for host_1 after forced host check
+
+    ${content}    Create List
+    ...    host_1: this command cannot be executed because of security restrictions on the poller.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The forced check of host_1 must not be rejected by the engine whitelist.
+
+    ${content}    Create List    host_1: command not allowed by whitelist
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The forced check of host_1 must not be rejected by the cma whitelist.
+
+    [Teardown]    Ctn Stop Engine Broker And Remove Whitelist
+
+BEOTEL_CENTREON_AGENT_WHITE_LIST_FORCE_CHECK_SERVICE
+    [Documentation]    Scenario: forced checks of a CMA service use the CMA whitelist
+    ...    Given a whitelist file where the cma-whitelist accepts the CMA check command of host_1/service_1
+    ...    And the engine whitelist does not accept this command
+    ...    And the engine, broker, and agent are configured and started
+    ...    When the agent executes the check of service_1
+    ...    Then the check result is accepted and stored in the resources table
+    ...    When a forced check is scheduled on service_1
+    ...    Then no whitelist error appears in the engine log
+    ...    And the check result is stored in the resources table
+    [Tags]    broker    engine    opentelemetry    whitelist    MON-211724
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+    Create Directory    /etc/centreon-engine-whitelist
+    Empty Directory    /etc/centreon-engine-whitelist
+    ${whitelist_content}    Catenate
+    ...    {"whitelist": {"wildcard": ["/tmp/var/lib/centreon-engine/check.pl * *"]},
+    ...    "cma-whitelist": {"default": {"wildcard": ["/tmp/var/lib/centreon-engine/check.pl * *"]}, "hosts": [{"hostname": "host_1", "wildcard": ["/bin/echo \\"OK - *"]}]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive    ${0}    host_1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
+    Ctn Set Services Passive    ${0}    service_1
+
+    ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_commands    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Clear Db    resources
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    Sleep    1s
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    90    ${start_int}    0    HARD    OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated for host_1/service_1
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Schedule Forced Service Check    host_1    service_1
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start_int}    0    HARD    OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated for host_1/service_1 after forced service check
+
+    ${content}    Create List
+    ...    service service_1: this command cannot be executed because of security restrictions on the poller.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The forced check of service_1 must not be rejected by the engine whitelist.
+
+    ${content}    Create List    service_1: command not allowed by whitelist
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The forced check of service_1 must not be rejected by the cma whitelist.
+
+    [Teardown]    Ctn Stop Engine Broker And Remove Whitelist
+
 
 BEOTEL_CENTREON_AGENT_TLS_BAD_CERT
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled 
@@ -2686,6 +2852,11 @@ Ctn Create Cert And Init
    END
 
     Ctn Clean Before Suite
+
+Ctn Stop Engine Broker And Remove Whitelist
+    [Documentation]    save logs, stop processes and remove the whitelist so that it doesn't impact other tests
+    Ctn Stop Engine Broker And Save Logs
+    Remove Directory    /etc/centreon-engine-whitelist    recursive=True
 
 *** Variables ***
 ${Salt}        U2FsdA==
