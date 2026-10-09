@@ -36,8 +36,7 @@ add_library(
 set_property(TARGET "externalcmd" PROPERTY PREFIX "")
 target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
 
-add_dependencies(externalcmd centreon_clib pb_neb_lib pb_storage_lib
-                 pb_open_telemetry_lib target_state_proto)
+add_dependencies(externalcmd centreon_clib pb_all_libs target_state_proto)
 target_link_libraries(externalcmd PRIVATE centreon_clib)
 
 install(

@@ -48,6 +48,7 @@ add_dependencies(conflictmgr process_stat pb_bbdo_lib pb_neb_lib
 set_target_properties(conflictmgr PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(conflictmgr PRIVATE fmt::fmt)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
+add_dependencies(conflictmgr pb_all_libs table_max_size)
 
 # Storage module.
 set(STORAGE "20-storage")
@@ -73,8 +74,7 @@ set_target_properties(
   PROPERTIES PREFIX ""
              POSITION_INDEPENDENT_CODE ON
              LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${STORAGE}" pb_rebuild_message_lib
-                 pb_remove_graph_message_lib table_max_size)
+add_dependencies("${STORAGE}" pb_all_libs table_max_size)
 target_link_libraries(${STORAGE} PRIVATE
   conflictmgr rokerbase bbdo_storage centreon_pb_bbdo)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
