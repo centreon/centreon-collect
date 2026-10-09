@@ -4,10 +4,10 @@
 
 PLUGINS_JSON="/etc/centreon-engine/plugins.json"
 
-. /var/lib/centreon-engine/apt_install.sh
+. /usr/local/lib/centreon-engine/apt_install.sh
 
 if [ -f "$PLUGINS_JSON" ]; then
-    PKGS=$(python3 /var/lib/centreon-engine/check_plugins.py "$PLUGINS_JSON" 2>/dev/null)
+    PKGS=$(python3 /usr/local/lib/centreon-engine/check_plugins.py "$PLUGINS_JSON" 2>/dev/null)
     if [ -n "$PKGS" ]; then
         echo "Installing plugins from plugins.json: $PKGS"
         # Run in background so centengine starts without waiting for apt.
