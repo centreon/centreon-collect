@@ -76,8 +76,8 @@ flowchart TD
     B -->|"$$"| B1["« $ » littéral"]
     B -->|"$NOM:arg1:arg2$"| C["grab_macro_value_r()<br/>découpage sur « : »"]
 
-    C --> D{"NOM ∈ macro_x_names ?"}
-    D -->|oui| E["grab_macrox_value_r()<br/>table redirector : id → handler"]
+    C --> D{"find_descriptor(NOM) ?"}
+    D -->|oui| E["grab_macrox_value_r()<br/>famille du descripteur → handler"]
     D -->|non| F{"préfixe"}
 
     F -->|"ARGn"| F1["argv[n-1]<br/>(déjà évalué par get_raw_command_line_r)"]
