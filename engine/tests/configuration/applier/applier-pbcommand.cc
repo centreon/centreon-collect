@@ -96,7 +96,6 @@ TEST_F(ApplierPbCommand, PbNewCommandWithEmptyConnectorFromConfig) {
 // Then the applier add_object adds the command into the configuration set
 // but not in the commands map (the connector is not defined).
 TEST_F(ApplierPbCommand, PbNewCommandWithConnectorFromConfig) {
-  configuration::error_cnt err;
   configuration::applier::command aply;
   configuration::applier::connector cnn_aply;
   configuration::Command cmd;
@@ -124,7 +123,6 @@ TEST_F(ApplierPbCommand, PbNewCommandWithConnectorFromConfig) {
 // Then the applier add_object adds the command into the configuration set
 // but not in the commands map (the connector is not defined).
 TEST_F(ApplierPbCommand, PbNewCommandAndConnectorWithSameName) {
-  configuration::error_cnt err;
   configuration::applier::command aply;
   configuration::applier::connector cnn_aply;
   configuration::Command cmd;

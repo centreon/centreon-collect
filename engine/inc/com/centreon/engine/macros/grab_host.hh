@@ -27,11 +27,6 @@
 extern "C" {
 #endif  // C++
 
-int grab_standard_host_macro_r(nagios_macros* mac,
-                               int macro_type,
-                               com::centreon::engine::host* hst,
-                               std::string& output,
-                               int* free_macro);
 int grab_host_macros_r(nagios_macros* mac, com::centreon::engine::host* hst);
 
 #ifdef __cplusplus

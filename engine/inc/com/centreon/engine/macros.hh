@@ -36,10 +36,6 @@ std::string clean_macro_chars(std::string const& macro, int options);
 int grab_contact_address_macro(unsigned int macro_num,
                                com::centreon::engine::contact* temp_contact,
                                std::string& output);
-int grab_standard_contactgroup_macro(
-    int macro_type,
-    std::shared_ptr<com::centreon::engine::contactgroup> temp_contactgroup,
-    std::string& output);
 
 int grab_contact_macros_r(nagios_macros* mac,
                           com::centreon::engine::contact* cntct);
@@ -49,25 +45,6 @@ int grab_custom_macro_value_r(nagios_macros* mac,
                               const std::string_view& arg1,
                               const std::string_view& arg2,
                               std::string& output);
-int grab_datetime_macro_r(nagios_macros* mac,
-                          int macro_type,
-                          const std::string_view& arg1,
-                          const std::string_view& arg2,
-                          std::string& output);
-int grab_standard_hostgroup_macro_r(
-    nagios_macros* mac,
-    int macro_type,
-    com::centreon::engine::hostgroup* temp_hostgroup,
-    std::string& output);
-int grab_standard_servicegroup_macro_r(
-    nagios_macros* mac,
-    int macro_type,
-    com::centreon::engine::servicegroup* temp_servicegroup,
-    std::string& output);
-int grab_standard_contact_macro_r(nagios_macros* mac,
-                                  int macro_type,
-                                  com::centreon::engine::contact* temp_contact,
-                                  std::string& output);
 int grab_custom_object_macro_r(nagios_macros* mac,
                                const std::string_view& macro_name,
                                com::centreon::engine::map_customvar const& vars,

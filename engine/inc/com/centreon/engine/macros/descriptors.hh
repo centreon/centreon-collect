@@ -23,9 +23,25 @@
 #include <absl/types/span.h>
 
 #include <cstdint>
+#include <ctime>
+#include <string>
 #include <string_view>
 
-namespace com::centreon::engine::macros {
+class nagios_macros;
+
+namespace com::centreon::common::timeperiods {
+class timeperiod;
+}
+
+namespace com::centreon::engine {
+class contact;
+class contactgroup;
+class host;
+class hostgroup;
+class service;
+class servicegroup;
+
+namespace macros {
 
 /**
  * @brief The object family a macro is read from. It selects the handler
@@ -45,6 +61,25 @@ enum class family : uint8_t {
 };
 
 /**
+ * @brief The objects a macro is computed on. Only the one matching the
+ * family of the macro is set: hst for a host macro, svc for a service
+ * macro... The date/time macros use tp and when.
+ */
+struct macro_target {
+  host* hst = nullptr;
+  service* svc = nullptr;
+  contact* cntct = nullptr;
+  hostgroup* hg = nullptr;
+  servicegroup* sg = nullptr;
+  contactgroup* cg = nullptr;
+  common::timeperiods::timeperiod* tp = nullptr;
+  time_t when = 0;
+};
+
+/* Computes the value of a macro on its target. */
+using getter = std::string (*)(const macro_target& target, nagios_macros* mac);
+
+/**
  * @brief Description of a macro stored in nagios_macros::x[].
  */
 struct descriptor {
@@ -56,11 +91,15 @@ struct descriptor {
   /* True if the macro value must always be stripped of illegal characters
    * and escaped. */
   bool cleaned;
+  /* Computes the value of the macro. */
+  getter get;
 };
 
 const descriptor* find_descriptor(std::string_view name);
 absl::Span<const descriptor> all_descriptors();
 
-}  // namespace com::centreon::engine::macros
+}  // namespace macros
+
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_MACROS_DESCRIPTORS_HH

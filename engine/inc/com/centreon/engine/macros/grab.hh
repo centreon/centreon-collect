@@ -28,8 +28,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/macros/process.hh"
-#include "com/centreon/engine/string.hh"
 
 namespace com::centreon::engine::macros {
 
@@ -54,45 +54,26 @@ std::string to_macro_string(const U& value) {
 }
 
 /**
- *  Extract double.
+ *  Format a double as a fixed point number.
  *
- *  @param[in] t   Host object.
- *  @param[in] mac Unused.
+ *  @param[in] value     The value to format.
+ *  @param[in] precision The number of decimals.
  *
- *  @return Newly allocated string with value as a fixed point string.
+ *  @return The formatted value.
  */
-template <typename T, double (T::*member)() const, unsigned int precision>
-std::string get_double(T& t, nagios_macros* mac) {
-  (void)mac;
-  return fmt::format("{:.{}f}", (t.*member)(), precision);
-}
-
-template <typename T,
-          typename V,
-          double (V::*member)() const,
-          unsigned int precision>
-std::string get_double(T& t, nagios_macros* mac) {
-  (void)mac;
-
-  V* v{&t};
-  return fmt::format("{:.{}f}", (v->*member)(), precision);
+inline std::string fixed_string(double value, int precision) {
+  return fmt::format("{:.{}f}", value, precision);
 }
 
 /**
- *  Extract duration.
+ *  The time elapsed since the last state change, as "1d 2h 3m 4s".
  *
- *  @param[in] t   Base object.
- *  @param[in] mac Unused.
+ *  @param[in] chk The host or the service.
  *
- *  @return Duration in a newly allocated string.
+ *  @return The duration.
  */
-template <typename T>
-std::string get_duration(T& t, nagios_macros* mac) {
-  (void)mac;
-
-  // Get duration.
-  time_t now = time(nullptr);
-  uint64_t duration = now - t.get_last_state_change();
+inline std::string duration_string(const checkable& chk) {
+  uint64_t duration = time(nullptr) - chk.get_last_state_change();
 
   // Break down duration.
   uint64_t days = duration / (24 * 60 * 60);
@@ -106,119 +87,53 @@ std::string get_duration(T& t, nagios_macros* mac) {
 }
 
 /**
- *  Extract duration in seconds.
+ *  The time elapsed since the last state change, in seconds.
  *
- *  @param[in] t   Base object.
- *  @param[in] mac Unused.
+ *  @param[in] chk The host or the service.
  *
- *  @return Duration in second in a newly allocated string.
+ *  @return The duration.
  */
-template <typename T>
-std::string get_duration_sec(T& t, nagios_macros* mac) {
-  (void)mac;
-
-  // Get duration.
-  time_t now = time(nullptr);
-  uint64_t duration = now - t.get_last_state_change();
+inline std::string duration_sec_string(const checkable& chk) {
+  uint64_t duration = time(nullptr) - chk.get_last_state_change();
   return fmt::to_string(duration);
 }
 
 /**
- *  Copy macro.
+ *  The state type of a host or a service.
  *
- *  @param[in] t   Unused.
- *  @param[in] mac Macro array.
+ *  @param[in] chk The host or the service.
  *
- *  @return Copy of the requested macro.
+ *  @return "HARD" or "SOFT".
  */
-template <typename T, unsigned int macro_id>
-std::string get_macro_copy(T& t, nagios_macros* mac) {
-  (void)t;
-  return mac->x[macro_id];
+inline std::string state_type_string(const checkable& chk) {
+  return chk.get_state_type() == checkable::hard ? "HARD" : "SOFT";
 }
 
 /**
- *  Get string copy of object member.
+ *  The check type of a host or a service.
  *
- *  @param[in] t   Base object.
- *  @param[in] mac Unused.
+ *  @param[in] chk The host or the service.
  *
- *  @return String copy of object member.
+ *  @return "PASSIVE" or "ACTIVE".
  */
-template <typename T, typename U, U (T::*member)() const>
-std::string get_member_as_string(T& t, nagios_macros* mac) {
-  (void)mac;
-  return to_macro_string((t.*member)());
+inline std::string check_type_string(const checkable& chk) {
+  return chk.get_check_type() == checkable::check_passive ? "PASSIVE"
+                                                          : "ACTIVE";
 }
 
 /**
- *  Get string copy of object member.
+ *  Process the macros contained in a value (notes, URLs).
  *
- *  @param[in] t   Base object.
- *  @param[in] mac Unused.
+ *  @param[in] mac   The macros.
+ *  @param[in] value The value to process.
  *
- *  @return String copy of object member.
+ *  @return The value with its macros processed.
  */
-template <typename T, typename U, typename V, U (V::*member)() const>
-std::string get_member_as_string(T& t, nagios_macros* mac) {
-  (void)mac;
-  V* v{&t};
-  return to_macro_string((v->*member)());
-}
-
-/**
- *  Recursively process macros.
- *
- *  @param[in] hst Host object.
- *  @param[in] mac Unused.
- *
- *  @return Newly allocated string with macros processed.
- */
-template <typename T,
-          std::string const& (T::*member)() const,
-          unsigned int options>
-std::string get_recursive(T& t, nagios_macros* mac) {
-  (void)mac;
-
-  // Get copy of string with macros processed.
-  std::string buffer;
-  process_macros_r(mac, (t.*member)(), buffer, options);
-  return buffer;
-}
-/**
- *  Recursively process macros.
- *
- *  @param[in] hst Host object.
- *  @param[in] mac Unused.
- *
- *  @return Newly allocated string with macros processed.
- */
-template <typename T,
-          typename V,
-          std::string const& (V::*member)() const,
-          unsigned int options>
-std::string get_recursive(T& t, nagios_macros* mac) {
-  (void)mac;
-
-  // Get copy of string with macros processed.
-  std::string buffer;
-  V* v{&t};
-  process_macros_r(mac, (v->*member)(), buffer, options);
-  return buffer;
-}
-
-/**
- *  Extract state type.
- *
- *  @param[in] t   Base object.
- *  @param[in] mac Unused.
- *
- *  @return Newly allocated state type as a string.
- */
-template <typename T>
-std::string get_state_type(T& t, nagios_macros* mac) {
-  (void)mac;
-  return (t.get_state_type() == notifier::hard) ? "HARD" : "SOFT";
+inline std::string recursive_string(nagios_macros* mac,
+                                    const std::string& value) {
+  std::string retval;
+  process_macros_r(mac, value, retval, 0);
+  return retval;
 }
 
 }  // namespace com::centreon::engine::macros

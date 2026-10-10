@@ -27,12 +27,6 @@
 extern "C" {
 #endif  // C++
 
-int grab_standard_service_macro_r(nagios_macros* mac,
-                                  int macro_type,
-                                  com::centreon::engine::service* svc,
-                                  std::string& output,
-                                  int* free_macro);
-
 int grab_service_macros_r(nagios_macros* mac,
                           com::centreon::engine::service* svc);
 

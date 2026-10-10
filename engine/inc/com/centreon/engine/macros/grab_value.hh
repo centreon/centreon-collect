@@ -30,6 +30,7 @@ int grab_macro_value_r(nagios_macros* mac,
                        std::string& output,
                        int* clean_options,
                        int* free_macro);
+void generate_summary_macros(nagios_macros* mac);
 int grab_macrox_value_r(nagios_macros* mac,
                         const com::centreon::engine::macros::descriptor& desc,
                         const std::string_view& arg1,

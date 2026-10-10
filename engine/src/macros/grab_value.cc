@@ -29,6 +29,7 @@ using namespace com::centreon::engine::configuration::applier;
 using com::centreon::engine::macros::descriptor;
 using com::centreon::engine::macros::family;
 using com::centreon::engine::macros::find_descriptor;
+using com::centreon::engine::macros::macro_target;
 
 /**************************************
  *                                     *
@@ -37,10 +38,53 @@ using com::centreon::engine::macros::find_descriptor;
  **************************************/
 
 /**
+ *  Build the target of a macro computed on one object.
+ *
+ *  @param[in] obj The object.
+ *
+ *  @return The target.
+ */
+static macro_target target_of(com::centreon::engine::host* obj) {
+  macro_target retval;
+  retval.hst = obj;
+  return retval;
+}
+
+static macro_target target_of(com::centreon::engine::service* obj) {
+  macro_target retval;
+  retval.svc = obj;
+  return retval;
+}
+
+static macro_target target_of(com::centreon::engine::contact* obj) {
+  macro_target retval;
+  retval.cntct = obj;
+  return retval;
+}
+
+static macro_target target_of(com::centreon::engine::hostgroup* obj) {
+  macro_target retval;
+  retval.hg = obj;
+  return retval;
+}
+
+static macro_target target_of(com::centreon::engine::servicegroup* obj) {
+  macro_target retval;
+  retval.sg = obj;
+  return retval;
+}
+
+static macro_target target_of(com::centreon::engine::contactgroup* obj) {
+  macro_target retval;
+  retval.cg = obj;
+  return retval;
+}
+
+/**
  *  Get host macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -50,7 +94,7 @@ using com::centreon::engine::macros::find_descriptor;
  *  @return OK on success.
  */
 static int handle_host_macro(nagios_macros* mac,
-                             int macro_type,
+                             const descriptor& desc,
                              const std::string_view& arg1,
                              const std::string_view& arg2,
                              std::string& output,
@@ -68,11 +112,12 @@ static int handle_host_macro(nagios_macros* mac,
     } else
       hst = mac->host_ptr;
 
-    if (hst)
+    if (hst) {
       // Get the host macro value.
-      retval =
-          grab_standard_host_macro_r(mac, macro_type, hst, output, free_macro);
-    else
+      output = desc.get(target_of(hst), mac);
+      *free_macro = true;
+      retval = OK;
+    } else
       retval = ERROR;
   }
   // A host macro with a hostgroup name and delimiter.
@@ -89,10 +134,7 @@ static int handle_host_macro(nagios_macros* mac,
            it != end; ++it) {
         if (it->second) {
           // Get the macro value for this host.
-          std::string buffer;
-          int free_sub_macro{false};
-          grab_standard_host_macro_r(mac, macro_type, it->second, buffer,
-                                     &free_sub_macro);
+          std::string buffer = desc.get(target_of(it->second), mac);
 
           // Add macro value to already running macro.
           if (output.empty())
@@ -116,7 +158,7 @@ static int handle_host_macro(nagios_macros* mac,
  *  Get hostgroup macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -126,7 +168,7 @@ static int handle_host_macro(nagios_macros* mac,
  *  @return OK on success.
  */
 static int handle_hostgroup_macro(nagios_macros* mac,
-                                  int macro_type,
+                                  const descriptor& desc,
                                   const std::string_view& arg1,
                                   const std::string_view& arg2,
                                   std::string& output,
@@ -148,9 +190,9 @@ static int handle_hostgroup_macro(nagios_macros* mac,
 
   if (hg) {
     // Get the hostgroup macro value.
-    retval = grab_standard_hostgroup_macro_r(mac, macro_type, hg, output);
-    if (OK == retval)
-      *free_macro = true;
+    output = desc.get(target_of(hg), mac);
+    *free_macro = true;
+    retval = OK;
   } else
     retval = ERROR;
   return retval;
@@ -160,7 +202,7 @@ static int handle_hostgroup_macro(nagios_macros* mac,
  *  Get service macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -169,7 +211,7 @@ static int handle_hostgroup_macro(nagios_macros* mac,
  *  @return OK on success.
  */
 static int handle_service_macro(nagios_macros* mac,
-                                int macro_type,
+                                const descriptor& desc,
                                 const std::string_view& arg1,
                                 const std::string_view& arg2,
                                 std::string& output,
@@ -181,9 +223,11 @@ static int handle_service_macro(nagios_macros* mac,
   if (arg1.empty() && arg2.empty()) {
     if (!mac->service_ptr)
       retval = ERROR;
-    else
-      retval = grab_standard_service_macro_r(mac, macro_type, mac->service_ptr,
-                                             output, free_macro);
+    else {
+      output = desc.get(target_of(mac->service_ptr), mac);
+      *free_macro = true;
+      retval = OK;
+    }
   }
   // Else and ondemand macro...
   else {
@@ -197,10 +241,12 @@ static int handle_service_macro(nagios_macros* mac,
 
         if (found == service::services.end() || !found->second)
           retval = ERROR;
-        else
+        else {
           // Get the service macro value.
-          retval = grab_standard_service_macro_r(
-              mac, macro_type, found->second.get(), output, free_macro);
+          output = desc.get(target_of(found->second.get()), mac);
+          *free_macro = true;
+          retval = OK;
+        }
       } else
         retval = ERROR;
     } else if (!arg1.empty() && !arg2.empty()) {
@@ -208,10 +254,12 @@ static int handle_service_macro(nagios_macros* mac,
       service_map::const_iterator found(
           service::services.find(std::make_pair(arg1, arg2)));
 
-      if (found != service::services.end() && found->second)
+      if (found != service::services.end() && found->second) {
         // Get the service macro value.
-        retval = grab_standard_service_macro_r(
-            mac, macro_type, found->second.get(), output, free_macro);
+        output = desc.get(target_of(found->second.get()), mac);
+        *free_macro = true;
+        retval = OK;
+      }
       // Else we have a service macro with a
       // servicegroup name and a delimiter...
       else {
@@ -226,10 +274,7 @@ static int handle_service_macro(nagios_macros* mac,
                it != end; ++it) {
             if (it->second != nullptr) {
               // Get the macro value for this service.
-              std::string buffer;
-              int free_sub_macro(false);
-              grab_standard_service_macro_r(mac, macro_type, it->second, buffer,
-                                            &free_sub_macro);
+              std::string buffer = desc.get(target_of(it->second), mac);
               if (output.empty())
                 output = buffer;
               else {
@@ -252,7 +297,7 @@ static int handle_service_macro(nagios_macros* mac,
  *  Get servicegroup macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -262,7 +307,7 @@ static int handle_service_macro(nagios_macros* mac,
  *  @return OK on success.
  */
 static int handle_servicegroup_macro(nagios_macros* mac,
-                                     int macro_type,
+                                     const descriptor& desc,
                                      const std::string_view& arg1,
                                      const std::string_view& arg2
                                      [[maybe_unused]],
@@ -279,10 +324,9 @@ static int handle_servicegroup_macro(nagios_macros* mac,
     retval = ERROR;
   else {
     // Get the servicegroup macro value.
-    retval = grab_standard_servicegroup_macro_r(mac, macro_type,
-                                                sg_it->second.get(), output);
-    if (OK == retval)
-      *free_macro = true;
+    output = desc.get(target_of(sg_it->second.get()), mac);
+    *free_macro = true;
+    retval = OK;
   }
 
   return retval;
@@ -292,7 +336,7 @@ static int handle_servicegroup_macro(nagios_macros* mac,
  *  Get contact macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -302,7 +346,7 @@ static int handle_servicegroup_macro(nagios_macros* mac,
  *  @return OK on success.
  */
 static int handle_contact_macro(nagios_macros* mac,
-                                int macro_type,
+                                const descriptor& desc,
                                 const std::string_view& arg1,
                                 const std::string_view& arg2,
                                 std::string& output,
@@ -326,10 +370,9 @@ static int handle_contact_macro(nagios_macros* mac,
       return ERROR;
 
     // Get the contact macro value.
-    retval = grab_standard_contact_macro_r(mac, macro_type, cnct, output);
-
-    if (OK == retval)
-      *free_macro = true;
+    output = desc.get(target_of(cnct), mac);
+    *free_macro = true;
+    retval = OK;
   }
   // A contact macro with a contactgroup name and delimiter.
   else if (!arg1.empty() && !arg2.empty()) {
@@ -343,9 +386,7 @@ static int handle_contact_macro(nagios_macros* mac,
            it != end; ++it) {
         if (it->second) {
           // Get the macro value for this contact.
-          std::string buffer;
-          grab_standard_contact_macro_r(mac, macro_type, it->second.get(),
-                                        buffer);
+          std::string buffer = desc.get(target_of(it->second.get()), mac);
           // Add macro value to already running macro.
           if (output.empty())
             output = buffer;
@@ -367,7 +408,7 @@ static int handle_contact_macro(nagios_macros* mac,
  *  Get contactgroup macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -377,7 +418,7 @@ static int handle_contact_macro(nagios_macros* mac,
  *  @return OK on success.
  */
 static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
-                                     int macro_type,
+                                     const descriptor& desc,
                                      const std::string_view& arg1,
                                      const std::string_view& arg2,
                                      std::string& output,
@@ -398,9 +439,8 @@ static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
 
   if (cg) {
     // Get the contactgroup macro value.
-    retval = grab_standard_contactgroup_macro(macro_type, cg, output);
-    if (OK == retval)
-      *free_macro = true;
+    output = desc.get(target_of(cg.get()), mac);
+    *free_macro = true;
   }
 
   return retval;
@@ -410,7 +450,7 @@ static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
  *  Get a notification macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -419,7 +459,7 @@ static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
  *  @return OK on success.
  */
 static int handle_notification_macro(nagios_macros* mac,
-                                     int macro_type,
+                                     const descriptor& desc,
                                      const std::string_view& arg1,
                                      const std::string_view& arg2,
                                      std::string& output,
@@ -428,7 +468,7 @@ static int handle_notification_macro(nagios_macros* mac,
   (void)arg2;
 
   // Notification macros have already been pre-computed.
-  output = mac->x[macro_type];
+  output = desc.get(macro_target(), mac);
   *free_macro = false;
 
   return OK;
@@ -438,7 +478,7 @@ static int handle_notification_macro(nagios_macros* mac,
  *  Get a date/time macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -448,23 +488,36 @@ static int handle_notification_macro(nagios_macros* mac,
  *  @return OK on success.
  */
 static int handle_datetime_macro(nagios_macros* mac,
-                                 int macro_type,
+                                 const descriptor& desc,
                                  const std::string_view& arg1,
                                  const std::string_view& arg2,
                                  std::string& output,
                                  int* free_macro) {
-  // Calculate macros.
-  int retval(grab_datetime_macro_r(mac, macro_type, arg1, arg2, output));
-  if (OK == retval)
-    *free_macro = true;
-  return retval;
+  macro_target target;
+  target.when = time(nullptr);
+  if (desc.id == MACRO_ISVALIDTIME || desc.id == MACRO_NEXTVALIDTIME) {
+    // Find the timeperiod.
+    auto it = ::timeperiods.find(arg1);
+    if (it == ::timeperiods.end() || !it->second)
+      return ERROR;
+    target.tp = it->second.get();
+
+    // What timestamp should we use?
+    time_t test_time;
+    if (!arg2.empty() && absl::SimpleAtoi(arg2, &test_time))
+      target.when = test_time;
+  }
+
+  output = desc.get(target, mac);
+  *free_macro = true;
+  return OK;
 }
 
 /**
  *  Get a static macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -473,7 +526,7 @@ static int handle_datetime_macro(nagios_macros* mac,
  *  @return OK on success.
  */
 static int handle_static_macro(nagios_macros* mac,
-                               int macro_type,
+                               const descriptor& desc,
                                const std::string_view& arg1,
                                const std::string_view& arg2,
                                std::string& output,
@@ -483,7 +536,7 @@ static int handle_static_macro(nagios_macros* mac,
   (void)arg2;
 
   // No need to do any more work - these are already precomputed for us.
-  output = get_global_macros()->x[macro_type];
+  output = desc.get(macro_target(), mac);
   *free_macro = false;
   return OK;
 }
@@ -492,24 +545,41 @@ static int handle_static_macro(nagios_macros* mac,
  *  Get a summary macro.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
+ *  @param[out] free_macro Set to false.
  *
  *  @return OK on success.
  */
 static int handle_summary_macro(nagios_macros* mac,
-                                int macro_type,
-                                const std::string_view& arg1,
-                                const std::string_view& arg2,
+                                const descriptor& desc,
+                                const std::string_view& arg1 [[maybe_unused]],
+                                const std::string_view& arg2 [[maybe_unused]],
                                 std::string& output,
                                 int* free_macro) {
-  (void)arg1;
-  (void)arg2;
+  output = desc.get(macro_target(), mac);
 
+  // Tell caller to NOT free memory when done.
+  *free_macro = false;
+
+  return OK;
+}
+
+/**************************************
+ *                                     *
+ *          Global Functions           *
+ *                                     *
+ **************************************/
+
+/**
+ *  Compute all the summary macros ($TOTAL*$) and cache them in the macros,
+ *  if not already done.
+ *
+ *  @param[in,out] mac The macros.
+ */
+void generate_summary_macros(nagios_macros* mac) {
   // Generate summary macros if needed.
   if (mac->x[MACRO_TOTALHOSTSUP].empty()) {
     // Get host totals.
@@ -676,21 +746,7 @@ static int handle_summary_macro(nagios_macros* mac,
     mac->x[MACRO_TOTALSERVICEPROBLEMSUNHANDLED] =
         fmt::to_string(service_problems_unhandled);
   }
-
-  // Return only the macro the user requested.
-  output = mac->x[macro_type];
-
-  // Tell caller to NOT free memory when done.
-  *free_macro = false;
-
-  return OK;
 }
-
-/**************************************
- *                                     *
- *          Global Functions           *
- *                                     *
- **************************************/
 
 /* this is the big one */
 int grab_macro_value_r(nagios_macros* mac,
@@ -944,30 +1000,28 @@ int grab_macrox_value_r(nagios_macros* mac,
 
   switch (desc.fam) {
     case family::host:
-      return handle_host_macro(mac, desc.id, arg1, arg2, output, free_macro);
+      return handle_host_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::hostgroup:
-      return handle_hostgroup_macro(mac, desc.id, arg1, arg2, output,
-                                    free_macro);
+      return handle_hostgroup_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::service:
-      return handle_service_macro(mac, desc.id, arg1, arg2, output, free_macro);
+      return handle_service_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::servicegroup:
-      return handle_servicegroup_macro(mac, desc.id, arg1, arg2, output,
+      return handle_servicegroup_macro(mac, desc, arg1, arg2, output,
                                        free_macro);
     case family::contact:
-      return handle_contact_macro(mac, desc.id, arg1, arg2, output, free_macro);
+      return handle_contact_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::contactgroup:
-      return handle_contactgroup_macro(mac, desc.id, arg1, arg2, output,
+      return handle_contactgroup_macro(mac, desc, arg1, arg2, output,
                                        free_macro);
     case family::notification:
-      return handle_notification_macro(mac, desc.id, arg1, arg2, output,
+      return handle_notification_macro(mac, desc, arg1, arg2, output,
                                        free_macro);
     case family::datetime:
-      return handle_datetime_macro(mac, desc.id, arg1, arg2, output,
-                                   free_macro);
+      return handle_datetime_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::statics:
-      return handle_static_macro(mac, desc.id, arg1, arg2, output, free_macro);
+      return handle_static_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::summary:
-      return handle_summary_macro(mac, desc.id, arg1, arg2, output, free_macro);
+      return handle_summary_macro(mac, desc, arg1, arg2, output, free_macro);
   }
   return ERROR;
 }
