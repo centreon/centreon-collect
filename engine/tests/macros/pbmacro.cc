@@ -1377,3 +1377,80 @@ TEST_F(Macro, PbTotalHostServicesOnDemand) {
   std::sort(values.begin(), values.end());
   ASSERT_EQ(absl::StrJoin(values, ","), "0,2");
 }
+
+/* Some macros are always stripped of the illegal output characters, whatever
+ * the cleaning options given by the caller: outputs, perfdata, notification
+ * authors and comments. The ranges of ids used to select them came from the
+ * Nagios numbering: they missed the notification authors and comments, and
+ * cleaned the notes and URLs of the host groups and of the service groups. */
+TEST_F(Macro, PbForcedCleaning) {
+  pb_indexed_config.mut_state().set_illegal_output_chars("`~$&|'\"<>");
+
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::Host h1;
+  configuration::host_helper h1_hlp(&h1);
+  fill_pb_configuration_host(&h1_hlp, "h1", "", 1);
+  hst_aply.add_object(h1);
+  configuration::Service s1;
+  configuration::service_helper s1_hlp(&s1);
+  fill_pb_configuration_service(&s1_hlp, "h1", "s", "", 1);
+  svc_aply.add_object(s1);
+
+  configuration::applier::hostgroup hg_aply;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  hg.set_hostgroup_name("hg");
+  hg.set_notes("notes & <co>");
+  hg.set_notes_url("http://example.com/hg-notes?a=1&b=2");
+  hg.set_action_url("http://example.com/hg-action?a=1&b=2");
+  hg_hlp.hook("members", "h1");
+  hg_aply.add_object(hg);
+
+  configuration::applier::servicegroup sg_aply;
+  configuration::Servicegroup sg;
+  configuration::servicegroup_helper sg_hlp(&sg);
+  sg.set_servicegroup_name("sg");
+  sg.set_notes("notes & <co>");
+  sg.set_notes_url("http://example.com/sg-notes?a=1&b=2");
+  fill_pair_string_group(sg.mutable_members(), "h1,s");
+  sg_aply.add_object(sg);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  hst_aply.resolve_object(h1);
+  svc_aply.resolve_object(s1);
+  hg_aply.resolve_object(hg);
+  sg_aply.resolve_object(sg);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  mac->x[MACRO_NOTIFICATIONAUTHOR] = "ad`min";
+  mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "Admin|istrator";
+  mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "admin <alias>";
+  mac->x[MACRO_NOTIFICATIONCOMMENT] = "it's a \"comment\" & more";
+  std::string out;
+
+  /* The notes and URLs of the groups are given as they are. */
+  process_macros_r(mac,
+                   "[$HOSTGROUPNOTES:hg$] [$HOSTGROUPNOTESURL:hg$] "
+                   "[$HOSTGROUPACTIONURL:hg$] [$SERVICEGROUPNOTES:sg$] "
+                   "[$SERVICEGROUPNOTESURL:sg$]",
+                   out, 0);
+  ASSERT_EQ(out,
+            "[notes & <co>] [http://example.com/hg-notes?a=1&b=2] "
+            "[http://example.com/hg-action?a=1&b=2] [notes & <co>] "
+            "[http://example.com/sg-notes?a=1&b=2]");
+
+  /* The notification authors and comment are cleaned. */
+  process_macros_r(mac,
+                   "[$NOTIFICATIONAUTHOR$] [$NOTIFICATIONAUTHORNAME$] "
+                   "[$NOTIFICATIONAUTHORALIAS$] [$NOTIFICATIONCOMMENT$]",
+                   out, 0);
+  ASSERT_EQ(out, "[admin] [Administrator] [admin alias] [its a comment  more]");
+
+  mac->x[MACRO_NOTIFICATIONAUTHOR].clear();
+  mac->x[MACRO_NOTIFICATIONAUTHORNAME].clear();
+  mac->x[MACRO_NOTIFICATIONAUTHORALIAS].clear();
+  mac->x[MACRO_NOTIFICATIONCOMMENT].clear();
+}
