@@ -209,9 +209,9 @@ class MacroGolden : public TestEngine {
     configuration::hostgroup_helper hg_hlp(&hg);
     hg.set_hostgroup_name("hg");
     hg.set_alias("Host group");
-    hg.set_notes("notes of hg");
-    hg.set_notes_url("http://example.com/hg-notes");
-    hg.set_action_url("http://example.com/hg-action");
+    hg.set_notes("notes of hg & <co>");
+    hg.set_notes_url("http://example.com/hg-notes?a=1&b=2");
+    hg.set_action_url("http://example.com/hg-action?a=1&b=2");
     hg_hlp.hook("members", "h1,h2,h3");
     hg_aply.add_object(hg);
 
@@ -248,9 +248,9 @@ class MacroGolden : public TestEngine {
     configuration::servicegroup_helper sg_hlp(&sg);
     sg.set_servicegroup_name("sg");
     sg.set_alias("Service group");
-    sg.set_notes("notes of sg");
-    sg.set_notes_url("http://example.com/sg-notes");
-    sg.set_action_url("http://example.com/sg-action");
+    sg.set_notes("notes of sg & <co>");
+    sg.set_notes_url("http://example.com/sg-notes?a=1&b=2");
+    sg.set_action_url("http://example.com/sg-action?a=1&b=2");
     fill_pair_string_group(sg.mutable_members(), "h1,s,h2,s,h3,s");
     sg_aply.add_object(sg);
 
@@ -350,10 +350,10 @@ class MacroGolden : public TestEngine {
                             service::services.find({"h1", "s"})->second.get());
     grab_contact_macros_r(mac, contact::contacts.find("c1")->second.get());
     mac->x[MACRO_NOTIFICATIONTYPE] = "PROBLEM";
-    mac->x[MACRO_NOTIFICATIONAUTHOR] = "admin";
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "Administrator";
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "admin alias";
-    mac->x[MACRO_NOTIFICATIONCOMMENT] = "a comment";
+    mac->x[MACRO_NOTIFICATIONAUTHOR] = "ad`min";
+    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "Admin|istrator";
+    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "admin <alias>";
+    mac->x[MACRO_NOTIFICATIONCOMMENT] = "it's a \"comment\" & $more";
     mac->x[MACRO_NOTIFICATIONNUMBER] = "3";
     mac->x[MACRO_NOTIFICATIONISESCALATED] = "0";
     mac->x[MACRO_NOTIFICATIONRECIPIENTS] = "c1";
