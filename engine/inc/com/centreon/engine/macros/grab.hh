@@ -22,10 +22,36 @@
 #ifndef CCE_MACROS_GRAB_HH
 #define CCE_MACROS_GRAB_HH
 
+#include <fmt/format.h>
+
+#include <string>
+#include <string_view>
+#include <type_traits>
+
 #include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/string.hh"
 
 namespace com::centreon::engine::macros {
+
+/**
+ *  Convert a value to the string given by a macro. Booleans are written 0
+ *  or 1 and enums as their numeric value, as std::ostream did.
+ *
+ *  @param[in] value The value to convert.
+ *
+ *  @return The value as a string.
+ */
+template <typename U>
+std::string to_macro_string(const U& value) {
+  if constexpr (std::is_same_v<U, bool>)
+    return value ? "1" : "0";
+  else if constexpr (std::is_enum_v<U>)
+    return fmt::to_string(static_cast<std::underlying_type_t<U>>(value));
+  else if constexpr (std::is_convertible_v<const U&, std::string_view>)
+    return std::string(value);
+  else
+    return fmt::to_string(value);
+}
 
 /**
  *  Extract double.
@@ -38,9 +64,7 @@ namespace com::centreon::engine::macros {
 template <typename T, double (T::*member)() const, unsigned int precision>
 std::string get_double(T& t, nagios_macros* mac) {
   (void)mac;
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(precision) << (t.*member)();
-  return oss.str();
+  return fmt::format("{:.{}f}", (t.*member)(), precision);
 }
 
 template <typename T,
@@ -51,26 +75,7 @@ std::string get_double(T& t, nagios_macros* mac) {
   (void)mac;
 
   V* v{&t};
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(precision) << (v->*member)();
-  return oss.str();
-}
-
-/**
- *  Extract double.
- *
- *  @param[in] t   Host object.
- *  @param[in] mac Unused.
- *
- *  @return Newly allocated string with value as a fixed point string.
- */
-// TODO SGA to remove after service rework
-template <typename T, double(T::*member), unsigned int precision>
-std::string get_double(T& t, nagios_macros* mac) {
-  (void)mac;
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(precision) << t.*member;
-  return oss.str();
+  return fmt::format("{:.{}f}", (v->*member)(), precision);
 }
 
 /**
@@ -86,21 +91,18 @@ std::string get_duration(T& t, nagios_macros* mac) {
   (void)mac;
 
   // Get duration.
-  time_t now(time(nullptr));
-  unsigned long duration(now - t.get_last_state_change());
+  time_t now = time(nullptr);
+  uint64_t duration = now - t.get_last_state_change();
 
   // Break down duration.
-  unsigned int days(duration / (24 * 60 * 60));
+  uint64_t days = duration / (24 * 60 * 60);
   duration %= (24 * 60 * 60);
-  unsigned int hours(duration / (60 * 60));
+  uint64_t hours = duration / (60 * 60);
   duration %= (60 * 60);
-  unsigned int minutes(duration / 60);
+  uint64_t minutes = duration / 60;
   duration %= 60;
 
-  // Stringify duration.
-  std::ostringstream oss;
-  oss << days << "d " << hours << "h " << minutes << "m " << duration << "s";
-  return oss.str();
+  return fmt::format("{}d {}h {}m {}s", days, hours, minutes, duration);
 }
 
 /**
@@ -116,8 +118,8 @@ std::string get_duration_sec(T& t, nagios_macros* mac) {
   (void)mac;
 
   // Get duration.
-  time_t now(time(nullptr));
-  unsigned long duration(now - t.get_last_state_change());
+  time_t now = time(nullptr);
+  uint64_t duration = now - t.get_last_state_change();
   return fmt::to_string(duration);
 }
 
@@ -146,9 +148,7 @@ std::string get_macro_copy(T& t, nagios_macros* mac) {
 template <typename T, typename U, U (T::*member)() const>
 std::string get_member_as_string(T& t, nagios_macros* mac) {
   (void)mac;
-  std::stringstream ss;
-  ss << (t.*member)();
-  return ss.str();
+  return to_macro_string((t.*member)());
 }
 
 /**
@@ -163,26 +163,7 @@ template <typename T, typename U, typename V, U (V::*member)() const>
 std::string get_member_as_string(T& t, nagios_macros* mac) {
   (void)mac;
   V* v{&t};
-  std::stringstream ss;
-  ss << (v->*member)();
-  return ss.str();
-}
-
-/**
- *  Get string copy of object member.
- *
- *  @param[in] t   Base object.
- *  @param[in] mac Unused.
- *
- *  @return String copy of object member.
- */
-// TODO SGA to remove after service
-template <typename T, typename U, U(T::*member)>
-std::string get_member_as_string(T& t, nagios_macros* mac) {
-  (void)mac;
-  std::stringstream ss;
-  ss << t.*member;
-  return ss.str();
+  return to_macro_string((v->*member)());
 }
 
 /**
