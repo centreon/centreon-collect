@@ -21,10 +21,14 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/macros/descriptors.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
+using com::centreon::engine::macros::descriptor;
+using com::centreon::engine::macros::family;
+using com::centreon::engine::macros::find_descriptor;
 
 /**************************************
  *                                     *
@@ -684,215 +688,6 @@ static int handle_summary_macro(nagios_macros* mac,
 
 /**************************************
  *                                     *
- *         Redirection Object          *
- *                                     *
- **************************************/
-
-// Redirection object.
-struct grab_value_redirection {
-  typedef std::unordered_map<unsigned int,
-                             int (*)(nagios_macros*,
-                                     int,
-                                     const std::string_view&,
-                                     const std::string_view&,
-                                     std::string&,
-                                     int*)>
-      entry;
-  entry routines;
-  grab_value_redirection() {
-    // Host macros.
-    static unsigned int const host_ids[] = {MACRO_HOSTNAME,
-                                            MACRO_HOSTALIAS,
-                                            MACRO_HOSTADDRESS,
-                                            MACRO_LASTHOSTCHECK,
-                                            MACRO_LASTHOSTSTATECHANGE,
-                                            MACRO_HOSTOUTPUT,
-                                            MACRO_HOSTPERFDATA,
-                                            MACRO_HOSTSTATE,
-                                            MACRO_HOSTSTATEID,
-                                            MACRO_HOSTATTEMPT,
-                                            MACRO_HOSTEXECUTIONTIME,
-                                            MACRO_HOSTLATENCY,
-                                            MACRO_HOSTDURATION,
-                                            MACRO_HOSTDURATIONSEC,
-                                            MACRO_HOSTDOWNTIME,
-                                            MACRO_HOSTSTATETYPE,
-                                            MACRO_HOSTPERCENTCHANGE,
-                                            MACRO_LASTHOSTUP,
-                                            MACRO_LASTHOSTDOWN,
-                                            MACRO_LASTHOSTUNREACHABLE,
-                                            MACRO_HOSTCHECKCOMMAND,
-                                            MACRO_HOSTDISPLAYNAME,
-                                            MACRO_HOSTACTIONURL,
-                                            MACRO_HOSTNOTESURL,
-                                            MACRO_HOSTNOTES,
-                                            MACRO_HOSTCHECKTYPE,
-                                            MACRO_LONGHOSTOUTPUT,
-                                            MACRO_HOSTNOTIFICATIONNUMBER,
-                                            MACRO_HOSTNOTIFICATIONID,
-                                            MACRO_HOSTEVENTID,
-                                            MACRO_LASTHOSTEVENTID,
-                                            MACRO_HOSTGROUPNAMES,
-                                            MACRO_HOSTGROUPNAME,
-                                            MACRO_MAXHOSTATTEMPTS,
-                                            MACRO_TOTALHOSTSERVICES,
-                                            MACRO_TOTALHOSTSERVICESOK,
-                                            MACRO_TOTALHOSTSERVICESWARNING,
-                                            MACRO_TOTALHOSTSERVICESUNKNOWN,
-                                            MACRO_TOTALHOSTSERVICESCRITICAL,
-                                            MACRO_HOSTPROBLEMID,
-                                            MACRO_LASTHOSTPROBLEMID,
-                                            MACRO_LASTHOSTSTATE,
-                                            MACRO_LASTHOSTSTATEID,
-                                            MACRO_HOSTPARENTS,
-                                            MACRO_HOSTCHILDREN,
-                                            MACRO_HOSTID,
-                                            MACRO_HOSTTIMEZONE};
-    for (unsigned int i = 0; i < sizeof(host_ids) / sizeof(*host_ids); ++i)
-      routines[host_ids[i]] = &handle_host_macro;
-
-    // Hostgroup macros.
-    static unsigned int const hostgroup_ids[] = {
-        MACRO_HOSTGROUPALIAS, MACRO_HOSTGROUPNOTES, MACRO_HOSTGROUPNOTESURL,
-        MACRO_HOSTGROUPACTIONURL, MACRO_HOSTGROUPMEMBERS};
-    for (unsigned int i = 0; i < sizeof(hostgroup_ids) / sizeof(*hostgroup_ids);
-         ++i)
-      routines[hostgroup_ids[i]] = &handle_hostgroup_macro;
-
-    // Service macros.
-    static unsigned int const service_ids[] = {MACRO_SERVICEDESC,
-                                               MACRO_SERVICESTATE,
-                                               MACRO_SERVICESTATEID,
-                                               MACRO_SERVICEATTEMPT,
-                                               MACRO_LASTSERVICECHECK,
-                                               MACRO_LASTSERVICESTATECHANGE,
-                                               MACRO_SERVICEOUTPUT,
-                                               MACRO_SERVICEPERFDATA,
-                                               MACRO_SERVICEEXECUTIONTIME,
-                                               MACRO_SERVICELATENCY,
-                                               MACRO_SERVICEDURATION,
-                                               MACRO_SERVICEDURATIONSEC,
-                                               MACRO_SERVICEDOWNTIME,
-                                               MACRO_SERVICESTATETYPE,
-                                               MACRO_SERVICEPERCENTCHANGE,
-                                               MACRO_LASTSERVICEOK,
-                                               MACRO_LASTSERVICEWARNING,
-                                               MACRO_LASTSERVICEUNKNOWN,
-                                               MACRO_LASTSERVICECRITICAL,
-                                               MACRO_SERVICECHECKCOMMAND,
-                                               MACRO_SERVICEDISPLAYNAME,
-                                               MACRO_SERVICEACTIONURL,
-                                               MACRO_SERVICENOTESURL,
-                                               MACRO_SERVICENOTES,
-                                               MACRO_SERVICECHECKTYPE,
-                                               MACRO_LONGSERVICEOUTPUT,
-                                               MACRO_SERVICENOTIFICATIONNUMBER,
-                                               MACRO_SERVICENOTIFICATIONID,
-                                               MACRO_SERVICEEVENTID,
-                                               MACRO_LASTSERVICEEVENTID,
-                                               MACRO_SERVICEGROUPNAMES,
-                                               MACRO_SERVICEGROUPNAME,
-                                               MACRO_MAXSERVICEATTEMPTS,
-                                               MACRO_SERVICEISVOLATILE,
-                                               MACRO_SERVICEPROBLEMID,
-                                               MACRO_LASTSERVICEPROBLEMID,
-                                               MACRO_LASTSERVICESTATE,
-                                               MACRO_LASTSERVICESTATEID,
-                                               MACRO_SERVICEID,
-                                               MACRO_SERVICETIMEZONE};
-    for (unsigned int i = 0; i < sizeof(service_ids) / sizeof(*service_ids);
-         ++i)
-      routines[service_ids[i]] = &handle_service_macro;
-
-    // Servicegroup macros.
-    static unsigned int const servicegroup_ids[] = {
-        MACRO_SERVICEGROUPALIAS, MACRO_SERVICEGROUPNOTES,
-        MACRO_SERVICEGROUPNOTESURL, MACRO_SERVICEGROUPACTIONURL,
-        MACRO_SERVICEGROUPMEMBERS};
-    for (unsigned int i = 0;
-         i < sizeof(servicegroup_ids) / sizeof(*servicegroup_ids); ++i)
-      routines[servicegroup_ids[i]] = &handle_servicegroup_macro;
-
-    // Contact macros.
-    static unsigned int const contact_ids[] = {
-        MACRO_CONTACTNAME,     MACRO_CONTACTALIAS,      MACRO_CONTACTEMAIL,
-        MACRO_CONTACTPAGER,    MACRO_CONTACTGROUPNAMES, MACRO_CONTACTTIMEZONE,
-        MACRO_CONTACTGROUPNAME};
-    for (unsigned int i = 0; i < sizeof(contact_ids) / sizeof(*contact_ids);
-         ++i)
-      routines[contact_ids[i]] = &handle_contact_macro;
-
-    // Contactgroup macros.
-    static unsigned int const contactgroup_ids[] = {MACRO_CONTACTGROUPALIAS,
-                                                    MACRO_CONTACTGROUPMEMBERS};
-    for (unsigned int i = 0;
-         i < sizeof(contactgroup_ids) / sizeof(*contactgroup_ids); ++i)
-      routines[contactgroup_ids[i]] = &handle_contactgroup_macro;
-
-    // Notification macros.
-    static unsigned int const notification_ids[] = {
-        MACRO_NOTIFICATIONTYPE,        MACRO_NOTIFICATIONNUMBER,
-        MACRO_NOTIFICATIONRECIPIENTS,  MACRO_NOTIFICATIONISESCALATED,
-        MACRO_NOTIFICATIONAUTHOR,      MACRO_NOTIFICATIONAUTHORNAME,
-        MACRO_NOTIFICATIONAUTHORALIAS, MACRO_NOTIFICATIONCOMMENT};
-    for (unsigned int i = 0;
-         i < sizeof(notification_ids) / sizeof(*notification_ids); ++i)
-      routines[notification_ids[i]] = &handle_notification_macro;
-
-    // Date/Time macros.
-    static unsigned int const datetime_ids[] = {
-        MACRO_LONGDATETIME, MACRO_SHORTDATETIME, MACRO_DATE,         MACRO_TIME,
-        MACRO_TIMET,        MACRO_ISVALIDTIME,   MACRO_NEXTVALIDTIME};
-    for (unsigned int i = 0; i < sizeof(datetime_ids) / sizeof(*datetime_ids);
-         ++i)
-      routines[datetime_ids[i]] = &handle_datetime_macro;
-
-    // Static macros.
-    static unsigned int const static_ids[] = {MACRO_ADMINEMAIL,
-                                              MACRO_ADMINPAGER,
-                                              MACRO_MAINCONFIGFILE,
-                                              MACRO_STATUSDATAFILE,
-                                              MACRO_RETENTIONDATAFILE,
-                                              MACRO_TEMPFILE,
-                                              MACRO_LOGFILE,
-                                              MACRO_RESOURCEFILE,
-                                              MACRO_COMMANDFILE,
-                                              MACRO_HOSTPERFDATAFILE,
-                                              MACRO_SERVICEPERFDATAFILE,
-                                              MACRO_PROCESSSTARTTIME,
-                                              MACRO_TEMPPATH,
-                                              MACRO_EVENTSTARTTIME,
-                                              MACRO_POLLERNAME,
-                                              MACRO_POLLERID};
-    for (unsigned int i = 0; i < sizeof(static_ids) / sizeof(*static_ids); ++i)
-      routines[static_ids[i]] = &handle_static_macro;
-
-    // Summary macros.
-    static unsigned int const summary_ids[] = {
-        MACRO_TOTALHOSTSUP,
-        MACRO_TOTALHOSTSDOWN,
-        MACRO_TOTALHOSTSUNREACHABLE,
-        MACRO_TOTALHOSTSDOWNUNHANDLED,
-        MACRO_TOTALHOSTSUNREACHABLEUNHANDLED,
-        MACRO_TOTALHOSTPROBLEMS,
-        MACRO_TOTALHOSTPROBLEMSUNHANDLED,
-        MACRO_TOTALSERVICESOK,
-        MACRO_TOTALSERVICESWARNING,
-        MACRO_TOTALSERVICESCRITICAL,
-        MACRO_TOTALSERVICESUNKNOWN,
-        MACRO_TOTALSERVICESWARNINGUNHANDLED,
-        MACRO_TOTALSERVICESCRITICALUNHANDLED,
-        MACRO_TOTALSERVICESUNKNOWNUNHANDLED,
-        MACRO_TOTALSERVICEPROBLEMS,
-        MACRO_TOTALSERVICEPROBLEMSUNHANDLED};
-    for (unsigned int i = 0; i < sizeof(summary_ids) / sizeof(*summary_ids);
-         ++i)
-      routines[summary_ids[i]] = &handle_summary_macro;
-  }
-} static const redirector;
-
-/**************************************
- *                                     *
  *          Global Functions           *
  *                                     *
  **************************************/
@@ -959,32 +754,20 @@ int grab_macro_value_r(nagios_macros* mac,
   //}
 
   /***** X MACROS *****/
-  /* see if this is an x macro */
-  for (x = 0; x < MACRO_X_COUNT; x++) {
-    if (macro_x_names[x].empty())
-      continue;
+  const descriptor* desc = find_descriptor(buf);
+  if (desc) {
+    macros_logger->trace("  macros[{}] ({}) match.", desc->id, desc->name);
 
-    if (buf == macro_x_names[x]) {
-      macros_logger->trace("  macros[{}] ({}) match.", x, macro_x_names[x]);
+    /* get the macro value */
+    result =
+        grab_macrox_value_r(mac, *desc, arg[0], arg[1], output, free_macro);
 
-      /* get the macro value */
-      result = grab_macrox_value_r(mac, x, arg[0], arg[1], output, free_macro);
-
-      /* post-processing */
-      /* host/service output/perfdata and author/comment macros should get
-       * cleaned */
-      if ((x >= 16 && x <= 19) || (x >= 49 && x <= 52) ||
-          (x >= 99 && x <= 100) || (x >= 124 && x <= 127)) {
-        *clean_options |= (STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
-        macros_logger->trace("  New clean options: {}", *clean_options);
-      }
-      break;
+    /* post-processing */
+    if (desc->cleaned) {
+      *clean_options |= (STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
+      macros_logger->trace("  New clean options: {}", *clean_options);
     }
   }
-
-  /* we already found the macro... */
-  if (x < MACRO_X_COUNT)
-    ;
   /***** ARGV MACROS *****/
   else if (macro_name.size() > 3 && macro_name.compare(0, 3, "ARG") == 0) {
     /* which arg do we want? */
@@ -1141,7 +924,7 @@ int grab_macro_value_r(nagios_macros* mac,
  *  Grab a macro value.
  *
  *  @param[out] mac        Macro object.
- *  @param[in]  macro_type Macro to get.
+ *  @param[in]  desc       Macro to get.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
@@ -1151,23 +934,40 @@ int grab_macro_value_r(nagios_macros* mac,
  *  @return OK on success.
  */
 int grab_macrox_value_r(nagios_macros* mac,
-                        int macro_type,
+                        const descriptor& desc,
                         const std::string_view& arg1,
                         const std::string_view& arg2,
                         std::string& output,
                         int* free_macro) {
-  int retval;
   if (!mac || !free_macro)
-    retval = ERROR;
-  else {
-    grab_value_redirection::entry::const_iterator it(
-        redirector.routines.find(macro_type));
-    if (redirector.routines.end() == it) {
-      retval = ERROR;
-      macros_logger->trace("UNHANDLED MACRO #{}! THIS IS A BUG!", macro_type);
-    } else {
-      retval = (*it->second)(mac, macro_type, arg1, arg2, output, free_macro);
-    }
+    return ERROR;
+
+  switch (desc.fam) {
+    case family::host:
+      return handle_host_macro(mac, desc.id, arg1, arg2, output, free_macro);
+    case family::hostgroup:
+      return handle_hostgroup_macro(mac, desc.id, arg1, arg2, output,
+                                    free_macro);
+    case family::service:
+      return handle_service_macro(mac, desc.id, arg1, arg2, output, free_macro);
+    case family::servicegroup:
+      return handle_servicegroup_macro(mac, desc.id, arg1, arg2, output,
+                                       free_macro);
+    case family::contact:
+      return handle_contact_macro(mac, desc.id, arg1, arg2, output, free_macro);
+    case family::contactgroup:
+      return handle_contactgroup_macro(mac, desc.id, arg1, arg2, output,
+                                       free_macro);
+    case family::notification:
+      return handle_notification_macro(mac, desc.id, arg1, arg2, output,
+                                       free_macro);
+    case family::datetime:
+      return handle_datetime_macro(mac, desc.id, arg1, arg2, output,
+                                   free_macro);
+    case family::statics:
+      return handle_static_macro(mac, desc.id, arg1, arg2, output, free_macro);
+    case family::summary:
+      return handle_summary_macro(mac, desc.id, arg1, arg2, output, free_macro);
   }
-  return retval;
+  return ERROR;
 }

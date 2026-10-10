@@ -418,7 +418,6 @@ void free_memory(nagios_macros* mac) {
   ** request through the command pipe, or when we receive a SIGHUP.
   */
   clear_volatile_macros_r(mac);
-  free_macrox_names();
 }
 
 // Thread-safe initialization guard

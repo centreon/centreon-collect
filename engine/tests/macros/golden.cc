@@ -47,19 +47,7 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/grab_service.hh"
-#include "com/centreon/engine/macros/misc.hh"
-#include "com/centreon/engine/macros/process.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/contactgroup_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostgroup_helper.hh"
-#include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/service_helper.hh"
-#include "common/engine_conf/servicegroup_helper.hh"
-#include "common/engine_conf/state_helper.hh"
+#include "com/centreon/engine/macros/descriptors.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "common/tests/timeperiods/utils.hh"
 
@@ -422,9 +410,8 @@ class MacroGolden : public TestEngine {
     /* Every macro name in every form; most forms make no sense for most
      * macros, their current result is frozen too. */
     std::vector<std::string> names;
-    for (unsigned int x = 0; x < MACRO_X_COUNT; ++x)
-      if (!macro_x_names[x].empty())
-        names.push_back(macro_x_names[x]);
+    for (auto& desc : com::centreon::engine::macros::all_descriptors())
+      names.emplace_back(desc.name);
     for (const char* n : {"_HOSTFOO",
                           "_HOSTfoo",
                           "_HOSTNOPE",

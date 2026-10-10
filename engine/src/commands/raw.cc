@@ -21,6 +21,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/macros/descriptors.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -343,12 +344,7 @@ void raw::_build_custom_contact_macro_environment(nagios_macros& macros,
     if (!cv.first.empty()) {
       std::string value(clean_macro_chars(
           cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      std::string line;
-      line.append(MACRO_ENV_VAR_PREFIX);
-      line.append(cv.first);
-      line.append("=");
-      line.append(value);
-      env.add(line);
+      env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
     }
   }
 }
@@ -377,12 +373,7 @@ void raw::_build_custom_host_macro_environment(nagios_macros& macros,
     if (!cv.first.empty()) {
       std::string value(clean_macro_chars(
           cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      std::string line;
-      line.append(MACRO_ENV_VAR_PREFIX);
-      line.append(cv.first);
-      line.append("=");
-      line.append(value);
-      env.add(line);
+      env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
     }
   }
 }
@@ -411,12 +402,7 @@ void raw::_build_custom_service_macro_environment(nagios_macros& macros,
     if (!cv.first.empty()) {
       std::string value(clean_macro_chars(
           cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      std::string line;
-      line.append(MACRO_ENV_VAR_PREFIX);
-      line.append(cv.first);
-      line.append("=");
-      line.append(value);
-      env.add(line);
+      env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
     }
   }
 }
@@ -449,27 +435,22 @@ void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
 void raw::_build_macrosx_environment(nagios_macros& macros, environment& env) {
   bool use_large_installation_tweaks =
       pb_indexed_config.state().use_large_installation_tweaks();
-  for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
-    int release_memory(0);
+  for (auto& desc : com::centreon::engine::macros::all_descriptors()) {
+    uint32_t i = desc.id;
+    int release_memory = 0;
 
     // Need to grab macros?
     if (macros.x[i].empty()) {
       // Skip summary macro in lage instalation tweaks.
-      if (i < MACRO_TOTALHOSTSUP || i > MACRO_TOTALSERVICEPROBLEMSUNHANDLED ||
+      if (desc.fam != com::centreon::engine::macros::family::summary ||
           !use_large_installation_tweaks) {
-        grab_macrox_value_r(&macros, i, "", "", macros.x[i], &release_memory);
+        grab_macrox_value_r(&macros, desc, "", "", macros.x[i],
+                            &release_memory);
       }
     }
 
     // Add into the environment.
-    if (!macro_x_names[i].empty()) {
-      std::string line;
-      line.append(MACRO_ENV_VAR_PREFIX);
-      line.append(macro_x_names[i]);
-      line.append("=");
-      line.append(macros.x[i]);
-      env.add(line);
-    }
+    env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, macros.x[i]));
 
     // Release memory if necessary.
     if (release_memory) {

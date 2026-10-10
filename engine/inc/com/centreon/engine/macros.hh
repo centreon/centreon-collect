@@ -74,8 +74,6 @@ int grab_custom_object_macro_r(nagios_macros* mac,
                                std::string& output);
 
 int init_macros();
-int init_macrox_names();
-int free_macrox_names();
 
 /* thread-safe version of the above */
 int clear_argv_macros_r(nagios_macros* mac);

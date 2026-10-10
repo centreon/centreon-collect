@@ -17,13 +17,16 @@
  *
  */
 
+#include <absl/algorithm/container.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 #include <spdlog/common.h>
 #include <com/centreon/engine/macros.hh>
 
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/raw_v2.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -263,4 +266,47 @@ TEST_F(PbSimpleCommand, WithOneArgument) {
   }
   ASSERT_TRUE(timeout < max_timeout);
   ASSERT_EQ(lstnr->get_result().output, "Hello\n");
+}
+
+// Given the environment macros enabled
+// When a command is run
+// Then the macros are given to it as NAGIOS_* environment variables.
+TEST_F(PbSimpleCommand, EnvironmentMacros) {
+  pb_indexed_config.mut_state().set_enable_environment_macros(true);
+  auto lstnr = std::make_unique<my_listener>();
+  std::shared_ptr<commands::command> cmd{
+      std::make_unique<commands::raw_v2>(g_io_context, "test", "/usr/bin/env")};
+  cmd->set_listener(lstnr.get());
+  nagios_macros* mac(get_global_macros());
+  mac->x[MACRO_HOSTNAME] = "host_1";
+  mac->argv[0] = "Hello";
+  mac->argv[1].clear();
+  mac->custom_host_vars["_HOSTFOO"] = customvariable("bar");
+  std::string cc(cmd->process_cmd(mac));
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  int timeout{0};
+  int max_timeout{3000};
+  while (timeout < max_timeout && lstnr->get_result().output == "") {
+    usleep(100000);
+    ++timeout;
+  }
+  mac->x[MACRO_HOSTNAME].clear();
+  mac->argv[0].clear();
+  mac->custom_host_vars.clear();
+  ASSERT_TRUE(timeout < max_timeout);
+  std::vector<std::string_view> lines =
+      absl::StrSplit(lstnr->get_result().output, '\n');
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS_HOSTNAME=host_1"));
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS_ARG1=Hello"));
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS_ARG2="));
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS__HOSTFOO=bar"));
+  /* Every macro of the table is exported, even when empty. */
+  auto has_key = [&lines](std::string_view key) {
+    return absl::c_any_of(lines, [key](std::string_view l) {
+      return absl::StartsWith(l, key) && l.size() > key.size() &&
+             l[key.size()] == '=';
+    });
+  };
+  ASSERT_TRUE(has_key("NAGIOS_SERVICEDESC"));
+  ASSERT_TRUE(has_key("NAGIOS_POLLERID"));
 }

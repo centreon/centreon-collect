@@ -23,6 +23,7 @@
 #define CCE_MACROS_GRAB_VALUE_HH
 
 #include "com/centreon/engine/macros/defines.hh"
+#include "com/centreon/engine/macros/descriptors.hh"
 
 int grab_macro_value_r(nagios_macros* mac,
                        const std::string_view& macro_name,
@@ -30,7 +31,7 @@ int grab_macro_value_r(nagios_macros* mac,
                        int* clean_options,
                        int* free_macro);
 int grab_macrox_value_r(nagios_macros* mac,
-                        int macro_type,
+                        const com::centreon::engine::macros::descriptor& desc,
                         const std::string_view& arg1,
                         const std::string_view& arg2,
                         std::string& output,

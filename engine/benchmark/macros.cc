@@ -39,7 +39,6 @@
 #include <benchmark/benchmark.h>
 
 #include <cstdlib>
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -55,22 +54,8 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/grab_service.hh"
-#include "com/centreon/engine/macros/misc.hh"
-#include "com/centreon/engine/macros/process.hh"
-#include "com/centreon/engine/utils.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/contactgroup_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostgroup_helper.hh"
-#include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/service_helper.hh"
-#include "common/engine_conf/servicegroup_helper.hh"
-#include "common/engine_conf/state_helper.hh"
+#include "com/centreon/engine/macros/descriptors.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "helper.hh"
 
@@ -436,12 +421,11 @@ void BM_NotificationLine(benchmark::State& state) {
 }
 
 void register_benchmarks() {
-  for (unsigned int x = 0; x < MACRO_X_COUNT; ++x) {
-    if (macro_x_names[x].empty())
-      continue;
+  for (auto& desc : com::centreon::engine::macros::all_descriptors()) {
+    std::string name(desc.name);
     benchmark::RegisterBenchmark(
-        ("BM_MacroX/" + std::to_string(x) + "/" + macro_x_names[x]).c_str(),
-        BM_MacroX, "$" + macro_x_names[x] + "$");
+        ("BM_MacroX/" + std::to_string(desc.id) + "/" + name).c_str(),
+        BM_MacroX, "$" + name + "$");
   }
 
   const std::pair<const char*, const char*> others[] = {

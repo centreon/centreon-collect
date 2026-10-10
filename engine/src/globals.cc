@@ -63,8 +63,7 @@ char* illegal_object_chars(NULL);
 char* illegal_output_chars(NULL);
 timeperiod_map timeperiods;
 char* log_file(NULL);
-std::string macro_user[MAX_USER_MACROS];   // $USERx$ macros
-std::string macro_x_names[MACRO_X_COUNT];  // The macro names
+std::string macro_user[MAX_USER_MACROS];  // $USERx$ macros
 char* ochp_command(NULL);
 char* ocsp_command(NULL);
 char* use_timezone(NULL);

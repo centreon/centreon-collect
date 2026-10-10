@@ -17,10 +17,10 @@
  */
 
 #include "com/centreon/engine/commands/raw_v2.hh"
-#include "com/centreon/common/process/process.hh"
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/macros/descriptors.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
@@ -60,7 +60,7 @@ static void _build_argv_macro_environment(
     boost::process::v2::process_environment& env) {
   for (uint32_t i(0); i < MAX_COMMAND_ARGUMENTS; ++i) {
     env.env_buffer.emplace_back(
-        fmt::format(MACRO_ENV_VAR_PREFIX "ARG{}", i + 1), macros.argv[i]);
+        fmt::format(MACRO_ENV_VAR_PREFIX "ARG{}={}", i + 1, macros.argv[i]));
   }
 }
 
@@ -78,7 +78,7 @@ static void _build_contact_address_environment(
   std::vector<std::string> const& address(macros.contact_ptr->get_addresses());
   for (uint32_t i(0); i < address.size(); ++i) {
     env.env_buffer.emplace_back(
-        fmt::format(MACRO_ENV_VAR_PREFIX "CONTACTADDRESS{}", i), address[i]);
+        fmt::format(MACRO_ENV_VAR_PREFIX "CONTACTADDRESS{}={}", i, address[i]));
   }
 }
 
@@ -103,15 +103,13 @@ static void _build_custom_contact_macro_environment(
       }
     }
   }
-  std::string key;
   // Set custom contact variable into the environement
   for (auto const& cv : macros.custom_contact_vars) {
     if (!cv.first.empty()) {
       std::string value(clean_macro_chars(
           cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(cv.first);
-      env.env_buffer.emplace_back(key, value);
+      env.env_buffer.emplace_back(
+          fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
     }
   }
 }
@@ -137,15 +135,13 @@ static void _build_custom_host_macro_environment(
       }
     }
   }
-  std::string key;
   // Set custom host variable into the environement
   for (auto const& cv : macros.custom_host_vars) {
     if (!cv.first.empty()) {
       std::string value(clean_macro_chars(
           cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(cv.first);
-      env.env_buffer.emplace_back(key, value);
+      env.env_buffer.emplace_back(
+          fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
     }
   }
 }
@@ -171,16 +167,13 @@ static void _build_custom_service_macro_environment(
       }
     }
   }
-  std::string key;
   // Set custom service variable into the environement
   for (auto const& cv : macros.custom_service_vars) {
     if (!cv.first.empty()) {
       std::string value(clean_macro_chars(
           cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      std::string key;
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(cv.first);
-      env.env_buffer.emplace_back(key, value);
+      env.env_buffer.emplace_back(
+          fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
     }
   }
 }
@@ -196,26 +189,23 @@ static void _build_macrosx_environment(
     boost::process::v2::process_environment& env) {
   bool use_large_installation_tweaks =
       pb_indexed_config.state().use_large_installation_tweaks();
-  std::string key;
-  for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
-    int release_memory(0);
+  for (auto& desc : com::centreon::engine::macros::all_descriptors()) {
+    uint32_t i = desc.id;
+    int release_memory = 0;
 
     // Need to grab macros?
     if (macros.x[i].empty()) {
       // Skip summary macro in lage instalation tweaks.
-      if (i < MACRO_TOTALHOSTSUP || i > MACRO_TOTALSERVICEPROBLEMSUNHANDLED ||
+      if (desc.fam != com::centreon::engine::macros::family::summary ||
           !use_large_installation_tweaks) {
-        grab_macrox_value_r(&macros, i, "", "", macros.x[i], &release_memory);
+        grab_macrox_value_r(&macros, desc, "", "", macros.x[i],
+                            &release_memory);
       }
     }
 
     // Add into the environment.
-    if (!macro_x_names[i].empty()) {
-      std::string line;
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(macro_x_names[i]);
-      env.env_buffer.emplace_back(key, macros.x[i]);
-    }
+    env.env_buffer.emplace_back(
+        fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, macros.x[i]));
 
     // Release memory if necessary.
     if (release_memory) {

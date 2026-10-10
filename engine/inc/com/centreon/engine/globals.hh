@@ -101,7 +101,6 @@ extern check_stats check_statistics[];
 
 extern sched_info scheduling_info;
 
-extern std::string macro_x_names[];
 extern std::string macro_user[];
 
 extern nebcallback* neb_callback_list[];

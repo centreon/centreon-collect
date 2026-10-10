@@ -21,7 +21,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/misc.hh"
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
@@ -85,7 +84,6 @@ applier::macros& applier::macros::instance() {
 
 void applier::macros::clear() {
   clear_volatile_macros_r(_mac);
-  free_macrox_names();
 
   for (unsigned int i(0); i < MAX_USER_MACROS; ++i) {
     macro_user[i] = "";
@@ -113,7 +111,6 @@ applier::macros::macros() : _mac(get_global_macros()) {
  */
 applier::macros::~macros() noexcept {
   clear_volatile_macros_r(_mac);
-  free_macrox_names();
 
   for (unsigned int i(0); i < MAX_USER_MACROS; ++i) {
     macro_user[i] = "";

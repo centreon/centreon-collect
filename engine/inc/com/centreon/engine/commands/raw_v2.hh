@@ -19,7 +19,6 @@
 #ifndef CCE_COMMANDS_RAW_V2_HH
 #define CCE_COMMANDS_RAW_V2_HH
 #include "com/centreon/common/process/process.hh"
-#include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/engine/commands/command.hh"
 
 namespace com::centreon::engine {
