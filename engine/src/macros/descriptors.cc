@@ -23,6 +23,7 @@
 #include <absl/strings/str_cat.h>
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <array>
 #include <list>
 #include <string>
@@ -293,7 +294,8 @@ std::string datetime_string(time_t when, int type) {
 }
 
 /**
- *  The next valid time of a timeperiod.
+ *  The next valid time of a timeperiod, at or after now. A period without
+ *  any valid time gives the time 0.
  *
  *  @param[in] tp   The timeperiod.
  *  @param[in] when The time to start from.
@@ -302,8 +304,9 @@ std::string datetime_string(time_t when, int type) {
  */
 std::string next_valid_time_string(const common::timeperiods::timeperiod& tp,
                                    time_t when) {
-  time_t next_valid_time = tp.get_next_valid_time(when);
-  if (next_valid_time == when && !tp.check_time_against_period(when))
+  time_t next_valid_time =
+      tp.get_next_valid_time(std::max(when, time(nullptr)), true);
+  if (next_valid_time == (time_t)-1)
     next_valid_time = 0;
   return datetime_string(next_valid_time, SHORT_TIME);
 }
@@ -531,7 +534,7 @@ constexpr std::array descriptors{
     D(LASTSERVICEPROBLEMID, service, false,
       to_macro_string(t.svc->get_last_problem_id())),
     D(ISVALIDTIME, datetime, false,
-      to_macro_string(!t.tp->check_time_against_period(t.when))),
+      to_macro_string(t.tp->check_time_against_period_for_notif(t.when))),
     D(NEXTVALIDTIME, datetime, false, next_valid_time_string(*t.tp, t.when)),
     D(LASTHOSTSTATE, host, false, host_state_string(t.hst->get_last_state())),
     D(LASTHOSTSTATEID, host, false, to_macro_string(t.hst->get_last_state())),

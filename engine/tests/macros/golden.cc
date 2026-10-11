@@ -26,6 +26,7 @@
 //   MACROS_GOLDEN_UPDATE=1 tests/ut_engine --gtest_filter='MacroGolden.*'
 
 #include <absl/strings/escaping.h>
+#include <absl/strings/str_cat.h>
 #include <absl/strings/str_join.h>
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
@@ -127,6 +128,25 @@ class MacroGolden : public TestEngine {
       for (const char* day : {"monday", "tuesday", "wednesday", "thursday",
                               "friday", "saturday", "sunday"})
         tp_hlp.hook(day, "00:00-24:00");
+      configuration::applier::timeperiod aplyr;
+      aplyr.add_object(tp);
+    }
+    {
+      configuration::Timeperiod tp;
+      configuration::timeperiod_helper tp_hlp(&tp);
+      tp.set_timeperiod_name("workhours");
+      tp.set_alias("workhours");
+      for (const char* day :
+           {"monday", "tuesday", "wednesday", "thursday", "friday"})
+        tp_hlp.hook(day, "09:00-18:00");
+      configuration::applier::timeperiod aplyr;
+      aplyr.add_object(tp);
+    }
+    {
+      configuration::Timeperiod tp;
+      configuration::timeperiod_helper tp_hlp(&tp);
+      tp.set_timeperiod_name("never");
+      tp.set_alias("never");
       configuration::applier::timeperiod aplyr;
       aplyr.add_object(tp);
     }
@@ -483,6 +503,19 @@ class MacroGolden : public TestEngine {
       for (int options : {STRIP_ILLEGAL_MACRO_CHARS, ESCAPE_MACRO_CHARS,
                           STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS})
         retval.push_back(_record(ctx::service, options, l));
+
+    /* The timeperiod macros on a period, at now (Thursday 08:00) or at a
+     * given timestamp: 07:00, 10:00, 20:00 on Thursday and 10:00 on
+     * Saturday. */
+    const std::string timestamps[] = {
+        "", absl::StrCat(":", k_now - 3600), absl::StrCat(":", k_now + 7200),
+        absl::StrCat(":", k_now + 12 * 3600),
+        absl::StrCat(":", k_now + 2 * 86400 + 7200)};
+    for (const char* n : {"ISVALIDTIME", "NEXTVALIDTIME"})
+      for (const char* tp : {"24x7", "workhours", "never"})
+        for (auto& ts : timestamps)
+          retval.push_back(
+              _record(ctx::none, 0, absl::StrCat("$", n, ":", tp, ts, "$")));
 
     for (auto& r : _check_records())
       retval.push_back(std::move(r));

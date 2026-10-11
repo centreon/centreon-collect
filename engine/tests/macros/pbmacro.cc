@@ -997,6 +997,36 @@ TEST_F(Macro, PbIsValidTime) {
   ASSERT_EQ(out, "0");
 }
 
+/* $ISVALIDTIME$ is 1 when the instant is in the period, 0 otherwise. */
+TEST_F(Macro, PbIsValidTimeRestricted) {
+  configuration::applier::timeperiod time_aply;
+  configuration::Timeperiod time;
+  configuration::timeperiod_helper time_hlp(&time);
+
+  time.set_timeperiod_name("workhours");
+  time.set_alias("workhours");
+  for (const char* day :
+       {"monday", "tuesday", "wednesday", "thursday", "friday"})
+    time_hlp.hook(day, "09:00-18:00");
+  time_aply.add_object(time);
+
+  init_macros();
+  /* Thursday 2016-11-24 08:00:00 (Europe/Paris). */
+  const time_t now = 1479970800;
+  set_time(now);
+
+  std::string out;
+  nagios_macros* mac(get_global_macros());
+  process_macros_r(mac, "$ISVALIDTIME:workhours$", out, 1);
+  ASSERT_EQ(out, "0");
+  process_macros_r(
+      mac, absl::StrCat("$ISVALIDTIME:workhours:", now + 7200, "$"), out, 1);
+  ASSERT_EQ(out, "1");
+  process_macros_r(
+      mac, absl::StrCat("$ISVALIDTIME:workhours:", now + 43200, "$"), out, 1);
+  ASSERT_EQ(out, "0");
+}
+
 TEST_F(Macro, PbNextValidTime) {
   configuration::applier::timeperiod time_aply;
   configuration::Timeperiod time;
