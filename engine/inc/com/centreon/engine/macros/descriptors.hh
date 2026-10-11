@@ -26,6 +26,7 @@
 #include <ctime>
 #include <string>
 #include <string_view>
+#include <variant>
 
 class nagios_macros;
 
@@ -61,20 +62,27 @@ enum class family : uint8_t {
 };
 
 /**
- * @brief The objects a macro is computed on. Only the one matching the
- * family of the macro is set: hst for a host macro, svc for a service
- * macro... The date/time macros use tp and when.
+ * @brief The target of a date/time macro: the time to format and, for
+ * $ISVALIDTIME$ and $NEXTVALIDTIME$, the timeperiod to check it against.
  */
-struct macro_target {
-  host* hst = nullptr;
-  service* svc = nullptr;
-  contact* cntct = nullptr;
-  hostgroup* hg = nullptr;
-  servicegroup* sg = nullptr;
-  contactgroup* cg = nullptr;
+struct datetime_target {
   common::timeperiods::timeperiod* tp = nullptr;
   time_t when = 0;
 };
+
+/**
+ * @brief The object a macro is computed on. Its alternative matches the
+ * family of the macro: a host* for a host macro, a service* for a service
+ * macro... The notification, static and summary macros have no target.
+ */
+using macro_target = std::variant<std::monostate,
+                                  host*,
+                                  service*,
+                                  contact*,
+                                  hostgroup*,
+                                  servicegroup*,
+                                  contactgroup*,
+                                  datetime_target>;
 
 /* Computes the value of a macro on its target. */
 using getter = std::string (*)(const macro_target& target, nagios_macros* mac);

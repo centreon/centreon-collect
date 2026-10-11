@@ -34,49 +34,6 @@ using com::centreon::engine::macros::find_descriptor;
 using com::centreon::engine::macros::macro_target;
 
 /**
- *  Build the target of a macro computed on one object.
- *
- *  @param[in] obj The object.
- *
- *  @return The target.
- */
-static macro_target target_of(com::centreon::engine::host* obj) {
-  macro_target retval;
-  retval.hst = obj;
-  return retval;
-}
-
-static macro_target target_of(com::centreon::engine::service* obj) {
-  macro_target retval;
-  retval.svc = obj;
-  return retval;
-}
-
-static macro_target target_of(com::centreon::engine::contact* obj) {
-  macro_target retval;
-  retval.cntct = obj;
-  return retval;
-}
-
-static macro_target target_of(com::centreon::engine::hostgroup* obj) {
-  macro_target retval;
-  retval.hg = obj;
-  return retval;
-}
-
-static macro_target target_of(com::centreon::engine::servicegroup* obj) {
-  macro_target retval;
-  retval.sg = obj;
-  return retval;
-}
-
-static macro_target target_of(com::centreon::engine::contactgroup* obj) {
-  macro_target retval;
-  retval.cg = obj;
-  return retval;
-}
-
-/**
  *  The raw pointer of a map value.
  */
 template <typename T>
@@ -177,7 +134,7 @@ static std::string concatenate(const Members& members,
   for (auto& [name, member] : members) {
     if (!member)
       continue;
-    std::string member_value = value(target_of(ptr_of(member)));
+    std::string member_value = value(ptr_of(member));
     if (skip_all_empty && member_value.empty())
       continue;
     if (retval.empty())
@@ -230,7 +187,7 @@ static int resolve(nagios_macros* mac,
                              family_name(kind), object_name);
       return ERROR;
     }
-    output = value(target_of(obj));
+    output = value(obj);
     return OK;
   };
   /* The members of the group called arg1. */
@@ -274,7 +231,7 @@ static int resolve(nagios_macros* mac,
                                mac->host_ptr->name(), arg2);
           return ERROR;
         }
-        output = value(target_of(svc));
+        output = value(svc);
         return OK;
       }
       if (arg2.empty() && !pol.host_only_is_group) {
@@ -286,7 +243,7 @@ static int resolve(nagios_macros* mac,
       }
       if (service* svc =
               find_object(service::services, std::make_pair(arg1, arg2))) {
-        output = value(target_of(svc));
+        output = value(svc);
         return OK;
       }
       if (servicegroup* sg = find_object(servicegroup::servicegroups, arg1))
@@ -355,24 +312,28 @@ static int grab_custom_macro_value_r(nagios_macros* mac,
 
   return resolve(
       mac, macro_name, fam, arg1, arg2, custom_policy,
-      [macro_name, name](const macro_target& t) -> std::string {
-        const map_customvar& vars = t.hst   ? t.hst->custom_variables
-                                    : t.svc ? t.svc->custom_variables
-                                            : t.cntct->get_custom_variables();
+      [fam, macro_name, name](const macro_target& t) -> std::string {
+        const map_customvar& vars =
+            fam == family::host ? std::get<host*>(t)->custom_variables
+            : fam == family::service
+                ? std::get<service*>(t)->custom_variables
+                : std::get<contact*>(t)->get_custom_variables();
         if (!name.empty())
           for (auto& [key, var] : vars)
             if (key == name)
               return var.value();
-        if (t.hst)
+        if (fam == family::host)
           macros_logger->debug("macro {}: host '{}' has no variable '{}'",
-                               macro_name, t.hst->name(), name);
-        else if (t.svc)
+                               macro_name, std::get<host*>(t)->name(), name);
+        else if (fam == family::service) {
+          const service* svc = std::get<service*>(t);
           macros_logger->debug("macro {}: service '{}/{}' has no variable '{}'",
-                               macro_name, t.svc->get_hostname(),
-                               t.svc->description(), name);
-        else
+                               macro_name, svc->get_hostname(),
+                               svc->description(), name);
+        } else
           macros_logger->debug("macro {}: contact '{}' has no variable '{}'",
-                               macro_name, t.cntct->get_name(), name);
+                               macro_name, std::get<contact*>(t)->get_name(),
+                               name);
         return std::string();
       },
       output);
@@ -425,7 +386,7 @@ static int handle_datetime_macro(nagios_macros* mac,
                                  const std::string_view& arg2,
                                  std::string& output,
                                  int* free_macro) {
-  macro_target target;
+  macros::datetime_target target;
   target.when = time(nullptr);
   if (desc.id == MACRO_ISVALIDTIME || desc.id == MACRO_NEXTVALIDTIME) {
     // Find the timeperiod.
@@ -813,8 +774,9 @@ int grab_macro_value_r(nagios_macros* mac,
             return std::string();
           }
           /* the contact may have less than MAX_CONTACT_ADDRESSES addresses */
-          if (x < t.cntct->get_addresses().size())
-            return t.cntct->get_address(x);
+          const contact* cntct = std::get<contact*>(t);
+          if (x < cntct->get_addresses().size())
+            return cntct->get_address(x);
           return std::string();
         },
         output);
