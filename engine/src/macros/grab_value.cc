@@ -1,6 +1,6 @@
 /**
  * Copyright 1999-2010 Ethan Galstad
- * Copyright 2011-2020 Centreon
+ * Copyright 2011-2026 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -18,6 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <absl/strings/match.h>
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
@@ -30,12 +32,6 @@ using com::centreon::engine::macros::descriptor;
 using com::centreon::engine::macros::family;
 using com::centreon::engine::macros::find_descriptor;
 using com::centreon::engine::macros::macro_target;
-
-/**************************************
- *                                     *
- *           Local Functions           *
- *                                     *
- **************************************/
 
 /**
  *  Build the target of a macro computed on one object.
@@ -81,369 +77,305 @@ static macro_target target_of(com::centreon::engine::contactgroup* obj) {
 }
 
 /**
- *  Get host macro.
- *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
- *
- *  @return OK on success.
+ *  The raw pointer of a map value.
  */
-static int handle_host_macro(nagios_macros* mac,
-                             const descriptor& desc,
-                             const std::string_view& arg1,
-                             const std::string_view& arg2,
-                             std::string& output,
-                             int* free_macro) {
-  int retval;
-  if (arg2.empty()) {
-    // Find the host for on-demand macros
-    // or use saved host pointer.
-    host* hst = nullptr;
+template <typename T>
+static T* ptr_of(T* p) {
+  return p;
+}
 
-    if (!arg1.empty()) {
-      host_map::const_iterator it(host::hosts.find(arg1));
-      if (it != host::hosts.end())
-        hst = it->second.get();
-    } else
-      hst = mac->host_ptr;
-
-    if (hst) {
-      // Get the host macro value.
-      output = desc.get(target_of(hst), mac);
-      *free_macro = true;
-      retval = OK;
-    } else
-      retval = ERROR;
-  }
-  // A host macro with a hostgroup name and delimiter.
-  else {
-    hostgroup* hg(nullptr);
-    hostgroup_map::const_iterator it{hostgroup::hostgroups.find(arg1)};
-    if (it != hostgroup::hostgroups.end())
-      hg = it->second.get();
-
-    if (hg) {
-      // Concatenate macro values for all hostgroup members.
-      for (host_map_unsafe::iterator it(hg->members.begin()),
-           end(hg->members.end());
-           it != end; ++it) {
-        if (it->second) {
-          // Get the macro value for this host.
-          std::string buffer = desc.get(target_of(it->second), mac);
-
-          // Add macro value to already running macro.
-          if (output.empty())
-            output = buffer;
-          else {
-            output.append(arg2);
-            output.append(buffer);
-          }
-
-          *free_macro = true;
-        }
-      }
-      retval = OK;
-    } else
-      retval = ERROR;
-  }
-  return retval;
+template <typename P>
+static auto* ptr_of(const P& p) {
+  return p.get();
 }
 
 /**
- *  Get hostgroup macro.
+ *  Find an object by its key.
  *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
+ *  @param[in] map The objects.
+ *  @param[in] key The key of the object.
  *
- *  @return OK on success.
+ *  @return The object, nullptr if not found.
  */
-static int handle_hostgroup_macro(nagios_macros* mac,
-                                  const descriptor& desc,
-                                  const std::string_view& arg1,
-                                  const std::string_view& arg2,
-                                  std::string& output,
-                                  int* free_macro) {
-  (void)arg2;
+template <typename Map, typename Key>
+static auto find_object(const Map& map, const Key& key)
+    -> decltype(ptr_of(map.begin()->second)) {
+  auto it = map.find(key);
+  if (it == map.end())
+    return nullptr;
+  return ptr_of(it->second);
+}
 
-  // Return value.
-  int retval;
+namespace {
+/**
+ * @brief The differences between the macros computed on objects. They are
+ * kept as they are, for compatibility.
+ */
+struct policy {
+  /* In a group, true to skip every empty value, false to skip only the
+   * leading ones. */
+  bool skip_all_empty;
+  /* $X:h$ of a service macro is the servicegroup h with an empty separator
+   * instead of an error. */
+  bool host_only_is_group;
+  /* $X::s$ of a contact macro is the contact of the context instead of an
+   * error. */
+  bool empty_name_is_context;
+};
 
-  // Use the saved hostgroup pointer
-  // or find the hostgroup for on-demand macros.
-  hostgroup* hg(nullptr);
-  if (!arg1.empty()) {
-    hostgroup_map::const_iterator it(hostgroup::hostgroups.find(arg1));
-    if (it != hostgroup::hostgroups.end())
-      hg = it->second.get();
-  } else
-    hg = mac->hostgroup_ptr;
+/* The standard macros ($HOSTNAME$...). */
+constexpr policy standard_policy{false, false, false};
+/* The custom macros ($_HOSTFOO$...). */
+constexpr policy custom_policy{true, true, false};
+/* The $CONTACTADDRESSn$ macros. */
+constexpr policy contact_address_policy{true, false, true};
+}  // namespace
 
-  if (hg) {
-    // Get the hostgroup macro value.
-    output = desc.get(target_of(hg), mac);
-    *free_macro = true;
-    retval = OK;
-  } else
-    retval = ERROR;
-  return retval;
+/**
+ *  The name of the kind of objects a family of macros is computed on.
+ *
+ *  @param[in] fam The family.
+ *
+ *  @return Its name ("host"...).
+ */
+static std::string_view family_name(family fam) {
+  switch (fam) {
+    case family::host:
+      return "host";
+    case family::hostgroup:
+      return "hostgroup";
+    case family::service:
+      return "service";
+    case family::servicegroup:
+      return "servicegroup";
+    case family::contact:
+      return "contact";
+    case family::contactgroup:
+      return "contactgroup";
+    default:
+      return "object";
+  }
 }
 
 /**
- *  Get service macro.
+ *  Concatenate the values of the members of a group.
  *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if macro must be freed by caller.
+ *  @param[in]  members        The members of the group.
+ *  @param[in]  separator      The separator between two values.
+ *  @param[in]  skip_all_empty True to skip every empty value, false to skip
+ *                             only the leading ones.
+ *  @param[in]  value          Computes a value on a member (see resolve()).
  *
- *  @return OK on success.
+ *  @return The concatenated values.
  */
-static int handle_service_macro(nagios_macros* mac,
-                                const descriptor& desc,
-                                const std::string_view& arg1,
-                                const std::string_view& arg2,
-                                std::string& output,
-                                int* free_macro) {
-  // Return value.
-  int retval;
-
-  // Use saved service pointer.
-  if (arg1.empty() && arg2.empty()) {
-    if (!mac->service_ptr)
-      retval = ERROR;
+template <typename Members, typename Value>
+static std::string concatenate(const Members& members,
+                               std::string_view separator,
+                               bool skip_all_empty,
+                               const Value& value) {
+  std::string retval;
+  for (auto& [name, member] : members) {
+    if (!member)
+      continue;
+    std::string member_value = value(target_of(ptr_of(member)));
+    if (skip_all_empty && member_value.empty())
+      continue;
+    if (retval.empty())
+      retval = std::move(member_value);
     else {
-      output = desc.get(target_of(mac->service_ptr), mac);
-      *free_macro = true;
-      retval = OK;
+      retval.append(separator);
+      retval.append(member_value);
     }
   }
-  // Else and ondemand macro...
-  else {
-    // If first arg is blank, it means use the current host name.
-    if (arg1.empty()) {
-      if (!mac->host_ptr)
-        retval = ERROR;
-      else if (!arg2.empty()) {
-        service_map::const_iterator found =
-            service::services.find(std::make_pair(mac->host_ptr->name(), arg2));
-
-        if (found == service::services.end() || !found->second)
-          retval = ERROR;
-        else {
-          // Get the service macro value.
-          output = desc.get(target_of(found->second.get()), mac);
-          *free_macro = true;
-          retval = OK;
-        }
-      } else
-        retval = ERROR;
-    } else if (!arg1.empty() && !arg2.empty()) {
-      // On-demand macro with both host and service name.
-      service_map::const_iterator found(
-          service::services.find(std::make_pair(arg1, arg2)));
-
-      if (found != service::services.end() && found->second) {
-        // Get the service macro value.
-        output = desc.get(target_of(found->second.get()), mac);
-        *free_macro = true;
-        retval = OK;
-      }
-      // Else we have a service macro with a
-      // servicegroup name and a delimiter...
-      else {
-        servicegroup_map::const_iterator sg_it{
-            servicegroup::servicegroups.find(arg1)};
-        if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
-          retval = ERROR;
-        else {
-          // Concatenate macro values for all servicegroup members.
-          for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
-               end(sg_it->second->members.end());
-               it != end; ++it) {
-            if (it->second != nullptr) {
-              // Get the macro value for this service.
-              std::string buffer = desc.get(target_of(it->second), mac);
-              if (output.empty())
-                output = buffer;
-              else {
-                output.append(arg2);
-                output.append(buffer);
-              }
-            }
-          }
-          *free_macro = true;
-          retval = OK;
-        }
-      }
-    } else
-      retval = ERROR;
-  }
   return retval;
 }
 
 /**
- *  Get servicegroup macro.
+ *  Compute a macro on the objects it designates: the object of the context
+ *  ($X$), a named object ($X:name$, $X:host:service$) or the members of a
+ *  group ($X:group:separator$). The reason of a failure is logged.
  *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
- *
- *  @return OK on success.
- */
-static int handle_servicegroup_macro(nagios_macros* mac,
-                                     const descriptor& desc,
-                                     const std::string_view& arg1,
-                                     const std::string_view& arg2
-                                     [[maybe_unused]],
-                                     std::string& output,
-                                     int* free_macro) {
-  // Return value.
-  int retval;
-
-  // Use the saved servicegroup pointer
-  // or find the servicegroup for on-demand macros.
-  servicegroup_map::const_iterator sg_it{
-      servicegroup::servicegroups.find(arg1)};
-  if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
-    retval = ERROR;
-  else {
-    // Get the servicegroup macro value.
-    output = desc.get(target_of(sg_it->second.get()), mac);
-    *free_macro = true;
-    retval = OK;
-  }
-
-  return retval;
-}
-
-/**
- *  Get contact macro.
- *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
+ *  @param[in]  mac    The macros, with the objects of the context.
+ *  @param[in]  name   The macro name, for the logs.
+ *  @param[in]  fam    The kind of object the macro is computed on.
+ *  @param[in]  arg1   Argument 1.
+ *  @param[in]  arg2   Argument 2.
+ *  @param[in]  pol    The policy of the macro.
+ *  @param[in]  value  Computes the value on one object, as
+ *                     std::string(const macro_target&). A template parameter
+ *                     rather than a function reference, so that it is
+ *                     inlined.
+ *  @param[out] output The value of the macro.
  *
  *  @return OK on success.
  */
-static int handle_contact_macro(nagios_macros* mac,
-                                const descriptor& desc,
-                                const std::string_view& arg1,
-                                const std::string_view& arg2,
-                                std::string& output,
-                                int* free_macro) {
-  // Return value.
-  int retval;
-
-  if (arg2.empty()) {
-    contact* cnct;
-    // Find the contact for on-demand macros
-    // or use saved contact pointer.
-    if (!arg1.empty()) {
-      contact_map::const_iterator ct_it{contact::contacts.find(arg1)};
-      if (ct_it == contact::contacts.end())
-        return ERROR;
-      cnct = ct_it->second.get();
-    } else
-      cnct = mac->contact_ptr;
-
-    if (!cnct)
+template <typename Value>
+static int resolve(nagios_macros* mac,
+                   std::string_view name,
+                   family fam,
+                   std::string_view arg1,
+                   std::string_view arg2,
+                   const policy& pol,
+                   const Value& value,
+                   std::string& output) {
+  /* The object of the context, or the object called object_name. */
+  auto single = [&](auto* obj, family kind,
+                    std::string_view object_name) -> int {
+    if (!obj) {
+      if (object_name.empty())
+        macros_logger->debug("macro {}: no {} in the context", name,
+                             family_name(kind));
+      else
+        macros_logger->debug("macro {}: {} '{}' not found", name,
+                             family_name(kind), object_name);
       return ERROR;
-
-    // Get the contact macro value.
-    output = desc.get(target_of(cnct), mac);
-    *free_macro = true;
-    retval = OK;
-  }
-  // A contact macro with a contactgroup name and delimiter.
-  else if (!arg1.empty() && !arg2.empty()) {
-    contactgroup_map::iterator cg{contactgroup::contactgroups.find(arg1)};
-    if (cg == contactgroup::contactgroups.end() || !cg->second)
-      retval = ERROR;
-    else {
-      // Concatenate macro values for all contactgroup members.
-      for (contact_map::const_iterator it = cg->second->get_members().begin(),
-                                       end = cg->second->get_members().end();
-           it != end; ++it) {
-        if (it->second) {
-          // Get the macro value for this contact.
-          std::string buffer = desc.get(target_of(it->second.get()), mac);
-          // Add macro value to already running macro.
-          if (output.empty())
-            output = buffer;
-          else {
-            output.append(arg2);
-            output.append(buffer);
-          }
-        }
-      }
-      *free_macro = true;
-      retval = OK;
     }
-  } else
-    retval = ERROR;
-  return retval;
+    output = value(target_of(obj));
+    return OK;
+  };
+  /* The members of the group called arg1. */
+  auto group = [&](auto* grp, family kind, const auto& members) -> int {
+    if (!grp) {
+      macros_logger->debug("macro {}: {} '{}' not found", name,
+                           family_name(kind), arg1);
+      return ERROR;
+    }
+    output = concatenate(members(*grp), arg2, pol.skip_all_empty, value);
+    return OK;
+  };
+
+  switch (fam) {
+    case family::host:
+      if (!arg2.empty())
+        return group(find_object(hostgroup::hostgroups, arg1),
+                     family::hostgroup,
+                     [](const hostgroup& hg) -> auto& { return hg.members; });
+      if (arg1.empty())
+        return single(mac->host_ptr, family::host, arg1);
+      return single(find_object(host::hosts, arg1), family::host, arg1);
+
+    case family::hostgroup:
+      if (arg1.empty())
+        return single(mac->hostgroup_ptr, family::hostgroup, arg1);
+      return single(find_object(hostgroup::hostgroups, arg1), family::hostgroup,
+                    arg1);
+
+    case family::service: {
+      if (arg1.empty()) {
+        if (arg2.empty())
+          return single(mac->service_ptr, family::service, arg1);
+        if (!mac->host_ptr)
+          return single(mac->host_ptr, family::host, arg1);
+        service* svc = find_object(
+            service::services,
+            std::make_pair(std::string_view(mac->host_ptr->name()), arg2));
+        if (!svc) {
+          macros_logger->debug("macro {}: service '{}/{}' not found", name,
+                               mac->host_ptr->name(), arg2);
+          return ERROR;
+        }
+        output = value(target_of(svc));
+        return OK;
+      }
+      if (arg2.empty() && !pol.host_only_is_group) {
+        macros_logger->debug(
+            "macro {}: a service description or a servicegroup separator is "
+            "expected after '{}'",
+            name, arg1);
+        return ERROR;
+      }
+      if (service* svc =
+              find_object(service::services, std::make_pair(arg1, arg2))) {
+        output = value(target_of(svc));
+        return OK;
+      }
+      if (servicegroup* sg = find_object(servicegroup::servicegroups, arg1))
+        return group(sg, family::servicegroup,
+                     [](const servicegroup& g) -> auto& { return g.members; });
+      macros_logger->debug(
+          "macro {}: neither service '{}/{}' nor servicegroup '{}' found", name,
+          arg1, arg2, arg1);
+      return ERROR;
+    }
+
+    case family::servicegroup:
+      return single(find_object(servicegroup::servicegroups, arg1),
+                    family::servicegroup, arg1);
+
+    case family::contact:
+      if (arg1.empty() && (arg2.empty() || pol.empty_name_is_context))
+        return single(mac->contact_ptr, family::contact, arg1);
+      if (!arg2.empty())
+        return group(find_object(contactgroup::contactgroups, arg1),
+                     family::contactgroup, [](const contactgroup& cg) -> auto& {
+                       return cg.get_members();
+                     });
+      return single(find_object(contact::contacts, arg1), family::contact,
+                    arg1);
+
+    case family::contactgroup:
+      return single(find_object(contactgroup::contactgroups, arg1),
+                    family::contactgroup, arg1);
+
+    default:
+      return ERROR;
+  }
 }
 
 /**
- *  Get contactgroup macro.
+ *  Get a custom macro ($_HOSTFOO$, $_SERVICEFOO$, $_CONTACTFOO$). A missing
+ *  variable gives an empty value and is logged.
  *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
+ *  @param[in]  mac        Macro object.
+ *  @param[in]  macro_name The macro name, without its arguments.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
  *
  *  @return OK on success.
  */
-static int handle_contactgroup_macro(nagios_macros* mac [[maybe_unused]],
-                                     const descriptor& desc,
-                                     const std::string_view& arg1,
-                                     const std::string_view& arg2,
-                                     std::string& output,
-                                     int* free_macro) {
-  (void)arg2;
+static int grab_custom_macro_value_r(nagios_macros* mac,
+                                     std::string_view macro_name,
+                                     std::string_view arg1,
+                                     std::string_view arg2,
+                                     std::string& output) {
+  family fam;
+  std::string_view name;
+  if (absl::StartsWith(macro_name, "_HOST")) {
+    fam = family::host;
+    name = macro_name.substr(5);
+  } else if (absl::StartsWith(macro_name, "_SERVICE")) {
+    fam = family::service;
+    name = macro_name.substr(8);
+  } else if (absl::StartsWith(macro_name, "_CONTACT")) {
+    fam = family::contact;
+    name = macro_name.substr(8);
+  } else
+    return ERROR;
 
-  // Return value.
-  int retval = OK;
-
-  // Use the saved contactgroup pointer.
-  // or find the contactgroup for on-demand macros.
-  std::shared_ptr<com::centreon::engine::contactgroup> cg{nullptr};
-  contactgroup_map::iterator cg_it{contactgroup::contactgroups.find(arg1)};
-  if (cg_it == contactgroup::contactgroups.end() || !cg_it->second)
-    retval = ERROR;
-  else
-    cg = cg_it->second;
-
-  if (cg) {
-    // Get the contactgroup macro value.
-    output = desc.get(target_of(cg.get()), mac);
-    *free_macro = true;
-  }
-
-  return retval;
+  return resolve(
+      mac, macro_name, fam, arg1, arg2, custom_policy,
+      [macro_name, name](const macro_target& t) -> std::string {
+        const map_customvar& vars = t.hst   ? t.hst->custom_variables
+                                    : t.svc ? t.svc->custom_variables
+                                            : t.cntct->get_custom_variables();
+        if (!name.empty())
+          for (auto& [key, var] : vars)
+            if (key == name)
+              return var.value();
+        if (t.hst)
+          macros_logger->debug("macro {}: host '{}' has no variable '{}'",
+                               macro_name, t.hst->name(), name);
+        else if (t.svc)
+          macros_logger->debug("macro {}: service '{}/{}' has no variable '{}'",
+                               macro_name, t.svc->get_hostname(),
+                               t.svc->description(), name);
+        else
+          macros_logger->debug("macro {}: contact '{}' has no variable '{}'",
+                               macro_name, t.cntct->get_name(), name);
+        return std::string();
+      },
+      output);
 }
 
 /**
@@ -757,8 +689,6 @@ int grab_macro_value_r(nagios_macros* mac,
   std::string_view buf;
   std::string_view arg[2];
 
-  contact* temp_contact = nullptr;
-  std::string temp_buffer;
   unsigned int x;
   int result = OK;
 
@@ -862,7 +792,6 @@ int grab_macro_value_r(nagios_macros* mac,
   }
 
   /***** CONTACT ADDRESS MACROS *****/
-  /* NOTE: the code below should be broken out into a separate function */
   else if (buf.size() > 14 && buf.compare(0, 14, "CONTACTADDRESS") == 0) {
     /* which address do we want? (buf, the name without the arguments of an
      * on-demand macro) */
@@ -874,61 +803,21 @@ int grab_macro_value_r(nagios_macros* mac,
     }
     x -= 1;
 
-    /* regular macro */
-    if (arg[0] == "") {
-      /* use the saved pointer */
-      if ((temp_contact = mac->contact_ptr) == nullptr) {
-        return ERROR;
-      }
-
-      /* get the macro value */
-      result = grab_contact_address_macro(x, temp_contact, output);
-    }
-    /* on-demand macro */
-    else {
-      /* on-demand contact macro with a contactgroup and a delimiter */
-      if (arg[1] != "") {
-        contactgroup_map::iterator cg_it{
-            contactgroup::contactgroups.find(arg[0])};
-        if (cg_it == contactgroup::contactgroups.end() || !cg_it->second)
-          return ERROR;
-
-        /* concatenate macro values for all contactgroup members */
-        for (contact_map::const_iterator
-                 it = cg_it->second->get_members().begin(),
-                 end = cg_it->second->get_members().end();
-             it != end; ++it) {
-          if (!it->second)
-            continue;
-
-          /* get the macro value for this contact */
-          grab_contact_address_macro(x, it->second.get(), temp_buffer);
-
-          if (temp_buffer.empty())
-            continue;
-
-          /* add macro value to already running macro */
-          if (output.empty())
-            output.append(temp_buffer);
-          else {
-            output.append(arg[1]);
-            output.append(temp_buffer);
+    result = resolve(
+        mac, buf, family::contact, arg[0], arg[1], contact_address_policy,
+        [x, buf](const macro_target& t) -> std::string {
+          if (x >= MAX_CONTACT_ADDRESSES) {
+            macros_logger->debug(
+                "macro {}: the address number must be between 1 and {}", buf,
+                MAX_CONTACT_ADDRESSES);
+            return std::string();
           }
-          temp_buffer = "";
-        }
-      }
-      /* else on-demand contact macro */
-      else {
-        /* find the contact */
-        contact_map::const_iterator it{contact::contacts.find(arg[0])};
-        if (it == contact::contacts.end()) {
-          return ERROR;
-        }
-
-        /* get the macro value */
-        result = grab_contact_address_macro(x, it->second.get(), output);
-      }
-    }
+          /* the contact may have less than MAX_CONTACT_ADDRESSES addresses */
+          if (x < t.cntct->get_addresses().size())
+            return t.cntct->get_address(x);
+          return std::string();
+        },
+        output);
   }
   /***** CUSTOM VARIABLE MACROS *****/
   else if (macro_name[0] == '_') {
@@ -1000,19 +889,16 @@ int grab_macrox_value_r(nagios_macros* mac,
 
   switch (desc.fam) {
     case family::host:
-      return handle_host_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::hostgroup:
-      return handle_hostgroup_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::service:
-      return handle_service_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::servicegroup:
-      return handle_servicegroup_macro(mac, desc, arg1, arg2, output,
-                                       free_macro);
     case family::contact:
-      return handle_contact_macro(mac, desc, arg1, arg2, output, free_macro);
     case family::contactgroup:
-      return handle_contactgroup_macro(mac, desc, arg1, arg2, output,
-                                       free_macro);
+      *free_macro = true;
+      return resolve(
+          mac, desc.name, desc.fam, arg1, arg2, standard_policy,
+          [&desc, mac](const macro_target& t) { return desc.get(t, mac); },
+          output);
     case family::notification:
       return handle_notification_macro(mac, desc, arg1, arg2, output,
                                        free_macro);
