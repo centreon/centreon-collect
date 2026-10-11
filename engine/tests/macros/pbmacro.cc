@@ -1340,6 +1340,71 @@ TEST_F(Macro, PbServicegroupMembers) {
   ASSERT_EQ(absl::StrJoin(pairs, ";"), "h1,s;h2,s;h2,t");
 }
 
+/* Without argument, the servicegroup and contactgroup macros used to look
+ * for a group with an empty name instead of the group of the context, so they
+ * were always empty. */
+TEST_F(Macro, PbGroupOfContext) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::applier::contact ct_aply;
+  configuration::Host h1;
+  configuration::host_helper h1_hlp(&h1);
+  fill_pb_configuration_host(&h1_hlp, "h1", "", 1);
+  hst_aply.add_object(h1);
+  configuration::Service s1;
+  configuration::service_helper s1_hlp(&s1);
+  fill_pb_configuration_service(&s1_hlp, "h1", "s", "", 1);
+  svc_aply.add_object(s1);
+  configuration::Contact c1;
+  configuration::contact_helper c1_hlp(&c1);
+  fill_pb_configuration_contact(&c1_hlp, "c1", true);
+  ct_aply.add_object(c1);
+
+  configuration::applier::servicegroup sg_aply;
+  configuration::Servicegroup sg;
+  configuration::servicegroup_helper sg_hlp(&sg);
+  sg.set_servicegroup_name("sg");
+  sg.set_alias("Service group");
+  fill_pair_string_group(sg.mutable_members(), "h1,s");
+  sg_aply.add_object(sg);
+
+  configuration::applier::contactgroup cg_aply;
+  configuration::Contactgroup cg;
+  configuration::contactgroup_helper cg_hlp(&cg);
+  cg.set_contactgroup_name("cg");
+  cg.set_alias("Contact group");
+  fill_string_group(cg.mutable_members(), "c1");
+  cg_aply.add_object(cg);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  hst_aply.resolve_object(h1);
+  svc_aply.resolve_object(s1);
+  ct_aply.resolve_object(c1);
+  sg_aply.resolve_object(sg);
+  cg_aply.resolve_object(cg);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+  const std::string line(
+      "[$SERVICEGROUPALIAS$] [$SERVICEGROUPMEMBERS$] [$CONTACTGROUPALIAS$] "
+      "[$CONTACTGROUPMEMBERS$]");
+
+  grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
+  grab_service_macros_r(
+      mac, engine::service::services.find({"h1", "s"})->second.get());
+  grab_contact_macros_r(mac,
+                        engine::contact::contacts.find("c1")->second.get());
+  process_macros_r(mac, line, out, 0);
+  ASSERT_EQ(out, "[Service group] [h1,s] [Contact group] [c1]");
+
+  /* Without context, there is no group. */
+  clear_volatile_macros_r(mac);
+  process_macros_r(mac, line, out, 0);
+  ASSERT_EQ(out, "[] [] [] []");
+}
+
 /* The $TOTALHOSTSERVICES*$ macros used to be cached for any host: once
  * computed for an on-demand host, they were returned for the context host and
  * for every member of a host group. h1 (context) has one critical service, h2

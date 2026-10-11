@@ -256,6 +256,8 @@ static int resolve(nagios_macros* mac,
     }
 
     case family::servicegroup:
+      if (arg1.empty())
+        return single(mac->servicegroup_ptr, family::servicegroup, arg1);
       return single(find_object(servicegroup::servicegroups, arg1),
                     family::servicegroup, arg1);
 
@@ -271,6 +273,8 @@ static int resolve(nagios_macros* mac,
                     arg1);
 
     case family::contactgroup:
+      if (arg1.empty())
+        return single(mac->contactgroup_ptr, family::contactgroup, arg1);
       return single(find_object(contactgroup::contactgroups, arg1),
                     family::contactgroup, arg1);
 
