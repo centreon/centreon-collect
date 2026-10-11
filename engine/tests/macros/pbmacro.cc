@@ -1405,6 +1405,42 @@ TEST_F(Macro, PbGroupOfContext) {
   ASSERT_EQ(out, "[] [] [] []");
 }
 
+/* In a group, the standard macros used to skip an empty value only when it
+ * came first: depending on the order of the members, the same values gave
+ * "x", "x," or "x,,". Every empty value is now skipped. */
+TEST_F(Macro, PbGroupSkipsEmptyValues) {
+  configuration::applier::host hst_aply;
+  configuration::Host h1, h2, h3;
+  configuration::host_helper h1_hlp(&h1), h2_hlp(&h2), h3_hlp(&h3);
+  fill_pb_configuration_host(&h1_hlp, "h1", "", 1);
+  fill_pb_configuration_host(&h2_hlp, "h2", "", 2);
+  fill_pb_configuration_host(&h3_hlp, "h3", "", 3);
+  h2.set_notes("x");
+  hst_aply.add_object(h1);
+  hst_aply.add_object(h2);
+  hst_aply.add_object(h3);
+
+  configuration::applier::hostgroup hg_aply;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  hg.set_hostgroup_name("hg");
+  hg_hlp.hook("members", "h1,h2,h3");
+  hg_aply.add_object(hg);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  hst_aply.resolve_object(h1);
+  hst_aply.resolve_object(h2);
+  hst_aply.resolve_object(h3);
+  hg_aply.resolve_object(hg);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+  process_macros_r(mac, "[$HOSTNOTES:hg:,$] [$HOSTNOTESURL:hg:,$]", out, 0);
+  ASSERT_EQ(out, "[x] []");
+}
+
 /* The $TOTALHOSTSERVICES*$ macros used to be cached for any host: once
  * computed for an on-demand host, they were returned for the context host and
  * for every member of a host group. h1 (context) has one critical service, h2

@@ -385,8 +385,8 @@ class MacroGolden : public TestEngine {
    *
    * The members of a group come in no particular order (hash maps), so the
    * output of a group form ('#' separator) or of a *MEMBERS macro (',') is
-   * normalized: its parts are sorted, and the empty ones are removed because
-   * an empty value is skipped only when it comes first.
+   * normalized: its parts are sorted. The empty values are skipped, so an
+   * empty part is a regression.
    */
   std::string _record(ctx c,
                       int options,
@@ -398,7 +398,7 @@ class MacroGolden : public TestEngine {
     clear_volatile_macros_r(mac);
     if (group || line.find("MEMBERS") != std::string::npos) {
       std::vector<std::string_view> parts =
-          absl::StrSplit(out, absl::ByAnyChar("#,"), absl::SkipEmpty());
+          absl::StrSplit(out, absl::ByAnyChar("#,"));
       std::sort(parts.begin(), parts.end());
       out = absl::StrJoin(parts, "#");
     }

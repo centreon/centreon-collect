@@ -69,9 +69,6 @@ namespace {
  * kept as they are, for compatibility.
  */
 struct policy {
-  /* In a group, true to skip every empty value, false to skip only the
-   * leading ones. */
-  bool skip_all_empty;
   /* $X:h$ of a service macro is the servicegroup h with an empty separator
    * instead of an error. */
   bool host_only_is_group;
@@ -81,11 +78,11 @@ struct policy {
 };
 
 /* The standard macros ($HOSTNAME$...). */
-constexpr policy standard_policy{false, false, false};
+constexpr policy standard_policy{false, false};
 /* The custom macros ($_HOSTFOO$...). */
-constexpr policy custom_policy{true, true, false};
+constexpr policy custom_policy{true, false};
 /* The $CONTACTADDRESSn$ macros. */
-constexpr policy contact_address_policy{true, false, true};
+constexpr policy contact_address_policy{false, true};
 }  // namespace
 
 /**
@@ -115,27 +112,25 @@ static std::string_view family_name(family fam) {
 }
 
 /**
- *  Concatenate the values of the members of a group.
+ *  Concatenate the values of the members of a group. The empty values are
+ *  skipped.
  *
- *  @param[in]  members        The members of the group.
- *  @param[in]  separator      The separator between two values.
- *  @param[in]  skip_all_empty True to skip every empty value, false to skip
- *                             only the leading ones.
- *  @param[in]  value          Computes a value on a member (see resolve()).
+ *  @param[in]  members   The members of the group.
+ *  @param[in]  separator The separator between two values.
+ *  @param[in]  value     Computes a value on a member (see resolve()).
  *
  *  @return The concatenated values.
  */
 template <typename Members, typename Value>
 static std::string concatenate(const Members& members,
                                std::string_view separator,
-                               bool skip_all_empty,
                                const Value& value) {
   std::string retval;
   for (auto& [name, member] : members) {
     if (!member)
       continue;
     std::string member_value = value(ptr_of(member));
-    if (skip_all_empty && member_value.empty())
+    if (member_value.empty())
       continue;
     if (retval.empty())
       retval = std::move(member_value);
@@ -197,7 +192,7 @@ static int resolve(nagios_macros* mac,
                            family_name(kind), arg1);
       return ERROR;
     }
-    output = concatenate(members(*grp), arg2, pol.skip_all_empty, value);
+    output = concatenate(members(*grp), arg2, value);
     return OK;
   };
 
