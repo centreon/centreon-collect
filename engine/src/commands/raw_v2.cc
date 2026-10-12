@@ -126,7 +126,8 @@ static void _build_custom_macros_environment(
 /**
  *  Build macrox environment variables.
  *
- *  @param[in,out] macros  The macros data struct.
+ *  @param[in,out] macros  The macros data struct, where the summary macros
+ *                         are cached.
  *  @param[out]    env     The environment to fill.
  */
 static void _build_macrosx_environment(
@@ -135,27 +136,18 @@ static void _build_macrosx_environment(
   bool use_large_installation_tweaks =
       pb_indexed_config.state().use_large_installation_tweaks();
   for (auto& desc : com::centreon::engine::macros::all_descriptors()) {
-    uint32_t i = desc.id;
-    int release_memory = 0;
-
-    // Need to grab macros?
-    if (macros.x[i].empty()) {
-      // Skip summary macro in lage instalation tweaks.
-      if (desc.fam != com::centreon::engine::macros::family::summary ||
-          !use_large_installation_tweaks) {
-        grab_macrox_value_r(&macros, desc, "", "", macros.x[i],
-                            &release_memory);
-      }
+    std::string value;
+    /* With the large installation tweaks, the summary macros are not
+     * computed for the environment: only their cached values are given. */
+    if (desc.fam == com::centreon::engine::macros::family::summary &&
+        use_large_installation_tweaks)
+      value = macros.x[desc.id];
+    else {
+      int free_macro = 0;
+      grab_macrox_value_r(&macros, desc, "", "", value, &free_macro);
     }
-
-    // Add into the environment.
     env.env_buffer.emplace_back(
-        fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, macros.x[i]));
-
-    // Release memory if necessary.
-    if (release_memory) {
-      macros.x[i] = "";
-    }
+        fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, value));
   }
 }
 
