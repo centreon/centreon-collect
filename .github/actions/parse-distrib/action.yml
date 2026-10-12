@@ -65,14 +65,6 @@ runs:
           DISTRIB_FAMILY="el10"
           DISTRIB_NAME="alma10"
           REPO_DISTRIB_NAME="el10"
-        elif [[ "${{ inputs.distrib }}" == "bullseye" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="+"
-          PACKAGE_VERSION_SEPARATOR="_"
-          PACKAGE_DISTRIB_NAME="deb11u1"
-          PACKAGE_EXTENSION="deb"
-          DISTRIB_FAMILY="debian"
-          DISTRIB_NAME="bullseye"
-          REPO_DISTRIB_NAME="bullseye"
         elif [[ "${{ inputs.distrib }}" == "bookworm" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_VERSION_SEPARATOR="_"

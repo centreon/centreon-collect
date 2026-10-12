@@ -413,16 +413,6 @@ int main(int argc, char* argv[]) {
 
           configuration::applier::state::instance().apply_log_config(*new_conf);
 
-          if (proto_valid) {
-            SPDLOG_LOGGER_INFO(
-                config_logger, "Configuration loaded from: {} version: {}",
-                proto_conf_file.c_str(), new_conf->config_version());
-          } else {
-            SPDLOG_LOGGER_INFO(
-                config_logger,
-                "No configuration file => default configuration");
-          }
-
           init_loggers();
           com::centreon::common::pool::instance().set_logger(runtime_logger);
 

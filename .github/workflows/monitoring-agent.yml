@@ -526,10 +526,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: bookworm
@@ -622,7 +618,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
+        distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
 
     steps:
       - name: Checkout sources
