@@ -5,8 +5,6 @@
 
 set -e
 
-TYPE="${TYPE:-central}"
-
 if [ "$TYPE" != "poller" ]; then
     echo "=== Engine Secrets: central mode, skipping ==="
     return 0
