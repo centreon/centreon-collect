@@ -118,7 +118,7 @@ void broker_cache::merge(
 
   /* Work on hosts */
   if (section_enabled(CACHE_HOSTS)) {
-    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts fro poller {}",
+    SPDLOG_LOGGER_TRACE(_logger, "new conf contains {} hosts for poller {}",
                         state.hosts().size(), state.poller_id());
     // remove all host for this poller
     SPDLOG_LOGGER_TRACE(_logger, "{} hosts for poller {} before clean",
@@ -341,10 +341,12 @@ void broker_cache::apply(
   //   merge(diff.state());
   // }
 
-  for (uint64_t poller_id : diff.full_conf_poller_id()) {
-    remove_instance(poller_id);
-  }
   absl::WriterMutexLock lck{&_mutex};
+
+  for (uint64_t poller_id : diff.full_conf_poller_id()) {
+    _remove_instance_no_lock(poller_id, false);
+  }
+
   /* Work on instances */
   // if (diff.has_poller_name() && diff.poller_id())
   //   _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
@@ -1106,10 +1108,17 @@ void broker_cache::update_instance(
  * @param instance_id The ID of the instance to remove
  */
 void broker_cache::remove_instance(uint64_t instance_id) {
+  absl::WriterMutexLock l{&_mutex};
+
+  _remove_instance_no_lock(instance_id, true);
+}
+
+void broker_cache::_remove_instance_no_lock(uint64_t instance_id,
+                                            bool erase_instance) {
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{&_mutex};
-  _instances.erase(instance_id);
+  if (erase_instance)
+    _instances.erase(instance_id);
 
   _hosts.get<by_instance>().erase(instance_id);
   _services.get<by_instance>().erase(instance_id);
