@@ -130,6 +130,7 @@ overrides:
       - centreon-broker-cbmod = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine-opentelemetry = ${VERSION}-${RELEASE}${DIST}
       - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
+      - logrotate
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-devel
@@ -139,8 +140,6 @@ overrides:
     provides:
       - centreon-engine-extcommands
       - centreon-engine-devel
-    recommends:
-      - logrotate
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
@@ -148,6 +147,7 @@ overrides:
       - centreon-broker-cbmod (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine-opentelemetry (= ${VERSION}-${RELEASE}${DIST})
       - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
+      - logrotate
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev
@@ -157,8 +157,6 @@ overrides:
     provides:
       - centreon-engine-extcommands
       - centreon-engine-dev
-    recommends:
-      - logrotate
 
 rpm:
   summary: Centreon Engine Daemon is the daemon to schedule checks.
