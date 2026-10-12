@@ -229,8 +229,9 @@ int run_global_service_event_handler(nagios_macros* mac,
 
   static checkable::static_whitelist_last_result cached_cmd;
 
-  if (checkable::command_is_allowed_by_whitelist(processed_command,
-                                                 cached_cmd)) {
+  if (checkable::command_is_allowed_by_whitelist(processed_command, cached_cmd,
+                                                 svc->is_cma_service(),
+                                                 svc->get_hostname())) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, event_handler_timeout, &early_timeout,
@@ -489,7 +490,8 @@ int run_global_host_event_handler(nagios_macros* mac,
 
   static checkable::static_whitelist_last_result cached_cmd;
 
-  if (host::command_is_allowed_by_whitelist(processed_command, cached_cmd)) {
+  if (checkable::command_is_allowed_by_whitelist(
+          processed_command, cached_cmd, hst->is_cma_host(), hst->name())) {
     /* run the command */
     try {
       my_system_r(mac, processed_command, event_handler_timeout, &early_timeout,
