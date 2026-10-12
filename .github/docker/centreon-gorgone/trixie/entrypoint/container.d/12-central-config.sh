@@ -227,6 +227,19 @@ gorgone:
       cache_dir: "/var/cache/centreon/"
       cache_dir_trap: "/etc/snmp/centreon_traps"
       remote_dir: "/var/cache/centreon/config/remote-data/"
+
+    # Registers the /core/action/command route on this process's own
+    # httpserver — required for RELOAD/RESTART (restartPollers.php) dispatch
+    # to work at all: without it, POST /api/nodes/<id>/core/action/command
+    # returns {"error":"method_unknown"} regardless of what the target node
+    # supports. 39-action.yaml/whitelist.conf.d are baked unconditionally
+    # earlier in the Dockerfile.
+    - name: action
+      package: "gorgone::modules::core::action::hooks"
+      enable: true
+      command_timeout: 30
+      whitelist_cmds: true
+      allowed_cmds: !include /etc/centreon-gorgone/config.d/whitelist.conf.d/*.yaml
 EOF
 
 echo "✓ Central config.d written (30/31/40/41 + cron.d)"
