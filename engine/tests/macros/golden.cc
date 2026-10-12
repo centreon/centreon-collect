@@ -261,6 +261,13 @@ class MacroGolden : public TestEngine {
     sg.set_action_url("http://example.com/sg-action?a=1&b=2");
     fill_pair_string_group(sg.mutable_members(), "h1,s,h2,s,h3,s");
     sg_aply.add_object(sg);
+    /* A group of one service, for the $X:sg3$ form: with several members,
+     * the values would be glued in no particular order. */
+    configuration::Servicegroup sg3;
+    configuration::servicegroup_helper sg3_hlp(&sg3);
+    sg3.set_servicegroup_name("sg3");
+    fill_pair_string_group(sg3.mutable_members(), "h3,s");
+    sg_aply.add_object(sg3);
 
     configuration::error_cnt err;
     _state_hlp->expand(err);
@@ -273,6 +280,7 @@ class MacroGolden : public TestEngine {
     for (auto& s : services)
       svc_aply.resolve_object(s);
     sg_aply.resolve_object(sg);
+    sg_aply.resolve_object(sg3);
 
     init_macros();
     configuration::applier::macros::instance().apply(st);
@@ -462,6 +470,7 @@ class MacroGolden : public TestEngine {
         {"::s", false},  {":h2:nope", false}, {":nope", false},
         {":hg:#", true}, {":sg:#", true},     {":c2", false},
         {":cg:#", true}, {":hg", false},      {"::", false},
+        {":sg3", false},
     };
     for (auto& n : names)
       for (auto& [suffix, group] : forms)
