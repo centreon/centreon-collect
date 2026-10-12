@@ -52,6 +52,7 @@ overrides:
       - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
       - gnutls >= 3.6.0
       - mariadb-connector-c >= 3.1.10
+      - logrotate
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-devel
@@ -63,8 +64,6 @@ overrides:
     provides:
       - centreon-broker-storage
       - centreon-broker-core-devel
-    recommends:
-      - logrotate
 
   deb:
     depends:
@@ -77,6 +76,7 @@ overrides:
       - libssl1.1 | libssl3
       - libmariadb3
       - zlib1g
+      - logrotate
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-dev
@@ -89,8 +89,6 @@ overrides:
       - centreon-broker-storage
       - centreon-broker-core-dev
       - centreon-broker-caching-sha2-password
-    recommends:
-      - logrotate
 
 rpm:
   summary: Centreon Broker's shared library.
