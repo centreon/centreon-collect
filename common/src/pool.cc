@@ -101,12 +101,17 @@ pool::~pool() {
   }
 }
 
+void pool::set_logger(const std::shared_ptr<spdlog::logger>& logger) {
+  absl::MutexLock l(&_pool_m);
+  _logger = logger;
+}
+
 /**
  * @brief Stop the thread pool.
  */
 void pool::_stop() {
-  SPDLOG_LOGGER_DEBUG(_logger, "Stopping the thread pool");
   absl::MutexLock l(&_pool_m);
+  SPDLOG_LOGGER_DEBUG(_logger, "Stopping the thread pool");
   _worker.reset();
   if (_original_pid == getpid()) {
     for (auto& t : *_pool)

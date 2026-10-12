@@ -205,4 +205,51 @@ LOGV2DF2
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+LOGV2CENTRALIZEDRELOAD
+    [Documentation]    Given a Centreon platform with 1 poller in centralized configuration mode
+    ...    And Engine already connected to Broker and logging into its initial log file
+    ...    When a new configuration changing the log file path and log_file_line is pushed to Broker
+    ...    And Broker forwards this new configuration to Engine
+    ...    Then Engine must start writing its logs into the new log file.
+    [Tags]    broker    engine    log-v2    centralized-configuration    MON-209200
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection between Engine and Broker not established
+
+    ${content}    Create List    \\[functions\\] \\[trace\\] \\[host.cc:[0-9]+\\]
+    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result[0]}    Engine did not start logging into its initial log file
+
+    # Build a new configuration changing the log file path and log_file_line, while Engine
+    # is already running with the previous one.
+    ${newEngineLog}    Set Variable    ${ENGINE_LOG}/config0/centengine_new.log
+    Ctn Engine Config Set Value    ${0}    log_file    ${newEngineLog}    True
+    Ctn Engine Config Set Value    ${0}    log_file_line    0    True
+
+    # Push this new configuration to Broker, which must forward it to the already connected Engine.
+    ${start}    Ctn Get Round Current Date
+    Ctn Notify Broker Of Engine Config Change    0
+    ${content}    Create List    received diff state ack from poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not acknowledge the new configuration for poller 1
+
+    # Engine must now be writing its logs into the new log file.
+    ${content}    Create List    [functions] [trace]
+    ${result}    Ctn Find In Log With Timeout    ${newEngineLog}    ${start}    ${content}    30
+    Should Be True    ${result}
+    ...    Engine did not start writing into the new log file after the configuration reload
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 

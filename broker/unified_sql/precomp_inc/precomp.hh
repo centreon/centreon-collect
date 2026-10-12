@@ -21,6 +21,7 @@
 
 #include <condition_variable>
 #include <deque>
+#include <filesystem>
 #include <future>
 #include <limits>
 #include <list>

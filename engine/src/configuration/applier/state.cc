@@ -17,11 +17,7 @@
  *
  */
 
-#include <absl/container/fixed_array.h>
-#include <fmt/chrono.h>
 #include <sys/resource.h>
-#include <chrono>
-#include <cstdint>
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -1841,13 +1837,13 @@ void applier::state::_processing(configuration::State& new_cfg,
     // Check for circular paths between hosts.
     pre_flight_circular_check(&err.config_warnings, &err.config_errors);
 
+    apply_log_config(new_cfg);
     // Call start broker event the first time to run applier state.
     if (!has_already_been_loaded) {
       neb_load_all_modules();
 
       broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
     } else {
-      apply_log_config(new_cfg);
       cbm->reload();
       neb_reload_all_modules();
     }

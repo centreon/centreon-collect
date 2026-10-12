@@ -17,7 +17,11 @@
  *
  */
 
+#include <absl/container/flat_hash_map.h>
 #include <gtest/gtest.h>
+
+#include <filesystem>
+
 #include "common/log_v2/log_v2.hh"
 #include "pool.hh"
 

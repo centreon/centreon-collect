@@ -20,6 +20,7 @@
 #ifndef CCE_MOD_OTL_SERVER_PRECOMP_HH
 #define CCE_MOD_OTL_SERVER_PRECOMP_HH
 
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>

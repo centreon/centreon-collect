@@ -20,6 +20,7 @@
 #define CC_GRAPHITE_PRECOMP_HH
 
 #include <condition_variable>
+#include <filesystem>
 #include <future>
 #include <list>
 #include <queue>

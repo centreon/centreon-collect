@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <chrono>
 #include <deque>
+#include <filesystem>
 #include <forward_list>
 #include <fstream>
 #include <functional>
@@ -38,6 +39,7 @@
 #include <spdlog/fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
+#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/hash/hash.h>
 #include <absl/strings/numbers.h>

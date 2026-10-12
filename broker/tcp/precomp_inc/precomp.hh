@@ -20,6 +20,7 @@
 #define CC_TCP_PRECOMP_HH
 
 #include <condition_variable>
+#include <filesystem>
 #include <list>
 #include <queue>
 #include <set>
@@ -28,6 +29,7 @@
 #include <unordered_map>
 
 #include <absl/container/btree_map.h>
+#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/match.h>
 

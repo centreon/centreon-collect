@@ -30,5 +30,6 @@
 #include <google/protobuf/util/message_differencer.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+#include <filesystem>
 
 #endif /* !CCE_ENGINE_CONF_PRECOMP_HH */

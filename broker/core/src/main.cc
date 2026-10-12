@@ -23,9 +23,12 @@
 #include <csignal>
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <thread>
 
 #include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
 
@@ -41,6 +44,7 @@ namespace asio = boost::asio;
 #include <boost/multi_index_container.hpp>
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #include "common/log_v2/log_v2.hh"
 
@@ -268,6 +272,9 @@ int main(int argc, char* argv[]) {
          * Otherwise we will have issues with concurrent accesses. */
         try {
           log_v2::instance().apply(log_conf);
+          // logger recreated by apply
+          core_logger = log_v2::instance().get(log_v2::CORE);
+          com::centreon::common::pool::instance().set_logger(core_logger);
         } catch (const std::exception& e) {
           core_logger->error("{}", e.what());
         }
