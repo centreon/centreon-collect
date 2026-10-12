@@ -150,9 +150,6 @@ void flush_startup_phases() {
  */
 int main(int argc, char* argv[]) {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
-  // Get global macros.
-  nagios_macros* mac(get_global_macros());
-
   // Load singletons and global variable.
   log_v2::load("centengine");
 
@@ -524,11 +521,10 @@ int main(int argc, char* argv[]) {
           phase_begin =
               log_startup_phase("retention", phase_begin, startup_clock::now());
 
-          // Get program (re)start time and save as macro. Needs to be
+          // Get program (re)start time. Needs to be
           // done after we read config files, as user may have overridden
           // timezone offset.
           program_start = std::time(nullptr);
-          mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
 
           // Handle signals (interrupts).
           setup_sighandler();
@@ -590,9 +586,8 @@ int main(int argc, char* argv[]) {
           // if neb has not started g_io_context we do it here
           com::centreon::common::pool::set_pool_size(1);
 
-          // Get event start time and save as macro.
+          // Get event start time.
           event_start = time(NULL);
-          mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
           /* Everything from the first configuration read to here, which is what
            * an operator waiting for the poller to come back actually feels. It

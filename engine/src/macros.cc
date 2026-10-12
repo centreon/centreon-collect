@@ -90,16 +90,7 @@ std::string clean_macro_chars(std::string const& macro, int options) {
 
 /* initializes global macros */
 int init_macros() {
-  /*
-   * non-volatile macros are free()'d when they're set.
-   * We must do this in order to not lose the constant
-   * ones when we get SIGHUP or a RESTART_PROGRAM event
-   * from the command fifo. Otherwise a memset() would
-   * have been better.
-   */
   clear_volatile_macros_r(get_global_macros());
-
-  /* backwards compatibility hack */
   return OK;
 }
 
@@ -118,38 +109,10 @@ int clear_argv_macros_r(nagios_macros* mac) {
   return OK;
 }
 
-/* clear all macros that are not "constant" (i.e. they change throughout the
- * course of monitoring) */
+/* clear all the macros of the context */
 int clear_volatile_macros_r(nagios_macros* mac) {
-  unsigned int x = 0;
-
-  for (x = 0; x < MACRO_X_COUNT; x++) {
-    switch (x) {
-      case MACRO_ADMINEMAIL:
-      case MACRO_ADMINPAGER:
-      case MACRO_MAINCONFIGFILE:
-      case MACRO_STATUSDATAFILE:
-      case MACRO_RETENTIONDATAFILE:
-      case MACRO_TEMPFILE:
-      case MACRO_LOGFILE:
-      case MACRO_RESOURCEFILE:
-      case MACRO_COMMANDFILE:
-      case MACRO_HOSTPERFDATAFILE:
-      case MACRO_SERVICEPERFDATAFILE:
-      case MACRO_PROCESSSTARTTIME:
-      case MACRO_TEMPPATH:
-      case MACRO_EVENTSTARTTIME:
-      case MACRO_POLLERNAME:
-      case MACRO_POLLERID:
-        /* these don't change during the course of monitoring, so no need to
-         * free them */
-        break;
-
-      default:
-        mac->x[x] = "";
-        break;
-    }
-  }
+  for (std::string& value : mac->x)
+    value.clear();
 
   /* clear macro pointers */
   mac->host_ptr = nullptr;

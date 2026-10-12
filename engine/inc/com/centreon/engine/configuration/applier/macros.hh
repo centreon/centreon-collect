@@ -21,9 +21,6 @@
 
 #include "common/engine_conf/state_helper.hh"
 
-// Forward declaration.
-class nagios_macros;
-
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -45,10 +42,7 @@ class macros {
   macros(macros const&);
   ~macros() noexcept;
   macros& operator=(macros const&);
-  void _set_macro(unsigned int type, std::string const& value);
   void _set_macros_user(unsigned int idx, std::string const& value);
-
-  nagios_macros* _mac;
 };
 }  // namespace applier
 }  // namespace configuration

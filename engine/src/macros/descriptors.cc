@@ -31,6 +31,7 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/macros/defines.hh"
@@ -324,6 +325,40 @@ std::string summary_value(uint32_t macro_id, nagios_macros* mac) {
   return mac->x[macro_id];
 }
 
+/**
+ *  The current configuration, source of most of the static macros.
+ *
+ *  @return The configuration state.
+ */
+const configuration::State& config() {
+  return pb_indexed_config.state();
+}
+
+/**
+ *  The first resource file of the configuration.
+ *
+ *  @return Its path, or an empty string if there is none.
+ */
+std::string resource_file_string() {
+  if (config().resource_file().empty())
+    return std::string();
+  return config().resource_file(0);
+}
+
+/**
+ *  A timestamp as a string.
+ *
+ *  @param[in] t The timestamp, (time_t)-1 if it is not set yet (the start
+ *               times before Engine has started).
+ *
+ *  @return The timestamp, or an empty string if it is not set.
+ */
+std::string timestamp_or_empty(time_t t) {
+  if (t == (time_t)-1)
+    return std::string();
+  return fmt::to_string(t);
+}
+
 /* Each family names its target: hst for a host macro, svc for a service
  * macro... An expression using the target of another family does not
  * compile. */
@@ -355,11 +390,12 @@ std::string summary_value(uint32_t macro_id, nagios_macros* mac) {
 #define NOTIFICATION(name, cleaned) \
   D(name, notification, cleaned, mac->x[MACRO_##name])
 
-/* Static macros: set when the configuration is applied. */
-#define STATIC(name) \
-  D(name, statics, false, get_global_macros()->x[MACRO_##name])
+/* Static macros: read from the configuration or from the state of Engine,
+ * the same for every object. */
+#define STATIC(name, ...) D(name, statics, false, __VA_ARGS__)
 
-/* Summary macros: computed at the first use, then cached. */
+/* Summary macros: all of them are computed at the first use in a macro
+ * context, then cached in it until the context is cleared. */
 #define SUMMARY(name) D(name, summary, false, summary_value(MACRO_##name, mac))
 
 /* All the macros stored in nagios_macros::x[], sorted by id. */
@@ -395,8 +431,8 @@ constexpr std::array descriptors{
     D(CONTACTALIAS, contact, false, cntct->get_alias()),
     D(CONTACTEMAIL, contact, false, cntct->get_email()),
     D(CONTACTPAGER, contact, false, cntct->get_pager()),
-    STATIC(ADMINEMAIL),
-    STATIC(ADMINPAGER),
+    STATIC(ADMINEMAIL, config().admin_email()),
+    STATIC(ADMINPAGER, config().admin_pager()),
     D(HOSTSTATE, host, false, host_state_string(hst->get_current_state())),
     D(HOSTSTATEID, host, false, to_macro_string(hst->get_current_state())),
     D(HOSTATTEMPT, host, false, to_macro_string(hst->get_current_attempt())),
@@ -440,17 +476,18 @@ constexpr std::array descriptors{
       to_macro_string(hst->get_last_time_unreachable())),
     D(SERVICECHECKCOMMAND, service, false, svc->check_command()),
     D(HOSTCHECKCOMMAND, host, false, hst->check_command()),
-    STATIC(MAINCONFIGFILE),
-    STATIC(STATUSDATAFILE),
+    STATIC(MAINCONFIGFILE, config().cfg_main()),
+    STATIC(STATUSDATAFILE, config().status_file()),
     D(HOSTDISPLAYNAME, host, false, hst->get_display_name()),
     D(SERVICEDISPLAYNAME, service, false, svc->get_display_name()),
-    STATIC(RETENTIONDATAFILE),
-    STATIC(TEMPFILE),
-    STATIC(LOGFILE),
-    STATIC(RESOURCEFILE),
-    STATIC(COMMANDFILE),
-    STATIC(HOSTPERFDATAFILE),
-    STATIC(SERVICEPERFDATAFILE),
+    STATIC(RETENTIONDATAFILE, config().state_retention_file()),
+    STATIC(TEMPFILE, "/tmp/centengine.tmp"),
+    STATIC(LOGFILE, config().log_file()),
+    STATIC(RESOURCEFILE, resource_file_string()),
+    STATIC(COMMANDFILE, config().command_file()),
+    /* Engine has no perfdata files. */
+    STATIC(HOSTPERFDATAFILE, std::string()),
+    STATIC(SERVICEPERFDATAFILE, std::string()),
     D(HOSTACTIONURL, host, false,
       recursive_string(mac, hst->get_action_url())),
     D(HOSTNOTESURL, host, false, recursive_string(mac, hst->get_notes_url())),
@@ -476,12 +513,12 @@ constexpr std::array descriptors{
     SUMMARY(TOTALSERVICESUNKNOWNUNHANDLED),
     SUMMARY(TOTALSERVICEPROBLEMS),
     SUMMARY(TOTALSERVICEPROBLEMSUNHANDLED),
-    STATIC(PROCESSSTARTTIME),
+    STATIC(PROCESSSTARTTIME, timestamp_or_empty(program_start)),
     D(HOSTCHECKTYPE, host, false, check_type_string(*hst)),
     D(SERVICECHECKTYPE, service, false, check_type_string(*svc)),
     D(LONGHOSTOUTPUT, host, true, hst->get_long_plugin_output()),
     D(LONGSERVICEOUTPUT, service, true, svc->get_long_plugin_output()),
-    STATIC(TEMPPATH),
+    STATIC(TEMPPATH, "/tmp"),
     D(HOSTNOTIFICATIONNUMBER, host, false,
       to_macro_string(hst->get_notification_number())),
     D(SERVICENOTIFICATIONNUMBER, service, false,
@@ -540,7 +577,7 @@ constexpr std::array descriptors{
     NOTIFICATION(NOTIFICATIONAUTHORNAME, true),
     NOTIFICATION(NOTIFICATIONAUTHORALIAS, true),
     NOTIFICATION(NOTIFICATIONCOMMENT, true),
-    STATIC(EVENTSTARTTIME),
+    STATIC(EVENTSTARTTIME, timestamp_or_empty(event_start)),
     D(HOSTPROBLEMID, host, false,
       to_macro_string(hst->get_current_problem_id())),
     D(LASTHOSTPROBLEMID, host, false,
@@ -565,8 +602,8 @@ constexpr std::array descriptors{
     D(HOSTTIMEZONE, host, false, hst->get_timezone()),
     D(SERVICETIMEZONE, service, false, svc->get_timezone()),
     D(CONTACTTIMEZONE, contact, false, cntct->get_timezone()),
-    STATIC(POLLERNAME),
-    STATIC(POLLERID),
+    STATIC(POLLERNAME, config().poller_name()),
+    STATIC(POLLERID, fmt::to_string(config().poller_id())),
 };
 // clang-format on
 
