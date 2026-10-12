@@ -34,13 +34,12 @@ using namespace com::centreon::engine::configuration::applier;
 
 /* grab macros that are specific to a particular contact */
 int grab_contact_macros_r(nagios_macros* mac, contact* cntct) {
-  /* clear contact-related macros */
-  clear_contact_macros_r(mac);
-  clear_contactgroup_macros_r(mac);
-
   /* save pointer to contact for later */
   mac->contact_ptr = cntct;
   mac->contactgroup_ptr = nullptr;
+
+  /* the summary macros are filtered by contact */
+  clear_summary_macros_r(mac);
 
   if (cntct == nullptr)
     return ERROR;
@@ -111,9 +110,6 @@ int clear_argv_macros_r(nagios_macros* mac) {
 
 /* clear all the macros of the context */
 int clear_volatile_macros_r(nagios_macros* mac) {
-  for (std::string& value : mac->x)
-    value.clear();
-
   /* clear macro pointers */
   mac->host_ptr = nullptr;
   mac->hostgroup_ptr = nullptr;
@@ -122,67 +118,18 @@ int clear_volatile_macros_r(nagios_macros* mac) {
   mac->contact_ptr = nullptr;
   mac->contactgroup_ptr = nullptr;
 
+  mac->notification.reset();
+  mac->summary.reset();
+  mac->host_services.reset();
+
   /* clear ARGx macros */
   clear_argv_macros_r(mac);
 
   return OK;
 }
 
-/* clear contact macros */
-int clear_contact_macros_r(nagios_macros* mac) {
-  unsigned int x;
-
-  for (x = 0; x < MACRO_X_COUNT; x++) {
-    switch (x) {
-      case MACRO_CONTACTNAME:
-      case MACRO_CONTACTALIAS:
-      case MACRO_CONTACTEMAIL:
-      case MACRO_CONTACTPAGER:
-      case MACRO_CONTACTGROUPNAMES:
-        mac->x[x] = "";
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  /* clear pointers */
-  mac->contact_ptr = nullptr;
-
-  return OK;
-}
-
-/* clear contactgroup macros */
-int clear_contactgroup_macros_r(nagios_macros* mac) {
-  unsigned int x;
-
-  for (x = 0; x < MACRO_X_COUNT; x++) {
-    switch (x) {
-      case MACRO_CONTACTGROUPNAME:
-      case MACRO_CONTACTGROUPALIAS:
-      case MACRO_CONTACTGROUPMEMBERS:
-        mac->x[x] = "";
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  /* clear pointers */
-  mac->contactgroup_ptr = nullptr;
-
-  return OK;
-}
-
 /* clear summary macros */
 int clear_summary_macros_r(nagios_macros* mac) {
-  unsigned int x;
-
-  for (x = MACRO_TOTALHOSTSUP; x <= MACRO_TOTALSERVICEPROBLEMSUNHANDLED; x++) {
-    mac->x[x] = "";
-  }
-
+  mac->summary.reset();
   return OK;
 }

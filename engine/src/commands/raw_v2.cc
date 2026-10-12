@@ -138,11 +138,10 @@ static void _build_macrosx_environment(
   for (auto& desc : com::centreon::engine::macros::all_descriptors()) {
     std::string value;
     /* With the large installation tweaks, the summary macros are not
-     * computed for the environment: only their cached values are given. */
-    if (desc.fam == com::centreon::engine::macros::family::summary &&
-        use_large_installation_tweaks)
-      value = macros.x[desc.id];
-    else {
+     * computed for the environment: they are given only when already
+     * cached. */
+    if (desc.fam != com::centreon::engine::macros::family::summary ||
+        !use_large_installation_tweaks || macros.summary) {
       int free_macro = 0;
       grab_macrox_value_r(&macros, desc, "", "", value, &free_macro);
     }

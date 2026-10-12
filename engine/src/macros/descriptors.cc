@@ -139,8 +139,9 @@ std::string host_names(const M& hosts) {
  *          MACRO_TOTALHOSTSERVICESOK, MACRO_TOTALHOSTSERVICESWARNING,
  *          MACRO_TOTALHOSTSERVICESUNKNOWN, MACRO_TOTALHOSTSERVICESCRITICAL.
  */
-std::array<uint32_t, 5> count_host_services(const host& hst) {
-  std::array<uint32_t, 5> retval{};
+std::array<uint32_t, MACRO_HOST_SERVICES_COUNT> count_host_services(
+    const host& hst) {
+  std::array<uint32_t, MACRO_HOST_SERVICES_COUNT> retval{};
   for (auto& [key, svc] : hst.services) {
     if (svc) {
       ++retval[0];
@@ -176,19 +177,15 @@ std::array<uint32_t, 5> count_host_services(const host& hst) {
 std::string host_total_services(uint32_t macro_id,
                                 host& hst,
                                 nagios_macros* mac) {
-  // The cache in the macros does not know its host: it only holds the totals
-  // of the context host, those of another host (on-demand macro) are
-  // computed each time.
+  // The cache only holds the totals of the context host, those of another
+  // host (on-demand macro) are computed each time.
+  const size_t index = macro_id - MACRO_TOTALHOSTSERVICES;
   if (&hst == mac->host_ptr) {
-    if (mac->x[MACRO_TOTALHOSTSERVICES].empty()) {
-      std::array<uint32_t, 5> totals = count_host_services(hst);
-      for (size_t i = 0; i < totals.size(); ++i)
-        mac->x[MACRO_TOTALHOSTSERVICES + i] = fmt::to_string(totals[i]);
-    }
-    return mac->x[macro_id];
+    if (!mac->host_services)
+      mac->host_services = count_host_services(hst);
+    return fmt::to_string((*mac->host_services)[index]);
   }
-  return fmt::to_string(
-      count_host_services(hst)[macro_id - MACRO_TOTALHOSTSERVICES]);
+  return fmt::to_string(count_host_services(hst)[index]);
 }
 
 /**
@@ -322,7 +319,7 @@ std::string next_valid_time_string(const common::timeperiods::timeperiod& tp,
  */
 std::string summary_value(uint32_t macro_id, nagios_macros* mac) {
   generate_summary_macros(mac);
-  return mac->x[macro_id];
+  return fmt::to_string((*mac->summary)[macro_id - MACRO_TOTALHOSTSUP]);
 }
 
 /**
@@ -359,6 +356,39 @@ std::string timestamp_or_empty(time_t t) {
   return fmt::to_string(t);
 }
 
+/**
+ *  The name of a notification type, value of $NOTIFICATIONTYPE$.
+ *
+ *  @param[in] type The reason of the notification.
+ *
+ *  @return Its name, PROBLEM for a normal notification.
+ */
+std::string_view notification_type_name(
+    common::notifications::reason_type type) {
+  switch (type) {
+    case common::notifications::reason_acknowledgement:
+      return "ACKNOWLEDGEMENT";
+    case common::notifications::reason_flappingstart:
+      return "FLAPPINGSTART";
+    case common::notifications::reason_flappingstop:
+      return "FLAPPINGSTOP";
+    case common::notifications::reason_flappingdisabled:
+      return "FLAPPINGDISABLED";
+    case common::notifications::reason_downtimestart:
+      return "DOWNTIMESTART";
+    case common::notifications::reason_downtimeend:
+      return "DOWNTIMEEND";
+    case common::notifications::reason_downtimecancelled:
+      return "DOWNTIMECANCELLED";
+    case common::notifications::reason_custom:
+      return "CUSTOM";
+    case common::notifications::reason_recovery:
+      return "RECOVERY";
+    default:
+      return "PROBLEM";
+  }
+}
+
 /* Each family names its target: hst for a host macro, svc for a service
  * macro... An expression using the target of another family does not
  * compile. */
@@ -370,7 +400,11 @@ std::string timestamp_or_empty(time_t t) {
 #define TARGET_contactgroup contactgroup* cg = std::get<contactgroup*>(target);
 #define TARGET_datetime \
   [[maybe_unused]] auto [tp, when] = std::get<datetime_target>(target);
-#define TARGET_notification
+/* Outside of a notification, the notification macros are empty. */
+#define TARGET_notification \
+  if (!mac->notification)   \
+    return std::string();   \
+  const notification_values& n = *mac->notification;
 #define TARGET_statics
 #define TARGET_summary
 
@@ -386,9 +420,9 @@ std::string timestamp_or_empty(time_t t) {
     MACRO_##name, #name, family::fam, cleaned, G(fam, __VA_ARGS__) \
   }
 
-/* Notification macros: computed before the notification is sent. */
-#define NOTIFICATION(name, cleaned) \
-  D(name, notification, cleaned, mac->x[MACRO_##name])
+/* Notification macros: given by the notification being sent. */
+#define NOTIFICATION(name, cleaned, ...) \
+  D(name, notification, cleaned, __VA_ARGS__)
 
 /* Static macros: read from the configuration or from the state of Engine,
  * the same for every object. */
@@ -398,7 +432,7 @@ std::string timestamp_or_empty(time_t t) {
  * context, then cached in it until the context is cleared. */
 #define SUMMARY(name) D(name, summary, false, summary_value(MACRO_##name, mac))
 
-/* All the macros stored in nagios_macros::x[], sorted by id. */
+/* All the macros with an id (MACRO_HOSTNAME...), sorted by id. */
 // clang-format off
 constexpr std::array descriptors{
     D(HOSTNAME, host, false, hst->name()),
@@ -436,8 +470,10 @@ constexpr std::array descriptors{
     D(HOSTSTATE, host, false, host_state_string(hst->get_current_state())),
     D(HOSTSTATEID, host, false, to_macro_string(hst->get_current_state())),
     D(HOSTATTEMPT, host, false, to_macro_string(hst->get_current_attempt())),
-    NOTIFICATION(NOTIFICATIONTYPE, false),
-    NOTIFICATION(NOTIFICATIONNUMBER, false),
+    NOTIFICATION(NOTIFICATIONTYPE,
+                 false,
+                 to_macro_string(notification_type_name(n.type))),
+    NOTIFICATION(NOTIFICATIONNUMBER, false, to_macro_string(n.number)),
     D(HOSTEXECUTIONTIME, host, false,
       fixed_string(hst->get_execution_time(), 3)),
     D(SERVICEEXECUTIONTIME, service, false,
@@ -571,12 +607,12 @@ constexpr std::array descriptors{
     D(CONTACTGROUPALIAS, contactgroup, false, cg->get_alias()),
     D(CONTACTGROUPMEMBERS, contactgroup, false, contactgroup_members(*cg)),
     D(CONTACTGROUPNAMES, contact, false, contact_group_names(*cntct)),
-    NOTIFICATION(NOTIFICATIONRECIPIENTS, false),
-    NOTIFICATION(NOTIFICATIONISESCALATED, false),
-    NOTIFICATION(NOTIFICATIONAUTHOR, true),
-    NOTIFICATION(NOTIFICATIONAUTHORNAME, true),
-    NOTIFICATION(NOTIFICATIONAUTHORALIAS, true),
-    NOTIFICATION(NOTIFICATIONCOMMENT, true),
+    NOTIFICATION(NOTIFICATIONRECIPIENTS, false, n.recipients),
+    NOTIFICATION(NOTIFICATIONISESCALATED, false, to_macro_string(n.is_escalated)),
+    NOTIFICATION(NOTIFICATIONAUTHOR, true, n.author),
+    NOTIFICATION(NOTIFICATIONAUTHORNAME, true, n.author_name),
+    NOTIFICATION(NOTIFICATIONAUTHORALIAS, true, n.author_alias),
+    NOTIFICATION(NOTIFICATIONCOMMENT, true, n.comment),
     STATIC(EVENTSTARTTIME, timestamp_or_empty(event_start)),
     D(HOSTPROBLEMID, host, false,
       to_macro_string(hst->get_current_problem_id())),
@@ -641,7 +677,7 @@ static_assert(ids_are_sorted(),
  * @param name The macro name without its dollars, case sensitive.
  *
  * @return The macro descriptor, nullptr if the name is not one of the
- * macros stored in nagios_macros::x[].
+ * macros with an id (MACRO_HOSTNAME...).
  */
 const descriptor* find_descriptor(std::string_view name) {
   static const absl::flat_hash_map<std::string_view, const descriptor*>
@@ -657,7 +693,7 @@ const descriptor* find_descriptor(std::string_view name) {
 }
 
 /**
- * @brief All the macros stored in nagios_macros::x[], sorted by id.
+ * @brief All the macros with an id (MACRO_HOSTNAME...), sorted by id.
  *
  * @return A span over the descriptors.
  */

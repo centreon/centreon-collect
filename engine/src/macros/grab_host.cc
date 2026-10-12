@@ -22,8 +22,6 @@
 
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/macros/clear_host.hh"
-#include "com/centreon/engine/macros/clear_hostgroup.hh"
 
 using namespace com::centreon::engine;
 
@@ -43,13 +41,11 @@ extern "C" {
  *  @return OK on success.
  */
 int grab_host_macros_r(nagios_macros* mac, host* hst) {
-  // Clear host-related macros.
-  clear_host_macros_r(mac);
-  clear_hostgroup_macros_r(mac);
-
   // Save pointer to host.
   mac->host_ptr = hst;
   mac->hostgroup_ptr = nullptr;
+  // The cached totals were those of the previous host.
+  mac->host_services.reset();
 
   if (hst == nullptr)
     return ERROR;

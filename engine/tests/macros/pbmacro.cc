@@ -1638,10 +1638,11 @@ TEST_F(Macro, PbForcedCleaning) {
 
   init_macros();
   nagios_macros* mac(get_global_macros());
-  mac->x[MACRO_NOTIFICATIONAUTHOR] = "ad`min";
-  mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "Admin|istrator";
-  mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "admin <alias>";
-  mac->x[MACRO_NOTIFICATIONCOMMENT] = "it's a \"comment\" & more";
+  notification_values& notification = mac->notification.emplace();
+  notification.author = "ad`min";
+  notification.author_name = "Admin|istrator";
+  notification.author_alias = "admin <alias>";
+  notification.comment = "it's a \"comment\" & more";
   std::string out;
 
   /* The notes and URLs of the groups are given as they are. */
@@ -1662,8 +1663,5 @@ TEST_F(Macro, PbForcedCleaning) {
                    out, 0);
   ASSERT_EQ(out, "[admin] [Administrator] [admin alias] [its a comment  more]");
 
-  mac->x[MACRO_NOTIFICATIONAUTHOR].clear();
-  mac->x[MACRO_NOTIFICATIONAUTHORNAME].clear();
-  mac->x[MACRO_NOTIFICATIONAUTHORALIAS].clear();
-  mac->x[MACRO_NOTIFICATIONCOMMENT].clear();
+  mac->notification.reset();
 }

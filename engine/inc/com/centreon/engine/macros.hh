@@ -20,10 +20,6 @@
 
 #ifndef CCE_MACROS_HH
 #define CCE_MACROS_HH
-#include "com/centreon/engine/macros/clear_host.hh"
-#include "com/centreon/engine/macros/clear_hostgroup.hh"
-#include "com/centreon/engine/macros/clear_service.hh"
-#include "com/centreon/engine/macros/clear_servicegroup.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/macros/grab_value.hh"
@@ -41,8 +37,6 @@ int init_macros();
 /* thread-safe version of the above */
 int clear_argv_macros_r(nagios_macros* mac);
 int clear_volatile_macros_r(nagios_macros* mac);
-int clear_contact_macros_r(nagios_macros* mac);
-int clear_contactgroup_macros_r(nagios_macros* mac);
 int clear_summary_macros_r(nagios_macros* mac);
 
 #endif  // !CCE_MACROS_HH

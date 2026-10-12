@@ -88,10 +88,11 @@ using macro_target = std::variant<std::monostate,
 using getter = std::string (*)(const macro_target& target, nagios_macros* mac);
 
 /**
- * @brief Description of a macro stored in nagios_macros::x[].
+ * @brief Description of a macro with an id (MACRO_HOSTNAME...), as opposed
+ * to $ARGn$, $USERn$, the custom variables...
  */
 struct descriptor {
-  /* The macro id, i.e. its index in nagios_macros::x[] (MACRO_HOSTNAME...). */
+  /* The macro id (MACRO_HOSTNAME...). */
   uint32_t id;
   /* The macro name without its dollars ("HOSTNAME"...). */
   std::string_view name;

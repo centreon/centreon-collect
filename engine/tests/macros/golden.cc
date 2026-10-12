@@ -365,21 +365,15 @@ class MacroGolden : public TestEngine {
       grab_service_macros_r(mac,
                             service::services.find({"h1", "s"})->second.get());
     grab_contact_macros_r(mac, contact::contacts.find("c1")->second.get());
-    mac->x[MACRO_NOTIFICATIONTYPE] = "PROBLEM";
-    mac->x[MACRO_NOTIFICATIONAUTHOR] = "ad`min";
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "Admin|istrator";
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "admin <alias>";
-    mac->x[MACRO_NOTIFICATIONCOMMENT] = "it's a \"comment\" & $more";
-    mac->x[MACRO_NOTIFICATIONNUMBER] = "3";
-    mac->x[MACRO_NOTIFICATIONISESCALATED] = "0";
-    mac->x[MACRO_NOTIFICATIONRECIPIENTS] = "c1";
-    if (c == ctx::service) {
-      mac->x[MACRO_SERVICENOTIFICATIONNUMBER] = "3";
-      mac->x[MACRO_SERVICENOTIFICATIONID] = "42";
-    } else {
-      mac->x[MACRO_HOSTNOTIFICATIONNUMBER] = "3";
-      mac->x[MACRO_HOSTNOTIFICATIONID] = "41";
-    }
+    notification_values& notification = mac->notification.emplace();
+    notification.type = com::centreon::common::notifications::reason_normal;
+    notification.number = 3;
+    notification.is_escalated = false;
+    notification.recipients = "c1";
+    notification.author = "ad`min";
+    notification.author_name = "Admin|istrator";
+    notification.author_alias = "admin <alias>";
+    notification.comment = "it's a \"comment\" & $more";
     mac->argv[0] = "80";
     mac->argv[1] = "/health";
     mac->argv[2] = "arg with $ and `backquote`";

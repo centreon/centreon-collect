@@ -21,9 +21,13 @@
 #ifndef CCE_MACROS_DEFINES_HH_
 #define CCE_MACROS_DEFINES_HH_
 
+#include <array>
+#include <optional>
+
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/servicegroup.hh"
+#include "common/notifications/notification_types.hh"
 
 // Length Limitations
 #define MAX_COMMAND_ARGUMENTS 32  // maximum number of $ARGx$ macros
@@ -187,13 +191,40 @@
 #define MACRO_CONTACTTIMEZONE 159
 #define MACRO_POLLERNAME 160
 #define MACRO_POLLERID 161
-#define MACRO_X_COUNT 162  // size of macro_x[] array
+#define MACRO_X_COUNT 162  // number of macros with an id
 
 // Macro Cleaning Options
 #define STRIP_ILLEGAL_MACRO_CHARS 1
 #define ESCAPE_MACRO_CHARS 2
 
-// NAGIOS_MACROS structure
+/* Number of $TOTAL*$ macros, from MACRO_TOTALHOSTSUP to
+ * MACRO_TOTALSERVICEPROBLEMSUNHANDLED. */
+constexpr size_t MACRO_SUMMARY_COUNT =
+    MACRO_TOTALSERVICEPROBLEMSUNHANDLED - MACRO_TOTALHOSTSUP + 1;
+/* Number of $TOTALHOSTSERVICES*$ macros, from MACRO_TOTALHOSTSERVICES to
+ * MACRO_TOTALHOSTSERVICESCRITICAL. */
+constexpr size_t MACRO_HOST_SERVICES_COUNT =
+    MACRO_TOTALHOSTSERVICESCRITICAL - MACRO_TOTALHOSTSERVICES + 1;
+
+/**
+ * @brief The values of the $NOTIFICATION*$ macros, given by the notification
+ * being sent.
+ */
+struct notification_values {
+  com::centreon::common::notifications::reason_type type;
+  uint32_t number;
+  bool is_escalated;
+  std::string recipients;
+  std::string author;
+  std::string author_name;
+  std::string author_alias;
+  std::string comment;
+};
+
+/**
+ * @brief The context in which the macros are expanded: the objects they are
+ * about, the notification being sent and the arguments of the command.
+ */
 class nagios_macros {
  public:
   nagios_macros()
@@ -204,7 +235,6 @@ class nagios_macros {
         contact_ptr{nullptr},
         contactgroup_ptr{nullptr} {};
 
-  std::array<std::string, MACRO_X_COUNT> x;
   std::array<std::string, MAX_COMMAND_ARGUMENTS> argv;
   com::centreon::engine::host* host_ptr;
   com::centreon::engine::hostgroup* hostgroup_ptr;
@@ -212,6 +242,14 @@ class nagios_macros {
   com::centreon::engine::servicegroup* servicegroup_ptr;
   com::centreon::engine::contact* contact_ptr;
   com::centreon::engine::contactgroup* contactgroup_ptr;
+
+  /* Only set while a notification is sent. */
+  std::optional<notification_values> notification;
+
+  /* Cache of the $TOTAL*$ macros, they depend on contact_ptr. */
+  std::optional<std::array<uint32_t, MACRO_SUMMARY_COUNT>> summary;
+  /* Cache of the $TOTALHOSTSERVICES*$ macros of host_ptr. */
+  std::optional<std::array<uint32_t, MACRO_HOST_SERVICES_COUNT>> host_services;
 };
 
 #endif /* !CCE_MACROS_DEFINES_HH_ */

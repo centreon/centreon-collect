@@ -65,7 +65,8 @@ notifier* get_resource(uint64_t host_id, uint64_t service_id) {
  * @param n The notifier the notification is about.
  * @param to_notify The contacts to notify (already selected/filtered).
  * @param type The notification reason (drives the $NOTIFICATIONTYPE$ macro).
- * @param notification_id The unique notification id (for macros).
+ * @param notification_id The unique notification id, not used: the
+ * $HOSTNOTIFICATIONID$ and $SERVICENOTIFICATIONID$ macros read the notifier.
  * @param notification_number The notification number (for macros).
  * @param escalated Whether the notification is escalated (for macros).
  * @param author The notification author.
@@ -78,7 +79,7 @@ absl::btree_set<std::string> run_notification_commands(
     notifier* n,
     const absl::flat_hash_set<std::shared_ptr<contact>>& to_notify,
     notifications::reason_type type,
-    uint64_t notification_id,
+    uint64_t notification_id [[maybe_unused]],
     uint32_t notification_number,
     bool escalated,
     const std::string& author,
@@ -101,83 +102,28 @@ absl::btree_set<std::string> run_notification_commands(
   if (it != contact::contacts.end())
     author_contact = it->second.get();
 
-  /* Get author and comment macros */
-  mac->x[MACRO_NOTIFICATIONAUTHOR] = author;
-  mac->x[MACRO_NOTIFICATIONCOMMENT] = message;
-  if (author_contact) {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = author_contact->get_name();
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = author_contact->get_alias();
-  } else {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "";
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "";
-  }
-
-  /* set the notification type macro */
-  switch (type) {
-    case notifications::reason_acknowledgement:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "ACKNOWLEDGEMENT";
-      break;
-    case notifications::reason_flappingstart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTART";
-      break;
-    case notifications::reason_flappingstop:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTOP";
-      break;
-    case notifications::reason_flappingdisabled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGDISABLED";
-      break;
-    case notifications::reason_downtimestart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMESTART";
-      break;
-    case notifications::reason_downtimeend:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMEEND";
-      break;
-    case notifications::reason_downtimecancelled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMECANCELLED";
-      break;
-    case notifications::reason_custom:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "CUSTOM";
-      break;
-    case notifications::reason_recovery:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "RECOVERY";
-      break;
-    default:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "PROBLEM";
-      break;
-  }
-
-  /* $NOTIFICATIONISESCALATED$ is historically "0"/"1"; cast the bool to int so
-   * fmt does not render it as "true"/"false". */
-  if (n->get_notifier_type() == notifications::host_notification) {
-    mac->x[MACRO_HOSTNOTIFICATIONNUMBER] = fmt::to_string(notification_number);
-    /* The $NOTIFICATIONNUMBER$ macro is maintained for backward compatibility
-     */
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_HOSTNOTIFICATIONNUMBER];
-    mac->x[MACRO_NOTIFICATIONISESCALATED] =
-        fmt::to_string(static_cast<int>(escalated));
-    mac->x[MACRO_HOSTNOTIFICATIONID] = fmt::to_string(notification_id);
-  } else {
-    mac->x[MACRO_SERVICENOTIFICATIONNUMBER] =
-        fmt::to_string(notification_number);
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_SERVICENOTIFICATIONNUMBER];
-    mac->x[MACRO_NOTIFICATIONISESCALATED] =
-        fmt::to_string(static_cast<int>(escalated));
-    mac->x[MACRO_SERVICENOTIFICATIONID] = fmt::to_string(notification_id);
-  }
-
+  notification_values& values = mac->notification.emplace();
+  values.type = type;
+  values.number = notification_number;
+  values.is_escalated = escalated;
   /* Every notification command knows all the recipients. */
-  mac->x[MACRO_NOTIFICATIONRECIPIENTS] = absl::StrJoin(
+  values.recipients = absl::StrJoin(
       to_notify, ",", [](std::string* out, const std::shared_ptr<contact>& c) {
         out->append(c->get_name());
       });
+  values.author = author;
+  values.comment = message;
+  if (author_contact) {
+    values.author_name = author_contact->get_name();
+    values.author_alias = author_contact->get_alias();
+  }
 
   for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
     contact* ctc = ctc_ptr.get();
 
-    /* grab the macro variables for this contact */
+    /* grab the macro variables for this contact, the summary macros are
+     * computed again for each of them */
     grab_contact_macros_r(mac, ctc);
-    /* clear summary macros (they are customized for each contact) */
-    clear_summary_macros_r(mac);
 
     if (n->notify_contact(mac, ctc, type, author, message, options,
                           escalated) == OK)

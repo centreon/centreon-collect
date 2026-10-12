@@ -21,8 +21,6 @@
 #include "com/centreon/engine/macros/grab_service.hh"
 
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/macros/clear_service.hh"
-#include "com/centreon/engine/macros/clear_servicegroup.hh"
 #include "com/centreon/engine/service.hh"
 
 using namespace com::centreon::engine;
@@ -43,10 +41,6 @@ using namespace com::centreon::engine;
  */
 int grab_service_macros_r(nagios_macros* mac,
                           com::centreon::engine::service* svc) {
-  // Clear service-related macros.
-  clear_service_macros_r(mac);
-  clear_servicegroup_macros_r(mac);
-
   // Save pointer for later.
   mac->service_ptr = svc;
   mac->servicegroup_ptr = nullptr;

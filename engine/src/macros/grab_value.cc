@@ -464,7 +464,7 @@ static int handle_summary_macro(nagios_macros* mac,
  */
 void generate_summary_macros(nagios_macros* mac) {
   // Generate summary macros if needed.
-  if (mac->x[MACRO_TOTALHOSTSUP].empty()) {
+  if (!mac->summary) {
     // Get host totals.
     unsigned int host_problems(0);
     unsigned int host_problems_unhandled(0);
@@ -604,30 +604,24 @@ void generate_summary_macros(nagios_macros* mac) {
                                  services_unknown_unhandled;
 
     // These macros are time-intensive to compute, and will likely be
-    // r, so save them all for future use.
-    mac->x[MACRO_TOTALHOSTSUP] = fmt::to_string(hosts_up);
-    mac->x[MACRO_TOTALHOSTSDOWN] = fmt::to_string(hosts_down);
-    mac->x[MACRO_TOTALHOSTSUNREACHABLE] = fmt::to_string(hosts_unreachable);
-    mac->x[MACRO_TOTALHOSTSDOWNUNHANDLED] =
-        fmt::to_string(hosts_down_unhandled);
-    mac->x[MACRO_TOTALHOSTSUNREACHABLEUNHANDLED] =
-        fmt::to_string(hosts_unreachable_unhandled);
-    mac->x[MACRO_TOTALHOSTPROBLEMS] = fmt::to_string(host_problems);
-    mac->x[MACRO_TOTALHOSTPROBLEMSUNHANDLED] =
-        fmt::to_string(host_problems_unhandled);
-    mac->x[MACRO_TOTALSERVICESOK] = fmt::to_string(services_ok);
-    mac->x[MACRO_TOTALSERVICESWARNING] = fmt::to_string(services_warning);
-    mac->x[MACRO_TOTALSERVICESCRITICAL] = fmt::to_string(services_critical);
-    mac->x[MACRO_TOTALSERVICESUNKNOWN] = fmt::to_string(services_unknown);
-    mac->x[MACRO_TOTALSERVICESWARNINGUNHANDLED] =
-        fmt::to_string(services_warning_unhandled);
-    mac->x[MACRO_TOTALSERVICESCRITICALUNHANDLED] =
-        fmt::to_string(services_critical_unhandled);
-    mac->x[MACRO_TOTALSERVICESUNKNOWNUNHANDLED] =
-        fmt::to_string(services_unknown_unhandled);
-    mac->x[MACRO_TOTALSERVICEPROBLEMS] = fmt::to_string(service_problems);
-    mac->x[MACRO_TOTALSERVICEPROBLEMSUNHANDLED] =
-        fmt::to_string(service_problems_unhandled);
+    // reused, so save them all for future use, in the order of the macro ids.
+    mac->summary =
+        std::array<uint32_t, MACRO_SUMMARY_COUNT>{hosts_up,
+                                                  hosts_down,
+                                                  hosts_unreachable,
+                                                  hosts_down_unhandled,
+                                                  hosts_unreachable_unhandled,
+                                                  host_problems,
+                                                  host_problems_unhandled,
+                                                  services_ok,
+                                                  services_warning,
+                                                  services_critical,
+                                                  services_unknown,
+                                                  services_warning_unhandled,
+                                                  services_critical_unhandled,
+                                                  services_unknown_unhandled,
+                                                  service_problems,
+                                                  service_problems_unhandled};
   }
 }
 
