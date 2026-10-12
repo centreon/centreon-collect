@@ -1,14 +1,14 @@
-# Central-as-a-poller fixture, pullwss variant. Unlike docker-compose.central-poller-e2e.yml
-# (push_zmq, fully self-contained), this one is NOT self-contained by design: pullwss's
-# whole point is going through httpd for TLS termination (see 40-gorgoned-central-pullwss.yaml
-# and the plan doc "Pivot pullwss"), so it joins the EXTERNAL network of the
+# Central-as-a-poller fixture, pullwss variant — uses the NATIVE TYPE=central
+# entrypoint (container.d/12-central-config.sh writing config.d/*.yaml), same
+# code path as k8s/docker-web-split production deployments. Does not use
+# `gorgoned --config=` against a static file anymore (see
+# docker-compose.central-poller-e2e.yml, push_zmq, for that older approach,
+# kept as the fallback prototype).
+#
+# NOT self-contained by design: pullwss's whole point is going through httpd
+# for TLS termination, so this joins the EXTERNAL network of the
 # `centreon-web-split` stack (repo `centreon`, .github/docker/centreon-web-split/docker-compose.yml)
 # rather than standing up its own httpd.
-#
-# Empirically validated end-to-end against the REAL centreon-web-split stack (real httpd with
-# mod_proxy_wstunnel + the gorgone ProxyPass wired by the docker-split-web agent, real Centreon
-# DB): websocket auth (`[proxy] httpserver client 1 is logged`), REMOTECOPY, and COMMAND
-# (whitelist) all pass through httpd -> gorgone-central unchanged from the push_zmq results.
 #
 # Usage (after `centreon-web-split` is already up, and its httpd was started/recreated with
 # GORGONE_WSS_UPSTREAM=gorgone-central:8087 — see the plan doc for the exact recreate command):
@@ -20,11 +20,13 @@ services:
       default:
         aliases:
           - gorgone-central
-    command: ["/usr/bin/perl", "/usr/bin/gorgoned",
-              "--config=/etc/centreon-gorgone/40-gorgoned-central-pullwss.yaml",
-              "--severity=debug", "--flushoutput"]
     environment:
       TYPE: central
+      # gorgone's own login to the Centreon API (centreonv2/clapi tpapi) — same
+      # dev-only seed credential documented in the Pilier-1 README, not a secret.
+      CENTREON_API_BASE_URL: "http://httpd/centreon/api/latest/"
+      CENTREON_API_USERNAME: admin
+      CENTREON_API_PASSWORD: "Centreon!2021"
       # Point at the web-split stack's real DB (service name from that stack's compose project).
       GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__DSN: "mysql:host=centreon-web-split-db-1;dbname=centreon"
       GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__USERNAME: centreon
@@ -46,8 +48,16 @@ services:
       GORGONE_UID: "1"
       CENTRAL_HOST: httpd
       CENTRAL_PORT: "80"
-      # Must match gorgone-central's proxy.httpserver.token in 40-gorgoned-central-pullwss.yaml.
-      GORGONE_TOKEN: e2e-pullwss-shared-token
+      # Self-fetches a real Centreon API token instead of a static shared
+      # secret (container.d/13-pullwss-token-fetch.sh) — matches how gorgone-central
+      # validates it: a name:value token goes through the real tpapi_centreonv2
+      # lookup (gorgone-central's own login above), not a static comparison.
+      # "poller-default" is auto-created by Centreon's install process —
+      # verify it exists in the joined stack's DB before relying on it.
+      PULLWSS_TOKEN_NAME: poller-default
+      CENTREON_API_BASE_URL: "http://httpd/centreon/api/latest/"
+      CENTREON_API_USERNAME: admin
+      CENTREON_API_PASSWORD: "Centreon!2021"
       # This dev stack's httpd has no TLS configured (port 80 only) — production talks wss:// to
       # httpd's real HTTPS port instead, no override needed there.
       GORGONE__GORGONE__MODULES__pullwss__ssl: "false"
