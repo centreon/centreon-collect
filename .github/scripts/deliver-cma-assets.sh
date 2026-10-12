@@ -6,7 +6,7 @@
 #
 # Modes
 #   local  (default): deliver local files matching --file-pattern
-#   action:           fetch from Artifactory stable paths (fallback: re-process existing release assets)
+#   action:           fetch from the Pulp stable repositories (fallback: re-process existing release assets)
 #
 # Usage (local):
 #   ./deliver-cma-assets.sh \
@@ -20,9 +20,12 @@
 #     --version 27.08.3 \
 #     [--distrib el8,el9,el10,windows]
 #
+# Action mode reads the public indexes Pulp serves (rpm repodata, deb Packages), so it needs
+# no Pulp credential. DELIVER_PACKAGES_URL overrides the content host (default
+# https://packages.centreon.com).
+#
 # Tokens (--flag or env var):
 #   GITHUB_TOKEN                  GitHub token with write:contents scope
-#   ARTIFACTORY_ACCESS_TOKEN      JFrog token (action mode only)
 #
 # Flags:
 #   --dry-run        Log what would happen without executing uploads
@@ -57,7 +60,9 @@ DRY_RUN="${DELIVER_DRY_RUN:-false}"
 FORCE_REUPLOAD="false"
 REPO="${DELIVER_REPO:-${GITHUB_REPOSITORY:-centreon/centreon-collect}}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-ARTIFACTORY_TOKEN="${ARTIFACTORY_ACCESS_TOKEN:-}"
+PACKAGES_URL="${DELIVER_PACKAGES_URL:-https://packages.centreon.com}"
+pulp_found=0
+fetch_failed=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -68,7 +73,6 @@ while [[ $# -gt 0 ]]; do
     --distrib)           DISTRIBS="$2";           shift 2 ;;
     --repo)              REPO="$2";               shift 2 ;;
     --github-token)      GITHUB_TOKEN="$2";       shift 2 ;;
-    --artifactory-token) ARTIFACTORY_TOKEN="$2";  shift 2 ;;
     --dry-run)           DRY_RUN="true";          shift   ;;
     --force-reupload)    FORCE_REUPLOAD="true";   shift   ;;
     *) log_error "Unknown argument: $1"; exit 1 ;;
@@ -125,28 +129,107 @@ upload_asset() {
     | jq -r '.browser_download_url'
 }
 
-# ─── Artifactory ──────────────────────────────────────────────────────────────
-search_artifactory() {
-  local version="$1"
-  local aql
-  aql=$(printf \
-    'items.find({"$or":[{"repo":"rpm-standard"},{"repo":"apt-standard"},{"repo":"ubuntu-standard"},{"repo":"installers"}],"name":{"$match":"centreon-monitoring-agent*%s*"},"path":{"$match":"*/stable*"}}).include("name","repo","path")' \
-    "$version")
-  curl --fail --silent \
-    -X POST \
-    -H "Authorization: Bearer ${ARTIFACTORY_TOKEN}" \
-    -H "Content-Type: text/plain" \
-    --data "$aql" \
-    "https://centreon.jfrog.io/artifactory/api/search/aql"
+# ─── Pulp ─────────────────────────────────────────────────────────────────────
+# Stable CMA content under the Pulp domain paths: rpm and deb in the "standard"
+# domain, the windows installer in the "default" installers family. Only the
+# packages local mode delivers are matched (no debuginfo/selinux), so a re-run
+# uploads exactly what a normal run would. Content redirects to signed CDN urls.
+pulp_get() {
+  curl --fail --silent --show-error --location --max-time 300 --retry 3 --retry-delay 5 "$@"
 }
 
-download_from_artifactory() {
-  local repo="$1" art_path="$2" name="$3" dest_dir="$4"
-  curl --fail --silent \
-    -H "Authorization: Bearer ${ARTIFACTORY_TOKEN}" \
-    "https://centreon.jfrog.io/artifactory/${repo}/${art_path}/${name}" \
-    -o "${dest_dir}/${name}"
-  echo "${dest_dir}/${name}"
+http_status() {
+  curl --silent --location --head --max-time 60 -o /dev/null -w '%{http_code}' "$1" || true
+}
+
+fetch_to_tmp() {
+  local url="$1" name d match
+  name="${url##*/}"
+  (( pulp_found++ )) || true
+  # Filter by --distrib if provided
+  if [[ -n "$DISTRIBS" ]]; then
+    match=false
+    IFS=',' read -ra distrib_list <<< "$DISTRIBS"
+    for d in "${distrib_list[@]}"; do
+      if [[ "$d" == "windows" && "$name" == *.exe ]] || [[ "$name" == *"${d}"* ]]; then
+        match=true; break
+      fi
+    done
+    [[ "$match" == "false" ]] && { log_skip "Filtered: ${name}"; return 0; }
+  fi
+  if pulp_get "$url" -o "${TMP_DIR}/${name}"; then
+    log_info "Downloaded: ${name}"
+    FILES+=("${TMP_DIR}/${name}")
+  else
+    log_error "Failed to download ${url}"
+    (( fetch_failed++ )) || true
+  fi
+}
+
+fetch_rpm() {
+  local distrib="$1" base primary primary_xml href found=0
+  base="${PACKAGES_URL}/standard/rpm/${MAJOR}/${distrib}/stable/x86_64"
+  # no stable repository for this major/distrib: nothing to fetch, like an empty search
+  if [[ "$(http_status "${base}/repodata/repomd.xml")" == "404" ]]; then
+    log_warn "No ${distrib} stable repository for ${MAJOR}"
+    return 0
+  fi
+  if ! primary=$(pulp_get "${base}/repodata/repomd.xml" | grep -m1 -o 'repodata/[^"]*primary\.xml[^"]*') \
+    || ! primary_xml=$(pulp_get "${base}/${primary}" | gunzip -c); then
+    log_error "Cannot read the ${distrib} index at ${base}"
+    (( fetch_failed++ )) || true
+    return 0
+  fi
+  while IFS= read -r href; do
+    if [[ "${href##*/}" == "centreon-monitoring-agent-${VERSION}-"*.rpm ]]; then
+      fetch_to_tmp "${base}/${href}"
+      found=1
+    fi
+  done < <(grep -o 'location href="[^"]*"' <<< "$primary_xml" | sed 's/^location href="//; s/"$//' || true)
+  [[ "$found" -eq 1 ]] || log_warn "No CMA ${VERSION} in ${distrib} stable"
+}
+
+fetch_deb() {
+  local repo="$1" distrib="$2" base arch index packages filename found=0
+  base="${PACKAGES_URL}/standard/${repo}"
+  for arch in amd64 arm64; do
+    index="${base}/dists/${distrib}-${MAJOR}-stable/main/binary-${arch}/Packages"
+    if [[ "$(http_status "$index")" == "404" ]]; then
+      log_warn "No ${distrib} ${arch} stable suite for ${MAJOR}"
+      continue
+    fi
+    if ! packages=$(pulp_get "$index"); then
+      log_error "Cannot read the ${distrib} ${arch} index at ${base}"
+      (( fetch_failed++ )) || true
+      continue
+    fi
+    while IFS= read -r filename; do
+      [[ -z "$filename" ]] && continue
+      fetch_to_tmp "${base}/${filename}"
+      found=1
+    done < <(awk -v RS= -v ver="${VERSION}-" '
+      /(^|\n)Package: centreon-monitoring-agent\n/ {
+        v = ""; f = ""
+        n = split($0, line, "\n")
+        for (i = 1; i <= n; i++) {
+          if (line[i] ~ /^Version: /)  v = substr(line[i], 10)
+          if (line[i] ~ /^Filename: /) f = substr(line[i], 11)
+        }
+        if (index(v, ver) == 1) print f
+      }' <<< "$packages")
+  done
+  [[ "$found" -eq 1 ]] || log_warn "No CMA ${VERSION} in ${distrib} stable"
+}
+
+fetch_installer() {
+  local url code
+  url="${PACKAGES_URL}/default/installers/monitoring-agent/${MAJOR}/stable/windows/centreon-monitoring-agent-${VERSION}.exe"
+  code=$(http_status "$url")
+  case "$code" in
+    200) fetch_to_tmp "$url" ;;
+    404) log_warn "No CMA ${VERSION} windows installer in stable" ;;
+    *)   log_error "Cannot reach ${url} (HTTP ${code:-network-error})"; (( fetch_failed++ )) || true ;;
+  esac
 }
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -186,21 +269,23 @@ if [[ "$MODE" == "local" ]]; then
   log_info "${#FILES[@]} file(s) matched ${FILE_PATTERN}"
 
 elif [[ "$MODE" == "action" ]]; then
-  [[ -z "$VERSION" ]]           && { log_error "--version is required in action mode"; exit 1; }
-  [[ -z "$ARTIFACTORY_TOKEN" ]] && { log_error "ARTIFACTORY_ACCESS_TOKEN or --artifactory-token is required in action mode"; exit 1; }
+  [[ -z "$VERSION" ]] && { log_error "--version is required in action mode"; exit 1; }
+  MAJOR="${VERSION%.*}"
 
   TMP_DIR=$(mktemp -d)
   trap 'rm -rf "$TMP_DIR"' EXIT
 
-  log_info "Searching Artifactory for CMA ${VERSION} in stable paths…"
-  results_json=""
-  results_json=$(search_artifactory "$VERSION") || log_warn "Artifactory search failed"
+  # Pulp has no cross-repository search like the former AQL: walk the stable
+  # repositories the CMA is delivered to (monitoring-agent.yml matrix)
+  log_info "Searching Pulp (${PACKAGES_URL}) for CMA ${VERSION} in stable repositories…"
+  for d in el8 el9 el10; do fetch_rpm "$d"; done
+  for d in bookworm trixie; do fetch_deb apt-stable "$d"; done
+  for d in jammy noble; do fetch_deb ubuntu-stable "$d"; done
+  fetch_installer
+  log_info "${pulp_found} item(s) found on Pulp"
 
-  result_count=$(echo "$results_json" | jq '.results | length' 2>/dev/null || echo 0)
-  log_info "${result_count} item(s) found on Artifactory"
-
-  if [[ "$result_count" -eq 0 ]]; then
-    log_info "No Artifactory results — re-downloading ${existing_count} existing release asset(s)"
+  if [[ "$pulp_found" -eq 0 && "$fetch_failed" -eq 0 ]]; then
+    log_info "No Pulp results — re-downloading ${existing_count} existing release asset(s)"
     while IFS=$'\t' read -r asset_name download_url; do
       [[ -z "$asset_name" ]] && continue
       log_info "Downloading: ${asset_name}"
@@ -209,24 +294,6 @@ elif [[ "$MODE" == "action" ]]; then
         "$download_url" -o "${TMP_DIR}/${asset_name}"
       FILES+=("${TMP_DIR}/${asset_name}")
     done < <(echo "$release_json" | jq -r '.assets[] | [.name, .browser_download_url] | @tsv' 2>/dev/null || true)
-  else
-    while IFS=$'\t' read -r name repo art_path; do
-      [[ -z "$name" ]] && continue
-      # Filter by --distrib if provided
-      if [[ -n "$DISTRIBS" ]]; then
-        match=false
-        IFS=',' read -ra distrib_list <<< "$DISTRIBS"
-        for d in "${distrib_list[@]}"; do
-          if [[ "$d" == "windows" && "$name" == *.exe ]] || [[ "$name" == *"${d}"* ]]; then
-            match=true; break
-          fi
-        done
-        [[ "$match" == "false" ]] && { log_skip "Filtered: ${name}"; continue; }
-      fi
-      local_path=$(download_from_artifactory "$repo" "$art_path" "$name" "$TMP_DIR") \
-        && FILES+=("$local_path") \
-        || log_error "Failed to download ${name}"
-    done < <(echo "$results_json" | jq -r '.results[] | [.name, .repo, .path] | @tsv')
   fi
   log_info "${#FILES[@]} file(s) ready to process"
 
@@ -236,7 +303,8 @@ fi
 
 # 4. Process each file
 log_header "Processing assets"
-uploaded=0; skipped=0; failed=0
+# an unreadable Pulp index or a failed download counts as a failure
+uploaded=0; skipped=0; failed=$fetch_failed
 
 SUMMARY_ROWS=""
 
