@@ -267,6 +267,12 @@ class service : public notifier {
   bool is_cma_service() const { return _is_cma_service; }
   void set_is_cma_service(bool is_cma) { _is_cma_service = is_cma; }
 
+  bool command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                       command_type typ) {
+    return checkable::command_is_allowed_by_whitelist(
+        process_cmd, typ, _is_cma_service, _hostname);
+  }
+
  private:
   uint64_t _host_id;
   uint64_t _service_id;
