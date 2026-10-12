@@ -20,6 +20,7 @@
 #include "com/centreon/engine/notification_execution.hh"
 
 #include <absl/algorithm/container.h>
+#include <absl/strings/str_join.h>
 #include <fmt/format.h>
 
 #include "com/centreon/engine/globals.hh"
@@ -163,6 +164,12 @@ absl::btree_set<std::string> run_notification_commands(
     mac->x[MACRO_SERVICENOTIFICATIONID] = fmt::to_string(notification_id);
   }
 
+  /* Every notification command knows all the recipients. */
+  mac->x[MACRO_NOTIFICATIONRECIPIENTS] = absl::StrJoin(
+      to_notify, ",", [](std::string* out, const std::shared_ptr<contact>& c) {
+        out->append(c->get_name());
+      });
+
   for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
     contact* ctc = ctc_ptr.get();
 
@@ -172,15 +179,8 @@ absl::btree_set<std::string> run_notification_commands(
     clear_summary_macros_r(mac);
 
     if (n->notify_contact(mac, ctc, type, author, message, options,
-                          escalated) == OK) {
+                          escalated) == OK)
       notified.insert(ctc->get_name());
-      if (mac->x[MACRO_NOTIFICATIONRECIPIENTS].empty())
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS] = ctc->get_name();
-      else {
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(",");
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(ctc->get_name());
-      }
-    }
   }
   return notified;
 }

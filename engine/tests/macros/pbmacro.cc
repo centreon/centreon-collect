@@ -728,16 +728,23 @@ TEST_F(Macro, PbNotificationRecipients) {
   _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
-  nagios_macros* mac(get_global_macros());
-
+  /* Every contact sees all the recipients: the macro used to be filled
+   * after each contact, so the first one saw none, the second one the first
+   * one... */
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line("echo $NOTIFICATIONRECIPIENTS$");
+  notification_commands_capture capture;
   ASSERT_EQ(
       _svc->notify(notifications::reason_normal, "test_contact", "test_comment",
                    notifications::notification_option_forced),
       OK);
 
-  std::string out;
-  process_macros_r(mac, "$NOTIFICATIONRECIPIENTS:test_host:test_svc$", out, 1);
-  ASSERT_TRUE(out == "admin,admin1" || out == "admin1,admin");
+  ASSERT_EQ(capture.commands().size(), 2u);
+  for (const std::string& cmd : capture.commands())
+    ASSERT_TRUE(cmd == "echo admin,admin1" || cmd == "echo admin1,admin")
+        << cmd;
+  ASSERT_EQ(capture.commands()[0], capture.commands()[1]);
 }
 
 TEST_F(Macro, PbNotificationAuthor) {

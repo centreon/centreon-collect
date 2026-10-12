@@ -19,6 +19,13 @@
 
 #include "test_engine.hh"
 
+#include <absl/strings/match.h>
+#include <spdlog/sinks/callback_sink.h>
+
+#include <algorithm>
+
+#include "com/centreon/engine/globals.hh"
+
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::downtimes;
@@ -381,4 +388,30 @@ std::unique_ptr<timeperiod> TestEngine::new_timeperiod_with_timeranges(
 
   auto tperiod = std::make_unique<timeperiod>(tp);
   return tperiod;
+}
+
+/**
+ * @brief Start the capture: a sink is added to the notifications logger, whose
+ * level is lowered to trace.
+ */
+notification_commands_capture::notification_commands_capture()
+    : _level(notifications_logger->level()) {
+  _sink = std::make_shared<spdlog::sinks::callback_sink_mt>(
+      [this](const spdlog::details::log_msg& msg) {
+        constexpr std::string_view prefix("Processed notification command: ");
+        std::string_view payload(msg.payload.data(), msg.payload.size());
+        if (absl::StartsWith(payload, prefix))
+          _commands.emplace_back(payload.substr(prefix.size()));
+      });
+  notifications_logger->sinks().push_back(_sink);
+  notifications_logger->set_level(spdlog::level::trace);
+}
+
+/**
+ * @brief Stop the capture: the sink is removed and the level restored.
+ */
+notification_commands_capture::~notification_commands_capture() noexcept {
+  auto& sinks = notifications_logger->sinks();
+  sinks.erase(std::remove(sinks.begin(), sinks.end(), _sink), sinks.end());
+  notifications_logger->set_level(_level);
 }
