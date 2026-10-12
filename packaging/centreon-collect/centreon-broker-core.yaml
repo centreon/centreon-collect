@@ -52,6 +52,7 @@ overrides:
       - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
       - gnutls >= 3.6.0
       - mariadb-connector-c >= 3.1.10
+      - logrotate
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-devel
@@ -73,6 +74,7 @@ overrides:
       - libssl1.1 | libssl3
       - libmariadb3
       - zlib1g
+      - logrotate
     conflicts:
       - centreon-broker-storage
       - centreon-broker-core-dev
