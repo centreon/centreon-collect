@@ -36,7 +36,10 @@ namespace com::centreon::engine {
 class command_manager {
   std::mutex _queue_m;
   std::deque<std::packaged_task<int()> > _queue;
-  std::chrono::system_clock::time_point _last_time;
+  time_t _last_execution;
+  /* Max delay in seconds between two executions of _queue while the event
+   * loop is busy (see is_execution_overdue()). */
+  static constexpr time_t _max_execution_delay = 5;
 
   command_manager();
 
@@ -57,7 +60,7 @@ class command_manager {
   int get_restart_stats(RestartStats* response);
   int get_services_stats(ServicesStats* sstats);
   int get_hosts_stats(HostsStats* hstats);
-  bool was_executed();
+  bool is_execution_overdue() const;
   void execute();
   static void schedule_and_propagate_downtime(host* h,
                                               time_t entry_time,

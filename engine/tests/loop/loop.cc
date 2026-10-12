@@ -115,6 +115,9 @@ TEST_F(LoopTest, ForcedServiceCheckAtMaxDoesNotStarveQueuedTasks) {
   timeval tv;
   gettimeofday(&tv, nullptr);
   time_t now = tv.tv_sec;
+  // The queue was last executed 10s ago, its execution is overdue.
+  set_time(now - 10);
+  command_manager::instance().execute();
   set_time(now);
 
   // max_concurrent_checks is reached but a forced check bypasses it: the event
@@ -141,6 +144,22 @@ TEST_F(LoopTest, ForcedServiceCheckAtMaxDoesNotStarveQueuedTasks) {
   EXPECT_TRUE(*task_executed);
   // Do not leave the task to the other tests.
   command_manager::instance().execute();
+}
+
+TEST_F(LoopTest, CommandManagerExecutionOverdue) {
+  command_manager& cm = command_manager::instance();
+  set_time(10000);
+  cm.execute();
+  ASSERT_FALSE(cm.is_execution_overdue());
+  set_time(10004);
+  ASSERT_FALSE(cm.is_execution_overdue());
+  set_time(10005);
+  ASSERT_TRUE(cm.is_execution_overdue());
+  // System time went backward.
+  set_time(9000);
+  ASSERT_TRUE(cm.is_execution_overdue());
+  cm.execute();
+  ASSERT_FALSE(cm.is_execution_overdue());
 }
 
 TEST_F(LoopTest, HostCheck) {

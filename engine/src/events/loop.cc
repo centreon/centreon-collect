@@ -409,7 +409,9 @@ void loop::_dispatching() {
         if (temp_event->recurring)
           reschedule_event(std::move(temp_event), events::loop::low);
 
-        if (command_manager::instance().was_executed())
+        // The loop may stay busy for a long time, queued tasks must not wait
+        // for it to be idle.
+        if (command_manager::instance().is_execution_overdue())
           command_manager::instance().execute();
       }
       // Wait a while so we don't hog the CPU...
