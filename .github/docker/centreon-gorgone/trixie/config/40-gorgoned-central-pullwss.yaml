@@ -74,15 +74,11 @@ configuration:
           ssl: 'false'
           token: e2e-pullwss-shared-token
 
-      # Manual node registration, pullwss variant: no address/port needed (Central
-      # doesn't dial out — B connects in), just declares id 1 as an accepted
-      # pullwss-type node so `is_logged_websocket`'s REGISTERNODES sniff (proxy/
-      # httpserver.pm:538) and pathway() resolve it.
-      - name: register
-        package: gorgone::modules::core::register::hooks
-        enable: true
-        config_file: /etc/centreon-gorgone/registernodes-central-pullwss.yml
-
+      # DB-driven sync registers id 1 (Central-as-a-poller) like any other
+      # poller — no manual `register` module needed (confirmed empirically:
+      # its config_file was never baked into the image and the register
+      # child crash-looped silently on every boot; the pullwss handshake
+      # still passed end-to-end on `nodes` sync alone).
       - name: nodes
         package: gorgone::modules::centreon::nodes::hooks
         enable: true

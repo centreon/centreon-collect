@@ -67,17 +67,10 @@ configuration:
         whitelist_cmds: true
         allowed_cmds: !include /etc/centreon-gorgone/config.d/whitelist.conf.d/*.yaml
 
-      # Manual node registration for the Central-as-a-poller process (id 1, the
-      # real nagios_server.id of Central). Deliberately NOT the DB-driven `nodes`
-      # sync module for this entry — action_centreonnodessync always excludes the
-      # localhost=1 row (plan fact #2), so it can never register itself.
-      - name: register
-        package: gorgone::modules::core::register::hooks
-        enable: true
-        config_file: /etc/centreon-gorgone/registernodes-central-docker.yml
-
-      # DB-driven sync for any OTHER (real, non-Central) poller/remote — kept so
-      # this fixture models a representative Central, not a central-only stub.
+      # DB-driven sync registers the Central-as-a-poller row (id 1) like any
+      # other poller in this split-container topology — no manual `register`
+      # module needed (matches the native TYPE=central entrypoint, which
+      # never had one).
       - name: nodes
         package: gorgone::modules::centreon::nodes::hooks
         enable: true

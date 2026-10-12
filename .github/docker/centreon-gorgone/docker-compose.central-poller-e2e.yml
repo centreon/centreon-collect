@@ -1,7 +1,7 @@
 # Central-as-a-poller fixture (Pilier 2, config-delivery for the split httpd/php-fpm
 # web). Two gorgone processes:
-#   - gorgone-central (process A): TYPE=central, hosts httpserver+proxy+register+
-#     nodes+legacycmd. Shares /var/cache/centreon and /var/lib/centreon with php-fpm
+#   - gorgone-central (process A): TYPE=central, hosts httpserver+proxy+nodes+
+#     legacycmd. Shares /var/cache/centreon and /var/lib/centreon with php-fpm
 #     in the real deployment (this fixture keeps them as plain named volumes, since
 #     there is no php-fpm container here — see the plan doc for how to join the
 #     centreon-web-split stack for a real end-to-end run).
@@ -21,11 +21,11 @@
 services:
   # Throwaway DB for this fixture only — no real Centreon schema, so `nodes`/
   # `legacycmd`'s DB-backed lookups (poller list, cfg_dir, engine_reload_command)
-  # log harmless "table doesn't exist" errors here. That's fine: the manual
-  # `register` entry (registernodes-central-docker.yml) doesn't need the schema,
-  # and neither does REMOTECOPY/COMMAND dispatch once a node is registered. A real
-  # end-to-end run needs the actual centreon-web-split stack's DB instead — see the
-  # plan doc's step 6.
+  # log harmless "table doesn't exist" errors here. No manual node registration
+  # exists anymore (removed, see 40-gorgoned-central.yaml) — `nodes` can't
+  # register id 1 against a schema-less DB, so this fixture alone no longer
+  # proves registration end-to-end. A real end-to-end run needs the actual
+  # centreon-web-split stack's DB instead — see the plan doc's step 6.
   mariadb:
     image: mariadb:11
     environment:

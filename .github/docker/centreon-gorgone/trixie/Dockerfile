@@ -262,9 +262,6 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
 COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned-central.yaml \
      /etc/centreon-gorgone/40-gorgoned-central.yaml
-COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
-     .github/docker/centreon-gorgone/trixie/config/registernodes-central-docker.yml \
-     /etc/centreon-gorgone/registernodes-central-docker.yml
 
 # TYPE=central's own config.d files (30/31/40) are not baked here — unlike the
 # poller config above, they're written directly by
