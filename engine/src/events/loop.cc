@@ -442,6 +442,11 @@ void loop::_dispatching() {
         // Reschedule the event if necessary.
         if (temp_event->recurring)
           reschedule_event(std::move(temp_event), events::loop::low);
+
+        // The loop may stay busy for a long time, queued tasks must not wait
+        // for it to be idle.
+        if (command_manager::instance().is_execution_overdue())
+          command_manager::instance().execute();
       }
       // Wait a while so we don't hog the CPU...
       else {
@@ -449,6 +454,11 @@ void loop::_dispatching() {
             << "Did not execute scheduled event. Idling for a bit...";
         events_logger->debug(
             "Did not execute scheduled event. Idling for a bit...");
+        // When max_concurrent_checks is reached, due service checks are only
+        // nudged and the idle branch below is never reached: queued tasks (CMA
+        // results, gRPC commands) must also be executed here, otherwise they
+        // pile up in memory.
+        command_manager::instance().execute();
         uint64_t d = static_cast<uint64_t>(sleep_time * 1000000000);
         std::this_thread::sleep_for(std::chrono::nanoseconds(d));
       }

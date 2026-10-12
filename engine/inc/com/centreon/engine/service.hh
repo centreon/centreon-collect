@@ -266,6 +266,12 @@ class service : public notifier {
 
   std::string get_check_command_line(nagios_macros* macros);
 
+  bool command_is_allowed_by_whitelist(const std::string& process_cmd,
+                                       command_type typ) {
+    return checkable::command_is_allowed_by_whitelist(
+        process_cmd, typ, _is_cma_service, _hostname);
+  }
+
  private:
   uint64_t _host_id;
   uint64_t _service_id;

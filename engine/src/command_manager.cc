@@ -36,7 +36,7 @@ using namespace com::centreon::engine::downtimes;
 /**
  *  The default constructor
  */
-command_manager::command_manager() {}
+command_manager::command_manager() : _last_execution(time(nullptr)) {}
 
 /**
  * @brief Just an accessor to the command_manager instance.
@@ -54,11 +54,24 @@ void command_manager::enqueue(std::packaged_task<int(void)>&& f) {
 }
 
 /**
- * @brief Executes external commands stored in _queue.
+ * @brief Tells if _queue has not been executed for too long.
+ *
+ * @return true if execute() has not been called for _max_execution_delay
+ * seconds or more, or if the system time went backward since.
+ */
+bool command_manager::is_execution_overdue() const {
+  time_t now = time(nullptr);
+  return now < _last_execution || now - _last_execution >= _max_execution_delay;
+}
+
+/**
+ * @brief Executes external commands stored in _queue and records the time of
+ * this execution (see is_execution_overdue()).
  *
  */
 void command_manager::execute() {
   std::unique_lock<std::mutex> lock(_queue_m);
+  _last_execution = time(nullptr);
   if (_queue.empty())
     return;
 
