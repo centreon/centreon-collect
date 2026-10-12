@@ -23,9 +23,12 @@
 #include <csignal>
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <thread>
 
 #include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
 
@@ -41,6 +44,7 @@ namespace asio = boost::asio;
 #include <boost/multi_index_container.hpp>
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #include "common/log_v2/log_v2.hh"
 

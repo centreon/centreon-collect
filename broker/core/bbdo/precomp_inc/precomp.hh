@@ -20,6 +20,7 @@
 #define CC_CORE_BBDO_PRECOMP_HH
 
 #include <deque>
+#include <filesystem>
 #include <list>
 
 #include <absl/container/btree_map.h>
@@ -27,6 +28,8 @@
 #include <absl/strings/match.h>
 #include <absl/strings/str_split.h>
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>

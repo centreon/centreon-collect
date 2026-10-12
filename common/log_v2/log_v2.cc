@@ -16,6 +16,15 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
+#include <fmt/format.h>
+#include "spdlog/spdlog.h"
+
+#include <filesystem>
+#include <ostream>
+#include <string>
+
 #include "common/log_v2/log_v2.hh"
 
 #include <absl/base/log_severity.h>
