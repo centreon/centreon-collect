@@ -28,6 +28,8 @@
 #include "../test_engine.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/commands/connector.hh"
+#include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
@@ -129,6 +131,34 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotification) {
             OK);
   ASSERT_EQ(id + 1, notifications::notification_manager::instance()
                         .get_next_notification_id());
+}
+
+/* The notifications used to fill the global macros and leave them filled:
+ * the next user of the macros, here a connector whose line is expanded, saw
+ * the contact and the type of the last notification. */
+TEST_F(ServiceNotification, MacrosDoNotLeakAfterNotification) {
+  set_time(43200);
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
+      new_timeperiod_with_timeranges("tperiod", "alias")};
+  _svc->set_current_state(engine::service::state_critical);
+  _svc->set_last_state(engine::service::state_critical);
+  _svc->set_last_hard_state_change(43200);
+  _svc->set_state_type(checkable::hard);
+  _svc->set_notification_period_ptr(tperiod.get());
+  ASSERT_EQ(_svc->notify(notifications::reason_normal, "", "",
+                         notifications::notification_option_none),
+            OK);
+
+  configuration::applier::connector cnn_aply;
+  configuration::Connector cnn;
+  configuration::connector_helper cnn_hlp(&cnn);
+  cnn.set_connector_name("connector");
+  cnn.set_connector_line("echo [$CONTACTNAME$] [$NOTIFICATIONTYPE$]");
+  cnn_aply.add_object(cnn);
+
+  auto found = commands::connector::connectors.find("connector");
+  ASSERT_NE(found, commands::connector::connectors.end());
+  ASSERT_EQ(found->second->get_command_line(), "echo [] []");
 }
 
 TEST_F(ServiceNotification,

@@ -43,7 +43,8 @@ int obsessive_compulsive_host_check_processor(
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
 
   bool obsess_over_hosts;
   uint32_t ochp_timeout;
@@ -72,20 +73,16 @@ int obsessive_compulsive_host_check_processor(
   /* get the raw command line */
   get_raw_command_line_r(mac, ochp_command_ptr, ochp_command.c_str(),
                          raw_command, macro_options);
-  if (raw_command.empty()) {
-    clear_volatile_macros_r(mac);
+  if (raw_command.empty())
     return ERROR;
-  }
 
   checks_logger->debug(
       "Raw obsessive compulsive host processor command line: {}", raw_command);
 
   /* process any macros in the raw command line */
   process_macros_r(mac, raw_command, processed_command, macro_options);
-  if (processed_command.empty()) {
-    clear_volatile_macros_r(mac);
+  if (processed_command.empty())
     return ERROR;
-  }
 
   checks_logger->debug(
       "Processed obsessive compulsive host processor "
@@ -111,7 +108,6 @@ int obsessive_compulsive_host_check_processor(
         "is not allowed by the whitelist",
         processed_command);
   }
-  clear_volatile_macros_r(mac);
 
   /* check to see if the command timed out */
   if (early_timeout)
@@ -321,7 +317,8 @@ int run_service_event_handler(nagios_macros* mac,
 
 /* handles a change in the status of a host */
 int handle_host_event(com::centreon::engine::host* hst) {
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
 
   functions_logger->trace("handle_host_event()");
 

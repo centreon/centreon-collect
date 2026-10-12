@@ -2114,7 +2114,8 @@ void service::check_for_flapping(bool update,
 
 /* handles changes in the state of a service */
 int service::handle_service_event() {
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
 
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_service_event()");
 
@@ -2140,7 +2141,6 @@ int service::handle_service_event() {
   /* run the event handler command if there is one */
   if (!event_handler().empty())
     run_service_event_handler(mac, this);
-  clear_volatile_macros_r(mac);
 
   /* send data to event broker */
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, {});
@@ -2156,7 +2156,8 @@ int service::obsessive_compulsive_service_check_processor() {
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
 
   bool obsess_over_services;
   uint32_t ocsp_timeout;
@@ -2188,10 +2189,8 @@ int service::obsessive_compulsive_service_check_processor() {
   /* get the raw command line */
   get_raw_command_line_r(mac, ocsp_command_ptr, ocsp_command.c_str(),
                          raw_command, macro_options);
-  if (raw_command.empty()) {
-    clear_volatile_macros_r(mac);
+  if (raw_command.empty())
     return ERROR;
-  }
 
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Raw obsessive compulsive service processor "
@@ -2200,10 +2199,8 @@ int service::obsessive_compulsive_service_check_processor() {
 
   /* process any macros in the raw command line */
   process_macros_r(mac, raw_command, processed_command, macro_options);
-  if (processed_command.empty()) {
-    clear_volatile_macros_r(mac);
+  if (processed_command.empty())
     return ERROR;
-  }
 
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Processed obsessive compulsive service "
@@ -2229,8 +2226,6 @@ int service::obsessive_compulsive_service_check_processor() {
         "it is not allowed by the whitelist",
         processed_command);
   }
-
-  clear_volatile_macros_r(mac);
 
   /* check to see if the command timed out */
   if (early_timeout)
@@ -2459,7 +2454,8 @@ int service::run_async_check_local(int check_options,
   set_latency(latency);
 
   // Get current host and service macros.
-  nagios_macros* macros(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* macros(&local_macros);
   std::string processed_cmd = svc->get_check_command_line(macros);
 
   // Time to start command.
@@ -2481,10 +2477,8 @@ int service::run_async_check_local(int check_options,
   set_latency(old_latency);
 
   // Service check was override by neb_module.
-  if (NEBERROR_CALLBACKOVERRIDE == res) {
-    clear_volatile_macros_r(macros);
+  if (NEBERROR_CALLBACKOVERRIDE == res)
     return OK;
-  }
 
   // Update statistics.
   update_check_stats(scheduled_check ? ACTIVE_SCHEDULED_SERVICE_CHECK_STATS
@@ -2564,8 +2558,6 @@ int service::run_async_check_local(int check_options,
       }
     } while (retry);
   }
-  // Cleanup.
-  clear_volatile_macros_r(macros);
   return OK;
 }
 

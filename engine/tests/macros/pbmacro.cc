@@ -799,16 +799,18 @@ TEST_F(Macro, PbNotificationAuthor) {
   _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
-  nagios_macros* mac(get_global_macros());
-
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line("echo $NOTIFICATIONAUTHOR$");
+  notification_commands_capture capture;
   ASSERT_EQ(
       _svc->notify(notifications::reason_normal, "test_contact", "test_comment",
                    notifications::notification_option_forced),
       OK);
 
-  std::string out;
-  process_macros_r(mac, "$NOTIFICATIONAUTHOR$", out, 1);
-  ASSERT_EQ(out, "test_contact");
+  ASSERT_FALSE(capture.commands().empty());
+  for (const std::string& cmd : capture.commands())
+    ASSERT_EQ(cmd, "echo test_contact");
 }
 
 TEST_F(Macro, PbNotificationAuthorName) {
@@ -863,15 +865,18 @@ TEST_F(Macro, PbNotificationAuthorName) {
   _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
-  nagios_macros* mac(get_global_macros());
-
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line("echo $NOTIFICATIONAUTHORNAME$");
+  notification_commands_capture capture;
   ASSERT_EQ(
       _svc->notify(notifications::reason_normal, "test_contact", "test_comment",
                    notifications::notification_option_forced),
       OK);
-  std::string out;
-  process_macros_r(mac, "$NOTIFICATIONAUTHORNAME:test_host:test_svc$", out, 1);
-  ASSERT_EQ(out, "test_contact");
+
+  ASSERT_FALSE(capture.commands().empty());
+  for (const std::string& cmd : capture.commands())
+    ASSERT_EQ(cmd, "echo test_contact");
 }
 
 TEST_F(Macro, PbNotificationAuthorAlias) {
@@ -918,15 +923,18 @@ TEST_F(Macro, PbNotificationAuthorAlias) {
   _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
-  nagios_macros* mac(get_global_macros());
-
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line("echo $NOTIFICATIONAUTHORALIAS$");
+  notification_commands_capture capture;
   ASSERT_EQ(
       _svc->notify(notifications::reason_normal, "test_contact", "test_comment",
                    notifications::notification_option_forced),
       OK);
-  std::string out;
-  process_macros_r(mac, "$NOTIFICATIONAUTHORALIAS:test_host:test_svc$", out, 1);
-  ASSERT_EQ(out, "test_contact");
+
+  ASSERT_FALSE(capture.commands().empty());
+  for (const std::string& cmd : capture.commands())
+    ASSERT_EQ(cmd, "echo test_contact");
 }
 
 TEST_F(Macro, PbNotificationComment) {
@@ -973,16 +981,18 @@ TEST_F(Macro, PbNotificationComment) {
   _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
-  nagios_macros* mac(get_global_macros());
-
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line("echo $NOTIFICATIONCOMMENT$");
+  notification_commands_capture capture;
   ASSERT_EQ(
       _svc->notify(notifications::reason_normal, "test_contact", "test_comment",
                    notifications::notification_option_forced),
       OK);
 
-  std::string out;
-  process_macros_r(mac, "$NOTIFICATIONCOMMENT$", out, 1);
-  ASSERT_EQ(out, "test_comment");
+  ASSERT_FALSE(capture.commands().empty());
+  for (const std::string& cmd : capture.commands())
+    ASSERT_EQ(cmd, "echo test_comment");
 }
 
 TEST_F(Macro, PbIsValidTime) {

@@ -412,7 +412,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     return hst->get_current_state();
 
   // Get current host macros.
-  nagios_macros* macros(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* macros(&local_macros);
   grab_host_macros_r(macros, hst);
   std::string tmp;
   get_raw_command_line_r(macros, hst->get_check_command_ptr(),
@@ -498,9 +499,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   memset(&end_cmd, 0, sizeof(end_time));
   end_cmd.tv_sec = res.end_time.to_seconds();
   end_cmd.tv_usec = res.end_time.to_useconds() - end_cmd.tv_sec * 1000000ull;
-
-  // Cleanup.
-  clear_volatile_macros_r(macros);
 
   // If the command timed out.
   uint32_t host_check_timeout = pb_indexed_config.state().host_check_timeout();

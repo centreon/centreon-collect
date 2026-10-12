@@ -1574,7 +1574,8 @@ int host::run_async_check(int check_options,
   set_latency(latency);
 
   // Get current host macros.
-  nagios_macros* macros(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* macros(&local_macros);
 
   std::string processed_cmd = get_check_command_line(macros);
 
@@ -1655,8 +1656,6 @@ int host::run_async_check(int check_options,
       }
     } while (retry);
   }
-  // Cleanup.
-  clear_volatile_macros_r(macros);
   return OK;
 }
 
