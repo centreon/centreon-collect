@@ -292,7 +292,7 @@ void raw::finished(process& p) noexcept {
  *  @param[in]  macros  The macros data struct.
  *  @param[out] env     The environment to fill.
  */
-void raw::_build_argv_macro_environment(nagios_macros const& macros,
+void raw::_build_argv_macro_environment(const nagios_macros& macros,
                                         environment& env) {
   std::string line;
   for (uint32_t i(0); i < MAX_COMMAND_ARGUMENTS; ++i) {
@@ -307,7 +307,7 @@ void raw::_build_argv_macro_environment(nagios_macros const& macros,
  *  @param[in]  macros  The macros data struct.
  *  @param[out] env     The environment to fill.
  */
-void raw::_build_contact_address_environment(nagios_macros const& macros,
+void raw::_build_contact_address_environment(const nagios_macros& macros,
                                              environment& env) {
   if (!macros.contact_ptr)
     return;
@@ -321,90 +321,61 @@ void raw::_build_contact_address_environment(nagios_macros const& macros,
 }
 
 /**
+ *  Build the environment variables of custom variables.
+ *
+ *  @param[in]  prefix The prefix of the macro names ("_HOST"...).
+ *  @param[in]  vars   The custom variables.
+ *  @param[out] env    The environment to fill.
+ */
+static void _build_custom_macro_environment(std::string_view prefix,
+                                            const map_customvar& vars,
+                                            environment& env) {
+  for (auto& [name, var] : vars) {
+    if (!name.empty()) {
+      std::string value(clean_macro_chars(
+          var.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
+      env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}{}={}", prefix, name, value));
+    }
+  }
+}
+
+/**
  *  Build custom contact macro environment variables.
  *
- *  @param[in,out] macros  The macros data struct.
- *  @param[out]    env     The environment to fill.
+ *  @param[in]  macros  The macros data struct.
+ *  @param[out] env     The environment to fill.
  */
-void raw::_build_custom_contact_macro_environment(nagios_macros& macros,
+void raw::_build_custom_contact_macro_environment(const nagios_macros& macros,
                                                   environment& env) {
-  // Build custom contact variable.
-  contact* cntct(macros.contact_ptr);
-  if (cntct) {
-    for (auto const& cv : cntct->get_custom_variables()) {
-      if (!cv.first.empty()) {
-        std::string name("_CONTACT");
-        name.append(cv.first);
-        macros.custom_contact_vars[name] = cv.second;
-      }
-    }
-  }
-  // Set custom contact variable into the environement
-  for (auto const& cv : macros.custom_contact_vars) {
-    if (!cv.first.empty()) {
-      std::string value(clean_macro_chars(
-          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
-    }
-  }
+  if (macros.contact_ptr)
+    _build_custom_macro_environment(
+        "_CONTACT", macros.contact_ptr->get_custom_variables(), env);
 }
 
 /**
  *  Build custom host macro environment variables.
  *
- *  @param[in,out] macros  The macros data struct.
- *  @param[out]    env     The environment to fill.
+ *  @param[in]  macros  The macros data struct.
+ *  @param[out] env     The environment to fill.
  */
-void raw::_build_custom_host_macro_environment(nagios_macros& macros,
+void raw::_build_custom_host_macro_environment(const nagios_macros& macros,
                                                environment& env) {
-  // Build custom host variable.
-  host* hst(macros.host_ptr);
-  if (hst) {
-    for (auto const& cv : hst->custom_variables) {
-      if (!cv.first.empty()) {
-        std::string name("_HOST");
-        name.append(cv.first);
-        macros.custom_host_vars[name] = cv.second;
-      }
-    }
-  }
-  // Set custom host variable into the environement
-  for (auto const& cv : macros.custom_host_vars) {
-    if (!cv.first.empty()) {
-      std::string value(clean_macro_chars(
-          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
-    }
-  }
+  if (macros.host_ptr)
+    _build_custom_macro_environment("_HOST", macros.host_ptr->custom_variables,
+                                    env);
 }
 
 /**
  *  Build custom service macro environment variables.
  *
- *  @param[in,out] macros  The macros data struct.
- *  @param[out]    env     The environment to fill.
+ *  @param[in]  macros  The macros data struct.
+ *  @param[out] env     The environment to fill.
  */
-void raw::_build_custom_service_macro_environment(nagios_macros& macros,
+void raw::_build_custom_service_macro_environment(const nagios_macros& macros,
                                                   environment& env) {
-  // Build custom service variable.
-  service* svc(macros.service_ptr);
-  if (svc) {
-    for (auto const& cv : svc->custom_variables) {
-      if (!cv.first.empty()) {
-        std::string name("_SERVICE");
-        name.append(cv.first);
-        macros.custom_service_vars[name] = cv.second;
-      }
-    }
-  }
-  // Set custom service variable into the environement
-  for (auto const& cv : macros.custom_service_vars) {
-    if (!cv.first.empty()) {
-      std::string value(clean_macro_chars(
-          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", cv.first, value));
-    }
-  }
+  if (macros.service_ptr)
+    _build_custom_macro_environment("_SERVICE",
+                                    macros.service_ptr->custom_variables, env);
 }
 
 /**

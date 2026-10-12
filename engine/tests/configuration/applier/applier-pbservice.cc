@@ -340,7 +340,6 @@ TEST_F(ApplierService, PbContactgroupResolution) {
   fill_string_group(cg.mutable_members(), "admin");
   configuration::applier::contactgroup cg_aply;
   cg_aply.add_object(cg);
-  configuration::error_cnt err;
   cg_aply.resolve_object(cg);
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;

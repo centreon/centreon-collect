@@ -151,11 +151,6 @@ int clear_volatile_macros_r(nagios_macros* mac) {
     }
   }
 
-  /* contact address macros */
-  for (x = 0; x < MAX_CONTACT_ADDRESSES; x++) {
-    mac->contactaddress[x] = "";
-  }
-
   /* clear macro pointers */
   mac->host_ptr = nullptr;
   mac->hostgroup_ptr = nullptr;
@@ -164,20 +159,8 @@ int clear_volatile_macros_r(nagios_macros* mac) {
   mac->contact_ptr = nullptr;
   mac->contactgroup_ptr = nullptr;
 
-  /* clear on-demand macro */
-  mac->ondemand = "";
-
   /* clear ARGx macros */
   clear_argv_macros_r(mac);
-
-  /* clear custom host variables */
-  mac->custom_host_vars.clear();
-
-  /* clear custom service variables */
-  mac->custom_service_vars.clear();
-
-  /* clear custom contact variables */
-  mac->custom_contact_vars.clear();
 
   return OK;
 }
@@ -200,14 +183,6 @@ int clear_contact_macros_r(nagios_macros* mac) {
         break;
     }
   }
-
-  /* clear contact addresses */
-  for (x = 0; x < MAX_CONTACT_ADDRESSES; x++) {
-    mac->contactaddress[x] = "";
-  }
-
-  /* clear custom contact variables */
-  mac->custom_contact_vars.clear();
 
   /* clear pointers */
   mac->contact_ptr = nullptr;

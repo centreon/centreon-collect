@@ -80,9 +80,6 @@ int clear_host_macros_r(nagios_macros* mac) {
     mac->x[to_free[i]] = "";
   }
 
-  // Clear custom host variables.
-  mac->custom_host_vars.clear();
-
   // Clear pointers.
   mac->host_ptr = nullptr;
 

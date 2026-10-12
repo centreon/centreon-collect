@@ -41,16 +41,18 @@ class raw : public command, public process_listener {
   void data_is_available(process& p) noexcept override;
   void data_is_available_err(process& p) noexcept override;
   void finished(process& p) noexcept override;
-  static void _build_argv_macro_environment(nagios_macros const& macros,
+  static void _build_argv_macro_environment(const nagios_macros& macros,
                                             environment& env);
-  static void _build_contact_address_environment(nagios_macros const& macros,
+  static void _build_contact_address_environment(const nagios_macros& macros,
                                                  environment& env);
-  static void _build_custom_contact_macro_environment(nagios_macros& macros,
-                                                      environment& env);
-  static void _build_custom_host_macro_environment(nagios_macros& macros,
+  static void _build_custom_contact_macro_environment(
+      const nagios_macros& macros,
+      environment& env);
+  static void _build_custom_host_macro_environment(const nagios_macros& macros,
                                                    environment& env);
-  static void _build_custom_service_macro_environment(nagios_macros& macros,
-                                                      environment& env);
+  static void _build_custom_service_macro_environment(
+      const nagios_macros& macros,
+      environment& env);
   static void _build_environment_macros(nagios_macros& macros,
                                         environment& env);
   static void _build_macrosx_environment(nagios_macros& macros,

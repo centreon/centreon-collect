@@ -72,9 +72,6 @@ int clear_service_macros_r(nagios_macros* mac) {
     mac->x[to_free[i]] = "";
   }
 
-  // Clear custom service variables.
-  mac->custom_service_vars.clear();
-
   // Clear pointers.
   mac->service_ptr = nullptr;
 

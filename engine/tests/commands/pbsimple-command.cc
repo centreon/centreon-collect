@@ -25,6 +25,8 @@
 #include <com/centreon/engine/macros.hh>
 
 #include "com/centreon/engine/commands/raw_v2.hh"
+#include "com/centreon/engine/configuration/applier/host.hh"
+#include "common/engine_conf/host_helper.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
@@ -277,11 +279,19 @@ TEST_F(PbSimpleCommand, EnvironmentMacros) {
   std::shared_ptr<commands::command> cmd{
       std::make_unique<commands::raw_v2>(g_io_context, "test", "/usr/bin/env")};
   cmd->set_listener(lstnr.get());
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("host_1");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  hst_hlp.insert_customvariable("_FOO", "bar");
+  hst_aply.add_object(hst);
+
   nagios_macros* mac(get_global_macros());
-  mac->x[MACRO_HOSTNAME] = "host_1";
+  mac->host_ptr = host::hosts.find("host_1")->second.get();
   mac->argv[0] = "Hello";
   mac->argv[1].clear();
-  mac->custom_host_vars["_HOSTFOO"] = customvariable("bar");
   std::string cc(cmd->process_cmd(mac));
   cmd->run(cc, *mac, 2, std::make_shared<check_result>());
   int timeout{0};
@@ -290,9 +300,7 @@ TEST_F(PbSimpleCommand, EnvironmentMacros) {
     usleep(100000);
     ++timeout;
   }
-  mac->x[MACRO_HOSTNAME].clear();
-  mac->argv[0].clear();
-  mac->custom_host_vars.clear();
+  clear_volatile_macros_r(mac);
   ASSERT_TRUE(timeout < max_timeout);
   std::vector<std::string_view> lines =
       absl::StrSplit(lstnr->get_result().output, '\n');
