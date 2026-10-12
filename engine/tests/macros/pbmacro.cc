@@ -1441,6 +1441,71 @@ TEST_F(Macro, PbGroupSkipsEmptyValues) {
   ASSERT_EQ(out, "[x] []");
 }
 
+/* $X:sg$ of a custom service macro used to be the servicegroup sg with an
+ * empty separator, while it was an error for the standard service macros.
+ * It is an error for all of them: a separator is expected. */
+TEST_F(Macro, PbServiceHostOnlyIsError) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::Host h1;
+  configuration::host_helper h1_hlp(&h1);
+  fill_pb_configuration_host(&h1_hlp, "h1", "", 1);
+  hst_aply.add_object(h1);
+  configuration::Service s1;
+  configuration::service_helper s1_hlp(&s1);
+  fill_pb_configuration_service(&s1_hlp, "h1", "s", "", 1);
+  s1_hlp.insert_customvariable("_BAR", "bar");
+  svc_aply.add_object(s1);
+
+  configuration::applier::servicegroup sg_aply;
+  configuration::Servicegroup sg;
+  configuration::servicegroup_helper sg_hlp(&sg);
+  sg.set_servicegroup_name("sg");
+  fill_pair_string_group(sg.mutable_members(), "h1,s");
+  sg_aply.add_object(sg);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  hst_aply.resolve_object(h1);
+  svc_aply.resolve_object(s1);
+  sg_aply.resolve_object(sg);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+  process_macros_r(mac,
+                   "[$_SERVICEBAR:sg$] [$_SERVICEBAR:sg:,$] [$SERVICEDESC:sg$] "
+                   "[$SERVICEDESC:sg:,$]",
+                   out, 0);
+  ASSERT_EQ(out, "[] [bar] [] [s]");
+}
+
+/* $CONTACTADDRESSn::s$ used to be the address of the contact of the context,
+ * while $X::s$ is an error for the other contact macros: the group name is
+ * missing. */
+TEST_F(Macro, PbContactAddressEmptyName) {
+  configuration::applier::contact ct_aply;
+  configuration::Contact c1;
+  configuration::contact_helper c1_hlp(&c1);
+  fill_pb_configuration_contact(&c1_hlp, "c1", true);
+  c1.add_address("address-one");
+  ct_aply.add_object(c1);
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  ct_aply.resolve_object(c1);
+
+  init_macros();
+  nagios_macros* mac(get_global_macros());
+  std::string out;
+  grab_contact_macros_r(mac,
+                        engine::contact::contacts.find("c1")->second.get());
+  process_macros_r(mac,
+                   "[$CONTACTADDRESS1::s$] [$CONTACTNAME::s$] "
+                   "[$CONTACTADDRESS1::$] [$CONTACTADDRESS1$]",
+                   out, 0);
+  ASSERT_EQ(out, "[] [] [address-one] [address-one]");
+}
+
 /* The $TOTALHOSTSERVICES*$ macros used to be cached for any host: once
  * computed for an on-demand host, they were returned for the context host and
  * for every member of a host group. h1 (context) has one critical service, h2

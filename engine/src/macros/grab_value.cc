@@ -63,28 +63,6 @@ static auto find_object(const Map& map, const Key& key)
   return ptr_of(it->second);
 }
 
-namespace {
-/**
- * @brief The differences between the macros computed on objects. They are
- * kept as they are, for compatibility.
- */
-struct policy {
-  /* $X:h$ of a service macro is the servicegroup h with an empty separator
-   * instead of an error. */
-  bool host_only_is_group;
-  /* $X::s$ of a contact macro is the contact of the context instead of an
-   * error. */
-  bool empty_name_is_context;
-};
-
-/* The standard macros ($HOSTNAME$...). */
-constexpr policy standard_policy{false, false};
-/* The custom macros ($_HOSTFOO$...). */
-constexpr policy custom_policy{true, false};
-/* The $CONTACTADDRESSn$ macros. */
-constexpr policy contact_address_policy{false, true};
-}  // namespace
-
 /**
  *  The name of the kind of objects a family of macros is computed on.
  *
@@ -147,12 +125,15 @@ static std::string concatenate(const Members& members,
  *  ($X$), a named object ($X:name$, $X:host:service$) or the members of a
  *  group ($X:group:separator$). The reason of a failure is logged.
  *
+ *  The configuration forbids empty names, so an empty argument never
+ *  designates an object: it means the object of the context, or it is an
+ *  error.
+ *
  *  @param[in]  mac    The macros, with the objects of the context.
  *  @param[in]  name   The macro name, for the logs.
  *  @param[in]  fam    The kind of object the macro is computed on.
  *  @param[in]  arg1   Argument 1.
  *  @param[in]  arg2   Argument 2.
- *  @param[in]  pol    The policy of the macro.
  *  @param[in]  value  Computes the value on one object, as
  *                     std::string(const macro_target&). A template parameter
  *                     rather than a function reference, so that it is
@@ -167,7 +148,6 @@ static int resolve(nagios_macros* mac,
                    family fam,
                    std::string_view arg1,
                    std::string_view arg2,
-                   const policy& pol,
                    const Value& value,
                    std::string& output) {
   /* The object of the context, or the object called object_name. */
@@ -185,6 +165,13 @@ static int resolve(nagios_macros* mac,
     output = value(obj);
     return OK;
   };
+  /* $X::separator$: the group name is missing. */
+  auto no_group_name = [&]() -> int {
+    macros_logger->debug(
+        "macro {}: a group name is expected before the separator '{}'", name,
+        arg2);
+    return ERROR;
+  };
   /* The members of the group called arg1. */
   auto group = [&](auto* grp, family kind, const auto& members) -> int {
     if (!grp) {
@@ -198,13 +185,15 @@ static int resolve(nagios_macros* mac,
 
   switch (fam) {
     case family::host:
-      if (!arg2.empty())
-        return group(find_object(hostgroup::hostgroups, arg1),
-                     family::hostgroup,
-                     [](const hostgroup& hg) -> auto& { return hg.members; });
+      if (arg2.empty()) {
+        if (arg1.empty())
+          return single(mac->host_ptr, family::host, arg1);
+        return single(find_object(host::hosts, arg1), family::host, arg1);
+      }
       if (arg1.empty())
-        return single(mac->host_ptr, family::host, arg1);
-      return single(find_object(host::hosts, arg1), family::host, arg1);
+        return no_group_name();
+      return group(find_object(hostgroup::hostgroups, arg1), family::hostgroup,
+                   [](const hostgroup& hg) -> auto& { return hg.members; });
 
     case family::hostgroup:
       if (arg1.empty())
@@ -229,7 +218,7 @@ static int resolve(nagios_macros* mac,
         output = value(svc);
         return OK;
       }
-      if (arg2.empty() && !pol.host_only_is_group) {
+      if (arg2.empty()) {
         macros_logger->debug(
             "macro {}: a service description or a servicegroup separator is "
             "expected after '{}'",
@@ -257,15 +246,17 @@ static int resolve(nagios_macros* mac,
                     family::servicegroup, arg1);
 
     case family::contact:
-      if (arg1.empty() && (arg2.empty() || pol.empty_name_is_context))
-        return single(mac->contact_ptr, family::contact, arg1);
-      if (!arg2.empty())
-        return group(find_object(contactgroup::contactgroups, arg1),
-                     family::contactgroup, [](const contactgroup& cg) -> auto& {
-                       return cg.get_members();
-                     });
-      return single(find_object(contact::contacts, arg1), family::contact,
-                    arg1);
+      if (arg2.empty()) {
+        if (arg1.empty())
+          return single(mac->contact_ptr, family::contact, arg1);
+        return single(find_object(contact::contacts, arg1), family::contact,
+                      arg1);
+      }
+      if (arg1.empty())
+        return no_group_name();
+      return group(
+          find_object(contactgroup::contactgroups, arg1), family::contactgroup,
+          [](const contactgroup& cg) -> auto& { return cg.get_members(); });
 
     case family::contactgroup:
       if (arg1.empty())
@@ -310,7 +301,7 @@ static int grab_custom_macro_value_r(nagios_macros* mac,
     return ERROR;
 
   return resolve(
-      mac, macro_name, fam, arg1, arg2, custom_policy,
+      mac, macro_name, fam, arg1, arg2,
       [fam, macro_name, name](const macro_target& t) -> std::string {
         const map_customvar& vars =
             fam == family::host ? std::get<host*>(t)->custom_variables
@@ -764,7 +755,7 @@ int grab_macro_value_r(nagios_macros* mac,
     x -= 1;
 
     result = resolve(
-        mac, buf, family::contact, arg[0], arg[1], contact_address_policy,
+        mac, buf, family::contact, arg[0], arg[1],
         [x, buf](const macro_target& t) -> std::string {
           if (x >= MAX_CONTACT_ADDRESSES) {
             macros_logger->debug(
@@ -857,7 +848,7 @@ int grab_macrox_value_r(nagios_macros* mac,
     case family::contactgroup:
       *free_macro = true;
       return resolve(
-          mac, desc.name, desc.fam, arg1, arg2, standard_policy,
+          mac, desc.name, desc.fam, arg1, arg2,
           [&desc, mac](const macro_target& t) { return desc.get(t, mac); },
           output);
     case family::notification:
