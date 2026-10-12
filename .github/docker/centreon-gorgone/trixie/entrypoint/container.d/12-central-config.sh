@@ -19,8 +19,6 @@
 
 set -e
 
-TYPE="${TYPE:-central}"
-
 if [ "$TYPE" != "central" ]; then
     echo "=== Central config: not central mode, skipping ==="
     return 0
