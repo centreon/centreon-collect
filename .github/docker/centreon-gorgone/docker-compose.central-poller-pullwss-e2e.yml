@@ -52,8 +52,10 @@ services:
       # secret (container.d/13-pullwss-token-fetch.sh) — matches how gorgone-central
       # validates it: a name:value token goes through the real tpapi_centreonv2
       # lookup (gorgone-central's own login above), not a static comparison.
-      # "poller-default" is auto-created by Centreon's install process —
-      # verify it exists in the joined stack's DB before relying on it.
+      # "poller-default" is created by every Centreon install (fresh:
+      # www/install/steps/process/insertBaseConf.php; upgraded:
+      # www/install/php/Update-26.05.0.php) — type "poller", never expires.
+      # Verified against a real Centreon install's DB.
       PULLWSS_TOKEN_NAME: poller-default
       CENTREON_API_BASE_URL: "http://httpd/centreon/api/latest/"
       CENTREON_API_USERNAME: admin
