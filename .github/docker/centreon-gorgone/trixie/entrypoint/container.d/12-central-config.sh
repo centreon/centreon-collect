@@ -77,6 +77,10 @@ set +x
 CENTREON_API_BASE_URL="${CENTREON_API_BASE_URL:?ERROR: CENTREON_API_BASE_URL must be set for central mode}"
 CENTREON_API_USERNAME="${CENTREON_API_USERNAME:?ERROR: CENTREON_API_USERNAME must be set for central mode}"
 CENTREON_API_PASSWORD="${CENTREON_API_PASSWORD:?ERROR: CENTREON_API_PASSWORD must be set for central mode}"
+central_config_db_creds_overridden=1
+if [ -z "${GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__PASSWORD}${GORGONE__CENTREON__DATABASE__DB_REALTIME__PASSWORD}" ]; then
+    central_config_db_creds_overridden=0
+fi
 if [ "$central_config_debug_was_on" = "1" ]; then
     set -x
 fi
@@ -87,6 +91,21 @@ fi
 # to replicate. DSN/credentials are injected via GORGONE__CENTREON__DATABASE__*
 # env vars instead (confirmed safe, works even with no dsn: line present at
 # all) — the placeholders below are only ever seen if those aren't set.
+#
+# KNOWN GAP, not yet made fail-fast (coordination needed before tightening):
+# these placeholders are a real, literal fallback DB password. A deployment
+# that only overrides the DSN (not USERNAME/PASSWORD) silently keeps using
+# "centreon"/"centreon" — works by coincidence if the real DB password
+# happens to match that string, fails with a DB auth error in gorgone's own
+# logs otherwise. Confirmed both ways empirically (k8s Helm chart hit this on
+# a real non-matching password; centreon-web-split's own compose currently
+# only overrides DB_CONFIGURATION's DSN and doesn't override DB_REALTIME at
+# all, so it would break if this became a hard requirement today). Warning
+# below is the non-breaking interim step; removing the fallback entirely
+# requires updating every consumer's compose/chart first.
+if [ "$central_config_db_creds_overridden" = "0" ]; then
+    echo "WARNING: TYPE=central is using the default 'centreon'/'centreon' DB credentials — set GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__{USERNAME,PASSWORD} and DB_REALTIME__{USERNAME,PASSWORD} to override" >&2
+fi
 cat > "$CONFIGD/30-centreon.yaml" <<EOF
 name: 30-centreon.yaml
 centreon:
@@ -150,7 +169,28 @@ EOF
 # `audit`. `autodiscovery` IS enabled (see 41-autodiscovery.yaml above),
 # giving cron.d/41-service-discovery.yaml's LAUNCHSERVICEDISCOVERY job a
 # real handler.
-cat > "$CONFIGD/40-gorgoned.yaml" <<'EOF'
+#
+# allowed_hosts.subnets below defaults to the Docker Compose bridge range
+# used by this repo's own e2e fixtures — it is NOT a sane default for every
+# topology. gorgone's own GORGONE__ env var override mechanism can't reach
+# this field (nested array inside a named module, confirmed unhandled by
+# gorgone::class::script::load_env_config), so it's made configurable here
+# instead via GORGONE_HTTPSERVER_ALLOWED_SUBNETS (space-separated CIDRs).
+# Kubernetes: pod CIDR varies by CNI/cluster and allowing the whole pod CIDR
+# is equivalent to allowing every pod in the cluster, so don't set this var —
+# instead disable the allowlist entirely with the existing, already-working
+# GORGONE__GORGONE__MODULES__HTTPSERVER__ALLOWED_HOSTS__ENABLED=false (a
+# plain scalar, unlike subnets) and restrict access with a NetworkPolicy
+# instead (identity-based, confirmed working end-to-end by the k8s Helm
+# chart: port 8085 from fpm/config-delivery pods only, 8087/pullwss from
+# httpd only).
+GORGONE_HTTPSERVER_ALLOWED_SUBNETS="${GORGONE_HTTPSERVER_ALLOWED_SUBNETS:-127.0.0.1/32 172.16.0.0/12}"
+central_config_allowed_subnets_yaml=""
+for central_config_subnet in $GORGONE_HTTPSERVER_ALLOWED_SUBNETS; do
+    central_config_allowed_subnets_yaml="${central_config_allowed_subnets_yaml}
+          - ${central_config_subnet}"
+done
+cat > "$CONFIGD/40-gorgoned.yaml" <<EOF
 name: 40-gorgoned.yaml
 gorgone:
   gorgonecore:
@@ -169,9 +209,7 @@ gorgone:
         enabled: false
       allowed_hosts:
         enabled: true
-        subnets:
-          - 127.0.0.1/32
-          - 172.16.0.0/12
+        subnets:${central_config_allowed_subnets_yaml}
 
     - name: cron
       package: "gorgone::modules::core::cron::hooks"
