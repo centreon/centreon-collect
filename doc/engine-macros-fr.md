@@ -128,6 +128,49 @@ flowchart TD
     Z2 --> A
 ```
 
+### Syntaxe, cas par cas
+
+La configuration interdit les noms vides : un argument vide ne désigne donc
+jamais un objet nommé. Il veut dire « l'objet du contexte », ou bien c'est
+une erreur. Une erreur donne une valeur vide, et sa cause est journalisée en
+`debug` sur le logger `macros`.
+
+**Macros d'hôte et de contact** (`$HOSTNAME$`, `$CONTACTEMAIL$`,
+`$_HOSTFOO$`, `$_CONTACTFOO$`, `$CONTACTADDRESSn$`…)
+
+| Forme | Sens |
+|---|---|
+| `$X$`, `$X::$` | l'objet du contexte |
+| `$X:nom$` | l'objet `nom` |
+| `$X:groupe:sép$` | les membres du groupe d'hôtes ou de contacts `groupe`, valeurs séparées par `sép` |
+| `$X::sép$` | erreur : le nom du groupe manque |
+
+**Macros de service** (`$SERVICESTATE$`, `$_SERVICEFOO$`…)
+
+| Forme | Sens |
+|---|---|
+| `$X$`, `$X::$` | le service du contexte |
+| `$X::desc$` | le service `desc` de l'hôte du contexte |
+| `$X:hôte:desc$` | le service `desc` de l'hôte `hôte` |
+| `$X:groupe:sép$` | si aucun service `(groupe, sép)` n'existe : les membres du groupe de services `groupe`, valeurs séparées par `sép` |
+| `$X:hôte$` | erreur : une description de service ou un séparateur est attendu |
+
+**Macros de groupe** (`$HOSTGROUPALIAS$`, `$SERVICEGROUPMEMBERS$`,
+`$CONTACTGROUPALIAS$`…)
+
+| Forme | Sens |
+|---|---|
+| `$X$` | le groupe du contexte : le premier groupe de l'hôte, du service ou du contact |
+| `$X:groupe$` | le groupe `groupe` ; `arg2` est ignoré |
+
+**Macros sans objet** (date et heure, statiques, `$TOTAL*$`, notification,
+`$ARGn$`, `$USERn$`) : les arguments sont ignorés, sauf pour
+`$ISVALIDTIME:période[:t]$` et `$NEXTVALIDTIME:période[:t]$`, où `t` est un
+horodatage (l'heure courante par défaut).
+
+Dans une forme de groupe, les membres arrivent dans un ordre quelconque, et
+les valeurs vides sont sautées.
+
 ## 4. Valeurs précalculées, caches et recalculs
 
 | Famille | D'où vient la valeur | Durée de vie |

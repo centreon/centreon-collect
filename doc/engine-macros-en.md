@@ -126,6 +126,49 @@ flowchart TD
     Z2 --> A
 ```
 
+### Syntax, case by case
+
+The configuration forbids empty names, so an empty argument never designates
+a named object: it means "the context object", or it is an error. An error
+gives an empty value, and its cause is logged at `debug` level on the
+`macros` logger.
+
+**Host and contact macros** (`$HOSTNAME$`, `$CONTACTEMAIL$`, `$_HOSTFOO$`,
+`$_CONTACTFOO$`, `$CONTACTADDRESSn$`…)
+
+| Form | Meaning |
+|---|---|
+| `$X$`, `$X::$` | the context object |
+| `$X:name$` | the object `name` |
+| `$X:group:sep$` | the members of the host or contact group `group`, values separated by `sep` |
+| `$X::sep$` | error: the group name is missing |
+
+**Service macros** (`$SERVICESTATE$`, `$_SERVICEFOO$`…)
+
+| Form | Meaning |
+|---|---|
+| `$X$`, `$X::$` | the context service |
+| `$X::desc$` | the service `desc` of the context host |
+| `$X:host:desc$` | the service `desc` of the host `host` |
+| `$X:group:sep$` | if no service `(group, sep)` exists: the members of the service group `group`, values separated by `sep` |
+| `$X:host$` | error: a service description or a separator is expected |
+
+**Group macros** (`$HOSTGROUPALIAS$`, `$SERVICEGROUPMEMBERS$`,
+`$CONTACTGROUPALIAS$`…)
+
+| Form | Meaning |
+|---|---|
+| `$X$` | the context group: the first group of the host, service or contact |
+| `$X:group$` | the group `group`; `arg2` is ignored |
+
+**Macros without object** (date and time, static, `$TOTAL*$`, notification,
+`$ARGn$`, `$USERn$`): the arguments are ignored, except for
+`$ISVALIDTIME:period[:t]$` and `$NEXTVALIDTIME:period[:t]$`, where `t` is a
+timestamp (the current time by default).
+
+In a group form, the members come in no particular order, and the empty
+values are skipped.
+
 ## 4. Precomputed values, caches and recomputations
 
 | Family | Where the value comes from | Lifetime |
