@@ -8,17 +8,14 @@ inputs:
     description: "Target GitHub release tag (e.g. centreon-monitoring-agent-27.08.3)"
     required: true
   mode:
-    description: "Delivery mode: local (default) or action (fetches from Artifactory)"
+    description: "Delivery mode: local (default) or action (fetches from Pulp)"
     required: false
     default: "local"
   version:
-    description: "CMA version to fetch from Artifactory — e.g. 27.08.3 (required in action mode)"
+    description: "CMA version to fetch from Pulp — e.g. 27.08.3 (required in action mode)"
     required: false
   distrib:
     description: "Comma-separated distros to fetch in action mode (default: all)"
-    required: false
-  artifactory_token:
-    description: "JFrog Artifactory token (required in action mode)"
     required: false
   dry_run:
     description: "Dry run — log actions without executing"
@@ -32,7 +29,6 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
-        ARTIFACTORY_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
         DELIVER_MODE: ${{ inputs.mode }}
         DELIVER_FILE_PATTERN: ${{ inputs.file_pattern }}
         DELIVER_GITHUB_RELEASE: ${{ inputs.github_release }}
