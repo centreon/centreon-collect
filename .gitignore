@@ -164,8 +164,3 @@ tests/resources/grpc_stream.proto
 tests/resources/opentelemetry
 
 compile_commands.json
-
-# Runtime scratch dir for docker-compose.central-poller-e2e.yml's trust bootstrap
-# (central-trust-init writes gorgone-central's pubkey thumbprint here for the
-# poller to bind-mount — generated fresh on each `docker compose up`).
-.github/docker/centreon-gorgone/central-poller-e2e-trust/

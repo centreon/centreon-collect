@@ -255,19 +255,10 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
-# Static central config — deliberately NOT under config.d/ (which config.yaml globs
-# wholesale via !include) so it never merges with the poller config above. Selected
-# by pointing `gorgoned --config=` directly at it (TYPE=central mode, see compose).
-# DB creds are injected via GORGONE__CENTREON__DATABASE__... env vars at startup.
-COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
-     .github/docker/centreon-gorgone/trixie/config/40-gorgoned-central.yaml \
-     /etc/centreon-gorgone/40-gorgoned-central.yaml
-
-# TYPE=central's own config.d files (30/31/40) are not baked here — unlike the
-# poller config above, they're written directly by
-# container.d/12-central-config.sh at startup (heredocs, env vars expand
-# naturally), so they never collide with the poller config.d/40-gorgoned.yaml
-# baked in above and there's no separate template tree to keep in sync.
+# TYPE=central's config.d files (30/31/40/41) are not baked into the image —
+# they're written directly by container.d/12-central-config.sh at startup
+# (heredocs, env vars expand naturally), so they never collide with the
+# poller config.d/40-gorgoned.yaml baked in above.
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
