@@ -39,8 +39,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
-// #include "com/centreon/engine/macros/grab_host.hh"
-// #include "com/centreon/engine/macros/grab_service.hh"
 // #include "com/centreon/engine/macros/process.hh"
 // #include "common/engine_conf/contact_helper.hh"
 // #include "common/engine_conf/host_helper.hh"
@@ -1160,11 +1158,10 @@ class MacroCustomOnDemand : public Macro {
     macro_context local_macros;
     macro_context* mac(&local_macros);
     if (with_context) {
-      grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
-      grab_service_macros_r(
-          mac, engine::service::services.find({"h1", "s"})->second.get());
-      grab_contact_macros_r(mac,
-                            engine::contact::contacts.find("c1")->second.get());
+      mac->set_host(engine::host::hosts.find("h1")->second.get());
+      mac->set_service(
+          engine::service::services.find({"h1", "s"})->second.get());
+      mac->set_contact(engine::contact::contacts.find("c1")->second.get());
     }
     std::string out;
     process_macros_r(mac, line, out, 0);
@@ -1274,20 +1271,18 @@ TEST_F(Macro, PbContactAddressOutOfRange) {
   macro_context* mac(&local_macros);
   std::string out;
 
-  grab_contact_macros_r(mac,
-                        engine::contact::contacts.find("c1")->second.get());
+  mac->set_contact(engine::contact::contacts.find("c1")->second.get());
   process_macros_r(mac,
                    "[$CONTACTADDRESS1$] [$CONTACTADDRESS2$] "
                    "[$CONTACTADDRESS3$] [$CONTACTADDRESS6$]",
                    out, 0);
   ASSERT_EQ(out, "[address-one] [address-two] [] []");
-  clear_volatile_macros_r(mac);
+  mac->reset();
 
-  grab_contact_macros_r(mac,
-                        engine::contact::contacts.find("c2")->second.get());
+  mac->set_contact(engine::contact::contacts.find("c2")->second.get());
   process_macros_r(mac, "[$CONTACTADDRESS1$]", out, 0);
   ASSERT_EQ(out, "[]");
-  clear_volatile_macros_r(mac);
+  mac->reset();
 
   process_macros_r(mac, "[$CONTACTADDRESS2:c1$] [$CONTACTADDRESS3:c1$]", out,
                    0);
@@ -1396,16 +1391,14 @@ TEST_F(Macro, PbGroupOfContext) {
       "[$SERVICEGROUPALIAS$] [$SERVICEGROUPMEMBERS$] [$CONTACTGROUPALIAS$] "
       "[$CONTACTGROUPMEMBERS$]");
 
-  grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
-  grab_service_macros_r(
-      mac, engine::service::services.find({"h1", "s"})->second.get());
-  grab_contact_macros_r(mac,
-                        engine::contact::contacts.find("c1")->second.get());
+  mac->set_host(engine::host::hosts.find("h1")->second.get());
+  mac->set_service(engine::service::services.find({"h1", "s"})->second.get());
+  mac->set_contact(engine::contact::contacts.find("c1")->second.get());
   process_macros_r(mac, line, out, 0);
   ASSERT_EQ(out, "[Service group] [h1,s] [Contact group] [c1]");
 
   /* Without context, there is no group. */
-  clear_volatile_macros_r(mac);
+  mac->reset();
   process_macros_r(mac, line, out, 0);
   ASSERT_EQ(out, "[] [] [] []");
 }
@@ -1499,8 +1492,7 @@ TEST_F(Macro, PbContactAddressEmptyName) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   std::string out;
-  grab_contact_macros_r(mac,
-                        engine::contact::contacts.find("c1")->second.get());
+  mac->set_contact(engine::contact::contacts.find("c1")->second.get());
   process_macros_r(mac,
                    "[$CONTACTADDRESS1::s$] [$CONTACTNAME::s$] "
                    "[$CONTACTADDRESS1::$] [$CONTACTADDRESS1$]",
@@ -1555,7 +1547,7 @@ TEST_F(Macro, PbTotalHostServicesOnDemand) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   std::string out;
-  grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
+  mac->set_host(engine::host::hosts.find("h1")->second.get());
   process_macros_r(mac,
                    "$TOTALHOSTSERVICESWARNING:h2$ $TOTALHOSTSERVICESWARNING$ "
                    "$TOTALHOSTSERVICESWARNING:h2$",
@@ -1566,7 +1558,7 @@ TEST_F(Macro, PbTotalHostServicesOnDemand) {
                    "$TOTALHOSTSERVICESCRITICAL$",
                    out, 0);
   ASSERT_EQ(out, "0 2 1");
-  clear_volatile_macros_r(mac);
+  mac->reset();
 
   /* One value per member, in no particular order. */
   process_macros_r(mac, "$TOTALHOSTSERVICESWARNING:hg:,$", out, 0);

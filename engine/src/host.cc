@@ -2292,7 +2292,7 @@ bool host::verify_check_viability(int check_options,
 }
 
 void host::grab_macros_r(macro_context* mac) {
-  grab_host_macros_r(mac, this);
+  mac->set_host(this);
 }
 
 /* notify a specific contact that an entire host is down or up */
@@ -3521,7 +3521,7 @@ void host::set_check_command_ptr(
  * @return std::string
  */
 std::string host::get_check_command_line(macro_context* macros) {
-  grab_host_macros_r(macros, this);
+  macros->set_host(this);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
                          check_command().c_str(), tmp, 0);

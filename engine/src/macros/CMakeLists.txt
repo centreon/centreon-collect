@@ -27,17 +27,14 @@ set(
   ${FILES}
 
   # Sources.
+  "${SRC_DIR}/context.cc"
   "${SRC_DIR}/descriptors.cc"
-  "${SRC_DIR}/grab_host.cc"
-  "${SRC_DIR}/grab_service.cc"
   "${SRC_DIR}/grab_value.cc"
   "${SRC_DIR}/process.cc"
 
   # Headers.
   "${INC_DIR}/descriptors.hh"
   "${INC_DIR}/grab.hh"
-  "${INC_DIR}/grab_host.hh"
-  "${INC_DIR}/grab_service.hh"
   "${INC_DIR}/grab_value.hh"
   "${INC_DIR}/process.hh"
 

@@ -21,7 +21,6 @@
 #include <fstream>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/process.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/hostgroup_helper.hh"

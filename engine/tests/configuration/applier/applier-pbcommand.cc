@@ -276,7 +276,7 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   macro_context local_macros;
   macro_context* macros(&local_macros);
-  grab_host_macros_r(macros, hst_found->second.get());
+  macros->set_host(hst_found->second.get());
   std::string processed_cmd(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd,
@@ -343,7 +343,7 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   macro_context local_macros;
   macro_context* macros(&local_macros);
-  grab_host_macros_r(macros, hst_found->second.get());
+  macros->set_host(hst_found->second.get());
   std::string processed_cmd(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd,

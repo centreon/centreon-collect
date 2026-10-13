@@ -123,7 +123,7 @@ absl::btree_set<std::string> run_notification_commands(
 
     /* grab the macro variables for this contact, the summary macros are
      * computed again for each of them */
-    grab_contact_macros_r(mac, ctc);
+    mac->set_contact(ctc);
 
     if (n->notify_contact(mac, ctc, type, author, message, options,
                           escalated) == OK)

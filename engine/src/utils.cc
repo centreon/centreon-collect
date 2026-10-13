@@ -122,7 +122,7 @@ int get_raw_command_line_r(macro_context* mac,
   functions_logger->trace("get_raw_command_line_r()");
 
   /* clear the argv macros */
-  clear_argv_macros_r(mac);
+  mac->clear_argv();
 
   /* make sure we've got all the requirements */
   if (cmd_ptr == nullptr) {

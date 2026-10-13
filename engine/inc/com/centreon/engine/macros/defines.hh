@@ -227,21 +227,19 @@ struct notification_values {
  */
 class macro_context {
  public:
-  macro_context()
-      : host_ptr{nullptr},
-        hostgroup_ptr{nullptr},
-        service_ptr{nullptr},
-        servicegroup_ptr{nullptr},
-        contact_ptr{nullptr},
-        contactgroup_ptr{nullptr} {};
+  void set_host(com::centreon::engine::host* hst);
+  void set_service(com::centreon::engine::service* svc);
+  void set_contact(com::centreon::engine::contact* cntct);
+  void clear_argv();
+  void reset();
 
   std::array<std::string, MAX_COMMAND_ARGUMENTS> argv;
-  com::centreon::engine::host* host_ptr;
-  com::centreon::engine::hostgroup* hostgroup_ptr;
-  com::centreon::engine::service* service_ptr;
-  com::centreon::engine::servicegroup* servicegroup_ptr;
-  com::centreon::engine::contact* contact_ptr;
-  com::centreon::engine::contactgroup* contactgroup_ptr;
+  com::centreon::engine::host* host_ptr = nullptr;
+  com::centreon::engine::hostgroup* hostgroup_ptr = nullptr;
+  com::centreon::engine::service* service_ptr = nullptr;
+  com::centreon::engine::servicegroup* servicegroup_ptr = nullptr;
+  com::centreon::engine::contact* contact_ptr = nullptr;
+  com::centreon::engine::contactgroup* contactgroup_ptr = nullptr;
 
   /* Only set while a notification is sent. */
   std::optional<notification_values> notification;

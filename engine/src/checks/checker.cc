@@ -414,7 +414,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   // Get current host macros.
   macro_context local_macros;
   macro_context* macros(&local_macros);
-  grab_host_macros_r(macros, hst);
+  macros->set_host(hst);
   std::string tmp;
   get_raw_command_line_r(macros, hst->get_check_command_ptr(),
                          hst->check_command().c_str(), tmp, 0);

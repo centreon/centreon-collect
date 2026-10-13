@@ -20,20 +20,10 @@
 
 #ifndef CCE_MACROS_HH
 #define CCE_MACROS_HH
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/macros/grab_value.hh"
 #include "com/centreon/engine/macros/process.hh"
 
 // cleans macros characters before insertion into output string
 std::string clean_macro_chars(std::string const& macro, int options);
-
-int grab_contact_macros_r(macro_context* mac,
-                          com::centreon::engine::contact* cntct);
-
-/* thread-safe version of the above */
-int clear_argv_macros_r(macro_context* mac);
-int clear_volatile_macros_r(macro_context* mac);
-int clear_summary_macros_r(macro_context* mac);
 
 #endif  // !CCE_MACROS_HH

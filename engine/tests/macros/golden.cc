@@ -357,11 +357,10 @@ class MacroGolden : public TestEngine {
   void _set_context(macro_context* mac, ctx c) {
     if (c == ctx::none)
       return;
-    grab_host_macros_r(mac, host::hosts.find("h1")->second.get());
+    mac->set_host(host::hosts.find("h1")->second.get());
     if (c == ctx::service)
-      grab_service_macros_r(mac,
-                            service::services.find({"h1", "s"})->second.get());
-    grab_contact_macros_r(mac, contact::contacts.find("c1")->second.get());
+      mac->set_service(service::services.find({"h1", "s"})->second.get());
+    mac->set_contact(contact::contacts.find("c1")->second.get());
     notification_values& notification = mac->notification.emplace();
     notification.type = com::centreon::common::notifications::reason_normal;
     notification.number = 3;
@@ -413,7 +412,7 @@ class MacroGolden : public TestEngine {
     host* h = host::hosts.find("h1")->second.get();
     retval.push_back("check h1 => " +
                      absl::CEscape(h->get_check_command_line(mac)));
-    clear_volatile_macros_r(mac);
+    mac->reset();
     service* s = service::services.find({"h1", "s"})->second.get();
     retval.push_back("check h1/s => " +
                      absl::CEscape(s->get_check_command_line(mac)));

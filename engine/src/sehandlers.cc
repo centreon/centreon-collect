@@ -68,7 +68,7 @@ int obsessive_compulsive_host_check_processor(
     return ERROR;
 
   /* update macros */
-  grab_host_macros_r(mac, hst);
+  mac->set_host(hst);
 
   /* get the raw command line */
   get_raw_command_line_r(mac, ochp_command_ptr, ochp_command.c_str(),
@@ -338,7 +338,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
     return OK;
 
   /* update host macros */
-  grab_host_macros_r(mac, hst);
+  mac->set_host(hst);
 
   /* run the global host event handler */
   run_global_host_event_handler(mac, hst);

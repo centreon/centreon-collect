@@ -24,7 +24,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
 #include "common/engine_conf/command_helper.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/host_helper.hh"
@@ -100,7 +99,7 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   ASSERT_EQ(hst_found->second->custom_variables.size(), 3);
   macro_context local_macros;
   macro_context* macros(&local_macros);
-  grab_host_macros_r(macros, hst_found->second.get());
+  macros->set_host(hst_found->second.get());
   std::string processed_cmd(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd,
@@ -108,7 +107,7 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
 
   char* msg = strdupa("hst_test;PACKETNUMBER;44");
   cmd_change_object_custom_var(CMD_CHANGE_CUSTOM_HOST_VAR, msg);
-  grab_host_macros_r(macros, hst_found->second.get());
+  macros->set_host(hst_found->second.get());
   std::string processed_cmd2(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd2,

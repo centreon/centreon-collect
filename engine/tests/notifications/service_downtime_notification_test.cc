@@ -19,7 +19,6 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
 
 #include <cstring>

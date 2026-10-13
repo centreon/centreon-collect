@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/timeperiods/timeperiod.hh"

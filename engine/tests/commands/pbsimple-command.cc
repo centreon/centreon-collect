@@ -308,7 +308,7 @@ TEST_F(PbSimpleCommand, EnvironmentMacros) {
     usleep(100000);
     ++timeout;
   }
-  clear_volatile_macros_r(mac);
+  mac->reset();
   ASSERT_TRUE(timeout < max_timeout);
   std::vector<std::string_view> lines =
       absl::StrSplit(lstnr->get_result().output, '\n');

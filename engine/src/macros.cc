@@ -29,28 +29,6 @@ using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 
 /******************************************************************/
-/********************** MACRO GRAB FUNCTIONS **********************/
-/******************************************************************/
-
-/* grab macros that are specific to a particular contact */
-int grab_contact_macros_r(macro_context* mac, contact* cntct) {
-  /* save pointer to contact for later */
-  mac->contact_ptr = cntct;
-  mac->contactgroup_ptr = nullptr;
-
-  /* the summary macros are filtered by contact */
-  clear_summary_macros_r(mac);
-
-  if (cntct == nullptr)
-    return ERROR;
-
-  /* save pointer to first/primary contactgroup for later */
-  if (!cntct->get_parent_groups().empty())
-    mac->contactgroup_ptr = cntct->get_parent_groups().begin()->second;
-  return OK;
-}
-
-/******************************************************************/
 /********************* MACRO STRING FUNCTIONS *********************/
 /******************************************************************/
 
@@ -81,45 +59,4 @@ std::string clean_macro_chars(std::string const& macro, int options) {
     retval.resize(y);
   }
   return retval;
-}
-
-/******************************************************************/
-/********************* MACRO CLEANUP FUNCTIONS ********************/
-/******************************************************************/
-
-/* clear argv macros - used in commands */
-int clear_argv_macros_r(macro_context* mac) {
-  unsigned int x = 0;
-
-  /* command argument macros */
-  for (x = 0; x < MAX_COMMAND_ARGUMENTS; x++) {
-    mac->argv[x] = "";
-  }
-  return OK;
-}
-
-/* clear all the macros of the context */
-int clear_volatile_macros_r(macro_context* mac) {
-  /* clear macro pointers */
-  mac->host_ptr = nullptr;
-  mac->hostgroup_ptr = nullptr;
-  mac->service_ptr = nullptr;
-  mac->servicegroup_ptr = nullptr;
-  mac->contact_ptr = nullptr;
-  mac->contactgroup_ptr = nullptr;
-
-  mac->notification.reset();
-  mac->summary.reset();
-  mac->host_services.reset();
-
-  /* clear ARGx macros */
-  clear_argv_macros_r(mac);
-
-  return OK;
-}
-
-/* clear summary macros */
-int clear_summary_macros_r(macro_context* mac) {
-  mac->summary.reset();
-  return OK;
 }

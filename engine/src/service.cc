@@ -2132,8 +2132,8 @@ int service::handle_service_event() {
     return ERROR;
 
   /* update service macros */
-  grab_host_macros_r(mac, get_host_ptr());
-  grab_service_macros_r(mac, this);
+  mac->set_host(get_host_ptr());
+  mac->set_service(this);
 
   /* run the global service event handler */
   run_global_service_event_handler(mac, this);
@@ -2183,8 +2183,8 @@ int service::obsessive_compulsive_service_check_processor() {
     return ERROR;
 
   /* update service macros */
-  grab_host_macros_r(mac, temp_host);
-  grab_service_macros_r(mac, this);
+  mac->set_host(temp_host);
+  mac->set_service(this);
 
   /* get the raw command line */
   get_raw_command_line_r(mac, ocsp_command_ptr, ocsp_command.c_str(),
@@ -2938,8 +2938,8 @@ bool service::verify_check_viability(int check_options,
 }
 
 void service::grab_macros_r(macro_context* mac) {
-  grab_host_macros_r(mac, _host_ptr);
-  grab_service_macros_r(mac, this);
+  mac->set_host(_host_ptr);
+  mac->set_service(this);
 }
 
 /* notify a specific contact about a service problem or recovery */
@@ -3556,8 +3556,8 @@ void service::set_check_command_ptr(
  * @return std::string
  */
 std::string service::get_check_command_line(macro_context* macros) {
-  grab_host_macros_r(macros, get_host_ptr());
-  grab_service_macros_r(macros, this);
+  macros->set_host(get_host_ptr());
+  macros->set_service(this);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
                          check_command().c_str(), tmp, 0);

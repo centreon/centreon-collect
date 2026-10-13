@@ -291,10 +291,10 @@ macro_context context;
  */
 macro_context* set_context() {
   macro_context* mac = &context;
-  clear_volatile_macros_r(mac);
-  grab_host_macros_r(mac, p.hst);
-  grab_service_macros_r(mac, p.svc);
-  grab_contact_macros_r(mac, p.cntct);
+  mac->reset();
+  mac->set_host(p.hst);
+  mac->set_service(p.svc);
+  mac->set_contact(p.cntct);
   notification_values& notification = mac->notification.emplace();
   notification.type = com::centreon::common::notifications::reason_normal;
   notification.number = 1;
@@ -347,7 +347,7 @@ void BM_SummaryComputed(benchmark::State& state) {
     mac->contact_ptr = nullptr;
   std::string out;
   for (auto _ : state) {
-    clear_summary_macros_r(mac);
+    mac->summary.reset();
     process_macros_r(mac, "$TOTALSERVICESCRITICALUNHANDLED$", out, 0);
     benchmark::DoNotOptimize(out);
   }
@@ -355,12 +355,12 @@ void BM_SummaryComputed(benchmark::State& state) {
 }
 
 /* $TOTALHOSTSERVICES*$: walk through the services of the host, cached until
- * the next grab_host_macros_r(). */
+ * the next set_host(). */
 void BM_HostTotalsComputed(benchmark::State& state) {
   macro_context* mac = set_context();
   std::string out;
   for (auto _ : state) {
-    grab_host_macros_r(mac, p.hst);
+    mac->set_host(p.hst);
     process_macros_r(mac, "$TOTALHOSTSERVICESCRITICAL$", out, 0);
     benchmark::DoNotOptimize(out);
   }
@@ -390,7 +390,7 @@ void BM_HostCheckCommand(benchmark::State& state) {
   for (auto _ : state) {
     macro_context local_macros;
     macro_context* mac(&local_macros);
-    grab_host_macros_r(mac, p.hst);
+    mac->set_host(p.hst);
     get_raw_command_line_r(mac, p.hst->get_check_command_ptr(),
                            p.hst->check_command(), tmp, 0);
     out = p.hst->get_check_command_ptr()->process_cmd(mac);
@@ -413,8 +413,7 @@ void BM_NotificationLine(benchmark::State& state) {
   macro_context* mac = set_context();
   std::string out;
   for (auto _ : state) {
-    grab_contact_macros_r(mac, p.cntct);
-    clear_summary_macros_r(mac);
+    mac->set_contact(p.cntct);
     process_macros_r(mac, line, out,
                      STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
     benchmark::DoNotOptimize(out);
