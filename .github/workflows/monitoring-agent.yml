@@ -279,7 +279,8 @@ jobs:
             build_windows\agent\Release\centagent.pdb
 
   unit-test-linux:
-    needs: [get-environment, changes, check-version-consistency]
+    needs:
+      [get-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -291,20 +292,19 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
-    runs-on: centreon-collect
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ${{ matrix.arch == 'arm64' && 'centreon-ubuntu-26.04-arm-xlarge' || 'centreon-ubuntu-26.04-xlarge' }}
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}${{ matrix.arch == 'arm64' && '-arm64' || '' }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 4 --ulimit core=-1 --privileged
+      options: --cpus 8 --ulimit core=-1 --privileged
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -312,18 +312,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - name: Install sccache
-        run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.12.0-x86_64-unknown-linux-musl/sccache /usr/bin/
-
-          ${SCCACHE_PATH} --start-server
-        shell: bash
+      - name: Set up sccache
+        uses: ./.github/actions/setup-sccache
+        with:
+          aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
 
       - name: Compile centreon-collect
         env:
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
+          TRIPLET: ${{ matrix.arch == 'arm64' && 'arm64-linux' || 'x64-linux' }}
         run: |
           CMAKE="cmake"
 
@@ -337,12 +334,14 @@ jobs:
           CXXFLAGS="-Wall -Wextra" $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-                  -DVCPKG_TARGET_TRIPLET=x64-linux-release \
+                  -DVCPKG_TARGET_TRIPLET=$TRIPLET \
                   -DVCPKG_OVERLAY_PORTS=/overlays \
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
+                  "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -g1 -DNDEBUG" \
                   -DWITH_PREFIX=/usr \
                   -DWITH_PREFIX_BIN=/usr/sbin \
                   -DWITH_USER_BROKER=centreon-broker \
@@ -365,13 +364,14 @@ jobs:
                   -DONLY_ROBOT_CMA=ON \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 8 -Cbuild
           ninja -Cbuild install
         shell: bash
 
       - name: Cache statistics
-        run: ${SCCACHE_PATH} --show-stats
-        shell: bash
+        uses: ./.github/actions/sccache-stats
+        with:
+          ninja_log_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' && format('ninja-log-cma-unit-test-{0}-{1}', matrix.operating_system, matrix.arch) || '' }}
 
       - name: Stop sccache server
         run: ${SCCACHE_PATH} --stop-server
@@ -379,8 +379,24 @@ jobs:
 
       - name: Run agent common unit tests
         run: |
-          .github/scripts/collect-ut.sh common
-          .github/scripts/collect-ut.sh agent
+          # Each binary runs with its own /tmp (collect-ut.sh): they can run at the same time.
+          pids=()
+          for test in common agent; do
+            .github/scripts/collect-ut.sh "$test" > "build/ut_$test.log" 2>&1 &
+            pids+=("$!:$test")
+          done
+          rc=0
+          for entry in "${pids[@]}"; do
+            test=${entry#*:}
+            if ! wait "${entry%%:*}"; then
+              rc=1
+              echo "::error::unit tests failed: $test"
+            fi
+            echo "::group::Unit tests for $test"
+            cat "build/ut_$test.log"
+            echo "::endgroup::"
+          done
+          exit $rc
         working-directory: .
         shell: bash
 
@@ -393,7 +409,8 @@ jobs:
           retention-days: 1
 
   package-linux:
-    needs: [get-environment, changes, check-version-consistency]
+    needs:
+      [get-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -408,6 +425,9 @@ jobs:
 
     name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
 
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/package-collect.yml
 
     with:
@@ -427,6 +447,7 @@ jobs:
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: true
+      aws_role_arn: ${{ needs.get-environment.outputs.aws_ci_role_arn }}
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
@@ -490,7 +511,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -536,7 +557,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -584,7 +605,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -635,7 +656,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -744,7 +765,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
       id-token: write
@@ -796,7 +817,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -842,7 +863,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     strategy:
       fail-fast: false
       matrix:
@@ -937,7 +958,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, deliver-windows-pulp]
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
       id-token: write
@@ -979,7 +1000,7 @@ jobs:
         (github.event_name == 'workflow_dispatch' && inputs.publish_cma_version != '')
       )
 
-    runs-on: centreon-ubuntu-22.04
+    runs-on: centreon-ubuntu-26.04-small
     permissions:
       contents: read
 
