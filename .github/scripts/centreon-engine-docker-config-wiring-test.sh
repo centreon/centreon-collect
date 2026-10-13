@@ -453,6 +453,19 @@ if ! echo "$messages_json" | grep -q "admin-plugin@example.test"; then
   docker logs "$MAIL_TEST_CONTAINER" || true
   exit 1
 fi
+# Native path: SMTP_FROM must win over mailutils' own user@hostname sender,
+# both in the From: header and in the envelope (Return-Path).
+native_ids=$(echo "$messages_json" | jq -r '.messages[] | select(any(.To[]; .Address == "admin-smtp@example.test")) | .ID')
+for id in $native_ids; do
+  message_json=$(curl -sf "http://127.0.0.1:$MAILPIT_HTTP_PORT/api/v1/message/$id")
+  header_from=$(echo "$message_json" | jq -r '.From.Address')
+  envelope_from=$(echo "$message_json" | jq -r '.ReturnPath')
+  if [ "$header_from" != "centreon-engine@example.test" ] || [ "$envelope_from" != "centreon-engine@example.test" ]; then
+    echo "::error::native mail sender is not SMTP_FROM (From: '$header_from', envelope: '$envelope_from', expected centreon-engine@example.test)"
+    echo "$message_json"
+    exit 1
+  fi
+done
 echo "OK: a real custom notification, resolved and dispatched by centengine itself, delivered mail via both the native SMTP command and the notification-email connector."
 summary_step_pass
 
