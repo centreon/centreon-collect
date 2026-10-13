@@ -1,44 +1,33 @@
 #!/bin/sh
 # Optional: self-fetch a real Centreon API token for pullwss auth instead of
-# hardcoding GORGONE_TOKEN, whose value is freshly random on every install
-# (POST /administration/tokens returns the plaintext only once, at creation;
-# GET .../tokens/{name}[/users/{id}] returns it again for an existing token).
-#
-# Gated behind PULLWSS_TOKEN_NAME: unset/empty = no-op, today's behavior
-# (GORGONE_TOKEN passed in directly) is unchanged.
+# hardcoding GORGONE_TOKEN, whose value is random on every install (POST
+# /administration/tokens returns the plaintext only once, at creation; GET
+# .../tokens/{name}[/users/{id}] returns it again for an existing token).
+# Gated behind PULLWSS_TOKEN_NAME: unset/empty = no-op.
 #
 # Reserved for gorgone-central-poller (Central acting as its own poller)
-# ONLY. Its GORGONE_TOKEN can't be pre-provisioned like a normal remote
-# poller's: it doesn't go through the "Add Poller" UI flow that normally
-# hands a poller its own static token at creation time, so there is nothing
-# to inject upfront - it has to self-discover it, which is why this needs
-# real Centreon API admin-style credentials in the first place.
-# NEVER set PULLWSS_TOKEN_NAME on a classic/remote poller: it already gets a
-# static GORGONE_TOKEN the normal way (Add Poller UI), and handing it
-# Centreon API admin credentials on top of that would only widen the blast
-# radius of those credentials for no benefit.
+# ONLY: it never goes through the "Add Poller" UI flow that hands a normal
+# poller its own static token, so it has to self-discover one, which is why
+# this needs Centreon API admin-style credentials in the first place. NEVER
+# set PULLWSS_TOKEN_NAME on a classic/remote poller — it already has a static
+# GORGONE_TOKEN, and admin credentials on top would only widen their exposure.
 #
-# Mechanism, verified against the real centreon repo source, not guessed:
-# - POST {base_url}/login body {"security":{"credentials":{"login":...,
-#   "password":...}}} -> {"security":{"token":...}}
+# Mechanism:
+# - POST {base_url}/login -> {"security":{"token":...}}
 #   (gorgone/gorgone/class/tpapi/centreonv2.pm:98-155, authenticate()).
 # - GET {base_url}/administration/tokens/{name}[/users/{user_id}], header
-#   X-AUTH-TOKEN: <session token> -> flat JSON object with a plaintext
-#   "token" field (centreon repo: src/Core/Security/Token/Infrastructure/API/
-#   GetToken/GetTokenRoute.yaml). Without PULLWSS_TOKEN_USER_ID this hits the
-#   route's "current user" variant (GetToken, {tokenName} only) instead of
-#   GetTokenByUserId - the login above already establishes which user that
-#   is. Confirmed empirically (docker-web-split session) that this GET also
-#   works for a pre-existing token, not only right after creation.
+#   X-AUTH-TOKEN: <session token> -> plaintext "token" field (centreon repo:
+#   src/Core/Security/Token/Infrastructure/API/GetToken/GetTokenRoute.yaml).
+#   Without PULLWSS_TOKEN_USER_ID this hits the "current user" route variant
+#   instead of GetTokenByUserId. Works for a pre-existing token too, not only
+#   right after creation.
+# - gorgoned reads the plain GORGONE_TOKEN env var natively
+#   (gorgone/gorgone/class/script.pm:364-370) as the pullwss module's token —
+#   no GORGONE__ prefix for this one.
 #
-# gorgoned itself then reads the plain GORGONE_TOKEN env var natively
-# (gorgone/gorgone/class/script.pm:364-370, load_env_config) and sets it as
-# the pullwss module's token - no GORGONE__ prefix involved for this one.
-#
-# Retries on transient failures only (API not up yet - depends_on only waits
-# for the container to start, not for the whole Centreon install to finish).
-# A permanent error (bad credentials, unknown token/user) fails fast instead
-# of burning the whole retry budget on something a retry can't fix.
+# Retries on transient failures only (API not up yet); a permanent error (bad
+# credentials, unknown token/user) fails fast instead of burning the retry
+# budget on something a retry can't fix.
 
 set -e
 

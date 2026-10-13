@@ -6,7 +6,7 @@
 set -e
 
 if [ "$TYPE" != "poller" ]; then
-    echo "=== Engine Secrets: central mode, skipping ==="
+    echo "=== Engine Secrets: not poller mode, skipping ==="
     return 0
 fi
 

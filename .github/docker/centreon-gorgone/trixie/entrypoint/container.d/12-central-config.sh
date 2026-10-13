@@ -1,21 +1,15 @@
 #!/bin/sh
-# TYPE=central: write config.d/{30-centreon,31-centreon-api,40-gorgoned,
-# 41-autodiscovery}.yaml directly, the same standard
-# config.yaml -> !include config.d/*.yaml path
-# TYPE=poller already uses (not a shell-generated file there, but the same
-# destination) — so no compose `command:` override is needed for central mode
-# any more than for poller mode, and 39-action.yaml/whitelist.conf.d (baked
-# unconditionally earlier in the Dockerfile) apply here for free.
+# TYPE=central: writes config.d/{30-centreon,31-centreon-api,40-gorgoned,
+# 41-autodiscovery}.yaml, loaded via the standard
+# config.yaml -> !include config.d/*.yaml path (same as TYPE=poller) — no
+# compose `command:` override needed, and 39-action.yaml/whitelist.conf.d
+# (baked unconditionally earlier in the Dockerfile) apply here for free.
 #
-# Heredocs here are intentionally unquoted (<<EOF, not <<'EOF'): env vars
-# expand directly into the YAML as it's written, no separate sed/templating
-# step. tpapi (31-centreon-api.yaml) is the one block that specifically CANNOT
-# go through gorgone's own GORGONE__ env var mechanism instead:
-# gorgone::class::script::load_env_config crashes ("Not a HASH reference") on
-# any GORGONE__GORGONE__TPAPI__* override — tpapi is a named list exactly like
-# `modules` structurally, but only `modules` gets the special
-# array-search-by-name handling. Confirmed by direct reproduction, not fixed
-# on the gorgone side — written here instead.
+# Heredocs are unquoted (<<EOF) so env vars expand into the YAML directly.
+# tpapi (31-centreon-api.yaml) must stay a heredoc rather than a GORGONE__
+# env override: gorgone::class::script::load_env_config crashes ("Not a HASH
+# reference") on GORGONE__GORGONE__TPAPI__* — tpapi is a named list like
+# `modules`, but only `modules` gets the array-search-by-name handling.
 
 set -e
 
@@ -29,14 +23,10 @@ echo "=== Writing central config.d ==="
 CONFIGD="/etc/centreon-gorgone/config.d"
 mkdir -p "$CONFIGD/cron.d"
 
-# Real cron.d content (relayed by the docker-web-split session, `cat`/`tree`
-# off a real central). LAUNCHSERVICEDISCOVERY needs the `autodiscovery`
-# module, a known gap (see 40-gorgoned.yaml's own comment below) — this job is
-# harmless to have scheduled either way, it just won't find a handler if it
-# ever fires before that module is added. Helios keeps its real `.disabled`
-# suffix, which is the actual mechanism that excludes it from the
-# `cron.d/*.yaml` glob — matches its default-off state in production, not
-# something to activate to "complete" this list.
+# LAUNCHSERVICEDISCOVERY needs the `autodiscovery` module (enabled below) —
+# harmless to schedule either way. Helios keeps its `.disabled` suffix, which
+# is what excludes it from the `cron.d/*.yaml` glob, matching its default-off
+# state in production.
 cat > "$CONFIGD/cron.d/41-service-discovery.yaml" <<'EOF'
 - id: service_discovery
   timespec: "30 22 * * *"
@@ -83,12 +73,10 @@ if [ "$central_config_debug_was_on" = "1" ]; then
     set -x
 fi
 
-# Real production splits DB connectivity into 30-centreon.yaml, which does
-# `centreon: !include /etc/centreon/config.d/*.yaml` — a directory centreon-
-# web's own PHP installer writes at install time, out of scope for this image
-# to replicate. DSN/credentials are injected via GORGONE__CENTREON__DATABASE__*
-# env vars instead (confirmed safe, works even with no dsn: line present at
-# all) — the placeholders below are only ever seen if those aren't set.
+# Real production reads DB config from /etc/centreon/config.d/*.yaml,
+# written by the PHP installer at install time — out of scope here.
+# DSN/credentials are injected via GORGONE__CENTREON__DATABASE__* env vars
+# instead; the placeholders below are only ever seen if those aren't set.
 #
 # KNOWN GAP, not yet made fail-fast: these placeholders are a real fallback
 # DB password. A consumer that only overrides the DSN (not USERNAME/
@@ -113,17 +101,14 @@ centreon:
       password: centreon
 EOF
 
-# gorgone's OWN login to the Centreon Web API (a real web user, "centreon-
-# gorgone" in production), used to validate OTHER callers' tokens (pullwss
-# poller tokens, see gorgone/modules/core/proxy/httpserver.pm:502-524) — not
-# the poller token itself. Real production splits this into TWO files
-# (30-centreon.yaml, external https://<host>/... + 31-centreon-api.yaml, local
-# http://127.0.0.1/..., both centreonv2+clapi) — deliberately not replicated
-# here: in a split-container topology nothing is actually 127.0.0.1-reachable
-# between gorgone-central and httpd (separate containers), so the "local"
-# variant's premise doesn't hold, and per Hash::Merge's RIGHT_PRECEDENT
-# array-replacement behavior only the LAST-loaded config.d file's tpapi array
-# survives the merge anyway. One real, working base_url instead.
+# gorgone's own login to the Centreon API (a real web user, "centreon-
+# gorgone" in production), used to validate OTHER callers' tokens
+# (gorgone/modules/core/proxy/httpserver.pm:502-524) — not the poller's own
+# token. Real production splits this into an external and a local tpapi
+# entry; not replicated here — nothing is 127.0.0.1-reachable between
+# gorgone-central and httpd in a split-container topology, and only the
+# last-loaded config.d file's tpapi array survives Hash::Merge's
+# RIGHT_PRECEDENT anyway. One real, working base_url instead.
 cat > "$CONFIGD/31-centreon-api.yaml" <<EOF
 name: 31-centreon-api.yaml
 gorgone:
@@ -137,43 +122,29 @@ gorgone:
       password: "$CENTREON_API_PASSWORD"
 EOF
 
-# Module set modeled directly on a real production central's own
-# config.d/40-gorgoned.yaml (relayed verbatim by the docker-web-split
-# session), with three deliberate, load-bearing deviations for this topology:
+# Module set for a production central, with three deliberate deviations:
 #   - gorgonecore.id 1000, not 1 (Central's real nagios_server id, matching
-#     the poller-container's own GORGONE_UID). If this process's own id
-#     matched the node id it dispatches REMOTECOPY to, core.pm:649's
-#     self-target-nulling shortcut would null the dispatch, reproducing
-#     ticket 11's "[proxy] need a valid node id" self-collision. Confirmed
-#     both ways by direct testing.
+#     the poller-container's own GORGONE_UID): matching that id would hit
+#     core.pm:649's self-target-nulling shortcut and null REMOTECOPY/COMMAND
+#     dispatch to poller id 1.
 #   - proxy.httpserver binds 0.0.0.0, not localhost: httpd is a separate
 #     container reaching this one by service name over the network
-#     (GORGONE_WSS_UPSTREAM=gorgone-central:8087 on the httpd side), not the
-#     same host the real value assumes.
-#   - no `register` module: the real central doesn't use one either — `nodes`'
-#     own DB sync is sufficient once nagios_server.localhost is 0 for
-#     Central's row, which is what actually gets id 1 into register_nodes as
-#     a normal push_zmq/pullwss-shaped entry, not localhost==1's
-#     special-cased exclusion.
-# Known gaps versus the real module list, not yet included: `engine` (this
-# process doesn't share /var/lib/centreon-engine/rw with centengine —
-# gorgone-central-poller does, for exactly that reason — RELOAD/RESTART and
-# ENGINECOMMAND still go through that second process today), `statistics`,
-# `audit`. `autodiscovery` IS enabled (see 41-autodiscovery.yaml above),
-# giving cron.d/41-service-discovery.yaml's LAUNCHSERVICEDISCOVERY job a
-# real handler.
+#     (GORGONE_WSS_UPSTREAM=gorgone-central:8087 on the httpd side).
+#   - no `register` module: `nodes`' own DB sync registers id 1 like any
+#     other poller once nagios_server.localhost is 0 for Central's row.
+# Not yet included: `engine` (gorgone-central-poller shares
+# /var/lib/centreon-engine/rw with centengine instead, so RELOAD/RESTART and
+# ENGINECOMMAND go through that process today), `statistics`, `audit`.
 #
 # allowed_hosts.subnets below defaults to the Docker Compose bridge range
-# used by this repo's own e2e fixtures — it is NOT a sane default for every
-# topology. gorgone's own GORGONE__ env var override mechanism can't reach
-# this field (nested array inside a named module, unhandled by
-# gorgone::class::script::load_env_config), so it's made configurable here
-# instead via GORGONE_HTTPSERVER_ALLOWED_SUBNETS (space-separated CIDRs).
-# On Kubernetes, the pod CIDR is cluster-specific and allowing it equals
-# allowing every pod: set
-# GORGONE__GORGONE__MODULES__HTTPSERVER__ALLOWED_HOSTS__ENABLED=false (a
-# plain scalar, unlike subnets) and restrict port 8085/8087 with
-# NetworkPolicies instead.
+# used by this repo's own e2e fixtures — not a sane default everywhere.
+# gorgone's own GORGONE__ env override can't reach this field (nested array
+# inside a named module, unhandled by gorgone::class::script::load_env_config),
+# so it's made configurable here instead via GORGONE_HTTPSERVER_ALLOWED_SUBNETS
+# (space-separated CIDRs). Where a fixed CIDR doesn't make sense for the
+# deployment, disable the allowlist entirely instead
+# (GORGONE__GORGONE__MODULES__HTTPSERVER__ALLOWED_HOSTS__ENABLED=false, a
+# plain scalar unlike subnets) and restrict access at the network layer.
 GORGONE_HTTPSERVER_ALLOWED_SUBNETS="${GORGONE_HTTPSERVER_ALLOWED_SUBNETS:-127.0.0.1/32 172.16.0.0/12}"
 central_config_allowed_subnets_yaml=""
 for central_config_subnet in $GORGONE_HTTPSERVER_ALLOWED_SUBNETS; do

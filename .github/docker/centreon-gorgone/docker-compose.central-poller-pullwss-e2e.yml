@@ -1,9 +1,6 @@
-# Central-as-a-poller fixture, pullwss variant — uses the NATIVE TYPE=central
-# entrypoint (container.d/12-central-config.sh writing config.d/*.yaml), same
-# code path as k8s/docker-web-split production deployments. Does not use
-# `gorgoned --config=` against a static file anymore (see
-# docker-compose.central-poller-e2e.yml, push_zmq, for that older approach,
-# kept as the fallback prototype).
+# Central-as-a-poller fixture (pullwss) — uses the native TYPE=central
+# entrypoint (container.d/12-central-config.sh writing config.d/*.yaml), the
+# same code path as production deployments.
 #
 # NOT self-contained by design: pullwss's whole point is going through httpd
 # for TLS termination, so this joins the EXTERNAL network of the
@@ -11,7 +8,7 @@
 # rather than standing up its own httpd.
 #
 # Usage (after `centreon-web-split` is already up, and its httpd was started/recreated with
-# GORGONE_WSS_UPSTREAM=gorgone-central:8087 — see the plan doc for the exact recreate command):
+# GORGONE_WSS_UPSTREAM=gorgone-central:8087):
 #   docker compose -f docker-compose.central-poller-pullwss-e2e.yml -p central-pullwss-e2e up -d
 services:
   gorgone-central:
