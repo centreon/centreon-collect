@@ -17,10 +17,14 @@ if [ -n "$SMTP_HOST" ]; then
     # fixed /etc/msmtprc path, pre-created in the Dockerfile as writable by
     # centreon-engine (the file's own owner/mode allow overwriting its
     # contents even though /etc itself stays root-owned).
+    # mailutils' mail passes its own user@hostname sender to msmtp via -f and
+    # the From: header; force both to SMTP_FROM instead.
     cat > /etc/msmtprc <<EOF
 defaults
 $TLS_LINE
 tls_starttls on
+allow_from_override off
+set_from_header on
 
 account relay
 host $SMTP_HOST
