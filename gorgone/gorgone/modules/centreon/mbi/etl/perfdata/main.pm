@@ -85,6 +85,9 @@ sub deleteEntriesForRebuild {
 	} else {
         my $structure = $biTables->dumpTableStructure($options{name});
         my $partitionsPerf = $utils->getRangePartitionDate($options{start}, $options{end});
+        # RANGE partitions can only be appended above the current highest one
+        my $lastPartition = $biTables->getLastPartRange($options{name});
+        my $dropped = [];
         foreach (@$partitionsPerf) {
             if ($structure =~ /p$_->{name}/m) {
                 push @$sql,
@@ -92,17 +95,62 @@ sub deleteEntriesForRebuild {
                         "[PURGE] Truncate partition $_->{name} on table [$options{name}]",
                         "ALTER TABLE $options{name} TRUNCATE PARTITION p$_->{name}"
                     ];
-            } else {
+            } elsif ($_->{date} gt $lastPartition) {
                 push @$sql,
                     [
                         '[PARTITIONS] Add partition [p' . $_->{name} . '] on table [' . $options{name} . ']',
                         "ALTER TABLE `$options{name}` ADD PARTITION (PARTITION `p$_->{name}` VALUES LESS THAN(" . $_->{epoch} . "))"
                     ];
+            } else {
+                push @$dropped, $_;
             }
+        }
+
+        # Partitions dropped by the retention cannot be recreated: MySQL only accepts
+        # new RANGE partitions above the highest one. Their rows are not gone though,
+        # they all sit in the oldest remaining partition, which acts as a catch-all.
+        # Delete them by time_id instead, otherwise the rebuild hits a duplicate key
+        # when it rewrites the weeks it was asked to recompute.
+        if (scalar(@$dropped)) {
+            my $start = $utils->subtractDateDays($dropped->[0]->{date}, 1);
+            push @$sql,
+                [
+                    "[PURGE] Delete table [$options{name}] from $start to " . $dropped->[-1]->{date},
+                    "DELETE FROM $options{name} WHERE time_id >= " . $utils->getDateEpoch($start) . " AND time_id < " . $dropped->[-1]->{epoch}
+                ];
         }
 	}
 
     push @{$etl->{run}->{schedule}->{perfdata}->{stages}->[0]}, { type => 'sql', db => 'centstorage', sql => $sql };
+}
+
+# Weekly centile values are stamped with the first day of the week they aggregate,
+# which is up to 7 days before the rebuild period (see processWeek).
+# Return the period holding the week first days that a rebuild of
+# $options{start} => $options{end} recomputes, or undef when that rebuild period
+# triggers no weekly aggregation at all.
+sub getWeeklyCentilePeriod {
+    my (%options) = @_;
+
+    my $weekFirstDay = $options{week_first_day} // '';
+    my ($firstWeek, $lastWeek);
+
+    # same days as the ones processed by rebuildProcessing
+    my $days = $utils->getRangePartitionDate($options{start}, $options{end});
+    foreach my $day (@$days) {
+        next if ($utils->getDayOfWeek($day->{date}) ne $weekFirstDay);
+
+        $firstWeek = $day->{date} if (!defined($firstWeek));
+        $lastWeek = $day->{date};
+    }
+
+    return undef if (!defined($firstWeek));
+
+    # end is exclusive: the last week first day must remain inside the period
+    return {
+        start => $utils->subtractDateDays($firstWeek, 7),
+        end => $utils->subtractDateDays($lastWeek, 6)
+    };
 }
 
 sub purgeTables {
@@ -145,7 +193,7 @@ sub purgeTables {
             name => 'mod_bi_metricdailyvalue',
             active => $granularity ne 'hour' && !$monthOnly && !$centileOnly,
             start => $daily_start,
-          end => $daily_end
+            end => $daily_end
         },
         {
             name => 'mod_bi_metrichourlyvalue',
@@ -153,7 +201,7 @@ sub purgeTables {
                               ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && $granularity ne 'day')
                               : ($granularity ne 'day' && !$monthOnly && !$centileOnly),
             start => $hourly_start,
-          end => $hourly_end
+            end => $hourly_end
         },
         {
             name => 'mod_bi_metricmonthcapacity',
@@ -161,20 +209,23 @@ sub purgeTables {
                               ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && !$startAndEndSameMonth)
                               : ($granularity ne 'hour' && !$monthOnly && !$centileOnly),
             start => $firstDayOfMonth,
-          end => $daily_end,
+            end => $daily_end,
             full_empty_on_purge => 1
         },
         {
             name => 'mod_bi_metriccentiledailyvalue',
             active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.day'}),
             start => $daily_start,
-          end => $daily_end
+            end => $daily_end
         },
         {
             name => 'mod_bi_metriccentileweeklyvalue',
             active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.week'}),
             start => $daily_start,
-          end => $daily_end
+            end => $daily_end,
+            # the table is dropped and recreated when purging, so the period only
+            # needs to be realigned on the weeks when keeping the existing data
+            align_on_week => $noPurge
         },
         {
             name => 'mod_bi_metriccentilemonthlyvalue',
@@ -190,13 +241,26 @@ sub purgeTables {
     foreach my $t (@tables) {
         next unless $t->{active};
 
+        my ($start, $end) = ($t->{start}, $t->{end});
+        if ($t->{align_on_week}) {
+            my $weeklyPeriod = getWeeklyCentilePeriod(
+                start => $start,
+                end => $end,
+                week_first_day => $props->{'centile.weekFirstDay'}
+            );
+            # no week is recomputed by this rebuild: nothing to purge
+            next if (!defined($weeklyPeriod));
+
+            ($start, $end) = ($weeklyPeriod->{start}, $weeklyPeriod->{end});
+        }
+
         if ($noPurge) {
-            deleteEntriesForRebuild($etl, name => $t->{name}, start => $t->{start}, end => $t->{end});
+            deleteEntriesForRebuild($etl, name => $t->{name}, start => $start, end => $end);
         } else {
             if ($t->{full_empty_on_purge}) {
                 emptyTableForRebuild($etl, name => $t->{name}, column => 'time_id');
             } else {
-                emptyTableForRebuild($etl, name => $t->{name}, column => 'time_id', start => $t->{start}, end => $t->{end});
+                emptyTableForRebuild($etl, name => $t->{name}, column => 'time_id', start => $start, end => $end);
             }
         }
     }
