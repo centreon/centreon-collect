@@ -84,16 +84,6 @@ std::string clean_macro_chars(std::string const& macro, int options) {
 }
 
 /******************************************************************/
-/***************** MACRO INITIALIZATION FUNCTIONS *****************/
-/******************************************************************/
-
-/* initializes global macros */
-int init_macros() {
-  clear_volatile_macros_r(get_global_macros());
-  return OK;
-}
-
-/******************************************************************/
 /********************* MACRO CLEANUP FUNCTIONS ********************/
 /******************************************************************/
 

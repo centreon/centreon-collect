@@ -79,7 +79,8 @@ class MacroService : public TestEngine {
 // Then the applier add_object throws an exception.
 TEST_F(MacroService, TotalServicesOkZero) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
   process_macros_r(mac, "$TOTALSERVICESOK$", out, 0);
   ASSERT_EQ(out, "0");
 }
@@ -108,9 +109,9 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   std::string out;
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
@@ -145,10 +146,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //
 //   process_macros_r(mac, "$SERVICEDESC:test_host:test_svc$", out, 0);
 //   ASSERT_EQ(out, "test_svc");
@@ -178,10 +179,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //
 //   process_macros_r(mac, "$SERVICESTATE:test_host:test_svc$", out, 0);
 //   ASSERT_EQ(out, "OK");
@@ -211,10 +212,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //
 //   process_macros_r(mac, "$SERVICESTATEID:test_host:test_svc$", out, 0);
 //   ASSERT_EQ(out, "0");
@@ -244,10 +245,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //
 //   process_macros_r(mac, "$SERVICEATTEMPT:test_host:test_svc$", out, 0);
 //   ASSERT_EQ(out, "1");
@@ -277,10 +278,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //
 //   process_macros_r(mac, "$SERVICEISVOLATILE:test_host:test_svc$", out, 0);
 //   ASSERT_EQ(out, "0");
@@ -313,10 +314,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
 //   process_macros_r(mac, "$LASTSERVICECHECK:test_host:test_svc$", out, 0);
@@ -350,10 +351,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
 //   process_macros_r(mac, "$LASTSERVICESTATECHANGE:test_host:test_svc$", out,
@@ -387,10 +388,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
 //   service::services[std::make_pair("test_host", "test_svc")]->set_perf_data(
@@ -437,10 +438,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
 //   service::services[std::make_pair("test_host", "test_svc")]
@@ -487,10 +488,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
 //   service::services[std::make_pair("test_host", "test_svc")]->set_latency(
@@ -537,10 +538,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
 //   service::services[std::make_pair("test_host", "test_svc")]->set_latency(
@@ -586,10 +587,10 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   host::hosts["test_host"]->set_current_state(host::state_up);
 //   host::hosts["test_host"]->set_has_been_checked(true);
 //   service::services[std::make_pair("test_host", "test_svc")]->set_latency(
@@ -623,12 +624,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEDOWNTIME:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "0");
 // }
@@ -658,12 +659,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICESTATETYPE:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "HARD");
 // }
@@ -693,12 +694,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEPERCENTCHANGE:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "0.00");
 // }
@@ -734,12 +735,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   aply_grp.expand_objects(*config);
 //   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEGROUPNAME:test_host:test$", out, 1);
 //   ASSERT_EQ(out, "test_group");
 // }
@@ -776,12 +777,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   aply_grp.expand_objects(*config);
 //   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEGROUPALIAS:test_group$", out, 1);
 //   ASSERT_EQ(out, "test_group_alias");
 // }
@@ -811,12 +812,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host",
 //   "test_svc")]->set_last_time_ok(
 //       20);
@@ -849,12 +850,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_last_time_warning(30);
 //   process_macros_r(mac, "$LASTSERVICEWARNING:test_host:test_svc$", out, 1);
@@ -886,12 +887,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_last_time_unknown(40);
 //   process_macros_r(mac, "$LASTSERVICEUNKNOWN:test_host:test_svc$", out, 1);
@@ -923,12 +924,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_last_time_critical(50);
 //   process_macros_r(mac, "$LASTSERVICECRITICAL:test_host:test_svc$", out, 1);
@@ -960,12 +961,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_last_time_critical(50);
 //   process_macros_r(mac, "$SERVICECHECKCOMMAND:test_host:test_svc$", out, 1);
@@ -997,12 +998,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_last_time_critical(50);
 //   process_macros_r(mac, "$SERVICEDISPLAYNAME:test_host:test_svc$", out, 1);
@@ -1035,12 +1036,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICENOTESURL:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "http://192.168.0.172/centreon/main.php");
 // }
@@ -1071,12 +1072,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICENOTES:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "test_notes");
 // }
@@ -1107,12 +1108,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEACTIONURL:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "test_action_url");
 // }
@@ -1143,12 +1144,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$TOTALSERVICESWARNING:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "0");
 // }
@@ -1179,12 +1180,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$TOTALSERVICESCRITICAL:test_host:test_svc$", out,
 //   1); ASSERT_EQ(out, "0");
 // }
@@ -1215,12 +1216,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$TOTALSERVICESUNKNOWN:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "0");
 // }
@@ -1251,12 +1252,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$TOTALSERVICESWARNINGUNHANDLED:test_host:test_svc$",
 //                    out, 1);
 //   ASSERT_EQ(out, "0");
@@ -1288,12 +1289,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac,
 //   "$TOTALSERVICESCRITICALUNHANDLED:test_host:test_svc$",
 //                    out, 1);
@@ -1326,12 +1327,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$TOTALSERVICESUNKNOWNUNHANDLED:test_host:test_svc$",
 //                    out, 1);
 //   ASSERT_EQ(out, "0");
@@ -1363,12 +1364,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$TOTALSERVICEPROBLEMS:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "0");
 // }
@@ -1399,12 +1400,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$TOTALSERVICEPROBLEMSUNHANDLED:test_host:test_svc$",
 //                    out, 1);
 //   ASSERT_EQ(out, "0");
@@ -1436,12 +1437,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICECHECKTYPE:test_host:test_svc$", out, 1);
 //   ASSERT_EQ(out, "ACTIVE");
 // }
@@ -1472,12 +1473,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$LONGSERVICEOUTPUT:test_host:test_svc$", out, 1);
@@ -1510,12 +1511,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$SERVICENOTIFICATIONID:test_host:test_svc$", out,
@@ -1548,12 +1549,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$SERVICEEVENTID:test_host:test_svc$", out, 1);
@@ -1586,12 +1587,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$LASTSERVICEEVENTID:test_host:test_svc$", out, 1);
@@ -1629,12 +1630,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   aply_grp.expand_objects(*config);
 //   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$SERVICEGROUPNAMES:test_host:test$", out, 1);
@@ -1667,12 +1668,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$MAXSERVICEATTEMPTS:test_host:test_svc$", out, 1);
@@ -1710,12 +1711,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
 //   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$SERVICEGROUPNOTES:test_group$", out, 1);
@@ -1753,12 +1754,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
 //   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEGROUPNOTESURL:test_group$", out, 1);
 //   ASSERT_EQ(out, "test_notes_url");
 // }
@@ -1794,12 +1795,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
 //   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEGROUPACTIONURL:test_group$", out, 1);
 //   ASSERT_EQ(out, "test_notes_url");
 // }
@@ -1835,12 +1836,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
 //   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEGROUPMEMBERS:test_group$", out, 1);
 //   ASSERT_EQ(out, "test_host,test");
 // }
@@ -1872,12 +1873,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEID:test_host:test_svc$", out, 0);
 //   ASSERT_EQ(out, "13");
 // }
@@ -1909,12 +1910,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$SERVICETIMEZONE:test_host:test_svc$", out, 1);
@@ -1947,12 +1948,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$LASTSERVICESTATE:test_host:test_svc$", out, 1);
@@ -1985,12 +1986,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$LASTSERVICESTATEID:test_host:test_svc$", out, 1);
@@ -1998,7 +1999,6 @@ TEST_F(MacroService, TotalServicesOkZero) {
 // }
 //
 // TEST_F(MacroService, ServiceProblemID) {
-//   init_macros();
 //
 //   configuration::error_cnt err;
 //   configuration::applier::contact ct_aply;
@@ -2062,7 +2062,8 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //     process_external_command(cmd.c_str());
 //     checks::checker::instance().reap();
 //   }
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   process_macros_r(mac, "$SERVICEPROBLEMID:test_host:test_svc$", out, 0);
 //   ASSERT_EQ(out, "4");
 // }
@@ -2093,12 +2094,12 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   cmd_aply.add_object(cmd);
 //   ASSERT_NO_THROW(svc_aply.add_object(svc));
 //   ASSERT_EQ(1u, service::services.size());
-//   init_macros();
 //   int now{500000000};
 //   set_time(now);
 //
 //   std::string out;
-//   nagios_macros* mac(get_global_macros());
+//   nagios_macros local_macros;
+//   nagios_macros* mac(&local_macros);
 //   service::services[std::make_pair("test_host", "test_svc")]
 //       ->set_long_plugin_output("test_long_output");
 //   process_macros_r(mac, "$LASTSERVICEPROBLEMID:test_host:test_svc$", out, 1);

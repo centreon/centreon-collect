@@ -122,7 +122,6 @@ class ServiceTimePeriodNotification : public TestEngine {
 // is in [2,6] and are separated by at less 4*60s.
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
   error_cnt err;
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
@@ -228,7 +227,6 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
 
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
   error_cnt err;
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
@@ -346,7 +344,6 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
 
 TEST_F(ServiceTimePeriodNotification, TimePeriodOut) {
   error_cnt err;
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
@@ -452,7 +449,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodOut) {
 
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
   error_cnt err;
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
@@ -579,7 +575,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
 
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
   error_cnt err;
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
@@ -705,7 +700,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
 }
 
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
@@ -832,7 +826,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
 }
 
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
@@ -952,7 +945,6 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
 }
 
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodUser) {
-  init_macros();
   std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};

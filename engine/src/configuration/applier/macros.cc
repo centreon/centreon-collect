@@ -71,8 +71,6 @@ applier::macros& applier::macros::instance() {
 }
 
 void applier::macros::clear() {
-  clear_volatile_macros_r(get_global_macros());
-
   for (unsigned int i(0); i < MAX_USER_MACROS; ++i) {
     macro_user[i] = "";
   }
@@ -81,16 +79,12 @@ void applier::macros::clear() {
 /**
  *  Default constructor.
  */
-applier::macros::macros() {
-  init_macros();
-}
+applier::macros::macros() {}
 
 /**
  *  Destructor.
  */
 applier::macros::~macros() noexcept {
-  clear_volatile_macros_r(get_global_macros());
-
   for (unsigned int i(0); i < MAX_USER_MACROS; ++i) {
     macro_user[i] = "";
   }

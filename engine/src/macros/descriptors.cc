@@ -37,7 +37,6 @@
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/macros/grab.hh"
 #include "com/centreon/engine/macros/grab_value.hh"
-#include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/shared.hh"

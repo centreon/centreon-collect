@@ -282,7 +282,6 @@ class MacroGolden : public TestEngine {
     sg_aply.resolve_object(sg);
     sg_aply.resolve_object(sg3);
 
-    init_macros();
     configuration::applier::macros::instance().apply(st);
 
     _set_states();
@@ -350,16 +349,14 @@ class MacroGolden : public TestEngine {
   }
 
   /**
-   * @brief Fill the global macros with the context: nothing, host h1 with
+   * @brief Fill the macros with the context: nothing, host h1 with
    * contact c1 (host notification), or h1, its service s and c1 (service
    * notification). The notification macros and the arguments are set as
    * notification_execution.cc and get_raw_command_line_r() do.
    */
-  nagios_macros* _set_context(ctx c) {
-    nagios_macros* mac = get_global_macros();
-    clear_volatile_macros_r(mac);
+  void _set_context(nagios_macros* mac, ctx c) {
     if (c == ctx::none)
-      return mac;
+      return;
     grab_host_macros_r(mac, host::hosts.find("h1")->second.get());
     if (c == ctx::service)
       grab_service_macros_r(mac,
@@ -377,7 +374,6 @@ class MacroGolden : public TestEngine {
     mac->argv[0] = "80";
     mac->argv[1] = "/health";
     mac->argv[2] = "arg with $ and `backquote`";
-    return mac;
   }
 
   /**
@@ -394,10 +390,11 @@ class MacroGolden : public TestEngine {
                       int options,
                       const std::string& line,
                       bool group = false) {
-    nagios_macros* mac = _set_context(c);
+    nagios_macros local_macros;
+    nagios_macros* mac(&local_macros);
+    _set_context(mac, c);
     std::string out;
     int rc = process_macros_r(mac, line, out, options);
-    clear_volatile_macros_r(mac);
     if (group || line.find("MEMBERS") != std::string::npos) {
       std::vector<std::string_view> parts =
           absl::StrSplit(out, absl::ByAnyChar("#,"));
@@ -411,8 +408,8 @@ class MacroGolden : public TestEngine {
   /* The flow of a check: the context, the arguments, the command line. */
   std::vector<std::string> _check_records() {
     std::vector<std::string> retval;
-    nagios_macros* mac = get_global_macros();
-    clear_volatile_macros_r(mac);
+    nagios_macros local_macros;
+    nagios_macros* mac(&local_macros);
     host* h = host::hosts.find("h1")->second.get();
     retval.push_back("check h1 => " +
                      absl::CEscape(h->get_check_command_line(mac)));
@@ -420,7 +417,6 @@ class MacroGolden : public TestEngine {
     service* s = service::services.find({"h1", "s"})->second.get();
     retval.push_back("check h1/s => " +
                      absl::CEscape(s->get_check_command_line(mac)));
-    clear_volatile_macros_r(mac);
     return retval;
   }
 

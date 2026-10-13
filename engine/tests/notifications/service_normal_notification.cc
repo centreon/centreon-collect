@@ -796,7 +796,6 @@ TEST_F(ServiceNotification, NormalRecoveryTwoTimes) {
 // Then contacts from the escalation are notified when notification number
 // is in [2,6] and are separated by at less 4*60s.
 TEST_F(ServiceNotification, ServiceEscalationCG) {
-  init_macros();
   configuration::applier::contact ct_aply;
   configuration::Contact ctct{
       new_pb_configuration_contact("test_contact", false)};
@@ -834,102 +833,62 @@ TEST_F(ServiceNotification, ServiceEscalationCG) {
   _svc->set_state_type(checkable::hard);
   _svc->set_accept_passive_checks(true);
 
-  nagios_macros* mac(get_global_macros());
+  /* The notification macros are read in the notification commands. */
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line(
+          "echo $NOTIFICATIONTYPE$ $NOTIFICATIONNUMBER$ "
+          "$NOTIFICATIONISESCALATED$ $SERVICENOTIFICATIONNUMBER$");
+  notification_commands_capture capture;
 
-  testing::internal::CaptureStdout();
+  /* The service is critical, a notification is forced at each step. */
   for (int i = 0; i < 12; i++) {
-    // When i == 0, the state_critical is soft => no notification
-    // When i == 1, the state_critical is soft => no notification
-    // When i == 2, the state_critical is hard down => notification
     now += 300;
-    std::cout << "NOW = " << now << std::endl;
     set_time(now);
     _svc->set_last_state(_svc->get_current_state());
     if (notifier::hard == _svc->get_state_type())
       _svc->set_last_hard_state(_svc->get_current_state());
 
-    std::ostringstream oss;
-    std::time_t now{std::time(nullptr)};
-    oss << '[' << now << ']'
-        << " PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service "
-           "critical";
-    std::string cmd{oss.str()};
+    std::string cmd{fmt::format(
+        "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service "
+        "critical",
+        std::time(nullptr))};
     process_external_command(cmd.c_str());
     checks::checker::instance().reap();
 
-    std::string outNOTIFICATIONTYPE;
-    std::string outNOTIFICATIONNUMBER;
-    std::string outNOTIFICATIONISESCALATED;
-    std::string outSERVICENOTIFICATIONNUMBER;
     ASSERT_EQ(
         _svc->notify(notifications::reason_normal, "test_author",
                      "test_comment", notifications::notification_option_forced),
         OK);
-    process_macros_r(mac, "$NOTIFICATIONTYPE$", outNOTIFICATIONTYPE, 0);
-    process_macros_r(mac, "$NOTIFICATIONNUMBER$", outNOTIFICATIONNUMBER, 0);
-    process_macros_r(mac, "$NOTIFICATIONISESCALATED$",
-                     outNOTIFICATIONISESCALATED, 0);
-    process_macros_r(mac, "$SERVICENOTIFICATIONNUMBER$",
-                     outSERVICENOTIFICATIONNUMBER, 0);
-
-    std::cout << " NOTIFICATIONTYPE: " << outNOTIFICATIONTYPE
-              << " NOTIFICATIONNUMBER: " << outNOTIFICATIONNUMBER
-              << " NOTIFICATIONISESCALATED: " << outNOTIFICATIONISESCALATED
-              << " SERVICENOTIFICATIONNUMBER: " << outSERVICENOTIFICATIONNUMBER
-              << std::endl;
   }
 
-  // When i == 0, the state_ok is hard (return to up) => Recovery
-  // notification When i == 1, the state_ok is still here (no change) => no
-  // notification
+  /* The service recovers. */
   now += 300;
   set_time(now);
-  std::ostringstream oss;
-  oss << '[' << now << ']'
-      << " PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok";
-  std::string cmd{oss.str()};
+  std::string cmd{fmt::format(
+      "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok",
+      now)};
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
 
-  std::string out{testing::internal::GetCapturedStdout()};
-  size_t step1{out.find("NOW = 50900")};
-  size_t step2{
-      out.find("SERVICE NOTIFICATION: "
-               "admin;test_host;test_svc;CRITICAL;cmd;service critical",
-               step1 + 1)};
-  size_t step3{
-      out.find("NOTIFICATIONTYPE: PROBLEM NOTIFICATIONNUMBER: 1 "
-               "NOTIFICATIONISESCALATED: 0 SERVICENOTIFICATIONNUMBER: 1",
-               step2 + 1)};
-  size_t step4{out.find("NOW = 51200", step3 + 1)};
-  size_t step5{
-      out.find("SERVICE NOTIFICATION: "
-               "test_contact;test_host;test_svc;CRITICAL;cmd;service critical",
-               step4 + 1)};
-  size_t step6{
-      out.find("NOTIFICATIONTYPE: PROBLEM NOTIFICATIONNUMBER: 2 "
-               "NOTIFICATIONISESCALATED: 1 SERVICENOTIFICATIONNUMBER: 2",
-               step5 + 1)};
-  size_t step7{out.find("NOW = 51800", step6 + 1)};
-  size_t step8{
-      out.find("SERVICE NOTIFICATION: "
-               "test_contact;test_host;test_svc;CRITICAL;cmd;service critical",
-               step7 + 1)};
-  size_t step9{
-      out.find("NOTIFICATIONTYPE: PROBLEM NOTIFICATIONNUMBER: 3 "
-               "NOTIFICATIONISESCALATED: 1 SERVICENOTIFICATIONNUMBER: 3",
-               step8 + 1)};
-  size_t step10{out.find("NOW = 52400", step9 + 1)};
-  size_t step11{
-      out.find("SERVICE NOTIFICATION: "
-               "test_contact;test_host;test_svc;CRITICAL;cmd;service critical",
-               step10 + 1)};
-  size_t step12{
-      out.find("NOTIFICATIONTYPE: PROBLEM NOTIFICATIONNUMBER: 4 "
-               "NOTIFICATIONISESCALATED: 1 SERVICENOTIFICATIONNUMBER: 4",
-               step11 + 1)};
-  size_t step13{out.find("NOW = 53000", step12 + 1)};
-  ASSERT_NE(step13, std::string::npos);
+  /* The escalation covers the notifications 2 to 11 and is sent to test_cg
+   * (test_contact); the others are sent to the contacts of the service (admin
+   * and admin1). The command does not depend on the contact, so their order
+   * does not matter. */
+  std::vector<std::string> expected;
+  auto add = [&expected](const char* type, int number, int escalated,
+                         int count) {
+    for (int i = 0; i < count; ++i)
+      expected.push_back(
+          fmt::format("echo {} {} {} {}", type, number, escalated, number));
+  };
+  add("PROBLEM", 1, 0, 2);
+  for (int number = 2; number <= 11; ++number)
+    add("PROBLEM", number, 1, 1);
+  for (int number = 12; number <= 14; ++number)
+    add("PROBLEM", number, 0, 2);
+  add("RECOVERY", 14, 0, 2);
+  ASSERT_EQ(capture.commands(), expected);
 }
 
 TEST_F(ServiceNotification, NoServiceNotificationWhenHostDown) {

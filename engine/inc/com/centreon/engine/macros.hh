@@ -23,7 +23,6 @@
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/macros/grab_value.hh"
-#include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/macros/process.hh"
 
 // cleans macros characters before insertion into output string
@@ -31,8 +30,6 @@ std::string clean_macro_chars(std::string const& macro, int options);
 
 int grab_contact_macros_r(nagios_macros* mac,
                           com::centreon::engine::contact* cntct);
-
-int init_macros();
 
 /* thread-safe version of the above */
 int clear_argv_macros_r(nagios_macros* mac);

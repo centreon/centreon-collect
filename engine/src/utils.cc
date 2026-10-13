@@ -397,27 +397,16 @@ void cleanup() {
     neb_deinit_modules();
   }
 
-  // Free all allocated memory - including macros.
-  free_memory(get_global_macros());
+  // Free all allocated memory.
+  free_memory();
 }
 
 /**
  *  Free the memory allocated to the linked lists.
- *
- *  @param[in,out] mac Macros.
  */
-void free_memory(nagios_macros* mac) {
+void free_memory() {
   // Free memory allocated to downtimes.
   downtime_manager::instance().clear_scheduled_downtimes();
-
-  /*
-  ** Free memory associated with macros. It's ok to only free the
-  ** volatile ones, as the non-volatile are always free()'d before
-  ** assignment if they're set. Doing a full free of them here means
-  ** we'll wipe the constant macros when we get a reload or restart
-  ** request through the command pipe, or when we receive a SIGHUP.
-  */
-  clear_volatile_macros_r(mac);
 }
 
 // Thread-safe initialization guard

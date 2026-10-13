@@ -65,7 +65,7 @@ bool set_cloexec(int fd);
 // cleanup after ourselves (before quitting or restarting)
 void cleanup();
 // free memory allocated to all linked lists in memory
-void free_memory(nagios_macros* mac);
+void free_memory();
 
 // frees memory associated with a host/service check result
 void parse_check_output(std::string const& buffer,

@@ -282,12 +282,15 @@ void build_poller(configuration::state_helper& state_hlp) {
   p.cntct = contact::contacts.find(contact_name(0))->second.get();
 }
 
+/* The macros context of the benchmarks. */
+nagios_macros context;
+
 /**
- * @brief Fill the global macros with the context of a service notification
+ * @brief Fill the macros context with the context of a service notification
  * to contact c0, as notification_execution.cc does.
  */
 nagios_macros* set_context() {
-  nagios_macros* mac = get_global_macros();
+  nagios_macros* mac = &context;
   clear_volatile_macros_r(mac);
   grab_host_macros_r(mac, p.hst);
   grab_service_macros_r(mac, p.svc);
@@ -369,13 +372,12 @@ void BM_Cleaning(benchmark::State& state) {
       state.range(0) ? STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS : 0);
 }
 
-/* What a service check does: context, arguments, command line, cleanup. */
+/* What a service check does: its own context, arguments, command line. */
 void BM_ServiceCheckCommand(benchmark::State& state) {
-  nagios_macros* mac = get_global_macros();
   std::string out;
   for (auto _ : state) {
-    out = p.svc->get_check_command_line(mac);
-    clear_volatile_macros_r(mac);
+    nagios_macros local_macros;
+    out = p.svc->get_check_command_line(&local_macros);
     benchmark::DoNotOptimize(out);
   }
   state.SetLabel(out);
@@ -383,15 +385,15 @@ void BM_ServiceCheckCommand(benchmark::State& state) {
 
 /* The same for a host check (checker.cc / host.cc). */
 void BM_HostCheckCommand(benchmark::State& state) {
-  nagios_macros* mac = get_global_macros();
   std::string out;
   std::string tmp;
   for (auto _ : state) {
+    nagios_macros local_macros;
+    nagios_macros* mac(&local_macros);
     grab_host_macros_r(mac, p.hst);
     get_raw_command_line_r(mac, p.hst->get_check_command_ptr(),
                            p.hst->check_command(), tmp, 0);
     out = p.hst->get_check_command_ptr()->process_cmd(mac);
-    clear_volatile_macros_r(mac);
     benchmark::DoNotOptimize(out);
   }
   state.SetLabel(out);

@@ -99,7 +99,8 @@ TEST_F(SimpleCommand, CommandAlreadyExisting) {
 TEST_F(SimpleCommand, NewCommandSync) {
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/echo bonjour")};
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
   commands::result res;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
@@ -117,7 +118,8 @@ TEST_F(SimpleCommand, NewCommandAsync) {
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/echo bonjour")};
   cmd->set_listener(lstnr.get());
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
   cmd->run(cc, *mac, 2, std::make_shared<check_result>());
@@ -136,7 +138,8 @@ TEST_F(SimpleCommand, LongCommandAsync) {
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/sleep 10")};
   cmd->set_listener(lstnr.get());
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/sleep 10");
 
@@ -167,7 +170,8 @@ TEST_F(SimpleCommand, TooRecentDoubleCommand) {
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
@@ -209,7 +213,8 @@ TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
@@ -245,7 +250,8 @@ TEST_F(SimpleCommand, WithOneArgument) {
   std::unique_ptr<commands::command> cmd{
       std::make_unique<commands::raw>("test", "/bin/echo $ARG1$")};
   cmd->set_listener(lstnr.get());
-  nagios_macros* mac(get_global_macros());
+  nagios_macros local_macros;
+  nagios_macros* mac(&local_macros);
   mac->argv[0] = "Hello";
   mac->argv[1] = "";
   std::string cc(cmd->process_cmd(mac));
