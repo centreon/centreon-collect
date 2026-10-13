@@ -1250,6 +1250,79 @@ TEST_F(Macro, PbTotalHostsUnhandled) {
   ASSERT_EQ(out, "1 2 1 4 2 6 3");
 }
 
+/* The $TOTAL*$ summary macros only count the objects the contact of the
+ * context is notified for, directly or by a contactgroup. The contactgroup
+ * test was inverted: an object was counted for the contacts that were not
+ * members of its contactgroups. h1 notifies c2, h2 and the critical service
+ * h1/s notify the contactgroup cg, whose only member is c1. */
+TEST_F(Macro, PbTotalsFilteredByContactgroup) {
+  configuration::applier::contact ct_aply;
+  configuration::Contact c1, c2, c3;
+  configuration::contact_helper c1_hlp(&c1), c2_hlp(&c2), c3_hlp(&c3);
+  fill_pb_configuration_contact(&c1_hlp, "c1", true);
+  fill_pb_configuration_contact(&c2_hlp, "c2", false);
+  fill_pb_configuration_contact(&c3_hlp, "c3", false);
+  ct_aply.add_object(c1);
+  ct_aply.add_object(c2);
+  ct_aply.add_object(c3);
+
+  configuration::applier::contactgroup cg_aply;
+  configuration::Contactgroup cg;
+  configuration::contactgroup_helper cg_hlp(&cg);
+  fill_pb_configuration_contactgroup(&cg_hlp, "cg", "c1");
+  cg_aply.add_object(cg);
+
+  configuration::applier::host hst_aply;
+  configuration::Host h1, h2;
+  configuration::host_helper h1_hlp(&h1), h2_hlp(&h2);
+  fill_pb_configuration_host(&h1_hlp, "h1", "c2", 1);
+  fill_pb_configuration_host(&h2_hlp, "h2", "", 2);
+  fill_string_group(h2.mutable_contactgroups(), "cg");
+  hst_aply.add_object(h1);
+  hst_aply.add_object(h2);
+
+  configuration::applier::service svc_aply;
+  configuration::Service s1;
+  configuration::service_helper s1_hlp(&s1);
+  fill_pb_configuration_service(&s1_hlp, "h1", "s", "", 1);
+  fill_string_group(s1.mutable_contactgroups(), "cg");
+  svc_aply.add_object(s1);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  ct_aply.resolve_object(c1);
+  ct_aply.resolve_object(c2);
+  ct_aply.resolve_object(c3);
+  cg_aply.resolve_object(cg);
+  hst_aply.resolve_object(h1);
+  hst_aply.resolve_object(h2);
+  svc_aply.resolve_object(s1);
+
+  for (const char* name : {"h1", "h2"}) {
+    auto& h = engine::host::hosts.find(name)->second;
+    h->set_current_state(engine::host::state_up);
+    h->set_has_been_checked(true);
+  }
+  engine::service::services.find({"h1", "s"})
+      ->second->set_current_state(engine::service::state_critical);
+
+  auto totals = [](const char* contact_name) {
+    macro_context local_macros;
+    macro_context* mac(&local_macros);
+    if (contact_name)
+      mac->set_contact(
+          engine::contact::contacts.find(contact_name)->second.get());
+    std::string out;
+    process_macros_r(mac, "$TOTALHOSTSUP$ $TOTALSERVICESCRITICAL$", out, 0);
+    return out;
+  };
+  ASSERT_EQ(totals("c1"), "1 1");
+  ASSERT_EQ(totals("c2"), "1 0");
+  ASSERT_EQ(totals("c3"), "0 0");
+  /* Without contact, everything is counted. */
+  ASSERT_EQ(totals(nullptr), "2 1");
+}
+
 /* $CONTACTADDRESSn$ with n greater than the number of addresses of the
  * contact (but not than MAX_CONTACT_ADDRESSES) used to read out of the
  * addresses vector: c1 has two addresses, c2 none. */

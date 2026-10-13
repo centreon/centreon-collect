@@ -653,8 +653,7 @@ bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
                                         end = notif->get_contactgroups().end();
        it != end; ++it) {
     assert(it->second);
-    if (it->second->get_members().find(cntct->get_name()) ==
-        it->second->get_members().end())
+    if (it->second->get_members().contains(cntct->get_name()))
       return true;
   }
 
