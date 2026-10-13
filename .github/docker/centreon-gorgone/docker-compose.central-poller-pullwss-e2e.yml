@@ -1,15 +1,11 @@
-# Central-as-a-poller fixture (pullwss) — uses the native TYPE=central
-# entrypoint (container.d/10-create-config.sh writing config.d/*.yaml), the
-# same code path as production deployments.
+# Central-as-a-poller fixture (pullwss, native TYPE=central entrypoint).
+# NOT self-contained: joins an EXTERNAL web stack's network (WEB_STACK_NETWORK)
+# instead of standing up its own httpd — that stack's httpd must already be
+# up, recreated with GORGONE_WSS_UPSTREAM=gorgone-central:8087.
 #
-# NOT self-contained by design: pullwss's whole point is going through httpd
-# for TLS termination, so this joins the EXTERNAL network of the
-# `centreon-web-split` stack (repo `centreon`, .github/docker/centreon-web-split/docker-compose.yml)
-# rather than standing up its own httpd.
-#
-# Usage (after `centreon-web-split` is already up, and its httpd was started/recreated with
-# GORGONE_WSS_UPSTREAM=gorgone-central:8087):
-#   docker compose -f docker-compose.central-poller-pullwss-e2e.yml -p central-pullwss-e2e up -d
+# Usage:
+#   WEB_STACK_NETWORK=<network> WEB_STACK_DB_HOST=<db host> \
+#     docker compose -f docker-compose.central-poller-pullwss-e2e.yml -p central-pullwss-e2e up -d
 services:
   gorgone-central:
     image: ${GORGONE_IMAGE}
@@ -19,16 +15,14 @@ services:
           - gorgone-central
     environment:
       TYPE: central
-      # gorgone's own login to the Centreon API (centreonv2/clapi tpapi) — same
-      # dev-only seed credential documented in the Pilier-1 README, not a secret.
+      # Dev-only seed credential (Pilier-1 README), not a secret.
       CENTREON_API_BASE_URL: "http://httpd/centreon/api/latest/"
       CENTREON_API_USERNAME: admin
       CENTREON_API_PASSWORD: "Centreon!2021"
-      # Point at the web-split stack's real DB (service name from that stack's compose project).
-      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__DSN: "mysql:host=centreon-web-split-db-1;dbname=centreon"
+      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__DSN: "mysql:host=${WEB_STACK_DB_HOST:?set to the web stack's DB service name};dbname=centreon"
       GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__USERNAME: centreon
       GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__PASSWORD: centreon
-      GORGONE__CENTREON__DATABASE__DB_REALTIME__DSN: "mysql:host=centreon-web-split-db-1;dbname=centreon_storage"
+      GORGONE__CENTREON__DATABASE__DB_REALTIME__DSN: "mysql:host=${WEB_STACK_DB_HOST:?set to the web stack's DB service name};dbname=centreon_storage"
       GORGONE__CENTREON__DATABASE__DB_REALTIME__USERNAME: centreon
       GORGONE__CENTREON__DATABASE__DB_REALTIME__PASSWORD: centreon
     volumes:
@@ -45,20 +39,14 @@ services:
       GORGONE_UID: "1"
       CENTRAL_HOST: httpd
       CENTRAL_PORT: "80"
-      # Self-fetches a real Centreon API token instead of a static shared
-      # secret (container.d/13-pullwss-token-fetch.sh) — matches how gorgone-central
-      # validates it: a name:value token goes through the real tpapi_centreonv2
-      # lookup (gorgone-central's own login above), not a static comparison.
-      # "poller-default" is created by every Centreon install (fresh:
-      # www/install/steps/process/insertBaseConf.php; upgraded:
-      # www/install/php/Update-26.05.0.php) — type "poller", never expires.
-      # Verified against a real Centreon install's DB.
+      # Self-fetches a real API token (container.d/13-pullwss-token-fetch.sh).
+      # "poller-default" exists on every Centreon install (insertBaseConf.php
+      # / Update-26.05.0.php) — verified against a real install's DB.
       PULLWSS_TOKEN_NAME: poller-default
       CENTREON_API_BASE_URL: "http://httpd/centreon/api/latest/"
       CENTREON_API_USERNAME: admin
       CENTREON_API_PASSWORD: "Centreon!2021"
-      # This dev stack's httpd has no TLS configured (port 80 only) — production talks wss:// to
-      # httpd's real HTTPS port instead, no override needed there.
+      # This dev httpd has no TLS (port 80 only); production needs no override.
       GORGONE__GORGONE__MODULES__pullwss__ssl: "false"
     volumes:
       - engine-context:/etc/centreon-engine
@@ -75,7 +63,7 @@ services:
 
 networks:
   default:
-    name: centreon-web-split_default
+    name: ${WEB_STACK_NETWORK:?set to the web stack's external network name}
     external: true
 
 volumes:
