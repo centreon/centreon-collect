@@ -176,16 +176,10 @@ gorgone:
       cache_dir: "/var/cache/centreon/"
       cache_dir_trap: "/etc/snmp/centreon_traps"
       remote_dir: "/var/cache/centreon/config/remote-data/"
-
-    # Required for RELOAD/RESTART: without it, core/action/command returns
-    # method_unknown.
-    - name: action
-      package: "gorgone::modules::core::action::hooks"
-      enable: true
-      command_timeout: 30
-      whitelist_cmds: true
-      allowed_cmds: !include /etc/centreon-gorgone/config.d/whitelist.conf.d/*.yaml
 EOF
+# `action` is NOT declared here: 39-action.yaml (baked unconditionally in the
+# Dockerfile) already provides it — declaring it again here duplicate-loads
+# the module and logs "Package ... already loaded".
 
 echo "✓ Central config.d written (30/31/40/41 + cron.d)"
 echo ""
