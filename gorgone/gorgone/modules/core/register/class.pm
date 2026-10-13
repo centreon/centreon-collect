@@ -112,7 +112,7 @@ sub action_registerresync {
     }
 
     $self->send_internal_action({
-        action => 'REGISTERNODESFROMDB',
+        action => 'REGISTERNODES',
         data => {
             nodes => $register_nodes
         }
