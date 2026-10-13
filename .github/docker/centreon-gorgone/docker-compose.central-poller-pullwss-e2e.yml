@@ -1,5 +1,5 @@
 # Central-as-a-poller fixture (pullwss) — uses the native TYPE=central
-# entrypoint (container.d/12-central-config.sh writing config.d/*.yaml), the
+# entrypoint (container.d/10-create-config.sh writing config.d/*.yaml), the
 # same code path as production deployments.
 #
 # NOT self-contained by design: pullwss's whole point is going through httpd

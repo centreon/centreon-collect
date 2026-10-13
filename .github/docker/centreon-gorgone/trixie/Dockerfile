@@ -261,7 +261,7 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
 # TYPE=central's config.d files (30/31/40/41) are not baked into the image —
-# they're written directly by container.d/12-central-config.sh at startup
+# they're written directly by container.d/10-create-config.sh at startup
 # (heredocs, env vars expand naturally), so they never collide with the
 # poller config.d/40-gorgoned.yaml baked in above.
 
