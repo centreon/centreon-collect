@@ -28,12 +28,12 @@
 // cleans macros characters before insertion into output string
 std::string clean_macro_chars(std::string const& macro, int options);
 
-int grab_contact_macros_r(nagios_macros* mac,
+int grab_contact_macros_r(macro_context* mac,
                           com::centreon::engine::contact* cntct);
 
 /* thread-safe version of the above */
-int clear_argv_macros_r(nagios_macros* mac);
-int clear_volatile_macros_r(nagios_macros* mac);
-int clear_summary_macros_r(nagios_macros* mac);
+int clear_argv_macros_r(macro_context* mac);
+int clear_volatile_macros_r(macro_context* mac);
+int clear_summary_macros_r(macro_context* mac);
 
 #endif  // !CCE_MACROS_HH

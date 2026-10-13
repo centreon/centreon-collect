@@ -43,8 +43,8 @@ int obsessive_compulsive_host_check_processor(
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
 
   bool obsess_over_hosts;
   uint32_t ochp_timeout;
@@ -123,7 +123,7 @@ int obsessive_compulsive_host_check_processor(
 /******************************************************************/
 
 /* runs the global service event handler */
-int run_global_service_event_handler(nagios_macros* mac,
+int run_global_service_event_handler(macro_context* mac,
                                      com::centreon::engine::service* svc) {
   std::string raw_command;
   std::string processed_command;
@@ -224,7 +224,7 @@ int run_global_service_event_handler(nagios_macros* mac,
 }
 
 /* runs a service event handler command */
-int run_service_event_handler(nagios_macros* mac,
+int run_service_event_handler(macro_context* mac,
                               com::centreon::engine::service* svc) {
   std::string raw_command;
   std::string processed_command;
@@ -317,8 +317,8 @@ int run_service_event_handler(nagios_macros* mac,
 
 /* handles a change in the status of a host */
 int handle_host_event(com::centreon::engine::host* hst) {
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
 
   functions_logger->trace("handle_host_event()");
 
@@ -354,7 +354,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
 }
 
 /* runs the global host event handler */
-int run_global_host_event_handler(nagios_macros* mac,
+int run_global_host_event_handler(macro_context* mac,
                                   com::centreon::engine::host* hst) {
   std::string raw_command;
   std::string processed_command;
@@ -452,7 +452,7 @@ int run_global_host_event_handler(nagios_macros* mac,
 }
 
 /* runs a host event handler command */
-int run_host_event_handler(nagios_macros* mac,
+int run_host_event_handler(macro_context* mac,
                            com::centreon::engine::host* hst) {
   std::string raw_command;
   std::string processed_command;

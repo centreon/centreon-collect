@@ -354,7 +354,7 @@ class MacroGolden : public TestEngine {
    * notification). The notification macros and the arguments are set as
    * notification_execution.cc and get_raw_command_line_r() do.
    */
-  void _set_context(nagios_macros* mac, ctx c) {
+  void _set_context(macro_context* mac, ctx c) {
     if (c == ctx::none)
       return;
     grab_host_macros_r(mac, host::hosts.find("h1")->second.get());
@@ -390,8 +390,8 @@ class MacroGolden : public TestEngine {
                       int options,
                       const std::string& line,
                       bool group = false) {
-    nagios_macros local_macros;
-    nagios_macros* mac(&local_macros);
+    macro_context local_macros;
+    macro_context* mac(&local_macros);
     _set_context(mac, c);
     std::string out;
     int rc = process_macros_r(mac, line, out, options);
@@ -408,8 +408,8 @@ class MacroGolden : public TestEngine {
   /* The flow of a check: the context, the arguments, the command line. */
   std::vector<std::string> _check_records() {
     std::vector<std::string> retval;
-    nagios_macros local_macros;
-    nagios_macros* mac(&local_macros);
+    macro_context local_macros;
+    macro_context* mac(&local_macros);
     host* h = host::hosts.find("h1")->second.get();
     retval.push_back("check h1 => " +
                      absl::CEscape(h->get_check_command_line(mac)));

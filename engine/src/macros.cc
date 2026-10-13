@@ -33,7 +33,7 @@ using namespace com::centreon::engine::configuration::applier;
 /******************************************************************/
 
 /* grab macros that are specific to a particular contact */
-int grab_contact_macros_r(nagios_macros* mac, contact* cntct) {
+int grab_contact_macros_r(macro_context* mac, contact* cntct) {
   /* save pointer to contact for later */
   mac->contact_ptr = cntct;
   mac->contactgroup_ptr = nullptr;
@@ -88,7 +88,7 @@ std::string clean_macro_chars(std::string const& macro, int options) {
 /******************************************************************/
 
 /* clear argv macros - used in commands */
-int clear_argv_macros_r(nagios_macros* mac) {
+int clear_argv_macros_r(macro_context* mac) {
   unsigned int x = 0;
 
   /* command argument macros */
@@ -99,7 +99,7 @@ int clear_argv_macros_r(nagios_macros* mac) {
 }
 
 /* clear all the macros of the context */
-int clear_volatile_macros_r(nagios_macros* mac) {
+int clear_volatile_macros_r(macro_context* mac) {
   /* clear macro pointers */
   mac->host_ptr = nullptr;
   mac->hostgroup_ptr = nullptr;
@@ -119,7 +119,7 @@ int clear_volatile_macros_r(nagios_macros* mac) {
 }
 
 /* clear summary macros */
-int clear_summary_macros_r(nagios_macros* mac) {
+int clear_summary_macros_r(macro_context* mac) {
   mac->summary.reset();
   return OK;
 }

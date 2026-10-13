@@ -109,8 +109,8 @@ TEST_F(Macro, PbPollerName) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$POLLERNAME$", out, 0);
   ASSERT_EQ(out, "poller-test");
 }
@@ -132,8 +132,8 @@ TEST_F(Macro, PbPollerId) {
   st_hlp.expand(err);
   configuration::applier::state::instance().apply(*st, err);
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$POLLERID$", out, 0);
   ASSERT_EQ(out, "42");
 }
@@ -152,8 +152,8 @@ TEST_F(Macro, PbLongDateTime) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$LONGDATETIME:test_host$", out, 0);
   ASSERT_EQ(out, "Tue Nov 5 01:53:20 CET 1985");
 }
@@ -172,8 +172,8 @@ TEST_F(Macro, PbShortDateTime) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$SHORTDATETIME:test_host$", out, 0);
   ASSERT_EQ(out, "11-05-1985 01:53:20");
 }
@@ -192,8 +192,8 @@ TEST_F(Macro, PbDate) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$DATE:test_host$", out, 0);
   ASSERT_EQ(out, "11-05-1985");
 }
@@ -212,8 +212,8 @@ TEST_F(Macro, PbTime) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$TIME:test_host$", out, 0);
   ASSERT_EQ(out, "01:53:20");
 }
@@ -232,8 +232,8 @@ TEST_F(Macro, PbTimeT) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$TIMET:test_host$", out, 0);
   ASSERT_EQ(out, "500000000");
 }
@@ -261,8 +261,8 @@ TEST_F(Macro, PbContactName) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTNAME:user$", out, 1);
   ASSERT_EQ(out, "user");
 }
@@ -290,8 +290,8 @@ TEST_F(Macro, PbContactAlias) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTALIAS:user$", out, 1);
   ASSERT_EQ(out, "user");
 }
@@ -319,8 +319,8 @@ TEST_F(Macro, PbContactEmail) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTEMAIL:user$", out, 1);
   ASSERT_EQ(out, "contact@centreon.com");
 }
@@ -348,8 +348,8 @@ TEST_F(Macro, PbContactPager) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTPAGER:user$", out, 1);
   ASSERT_EQ(out, "0473729383");
 }
@@ -372,8 +372,8 @@ TEST_F(Macro, PbAdminEmail) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
   ASSERT_EQ(out, "contactadmin@centreon.com");
 }
@@ -396,8 +396,8 @@ TEST_F(Macro, PbAdminPager) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$ADMINPAGER:test_host$", out, 1);
   ASSERT_EQ(out, "04737293866");
 }
@@ -419,8 +419,8 @@ TEST_F(Macro, PbMainConfigFile) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$MAINCONFIGFILE:test_host$", out, 1);
   ASSERT_EQ(out, "/tmp/test-config.cfg");
 }
@@ -443,8 +443,8 @@ TEST_F(Macro, PbStatusDataFile) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$STATUSDATAFILE:test_host$", out, 1);
   ASSERT_EQ(out, "/usr/local/var/status.dat");
 }
@@ -468,8 +468,8 @@ TEST_F(Macro, PbRetentionDataFile) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$RETENTIONDATAFILE:test_host$", out, 1);
   ASSERT_EQ(out, "/var/log/centreon-engine/retention.dat");
 }
@@ -491,8 +491,8 @@ TEST_F(Macro, PbTempFile) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$TEMPFILE:test_host$", out, 1);
   ASSERT_EQ(out, "/tmp/centengine.tmp");
 }
@@ -514,8 +514,8 @@ TEST_F(Macro, PbLogFile) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$LOGFILE:test_host$", out, 1);
   ASSERT_EQ(out, "/tmp/centengine.log");
 }
@@ -538,8 +538,8 @@ TEST_F(Macro, PbCommandFile) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$COMMANDFILE:test_host$", out, 1);
   ASSERT_EQ(out, "/usr/local/var/rw/centengine.cmd");
 }
@@ -561,8 +561,8 @@ TEST_F(Macro, PbTempPath) {
   configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$TEMPPATH$", out, 0);
   ASSERT_EQ(out, "/tmp");
 }
@@ -589,8 +589,8 @@ TEST_F(Macro, PbContactGroupName) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTGROUPNAME:test_contact$", out, 1);
   ASSERT_EQ(out, "test_cg");
 }
@@ -616,8 +616,8 @@ TEST_F(Macro, PbContactGroupAlias) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTGROUPALIAS:test_cg$", out, 1);
   ASSERT_EQ(out, "test_cg");
 }
@@ -643,8 +643,8 @@ TEST_F(Macro, PbContactGroupMembers) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTGROUPMEMBERS:test_cg$", out, 1);
   ASSERT_EQ(out, "test_contact");
 }
@@ -670,8 +670,8 @@ TEST_F(Macro, PbContactGroupNames) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTGROUPNAMES:test_contact$", out, 1);
   ASSERT_EQ(out, "test_cg");
 }
@@ -1003,8 +1003,8 @@ TEST_F(Macro, PbIsValidTime) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$ISVALIDTIME:test$", out, 1);
   ASSERT_EQ(out, "0");
 }
@@ -1027,8 +1027,8 @@ TEST_F(Macro, PbIsValidTimeRestricted) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$ISVALIDTIME:workhours$", out, 1);
   ASSERT_EQ(out, "0");
   process_macros_r(
@@ -1059,8 +1059,8 @@ TEST_F(Macro, PbNextValidTime) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$NEXTVALIDTIME:test$", out, 1);
   ASSERT_EQ(out, "23:00:00");
 }
@@ -1078,8 +1078,8 @@ TEST_F(Macro, PbContactTimeZone) {
   set_time(now);
 
   std::string out;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   process_macros_r(mac, "$CONTACTTIMEZONE:user$", out, 1);
   ASSERT_EQ(out, "time_test");
 }
@@ -1157,8 +1157,8 @@ class MacroCustomOnDemand : public Macro {
 
   /* Evaluate a line; with a context host h1, its service s and contact c1. */
   std::string eval(const std::string& line, bool with_context = false) {
-    nagios_macros local_macros;
-    nagios_macros* mac(&local_macros);
+    macro_context local_macros;
+    macro_context* mac(&local_macros);
     if (with_context) {
       grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
       grab_service_macros_r(
@@ -1242,8 +1242,8 @@ TEST_F(Macro, PbTotalHostsUnhandled) {
   set("unr_dt", engine::host::state_unreachable)
       ->set_scheduled_downtime_depth(1);
   set("unr_nochk", engine::host::state_unreachable)->set_checks_enabled(false);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
   process_macros_r(mac,
                    "$TOTALHOSTSUP$ $TOTALHOSTSDOWN$ $TOTALHOSTSDOWNUNHANDLED$ "
@@ -1270,8 +1270,8 @@ TEST_F(Macro, PbContactAddressOutOfRange) {
   _state_hlp->expand(err);
   ct_aply.resolve_object(c1);
   ct_aply.resolve_object(c2);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
 
   grab_contact_macros_r(mac,
@@ -1331,8 +1331,8 @@ TEST_F(Macro, PbServicegroupMembers) {
   svc_aply.resolve_object(s2);
   svc_aply.resolve_object(s3);
   sg_aply.resolve_object(sg);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
   process_macros_r(mac, "$SERVICEGROUPMEMBERS:sg$", out, 0);
 
@@ -1389,8 +1389,8 @@ TEST_F(Macro, PbGroupOfContext) {
   ct_aply.resolve_object(c1);
   sg_aply.resolve_object(sg);
   cg_aply.resolve_object(cg);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
   const std::string line(
       "[$SERVICEGROUPALIAS$] [$SERVICEGROUPMEMBERS$] [$CONTACTGROUPALIAS$] "
@@ -1438,8 +1438,8 @@ TEST_F(Macro, PbGroupSkipsEmptyValues) {
   hst_aply.resolve_object(h2);
   hst_aply.resolve_object(h3);
   hg_aply.resolve_object(hg);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
   process_macros_r(mac, "[$HOSTNOTES:hg:,$] [$HOSTNOTESURL:hg:,$]", out, 0);
   ASSERT_EQ(out, "[x] []");
@@ -1473,8 +1473,8 @@ TEST_F(Macro, PbServiceHostOnlyIsError) {
   hst_aply.resolve_object(h1);
   svc_aply.resolve_object(s1);
   sg_aply.resolve_object(sg);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
   process_macros_r(mac,
                    "[$_SERVICEBAR:sg$] [$_SERVICEBAR:sg:,$] [$SERVICEDESC:sg$] "
@@ -1496,8 +1496,8 @@ TEST_F(Macro, PbContactAddressEmptyName) {
   configuration::error_cnt err;
   _state_hlp->expand(err);
   ct_aply.resolve_object(c1);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
   grab_contact_macros_r(mac,
                         engine::contact::contacts.find("c1")->second.get());
@@ -1552,8 +1552,8 @@ TEST_F(Macro, PbTotalHostServicesOnDemand) {
       ->second->set_current_state(engine::service::state_warning);
   engine::service::services.find({"h2", "t"})
       ->second->set_current_state(engine::service::state_warning);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string out;
   grab_host_macros_r(mac, engine::host::hosts.find("h1")->second.get());
   process_macros_r(mac,
@@ -1619,8 +1619,8 @@ TEST_F(Macro, PbForcedCleaning) {
   svc_aply.resolve_object(s1);
   hg_aply.resolve_object(hg);
   sg_aply.resolve_object(sg);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   notification_values& notification = mac->notification.emplace();
   notification.author = "ad`min";
   notification.author_name = "Admin|istrator";

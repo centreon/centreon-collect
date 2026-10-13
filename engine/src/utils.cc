@@ -51,7 +51,7 @@ using namespace com::centreon::engine::events;
 /******************************************************************/
 
 /* executes a system command - used for notifications, event handlers, etc. */
-int my_system_r(nagios_macros* mac,
+int my_system_r(macro_context* mac,
                 std::string const& cmd,
                 int timeout,
                 bool* early_timeout,
@@ -108,7 +108,7 @@ char const* my_ctime(time_t const* t) {
 }
 
 /* given a "raw" command, return the "expanded" or "whole" command line */
-int get_raw_command_line_r(nagios_macros* mac,
+int get_raw_command_line_r(macro_context* mac,
                            commands::command* cmd_ptr,
                            std::string const& cmd,
                            std::string& full_command,

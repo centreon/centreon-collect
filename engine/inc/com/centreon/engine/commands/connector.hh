@@ -125,12 +125,12 @@ class connector : public command, public process_listener {
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   uint64_t run(std::string const& processed_cmd,
-               nagios_macros& macros,
+               macro_context& macros,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
                const void* caller = nullptr) override;
   void run(std::string const& processed_cmd,
-           nagios_macros& macros,
+           macro_context& macros,
            uint32_t timeout,
            result& res) override;
   void set_command_line(std::string const& command_line) override;

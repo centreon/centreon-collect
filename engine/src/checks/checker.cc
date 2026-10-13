@@ -412,8 +412,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     return hst->get_current_state();
 
   // Get current host macros.
-  nagios_macros local_macros;
-  nagios_macros* macros(&local_macros);
+  macro_context local_macros;
+  macro_context* macros(&local_macros);
   grab_host_macros_r(macros, hst);
   std::string tmp;
   get_raw_command_line_r(macros, hst->get_check_command_ptr(),

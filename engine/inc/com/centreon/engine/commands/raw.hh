@@ -41,21 +41,21 @@ class raw : public command, public process_listener {
   void data_is_available(process& p) noexcept override;
   void data_is_available_err(process& p) noexcept override;
   void finished(process& p) noexcept override;
-  static void _build_argv_macro_environment(const nagios_macros& macros,
+  static void _build_argv_macro_environment(const macro_context& macros,
                                             environment& env);
-  static void _build_contact_address_environment(const nagios_macros& macros,
+  static void _build_contact_address_environment(const macro_context& macros,
                                                  environment& env);
   static void _build_custom_contact_macro_environment(
-      const nagios_macros& macros,
+      const macro_context& macros,
       environment& env);
-  static void _build_custom_host_macro_environment(const nagios_macros& macros,
+  static void _build_custom_host_macro_environment(const macro_context& macros,
                                                    environment& env);
   static void _build_custom_service_macro_environment(
-      const nagios_macros& macros,
+      const macro_context& macros,
       environment& env);
-  static void _build_environment_macros(nagios_macros& macros,
+  static void _build_environment_macros(macro_context& macros,
                                         environment& env);
-  static void _build_macrosx_environment(nagios_macros& macros,
+  static void _build_macrosx_environment(macro_context& macros,
                                          environment& env);
   process* _get_free_process();
 
@@ -67,12 +67,12 @@ class raw : public command, public process_listener {
   raw(const raw&) = delete;
   raw& operator=(const raw&) = delete;
   uint64_t run(const std::string& process_cmd,
-               nagios_macros& macros,
+               macro_context& macros,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
                const void* caller = nullptr) override;
   void run(const std::string& process_cmd,
-           nagios_macros& macros,
+           macro_context& macros,
            uint32_t timeout,
            result& res) override;
 };

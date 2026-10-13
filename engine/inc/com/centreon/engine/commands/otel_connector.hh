@@ -86,13 +86,13 @@ class otel_connector : public command {
       const modules::opentelemetry::metric_to_datapoints& data_pts);
 
   virtual uint64_t run(const std::string& processed_cmd,
-                       nagios_macros& macros,
+                       macro_context& macros,
                        uint32_t timeout,
                        const check_result::pointer& to_push_to_checker,
                        const void* caller = nullptr) override;
 
   virtual void run(const std::string& process_cmd,
-                   nagios_macros& macros,
+                   macro_context& macros,
                    uint32_t timeout,
                    result& res) override;
 

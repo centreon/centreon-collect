@@ -27,7 +27,7 @@
 extern "C" {
 #endif  // C++
 
-int grab_host_macros_r(nagios_macros* mac, com::centreon::engine::host* hst);
+int grab_host_macros_r(macro_context* mac, com::centreon::engine::host* hst);
 
 #ifdef __cplusplus
 }

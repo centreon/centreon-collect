@@ -2114,8 +2114,8 @@ void service::check_for_flapping(bool update,
 
 /* handles changes in the state of a service */
 int service::handle_service_event() {
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
 
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_service_event()");
 
@@ -2156,8 +2156,8 @@ int service::obsessive_compulsive_service_check_processor() {
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
 
   bool obsess_over_services;
   uint32_t ocsp_timeout;
@@ -2454,8 +2454,8 @@ int service::run_async_check_local(int check_options,
   set_latency(latency);
 
   // Get current host and service macros.
-  nagios_macros local_macros;
-  nagios_macros* macros(&local_macros);
+  macro_context local_macros;
+  macro_context* macros(&local_macros);
   std::string processed_cmd = svc->get_check_command_line(macros);
 
   // Time to start command.
@@ -2937,13 +2937,13 @@ bool service::verify_check_viability(int check_options,
   return perform_check;
 }
 
-void service::grab_macros_r(nagios_macros* mac) {
+void service::grab_macros_r(macro_context* mac) {
   grab_host_macros_r(mac, _host_ptr);
   grab_service_macros_r(mac, this);
 }
 
 /* notify a specific contact about a service problem or recovery */
-int service::notify_contact(nagios_macros* mac,
+int service::notify_contact(macro_context* mac,
                             contact* cntct,
                             reason_type type,
                             const std::string& not_author,
@@ -3555,7 +3555,7 @@ void service::set_check_command_ptr(
  *
  * @return std::string
  */
-std::string service::get_check_command_line(nagios_macros* macros) {
+std::string service::get_check_command_line(macro_context* macros) {
   grab_host_macros_r(macros, get_host_ptr());
   grab_service_macros_r(macros, this);
   std::string tmp;

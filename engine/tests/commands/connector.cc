@@ -21,9 +21,9 @@
 #include <gtest/gtest.h>
 #include <signal.h>
 
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/process_manager.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -96,7 +96,7 @@ TEST_F(Connector, SimpleConnector) {
 // We don't test timeout because time is replaced by a fake function
 // and we don't control it during the execution of run().
 TEST_F(Connector, RunWithTimeout) {
-  nagios_macros macros = nagios_macros();
+  macro_context macros = macro_context();
   connector cmd_connector("RunWithTimeout", "tests/bin_connector_test_run");
   result res;
   cmd_connector.run("commande --timeout=on", macros, 1, res);
@@ -106,7 +106,7 @@ TEST_F(Connector, RunWithTimeout) {
 
 TEST_F(Connector, RunConnectorAsync) {
   auto lstnr{std::make_unique<my_listener>()};
-  nagios_macros macros = nagios_macros();
+  macro_context macros = macro_context();
   connector cmd_connector("RunConnectorAsync", "tests/bin_connector_test_run");
   cmd_connector.set_listener(lstnr.get());
   cmd_connector.run("commande", macros, 1, std::make_shared<check_result>());
@@ -128,7 +128,7 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
                           "tests/bin_connector_test_run");
   {
     std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
-    nagios_macros macros = nagios_macros();
+    macro_context macros = macro_context();
     cmd_connector.set_listener(lstnr.get());
     cmd_connector.run("commande --kill=1", macros, 1,
                       std::make_shared<check_result>());
@@ -148,7 +148,7 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
 
 TEST_F(Connector, RunConnectorSetCommandLine) {
   my_listener lstnr;
-  nagios_macros macros = nagios_macros();
+  macro_context macros = macro_context();
   connector cmd_connector("SetCommandLine", "tests/bin_connector_test_run");
   cmd_connector.set_listener(&lstnr);
   cmd_connector.run("commande1", macros, 1, std::make_shared<check_result>());

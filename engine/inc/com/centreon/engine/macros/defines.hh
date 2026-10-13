@@ -225,9 +225,9 @@ struct notification_values {
  * @brief The context in which the macros are expanded: the objects they are
  * about, the notification being sent and the arguments of the command.
  */
-class nagios_macros {
+class macro_context {
  public:
-  nagios_macros()
+  macro_context()
       : host_ptr{nullptr},
         hostgroup_ptr{nullptr},
         service_ptr{nullptr},

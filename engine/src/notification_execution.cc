@@ -86,8 +86,8 @@ absl::btree_set<std::string> run_notification_commands(
     const std::string& message,
     notifications::notification_option options) {
   absl::btree_set<std::string> notified;
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
 
   /* Grab the macro variables */
   n->grab_macros_r(mac);

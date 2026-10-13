@@ -108,7 +108,7 @@ connector::~connector() noexcept {
  *  @return The command id.
  */
 uint64_t connector::run(const std::string& processed_cmd,
-                        nagios_macros&,
+                        macro_context&,
                         uint32_t timeout,
                         const check_result::pointer& to_push_to_checker,
                         const void* caller) {
@@ -169,7 +169,7 @@ uint64_t connector::run(const std::string& processed_cmd,
  *  @param[out] res     The result of the command.
  */
 void connector::run(const std::string& processed_cmd,
-                    nagios_macros& macros,
+                    macro_context& macros,
                     uint32_t timeout,
                     result& res) {
   (void)macros;

@@ -40,7 +40,7 @@ extern "C" {
  *
  *  @return OK on success.
  */
-int grab_host_macros_r(nagios_macros* mac, host* hst) {
+int grab_host_macros_r(macro_context* mac, host* hst) {
   // Save pointer to host.
   mac->host_ptr = hst;
   mac->hostgroup_ptr = nullptr;

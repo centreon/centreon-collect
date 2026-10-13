@@ -26,9 +26,9 @@ namespace com::centreon::engine::commands {
 class command;
 }  // namespace com::centreon::engine::commands
 
-using command_map =
-    absl::flat_hash_map<std::string,
-                        std::shared_ptr<com::centreon::engine::commands::command>>;
+using command_map = absl::flat_hash_map<
+    std::string,
+    std::shared_ptr<com::centreon::engine::commands::command>>;
 
 namespace com::centreon::engine::commands {
 
@@ -98,14 +98,14 @@ class command : public std::enable_shared_from_this<command> {
   virtual const std::string& get_command_line() const noexcept;
   virtual const std::string& get_name() const noexcept;
   e_type get_type() const { return _type; }
-  virtual std::string process_cmd(nagios_macros* macros) const;
+  virtual std::string process_cmd(macro_context* macros) const;
   virtual uint64_t run(const std::string& processed_cmd,
-                       nagios_macros& macors,
+                       macro_context& macors,
                        uint32_t timeout,
                        const check_result::pointer& to_push_to_checker,
                        const void* caller = nullptr) = 0;
   virtual void run(const std::string& process_cmd,
-                   nagios_macros& macros,
+                   macro_context& macros,
                    uint32_t timeout,
                    result& res) = 0;
 

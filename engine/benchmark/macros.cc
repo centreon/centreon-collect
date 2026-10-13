@@ -283,14 +283,14 @@ void build_poller(configuration::state_helper& state_hlp) {
 }
 
 /* The macros context of the benchmarks. */
-nagios_macros context;
+macro_context context;
 
 /**
  * @brief Fill the macros context with the context of a service notification
  * to contact c0, as notification_execution.cc does.
  */
-nagios_macros* set_context() {
-  nagios_macros* mac = &context;
+macro_context* set_context() {
+  macro_context* mac = &context;
   clear_volatile_macros_r(mac);
   grab_host_macros_r(mac, p.hst);
   grab_service_macros_r(mac, p.svc);
@@ -309,7 +309,7 @@ nagios_macros* set_context() {
 
 /* Evaluate one line in the notification context. */
 void eval_line(benchmark::State& state, const std::string& line, int options) {
-  nagios_macros* mac = set_context();
+  macro_context* mac = set_context();
   std::string out;
   for (auto _ : state) {
     process_macros_r(mac, line, out, options);
@@ -342,7 +342,7 @@ void BM_Group(benchmark::State& state, std::string line) {
  * cached: here the cache is emptied at each iteration, as for each contact of
  * a notification. state.range(0) tells whether a contact filters the totals. */
 void BM_SummaryComputed(benchmark::State& state) {
-  nagios_macros* mac = set_context();
+  macro_context* mac = set_context();
   if (!state.range(0))
     mac->contact_ptr = nullptr;
   std::string out;
@@ -357,7 +357,7 @@ void BM_SummaryComputed(benchmark::State& state) {
 /* $TOTALHOSTSERVICES*$: walk through the services of the host, cached until
  * the next grab_host_macros_r(). */
 void BM_HostTotalsComputed(benchmark::State& state) {
-  nagios_macros* mac = set_context();
+  macro_context* mac = set_context();
   std::string out;
   for (auto _ : state) {
     grab_host_macros_r(mac, p.hst);
@@ -376,7 +376,7 @@ void BM_Cleaning(benchmark::State& state) {
 void BM_ServiceCheckCommand(benchmark::State& state) {
   std::string out;
   for (auto _ : state) {
-    nagios_macros local_macros;
+    macro_context local_macros;
     out = p.svc->get_check_command_line(&local_macros);
     benchmark::DoNotOptimize(out);
   }
@@ -388,8 +388,8 @@ void BM_HostCheckCommand(benchmark::State& state) {
   std::string out;
   std::string tmp;
   for (auto _ : state) {
-    nagios_macros local_macros;
-    nagios_macros* mac(&local_macros);
+    macro_context local_macros;
+    macro_context* mac(&local_macros);
     grab_host_macros_r(mac, p.hst);
     get_raw_command_line_r(mac, p.hst->get_check_command_ptr(),
                            p.hst->check_command(), tmp, 0);
@@ -410,7 +410,7 @@ void BM_NotificationLine(benchmark::State& state) {
       "Info:\\n\\n$SERVICEOUTPUT$\\n$LONGSERVICEOUTPUT$\" | /bin/mail -s \"** "
       "$NOTIFICATIONTYPE$ Service Alert: $HOSTNAME$/$SERVICEDESC$ is "
       "$SERVICESTATE$ **\" $CONTACTEMAIL$";
-  nagios_macros* mac = set_context();
+  macro_context* mac = set_context();
   std::string out;
   for (auto _ : state) {
     grab_contact_macros_r(mac, p.cntct);

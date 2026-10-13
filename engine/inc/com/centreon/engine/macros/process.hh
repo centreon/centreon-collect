@@ -28,7 +28,7 @@
 extern "C" {
 #endif  // C++
 
-int process_macros_r(nagios_macros* mac,
+int process_macros_r(macro_context* mac,
                      std::string const& input_buffer,
                      std::string& output_buffer,
                      int options);

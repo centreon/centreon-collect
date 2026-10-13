@@ -108,8 +108,8 @@ TEST_F(PbSimpleCommand, CommandAlreadyExisting) {
 TEST_F(PbSimpleCommand, NewCommandSync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/echo bonjour")};
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   commands::result res;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
@@ -127,8 +127,8 @@ TEST_F(PbSimpleCommand, NewCommandAsync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/echo bonjour")};
   cmd->set_listener(lstnr.get());
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
   cmd->run(cc, *mac, 2, std::make_shared<check_result>());
@@ -147,8 +147,8 @@ TEST_F(PbSimpleCommand, LongCommandAsync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/sleep 10")};
   cmd->set_listener(lstnr.get());
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/sleep 10");
 
@@ -179,8 +179,8 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
@@ -222,8 +222,8 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
@@ -259,8 +259,8 @@ TEST_F(PbSimpleCommand, WithOneArgument) {
   std::shared_ptr<commands::command> cmd{std::make_unique<commands::raw_v2>(
       g_io_context, "test", "/bin/echo $ARG1$")};
   cmd->set_listener(lstnr.get());
-  nagios_macros local_macros;
-  nagios_macros* mac(&local_macros);
+  macro_context local_macros;
+  macro_context* mac(&local_macros);
   mac->argv[0] = "Hello";
   mac->argv[1] = "";
   std::string cc(cmd->process_cmd(mac));
@@ -294,9 +294,9 @@ TEST_F(PbSimpleCommand, EnvironmentMacros) {
   hst_hlp.insert_customvariable("_FOO", "bar");
   hst_aply.add_object(hst);
 
-  nagios_macros local_macros;
+  macro_context local_macros;
 
-  nagios_macros* mac(&local_macros);
+  macro_context* mac(&local_macros);
   mac->host_ptr = host::hosts.find("host_1")->second.get();
   mac->argv[0] = "Hello";
   mac->argv[1].clear();

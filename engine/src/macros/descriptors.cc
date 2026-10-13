@@ -175,7 +175,7 @@ std::array<uint32_t, MACRO_HOST_SERVICES_COUNT> count_host_services(
  */
 std::string host_total_services(uint32_t macro_id,
                                 host& hst,
-                                nagios_macros* mac) {
+                                macro_context* mac) {
   // The cache only holds the totals of the context host, those of another
   // host (on-demand macro) are computed each time.
   const size_t index = macro_id - MACRO_TOTALHOSTSERVICES;
@@ -316,7 +316,7 @@ std::string next_valid_time_string(const common::timeperiods::timeperiod& tp,
  *
  *  @return The requested total.
  */
-std::string summary_value(uint32_t macro_id, nagios_macros* mac) {
+std::string summary_value(uint32_t macro_id, macro_context* mac) {
   generate_summary_macros(mac);
   return fmt::to_string((*mac->summary)[macro_id - MACRO_TOTALHOSTSUP]);
 }
@@ -410,7 +410,7 @@ std::string_view notification_type_name(
 /* A getter computing an expression from the target of the family fam and
  * the macros mac. */
 #define G(fam, ...)                                                  \
-  [](const macro_target& target [[maybe_unused]], nagios_macros* mac \
+  [](const macro_target& target [[maybe_unused]], macro_context* mac \
      [[maybe_unused]]) -> std::string { TARGET_##fam return __VA_ARGS__; }
 
 /* The macro name is built from its id, so they cannot be out of sync. */

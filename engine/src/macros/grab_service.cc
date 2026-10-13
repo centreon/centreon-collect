@@ -39,7 +39,7 @@ using namespace com::centreon::engine;
  *
  *  @return OK on success.
  */
-int grab_service_macros_r(nagios_macros* mac,
+int grab_service_macros_r(macro_context* mac,
                           com::centreon::engine::service* svc) {
   // Save pointer for later.
   mac->service_ptr = svc;

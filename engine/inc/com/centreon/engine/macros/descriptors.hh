@@ -28,7 +28,7 @@
 #include <string_view>
 #include <variant>
 
-class nagios_macros;
+class macro_context;
 
 namespace com::centreon::common::timeperiods {
 class timeperiod;
@@ -85,7 +85,7 @@ using macro_target = std::variant<std::monostate,
                                   datetime_target>;
 
 /* Computes the value of a macro on its target. */
-using getter = std::string (*)(const macro_target& target, nagios_macros* mac);
+using getter = std::string (*)(const macro_target& target, macro_context* mac);
 
 /**
  * @brief Description of a macro with an id (MACRO_HOSTNAME...), as opposed

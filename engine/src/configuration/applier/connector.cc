@@ -38,8 +38,8 @@ void applier::connector::add_object(const configuration::Connector& obj) {
   config_logger->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
-  nagios_macros local_macros;
-  nagios_macros* macros(&local_macros);
+  macro_context local_macros;
+  macro_context* macros(&local_macros);
   std::string command_line;
   process_macros_r(macros, obj.connector_line(), command_line, 0);
 
@@ -81,8 +81,8 @@ void applier::connector::modify_object(
   config_logger->debug("Modifying connector '{}'.", new_obj.connector_name());
 
   // Expand command line.
-  nagios_macros local_macros;
-  nagios_macros* macros(&local_macros);
+  macro_context local_macros;
+  macro_context* macros(&local_macros);
   std::string command_line;
   process_macros_r(macros, new_obj.connector_line(), command_line, 0);
 

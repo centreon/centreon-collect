@@ -56,7 +56,7 @@ raw_v2::~raw_v2() {
 }
 
 static void _build_argv_macro_environment(
-    const nagios_macros& macros,
+    const macro_context& macros,
     boost::process::v2::process_environment& env) {
   for (uint32_t i(0); i < MAX_COMMAND_ARGUMENTS; ++i) {
     env.env_buffer.emplace_back(
@@ -71,7 +71,7 @@ static void _build_argv_macro_environment(
  *  @param[out] env     The environment to fill.
  */
 static void _build_contact_address_environment(
-    const nagios_macros& macros,
+    const macro_context& macros,
     boost::process::v2::process_environment& env) {
   if (!macros.contact_ptr)
     return;
@@ -110,7 +110,7 @@ static void _build_custom_macro_environment(
  *  @param[out] env     The environment to fill.
  */
 static void _build_custom_macros_environment(
-    const nagios_macros& macros,
+    const macro_context& macros,
     boost::process::v2::process_environment& env) {
   if (macros.host_ptr)
     _build_custom_macro_environment("_HOST", macros.host_ptr->custom_variables,
@@ -131,7 +131,7 @@ static void _build_custom_macros_environment(
  *  @param[out]    env     The environment to fill.
  */
 static void _build_macrosx_environment(
-    nagios_macros& macros,
+    macro_context& macros,
     boost::process::v2::process_environment& env) {
   bool use_large_installation_tweaks =
       pb_indexed_config.state().use_large_installation_tweaks();
@@ -158,7 +158,7 @@ static std::vector<std::pair<std::string, std::string>> _empty_args;
  *  @param[in,out] macros  The macros data struct.
  *  @param[out]    env     The environment to fill.
  */
-void _build_environment_macros(nagios_macros& macros,
+void _build_environment_macros(macro_context& macros,
                                boost::process::v2::process_environment& env) {
   bool enable_environment_macros =
       pb_indexed_config.state().enable_environment_macros();
@@ -183,7 +183,7 @@ void _build_environment_macros(nagios_macros& macros,
  *  @return The command id.
  */
 uint64_t raw_v2::run(const std::string& processed_cmd,
-                     nagios_macros& macros,
+                     macro_context& macros,
                      uint32_t timeout,
                      const check_result::pointer& to_push_to_checker,
                      const void* caller) {
@@ -314,7 +314,7 @@ void raw_v2::_on_complete(uint64_t command_id,
  *  @param[out] res     The result of the command.
  */
 void raw_v2::run(const std::string& processed_cmd,
-                 nagios_macros& macros,
+                 macro_context& macros,
                  uint32_t timeout,
                  result& res) {
   SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: cmd='{}', timeout={}",

@@ -1391,8 +1391,7 @@ int host::handle_async_check_result_3x(
   gettimeofday(&end_time_hires, nullptr);
 
   /* send data to event broker */
-  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(),
-                    "");
+  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(), "");
   return OK;
 }
 
@@ -1574,8 +1573,8 @@ int host::run_async_check(int check_options,
   set_latency(latency);
 
   // Get current host macros.
-  nagios_macros local_macros;
-  nagios_macros* macros(&local_macros);
+  macro_context local_macros;
+  macro_context* macros(&local_macros);
 
   std::string processed_cmd = get_check_command_line(macros);
 
@@ -2292,12 +2291,12 @@ bool host::verify_check_viability(int check_options,
   return result;
 }
 
-void host::grab_macros_r(nagios_macros* mac) {
+void host::grab_macros_r(macro_context* mac) {
   grab_host_macros_r(mac, this);
 }
 
 /* notify a specific contact that an entire host is down or up */
-int host::notify_contact(nagios_macros* mac,
+int host::notify_contact(macro_context* mac,
                          contact* cntct,
                          notifications::reason_type type,
                          const std::string& not_author,
@@ -3521,7 +3520,7 @@ void host::set_check_command_ptr(
  *
  * @return std::string
  */
-std::string host::get_check_command_line(nagios_macros* macros) {
+std::string host::get_check_command_line(macro_context* macros) {
   grab_host_macros_r(macros, this);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),

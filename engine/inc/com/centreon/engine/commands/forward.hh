@@ -42,12 +42,12 @@ class forward : public command {
   forward(const forward&) = delete;
   forward& operator=(const forward&) = delete;
   uint64_t run(const std::string& processed_cmd,
-               nagios_macros& macros,
+               macro_context& macros,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
                const void* caller = nullptr) override;
   void run(const std::string& processed_cmd,
-           nagios_macros& macros,
+           macro_context& macros,
            uint32_t timeout,
            result& res) override;
 

@@ -55,7 +55,7 @@ forward::forward(std::string const& command_name,
  *  @return The command id.
  */
 uint64_t forward::run(std::string const& processed_cmd,
-                      nagios_macros& macros,
+                      macro_context& macros,
                       uint32_t timeout,
                       const check_result::pointer& to_push_to_checker,
                       const void* caller) {
@@ -72,7 +72,7 @@ uint64_t forward::run(std::string const& processed_cmd,
  *  @param[out] res     The result of the command.
  */
 void forward::run(std::string const& processed_cmd,
-                  nagios_macros& macros,
+                  macro_context& macros,
                   uint32_t timeout,
                   result& res) {
   _command->run(processed_cmd, macros, timeout, res);

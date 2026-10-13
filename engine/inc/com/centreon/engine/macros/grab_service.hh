@@ -27,7 +27,7 @@
 extern "C" {
 #endif  // C++
 
-int grab_service_macros_r(nagios_macros* mac,
+int grab_service_macros_r(macro_context* mac,
                           com::centreon::engine::service* svc);
 
 #ifdef __cplusplus

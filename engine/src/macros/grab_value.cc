@@ -143,7 +143,7 @@ static std::string concatenate(const Members& members,
  *  @return OK on success.
  */
 template <typename Value>
-static int resolve(nagios_macros* mac,
+static int resolve(macro_context* mac,
                    std::string_view name,
                    family fam,
                    std::string_view arg1,
@@ -281,7 +281,7 @@ static int resolve(nagios_macros* mac,
  *
  *  @return OK on success.
  */
-static int grab_custom_macro_value_r(nagios_macros* mac,
+static int grab_custom_macro_value_r(macro_context* mac,
                                      std::string_view macro_name,
                                      std::string_view arg1,
                                      std::string_view arg2,
@@ -341,7 +341,7 @@ static int grab_custom_macro_value_r(nagios_macros* mac,
  *
  *  @return OK on success.
  */
-static int handle_notification_macro(nagios_macros* mac,
+static int handle_notification_macro(macro_context* mac,
                                      const descriptor& desc,
                                      const std::string_view& arg1,
                                      const std::string_view& arg2,
@@ -370,7 +370,7 @@ static int handle_notification_macro(nagios_macros* mac,
  *
  *  @return OK on success.
  */
-static int handle_datetime_macro(nagios_macros* mac,
+static int handle_datetime_macro(macro_context* mac,
                                  const descriptor& desc,
                                  const std::string_view& arg1,
                                  const std::string_view& arg2,
@@ -408,7 +408,7 @@ static int handle_datetime_macro(nagios_macros* mac,
  *
  *  @return OK on success.
  */
-static int handle_static_macro(nagios_macros* mac,
+static int handle_static_macro(macro_context* mac,
                                const descriptor& desc,
                                const std::string_view& arg1,
                                const std::string_view& arg2,
@@ -436,7 +436,7 @@ static int handle_static_macro(nagios_macros* mac,
  *
  *  @return OK on success.
  */
-static int handle_summary_macro(nagios_macros* mac,
+static int handle_summary_macro(macro_context* mac,
                                 const descriptor& desc,
                                 const std::string_view& arg1 [[maybe_unused]],
                                 const std::string_view& arg2 [[maybe_unused]],
@@ -462,7 +462,7 @@ static int handle_summary_macro(nagios_macros* mac,
  *
  *  @param[in,out] mac The macros.
  */
-void generate_summary_macros(nagios_macros* mac) {
+void generate_summary_macros(macro_context* mac) {
   // Generate summary macros if needed.
   if (!mac->summary) {
     // Get host totals.
@@ -626,7 +626,7 @@ void generate_summary_macros(nagios_macros* mac) {
 }
 
 /* this is the big one */
-int grab_macro_value_r(nagios_macros* mac,
+int grab_macro_value_r(macro_context* mac,
                        const std::string_view& macro_name,
                        std::string& output,
                        int* clean_options,
@@ -824,7 +824,7 @@ int grab_macro_value_r(nagios_macros* mac,
  *
  *  @return OK on success.
  */
-int grab_macrox_value_r(nagios_macros* mac,
+int grab_macrox_value_r(macro_context* mac,
                         const descriptor& desc,
                         const std::string_view& arg1,
                         const std::string_view& arg2,

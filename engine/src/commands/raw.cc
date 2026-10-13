@@ -76,7 +76,7 @@ raw::~raw() noexcept {
  *  @return The command id.
  */
 uint64_t raw::run(std::string const& processed_cmd,
-                  nagios_macros& macros,
+                  macro_context& macros,
                   uint32_t timeout,
                   const check_result::pointer& to_push_to_checker,
                   const void* caller) {
@@ -129,7 +129,7 @@ uint64_t raw::run(std::string const& processed_cmd,
  *  @param[out] res     The result of the command.
  */
 void raw::run(std::string const& processed_cmd,
-              nagios_macros& macros,
+              macro_context& macros,
               uint32_t timeout,
               result& res) {
   SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: cmd='{}', timeout={}",
@@ -292,7 +292,7 @@ void raw::finished(process& p) noexcept {
  *  @param[in]  macros  The macros data struct.
  *  @param[out] env     The environment to fill.
  */
-void raw::_build_argv_macro_environment(const nagios_macros& macros,
+void raw::_build_argv_macro_environment(const macro_context& macros,
                                         environment& env) {
   std::string line;
   for (uint32_t i(0); i < MAX_COMMAND_ARGUMENTS; ++i) {
@@ -307,7 +307,7 @@ void raw::_build_argv_macro_environment(const nagios_macros& macros,
  *  @param[in]  macros  The macros data struct.
  *  @param[out] env     The environment to fill.
  */
-void raw::_build_contact_address_environment(const nagios_macros& macros,
+void raw::_build_contact_address_environment(const macro_context& macros,
                                              environment& env) {
   if (!macros.contact_ptr)
     return;
@@ -345,7 +345,7 @@ static void _build_custom_macro_environment(std::string_view prefix,
  *  @param[in]  macros  The macros data struct.
  *  @param[out] env     The environment to fill.
  */
-void raw::_build_custom_contact_macro_environment(const nagios_macros& macros,
+void raw::_build_custom_contact_macro_environment(const macro_context& macros,
                                                   environment& env) {
   if (macros.contact_ptr)
     _build_custom_macro_environment(
@@ -358,7 +358,7 @@ void raw::_build_custom_contact_macro_environment(const nagios_macros& macros,
  *  @param[in]  macros  The macros data struct.
  *  @param[out] env     The environment to fill.
  */
-void raw::_build_custom_host_macro_environment(const nagios_macros& macros,
+void raw::_build_custom_host_macro_environment(const macro_context& macros,
                                                environment& env) {
   if (macros.host_ptr)
     _build_custom_macro_environment("_HOST", macros.host_ptr->custom_variables,
@@ -371,7 +371,7 @@ void raw::_build_custom_host_macro_environment(const nagios_macros& macros,
  *  @param[in]  macros  The macros data struct.
  *  @param[out] env     The environment to fill.
  */
-void raw::_build_custom_service_macro_environment(const nagios_macros& macros,
+void raw::_build_custom_service_macro_environment(const macro_context& macros,
                                                   environment& env) {
   if (macros.service_ptr)
     _build_custom_macro_environment("_SERVICE",
@@ -384,7 +384,7 @@ void raw::_build_custom_service_macro_environment(const nagios_macros& macros,
  *  @param[in,out] macros  The macros data struct.
  *  @param[out]    env     The environment to fill.
  */
-void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
+void raw::_build_environment_macros(macro_context& macros, environment& env) {
   bool enable_environment_macros =
       pb_indexed_config.state().enable_environment_macros();
   if (enable_environment_macros) {
@@ -404,7 +404,7 @@ void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
  *                         are cached.
  *  @param[out]    env     The environment to fill.
  */
-void raw::_build_macrosx_environment(nagios_macros& macros, environment& env) {
+void raw::_build_macrosx_environment(macro_context& macros, environment& env) {
   bool use_large_installation_tweaks =
       pb_indexed_config.state().use_large_installation_tweaks();
   for (auto& desc : com::centreon::engine::macros::all_descriptors()) {
