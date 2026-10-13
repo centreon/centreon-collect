@@ -456,6 +456,21 @@ static int handle_summary_macro(macro_context* mac,
  *                                     *
  **************************************/
 
+namespace {
+/**
+ * @brief Tell whether the problem of a host or a service is handled: it is
+ * acknowledged, in downtime or its active checks are disabled.
+ *
+ * @param n The host or the service.
+ *
+ * @return true if the problem is handled.
+ */
+bool problem_is_handled(const notifier& n) {
+  return n.get_scheduled_downtime_depth() > 0 ||
+         n.problem_has_been_acknowledged() || !n.active_checks_enabled();
+}
+}  // namespace
+
 /**
  *  Compute all the summary macros ($TOTAL*$) and cache them in the macros,
  *  if not already done.
@@ -463,166 +478,104 @@ static int handle_summary_macro(macro_context* mac,
  *  @param[in,out] mac The macros.
  */
 void generate_summary_macros(macro_context* mac) {
-  // Generate summary macros if needed.
-  if (!mac->summary) {
-    // Get host totals.
-    unsigned int host_problems(0);
-    unsigned int host_problems_unhandled(0);
-    unsigned int hosts_down(0);
-    unsigned int hosts_down_unhandled(0);
-    unsigned int hosts_unreachable(0);
-    unsigned int hosts_unreachable_unhandled(0);
-    unsigned int hosts_up(0);
-    for (host_map::iterator it(com::centreon::engine::host::hosts.begin()),
-         end(com::centreon::engine::host::hosts.end());
-         it != end; ++it) {
-      // Filter totals based on contact if necessary.
-      bool authorized(mac->contact_ptr ? is_contact_for_notifier(
-                                             it->second.get(), mac->contact_ptr)
-                                       : true);
-      if (authorized) {
-        bool problem(true);
-        if ((it->second->get_current_state() == host::state_up) &&
-            it->second->has_been_checked())
+  if (mac->summary)
+    return;
+
+  // Get host totals.
+  uint32_t hosts_up = 0;
+  uint32_t hosts_down = 0;
+  uint32_t hosts_down_unhandled = 0;
+  uint32_t hosts_unreachable = 0;
+  uint32_t hosts_unreachable_unhandled = 0;
+  for (const auto& [name, hst] : host::hosts) {
+    // Filter totals based on contact if necessary.
+    if (mac->contact_ptr &&
+        !is_contact_for_notifier(hst.get(), mac->contact_ptr))
+      continue;
+    switch (hst->get_current_state()) {
+      case host::state_up:
+        if (hst->has_been_checked())
           hosts_up++;
-        else if (it->second->get_current_state() == host::state_down) {
-          if (it->second->get_scheduled_downtime_depth() > 0)
-            problem = false;
-          if (it->second->problem_has_been_acknowledged())
-            problem = false;
-          if (!it->second->active_checks_enabled())
-            problem = false;
-          if (problem)
-            hosts_down_unhandled++;
-          hosts_down++;
-        } else if (it->second->get_current_state() == host::state_unreachable) {
-          if (it->second->get_scheduled_downtime_depth() > 0)
-            problem = false;
-          if (it->second->problem_has_been_acknowledged())
-            problem = false;
-          if (!it->second->active_checks_enabled())
-            problem = false;
-          if (problem)
-            hosts_unreachable_unhandled++;
-          hosts_unreachable++;
-        }
-      }
+        break;
+      case host::state_down:
+        hosts_down++;
+        if (!problem_is_handled(*hst))
+          hosts_down_unhandled++;
+        break;
+      case host::state_unreachable:
+        hosts_unreachable++;
+        if (!problem_is_handled(*hst))
+          hosts_unreachable_unhandled++;
+        break;
     }
-    host_problems = hosts_down + hosts_unreachable;
-    host_problems_unhandled =
-        hosts_down_unhandled + hosts_unreachable_unhandled;
-
-    // Get service totals.
-    unsigned int service_problems(0);
-    unsigned int service_problems_unhandled(0);
-    unsigned int services_critical(0);
-    unsigned int services_critical_unhandled(0);
-    unsigned int services_ok(0);
-    unsigned int services_unknown(0);
-    unsigned int services_unknown_unhandled(0);
-    unsigned int services_warning(0);
-    unsigned int services_warning_unhandled(0);
-
-    for (service_map::iterator it(service::services.begin()),
-         end(service::services.end());
-         it != end; ++it) {
-      // Filter totals based on contact if necessary.
-      bool authorized(mac->contact_ptr ? is_contact_for_notifier(
-                                             it->second.get(), mac->contact_ptr)
-                                       : true);
-      if (authorized) {
-        bool problem(true);
-        if (it->second->get_current_state() == service::state_ok &&
-            it->second->has_been_checked())
-          services_ok++;
-        else if (it->second->get_current_state() == service::state_warning) {
-          host* temp_host{nullptr};
-          host_map::const_iterator found(
-              host::hosts.find(it->second->get_hostname()));
-          if (found != host::hosts.end())
-            temp_host = found->second.get();
-
-          if (temp_host != nullptr &&
-              (temp_host->get_current_state() == host::state_down ||
-               temp_host->get_current_state() == host::state_unreachable))
-            problem = false;
-          if (it->second->get_scheduled_downtime_depth() > 0)
-            problem = false;
-          if (it->second->problem_has_been_acknowledged())
-            problem = false;
-          if (!it->second->active_checks_enabled())
-            problem = false;
-          if (problem)
-            services_warning_unhandled++;
-          services_warning++;
-        } else if (it->second->get_current_state() == service::state_unknown) {
-          host* temp_host{nullptr};
-          host_map::const_iterator found(
-              host::hosts.find(it->second->get_hostname()));
-          if (found != host::hosts.end())
-            temp_host = found->second.get();
-
-          if (temp_host != nullptr &&
-              (temp_host->get_current_state() == host::state_down ||
-               temp_host->get_current_state() == host::state_unreachable))
-            problem = false;
-          if (it->second->get_scheduled_downtime_depth() > 0)
-            problem = false;
-          if (it->second->problem_has_been_acknowledged())
-            problem = false;
-          if (!it->second->active_checks_enabled())
-            problem = false;
-          if (problem)
-            services_unknown_unhandled++;
-          services_unknown++;
-        } else if (it->second->get_current_state() == service::state_critical) {
-          host* temp_host{nullptr};
-          host_map::const_iterator found(
-              host::hosts.find(it->second->get_hostname()));
-          if (found != host::hosts.end())
-            temp_host = found->second.get();
-
-          if (temp_host != nullptr &&
-              (temp_host->get_current_state() == host::state_down ||
-               temp_host->get_current_state() == host::state_unreachable))
-            problem = false;
-          if (it->second->get_scheduled_downtime_depth() > 0)
-            problem = false;
-          if (it->second->problem_has_been_acknowledged())
-            problem = false;
-          if (!it->second->active_checks_enabled())
-            problem = false;
-          if (problem)
-            services_critical_unhandled++;
-          services_critical++;
-        }
-      }
-    }
-    service_problems = services_warning + services_critical + services_unknown;
-    service_problems_unhandled = services_warning_unhandled +
-                                 services_critical_unhandled +
-                                 services_unknown_unhandled;
-
-    // These macros are time-intensive to compute, and will likely be
-    // reused, so save them all for future use, in the order of the macro ids.
-    mac->summary =
-        std::array<uint32_t, MACRO_SUMMARY_COUNT>{hosts_up,
-                                                  hosts_down,
-                                                  hosts_unreachable,
-                                                  hosts_down_unhandled,
-                                                  hosts_unreachable_unhandled,
-                                                  host_problems,
-                                                  host_problems_unhandled,
-                                                  services_ok,
-                                                  services_warning,
-                                                  services_critical,
-                                                  services_unknown,
-                                                  services_warning_unhandled,
-                                                  services_critical_unhandled,
-                                                  services_unknown_unhandled,
-                                                  service_problems,
-                                                  service_problems_unhandled};
   }
+
+  // Get service totals.
+  uint32_t services_ok = 0;
+  uint32_t services_warning = 0;
+  uint32_t services_warning_unhandled = 0;
+  uint32_t services_critical = 0;
+  uint32_t services_critical_unhandled = 0;
+  uint32_t services_unknown = 0;
+  uint32_t services_unknown_unhandled = 0;
+  for (const auto& [key, svc] : service::services) {
+    // Filter totals based on contact if necessary.
+    if (mac->contact_ptr &&
+        !is_contact_for_notifier(svc.get(), mac->contact_ptr))
+      continue;
+    const service::service_state state = svc->get_current_state();
+    if (state == service::state_ok) {
+      if (svc->has_been_checked())
+        services_ok++;
+      continue;
+    }
+    // The problem of a service whose host is down or unreachable is handled.
+    const host* hst = svc->get_host_ptr();
+    const bool unhandled =
+        !problem_is_handled(*svc) &&
+        !(hst && (hst->get_current_state() == host::state_down ||
+                  hst->get_current_state() == host::state_unreachable));
+    switch (state) {
+      case service::state_warning:
+        services_warning++;
+        if (unhandled)
+          services_warning_unhandled++;
+        break;
+      case service::state_critical:
+        services_critical++;
+        if (unhandled)
+          services_critical_unhandled++;
+        break;
+      case service::state_unknown:
+        services_unknown++;
+        if (unhandled)
+          services_unknown_unhandled++;
+        break;
+      default:
+        break;
+    }
+  }
+
+  // These macros are time-intensive to compute, and will likely be
+  // reused, so save them all for future use, in the order of the macro ids.
+  mac->summary = std::array<uint32_t, MACRO_SUMMARY_COUNT>{
+      hosts_up,
+      hosts_down,
+      hosts_unreachable,
+      hosts_down_unhandled,
+      hosts_unreachable_unhandled,
+      hosts_down + hosts_unreachable,
+      hosts_down_unhandled + hosts_unreachable_unhandled,
+      services_ok,
+      services_warning,
+      services_critical,
+      services_unknown,
+      services_warning_unhandled,
+      services_critical_unhandled,
+      services_unknown_unhandled,
+      services_warning + services_critical + services_unknown,
+      services_warning_unhandled + services_critical_unhandled +
+          services_unknown_unhandled};
 }
 
 /* this is the big one */
