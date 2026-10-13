@@ -10,6 +10,9 @@
 # env override: gorgone::class::script::load_env_config crashes ("Not a HASH
 # reference") on GORGONE__GORGONE__TPAPI__* — tpapi is a named list like
 # `modules`, but only `modules` gets the array-search-by-name handling.
+# 30-centreon.yaml is generated via YAML::XS::Dump instead (see below): a
+# DB password can contain quotes/colons/backslashes that would break a raw
+# heredoc interpolation.
 
 set -e
 
@@ -65,41 +68,51 @@ set +x
 CENTREON_API_BASE_URL="${CENTREON_API_BASE_URL:?ERROR: CENTREON_API_BASE_URL must be set for central mode}"
 CENTREON_API_USERNAME="${CENTREON_API_USERNAME:?ERROR: CENTREON_API_USERNAME must be set for central mode}"
 CENTREON_API_PASSWORD="${CENTREON_API_PASSWORD:?ERROR: CENTREON_API_PASSWORD must be set for central mode}"
-central_config_db_creds_overridden=1
-if [ -z "${GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__PASSWORD}${GORGONE__CENTREON__DATABASE__DB_REALTIME__PASSWORD}" ]; then
-    central_config_db_creds_overridden=0
+MYSQL_HOST="${MYSQL_HOST:-}"
+MYSQL_DB_CONFIGURATION="${MYSQL_DB_CONFIGURATION:-centreon}"
+MYSQL_DB_STORAGE="${MYSQL_DB_STORAGE:-centreon_storage}"
+MYSQL_USER="${MYSQL_USER:-centreon}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-}"
+# Fail fast unless a consumer already supplies the password directly via the
+# GORGONE__ override mechanism (so a consumer that only ever sets
+# GORGONE__CENTREON__DATABASE__DB_{CONFIGURATION,REALTIME}__PASSWORD keeps
+# working unchanged).
+if [ -z "${GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__PASSWORD}${GORGONE__CENTREON__DATABASE__DB_REALTIME__PASSWORD}" ] \
+   && [ -z "$MYSQL_PASSWORD" ]; then
+    echo "ERROR: MYSQL_PASSWORD must be set for central mode (or set GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__PASSWORD / DB_REALTIME__PASSWORD directly)" >&2
+    exit 1
 fi
+export MYSQL_HOST MYSQL_DB_CONFIGURATION MYSQL_DB_STORAGE MYSQL_USER MYSQL_PASSWORD
 if [ "$central_config_debug_was_on" = "1" ]; then
     set -x
 fi
 
 # Real production reads DB config from /etc/centreon/config.d/*.yaml,
 # written by the PHP installer at install time — out of scope here.
-# DSN/credentials are injected via GORGONE__CENTREON__DATABASE__* env vars
-# instead; the placeholders below are only ever seen if those aren't set.
-#
-# KNOWN GAP, not yet made fail-fast: these placeholders are a real fallback
-# DB password. A consumer that only overrides the DSN (not USERNAME/
-# PASSWORD) silently keeps using "centreon"/"centreon" — works only if that
-# happens to be the real DB password, fails with a DB auth error otherwise.
-# Warning below is the non-breaking interim step; removing the fallback
-# requires updating every consumer first.
-if [ "$central_config_db_creds_overridden" = "0" ]; then
-    echo "WARNING: TYPE=central is using the default 'centreon'/'centreon' DB credentials — set GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__{USERNAME,PASSWORD} and DB_REALTIME__{USERNAME,PASSWORD} to override" >&2
-fi
-cat > "$CONFIGD/30-centreon.yaml" <<EOF
-name: 30-centreon.yaml
-centreon:
-  database:
-    db_configuration:
-      dsn: "mysql:host=REPLACE_ME;dbname=centreon"
-      username: centreon
-      password: centreon
-    db_realtime:
-      dsn: "mysql:host=REPLACE_ME;dbname=centreon_storage"
-      username: centreon
-      password: centreon
-EOF
+# GORGONE__CENTREON__DATABASE__* env vars still override any field below
+# after load (gorgone's own mechanism, applied regardless of how this file
+# was generated). YAML::XS::Dump (not a heredoc) guarantees MYSQL_PASSWORD
+# is quoted correctly no matter what characters it contains.
+perl -MYAML::XS -e '
+my $data = {
+    name => "30-centreon.yaml",
+    centreon => {
+        database => {
+            db_configuration => {
+                dsn      => "mysql:host=$ENV{MYSQL_HOST};dbname=$ENV{MYSQL_DB_CONFIGURATION}",
+                username => $ENV{MYSQL_USER},
+                password => $ENV{MYSQL_PASSWORD}
+            },
+            db_realtime => {
+                dsn      => "mysql:host=$ENV{MYSQL_HOST};dbname=$ENV{MYSQL_DB_STORAGE}",
+                username => $ENV{MYSQL_USER},
+                password => $ENV{MYSQL_PASSWORD}
+            }
+        }
+    }
+};
+print YAML::XS::Dump($data);
+' > "$CONFIGD/30-centreon.yaml"
 
 # gorgone's own login to the Centreon API (a real web user, "centreon-
 # gorgone" in production), used to validate OTHER callers' tokens
