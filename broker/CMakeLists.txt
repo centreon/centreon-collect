@@ -376,7 +376,7 @@ add_library(rokerbase STATIC
 
 set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
+add_dependencies(rokerbase pb_all_libs process_stat)
 target_include_directories(rokerbase
                            PRIVATE ${PROJECT_SOURCE_DIR}/core
                            ${PROJECT_SOURCE_DIR}/bam/inc
@@ -401,7 +401,7 @@ target_link_libraries(
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
 
-add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
+add_dependencies(cbd multiplexing centreon_common pb_all_libs)
 
 set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
 

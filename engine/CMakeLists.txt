@@ -500,7 +500,7 @@ target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
 if(LEGACY_ENGINE)
   add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib process_stat)
+  add_dependencies(cce_core engine_rpc centreon_clib pb_all_libs process_stat)
 
   target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 

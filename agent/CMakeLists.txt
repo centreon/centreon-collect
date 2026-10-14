@@ -198,6 +198,8 @@ target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
 SET(CENTREON_AGENT centagent)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_dependencies(centagent_lib pb_all_libs)
+
   add_executable(${CENTREON_AGENT} ${SRC_DIR}/main.cc)
 
   target_link_libraries(
