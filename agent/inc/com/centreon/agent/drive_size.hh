@@ -28,6 +28,8 @@ namespace check_drive_size_detail {
 /**
  * @brief these flags are passed in check parameter:filter-storage-type and
  * filter-type
+ * Values lower than hr_fs_other are storage types (hrstorage*), the others are
+ * file system formats (hrfs*).
  *
  */
 enum e_drive_fs_type : uint64_t {
@@ -76,7 +78,10 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str);
  *
  */
 class filter {
-  uint64_t _drive_type_filter, _format_filter;
+  // mask of allowed hrstorage* flags
+  uint64_t _drive_type_filter;
+  // mask of allowed hrfs* flags
+  uint64_t _format_filter;
 
   std::unique_ptr<re2::RE2> _filter_fs, _filter_exclude_fs, _filter_fs_type;
   std::unique_ptr<re2::RE2> _filter_mountpoint, _filter_exclude_mountpoint;

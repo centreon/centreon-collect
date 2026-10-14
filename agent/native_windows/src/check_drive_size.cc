@@ -60,9 +60,13 @@ static e_drive_fs_type get_drive_type(
 /**
  * @brief Get the type of filesystem
  *
+ * @param drive_type used to choose log level if the format can't be read
+ * (error for fixed disks, trace for others)
  * @param fs_root like C:\
  * @param logger
- * @return std::string exfat, ntfs, fat32....
+ * @return std::pair<e_drive_fs_type, std::string> first: hrfs* flag of the
+ * format (hr_fs_unknown if not available), second: lower case format name
+ * returned by the os (exfat, ntfs, fat32...), empty if not available
  */
 static std::pair<e_drive_fs_type, std::string> get_drive_format(
     e_drive_fs_type drive_type,

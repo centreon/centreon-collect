@@ -36,6 +36,9 @@ namespace com::centreon::agent::check_drive_size_detail {
 /**
  * @brief as filter parameter is a regex, we need to apply the regex on each
  * line of this array
+ * It contains both storage types (hrstorage*) and file system formats (hrfs*).
+ * This array MUST be sorted by label because drive_fs_type_from_string does a
+ * binary search on it.
  *
  */
 constexpr std::array<std::pair<std::string_view, e_drive_fs_type>, 35>
@@ -76,6 +79,13 @@ constexpr std::array<std::pair<std::string_view, e_drive_fs_type>, 35>
         std::make_pair("hrstoragevirtualmemory", hr_storage_virtual_memory),
         std::make_pair("hrunknown", hr_unknown)};
 
+/**
+ * @brief convert a flag mask into a human readable string
+ *
+ * @param drive_type mask of e_drive_fs_type flags
+ * @return std::string labels of the flags set, separated by '|' (ex:
+ * "hrstoragefixeddisk|hrfsntfs")
+ */
 std::string drive_type_to_string(unsigned drive_type) {
   std::string ret;
   for (const auto& to_test : _drive_format_type) {
@@ -91,6 +101,14 @@ std::string drive_type_to_string(unsigned drive_type) {
   return ret;
 }
 
+/**
+ * @brief get the e_drive_fs_type flag that matches exactly a label of
+ * _drive_format_type (binary search, so the array must be sorted)
+ *
+ * @param str lower case label such as "hrfsntfs" or "hrstoragefixeddisk" or
+ * "ntfs"
+ * @return e_drive_fs_type the matching flag, hr_unknown if not found
+ */
 e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
   auto comp = [](const decltype(_drive_format_type)::value_type& left,
                  const std::string_view& right) { return left.first < right; };
@@ -99,6 +117,14 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
                                 _drive_format_type.end(), str, comp);
   if (found != _drive_format_type.end() && found->first == str)
     return found->second;
+
+  std::string hrfs_str = "hrfs";
+  hrfs_str += str;
+  found = std::lower_bound(_drive_format_type.begin(), _drive_format_type.end(),
+                           hrfs_str, comp);
+  if (found != _drive_format_type.end() && found->first == str)
+    return found->second;
+
   return e_drive_fs_type::hr_unknown;
 }
 
@@ -107,11 +133,17 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
  *
  *
  * @param args json array that can contain these keys:
- *    filter-storage-type or filter-type
+ *    filter-storage-type or filter-type: regex applied on each label of
+ *      _drive_format_type. Matching hrstorage* labels fill _drive_type_filter,
+ *      matching hrfs* labels fill _format_filter. If no label of a family
+ *      matches, every value of this family is allowed.
  *    filter-fs
- *    filter-exclude-fs
+ *    exclude-fs
  *    filter-mountpoint
- *    filter-exclude-mountpoint
+ *    exclude-mountpoint
+ * filter-fs, exclude-fs, filter-mountpoint and exclude-mountpoint regexes are
+ * converted to lower case in order to be case insensitive (see is_fs_allowed)
+ * @throw exceptions::msg_fmt if a regex is invalid
  */
 filter::filter(const rapidjson::Value& args) : _drive_type_filter(0xFFFFFFFFU) {
   if (args.IsObject()) {
@@ -139,14 +171,6 @@ filter::filter(const rapidjson::Value& args) : _drive_type_filter(0xFFFFFFFFU) {
               else
                 _drive_type_filter |= flag;
             }
-          }
-          // no drive type filter => allow all
-          if (_drive_type_filter == 0) {
-            _drive_type_filter = 0xFFFFFFFFU;
-          }
-          // no format filter => allow all
-          if (_format_filter == 0) {
-            _format_filter = 0xFFFFFFFFU;
           }
         }
       } else if (member_iter->name == "filter-fs" &&
@@ -193,8 +217,30 @@ filter::filter(const rapidjson::Value& args) : _drive_type_filter(0xFFFFFFFFU) {
       }
     }
   }
+  // no format filter => allow all
+  if (_format_filter == 0) {
+    _format_filter = std::numeric_limits<uint64_t>::max();
+  }
+  // no drive type filter => allow all
+  if (_drive_type_filter == 0) {
+    _drive_type_filter = std::numeric_limits<uint64_t>::max();
+  }
 }
 
+/**
+ * @brief first filter step, test fs name and mount point against filter-fs,
+ * exclude-fs, filter-mountpoint and exclude-mountpoint.
+ * It needs no system call, so it is called before getting drive type and
+ * format in order to avoid querying refused drives.
+ * Test is case insensitive: fs and mount_point are converted to lower case as
+ * the regexes.
+ *
+ * @param fs file system (C:\ on windows, /dev/sda1 on linux)
+ * @param mount_point (linux only, empty on windows)
+ * @param logger
+ * @return true allowed by filter
+ * @return false
+ */
 bool filter::is_fs_allowed(
     const std::string_view& fs,
     const std::string_view& mount_point,
@@ -230,11 +276,19 @@ bool filter::is_fs_allowed(
 }
 
 /**
- * @brief test a fs
+ * @brief second filter step, test file system format and drive type against
+ * filter-storage-type.
+ * If format_type is not in _format_filter, filter-storage-type regex is
+ * applied on unknown_format_type and on "hrfs" + unknown_format_type, so user
+ * can allow formats unknown by the agent with other|<custom format>.
+ * is_fs_allowed must have been called before.
  *
- * @param fs
- * @param mount_point (linux only)
- * @param fs_type e_drive_fs_type mask
+ * @param fs file system, only used for logs
+ * @param format_type hrfs* flag of the fs format (hr_fs_unknown if not found)
+ * @param unknown_format_type lower case format name returned by the os (ntfs,
+ * exfat...)
+ * @param media_type hrstorage* flag of the drive (fixed, network...)
+ * @param logger
  * @return true allowed by filter
  * @return false
  */
