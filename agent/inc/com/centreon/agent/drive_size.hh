@@ -30,7 +30,7 @@ namespace check_drive_size_detail {
  * filter-type
  *
  */
-enum e_drive_type : uint64_t {
+enum e_drive_fs_type : uint64_t {
   hr_unknown = 0,
   hr_storage_ram = 1 << 0,
   hr_storage_virtual_memory = 1 << 1,
@@ -40,10 +40,35 @@ enum e_drive_type : uint64_t {
   hr_storage_compact_disc = 1 << 5,
   hr_storage_ram_disk = 1 << 6,
   hr_storage_flash_memory = 1 << 7,
-  hr_storage_network_disk = 1 << 8
+  hr_storage_network_disk = 1 << 8,
+  hr_fs_other = 1 << 9,  // keep it always in first fs value
+  hr_fs_unknown = 1 << 10,
+  hr_fs_berkeley_ffs = 1 << 11,
+  hr_fs_sys5_fs = 1 << 12,
+  hr_fs_fat = 1 << 13,
+  hr_fs_hpfs = 1 << 14,
+  hr_fs_hfs = 1 << 15,
+  hr_fs_mfs = 1 << 16,
+  hr_fs_ntfs = 1 << 17,
+  hr_fs_vnode = 1 << 18,
+  hr_fs_journaled = 1 << 19,
+  hr_fs_iso9660 = 1 << 20,
+  hr_fs_rock_ridge = 1 << 21,
+  hr_fs_nfs = 1 << 22,
+  hr_fs_netware = 1 << 23,
+  hr_fs_afs = 1 << 24,
+  hr_fs_dfs = 1 << 25,
+  hr_fs_appleshare = 1 << 26,
+  hr_fs_rfs = 1 << 27,
+  hr_fs_dgcfs = 1 << 28,
+  hr_fs_bfs = 1 << 29,
+  hr_fs_fat32 = 1 << 30,
+  hr_fs_linux_ext2 = 1U << 31,
+  hr_fs_linux_ext4 = 1ULL << 32,
+  hr_fs_exfat = 1ULL << 33
 };
-
 std::string drive_type_to_string(unsigned drive_type);
+e_drive_fs_type drive_fs_type_from_string(const std::string_view& str);
 
 /**
  * @brief user can check only some fs by using filters
@@ -51,7 +76,7 @@ std::string drive_type_to_string(unsigned drive_type);
  *
  */
 class filter {
-  unsigned _drive_type_filter;
+  uint64_t _drive_type_filter, _format_filter;
 
   std::unique_ptr<re2::RE2> _filter_fs, _filter_exclude_fs, _filter_fs_type;
   std::unique_ptr<re2::RE2> _filter_mountpoint, _filter_exclude_mountpoint;
@@ -59,10 +84,13 @@ class filter {
  public:
   filter(const rapidjson::Value& args);
 
+  bool is_fs_allowed(const std::string_view& fs,
+                     const std::string_view& mount_point,
+                     const std::shared_ptr<spdlog::logger>& logger) const;
   bool is_allowed(const std::string_view& fs,
-                  const std::string_view& fs_type,
-                  const std::string_view& mount_point,
-                  e_drive_type media_type,
+                  e_drive_fs_type format_type,
+                  const std::string_view& unknown_format_type,
+                  e_drive_fs_type media_type,
                   const std::shared_ptr<spdlog::logger>& logger) const;
 };
 

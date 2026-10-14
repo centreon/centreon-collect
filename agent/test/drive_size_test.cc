@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/strings/ascii.h>
 #include <gtest/gtest.h>
 
 #include "com/centreon/common/rapidjson_helper.hh"
@@ -38,42 +39,44 @@ struct sample {
 
 std::array<sample, 13> _samples = {
     {{"udev", "/dev",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk,
       "other_format", 0, 6024132000},
 
      {"tmpfs", "/run",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk,
       "other_format", 16760000, 1212868000},
      {"/dev/sda12", "/",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk, "ext4",
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk, "ext4",
       136830444000, 346066920000},
      {"tmpfs", "/dev/shm",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk,
       "other_format", 0, 6072708000},
      {"tmpfs", "/run/lock",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk,
       "other_format", 4000, 5116000},
      {"tmpfs", "/sys/fs/cgroup",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk,
       "other_format", 0, 6072708000},
      {"/dev/sda11", "/boot/efi",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk, "fat",
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk, "fat",
       24000, 524248000},
      {"/dev/sda5", "/data",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk, "fat32",
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk, "fat32",
       3072708000, 6072708000},
      {"tmpfs", "/run/user/1001",
-      check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk,
       "other_format", 100000, 1214440000},
-     {"A:\\", "", check_drive_size_detail::e_drive_type::hr_storage_floppy_disk,
-      "", 0, 0},
-     {"C:\\", "", check_drive_size_detail::e_drive_type::hr_storage_fixed_disk,
-      "ntfs", 3072708000, 6072708000},
-     {"D:\\", "",
-      check_drive_size_detail::e_drive_type::hr_storage_removable_disk, "", 0,
+     {"A:\\", "",
+      check_drive_size_detail::e_drive_fs_type::hr_storage_floppy_disk, "", 0,
       0},
+     {"c:\\", "",
+      check_drive_size_detail::e_drive_fs_type::hr_storage_fixed_disk, "ntfs",
+      3072708000, 6072708000},
+     {"D:\\", "",
+      check_drive_size_detail::e_drive_fs_type::hr_storage_removable_disk, "",
+      0, 0},
      {"Z:\\", "",
-      check_drive_size_detail::e_drive_type::hr_storage_network_disk,
+      check_drive_size_detail::e_drive_fs_type::hr_storage_network_disk,
       "vboxsharedfolderfs", 32212254720, 107374182400}}};
 
 class drive_size_test : public ::testing::Test {
@@ -99,8 +102,9 @@ std::list<fs_stat> drive_size_test::compute(
     const std::shared_ptr<spdlog::logger>&) {
   std::list<fs_stat> result;
   for (const auto& s : _samples) {
-    if (filt.is_allowed(s.fs, s.fs_format, s.mount_point,
-                        static_cast<e_drive_type>(s.drive_type),
+    if (filt.is_fs_allowed(s.fs, s.mount_point, spdlog::default_logger()) &&
+        filt.is_allowed(s.fs, drive_fs_type_from_string(s.fs_format),
+                        s.fs_format, static_cast<e_drive_fs_type>(s.drive_type),
                         spdlog::default_logger())) {
       result.emplace_back(s.fs, s.mount_point, s.used, s.total);
     }
@@ -699,8 +703,9 @@ TEST_F(drive_size_test, test_fs_format_filter) {
   absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
-  ASSERT_EQ(output,
-            "WARNING:  Total: 5G Used: 2G Free: 2G CRITICAL:  Total: 100G "
-            "Used: 30G Free: 70G");
+  ASSERT_EQ(
+      output,
+      "WARNING: c:\\ Total: 5G Used: 2G Free: 2G CRITICAL: Z:\\ Total: 100G "
+      "Used: 30G Free: 70G");
   ASSERT_EQ(perfs.size(), 2);
 }
