@@ -115,7 +115,6 @@ int get_raw_command_line_r(macro_context* mac,
                            int macro_options) {
   std::string temp_arg;
   temp_arg.reserve(MAX_COMMAND_BUFFER);
-  std::string arg_buffer;
   unsigned int x = 0;
   int escaped = false;
 
@@ -166,9 +165,7 @@ int get_raw_command_line_r(macro_context* mac,
 
       /* ADDED 01/29/04 EG */
       /* process any macros we find in the argument */
-      process_macros_r(mac, temp_arg, arg_buffer, macro_options);
-
-      mac->argv[x] = std::move(arg_buffer);
+      mac->argv[x] = process_macros(*mac, temp_arg, macro_options);
     }
   }
 

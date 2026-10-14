@@ -312,7 +312,7 @@ void eval_line(benchmark::State& state, const std::string& line, int options) {
   macro_context* mac = set_context();
   std::string out;
   for (auto _ : state) {
-    process_macros_r(mac, line, out, options);
+    out = process_macros(*mac, line, options);
     benchmark::DoNotOptimize(out);
   }
   state.SetLabel(out.size() > 40 ? out.substr(0, 40) + "..." : out);
@@ -348,7 +348,7 @@ void BM_SummaryComputed(benchmark::State& state) {
   std::string out;
   for (auto _ : state) {
     mac->summary.reset();
-    process_macros_r(mac, "$TOTALSERVICESCRITICALUNHANDLED$", out, 0);
+    out = process_macros(*mac, "$TOTALSERVICESCRITICALUNHANDLED$", 0);
     benchmark::DoNotOptimize(out);
   }
   state.SetLabel(state.range(0) ? "with contact" : "without contact");
@@ -361,7 +361,7 @@ void BM_HostTotalsComputed(benchmark::State& state) {
   std::string out;
   for (auto _ : state) {
     mac->set_host(p.hst);
-    process_macros_r(mac, "$TOTALHOSTSERVICESCRITICAL$", out, 0);
+    out = process_macros(*mac, "$TOTALHOSTSERVICESCRITICAL$", 0);
     benchmark::DoNotOptimize(out);
   }
 }
@@ -413,7 +413,7 @@ void BM_NotificationLine(benchmark::State& state) {
   std::string out;
   for (auto _ : state) {
     mac->set_contact(p.cntct);
-    process_macros_r(mac, line, out, STRIP_ILLEGAL_MACRO_CHARS);
+    out = process_macros(*mac, line, STRIP_ILLEGAL_MACRO_CHARS);
     benchmark::DoNotOptimize(out);
   }
 }

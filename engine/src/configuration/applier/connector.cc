@@ -38,10 +38,8 @@ void applier::connector::add_object(const configuration::Connector& obj) {
   config_logger->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
-  macro_context local_macros;
-  macro_context* macros(&local_macros);
-  std::string command_line;
-  process_macros_r(macros, obj.connector_line(), command_line, 0);
+  macro_context macros;
+  std::string command_line = process_macros(macros, obj.connector_line(), 0);
 
   // Add connector to the global configuration set.
   pb_indexed_config.mut_connectors()[obj.connector_name()] =
@@ -81,10 +79,9 @@ void applier::connector::modify_object(
   config_logger->debug("Modifying connector '{}'.", new_obj.connector_name());
 
   // Expand command line.
-  macro_context local_macros;
-  macro_context* macros(&local_macros);
-  std::string command_line;
-  process_macros_r(macros, new_obj.connector_line(), command_line, 0);
+  macro_context macros;
+  std::string command_line =
+      process_macros(macros, new_obj.connector_line(), 0);
 
   boost::trim(command_line);
 

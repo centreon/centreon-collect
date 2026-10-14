@@ -80,7 +80,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  process_macros_r(mac, "$TOTALSERVICESOK$", out, 0);
+  out = process_macros(*mac, "$TOTALSERVICESOK$", 0);
   ASSERT_EQ(out, "0");
 }
 

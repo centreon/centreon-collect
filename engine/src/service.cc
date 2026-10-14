@@ -2198,7 +2198,7 @@ int service::obsessive_compulsive_service_check_processor() {
                       raw_command);
 
   /* process any macros in the raw command line */
-  process_macros_r(mac, raw_command, processed_command, macro_options);
+  processed_command = process_macros(*mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -2975,7 +2975,7 @@ int service::notify_contact(macro_context* mac,
     notifications_logger->debug("Raw notification command: {}", raw_command);
 
     /* process any macros contained in the argument */
-    process_macros_r(mac, raw_command, processed_command, macro_options);
+    processed_command = process_macros(*mac, raw_command, macro_options);
     if (processed_command.empty())
       continue;
 

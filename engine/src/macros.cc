@@ -32,31 +32,20 @@ using namespace com::centreon::engine::configuration::applier;
 /********************* MACRO STRING FUNCTIONS *********************/
 /******************************************************************/
 
-/* cleans illegal characters in macros before output */
-std::string clean_macro_chars(std::string const& macro, int options) {
-  std::string retval(macro);
-
-  int len(retval.size());
-
-  /* strip illegal characters out of retval */
-  if (options & STRIP_ILLEGAL_MACRO_CHARS) {
-    int y(0);
-    for (int x(0); x < len; x++) {
-      /*ch=(int)retval[x]; */
-      /* allow non-ASCII characters (Japanese, etc) */
-      int ch(retval[x] & 0xff);
-
-      /* illegal ASCII characters */
-      if (ch < 32 || ch == 127)
-        continue;
-
-      /* illegal user-specified characters */
-      if (pb_indexed_config.state().illegal_output_chars().find(ch) ==
-          std::string::npos)
-        retval[y++] = retval[x];
-    }
-
-    retval.resize(y);
-  }
-  return retval;
+/**
+ *  Remove the illegal characters from the value of a macro: the ASCII
+ *  control characters and the illegal_output_chars of the configuration.
+ *  The non-ASCII characters (Japanese, etc) are kept.
+ *
+ *  @param[in,out] value The value of the macro.
+ */
+void strip_illegal_macro_chars(std::string& value) {
+  const std::string& illegal = pb_indexed_config.state().illegal_output_chars();
+  value.erase(std::remove_if(value.begin(), value.end(),
+                             [&illegal](char c) {
+                               const unsigned char ch = c;
+                               return ch < 32 || ch == 127 ||
+                                      illegal.find(c) != std::string::npos;
+                             }),
+              value.end());
 }

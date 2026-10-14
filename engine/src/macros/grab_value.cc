@@ -138,21 +138,19 @@ static std::string concatenate(const Members& members,
  *                     std::string(const macro_target&). A template parameter
  *                     rather than a function reference, so that it is
  *                     inlined.
- *  @param[out] output The value of the macro.
  *
- *  @return OK on success.
+ *  @return The value of the macro, empty on failure.
  */
 template <typename Value>
-static int resolve(macro_context* mac,
-                   std::string_view name,
-                   family fam,
-                   std::string_view arg1,
-                   std::string_view arg2,
-                   const Value& value,
-                   std::string& output) {
+static std::string resolve(macro_context& mac,
+                           std::string_view name,
+                           family fam,
+                           std::string_view arg1,
+                           std::string_view arg2,
+                           const Value& value) {
   /* The object of the context, or the object called object_name. */
   auto single = [&](auto* obj, family kind,
-                    std::string_view object_name) -> int {
+                    std::string_view object_name) -> std::string {
     if (!obj) {
       if (object_name.empty())
         macros_logger->debug("macro {}: no {} in the context", name,
@@ -160,34 +158,32 @@ static int resolve(macro_context* mac,
       else
         macros_logger->debug("macro {}: {} '{}' not found", name,
                              family_name(kind), object_name);
-      return ERROR;
+      return std::string();
     }
-    output = value(obj);
-    return OK;
+    return value(obj);
   };
   /* $X::separator$: the group name is missing. */
-  auto no_group_name = [&]() -> int {
+  auto no_group_name = [&]() -> std::string {
     macros_logger->debug(
         "macro {}: a group name is expected before the separator '{}'", name,
         arg2);
-    return ERROR;
+    return std::string();
   };
   /* The members of the group called arg1. */
-  auto group = [&](auto* grp, family kind, const auto& members) -> int {
+  auto group = [&](auto* grp, family kind, const auto& members) -> std::string {
     if (!grp) {
       macros_logger->debug("macro {}: {} '{}' not found", name,
                            family_name(kind), arg1);
-      return ERROR;
+      return std::string();
     }
-    output = concatenate(members(*grp), arg2, value);
-    return OK;
+    return concatenate(members(*grp), arg2, value);
   };
 
   switch (fam) {
     case family::host:
       if (arg2.empty()) {
         if (arg1.empty())
-          return single(mac->host_ptr, family::host, arg1);
+          return single(mac.host_ptr, family::host, arg1);
         return single(find_object(host::hosts, arg1), family::host, arg1);
       }
       if (arg1.empty())
@@ -197,58 +193,55 @@ static int resolve(macro_context* mac,
 
     case family::hostgroup:
       if (arg1.empty())
-        return single(mac->hostgroup_ptr, family::hostgroup, arg1);
+        return single(mac.hostgroup_ptr, family::hostgroup, arg1);
       return single(find_object(hostgroup::hostgroups, arg1), family::hostgroup,
                     arg1);
 
     case family::service: {
       if (arg1.empty()) {
         if (arg2.empty())
-          return single(mac->service_ptr, family::service, arg1);
-        if (!mac->host_ptr)
-          return single(mac->host_ptr, family::host, arg1);
+          return single(mac.service_ptr, family::service, arg1);
+        if (!mac.host_ptr)
+          return single(mac.host_ptr, family::host, arg1);
         service* svc = find_object(
             service::services,
-            std::make_pair(std::string_view(mac->host_ptr->name()), arg2));
+            std::make_pair(std::string_view(mac.host_ptr->name()), arg2));
         if (!svc) {
           macros_logger->debug("macro {}: service '{}/{}' not found", name,
-                               mac->host_ptr->name(), arg2);
-          return ERROR;
+                               mac.host_ptr->name(), arg2);
+          return std::string();
         }
-        output = value(svc);
-        return OK;
+        return value(svc);
       }
       if (arg2.empty()) {
         macros_logger->debug(
             "macro {}: a service description or a servicegroup separator is "
             "expected after '{}'",
             name, arg1);
-        return ERROR;
+        return std::string();
       }
       if (service* svc =
-              find_object(service::services, std::make_pair(arg1, arg2))) {
-        output = value(svc);
-        return OK;
-      }
+              find_object(service::services, std::make_pair(arg1, arg2)))
+        return value(svc);
       if (servicegroup* sg = find_object(servicegroup::servicegroups, arg1))
         return group(sg, family::servicegroup,
                      [](const servicegroup& g) -> auto& { return g.members; });
       macros_logger->debug(
           "macro {}: neither service '{}/{}' nor servicegroup '{}' found", name,
           arg1, arg2, arg1);
-      return ERROR;
+      return std::string();
     }
 
     case family::servicegroup:
       if (arg1.empty())
-        return single(mac->servicegroup_ptr, family::servicegroup, arg1);
+        return single(mac.servicegroup_ptr, family::servicegroup, arg1);
       return single(find_object(servicegroup::servicegroups, arg1),
                     family::servicegroup, arg1);
 
     case family::contact:
       if (arg2.empty()) {
         if (arg1.empty())
-          return single(mac->contact_ptr, family::contact, arg1);
+          return single(mac.contact_ptr, family::contact, arg1);
         return single(find_object(contact::contacts, arg1), family::contact,
                       arg1);
       }
@@ -260,12 +253,12 @@ static int resolve(macro_context* mac,
 
     case family::contactgroup:
       if (arg1.empty())
-        return single(mac->contactgroup_ptr, family::contactgroup, arg1);
+        return single(mac.contactgroup_ptr, family::contactgroup, arg1);
       return single(find_object(contactgroup::contactgroups, arg1),
                     family::contactgroup, arg1);
 
     default:
-      return ERROR;
+      return std::string();
   }
 }
 
@@ -277,15 +270,13 @@ static int resolve(macro_context* mac,
  *  @param[in]  macro_name The macro name, without its arguments.
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
  *
- *  @return OK on success.
+ *  @return The value of the macro, empty on failure.
  */
-static int grab_custom_macro_value_r(macro_context* mac,
-                                     std::string_view macro_name,
-                                     std::string_view arg1,
-                                     std::string_view arg2,
-                                     std::string& output) {
+static std::string grab_custom_macro_value(macro_context& mac,
+                                           std::string_view macro_name,
+                                           std::string_view arg1,
+                                           std::string_view arg2) {
   family fam;
   std::string_view name;
   if (absl::StartsWith(macro_name, "_HOST")) {
@@ -297,8 +288,10 @@ static int grab_custom_macro_value_r(macro_context* mac,
   } else if (absl::StartsWith(macro_name, "_CONTACT")) {
     fam = family::contact;
     name = macro_name.substr(8);
-  } else
-    return ERROR;
+  } else {
+    macros_logger->debug("macro {}: unknown custom macro", macro_name);
+    return std::string();
+  }
 
   return resolve(
       mac, macro_name, fam, arg1, arg2,
@@ -325,57 +318,35 @@ static int grab_custom_macro_value_r(macro_context* mac,
                                macro_name, std::get<contact*>(t)->get_name(),
                                name);
         return std::string();
-      },
-      output);
+      });
 }
 
 /**
- *  Get a notification macro.
+ *  Get a date/time macro. $ISVALIDTIME$ and $NEXTVALIDTIME$ take a
+ *  timeperiod name and an optional timestamp, the others use the current
+ *  time.
  *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
+ *  @param[in] mac  The macros.
+ *  @param[in] desc Macro to get.
+ *  @param[in] arg1 Argument 1.
+ *  @param[in] arg2 Argument 2.
  *
- *  @return OK on success.
+ *  @return The value of the macro, empty on failure.
  */
-static int handle_notification_macro(macro_context* mac,
-                                     const descriptor& desc,
-                                     const std::string_view& arg1,
-                                     const std::string_view& arg2,
-                                     std::string& output) {
-  (void)arg1;
-  (void)arg2;
-
-  // Notification macros have already been pre-computed.
-  output = desc.get(macro_target(), mac);
-  return OK;
-}
-
-/**
- *  Get a date/time macro.
- *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *
- *  @return OK on success.
- */
-static int handle_datetime_macro(macro_context* mac,
-                                 const descriptor& desc,
-                                 const std::string_view& arg1,
-                                 const std::string_view& arg2,
-                                 std::string& output) {
+static std::string grab_datetime_macro_value(macro_context& mac,
+                                             const descriptor& desc,
+                                             std::string_view arg1,
+                                             std::string_view arg2) {
   macros::datetime_target target;
   target.when = time(nullptr);
   if (desc.id == MACRO_ISVALIDTIME || desc.id == MACRO_NEXTVALIDTIME) {
     // Find the timeperiod.
     auto it = ::timeperiods.find(arg1);
-    if (it == ::timeperiods.end() || !it->second)
-      return ERROR;
+    if (it == ::timeperiods.end() || !it->second) {
+      macros_logger->debug("macro {}: timeperiod '{}' not found", desc.name,
+                           arg1);
+      return std::string();
+    }
     target.tp = it->second.get();
 
     // What timestamp should we use?
@@ -384,53 +355,7 @@ static int handle_datetime_macro(macro_context* mac,
       target.when = test_time;
   }
 
-  output = desc.get(target, mac);
-  return OK;
-}
-
-/**
- *  Get a static macro.
- *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *
- *  @return OK on success.
- */
-static int handle_static_macro(macro_context* mac,
-                               const descriptor& desc,
-                               const std::string_view& arg1,
-                               const std::string_view& arg2,
-                               std::string& output) {
-  (void)mac;
-  (void)arg1;
-  (void)arg2;
-
-  // No need to do any more work - these are already precomputed for us.
-  output = desc.get(macro_target(), mac);
-  return OK;
-}
-
-/**
- *  Get a summary macro.
- *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
- *
- *  @return OK on success.
- */
-static int handle_summary_macro(macro_context* mac,
-                                const descriptor& desc,
-                                const std::string_view& arg1 [[maybe_unused]],
-                                const std::string_view& arg2 [[maybe_unused]],
-                                std::string& output) {
-  output = desc.get(macro_target(), mac);
-  return OK;
+  return desc.get(target, &mac);
 }
 
 /**************************************
@@ -566,19 +491,165 @@ void generate_summary_macros(macro_context* mac) {
           services_unknown_unhandled};
 }
 
-/* this is the big one */
-int grab_macro_value_r(macro_context* mac,
-                       const std::string_view& macro_name,
-                       std::string& output,
-                       int* clean_options) {
+/**
+ *  Get the value of a macro that is not in the descriptors table: $ARGn$,
+ *  $USERn$, $CONTACTADDRESSn$, the custom macros and the user macros of the
+ *  configuration. The reason of a failure is logged.
+ *
+ *  @param[in] mac        The macros.
+ *  @param[in] macro_name The whole macro, with its arguments.
+ *  @param[in] buf        The macro name, without its arguments.
+ *  @param[in] arg1       Argument 1.
+ *  @param[in] arg2       Argument 2.
+ *
+ *  @return The value of the macro, empty on failure.
+ */
+static std::string grab_other_macro_value(macro_context& mac,
+                                          std::string_view macro_name,
+                                          std::string_view buf,
+                                          std::string_view arg1,
+                                          std::string_view arg2) {
+  unsigned int x;
+
+  /***** ARGV MACROS *****/
+  if (macro_name.size() > 3 && macro_name.compare(0, 3, "ARG") == 0) {
+    /* which arg do we want? */
+    if (!absl::SimpleAtoi(macro_name.substr(3), &x)) {
+      macros_logger->error(
+          "Error: could not grab macro value : '{}' must be a positive integer",
+          macro_name.substr(3));
+      return std::string();
+    }
+
+    if (!x || x > MAX_COMMAND_ARGUMENTS) {
+      macros_logger->debug("macro {}: the number must be between 1 and {}",
+                           macro_name, MAX_COMMAND_ARGUMENTS);
+      return std::string();
+    }
+
+    /* use a pre-computed macro value */
+    return mac.argv[x - 1];
+  }
+
+  /***** USER MACROS *****/
+  if (macro_name.size() > 4 && macro_name.compare(0, 4, "USER") == 0) {
+    /* which macro do we want? */
+    if (!absl::SimpleAtoi(macro_name.substr(4), &x)) {
+      macros_logger->error(
+          "Error: could not grab macro value : '{}' must be a positive integer",
+          macro_name.substr(4));
+      return std::string();
+    }
+
+    if (!x || x > MAX_USER_MACROS) {
+      macros_logger->debug("macro {}: the number must be between 1 and {}",
+                           macro_name, MAX_USER_MACROS);
+      return std::string();
+    }
+
+    /* use a pre-computed macro value */
+    return macro_user[x - 1];
+  }
+
+  /***** CONTACT ADDRESS MACROS *****/
+  if (buf.size() > 14 && buf.compare(0, 14, "CONTACTADDRESS") == 0) {
+    /* which address do we want? (buf, the name without the arguments of an
+     * on-demand macro) */
+    if (!absl::SimpleAtoi(buf.substr(14), &x)) {
+      macros_logger->error(
+          "Error: could not grab macro value : '{}' must be a positive integer",
+          buf.substr(14));
+      return std::string();
+    }
+    x -= 1;
+
+    return resolve(mac, buf, family::contact, arg1, arg2,
+                   [x, buf](const macro_target& t) -> std::string {
+                     if (x >= MAX_CONTACT_ADDRESSES) {
+                       macros_logger->debug(
+                           "macro {}: the address number must be between 1 "
+                           "and {}",
+                           buf, MAX_CONTACT_ADDRESSES);
+                       return std::string();
+                     }
+                     /* the contact may have less than MAX_CONTACT_ADDRESSES
+                      * addresses */
+                     const contact* cntct = std::get<contact*>(t);
+                     if (x < cntct->get_addresses().size())
+                       return cntct->get_address(x);
+                     return std::string();
+                   });
+  }
+
+  /***** CUSTOM VARIABLE MACROS *****/
+  if (macro_name[0] == '_')
+    return grab_custom_macro_value(mac, buf, arg1, arg2);
+
+  /*** New style user macros ***/
+  const auto& user_macros =
+      configuration::applier::state::instance().user_macros();
+  auto it = user_macros.find(macro_name);
+  if (it != user_macros.end())
+    return it->second;
+
+  /* no macro matched... */
+  macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
+                       macro_name);
+  return std::string();
+}
+
+/**
+ *  Decrypt the value of a macro if the credentials are encrypted: a "raw::"
+ *  value is kept as is without its prefix, an "encrypt::" value is
+ *  decrypted. On failure, the value is not changed.
+ *
+ *  @param[in]     macro_name The macro, for the logs.
+ *  @param[in,out] value      The value of the macro.
+ */
+static void decrypt_macro_value(std::string_view macro_name,
+                                std::string& value) {
+  if (!pb_indexed_config.state().credentials_encryption())
+    return;
+  if (!value.compare(0, 5, "raw::")) {
+    value.erase(0, 5);
+  } else if (!value.compare(0, 9, "encrypt::")) {
+    if (!credentials_decrypt) {
+      SPDLOG_LOGGER_ERROR(macros_logger,
+                          "no encryption configured => can't decryp macro {}",
+                          macro_name);
+      return;
+    }
+    try {
+      value = credentials_decrypt->decrypt(std::string_view(value).substr(9));
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(macros_logger,
+                          "fail to decrypt content of macro {}: {}", macro_name,
+                          e.what());
+    }
+  }
+}
+
+/**
+ *  Get the value of a macro, given without its '$': its name and its
+ *  arguments separated by ':'. The reason of a failure is logged.
+ *
+ *  @param[in] mac           The macros.
+ *  @param[in] macro_name    The macro, as "NAME", "NAME:arg1" or
+ *                           "NAME:arg1:arg2".
+ *  @param[in] strip_illegal Whether the illegal characters are removed from
+ *                           the value. They are always removed from the
+ *                           macros whose descriptor says so.
+ *
+ *  @return The value of the macro, empty on failure.
+ */
+std::string grab_macro_value(macro_context& mac,
+                             std::string_view macro_name,
+                             bool strip_illegal) {
+  if (macro_name.empty())
+    return std::string();
+
   std::string_view buf;
   std::string_view arg[2];
-
-  unsigned int x;
-  int result = OK;
-
-  if (macro_name.empty() || clean_options == nullptr)
-    return ERROR;
 
   /* split the name and its arguments */
   auto arr = absl::StrSplit(macro_name, ':');
@@ -600,149 +671,40 @@ int grab_macro_value_r(macro_context* mac,
     arg[1] = *it;
   }
 
+  std::string retval;
   /***** X MACROS *****/
   const descriptor* desc = find_descriptor(buf);
   if (desc) {
     macros_logger->trace("  macros[{}] ({}) match.", desc->id, desc->name);
-
-    /* get the macro value */
-    result = grab_macrox_value_r(mac, *desc, arg[0], arg[1], output);
-
-    /* post-processing */
-    if (desc->cleaned) {
-      *clean_options |= STRIP_ILLEGAL_MACRO_CHARS;
-      macros_logger->trace("  New clean options: {}", *clean_options);
-    }
-  }
-  /***** ARGV MACROS *****/
-  else if (macro_name.size() > 3 && macro_name.compare(0, 3, "ARG") == 0) {
-    /* which arg do we want? */
-    if (!absl::SimpleAtoi(macro_name.substr(3), &x)) {
-      macros_logger->error(
-          "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.substr(3));
-      return ERROR;
-    }
-
-    if (!x || x > MAX_COMMAND_ARGUMENTS) {
-      return ERROR;
-    }
-
-    /* use a pre-computed macro value */
-    output = mac->argv[x - 1];
-  }
-  /***** USER MACROS *****/
-  else if (macro_name.size() > 4 && macro_name.compare(0, 4, "USER") == 0) {
-    /* which macro do we want? */
-    if (!absl::SimpleAtoi(macro_name.substr(4), &x)) {
-      macros_logger->error(
-          "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.substr(4));
-      return ERROR;
-    }
-
-    if (!x || x > MAX_USER_MACROS) {
-      return ERROR;
-    }
-
-    /* use a pre-computed macro value */
-    output = macro_user[x - 1];
-  }
-
-  /***** CONTACT ADDRESS MACROS *****/
-  else if (buf.size() > 14 && buf.compare(0, 14, "CONTACTADDRESS") == 0) {
-    /* which address do we want? (buf, the name without the arguments of an
-     * on-demand macro) */
-    if (!absl::SimpleAtoi(buf.substr(14), &x)) {
-      macros_logger->error(
-          "Error: could not grab macro value : '{}' must be a positive integer",
-          buf.substr(14));
-      return ERROR;
-    }
-    x -= 1;
-
-    result = resolve(
-        mac, buf, family::contact, arg[0], arg[1],
-        [x, buf](const macro_target& t) -> std::string {
-          if (x >= MAX_CONTACT_ADDRESSES) {
-            macros_logger->debug(
-                "macro {}: the address number must be between 1 and {}", buf,
-                MAX_CONTACT_ADDRESSES);
-            return std::string();
-          }
-          /* the contact may have less than MAX_CONTACT_ADDRESSES addresses */
-          const contact* cntct = std::get<contact*>(t);
-          if (x < cntct->get_addresses().size())
-            return cntct->get_address(x);
-          return std::string();
-        },
-        output);
-  }
-  /***** CUSTOM VARIABLE MACROS *****/
-  else if (macro_name[0] == '_') {
-    /* get the macro value */
-
-    result = grab_custom_macro_value_r(mac, buf, arg[0], arg[1], output);
-  } else if (configuration::applier::state::instance().user_macros().find(
-                 macro_name) !=
-             configuration::applier::state::instance().user_macros().end()) {
-    /*** New style user macros ***/
-    output = configuration::applier::state::instance()
-                 .user_macros_find(macro_name)
-                 ->second;
-    result = true;
-  }
-  /* no macro matched... */
-  else {
-    macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
-                         macro_name);
-    result = ERROR;
-  }
+    retval = grab_macrox_value(mac, *desc, arg[0], arg[1]);
+    if (desc->cleaned)
+      strip_illegal = true;
+  } else
+    retval = grab_other_macro_value(mac, macro_name, buf, arg[0], arg[1]);
 
   // some macros are encrypted?
-  if (pb_indexed_config.state().credentials_encryption()) {
-    if (!output.compare(0, 5, "raw::")) {
-      output.erase(0, 5);
-    } else if (!output.compare(0, 9, "encrypt::")) {
-      if (!credentials_decrypt) {
-        SPDLOG_LOGGER_ERROR(macros_logger,
-                            "no encryption configured => can't decryp macro {}",
-                            macro_name);
-        return ERROR;
-      }
-      try {
-        output =
-            credentials_decrypt->decrypt(std::string_view(output).substr(9));
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(macros_logger,
-                            "fail to decrypt content of macro {}: {}",
-                            macro_name, e.what());
-      }
-    }
-  }
+  decrypt_macro_value(macro_name, retval);
 
-  return result;
+  if (strip_illegal)
+    strip_illegal_macro_chars(retval);
+  return retval;
 }
 
 /**
- *  Grab a macro value.
+ *  Get the value of a macro of the descriptors table. The reason of a
+ *  failure is logged.
  *
- *  @param[out] mac        Macro object.
- *  @param[in]  desc       Macro to get.
- *  @param[in]  arg1       Argument 1.
- *  @param[in]  arg2       Argument 2.
- *  @param[out] output     Output buffer.
+ *  @param[in] mac  The macros.
+ *  @param[in] desc Macro to get.
+ *  @param[in] arg1 Argument 1.
+ *  @param[in] arg2 Argument 2.
  *
- *  @return OK on success.
+ *  @return The value of the macro, empty on failure.
  */
-int grab_macrox_value_r(macro_context* mac,
-                        const descriptor& desc,
-                        const std::string_view& arg1,
-                        const std::string_view& arg2,
-                        std::string& output) {
-  if (!mac)
-    return ERROR;
-
+std::string grab_macrox_value(macro_context& mac,
+                              const descriptor& desc,
+                              std::string_view arg1,
+                              std::string_view arg2) {
   switch (desc.fam) {
     case family::host:
     case family::hostgroup:
@@ -752,16 +714,14 @@ int grab_macrox_value_r(macro_context* mac,
     case family::contactgroup:
       return resolve(
           mac, desc.name, desc.fam, arg1, arg2,
-          [&desc, mac](const macro_target& t) { return desc.get(t, mac); },
-          output);
-    case family::notification:
-      return handle_notification_macro(mac, desc, arg1, arg2, output);
+          [&desc, &mac](const macro_target& t) { return desc.get(t, &mac); });
     case family::datetime:
-      return handle_datetime_macro(mac, desc, arg1, arg2, output);
+      return grab_datetime_macro_value(mac, desc, arg1, arg2);
+    case family::notification:
     case family::statics:
-      return handle_static_macro(mac, desc, arg1, arg2, output);
     case family::summary:
-      return handle_summary_macro(mac, desc, arg1, arg2, output);
+      // Computed from the macros, or precomputed for us.
+      return desc.get(macro_target(), &mac);
   }
-  return ERROR;
+  return std::string();
 }

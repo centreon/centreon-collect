@@ -24,111 +24,60 @@
 
 using namespace com::centreon::engine;
 
-/*
- * replace macros in notification commands with their values,
- * the thread-safe version
+/**
+ *  Replace the macros of a line by their values. "$$" gives a '$', a '$'
+ *  without its closing '$' is dropped.
+ *
+ *  @param[in] mac     The macros.
+ *  @param[in] input   The line.
+ *  @param[in] options STRIP_ILLEGAL_MACRO_CHARS to remove the illegal
+ *                     characters from all the values, they are always
+ *                     removed from the macros whose descriptor says so.
+ *
+ *  @return The line with the values of its macros.
  */
-int process_macros_r(macro_context* mac,
-                     std::string const& input_buffer,
-                     std::string& output_buffer,
-                     int options) {
-  std::string cleaned_macro;
-  int result = OK;
-  int clean_options = 0;
-  int macro_options = 0;
+std::string process_macros(macro_context& mac,
+                           std::string_view input,
+                           int options) {
+  std::string retval;
 
-  functions_logger->trace("process_macros_r()");
+  functions_logger->trace("process_macros()");
 
-  output_buffer = "";
-
-  if (input_buffer.empty())
-    return ERROR;
+  if (input.empty())
+    return retval;
 
   macros_logger->trace("**** BEGIN MACRO PROCESSING **** Processing: '{}'",
-                       input_buffer);
+                       input);
 
-  for (std::string::const_iterator it{input_buffer.begin()},
-       end{input_buffer.end()};
-       it != end; ++it) {
-    if (*it == '$') {
-      if (std::next(it) == input_buffer.end())
-        ;                                // last character is a dollar
-      else if (*std::next(it) == '$') {  //$$ => $ escape
-        output_buffer += "$";
-        ++it;
-      } else {
-        long int where{it - input_buffer.begin()};
-        size_t pos{input_buffer.find("$", where + 1)};
-
-        if (pos != std::string::npos) {
-          std::string_view token(input_buffer.data() + where + 1,
-                                 pos - where - 1);
-          std::string token_resolved;
-          /* reset clean options */
-          clean_options = 0;
-
-          /* grab the macro value */
-          result =
-              grab_macro_value_r(mac, token, token_resolved, &clean_options);
-
-          macros_logger->trace("  Processed '{}', To '{}', Clean Options: {}",
-                               token, token_resolved, clean_options);
-
-          /* an error occurred - we couldn't parse the macro, so continue on */
-          if (result == ERROR) {
-            macros_logger->trace(
-                " WARNING: An error occurred processing macro '{}'!", token);
-          }
-
-          /* insert macro */
-          if (!token_resolved.empty()) {
-            macros_logger->trace("  Processed '{}', Clean Options: {}", token,
-                                 clean_options);
-
-            /* include any cleaning options passed back to us */
-            macro_options = (options | clean_options);
-
-            macros_logger->trace(
-                "  Cleaning options: global={}, local={}, effective={}",
-                options, clean_options, macro_options);
-
-            /* some macros are cleaned... */
-            if (macro_options & STRIP_ILLEGAL_MACRO_CHARS) {
-              /* add the (cleaned) processed macro to the end of the already
-               * processed buffer */
-              cleaned_macro = clean_macro_chars(token_resolved, macro_options);
-              if (!cleaned_macro.empty()) {
-                output_buffer.append(cleaned_macro);
-
-                macros_logger->trace(
-                    "  Cleaned macro.  Running output ({}): '{}'",
-                    output_buffer.length(), output_buffer);
-              }
-            } else {
-              /* add the processed macro to the end of the already processed
-               * buffer */
-              output_buffer.append(token_resolved);
-
-              macros_logger->trace(
-                  "  Uncleaned macro.  Running output ({}): '{}'",
-                  output_buffer.length(), output_buffer);
-            }
-
-            macros_logger->trace(
-                "  Just finished macro.  Running output ({}): '{}'",
-                output_buffer.length(), output_buffer);
-          }
-
-          it += pos - where;
-        }
-      }
-    } else {
-      output_buffer += *it;
+  const bool strip_illegal = options & STRIP_ILLEGAL_MACRO_CHARS;
+  for (auto it = input.begin(), end = input.end(); it != end; ++it) {
+    if (*it != '$') {
+      retval += *it;
+      continue;
     }
+    // A last '$' is dropped.
+    if (std::next(it) == end)
+      continue;
+    // "$$" gives a '$'.
+    if (*std::next(it) == '$') {
+      retval += '$';
+      ++it;
+      continue;
+    }
+    const size_t where = it - input.begin();
+    const size_t pos = input.find('$', where + 1);
+    // A '$' without its closing '$' is dropped.
+    if (pos == std::string_view::npos)
+      continue;
+
+    const std::string_view token = input.substr(where + 1, pos - where - 1);
+    const std::string value = grab_macro_value(mac, token, strip_illegal);
+    macros_logger->trace("  Processed '{}', To '{}'", token, value);
+    retval.append(value);
+    it += pos - where;
   }
 
   macros_logger->trace(
-      "  Done.  Final output: '{}' **** END MACRO PROCESSING ****",
-      output_buffer);
-  return OK;
+      "  Done.  Final output: '{}' **** END MACRO PROCESSING ****", retval);
+  return retval;
 }

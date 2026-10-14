@@ -25,15 +25,14 @@
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/macros/descriptors.hh"
 
-int grab_macro_value_r(macro_context* mac,
-                       const std::string_view& macro_name,
-                       std::string& output,
-                       int* clean_options);
+std::string grab_macro_value(macro_context& mac,
+                             std::string_view macro_name,
+                             bool strip_illegal);
 void generate_summary_macros(macro_context* mac);
-int grab_macrox_value_r(macro_context* mac,
-                        const com::centreon::engine::macros::descriptor& desc,
-                        const std::string_view& arg1,
-                        const std::string_view& arg2,
-                        std::string& output);
+std::string grab_macrox_value(
+    macro_context& mac,
+    const com::centreon::engine::macros::descriptor& desc,
+    std::string_view arg1,
+    std::string_view arg2);
 
 #endif  // !CCE_MACROS_GRAB_VALUE_HH

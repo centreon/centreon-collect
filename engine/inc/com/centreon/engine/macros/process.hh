@@ -24,9 +24,8 @@
 
 #include "com/centreon/engine/macros/defines.hh"
 
-int process_macros_r(macro_context* mac,
-                     std::string const& input_buffer,
-                     std::string& output_buffer,
-                     int options);
+std::string process_macros(macro_context& mac,
+                           std::string_view input,
+                           int options);
 
 #endif  // !CCE_MACROS_PROCESS_HH

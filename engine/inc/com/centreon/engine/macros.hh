@@ -23,7 +23,6 @@
 #include "com/centreon/engine/macros/grab_value.hh"
 #include "com/centreon/engine/macros/process.hh"
 
-// cleans macros characters before insertion into output string
-std::string clean_macro_chars(std::string const& macro, int options);
+void strip_illegal_macro_chars(std::string& value);
 
 #endif  // !CCE_MACROS_HH

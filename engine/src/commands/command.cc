@@ -136,9 +136,7 @@ void commands::command::set_listener(
  *  @return The processed command line.
  */
 std::string commands::command::process_cmd(macro_context* macros) const {
-  std::string command_line;
-  process_macros_r(macros, this->get_command_line(), command_line, 0);
-  return command_line;
+  return process_macros(*macros, this->get_command_line(), 0);
 }
 
 /**

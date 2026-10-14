@@ -95,8 +95,8 @@ static void _build_custom_macro_environment(
     boost::process::v2::process_environment& env) {
   for (auto& [name, var] : vars) {
     if (!name.empty()) {
-      std::string value(
-          clean_macro_chars(var.value(), STRIP_ILLEGAL_MACRO_CHARS));
+      std::string value(var.value());
+      strip_illegal_macro_chars(value);
       env.env_buffer.emplace_back(
           fmt::format(MACRO_ENV_VAR_PREFIX "{}{}={}", prefix, name, value));
     }
@@ -142,7 +142,7 @@ static void _build_macrosx_environment(
      * cached. */
     if (desc.fam != com::centreon::engine::macros::family::summary ||
         !use_large_installation_tweaks || macros.summary) {
-      grab_macrox_value_r(&macros, desc, "", "", value);
+      value = grab_macrox_value(macros, desc, "", "");
     }
     env.env_buffer.emplace_back(
         fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, value));
