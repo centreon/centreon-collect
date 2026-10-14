@@ -377,9 +377,8 @@ class MacroGolden : public TestEngine {
 
   /**
    * @brief Evaluate a line and format the record of the reference file:
-   * "<context> <options> <line> => [0] <output>", with the line and the
-   * output C-escaped. The "[0]" is the return code process_macros_r() had,
-   * kept to leave the reference file unchanged.
+   * "<context> <options> <line> => <output>", with the line and the output
+   * C-escaped.
    *
    * The members of a group come in no particular order (hash maps), so the
    * output of a group form ('#' separator) or of a *MEMBERS macro (',') is
@@ -401,7 +400,7 @@ class MacroGolden : public TestEngine {
       out = absl::StrJoin(parts, "#");
     }
     return absl::StrCat(ctx_name(c), " ", options, " ", absl::CEscape(line),
-                        " => [0] ", absl::CEscape(out));
+                        " => ", absl::CEscape(out));
   }
 
   /* The flow of a check: the context, the arguments, the command line. */

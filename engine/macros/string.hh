@@ -129,9 +129,9 @@ inline std::string check_type_string(const checkable& chk) {
  *
  *  @return The value with its macros processed.
  */
-inline std::string recursive_string(macro_context* mac,
+inline std::string recursive_string(macro_context& mac,
                                     const std::string& value) {
-  return process_macros(*mac, value, 0);
+  return process_macros(mac, value, 0);
 }
 
 }  // namespace com::centreon::engine::macros

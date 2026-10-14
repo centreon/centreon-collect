@@ -17,28 +17,15 @@
  *
  */
 
-#include "engine/macros/descriptors.hh"
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_cat.h>
-#include <fmt/format.h>
 
 #include <algorithm>
-#include <array>
-#include <list>
-#include <string>
 
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/service.hh"
-#include "com/centreon/engine/servicegroup.hh"
-#include "com/centreon/engine/shared.hh"
-#include "common/timeperiods/timeperiod.hh"
-#include "engine/macros/macro_context.hh"
 #include "engine/macros/resolve.hh"
 #include "engine/macros/string.hh"
 #include "engine/macros/summary.hh"
@@ -176,14 +163,14 @@ std::array<uint32_t, MACRO_HOST_SERVICES_COUNT> count_host_services(
  */
 std::string host_total_services(uint32_t macro_id,
                                 host& hst,
-                                macro_context* mac) {
+                                macro_context& mac) {
   // The cache only holds the totals of the context host, those of another
   // host (on-demand macro) are computed each time.
   const size_t index = macro_id - MACRO_TOTALHOSTSERVICES;
-  if (&hst == mac->host_ptr) {
-    if (!mac->host_services)
-      mac->host_services = count_host_services(hst);
-    return fmt::to_string((*mac->host_services)[index]);
+  if (&hst == mac.host_ptr) {
+    if (!mac.host_services)
+      mac.host_services = count_host_services(hst);
+    return fmt::to_string((*mac.host_services)[index]);
   }
   return fmt::to_string(count_host_services(hst)[index]);
 }
@@ -317,9 +304,9 @@ std::string next_valid_time_string(const common::timeperiods::timeperiod& tp,
  *
  *  @return The requested total.
  */
-std::string summary_value(uint32_t macro_id, macro_context* mac) {
+std::string summary_value(uint32_t macro_id, macro_context& mac) {
   generate_summary_macros(mac);
-  return fmt::to_string((*mac->summary)[macro_id - MACRO_TOTALHOSTSUP]);
+  return fmt::to_string((*mac.summary)[macro_id - MACRO_TOTALHOSTSUP]);
 }
 
 /**
@@ -402,16 +389,16 @@ std::string_view notification_type_name(
   [[maybe_unused]] auto [tp, when] = std::get<datetime_target>(target);
 /* Outside of a notification, the notification macros are empty. */
 #define TARGET_notification \
-  if (!mac->notification)   \
+  if (!mac.notification)    \
     return std::string();   \
-  const notification_values& n = *mac->notification;
+  const notification_values& n = *mac.notification;
 #define TARGET_statics
 #define TARGET_summary
 
 /* A getter computing an expression from the target of the family fam and
  * the macros mac. */
 #define G(fam, ...)                                                  \
-  [](const macro_target& target [[maybe_unused]], macro_context* mac \
+  [](const macro_target& target [[maybe_unused]], macro_context& mac \
      [[maybe_unused]]) -> std::string { TARGET_##fam return __VA_ARGS__; }
 
 /* The macro name is built from its id, so they cannot be out of sync. */

@@ -22,7 +22,6 @@
 
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 namespace com::centreon::engine::macros {
 
@@ -47,8 +46,8 @@ bool problem_is_handled(const notifier& n) {
  *
  *  @param[in,out] mac The macros.
  */
-void generate_summary_macros(macro_context* mac) {
-  if (mac->summary)
+void generate_summary_macros(macro_context& mac) {
+  if (mac.summary)
     return;
 
   uint32_t hosts_up = 0;
@@ -116,10 +115,10 @@ void generate_summary_macros(macro_context* mac) {
     }
   };
 
-  if (mac->contact_ptr) {
+  if (mac.contact_ptr) {
     // The totals are filtered by contact: only its objects are counted.
     const contact::notified_objects& objects =
-        mac->contact_ptr->get_notified_objects();
+        mac.contact_ptr->get_notified_objects();
     for (const host* hst : objects.hosts)
       count_host(*hst);
     for (const service* svc : objects.services)
@@ -133,7 +132,7 @@ void generate_summary_macros(macro_context* mac) {
 
   // These macros are time-intensive to compute, and will likely be
   // reused, so save them all for future use, in the order of the macro ids.
-  mac->summary = std::array<uint32_t, MACRO_SUMMARY_COUNT>{
+  mac.summary = std::array<uint32_t, MACRO_SUMMARY_COUNT>{
       hosts_up,
       hosts_down,
       hosts_unreachable,

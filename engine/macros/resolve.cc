@@ -25,7 +25,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
-#include "engine/macros/descriptors.hh"
 #include "engine/macros/process.hh"
 
 namespace com::centreon::engine::macros {
@@ -354,7 +353,7 @@ std::string grab_datetime_macro_value(macro_context& mac,
       target.when = test_time;
   }
 
-  return desc.get(target, &mac);
+  return desc.get(target, mac);
 }
 
 /**
@@ -581,14 +580,14 @@ std::string grab_macrox_value(macro_context& mac,
     case family::contactgroup:
       return resolve(
           mac, desc.name, desc.fam, arg1, arg2,
-          [&desc, &mac](const macro_target& t) { return desc.get(t, &mac); });
+          [&desc, &mac](const macro_target& t) { return desc.get(t, mac); });
     case family::datetime:
       return grab_datetime_macro_value(mac, desc, arg1, arg2);
     case family::notification:
     case family::statics:
     case family::summary:
       // Computed from the macros, or precomputed for us.
-      return desc.get(macro_target(), &mac);
+      return desc.get(macro_target(), mac);
   }
   return std::string();
 }

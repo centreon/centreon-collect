@@ -24,7 +24,7 @@
 
 namespace com::centreon::engine::macros {
 
-void generate_summary_macros(macro_context* mac);
+void generate_summary_macros(macro_context& mac);
 
 }  // namespace com::centreon::engine::macros
 
