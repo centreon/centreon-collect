@@ -32,12 +32,9 @@ int process_macros_r(macro_context* mac,
                      std::string const& input_buffer,
                      std::string& output_buffer,
                      int options) {
-  std::string selected_macro;
   std::string cleaned_macro;
-  int clean_macro = false;
   int result = OK;
   int clean_options = 0;
-  int free_macro = false;
   int macro_options = 0;
 
   functions_logger->trace("process_macros_r()");
@@ -66,19 +63,16 @@ int process_macros_r(macro_context* mac,
         if (pos != std::string::npos) {
           std::string_view token(input_buffer.data() + where + 1,
                                  pos - where - 1);
-          // std::string const& token(
-          //     input_buffer.substr(where + 1, pos - where - 1));
           std::string token_resolved;
           /* reset clean options */
           clean_options = 0;
 
           /* grab the macro value */
-          result = grab_macro_value_r(mac, token, token_resolved,
-                                      &clean_options, &free_macro);
+          result =
+              grab_macro_value_r(mac, token, token_resolved, &clean_options);
 
-          macros_logger->trace(
-              "  Processed '{}', To '{}', Clean Options: {}, Free: {}", token,
-              token_resolved, clean_options, free_macro);
+          macros_logger->trace("  Processed '{}', To '{}', Clean Options: {}",
+                               token, token_resolved, clean_options);
 
           /* an error occurred - we couldn't parse the macro, so continue on */
           if (result == ERROR) {
@@ -88,9 +82,8 @@ int process_macros_r(macro_context* mac,
 
           /* insert macro */
           if (!token_resolved.empty()) {
-            macros_logger->trace(
-                "  Processed '{}', Clean Options: {}, Free: {}", token,
-                clean_options, free_macro);
+            macros_logger->trace("  Processed '{}', Clean Options: {}", token,
+                                 clean_options);
 
             /* include any cleaning options passed back to us */
             macro_options = (options | clean_options);
@@ -100,20 +93,16 @@ int process_macros_r(macro_context* mac,
                 options, clean_options, macro_options);
 
             /* some macros are cleaned... */
-            if (clean_macro || (macro_options & STRIP_ILLEGAL_MACRO_CHARS) ||
-                (macro_options & ESCAPE_MACRO_CHARS)) {
+            if (macro_options & STRIP_ILLEGAL_MACRO_CHARS) {
               /* add the (cleaned) processed macro to the end of the already
                * processed buffer */
-              if (!token_resolved.empty()) {
-                cleaned_macro =
-                    clean_macro_chars(token_resolved, macro_options);
-                if (!cleaned_macro.empty()) {
-                  output_buffer.append(cleaned_macro);
+              cleaned_macro = clean_macro_chars(token_resolved, macro_options);
+              if (!cleaned_macro.empty()) {
+                output_buffer.append(cleaned_macro);
 
-                  macros_logger->trace(
-                      "  Cleaned macro.  Running output ({}): '{}'",
-                      output_buffer.length(), output_buffer);
-                }
+                macros_logger->trace(
+                    "  Cleaned macro.  Running output ({}): '{}'",
+                    output_buffer.length(), output_buffer);
               }
             } else {
               /* add the processed macro to the end of the already processed
@@ -125,8 +114,6 @@ int process_macros_r(macro_context* mac,
                   output_buffer.length(), output_buffer);
             }
 
-            /* free memory if necessary (if we URL encoded the macro or we were
-             * told to do so by grab_macro_value()) */
             macros_logger->trace(
                 "  Just finished macro.  Running output ({}): '{}'",
                 output_buffer.length(), output_buffer);

@@ -2308,7 +2308,7 @@ int host::notify_contact(macro_context* mac,
   bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   SPDLOG_LOGGER_TRACE(functions_logger, "notify_contact_of_host()");
   notifications_logger->debug("** Notifying contact '{}'", cntct->get_name());

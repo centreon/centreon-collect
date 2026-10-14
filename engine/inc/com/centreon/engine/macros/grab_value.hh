@@ -28,14 +28,12 @@
 int grab_macro_value_r(macro_context* mac,
                        const std::string_view& macro_name,
                        std::string& output,
-                       int* clean_options,
-                       int* free_macro);
+                       int* clean_options);
 void generate_summary_macros(macro_context* mac);
 int grab_macrox_value_r(macro_context* mac,
                         const com::centreon::engine::macros::descriptor& desc,
                         const std::string_view& arg1,
                         const std::string_view& arg2,
-                        std::string& output,
-                        int* free_macro);
+                        std::string& output);
 
 #endif  // !CCE_MACROS_GRAB_VALUE_HH

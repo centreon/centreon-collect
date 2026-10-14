@@ -2155,7 +2155,7 @@ int service::obsessive_compulsive_service_check_processor() {
   host* temp_host{get_host_ptr()};
   bool early_timeout = false;
   double exectime = 0.0;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
   macro_context local_macros;
   macro_context* mac(&local_macros);
 
@@ -2955,7 +2955,7 @@ int service::notify_contact(macro_context* mac,
   bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   SPDLOG_LOGGER_TRACE(functions_logger, "notify_contact_of_service()");
   notifications_logger->debug("** Notifying contact '{}'", cntct->get_name());

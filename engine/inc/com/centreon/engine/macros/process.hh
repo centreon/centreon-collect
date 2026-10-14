@@ -24,17 +24,9 @@
 
 #include "com/centreon/engine/macros/defines.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif  // C++
-
 int process_macros_r(macro_context* mac,
                      std::string const& input_buffer,
                      std::string& output_buffer,
                      int options);
-
-#ifdef __cplusplus
-}
-#endif  // C++
 
 #endif  // !CCE_MACROS_PROCESS_HH

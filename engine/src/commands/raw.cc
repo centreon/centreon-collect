@@ -332,8 +332,8 @@ static void _build_custom_macro_environment(std::string_view prefix,
                                             environment& env) {
   for (auto& [name, var] : vars) {
     if (!name.empty()) {
-      std::string value(clean_macro_chars(
-          var.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
+      std::string value(
+          clean_macro_chars(var.value(), STRIP_ILLEGAL_MACRO_CHARS));
       env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}{}={}", prefix, name, value));
     }
   }
@@ -414,8 +414,7 @@ void raw::_build_macrosx_environment(macro_context& macros, environment& env) {
      * cached. */
     if (desc.fam != com::centreon::engine::macros::family::summary ||
         !use_large_installation_tweaks || macros.summary) {
-      int free_macro = 0;
-      grab_macrox_value_r(&macros, desc, "", "", value, &free_macro);
+      grab_macrox_value_r(&macros, desc, "", "", value);
     }
     env.add(fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, value));
   }

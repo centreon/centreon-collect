@@ -337,7 +337,6 @@ static int grab_custom_macro_value_r(macro_context* mac,
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to false.
  *
  *  @return OK on success.
  */
@@ -345,15 +344,12 @@ static int handle_notification_macro(macro_context* mac,
                                      const descriptor& desc,
                                      const std::string_view& arg1,
                                      const std::string_view& arg2,
-                                     std::string& output,
-                                     int* free_macro) {
+                                     std::string& output) {
   (void)arg1;
   (void)arg2;
 
   // Notification macros have already been pre-computed.
   output = desc.get(macro_target(), mac);
-  *free_macro = false;
-
   return OK;
 }
 
@@ -365,8 +361,6 @@ static int handle_notification_macro(macro_context* mac,
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
  *
  *  @return OK on success.
  */
@@ -374,8 +368,7 @@ static int handle_datetime_macro(macro_context* mac,
                                  const descriptor& desc,
                                  const std::string_view& arg1,
                                  const std::string_view& arg2,
-                                 std::string& output,
-                                 int* free_macro) {
+                                 std::string& output) {
   macros::datetime_target target;
   target.when = time(nullptr);
   if (desc.id == MACRO_ISVALIDTIME || desc.id == MACRO_NEXTVALIDTIME) {
@@ -392,7 +385,6 @@ static int handle_datetime_macro(macro_context* mac,
   }
 
   output = desc.get(target, mac);
-  *free_macro = true;
   return OK;
 }
 
@@ -404,7 +396,6 @@ static int handle_datetime_macro(macro_context* mac,
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to false.
  *
  *  @return OK on success.
  */
@@ -412,15 +403,13 @@ static int handle_static_macro(macro_context* mac,
                                const descriptor& desc,
                                const std::string_view& arg1,
                                const std::string_view& arg2,
-                               std::string& output,
-                               int* free_macro) {
+                               std::string& output) {
   (void)mac;
   (void)arg1;
   (void)arg2;
 
   // No need to do any more work - these are already precomputed for us.
   output = desc.get(macro_target(), mac);
-  *free_macro = false;
   return OK;
 }
 
@@ -432,7 +421,6 @@ static int handle_static_macro(macro_context* mac,
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to false.
  *
  *  @return OK on success.
  */
@@ -440,13 +428,8 @@ static int handle_summary_macro(macro_context* mac,
                                 const descriptor& desc,
                                 const std::string_view& arg1 [[maybe_unused]],
                                 const std::string_view& arg2 [[maybe_unused]],
-                                std::string& output,
-                                int* free_macro) {
+                                std::string& output) {
   output = desc.get(macro_target(), mac);
-
-  // Tell caller to NOT free memory when done.
-  *free_macro = false;
-
   return OK;
 }
 
@@ -587,18 +570,17 @@ void generate_summary_macros(macro_context* mac) {
 int grab_macro_value_r(macro_context* mac,
                        const std::string_view& macro_name,
                        std::string& output,
-                       int* clean_options,
-                       int* free_macro) {
+                       int* clean_options) {
   std::string_view buf;
   std::string_view arg[2];
 
   unsigned int x;
   int result = OK;
 
-  if (macro_name.empty() || clean_options == nullptr || free_macro == nullptr)
+  if (macro_name.empty() || clean_options == nullptr)
     return ERROR;
 
-  /* work with a copy of the original buffer */
+  /* split the name and its arguments */
   auto arr = absl::StrSplit(macro_name, ':');
   auto it = arr.begin();
 
@@ -618,42 +600,17 @@ int grab_macro_value_r(macro_context* mac,
     arg[1] = *it;
   }
 
-  // buf = string::dup(macro_name.c_str());
-
-  /* BY DEFAULT, TELL CALLER TO FREE MACRO BUFFER WHEN DONE */
-  *free_macro = true;
-
-  /* see if there's an argument - if so, this is most likely an on-demand macro
-   */
-  // if ((ptr = strchr(buf, ':'))) {
-  //   ptr[0] = '\x0';
-  //   ptr++;
-
-  //  /* save the first argument - host name, hostgroup name, etc. */
-  //  arg[0] = ptr;
-
-  //  /* try and find a second argument */
-  //  if ((ptr = strchr(ptr, ':'))) {
-  //    ptr[0] = '\x0';
-  //    ptr++;
-
-  //    /* save second argument - service description or delimiter */
-  //    arg[1] = ptr;
-  //  }
-  //}
-
   /***** X MACROS *****/
   const descriptor* desc = find_descriptor(buf);
   if (desc) {
     macros_logger->trace("  macros[{}] ({}) match.", desc->id, desc->name);
 
     /* get the macro value */
-    result =
-        grab_macrox_value_r(mac, *desc, arg[0], arg[1], output, free_macro);
+    result = grab_macrox_value_r(mac, *desc, arg[0], arg[1], output);
 
     /* post-processing */
     if (desc->cleaned) {
-      *clean_options |= (STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
+      *clean_options |= STRIP_ILLEGAL_MACRO_CHARS;
       macros_logger->trace("  New clean options: {}", *clean_options);
     }
   }
@@ -673,7 +630,6 @@ int grab_macro_value_r(macro_context* mac,
 
     /* use a pre-computed macro value */
     output = mac->argv[x - 1];
-    *free_macro = false;
   }
   /***** USER MACROS *****/
   else if (macro_name.size() > 4 && macro_name.compare(0, 4, "USER") == 0) {
@@ -691,7 +647,6 @@ int grab_macro_value_r(macro_context* mac,
 
     /* use a pre-computed macro value */
     output = macro_user[x - 1];
-    *free_macro = false;
   }
 
   /***** CONTACT ADDRESS MACROS *****/
@@ -777,8 +732,6 @@ int grab_macro_value_r(macro_context* mac,
  *  @param[in]  arg1       Argument 1.
  *  @param[in]  arg2       Argument 2.
  *  @param[out] output     Output buffer.
- *  @param[out] free_macro Set to true if output buffer must be freed by
- *                         caller.
  *
  *  @return OK on success.
  */
@@ -786,9 +739,8 @@ int grab_macrox_value_r(macro_context* mac,
                         const descriptor& desc,
                         const std::string_view& arg1,
                         const std::string_view& arg2,
-                        std::string& output,
-                        int* free_macro) {
-  if (!mac || !free_macro)
+                        std::string& output) {
+  if (!mac)
     return ERROR;
 
   switch (desc.fam) {
@@ -798,20 +750,18 @@ int grab_macrox_value_r(macro_context* mac,
     case family::servicegroup:
     case family::contact:
     case family::contactgroup:
-      *free_macro = true;
       return resolve(
           mac, desc.name, desc.fam, arg1, arg2,
           [&desc, mac](const macro_target& t) { return desc.get(t, mac); },
           output);
     case family::notification:
-      return handle_notification_macro(mac, desc, arg1, arg2, output,
-                                       free_macro);
+      return handle_notification_macro(mac, desc, arg1, arg2, output);
     case family::datetime:
-      return handle_datetime_macro(mac, desc, arg1, arg2, output, free_macro);
+      return handle_datetime_macro(mac, desc, arg1, arg2, output);
     case family::statics:
-      return handle_static_macro(mac, desc, arg1, arg2, output, free_macro);
+      return handle_static_macro(mac, desc, arg1, arg2, output);
     case family::summary:
-      return handle_summary_macro(mac, desc, arg1, arg2, output, free_macro);
+      return handle_summary_macro(mac, desc, arg1, arg2, output);
   }
   return ERROR;
 }

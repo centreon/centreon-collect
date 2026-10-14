@@ -195,7 +195,6 @@
 
 // Macro Cleaning Options
 #define STRIP_ILLEGAL_MACRO_CHARS 1
-#define ESCAPE_MACRO_CHARS 2
 
 /* Number of $TOTAL*$ macros, from MACRO_TOTALHOSTSUP to
  * MACRO_TOTALSERVICEPROBLEMSUNHANDLED. */

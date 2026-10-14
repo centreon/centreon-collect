@@ -498,9 +498,7 @@ class MacroGolden : public TestEngine {
                              "$SERVICEACTIONURL$",
                              "$SERVICEOUTPUT:h2:s$"};
     for (const char* l : cleaned)
-      for (int options : {STRIP_ILLEGAL_MACRO_CHARS, ESCAPE_MACRO_CHARS,
-                          STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS})
-        retval.push_back(_record(ctx::service, options, l));
+      retval.push_back(_record(ctx::service, STRIP_ILLEGAL_MACRO_CHARS, l));
 
     /* The timeperiod macros on a period, at now (Thursday 08:00) or at a
      * given timestamp: 07:00, 10:00, 20:00 on Thursday and 10:00 on

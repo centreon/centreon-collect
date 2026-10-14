@@ -367,9 +367,8 @@ void BM_HostTotalsComputed(benchmark::State& state) {
 }
 
 void BM_Cleaning(benchmark::State& state) {
-  eval_line(
-      state, "$SERVICEOUTPUT$ $SERVICEPERFDATA$",
-      state.range(0) ? STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS : 0);
+  eval_line(state, "$SERVICEOUTPUT$ $SERVICEPERFDATA$",
+            state.range(0) ? STRIP_ILLEGAL_MACRO_CHARS : 0);
 }
 
 /* What a service check does: its own context, arguments, command line. */
@@ -414,8 +413,7 @@ void BM_NotificationLine(benchmark::State& state) {
   std::string out;
   for (auto _ : state) {
     mac->set_contact(p.cntct);
-    process_macros_r(mac, line, out,
-                     STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
+    process_macros_r(mac, line, out, STRIP_ILLEGAL_MACRO_CHARS);
     benchmark::DoNotOptimize(out);
   }
 }

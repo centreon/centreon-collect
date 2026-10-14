@@ -42,7 +42,7 @@ int obsessive_compulsive_host_check_processor(
   std::string processed_command;
   bool early_timeout = false;
   double exectime = 0.0;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
   macro_context local_macros;
   macro_context* mac(&local_macros);
 
@@ -132,7 +132,7 @@ int run_global_service_event_handler(macro_context* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   functions_logger->trace("run_global_service_event_handler()");
 
@@ -233,7 +233,7 @@ int run_service_event_handler(macro_context* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;
@@ -363,7 +363,7 @@ int run_global_host_event_handler(macro_context* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   functions_logger->trace("run_global_host_event_handler()");
 
@@ -461,7 +461,7 @@ int run_host_event_handler(macro_context* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;

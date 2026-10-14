@@ -6905,35 +6905,15 @@ none 0 $ARG3$ $USER3$ => [0]  with `illegal` <chars> & \'quotes\'
 host 0 $ARG3$ $USER3$ => [0] arg with $ and `backquote` with `illegal` <chars> & \'quotes\'
 svc 0 $ARG3$ $USER3$ => [0] arg with $ and `backquote` with `illegal` <chars> & \'quotes\'
 svc 1 $SERVICEOUTPUT$ => [0] CRITICAL - rm -rf HOME  quoted dquoted tag  pipe
-svc 2 $SERVICEOUTPUT$ => [0] CRITICAL - rm -rf HOME  quoted dquoted tag  pipe
-svc 3 $SERVICEOUTPUT$ => [0] CRITICAL - rm -rf HOME  quoted dquoted tag  pipe
 svc 1 $LONGSERVICEOUTPUT$ => [0] line 1line 2 with dollarline 3
-svc 2 $LONGSERVICEOUTPUT$ => [0] line 1line 2 with dollarline 3
-svc 3 $LONGSERVICEOUTPUT$ => [0] line 1line 2 with dollarline 3
 svc 1 $SERVICEPERFDATA$ => [0] time=10.000000s;5.0;10.0;0.0 size=0B;;;0
-svc 2 $SERVICEPERFDATA$ => [0] time=10.000000s;5.0;10.0;0.0 size=0B;;;0
-svc 3 $SERVICEPERFDATA$ => [0] time=10.000000s;5.0;10.0;0.0 size=0B;;;0
 svc 1 $HOSTOUTPUT$ => [0] PING output of h1
-svc 2 $HOSTOUTPUT$ => [0] PING output of h1
-svc 3 $HOSTOUTPUT$ => [0] PING output of h1
 svc 1 $USER3$ => [0] with illegal chars  quotes
-svc 2 $USER3$ => [0] with `illegal` <chars> & \'quotes\'
-svc 3 $USER3$ => [0] with illegal chars  quotes
 svc 1 $ARG3$ => [0] arg with  and backquote
-svc 2 $ARG3$ => [0] arg with $ and `backquote`
-svc 3 $ARG3$ => [0] arg with  and backquote
 svc 1 $_SERVICEBAR$ => [0] bar-h1s
-svc 2 $_SERVICEBAR$ => [0] bar-h1s
-svc 3 $_SERVICEBAR$ => [0] bar-h1s
 svc 1 $HOSTNOTESURL$ => [0] http://example.com/notes?host=h1
-svc 2 $HOSTNOTESURL$ => [0] http://example.com/notes?host=h1
-svc 3 $HOSTNOTESURL$ => [0] http://example.com/notes?host=h1
 svc 1 $SERVICEACTIONURL$ => [0] http://example.com/action?svc=s
-svc 2 $SERVICEACTIONURL$ => [0] http://example.com/action?svc=s
-svc 3 $SERVICEACTIONURL$ => [0] http://example.com/action?svc=s
 svc 1 $SERVICEOUTPUT:h2:s$ => [0] CRITICAL - rm -rf HOME  quoted dquoted tag  pipe
-svc 2 $SERVICEOUTPUT:h2:s$ => [0] CRITICAL - rm -rf HOME  quoted dquoted tag  pipe
-svc 3 $SERVICEOUTPUT:h2:s$ => [0] CRITICAL - rm -rf HOME  quoted dquoted tag  pipe
 none 0 $ISVALIDTIME:24x7$ => [0] 1
 none 0 $ISVALIDTIME:24x7:1479967200$ => [0] 1
 none 0 $ISVALIDTIME:24x7:1479978000$ => [0] 1
