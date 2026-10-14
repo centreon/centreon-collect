@@ -1,0 +1,40 @@
+name: "centreon-broker-otlp-debuginfo"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Debuginfo package for centreon-broker-otlp.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "../../build/broker/lib/70-otlp.so.debug"
+    dst: "/usr/lib/debug/usr/share/centreon/lib/centreon-broker/"
+
+overrides:
+  rpm:
+    depends:
+      - centreon-broker-otlp = ${VERSION}-${RELEASE}${DIST}
+  deb:
+    depends:
+      - centreon-broker-otlp (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-broker-otlp-dbgsym
+    replaces:
+      - centreon-broker-otlp-dbgsym
+    provides:
+      - centreon-broker-otlp-dbgsym
+
+rpm:
+  summary: Debuginfo package for centreon-broker-otlp.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}
