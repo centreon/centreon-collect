@@ -48,15 +48,6 @@ jobs:
           dest_tags: ${{ env.TEST_TAG }}
           pulp_oidc_audience: ${{ vars.PULP_DEV_OIDC_AUDIENCE }}
 
-      - name: Attest SBOM
-        uses: ./.github/actions/attest-image-sbom
-        with:
-          subject_name: ghcr.io/centreon/centreon-gorgone
-          digest: ${{ steps.promote-pulp-dev.outputs.digest }}
-          scan_image: ${{ env.HARBOR_IMAGE }}
-          amd64_digest: ${{ steps.promote-pulp-dev.outputs.amd64_digest }}
-          arm64_digest: ${{ steps.promote-pulp-dev.outputs.arm64_digest }}
-
       - name: Verify digests and attestations
         if: always() && steps.promote-pulp-dev.outcome == 'success'
         env:
@@ -71,5 +62,9 @@ jobs:
           echo "promoted digest: $DIGEST"
           # anonymous pull of the public distribution
           crane manifest "$PULP_IMAGE:$TEST_TAG" | jq -c '[.mediaType, [.manifests[].platform.architecture]]' || true
-          gh attestation verify "oci://$PULP_IMAGE:$TEST_TAG" --owner centreon --format json \
-            | jq -r '.[].verificationResult.statement.predicateType' | sort | uniq -c || true
+          for pt in https://slsa.dev/provenance/v1 https://spdx.dev/Document/v2.3; do
+            echo "== $pt"
+            gh attestation verify "oci://$PULP_IMAGE:$TEST_TAG" --owner centreon --predicate-type "$pt" --format json \
+              | jq -r '.[].verificationResult.signature.certificate | "\(.buildSignerURI | sub("@.*";"")) @ \(.sourceRepositoryRef)"' \
+              | sort | uniq -c || true
+          done
