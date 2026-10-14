@@ -1294,11 +1294,6 @@ jobs:
         shell: bash
 
   promote-docker-to-pulp-dev:
-    # Test path toward a registry-agnostic delivery (MON-212204), independent
-    # from the ghcr.io job above: copies the Harbor candidate unchanged, so
-    # the build provenance and the SBOM attested below (both keyed by digest)
-    # verify on Pulp. Fully non-blocking; opt-in through the PULP_DEV_*
-    # variables.
     needs: [get-environment]
     if: |
       vars.PULP_DEV_REGISTRY != '' &&
@@ -1310,6 +1305,7 @@ jobs:
       github.repository == 'centreon/centreon-collect' &&
       needs.get-environment.outputs.is_cloud == 'false'
     runs-on: centreon-ubuntu-26.04-small
+    continue-on-error: true
     permissions:
       contents: read
       id-token: write
