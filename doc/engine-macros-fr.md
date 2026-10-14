@@ -15,7 +15,7 @@
 Ce document décrit comment Engine remplace les macros (`$HOSTNAME$`,
 `$SERVICESTATE$`, `$CONTACTEMAIL$`, `$ARG1$`, `$_HOSTFOO$`…) dans les lignes
 de commande des checks, des notifications et des event handlers. Le code est
-dans `engine/src/macros.cc` et `engine/src/macros/`.
+dans `engine/macros/`.
 
 ## 1. Un seul objet `nagios_macros` pour tout Engine
 
