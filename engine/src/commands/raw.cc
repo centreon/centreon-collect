@@ -20,8 +20,9 @@
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/descriptors.hh"
+#include "engine/macros/descriptors.hh"
+#include "engine/macros/process.hh"
+#include "engine/macros/resolve.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

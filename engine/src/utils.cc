@@ -36,10 +36,10 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::common::downtimes;

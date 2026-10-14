@@ -21,7 +21,7 @@
 #ifndef CCE_SEHANDLERS_HH
 #define CCE_SEHANDLERS_HH
 
-#include "com/centreon/engine/macros/defines.hh"
+#include "engine/macros/macro_context.hh"
 
 // Event Handler Types
 #define HOST_EVENTHANDLER 0

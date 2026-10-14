@@ -17,7 +17,7 @@
  *
  */
 #include <gtest/gtest.h>
-#include <com/centreon/engine/macros.hh>
+#include "engine/macros/macro_context.hh"
 
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"

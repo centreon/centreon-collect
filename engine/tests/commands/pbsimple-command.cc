@@ -22,7 +22,7 @@
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 #include <spdlog/common.h>
-#include <com/centreon/engine/macros.hh>
+#include "engine/macros/macro_context.hh"
 
 #include "com/centreon/engine/commands/raw_v2.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"

@@ -29,7 +29,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
@@ -38,6 +37,7 @@
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timezone.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

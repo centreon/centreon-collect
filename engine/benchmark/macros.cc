@@ -54,9 +54,9 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/descriptors.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "engine/macros/descriptors.hh"
+#include "engine/macros/process.hh"
 #include "helper.hh"
 
 using namespace com::centreon::engine;

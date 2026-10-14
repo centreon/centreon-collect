@@ -19,11 +19,10 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <com/centreon/engine/macros/process.hh>
+#include "engine/macros/process.hh"
 
 #include <cstring>
 
-#include <com/centreon/engine/macros.hh>
 #include "../test_engine.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"

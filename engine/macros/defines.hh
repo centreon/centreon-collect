@@ -21,13 +21,7 @@
 #ifndef CCE_MACROS_DEFINES_HH_
 #define CCE_MACROS_DEFINES_HH_
 
-#include <array>
-#include <optional>
-
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/servicegroup.hh"
-#include "common/notifications/notification_types.hh"
+#include <cstddef>
 
 // Length Limitations
 #define MAX_COMMAND_ARGUMENTS 32  // maximum number of $ARGx$ macros
@@ -204,49 +198,5 @@ constexpr size_t MACRO_SUMMARY_COUNT =
  * MACRO_TOTALHOSTSERVICESCRITICAL. */
 constexpr size_t MACRO_HOST_SERVICES_COUNT =
     MACRO_TOTALHOSTSERVICESCRITICAL - MACRO_TOTALHOSTSERVICES + 1;
-
-/**
- * @brief The values of the $NOTIFICATION*$ macros, given by the notification
- * being sent.
- */
-struct notification_values {
-  com::centreon::common::notifications::reason_type type;
-  uint32_t number;
-  bool is_escalated;
-  std::string recipients;
-  std::string author;
-  std::string author_name;
-  std::string author_alias;
-  std::string comment;
-};
-
-/**
- * @brief The context in which the macros are expanded: the objects they are
- * about, the notification being sent and the arguments of the command.
- */
-class macro_context {
- public:
-  void set_host(com::centreon::engine::host* hst);
-  void set_service(com::centreon::engine::service* svc);
-  void set_contact(com::centreon::engine::contact* cntct);
-  void clear_argv();
-  void reset();
-
-  std::array<std::string, MAX_COMMAND_ARGUMENTS> argv;
-  com::centreon::engine::host* host_ptr = nullptr;
-  com::centreon::engine::hostgroup* hostgroup_ptr = nullptr;
-  com::centreon::engine::service* service_ptr = nullptr;
-  com::centreon::engine::servicegroup* servicegroup_ptr = nullptr;
-  com::centreon::engine::contact* contact_ptr = nullptr;
-  com::centreon::engine::contactgroup* contactgroup_ptr = nullptr;
-
-  /* Only set while a notification is sent. */
-  std::optional<notification_values> notification;
-
-  /* Cache of the $TOTAL*$ macros, they depend on contact_ptr. */
-  std::optional<std::array<uint32_t, MACRO_SUMMARY_COUNT>> summary;
-  /* Cache of the $TOTALHOSTSERVICES*$ macros of host_ptr. */
-  std::optional<std::array<uint32_t, MACRO_HOST_SERVICES_COUNT>> host_services;
-};
 
 #endif /* !CCE_MACROS_DEFINES_HH_ */

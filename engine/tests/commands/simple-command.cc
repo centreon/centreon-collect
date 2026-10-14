@@ -19,7 +19,7 @@
 
 #include <gtest/gtest.h>
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
+#include "engine/macros/macro_context.hh"
 
 #include "com/centreon/engine/commands/raw.hh"
 #include "common/tests/timeperiods/utils.hh"

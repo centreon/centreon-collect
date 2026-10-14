@@ -22,10 +22,11 @@
 #ifndef CCE_MACROS_PROCESS_HH
 #define CCE_MACROS_PROCESS_HH
 
-#include "com/centreon/engine/macros/defines.hh"
+#include "engine/macros/macro_context.hh"
 
 std::string process_macros(macro_context& mac,
                            std::string_view input,
                            int options);
+void strip_illegal_macro_chars(std::string& value);
 
 #endif  // !CCE_MACROS_PROCESS_HH

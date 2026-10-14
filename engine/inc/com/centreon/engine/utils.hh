@@ -23,7 +23,7 @@
 #define CCE_UTILS_HH
 
 #include "com/centreon/engine/enginerpc.hh"
-#include "com/centreon/engine/macros/defines.hh"
+#include "engine/macros/macro_context.hh"
 
 #ifdef __cplusplus
 extern "C" {

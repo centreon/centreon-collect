@@ -19,8 +19,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CCE_MACROS_GRAB_HH
-#define CCE_MACROS_GRAB_HH
+#ifndef CCE_MACROS_STRING_HH
+#define CCE_MACROS_STRING_HH
 
 #include <fmt/format.h>
 
@@ -29,7 +29,7 @@
 #include <type_traits>
 
 #include "com/centreon/engine/checkable.hh"
-#include "com/centreon/engine/macros/process.hh"
+#include "engine/macros/process.hh"
 
 namespace com::centreon::engine::macros {
 
@@ -136,4 +136,4 @@ inline std::string recursive_string(macro_context* mac,
 
 }  // namespace com::centreon::engine::macros
 
-#endif  // !CCE_MACROS_GRAB_HH
+#endif  // !CCE_MACROS_STRING_HH

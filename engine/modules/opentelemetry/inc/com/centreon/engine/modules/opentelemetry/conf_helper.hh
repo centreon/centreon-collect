@@ -21,8 +21,8 @@
 #include <absl/container/flat_hash_map.h>
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/service.hh"
+#include "engine/macros/macro_context.hh"
 
 #include "com/centreon/engine/commands/forward.hh"
 

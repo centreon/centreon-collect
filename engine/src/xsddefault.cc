@@ -29,9 +29,9 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "engine/macros/macro_context.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

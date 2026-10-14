@@ -25,11 +25,11 @@
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
+#include "engine/macros/macro_context.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::checks;

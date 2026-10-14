@@ -21,7 +21,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros/grab.hh"
+#include "engine/macros/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

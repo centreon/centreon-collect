@@ -18,9 +18,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "engine/macros/process.hh"
+
+#include <algorithm>
+
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/string.hh"
+#include "engine/macros/resolve.hh"
 
 using namespace com::centreon::engine;
 
@@ -80,4 +83,22 @@ std::string process_macros(macro_context& mac,
   macros_logger->trace(
       "  Done.  Final output: '{}' **** END MACRO PROCESSING ****", retval);
   return retval;
+}
+
+/**
+ *  Remove the illegal characters from the value of a macro: the ASCII
+ *  control characters and the illegal_output_chars of the configuration.
+ *  The non-ASCII characters (Japanese, etc) are kept.
+ *
+ *  @param[in,out] value The value of the macro.
+ */
+void strip_illegal_macro_chars(std::string& value) {
+  const std::string& illegal = pb_indexed_config.state().illegal_output_chars();
+  value.erase(std::remove_if(value.begin(), value.end(),
+                             [&illegal](char c) {
+                               const unsigned char ch = c;
+                               return ch < 32 || ch == 127 ||
+                                      illegal.find(c) != std::string::npos;
+                             }),
+              value.end());
 }

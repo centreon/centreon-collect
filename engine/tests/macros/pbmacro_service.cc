@@ -35,10 +35,9 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/process.hh"
 #include "common/tests/timeperiods/utils.hh"
 #include "common/timeperiods/timeperiod.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

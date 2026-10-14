@@ -29,11 +29,11 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "common/notifications/contact_viability.hh"
 #include "common/notifications/escalation.hh"
 #include "common/timeperiods/timezone.hh"
+#include "engine/macros/macro_context.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;

@@ -21,10 +21,10 @@
 #include <fstream>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros/process.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
 #include "common/timeperiods/timeperiod.hh"
+#include "engine/macros/process.hh"
 
 #include "../helper.hh"
 #include "../test_engine.hh"
@@ -40,8 +40,8 @@
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "com/centreon/engine/macros.hh"
 #include "common/tests/timeperiods/utils.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

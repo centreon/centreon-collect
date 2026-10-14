@@ -402,7 +402,6 @@ set(FILES
     "${SRC_DIR}/hostdependency.cc"
     "${SRC_DIR}/hostescalation.cc"
     "${SRC_DIR}/hostgroup.cc"
-    "${SRC_DIR}/macros.cc"
     "${SRC_DIR}/nebmods.cc"
     "${SRC_DIR}/notifier.cc"
     "${SRC_DIR}/sehandlers.cc"
@@ -442,7 +441,6 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/hostescalation.hh"
     "${INC_DIR}/com/centreon/engine/hostgroup.hh"
     "${INC_DIR}/com/centreon/engine/logging.hh"
-    "${INC_DIR}/com/centreon/engine/macros.hh"
     "${INC_DIR}/com/centreon/engine/nebcallbacks.hh"
     "${INC_DIR}/com/centreon/engine/neberrors.hh"
     "${INC_DIR}/com/centreon/engine/nebmods.hh"
@@ -478,7 +476,6 @@ add_subdirectory(src/commands)
 add_subdirectory(src/compatibility)
 add_subdirectory(src/events)
 add_subdirectory(src/logging)
-add_subdirectory(src/macros)
 add_subdirectory(modules)
 add_subdirectory(src/retention)
 add_subdirectory(enginerpc)
@@ -492,9 +489,13 @@ target_link_libraries(centenginestats PRIVATE centreon_clib fmt::fmt absl::log a
 
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
+# The macros, compiled apart and included in the core library.
+add_subdirectory(macros)
+
 # Library engine target.
 
-add_library(cce_core ${LIBRARY_TYPE} ${FILES})
+add_library(cce_core ${LIBRARY_TYPE} ${FILES}
+                     $<TARGET_OBJECTS:engine_macros>)
 add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib cbmod timeperiods)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})

@@ -1,6 +1,7 @@
 /**
  * Copyright 1999-2010 Ethan Galstad
- * Copyright 2011-2025 Centreon
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2025 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -18,11 +19,19 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CCE_MACROS_HH
-#define CCE_MACROS_HH
-#include "com/centreon/engine/macros/grab_value.hh"
-#include "com/centreon/engine/macros/process.hh"
+#ifndef CCE_MACROS_RESOLVE_HH
+#define CCE_MACROS_RESOLVE_HH
 
-void strip_illegal_macro_chars(std::string& value);
+#include "engine/macros/macro_context.hh"
+#include "engine/macros/descriptors.hh"
 
-#endif  // !CCE_MACROS_HH
+std::string grab_macro_value(macro_context& mac,
+                             std::string_view macro_name,
+                             bool strip_illegal);
+std::string grab_macrox_value(
+    macro_context& mac,
+    const com::centreon::engine::macros::descriptor& desc,
+    std::string_view arg1,
+    std::string_view arg2);
+
+#endif  // !CCE_MACROS_RESOLVE_HH

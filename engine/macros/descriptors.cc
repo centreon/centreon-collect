@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/engine/macros/descriptors.hh"
+#include "engine/macros/descriptors.hh"
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_cat.h>
@@ -34,13 +34,14 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/macros/defines.hh"
-#include "com/centreon/engine/macros/grab.hh"
-#include "com/centreon/engine/macros/grab_value.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/shared.hh"
 #include "common/timeperiods/timeperiod.hh"
+#include "engine/macros/macro_context.hh"
+#include "engine/macros/resolve.hh"
+#include "engine/macros/string.hh"
+#include "engine/macros/summary.hh"
 
 namespace com::centreon::engine::macros {
 
