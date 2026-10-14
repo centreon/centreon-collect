@@ -40,6 +40,8 @@ using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 namespace notifications = com::centreon::common::notifications;
 
+uint64_t notifier::contacts_version = 1;
+
 notifier::notifier(notifications::notifier_type notifier_type,
                    uint64_t host_id,
                    uint64_t service_id,
@@ -139,6 +141,7 @@ notifier::notifier(notifications::notifier_type notifier_type,
 }
 
 notifier::~notifier() {
+  ++contacts_version;
   notifications::notification_manager::forget(_host_id, _service_id);
   checks::checker::forget(this);
 }
@@ -630,37 +633,6 @@ const contactgroup_map& notifier::get_contactgroups() const noexcept {
 }
 
 /**
- *  Tests whether a contact is a contact for a particular notifier.
- *
- *  @param[in] notif Target notifier.
- *  @param[in] cntct Target contact.
- *
- *  @return true or false.
- */
-bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
-                             contact* cntct) {
-  if (!notif || !cntct)
-    return false;
-
-  // Search all individual contacts of this host.
-  for (contact_map::const_iterator it = notif->contacts().begin(),
-                                   end = notif->contacts().end();
-       it != end; ++it)
-    if (it->second.get() == cntct)
-      return true;
-
-  for (contactgroup_map::const_iterator it = notif->get_contactgroups().begin(),
-                                        end = notif->get_contactgroups().end();
-       it != end; ++it) {
-    assert(it->second);
-    if (it->second->get_members().contains(cntct->get_name()))
-      return true;
-  }
-
-  return false;
-}
-
-/**
  * @brief Wire the runtime pointers of the notifier from its configuration
  * names.
  *
@@ -672,6 +644,8 @@ bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
  * cleared here and refilled by those appliers.
  */
 void notifier::resolve_pointers() {
+  ++contacts_version;
+
   // Refilled by {host,service}escalation resolution, which runs afterwards.
   _escalations.clear();
 

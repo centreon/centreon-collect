@@ -22,6 +22,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/notifier.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -58,6 +59,7 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
   }
 
   engine::contactgroup::contactgroups.insert({name, cg});
+  ++notifier::contacts_version;
 }
 
 /**
@@ -91,6 +93,7 @@ void applier::contactgroup::modify_object(
     // delete all old contact group members
     to_modify->mutable_members()->CopyFrom(new_object.members());
     it_obj->second->clear_members();
+    ++notifier::contacts_version;
 
     // Pure wiring: a member that does not exist is skipped (not linked); the
     // existence of the members is validated by state_helper::resolve.
@@ -128,6 +131,7 @@ void applier::contactgroup::remove_object(const std::string& key) {
 
     // Remove contact group (this will effectively delete the object).
     engine::contactgroup::contactgroups.erase(it);
+    ++notifier::contacts_version;
   }
 
   // Remove contact group from the global configuration set.

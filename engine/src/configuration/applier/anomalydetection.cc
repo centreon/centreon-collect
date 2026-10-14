@@ -22,6 +22,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/notifier.hh"
 #include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
@@ -51,7 +52,8 @@ void applier::anomalydetection::add_object(
                       obj.service_description(), obj.host_name());
 
   /* Converted once here, like in applier::service::add_object: configuration
-   * copy, runtime object and service::services key all hold the same strings. */
+   * copy, runtime object and service::services key all hold the same strings.
+   */
   std::string host_name = common::check_string_utf8(obj.host_name());
   std::string service_description =
       common::check_string_utf8(obj.service_description());
@@ -67,13 +69,12 @@ void applier::anomalydetection::add_object(
 
   // Create anomalydetection.
   engine::anomalydetection* ad{add_anomalydetection(
-      obj.host_id(), obj.service_id(), host_name,
-      service_description, display_name, obj.internal_id(),
-      obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
-      obj.status_change(), obj.max_check_attempts(), obj.check_interval(),
-      obj.retry_interval(), obj.notification_interval(),
-      obj.first_notification_delay(), obj.recovery_notification_delay(),
-      obj.notification_period(),
+      obj.host_id(), obj.service_id(), host_name, service_description,
+      display_name, obj.internal_id(), obj.dependent_service_id(),
+      obj.metric_name(), obj.thresholds_file(), obj.status_change(),
+      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
+      obj.notification_interval(), obj.first_notification_delay(),
+      obj.recovery_notification_delay(), obj.notification_period(),
       static_cast<bool>(obj.notification_options() & action_svc_ok),
       static_cast<bool>(obj.notification_options() & action_svc_unknown),
       static_cast<bool>(obj.notification_options() & action_svc_warning),
@@ -365,6 +366,7 @@ void applier::anomalydetection::remove_object(
     // Unregister anomalydetection.
     engine::anomalydetection::services.erase({host_name, service_description});
     engine::anomalydetection::services_by_id.erase(it);
+    ++notifier::contacts_version;
   }
 
   // Remove anomalydetection from the global configuration set.

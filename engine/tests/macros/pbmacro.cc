@@ -1323,6 +1323,86 @@ TEST_F(Macro, PbTotalsFilteredByContactgroup) {
   ASSERT_EQ(totals(nullptr), "2 1");
 }
 
+/* The objects of a contact are cached for the $TOTAL*$ macros: the cache must
+ * follow the configuration changes. h1 notifies c1, h2 notifies the
+ * contactgroup cg. Then h3 is added for c2, cg changes from c1 to c2 and h1 is
+ * removed while it is still held. */
+TEST_F(Macro, PbTotalsFollowConfigurationChanges) {
+  configuration::applier::contact ct_aply;
+  configuration::Contact c1, c2;
+  configuration::contact_helper c1_hlp(&c1), c2_hlp(&c2);
+  fill_pb_configuration_contact(&c1_hlp, "c1", true);
+  fill_pb_configuration_contact(&c2_hlp, "c2", false);
+  ct_aply.add_object(c1);
+  ct_aply.add_object(c2);
+
+  configuration::applier::contactgroup cg_aply;
+  configuration::Contactgroup cg;
+  configuration::contactgroup_helper cg_hlp(&cg);
+  fill_pb_configuration_contactgroup(&cg_hlp, "cg", "c1");
+  cg_aply.add_object(cg);
+
+  configuration::applier::host hst_aply;
+  configuration::Host h1, h2, h3;
+  configuration::host_helper h1_hlp(&h1), h2_hlp(&h2), h3_hlp(&h3);
+  fill_pb_configuration_host(&h1_hlp, "h1", "c1", 1);
+  fill_pb_configuration_host(&h2_hlp, "h2", "", 2);
+  fill_string_group(h2.mutable_contactgroups(), "cg");
+  fill_pb_configuration_host(&h3_hlp, "h3", "c2", 3);
+  hst_aply.add_object(h1);
+  hst_aply.add_object(h2);
+
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  ct_aply.resolve_object(c1);
+  ct_aply.resolve_object(c2);
+  cg_aply.resolve_object(cg);
+  hst_aply.resolve_object(h1);
+  hst_aply.resolve_object(h2);
+
+  auto set_up = [](const char* name) {
+    auto& h = engine::host::hosts.find(name)->second;
+    h->set_current_state(engine::host::state_up);
+    h->set_has_been_checked(true);
+  };
+  set_up("h1");
+  set_up("h2");
+
+  auto totals = [](const char* contact_name) {
+    macro_context local_macros;
+    macro_context* mac(&local_macros);
+    mac->set_contact(
+        engine::contact::contacts.find(contact_name)->second.get());
+    std::string out;
+    process_macros_r(mac, "$TOTALHOSTSUP$", out, 0);
+    return out;
+  };
+  ASSERT_EQ(totals("c1"), "2");
+  ASSERT_EQ(totals("c2"), "0");
+
+  hst_aply.add_object(h3);
+  hst_aply.resolve_object(h3);
+  set_up("h3");
+  ASSERT_EQ(totals("c1"), "2");
+  ASSERT_EQ(totals("c2"), "1");
+
+  configuration::Contactgroup new_cg;
+  configuration::contactgroup_helper new_cg_hlp(&new_cg);
+  fill_pb_configuration_contactgroup(&new_cg_hlp, "cg", "c2");
+  cg_aply.modify_object(&cg, new_cg);
+  ASSERT_EQ(totals("c1"), "1");
+  ASSERT_EQ(totals("c2"), "2");
+
+  /* h1 is still alive while someone holds it: it must no longer be counted
+   * once removed from the configuration. */
+  std::shared_ptr<engine::host> held = engine::host::hosts.find("h1")->second;
+  hst_aply.remove_object(1);
+  ASSERT_EQ(totals("c1"), "0");
+  ASSERT_EQ(totals("c2"), "2");
+  held.reset();
+  ASSERT_EQ(totals("c1"), "0");
+}
+
 /* $CONTACTADDRESSn$ with n greater than the number of addresses of the
  * contact (but not than MAX_CONTACT_ADDRESSES) used to read out of the
  * addresses vector: c1 has two addresses, c2 none. */

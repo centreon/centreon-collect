@@ -37,8 +37,8 @@
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/macros.hh"
-#include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/configuration/applier/runtime_state.hh"
+#include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
@@ -49,6 +49,7 @@
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
+#include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
@@ -225,6 +226,7 @@ void applier::state::clear() {
   engine::serviceescalation::serviceescalations.clear();
   engine::host::hosts.clear();
   engine::host::hosts_by_id.clear();
+  ++notifier::contacts_version;
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
   ::timeperiods.clear();
@@ -260,6 +262,7 @@ applier::state::~state() noexcept {
   engine::serviceescalation::serviceescalations.clear();
   engine::host::hosts.clear();
   engine::host::hosts_by_id.clear();
+  ++notifier::contacts_version;
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
   engine::comment::set_next_comment_id(1llu);
@@ -1615,11 +1618,11 @@ void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
   // Timing.
-  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{
-      {}, {}, {}, {}, {}, {}};
+  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{{}, {}, {},
+                                                                {}, {}, {}};
 
-  /* Read before the flag is set below: this function serves both the startup and
-   * a full reload at runtime, and the durations it prints must not claim to
+  /* Read before the flag is set below: this function serves both the startup
+   * and a full reload at runtime, and the durations it prints must not claim to
    * describe a startup when they describe a reload. */
   const bool starting = !has_already_been_loaded;
 
@@ -1697,9 +1700,9 @@ void applier::state::_processing(configuration::State& new_cfg,
     tv[3] = std::chrono::steady_clock::now();
 
     /* These three were measured and never printed. Same wording as the phases
-     * main.cc emits, so that one regular expression covers the whole startup and
-     * a slow start can be attributed to a phase instead of guessing. Each is
-     * emitted once, at info, on a path that runs once. */
+     * main.cc emits, so that one regular expression covers the whole startup
+     * and a slow start can be attributed to a phase instead of guessing. Each
+     * is emitted once, at info, on a path that runs once. */
     const char* what = starting ? "Startup timing" : "Reload timing";
     using std::chrono::duration_cast;
     using std::chrono::milliseconds;
@@ -1806,8 +1809,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     config_logger->info("Processing differential configuration.");
 
   // Timing.
-  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{
-      {}, {}, {}, {}, {}, {}};
+  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{{}, {}, {},
+                                                                {}, {}, {}};
 
   // Call prelaunch broker event the first time to run applier state.
   if (!has_already_been_loaded)

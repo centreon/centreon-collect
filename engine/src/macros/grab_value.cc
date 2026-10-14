@@ -481,36 +481,30 @@ void generate_summary_macros(macro_context* mac) {
   if (mac->summary)
     return;
 
-  // Get host totals.
   uint32_t hosts_up = 0;
   uint32_t hosts_down = 0;
   uint32_t hosts_down_unhandled = 0;
   uint32_t hosts_unreachable = 0;
   uint32_t hosts_unreachable_unhandled = 0;
-  for (const auto& [name, hst] : host::hosts) {
-    // Filter totals based on contact if necessary.
-    if (mac->contact_ptr &&
-        !is_contact_for_notifier(hst.get(), mac->contact_ptr))
-      continue;
-    switch (hst->get_current_state()) {
+  auto count_host = [&](const host& hst) {
+    switch (hst.get_current_state()) {
       case host::state_up:
-        if (hst->has_been_checked())
+        if (hst.has_been_checked())
           hosts_up++;
         break;
       case host::state_down:
         hosts_down++;
-        if (!problem_is_handled(*hst))
+        if (!problem_is_handled(hst))
           hosts_down_unhandled++;
         break;
       case host::state_unreachable:
         hosts_unreachable++;
-        if (!problem_is_handled(*hst))
+        if (!problem_is_handled(hst))
           hosts_unreachable_unhandled++;
         break;
     }
-  }
+  };
 
-  // Get service totals.
   uint32_t services_ok = 0;
   uint32_t services_warning = 0;
   uint32_t services_warning_unhandled = 0;
@@ -518,21 +512,17 @@ void generate_summary_macros(macro_context* mac) {
   uint32_t services_critical_unhandled = 0;
   uint32_t services_unknown = 0;
   uint32_t services_unknown_unhandled = 0;
-  for (const auto& [key, svc] : service::services) {
-    // Filter totals based on contact if necessary.
-    if (mac->contact_ptr &&
-        !is_contact_for_notifier(svc.get(), mac->contact_ptr))
-      continue;
-    const service::service_state state = svc->get_current_state();
+  auto count_service = [&](const service& svc) {
+    const service::service_state state = svc.get_current_state();
     if (state == service::state_ok) {
-      if (svc->has_been_checked())
+      if (svc.has_been_checked())
         services_ok++;
-      continue;
+      return;
     }
     // The problem of a service whose host is down or unreachable is handled.
-    const host* hst = svc->get_host_ptr();
+    const host* hst = svc.get_host_ptr();
     const bool unhandled =
-        !problem_is_handled(*svc) &&
+        !problem_is_handled(svc) &&
         !(hst && (hst->get_current_state() == host::state_down ||
                   hst->get_current_state() == host::state_unreachable));
     switch (state) {
@@ -554,6 +544,21 @@ void generate_summary_macros(macro_context* mac) {
       default:
         break;
     }
+  };
+
+  if (mac->contact_ptr) {
+    // The totals are filtered by contact: only its objects are counted.
+    const contact::notified_objects& objects =
+        mac->contact_ptr->get_notified_objects();
+    for (const host* hst : objects.hosts)
+      count_host(*hst);
+    for (const service* svc : objects.services)
+      count_service(*svc);
+  } else {
+    for (const auto& [name, hst] : host::hosts)
+      count_host(*hst);
+    for (const auto& [key, svc] : service::services)
+      count_service(*svc);
   }
 
   // These macros are time-intensive to compute, and will likely be

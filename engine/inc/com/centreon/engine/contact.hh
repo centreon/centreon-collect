@@ -52,6 +52,13 @@ class command;
  */
 class contact {
  public:
+  /* The hosts and services this contact is a contact for, directly or by a
+   * contactgroup. */
+  struct notified_objects {
+    std::vector<host*> hosts;
+    std::vector<service*> services;
+  };
+
   contact();
   ~contact();
   contact(contact const& other) = delete;
@@ -132,6 +139,7 @@ class contact {
   get_service_notification_period_ptr() const;
   void set_service_notification_period_ptr(
       com::centreon::common::timeperiods::timeperiod* period);
+  const notified_objects& get_notified_objects();
 
   static contact_map contacts;
 
@@ -162,6 +170,10 @@ class contact {
   com::centreon::common::timeperiods::timeperiod* _host_notification_period_ptr;
   com::centreon::common::timeperiods::timeperiod*
       _service_notification_period_ptr;
+  /* Cache of get_notified_objects(), valid while its version is
+   * notifier::contacts_version. */
+  notified_objects _notified_objects;
+  uint64_t _notified_objects_version = 0;
 };
 
 }  // namespace com::centreon::engine

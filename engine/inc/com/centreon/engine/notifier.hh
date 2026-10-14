@@ -220,6 +220,11 @@ class notifier : public checkable {
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
   void resolve_pointers();
+  /* Incremented each time the contacts of the notifiers may change: when a
+   * notifier is wired, leaves host::hosts or service::services, is destroyed,
+   * or when the members of a contactgroup change. contact keeps raw pointers
+   * on the notifiers and reads them only while this version is unchanged. */
+  static uint64_t contacts_version;
   std::array<common::notifications::notification*, 6>
   get_current_notifications() const;
   int get_pending_flex_downtime() const;
@@ -273,8 +278,5 @@ class notifier : public checkable {
 };
 
 }  // namespace com::centreon::engine
-
-bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
-                             com::centreon::engine::contact* cntct);
 
 #endif  // !CCE_NOTIFIER_HH
