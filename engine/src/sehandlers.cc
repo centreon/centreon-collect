@@ -80,7 +80,7 @@ int obsessive_compulsive_host_check_processor(
       "Raw obsessive compulsive host processor command line: {}", raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(*mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -174,7 +174,7 @@ int run_global_service_event_handler(macro_context* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(*mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -188,7 +188,7 @@ int run_global_service_event_handler(macro_context* mac,
         << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << global_service_event_handler;
-    processed_logentry = process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
     events_logger->debug(processed_logentry);
   }
 
@@ -266,7 +266,7 @@ int run_service_event_handler(macro_context* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(*mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -279,7 +279,7 @@ int run_service_event_handler(macro_context* mac,
         << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << svc->event_handler();
-    processed_logentry = process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 
@@ -404,7 +404,7 @@ int run_global_host_event_handler(macro_context* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(*mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -416,7 +416,7 @@ int run_global_host_event_handler(macro_context* mac,
     oss << "GLOBAL HOST EVENT HANDLER: " << hst->name()
         << "$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << global_host_event_handler;
-    processed_logentry = process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 
@@ -492,7 +492,7 @@ int run_host_event_handler(macro_context* mac,
   events_logger->debug("Raw host event handler command line: {}", raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(*mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -504,7 +504,7 @@ int run_host_event_handler(macro_context* mac,
     oss << "HOST EVENT HANDLER: " << hst->name()
         << ";$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << hst->event_handler();
-    processed_logentry = process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 

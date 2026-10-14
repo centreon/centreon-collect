@@ -126,8 +126,8 @@ TEST_F(MacroHostname, HostProblemId) {
                                    CHECK_OPTION_NONE, 0, true, 0);
     }
 
-    out =
-        process_macros(*mac, fmt::format("$HOSTPROBLEMID:{}$", hst->name()), 0);
+    out = macros::process_macros(
+        *mac, fmt::format("$HOSTPROBLEMID:{}$", hst->name()), 0);
     ASSERT_EQ(out, firstcheck);
 
     for (int i = 0; i < 2; i++) {
@@ -142,7 +142,7 @@ TEST_F(MacroHostname, HostProblemId) {
                                    CHECK_OPTION_NONE, 0, true, 0);
     }
 
-    out = process_macros(*mac, "$HOSTPROBLEMID:test_host$", 0);
+    out = macros::process_macros(*mac, "$HOSTPROBLEMID:test_host$", 0);
     ASSERT_EQ(out, secondcheck);
   };
 
@@ -171,7 +171,7 @@ TEST_F(MacroHostname, TotalHostOk) {
   std::string out;
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSUP$", 1);
+  out = macros::process_macros(*mac, "$TOTALHOSTSUP$", 1);
   ASSERT_EQ(out, "1");
 }
 
@@ -196,7 +196,8 @@ TEST_F(MacroHostname, TotalHostServicesCritical) {
   std::string out;
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSERVICESCRITICAL:test_host$", 1);
+  out =
+      macros::process_macros(*mac, "$TOTALHOSTSERVICESCRITICAL:test_host$", 1);
   ASSERT_EQ(out, "0");
 }
 
@@ -214,7 +215,7 @@ TEST_F(MacroHostname, HostName) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
 
-  out = process_macros(*mac, "$HOSTNAME:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTNAME:test_host$", 0);
   ASSERT_EQ(out, "test_host");
 }
 
@@ -232,7 +233,7 @@ TEST_F(MacroHostname, HostAlias) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
 
-  out = process_macros(*mac, "$HOSTALIAS:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTALIAS:test_host$", 0);
   ASSERT_EQ(out, "test_host");
 }
 
@@ -250,7 +251,7 @@ TEST_F(MacroHostname, HostAddress) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
 
-  out = process_macros(*mac, "$HOSTADDRESS:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTADDRESS:test_host$", 0);
   ASSERT_EQ(out, "127.0.0.1");
 }
 
@@ -270,7 +271,7 @@ TEST_F(MacroHostname, LastHostCheck) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$LASTHOSTCHECK:test_host$", 0);
+  out = macros::process_macros(*mac, "$LASTHOSTCHECK:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -290,7 +291,7 @@ TEST_F(MacroHostname, LastHostStateChange) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$LASTHOSTSTATECHANGE:test_host$", 0);
+  out = macros::process_macros(*mac, "$LASTHOSTSTATECHANGE:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -311,7 +312,7 @@ TEST_F(MacroHostname, HostOutput) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_plugin_output("foo bar!");
-  out = process_macros(*mac, "$HOSTOUTPUT:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTOUTPUT:test_host$", 0);
   ASSERT_EQ(out, "foo bar!");
 }
 
@@ -332,7 +333,7 @@ TEST_F(MacroHostname, HostPerfData) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_perf_data("test");
-  out = process_macros(*mac, "$HOSTPERFDATA:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTPERFDATA:test_host$", 0);
   ASSERT_EQ(out, "test");
 }
 
@@ -352,7 +353,7 @@ TEST_F(MacroHostname, HostState) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTSTATE:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTSTATE:test_host$", 1);
   ASSERT_EQ(out, "UP");
 }
 
@@ -372,7 +373,7 @@ TEST_F(MacroHostname, HostStateID) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_current_state(host::state_down);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTSTATEID:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTSTATEID:test_host$", 1);
   ASSERT_EQ(out, "1");
 }
 
@@ -392,7 +393,7 @@ TEST_F(MacroHostname, HostAttempt) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTATTEMPT:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTATTEMPT:test_host$", 1);
   ASSERT_EQ(out, "1");
 }
 
@@ -414,7 +415,7 @@ TEST_F(MacroHostname, HostExecutionTime) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_execution_time(10.0);
-  out = process_macros(*mac, "$HOSTEXECUTIONTIME:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTEXECUTIONTIME:test_host$", 1);
   ASSERT_EQ(out, "10.000");
 }
 
@@ -435,7 +436,7 @@ TEST_F(MacroHostname, HostLatency) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_latency(100);
-  out = process_macros(*mac, "$HOSTLATENCY:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTLATENCY:test_host$", 1);
   ASSERT_EQ(out, "100.000");
 }
 
@@ -455,7 +456,7 @@ TEST_F(MacroHostname, HostDuration) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTDURATION:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTDURATION:test_host$", 1);
   ASSERT_EQ(out, "5787d 0h 53m 20s");
 }
 
@@ -475,7 +476,7 @@ TEST_F(MacroHostname, HostDurationSec) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTDURATIONSEC:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTDURATIONSEC:test_host$", 1);
   ASSERT_EQ(out, "500000000");
 }
 
@@ -494,7 +495,7 @@ TEST_F(MacroHostname, HostDownTime) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTDOWNTIME:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTDOWNTIME:test_host$", 1);
   ASSERT_EQ(out, "0");
 }
 
@@ -513,7 +514,7 @@ TEST_F(MacroHostname, HostStateType) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTSTATETYPE:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTSTATETYPE:test_host$", 1);
   ASSERT_EQ(out, "HARD");
 }
 
@@ -532,7 +533,7 @@ TEST_F(MacroHostname, HostPercentChange) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTPERCENTCHANGE:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTPERCENTCHANGE:test_host$", 1);
   ASSERT_EQ(out, "0.00");
 }
 
@@ -573,7 +574,7 @@ TEST_F(MacroHostname, HostGroupName) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTGROUPNAME:a$", 1);
+  out = macros::process_macros(*mac, "$HOSTGROUPNAME:a$", 1);
   ASSERT_EQ(out, "temphg");
 }
 
@@ -616,7 +617,7 @@ TEST_F(MacroHostname, HostGroupAlias) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTGROUPALIAS:temphg$", 1);
+  out = macros::process_macros(*mac, "$HOSTGROUPALIAS:temphg$", 1);
   ASSERT_EQ(out, "temphgal");
 }
 
@@ -639,7 +640,7 @@ TEST_F(MacroHostname, LastHostUP) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_last_time_up(30);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$LASTHOSTUP:test_host$", 1);
+  out = macros::process_macros(*mac, "$LASTHOSTUP:test_host$", 1);
   ASSERT_EQ(out, "30");
 }
 
@@ -662,7 +663,7 @@ TEST_F(MacroHostname, LastHostDown) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$LASTHOSTDOWN:test_host$", 1);
+  out = macros::process_macros(*mac, "$LASTHOSTDOWN:test_host$", 1);
   ASSERT_EQ(out, "40");
 }
 
@@ -685,7 +686,7 @@ TEST_F(MacroHostname, LastHostUnreachable) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_last_time_unreachable(50);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$LASTHOSTUNREACHABLE:test_host$", 1);
+  out = macros::process_macros(*mac, "$LASTHOSTUNREACHABLE:test_host$", 1);
   ASSERT_EQ(out, "50");
 }
 
@@ -715,7 +716,7 @@ TEST_F(MacroHostname, HostCheckCommand) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTCHECKCOMMAND:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTCHECKCOMMAND:test_host$", 1);
   ASSERT_EQ(out, "cmd");
 }
 
@@ -736,7 +737,7 @@ TEST_F(MacroHostname, HostDisplayName) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTDISPLAYNAME:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTDISPLAYNAME:test_host$", 1);
   ASSERT_EQ(out, "test_host");
 }
 
@@ -758,7 +759,7 @@ TEST_F(MacroHostname, HostActionUrl) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTACTIONURL:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTACTIONURL:test_host$", 1);
   ASSERT_EQ(out, "test_action_url");
 }
 
@@ -780,7 +781,7 @@ TEST_F(MacroHostname, HostNotesUrl) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTNOTESURL:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTNOTESURL:test_host$", 1);
   ASSERT_EQ(out, "test_notes_url");
 }
 
@@ -802,7 +803,7 @@ TEST_F(MacroHostname, HostNotes) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTNOTES:test_host$", 1);
+  out = macros::process_macros(*mac, "$HOSTNOTES:test_host$", 1);
   ASSERT_EQ(out, "test_notes");
 }
 
@@ -826,7 +827,7 @@ TEST_F(MacroHostname, TotalHostsDown) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_current_state(host::state_down);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSDOWN:test_host$", 1);
+  out = macros::process_macros(*mac, "$TOTALHOSTSDOWN:test_host$", 1);
   ASSERT_EQ(out, "1");
 }
 
@@ -850,7 +851,7 @@ TEST_F(MacroHostname, TotalHostsUnreachable) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_current_state(host::state_unreachable);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSUNREACHABLE:test_host$", 1);
+  out = macros::process_macros(*mac, "$TOTALHOSTSUNREACHABLE:test_host$", 1);
   ASSERT_EQ(out, "1");
 }
 
@@ -872,7 +873,7 @@ TEST_F(MacroHostname, TotalHostsDownUnhandled) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TOTALHOSTSDOWNUNHANDLED:test_host$", 1);
+  out = macros::process_macros(*mac, "$TOTALHOSTSDOWNUNHANDLED:test_host$", 1);
   ASSERT_EQ(out, "0");
 }
 
@@ -894,7 +895,8 @@ TEST_F(MacroHostname, TotalHostsunreachableunhandled) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TOTALHOSTSUNREACHABLEUNHANDLED:test_host$", 1);
+  out = macros::process_macros(*mac,
+                               "$TOTALHOSTSUNREACHABLEUNHANDLED:test_host$", 1);
   ASSERT_EQ(out, "0");
 }
 
@@ -916,7 +918,7 @@ TEST_F(MacroHostname, TotalHostProblems) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TOTALHOSTPROBLEMS:test_host$", 1);
+  out = macros::process_macros(*mac, "$TOTALHOSTPROBLEMS:test_host$", 1);
   ASSERT_EQ(out, "0");
 }
 
@@ -938,7 +940,8 @@ TEST_F(MacroHostname, TotalHostProblemsUnhandled) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TOTALHOSTPROBLEMSUNHANDLED:test_host$", 1);
+  out =
+      macros::process_macros(*mac, "$TOTALHOSTPROBLEMSUNHANDLED:test_host$", 1);
   ASSERT_EQ(out, "0");
 }
 
@@ -963,7 +966,7 @@ TEST_F(MacroHostname, HostCheckType) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_current_state(host::state_unreachable);
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTCHECKTYPE:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTCHECKTYPE:test_host$", 0);
   ASSERT_EQ(out, "ACTIVE");
 }
 
@@ -988,7 +991,7 @@ TEST_F(MacroHostname, LongHostOutput) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$LONGHOSTOUTPUT:test_host$", 0);
+  out = macros::process_macros(*mac, "$LONGHOSTOUTPUT:test_host$", 0);
   ASSERT_EQ(out, "test_long_output");
 }
 
@@ -1013,7 +1016,7 @@ TEST_F(MacroHostname, HostNotificationNumber) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTNOTIFICATIONNUMBER:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTNOTIFICATIONNUMBER:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1038,7 +1041,7 @@ TEST_F(MacroHostname, HostNotificationID) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTNOTIFICATIONID:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTNOTIFICATIONID:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1063,7 +1066,7 @@ TEST_F(MacroHostname, HostEventID) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTEVENTID:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTEVENTID:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1088,7 +1091,7 @@ TEST_F(MacroHostname, LastHostEventID) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$LASTHOSTEVENTID:test_host$", 0);
+  out = macros::process_macros(*mac, "$LASTHOSTEVENTID:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1130,7 +1133,7 @@ TEST_F(MacroHostname, HostGroupNames) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTGROUPNAMES:a$", 0);
+  out = macros::process_macros(*mac, "$HOSTGROUPNAMES:a$", 0);
   ASSERT_EQ(out, "temphg");
 }
 
@@ -1155,7 +1158,7 @@ TEST_F(MacroHostname, MaxHostAttempts) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$MAXHOSTATTEMPTS:test_host$", 0);
+  out = macros::process_macros(*mac, "$MAXHOSTATTEMPTS:test_host$", 0);
   ASSERT_EQ(out, "3");
 }
 
@@ -1180,7 +1183,7 @@ TEST_F(MacroHostname, TotalHostServices) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSERVICES:test_host$", 0);
+  out = macros::process_macros(*mac, "$TOTALHOSTSERVICES:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1205,7 +1208,7 @@ TEST_F(MacroHostname, TotalHostServicesOK) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSERVICESOK:test_host$", 0);
+  out = macros::process_macros(*mac, "$TOTALHOSTSERVICESOK:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1230,7 +1233,7 @@ TEST_F(MacroHostname, TotalHostServicesWarning) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSERVICESWARNING:test_host$", 0);
+  out = macros::process_macros(*mac, "$TOTALHOSTSERVICESWARNING:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1255,7 +1258,7 @@ TEST_F(MacroHostname, TotalHostServicesUnknown) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$TOTALHOSTSERVICESUNKNOWN:test_host$", 0);
+  out = macros::process_macros(*mac, "$TOTALHOSTSERVICESUNKNOWN:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1298,7 +1301,7 @@ TEST_F(MacroHostname, HostGroupNotes) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTGROUPNOTES:temphg$", 0);
+  out = macros::process_macros(*mac, "$HOSTGROUPNOTES:temphg$", 0);
   ASSERT_EQ(out, "test_note");
 }
 
@@ -1341,7 +1344,7 @@ TEST_F(MacroHostname, HostGroupNotesUrl) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTGROUPNOTESURL:temphg$", 0);
+  out = macros::process_macros(*mac, "$HOSTGROUPNOTESURL:temphg$", 0);
   ASSERT_EQ(out, "test_note_url");
 }
 
@@ -1384,7 +1387,7 @@ TEST_F(MacroHostname, HostGroupActionUrl) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTGROUPACTIONURL:temphg$", 0);
+  out = macros::process_macros(*mac, "$HOSTGROUPACTIONURL:temphg$", 0);
   ASSERT_EQ(out, "test_action_url");
 }
 
@@ -1427,7 +1430,7 @@ TEST_F(MacroHostname, HostGroupMembers) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTGROUPMEMBERS:temphg$", 0);
+  out = macros::process_macros(*mac, "$HOSTGROUPMEMBERS:temphg$", 0);
   ASSERT_TRUE(out == "c,a" || out == "a,c");
 }
 
@@ -1452,7 +1455,7 @@ TEST_F(MacroHostname, LastHostProblemId) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$LASTHOSTPROBLEMID:test_host$", 0);
+  out = macros::process_macros(*mac, "$LASTHOSTPROBLEMID:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1477,7 +1480,7 @@ TEST_F(MacroHostname, LastHostState) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$LASTHOSTSTATE:test_host$", 0);
+  out = macros::process_macros(*mac, "$LASTHOSTSTATE:test_host$", 0);
   ASSERT_EQ(out, "UP");
 }
 
@@ -1502,7 +1505,7 @@ TEST_F(MacroHostname, LastHostStateID) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$LASTHOSTSTATEID:test_host$", 0);
+  out = macros::process_macros(*mac, "$LASTHOSTSTATEID:test_host$", 0);
   ASSERT_EQ(out, "0");
 }
 
@@ -1527,7 +1530,7 @@ TEST_F(MacroHostname, HostParents) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTPARENTS:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTPARENTS:test_host$", 0);
   ASSERT_EQ(out, "test_parent");
 }
 
@@ -1580,7 +1583,7 @@ TEST_F(MacroHostname, HostChildren) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$HOSTCHILDREN:parent_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTCHILDREN:parent_host$", 0);
   ASSERT_EQ(out, "child_host");
 }
 
@@ -1605,7 +1608,7 @@ TEST_F(MacroHostname, HostID) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTID:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTID:test_host$", 0);
   ASSERT_EQ(out, "12");
 }
 
@@ -1630,6 +1633,6 @@ TEST_F(MacroHostname, HostTimeZone) {
   macro_context* mac(&local_macros);
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
-  out = process_macros(*mac, "$HOSTTIMEZONE:test_host$", 0);
+  out = macros::process_macros(*mac, "$HOSTTIMEZONE:test_host$", 0);
   ASSERT_EQ(out, "test_timezone");
 }

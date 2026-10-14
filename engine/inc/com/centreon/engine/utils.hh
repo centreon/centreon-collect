@@ -32,7 +32,7 @@ extern "C" {
 // Monitoring/Event Handler Functions
 
 // thread-safe version of the above
-int my_system_r(macro_context* mac,
+int my_system_r(com::centreon::engine::macro_context* mac,
                 std::string const& cmd,
                 int timeout,
                 bool* early_timeout,
@@ -45,7 +45,7 @@ char const* my_ctime(time_t const* t);
 // Miscellaneous Functions
 
 // thread-safe version of get_raw_command_line_r()
-int get_raw_command_line_r(macro_context* mac,
+int get_raw_command_line_r(com::centreon::engine::macro_context* mac,
                            com::centreon::engine::commands::command* cmd_ptr,
                            std::string const& cmd,
                            std::string& full_command,
@@ -80,7 +80,7 @@ void parse_check_output(std::string const& buffer,
 #endif  // C++
 
 inline int get_raw_command_line_r(
-    macro_context* mac,
+    com::centreon::engine::macro_context* mac,
     const std::shared_ptr<com::centreon::engine::commands::command> cmd_ptr,
     std::string const& cmd,
     std::string& full_command,

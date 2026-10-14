@@ -25,13 +25,16 @@
 #include "engine/macros/macro_context.hh"
 #include "engine/macros/descriptors.hh"
 
+namespace com::centreon::engine::macros {
+
 std::string grab_macro_value(macro_context& mac,
                              std::string_view macro_name,
                              bool strip_illegal);
-std::string grab_macrox_value(
-    macro_context& mac,
-    const com::centreon::engine::macros::descriptor& desc,
-    std::string_view arg1,
-    std::string_view arg2);
+std::string grab_macrox_value(macro_context& mac,
+                              const descriptor& desc,
+                              std::string_view arg1,
+                              std::string_view arg2);
+
+}  // namespace com::centreon::engine::macros
 
 #endif  // !CCE_MACROS_RESOLVE_HH

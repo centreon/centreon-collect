@@ -29,6 +29,8 @@
 #include "common/notifications/notification_types.hh"
 #include "engine/macros/defines.hh"
 
+namespace com::centreon::engine {
+
 /**
  * @brief The values of the $NOTIFICATION*$ macros, given by the notification
  * being sent.
@@ -50,19 +52,19 @@ struct notification_values {
  */
 class macro_context {
  public:
-  void set_host(com::centreon::engine::host* hst);
-  void set_service(com::centreon::engine::service* svc);
-  void set_contact(com::centreon::engine::contact* cntct);
+  void set_host(host* hst);
+  void set_service(service* svc);
+  void set_contact(contact* cntct);
   void clear_argv();
   void reset();
 
   std::array<std::string, MAX_COMMAND_ARGUMENTS> argv;
-  com::centreon::engine::host* host_ptr = nullptr;
-  com::centreon::engine::hostgroup* hostgroup_ptr = nullptr;
-  com::centreon::engine::service* service_ptr = nullptr;
-  com::centreon::engine::servicegroup* servicegroup_ptr = nullptr;
-  com::centreon::engine::contact* contact_ptr = nullptr;
-  com::centreon::engine::contactgroup* contactgroup_ptr = nullptr;
+  host* host_ptr = nullptr;
+  hostgroup* hostgroup_ptr = nullptr;
+  service* service_ptr = nullptr;
+  servicegroup* servicegroup_ptr = nullptr;
+  contact* contact_ptr = nullptr;
+  contactgroup* contactgroup_ptr = nullptr;
 
   /* Only set while a notification is sent. */
   std::optional<notification_values> notification;
@@ -72,5 +74,7 @@ class macro_context {
   /* Cache of the $TOTALHOSTSERVICES*$ macros of host_ptr. */
   std::optional<std::array<uint32_t, MACRO_HOST_SERVICES_COUNT>> host_services;
 };
+
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_MACROS_MACRO_CONTEXT_HH

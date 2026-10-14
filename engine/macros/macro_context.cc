@@ -23,7 +23,7 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
-using namespace com::centreon::engine;
+namespace com::centreon::engine {
 
 /**
  * @brief Set the host the macros are about, with its first hostgroup. Its
@@ -105,3 +105,5 @@ void macro_context::clear_argv() {
 void macro_context::reset() {
   *this = macro_context();
 }
+
+}  // namespace com::centreon::engine

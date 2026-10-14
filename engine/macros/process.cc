@@ -25,7 +25,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "engine/macros/resolve.hh"
 
-using namespace com::centreon::engine;
+namespace com::centreon::engine::macros {
 
 /**
  *  Replace the macros of a line by their values. "$$" gives a '$', a '$'
@@ -102,3 +102,5 @@ void strip_illegal_macro_chars(std::string& value) {
                              }),
               value.end());
 }
+
+}  // namespace com::centreon::engine::macros

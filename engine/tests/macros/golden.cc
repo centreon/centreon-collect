@@ -393,7 +393,7 @@ class MacroGolden : public TestEngine {
     macro_context local_macros;
     macro_context* mac(&local_macros);
     _set_context(mac, c);
-    std::string out = process_macros(*mac, line, options);
+    std::string out = macros::process_macros(*mac, line, options);
     if (group || line.find("MEMBERS") != std::string::npos) {
       std::vector<std::string_view> parts =
           absl::StrSplit(out, absl::ByAnyChar("#,"));

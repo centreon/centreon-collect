@@ -2333,7 +2333,8 @@ int host::notify_contact(macro_context* mac,
     notifications_logger->debug("Raw notification command: {}", raw_command);
 
     /* process any macros contained in the argument */
-    processed_command = process_macros(*mac, raw_command, macro_options);
+    processed_command = com::centreon::engine::macros::process_macros(
+        *mac, raw_command, macro_options);
     if (processed_command.empty())
       continue;
 

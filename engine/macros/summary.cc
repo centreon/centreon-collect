@@ -24,7 +24,7 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
-using namespace com::centreon::engine;
+namespace com::centreon::engine::macros {
 
 namespace {
 /**
@@ -152,3 +152,5 @@ void generate_summary_macros(macro_context* mac) {
       services_warning_unhandled + services_critical_unhandled +
           services_unknown_unhandled};
 }
+
+}  // namespace com::centreon::engine::macros

@@ -22,6 +22,10 @@
 
 #include "engine/macros/macro_context.hh"
 
+namespace com::centreon::engine::macros {
+
 void generate_summary_macros(macro_context* mac);
+
+}  // namespace com::centreon::engine::macros
 
 #endif  // !CCE_MACROS_SUMMARY_HH

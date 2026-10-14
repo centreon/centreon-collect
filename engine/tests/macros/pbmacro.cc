@@ -109,7 +109,7 @@ TEST_F(Macro, PbPollerName) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$POLLERNAME$", 0);
+  out = macros::process_macros(*mac, "$POLLERNAME$", 0);
   ASSERT_EQ(out, "poller-test");
 }
 
@@ -132,7 +132,7 @@ TEST_F(Macro, PbPollerId) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$POLLERID$", 0);
+  out = macros::process_macros(*mac, "$POLLERID$", 0);
   ASSERT_EQ(out, "42");
 }
 
@@ -152,7 +152,7 @@ TEST_F(Macro, PbLongDateTime) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$LONGDATETIME:test_host$", 0);
+  out = macros::process_macros(*mac, "$LONGDATETIME:test_host$", 0);
   ASSERT_EQ(out, "Tue Nov 5 01:53:20 CET 1985");
 }
 
@@ -172,7 +172,7 @@ TEST_F(Macro, PbShortDateTime) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$SHORTDATETIME:test_host$", 0);
+  out = macros::process_macros(*mac, "$SHORTDATETIME:test_host$", 0);
   ASSERT_EQ(out, "11-05-1985 01:53:20");
 }
 
@@ -192,7 +192,7 @@ TEST_F(Macro, PbDate) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$DATE:test_host$", 0);
+  out = macros::process_macros(*mac, "$DATE:test_host$", 0);
   ASSERT_EQ(out, "11-05-1985");
 }
 
@@ -212,7 +212,7 @@ TEST_F(Macro, PbTime) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TIME:test_host$", 0);
+  out = macros::process_macros(*mac, "$TIME:test_host$", 0);
   ASSERT_EQ(out, "01:53:20");
 }
 
@@ -232,7 +232,7 @@ TEST_F(Macro, PbTimeT) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TIMET:test_host$", 0);
+  out = macros::process_macros(*mac, "$TIMET:test_host$", 0);
   ASSERT_EQ(out, "500000000");
 }
 
@@ -261,7 +261,7 @@ TEST_F(Macro, PbContactName) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTNAME:user$", 1);
+  out = macros::process_macros(*mac, "$CONTACTNAME:user$", 1);
   ASSERT_EQ(out, "user");
 }
 
@@ -290,7 +290,7 @@ TEST_F(Macro, PbContactAlias) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTALIAS:user$", 1);
+  out = macros::process_macros(*mac, "$CONTACTALIAS:user$", 1);
   ASSERT_EQ(out, "user");
 }
 
@@ -319,7 +319,7 @@ TEST_F(Macro, PbContactEmail) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTEMAIL:user$", 1);
+  out = macros::process_macros(*mac, "$CONTACTEMAIL:user$", 1);
   ASSERT_EQ(out, "contact@centreon.com");
 }
 
@@ -348,7 +348,7 @@ TEST_F(Macro, PbContactPager) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTPAGER:user$", 1);
+  out = macros::process_macros(*mac, "$CONTACTPAGER:user$", 1);
   ASSERT_EQ(out, "0473729383");
 }
 
@@ -372,7 +372,7 @@ TEST_F(Macro, PbAdminEmail) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$ADMINEMAIL:test_host$", 1);
+  out = macros::process_macros(*mac, "$ADMINEMAIL:test_host$", 1);
   ASSERT_EQ(out, "contactadmin@centreon.com");
 }
 
@@ -396,7 +396,7 @@ TEST_F(Macro, PbAdminPager) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$ADMINPAGER:test_host$", 1);
+  out = macros::process_macros(*mac, "$ADMINPAGER:test_host$", 1);
   ASSERT_EQ(out, "04737293866");
 }
 
@@ -419,7 +419,7 @@ TEST_F(Macro, PbMainConfigFile) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$MAINCONFIGFILE:test_host$", 1);
+  out = macros::process_macros(*mac, "$MAINCONFIGFILE:test_host$", 1);
   ASSERT_EQ(out, "/tmp/test-config.cfg");
 }
 
@@ -443,7 +443,7 @@ TEST_F(Macro, PbStatusDataFile) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$STATUSDATAFILE:test_host$", 1);
+  out = macros::process_macros(*mac, "$STATUSDATAFILE:test_host$", 1);
   ASSERT_EQ(out, "/usr/local/var/status.dat");
 }
 
@@ -468,7 +468,7 @@ TEST_F(Macro, PbRetentionDataFile) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$RETENTIONDATAFILE:test_host$", 1);
+  out = macros::process_macros(*mac, "$RETENTIONDATAFILE:test_host$", 1);
   ASSERT_EQ(out, "/var/log/centreon-engine/retention.dat");
 }
 
@@ -491,7 +491,7 @@ TEST_F(Macro, PbTempFile) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TEMPFILE:test_host$", 1);
+  out = macros::process_macros(*mac, "$TEMPFILE:test_host$", 1);
   ASSERT_EQ(out, "/tmp/centengine.tmp");
 }
 
@@ -514,7 +514,7 @@ TEST_F(Macro, PbLogFile) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$LOGFILE:test_host$", 1);
+  out = macros::process_macros(*mac, "$LOGFILE:test_host$", 1);
   ASSERT_EQ(out, "/tmp/centengine.log");
 }
 
@@ -538,7 +538,7 @@ TEST_F(Macro, PbCommandFile) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$COMMANDFILE:test_host$", 1);
+  out = macros::process_macros(*mac, "$COMMANDFILE:test_host$", 1);
   ASSERT_EQ(out, "/usr/local/var/rw/centengine.cmd");
 }
 
@@ -561,7 +561,7 @@ TEST_F(Macro, PbTempPath) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$TEMPPATH$", 0);
+  out = macros::process_macros(*mac, "$TEMPPATH$", 0);
   ASSERT_EQ(out, "/tmp");
 }
 
@@ -589,7 +589,7 @@ TEST_F(Macro, PbContactGroupName) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTGROUPNAME:test_contact$", 1);
+  out = macros::process_macros(*mac, "$CONTACTGROUPNAME:test_contact$", 1);
   ASSERT_EQ(out, "test_cg");
 }
 
@@ -616,7 +616,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTGROUPALIAS:test_cg$", 1);
+  out = macros::process_macros(*mac, "$CONTACTGROUPALIAS:test_cg$", 1);
   ASSERT_EQ(out, "test_cg");
 }
 
@@ -643,7 +643,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTGROUPMEMBERS:test_cg$", 1);
+  out = macros::process_macros(*mac, "$CONTACTGROUPMEMBERS:test_cg$", 1);
   ASSERT_EQ(out, "test_contact");
 }
 
@@ -670,7 +670,7 @@ TEST_F(Macro, PbContactGroupNames) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTGROUPNAMES:test_contact$", 1);
+  out = macros::process_macros(*mac, "$CONTACTGROUPNAMES:test_contact$", 1);
   ASSERT_EQ(out, "test_cg");
 }
 
@@ -1003,7 +1003,7 @@ TEST_F(Macro, PbIsValidTime) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$ISVALIDTIME:test$", 1);
+  out = macros::process_macros(*mac, "$ISVALIDTIME:test$", 1);
   ASSERT_EQ(out, "0");
 }
 
@@ -1027,12 +1027,12 @@ TEST_F(Macro, PbIsValidTimeRestricted) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$ISVALIDTIME:workhours$", 1);
+  out = macros::process_macros(*mac, "$ISVALIDTIME:workhours$", 1);
   ASSERT_EQ(out, "0");
-  out = process_macros(
+  out = macros::process_macros(
       *mac, absl::StrCat("$ISVALIDTIME:workhours:", now + 7200, "$"), 1);
   ASSERT_EQ(out, "1");
-  out = process_macros(
+  out = macros::process_macros(
       *mac, absl::StrCat("$ISVALIDTIME:workhours:", now + 43200, "$"), 1);
   ASSERT_EQ(out, "0");
 }
@@ -1059,7 +1059,7 @@ TEST_F(Macro, PbNextValidTime) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$NEXTVALIDTIME:test$", 1);
+  out = macros::process_macros(*mac, "$NEXTVALIDTIME:test$", 1);
   ASSERT_EQ(out, "23:00:00");
 }
 
@@ -1078,7 +1078,7 @@ TEST_F(Macro, PbContactTimeZone) {
   std::string out;
   macro_context local_macros;
   macro_context* mac(&local_macros);
-  out = process_macros(*mac, "$CONTACTTIMEZONE:user$", 1);
+  out = macros::process_macros(*mac, "$CONTACTTIMEZONE:user$", 1);
   ASSERT_EQ(out, "time_test");
 }
 
@@ -1164,7 +1164,7 @@ class MacroCustomOnDemand : public Macro {
       mac->set_contact(engine::contact::contacts.find("c1")->second.get());
     }
     std::string out;
-    out = process_macros(*mac, line, 0);
+    out = macros::process_macros(*mac, line, 0);
     return out;
   }
 
@@ -1242,7 +1242,7 @@ TEST_F(Macro, PbTotalHostsUnhandled) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   std::string out;
-  out = process_macros(
+  out = macros::process_macros(
       *mac,
       "$TOTALHOSTSUP$ $TOTALHOSTSDOWN$ $TOTALHOSTSDOWNUNHANDLED$ "
       "$TOTALHOSTSUNREACHABLE$ $TOTALHOSTSUNREACHABLEUNHANDLED$ "
@@ -1314,7 +1314,8 @@ TEST_F(Macro, PbTotalsFilteredByContactgroup) {
       mac->set_contact(
           engine::contact::contacts.find(contact_name)->second.get());
     std::string out;
-    out = process_macros(*mac, "$TOTALHOSTSUP$ $TOTALSERVICESCRITICAL$", 0);
+    out = macros::process_macros(*mac, "$TOTALHOSTSUP$ $TOTALSERVICESCRITICAL$",
+                                 0);
     return out;
   };
   ASSERT_EQ(totals("c1"), "1 1");
@@ -1375,7 +1376,7 @@ TEST_F(Macro, PbTotalsFollowConfigurationChanges) {
     mac->set_contact(
         engine::contact::contacts.find(contact_name)->second.get());
     std::string out;
-    out = process_macros(*mac, "$TOTALHOSTSUP$", 0);
+    out = macros::process_macros(*mac, "$TOTALHOSTSUP$", 0);
     return out;
   };
   ASSERT_EQ(totals("c1"), "2");
@@ -1426,22 +1427,22 @@ TEST_F(Macro, PbContactAddressOutOfRange) {
   std::string out;
 
   mac->set_contact(engine::contact::contacts.find("c1")->second.get());
-  out = process_macros(*mac,
-                       "[$CONTACTADDRESS1$] [$CONTACTADDRESS2$] "
-                       "[$CONTACTADDRESS3$] [$CONTACTADDRESS6$]",
-                       0);
+  out = macros::process_macros(*mac,
+                               "[$CONTACTADDRESS1$] [$CONTACTADDRESS2$] "
+                               "[$CONTACTADDRESS3$] [$CONTACTADDRESS6$]",
+                               0);
   ASSERT_EQ(out, "[address-one] [address-two] [] []");
   mac->reset();
 
   mac->set_contact(engine::contact::contacts.find("c2")->second.get());
-  out = process_macros(*mac, "[$CONTACTADDRESS1$]", 0);
+  out = macros::process_macros(*mac, "[$CONTACTADDRESS1$]", 0);
   ASSERT_EQ(out, "[]");
   mac->reset();
 
-  out =
-      process_macros(*mac, "[$CONTACTADDRESS2:c1$] [$CONTACTADDRESS3:c1$]", 0);
+  out = macros::process_macros(
+      *mac, "[$CONTACTADDRESS2:c1$] [$CONTACTADDRESS3:c1$]", 0);
   ASSERT_EQ(out, "[address-two] []");
-  out = process_macros(*mac, "[$CONTACTADDRESS1:c2$]", 0);
+  out = macros::process_macros(*mac, "[$CONTACTADDRESS1:c2$]", 0);
   ASSERT_EQ(out, "[]");
 }
 
@@ -1483,7 +1484,7 @@ TEST_F(Macro, PbServicegroupMembers) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   std::string out;
-  out = process_macros(*mac, "$SERVICEGROUPMEMBERS:sg$", 0);
+  out = macros::process_macros(*mac, "$SERVICEGROUPMEMBERS:sg$", 0);
 
   /* The members come in no particular order: compare the sorted pairs. */
   std::vector<std::string_view> items = absl::StrSplit(out, ',');
@@ -1548,12 +1549,12 @@ TEST_F(Macro, PbGroupOfContext) {
   mac->set_host(engine::host::hosts.find("h1")->second.get());
   mac->set_service(engine::service::services.find({"h1", "s"})->second.get());
   mac->set_contact(engine::contact::contacts.find("c1")->second.get());
-  out = process_macros(*mac, line, 0);
+  out = macros::process_macros(*mac, line, 0);
   ASSERT_EQ(out, "[Service group] [h1,s] [Contact group] [c1]");
 
   /* Without context, there is no group. */
   mac->reset();
-  out = process_macros(*mac, line, 0);
+  out = macros::process_macros(*mac, line, 0);
   ASSERT_EQ(out, "[] [] [] []");
 }
 
@@ -1588,7 +1589,8 @@ TEST_F(Macro, PbGroupSkipsEmptyValues) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   std::string out;
-  out = process_macros(*mac, "[$HOSTNOTES:hg:,$] [$HOSTNOTESURL:hg:,$]", 0);
+  out = macros::process_macros(*mac, "[$HOSTNOTES:hg:,$] [$HOSTNOTESURL:hg:,$]",
+                               0);
   ASSERT_EQ(out, "[x] []");
 }
 
@@ -1623,7 +1625,7 @@ TEST_F(Macro, PbServiceHostOnlyIsError) {
   macro_context local_macros;
   macro_context* mac(&local_macros);
   std::string out;
-  out = process_macros(
+  out = macros::process_macros(
       *mac,
       "[$_SERVICEBAR:sg$] [$_SERVICEBAR:sg:,$] [$SERVICEDESC:sg$] "
       "[$SERVICEDESC:sg:,$]",
@@ -1648,10 +1650,10 @@ TEST_F(Macro, PbContactAddressEmptyName) {
   macro_context* mac(&local_macros);
   std::string out;
   mac->set_contact(engine::contact::contacts.find("c1")->second.get());
-  out = process_macros(*mac,
-                       "[$CONTACTADDRESS1::s$] [$CONTACTNAME::s$] "
-                       "[$CONTACTADDRESS1::$] [$CONTACTADDRESS1$]",
-                       0);
+  out = macros::process_macros(*mac,
+                               "[$CONTACTADDRESS1::s$] [$CONTACTNAME::s$] "
+                               "[$CONTACTADDRESS1::$] [$CONTACTADDRESS1$]",
+                               0);
   ASSERT_EQ(out, "[] [] [address-one] [address-one]");
 }
 
@@ -1703,22 +1705,22 @@ TEST_F(Macro, PbTotalHostServicesOnDemand) {
   macro_context* mac(&local_macros);
   std::string out;
   mac->set_host(engine::host::hosts.find("h1")->second.get());
-  out =
-      process_macros(*mac,
-                     "$TOTALHOSTSERVICESWARNING:h2$ $TOTALHOSTSERVICESWARNING$ "
-                     "$TOTALHOSTSERVICESWARNING:h2$",
-                     0);
+  out = macros::process_macros(
+      *mac,
+      "$TOTALHOSTSERVICESWARNING:h2$ $TOTALHOSTSERVICESWARNING$ "
+      "$TOTALHOSTSERVICESWARNING:h2$",
+      0);
   ASSERT_EQ(out, "2 0 2");
-  out =
-      process_macros(*mac,
-                     "$TOTALHOSTSERVICESWARNING$ $TOTALHOSTSERVICESWARNING:h2$ "
-                     "$TOTALHOSTSERVICESCRITICAL$",
-                     0);
+  out = macros::process_macros(
+      *mac,
+      "$TOTALHOSTSERVICESWARNING$ $TOTALHOSTSERVICESWARNING:h2$ "
+      "$TOTALHOSTSERVICESCRITICAL$",
+      0);
   ASSERT_EQ(out, "0 2 1");
   mac->reset();
 
   /* One value per member, in no particular order. */
-  out = process_macros(*mac, "$TOTALHOSTSERVICESWARNING:hg:,$", 0);
+  out = macros::process_macros(*mac, "$TOTALHOSTSERVICESWARNING:hg:,$", 0);
   std::vector<std::string_view> values = absl::StrSplit(out, ',');
   std::sort(values.begin(), values.end());
   ASSERT_EQ(absl::StrJoin(values, ","), "0,2");
@@ -1778,21 +1780,23 @@ TEST_F(Macro, PbForcedCleaning) {
   std::string out;
 
   /* The notes and URLs of the groups are given as they are. */
-  out = process_macros(*mac,
-                       "[$HOSTGROUPNOTES:hg$] [$HOSTGROUPNOTESURL:hg$] "
-                       "[$HOSTGROUPACTIONURL:hg$] [$SERVICEGROUPNOTES:sg$] "
-                       "[$SERVICEGROUPNOTESURL:sg$]",
-                       0);
+  out = macros::process_macros(
+      *mac,
+      "[$HOSTGROUPNOTES:hg$] [$HOSTGROUPNOTESURL:hg$] "
+      "[$HOSTGROUPACTIONURL:hg$] [$SERVICEGROUPNOTES:sg$] "
+      "[$SERVICEGROUPNOTESURL:sg$]",
+      0);
   ASSERT_EQ(out,
             "[notes & <co>] [http://example.com/hg-notes?a=1&b=2] "
             "[http://example.com/hg-action?a=1&b=2] [notes & <co>] "
             "[http://example.com/sg-notes?a=1&b=2]");
 
   /* The notification authors and comment are cleaned. */
-  out = process_macros(*mac,
-                       "[$NOTIFICATIONAUTHOR$] [$NOTIFICATIONAUTHORNAME$] "
-                       "[$NOTIFICATIONAUTHORALIAS$] [$NOTIFICATIONCOMMENT$]",
-                       0);
+  out = macros::process_macros(
+      *mac,
+      "[$NOTIFICATIONAUTHOR$] [$NOTIFICATIONAUTHORNAME$] "
+      "[$NOTIFICATIONAUTHORALIAS$] [$NOTIFICATIONCOMMENT$]",
+      0);
   ASSERT_EQ(out, "[admin] [Administrator] [admin alias] [its a comment  more]");
 
   mac->notification.reset();

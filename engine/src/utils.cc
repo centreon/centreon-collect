@@ -165,7 +165,7 @@ int get_raw_command_line_r(macro_context* mac,
 
       /* ADDED 01/29/04 EG */
       /* process any macros we find in the argument */
-      mac->argv[x] = process_macros(*mac, temp_arg, macro_options);
+      mac->argv[x] = macros::process_macros(*mac, temp_arg, macro_options);
     }
   }
 

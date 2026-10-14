@@ -30,11 +30,11 @@
 #include "common.hh"
 #include "common/notifications/notification_manager.hh"
 
-class macro_context;
 namespace com::centreon::engine {
 // Forward declarations
 class escalation;
 class contact;
+class macro_context;
 }  // namespace com::centreon::engine
 namespace com::centreon::common::timeperiods {
 class timeperiod;

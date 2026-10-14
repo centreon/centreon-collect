@@ -28,23 +28,20 @@
 #include "engine/macros/descriptors.hh"
 #include "engine/macros/process.hh"
 
-using namespace com::centreon::engine;
-using namespace com::centreon::engine::configuration::applier;
-using com::centreon::engine::macros::descriptor;
-using com::centreon::engine::macros::family;
-using com::centreon::engine::macros::find_descriptor;
-using com::centreon::engine::macros::macro_target;
+namespace com::centreon::engine::macros {
+
+namespace {
 
 /**
  *  The raw pointer of a map value.
  */
 template <typename T>
-static T* ptr_of(T* p) {
+T* ptr_of(T* p) {
   return p;
 }
 
 template <typename P>
-static auto* ptr_of(const P& p) {
+auto* ptr_of(const P& p) {
   return p.get();
 }
 
@@ -57,7 +54,7 @@ static auto* ptr_of(const P& p) {
  *  @return The object, nullptr if not found.
  */
 template <typename Map, typename Key>
-static auto find_object(const Map& map, const Key& key)
+auto find_object(const Map& map, const Key& key)
     -> decltype(ptr_of(map.begin()->second)) {
   auto it = map.find(key);
   if (it == map.end())
@@ -72,7 +69,7 @@ static auto find_object(const Map& map, const Key& key)
  *
  *  @return Its name ("host"...).
  */
-static std::string_view family_name(family fam) {
+std::string_view family_name(family fam) {
   switch (fam) {
     case family::host:
       return "host";
@@ -102,9 +99,9 @@ static std::string_view family_name(family fam) {
  *  @return The concatenated values.
  */
 template <typename Members, typename Value>
-static std::string concatenate(const Members& members,
-                               std::string_view separator,
-                               const Value& value) {
+std::string concatenate(const Members& members,
+                        std::string_view separator,
+                        const Value& value) {
   std::string retval;
   for (auto& [name, member] : members) {
     if (!member)
@@ -144,12 +141,12 @@ static std::string concatenate(const Members& members,
  *  @return The value of the macro, empty on failure.
  */
 template <typename Value>
-static std::string resolve(macro_context& mac,
-                           std::string_view name,
-                           family fam,
-                           std::string_view arg1,
-                           std::string_view arg2,
-                           const Value& value) {
+std::string resolve(macro_context& mac,
+                    std::string_view name,
+                    family fam,
+                    std::string_view arg1,
+                    std::string_view arg2,
+                    const Value& value) {
   /* The object of the context, or the object called object_name. */
   auto single = [&](auto* obj, family kind,
                     std::string_view object_name) -> std::string {
@@ -275,10 +272,10 @@ static std::string resolve(macro_context& mac,
  *
  *  @return The value of the macro, empty on failure.
  */
-static std::string grab_custom_macro_value(macro_context& mac,
-                                           std::string_view macro_name,
-                                           std::string_view arg1,
-                                           std::string_view arg2) {
+std::string grab_custom_macro_value(macro_context& mac,
+                                    std::string_view macro_name,
+                                    std::string_view arg1,
+                                    std::string_view arg2) {
   family fam;
   std::string_view name;
   if (absl::StartsWith(macro_name, "_HOST")) {
@@ -335,10 +332,10 @@ static std::string grab_custom_macro_value(macro_context& mac,
  *
  *  @return The value of the macro, empty on failure.
  */
-static std::string grab_datetime_macro_value(macro_context& mac,
-                                             const descriptor& desc,
-                                             std::string_view arg1,
-                                             std::string_view arg2) {
+std::string grab_datetime_macro_value(macro_context& mac,
+                                      const descriptor& desc,
+                                      std::string_view arg1,
+                                      std::string_view arg2) {
   macros::datetime_target target;
   target.when = time(nullptr);
   if (desc.id == MACRO_ISVALIDTIME || desc.id == MACRO_NEXTVALIDTIME) {
@@ -373,11 +370,11 @@ static std::string grab_datetime_macro_value(macro_context& mac,
  *
  *  @return The value of the macro, empty on failure.
  */
-static std::string grab_other_macro_value(macro_context& mac,
-                                          std::string_view macro_name,
-                                          std::string_view buf,
-                                          std::string_view arg1,
-                                          std::string_view arg2) {
+std::string grab_other_macro_value(macro_context& mac,
+                                   std::string_view macro_name,
+                                   std::string_view buf,
+                                   std::string_view arg1,
+                                   std::string_view arg2) {
   unsigned int x;
 
   /***** ARGV MACROS *****/
@@ -475,8 +472,7 @@ static std::string grab_other_macro_value(macro_context& mac,
  *  @param[in]     macro_name The macro, for the logs.
  *  @param[in,out] value      The value of the macro.
  */
-static void decrypt_macro_value(std::string_view macro_name,
-                                std::string& value) {
+void decrypt_macro_value(std::string_view macro_name, std::string& value) {
   if (!pb_indexed_config.state().credentials_encryption())
     return;
   if (!value.compare(0, 5, "raw::")) {
@@ -497,6 +493,8 @@ static void decrypt_macro_value(std::string_view macro_name,
     }
   }
 }
+
+}  // namespace
 
 /**
  *  Get the value of a macro, given without its '$': its name and its
@@ -594,3 +592,5 @@ std::string grab_macrox_value(macro_context& mac,
   }
   return std::string();
 }
+
+}  // namespace com::centreon::engine::macros

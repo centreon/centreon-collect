@@ -24,9 +24,13 @@
 
 #include "engine/macros/macro_context.hh"
 
+namespace com::centreon::engine::macros {
+
 std::string process_macros(macro_context& mac,
                            std::string_view input,
                            int options);
 void strip_illegal_macro_chars(std::string& value);
+
+}  // namespace com::centreon::engine::macros
 
 #endif  // !CCE_MACROS_PROCESS_HH

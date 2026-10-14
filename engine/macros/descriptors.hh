@@ -28,8 +28,6 @@
 #include <string_view>
 #include <variant>
 
-class macro_context;
-
 namespace com::centreon::common::timeperiods {
 class timeperiod;
 }
@@ -39,6 +37,7 @@ class contact;
 class contactgroup;
 class host;
 class hostgroup;
+class macro_context;
 class service;
 class servicegroup;
 
