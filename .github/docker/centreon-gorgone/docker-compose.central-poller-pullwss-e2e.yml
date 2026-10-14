@@ -1,0 +1,73 @@
+# Central-as-a-poller fixture (pullwss, native TYPE=central entrypoint).
+# NOT self-contained: joins an EXTERNAL web stack's network (WEB_STACK_NETWORK)
+# instead of standing up its own httpd — that stack's httpd must already be
+# up, recreated with GORGONE_WSS_UPSTREAM=gorgone-central:8087.
+#
+# Usage:
+#   WEB_STACK_NETWORK=<network> WEB_STACK_DB_HOST=<db host> \
+#     docker compose -f docker-compose.central-poller-pullwss-e2e.yml -p central-pullwss-e2e up -d
+services:
+  gorgone-central:
+    image: ${GORGONE_IMAGE}
+    networks:
+      default:
+        aliases:
+          - gorgone-central
+    environment:
+      TYPE: central
+      # Dev-only seed credential (Pilier-1 README), not a secret.
+      CENTREON_API_BASE_URL: "http://httpd/centreon/api/latest/"
+      CENTREON_API_USERNAME: admin
+      CENTREON_API_PASSWORD: "Centreon!2021"
+      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__DSN: "mysql:host=${WEB_STACK_DB_HOST:?set to the web stack's DB service name};dbname=centreon"
+      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__USERNAME: centreon
+      GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__PASSWORD: centreon
+      GORGONE__CENTREON__DATABASE__DB_REALTIME__DSN: "mysql:host=${WEB_STACK_DB_HOST:?set to the web stack's DB service name};dbname=centreon_storage"
+      GORGONE__CENTREON__DATABASE__DB_REALTIME__USERNAME: centreon
+      GORGONE__CENTREON__DATABASE__DB_REALTIME__PASSWORD: centreon
+    volumes:
+      - centreon-cache:/var/cache/centreon      # shared with php-fpm in the real deployment
+      - centreon-varlib:/var/lib/centreon        # shared with php-fpm in the real deployment (centcore.cmd)
+
+  gorgone-central-poller:
+    image: ${GORGONE_IMAGE}
+    environment:
+      TYPE: poller
+      APP_SECRET: e2e-test-secret
+      SALT: e2e-test-salt
+      # Must equal the real nagios_server.id of Central (normally 1).
+      GORGONE_UID: "1"
+      CENTRAL_HOST: httpd
+      CENTRAL_PORT: "80"
+      # Self-fetches a real API token (container.d/13-pullwss-token-fetch.sh).
+      # "poller-default" exists on every Centreon install (insertBaseConf.php
+      # / Update-26.05.0.php) — verified against a real install's DB.
+      PULLWSS_TOKEN_NAME: poller-default
+      CENTREON_API_BASE_URL: "http://httpd/centreon/api/latest/"
+      CENTREON_API_USERNAME: admin
+      CENTREON_API_PASSWORD: "Centreon!2021"
+      # This dev httpd has no TLS (port 80 only); production needs no override.
+      GORGONE__GORGONE__MODULES__pullwss__ssl: "false"
+    volumes:
+      - engine-context:/etc/centreon-engine
+      - broker-context:/etc/centreon-broker
+
+  engine-context-init:
+    image: ${GORGONE_IMAGE}
+    user: root
+    entrypoint: ["sh", "-c"]
+    command:
+      - "mkdir -p /etc/centreon-engine && chown centreon-engine:centreon-engine /etc/centreon-engine && chmod 775 /etc/centreon-engine"
+    volumes:
+      - engine-context:/etc/centreon-engine
+
+networks:
+  default:
+    name: ${WEB_STACK_NETWORK:?set to the web stack's external network name}
+    external: true
+
+volumes:
+  centreon-cache:
+  centreon-varlib:
+  engine-context:
+  broker-context:

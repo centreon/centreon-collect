@@ -46,6 +46,21 @@ ARG USE_SOURCE_GORGONE=false
 FROM gorgone-perl-${USE_SOURCE_GORGONE} AS gorgone-perl-selected
 
 #############################################
+# Stage 1h/1i: Gorgone binary selector
+# USE_SOURCE_GORGONE=false → extract gorgoned from .deb (production default)
+# USE_SOURCE_GORGONE=true  → copy gorgoned script from local repo source (dev/testing)
+#############################################
+FROM scratch AS gorgoned-bin-false
+COPY --from=extractor /extracted/usr/bin/gorgoned /gorgoned-bin/gorgoned
+
+FROM scratch AS gorgoned-bin-true
+COPY gorgone/gorgoned /gorgoned-bin/gorgoned
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM gorgoned-bin-${USE_SOURCE_GORGONE} AS gorgoned-bin-selected
+
+#############################################
 # Stage 1d/1e: Centreon Perl libs selector
 #############################################
 FROM scratch AS centreon-perl-false
@@ -89,7 +104,17 @@ ENV TYPE= \
     CENTRAL_PORT= \
     APP_SECRET= \
     SALT= \
-    GORGONE_LOG_LEVEL=info
+    GORGONE_LOG_LEVEL=info \
+    CENTREON_API_BASE_URL= \
+    CENTREON_API_USERNAME= \
+    CENTREON_API_PASSWORD= \
+    PULLWSS_TOKEN_NAME= \
+    PULLWSS_TOKEN_USER_ID= \
+    MYSQL_HOST= \
+    MYSQL_DB_CONFIGURATION=centreon \
+    MYSQL_DB_STORAGE=centreon_storage \
+    MYSQL_USER=centreon \
+    MYSQL_PASSWORD=
 
 ARG VERSION
 ARG IS_CLOUD
@@ -173,7 +198,10 @@ apt-get install -y --no-install-recommends \
     tzdata \
     ca-certificates \
     libnetaddr-ip-perl \
-    libprotocol-http2-perl
+    libprotocol-http2-perl \
+    libdatetime-perl \
+    libdatetime-format-strptime-perl
+    # real deps of the autodiscovery module, missing until it was enabled
 apt-get remove -y --purge gnupg
 apt-get autoremove -y
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
@@ -214,7 +242,8 @@ EOF
 # Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
 
 # Gorgone binaries
-COPY --from=extractor --link --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
+# gorgoned comes from gorgoned-bin-selected (either .deb or local repo source, see USE_SOURCE_GORGONE)
+COPY --from=gorgoned-bin-selected --link --chmod=755 /gorgoned-bin/gorgoned /usr/bin/gorgoned
 
 # Perl modules (centreon-gorgone and centreon-perl) - use Debian's perl5 path
 # gorgone modules come from gorgone-perl-selected (either .deb or local repo source)
@@ -230,6 +259,11 @@ COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --
 COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+
+# TYPE=central's config.d files (30/31/40/41) are not baked into the image —
+# they're written directly by container.d/10-create-config.sh at startup
+# (heredocs, env vars expand naturally), so they never collide with the
+# poller config.d/40-gorgoned.yaml baked in above.
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
