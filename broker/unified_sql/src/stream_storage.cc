@@ -16,13 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/mutex.h>
-#include <fmt/format.h>
-
 #include <cfloat>
-#include <cstring>
-#include <list>
-#include <sstream>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
@@ -80,6 +74,30 @@ void stream::_unified_sql_process_pb_service_status(
   auto& ss = s->obj();
 
   uint64_t host_id = ss.host_id(), service_id = ss.service_id();
+  int64_t last_check = ss.last_check();
+
+  static absl::flat_hash_map<
+      std::pair<uint64_t /* host _id */, uint64_t /* service_id */>,
+      std::tuple<int64_t, ServiceStatus_State, ServiceStatus_StateType>>
+      service_to_last_check;
+
+  auto new_service_state_date =
+      std::make_tuple(last_check, ss.state(), ss.state_type());
+  auto insert_result = service_to_last_check.emplace(
+      std::make_pair(host_id, service_id), new_service_state_date);
+  if (!insert_result.second) {
+    if (std::get<0>(insert_result.first->second) > last_check ||
+        insert_result.first->second == new_service_state_date) {
+      SPDLOG_LOGGER_WARN(
+          _logger_sto,
+          "We have received old status for service {}@{}, previous status time "
+          "was {} and new status time is {} => status ignored",
+          host_id, service_id, insert_result.first->second, last_check);
+      return;
+    } else {
+      insert_result.first->second = new_service_state_date;
+    }
+  }
 
   SPDLOG_LOGGER_DEBUG(
       _logger_sto,
@@ -304,7 +322,7 @@ void stream::_unified_sql_process_pb_service_status(
           if (_perfdata_query->is_bulk()) {
             auto binder = [&](database::mysql_bulk_bind& b) {
               b.set_value_as_i32(0, metric_id);
-              b.set_value_as_i32(1, ss.last_check());
+              b.set_value_as_i32(1, last_check);
               char state[2];
               state[0] = '0' + ss.state();
               state[1] = 0;
@@ -325,14 +343,14 @@ void stream::_unified_sql_process_pb_service_status(
           } else {
             std::string row;
             if (std::isinf(pd.value()))
-              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
+              row = fmt::format("({},{},'{}',{})", metric_id, last_check,
                                 static_cast<uint32_t>(ss.state()),
                                 pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
-              row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check(),
+              row = fmt::format("({},{},'{}',NULL)", metric_id, last_check,
                                 ss.state());
             else
-              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
+              row = fmt::format("({},{},'{}',{})", metric_id, last_check,
                                 ss.state(), pd.value());
             _perfdata_query->add_multi_row(row);
           }
@@ -342,7 +360,7 @@ void stream::_unified_sql_process_pb_service_status(
         if (!index_locked) {
           auto perf{std::make_shared<storage::pb_metric>()};
           auto& m = perf->mut_obj();
-          m.set_time(ss.last_check());
+          m.set_time(last_check);
           m.set_interval(interval);
           m.set_metric_id(metric_id);
           m.set_rrd_len(rrd_len);

@@ -41,7 +41,9 @@ dnf install --best -y \
 dnf clean all
 
 echo "install robot and dependencies"
-pip3.11 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
+pip3.11 install -U setuptools wheel
+#we fix 7.4.2 version due to a bug in 7.5 version of Grep File
+pip3.11 install -U robotframework==7.4.2 robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
 pip3.11 install grpcio grpcio_tools py-cpuinfo cython gitpython boto3 robotframework-requests cryptography PyJWT
 
 cd /tmp/collect
