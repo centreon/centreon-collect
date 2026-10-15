@@ -422,6 +422,9 @@ int main(int argc, char* argv[]) {
 
           configuration::applier::state::instance().apply_log_config(*new_conf);
 
+          init_loggers();
+          com::centreon::common::pool::instance().set_logger(runtime_logger);
+
           if (proto_valid) {
             SPDLOG_LOGGER_INFO(
                 config_logger, "Configuration loaded from: {} version: {}",
@@ -431,9 +434,6 @@ int main(int argc, char* argv[]) {
                 config_logger,
                 "No configuration file => default configuration");
           }
-
-          init_loggers();
-          com::centreon::common::pool::instance().set_logger(runtime_logger);
 
           neb_init_callback_list();
 

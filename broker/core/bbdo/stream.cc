@@ -98,13 +98,14 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* If I'm Engine or Broker, I have some specific negotiation to do. */
       specific_negotiate(obj);
 
-      std::string json_content;
-      auto dummy [[maybe_unused]] =
-          ::google::protobuf::json::MessageToJsonString(obj, &json_content);
+      if (_logger->level() <= spdlog::level::debug) {
+        std::string json_content;
+        auto dummy [[maybe_unused]] =
+            ::google::protobuf::json::MessageToJsonString(obj, &json_content);
 
-      SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending welcome packet: {}",
-                          json_content);
-
+        SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending welcome packet: {}",
+                            json_content);
+      }
       _write(welcome);
     }
   }
