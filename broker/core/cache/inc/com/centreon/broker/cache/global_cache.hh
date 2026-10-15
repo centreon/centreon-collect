@@ -47,6 +47,16 @@ inline bool operator!=(const string& left, const std::string_view& right) {
 }
 
 /**
+ * @brief OTel service identity of a host, given by its OTEL_SERVICE_NAME and
+ * OTEL_SERVICE_NAMESPACE custom variables. A field is empty when its custom
+ * variable is not set.
+ */
+struct otel_service {
+  std::string name;
+  std::string name_space;
+};
+
+/**
  * @brief Singleton giving access to a persistent, memory-mapped cache of
  * broker objects (hosts, services, groups, tags, BAM dimensions, …).
  *
@@ -276,6 +286,8 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual std::optional<int32_t> get_severity(uint64_t host_id,
                                               uint64_t service_id) const = 0;
+
+  virtual otel_service get_otel_service(uint64_t host_id) const = 0;
 
   virtual const dimension_ba_event* get_dimension_ba_event(uint64_t ba_id,
                                                            lock& l) const = 0;

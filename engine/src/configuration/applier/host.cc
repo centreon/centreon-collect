@@ -97,17 +97,10 @@ void applier::host::add_object(const configuration::Host& obj) {
   for (auto& cg : obj.contactgroups().data())
     h->get_contactgroups().insert({cg, nullptr});
 
-  // Custom variables.
-  for (auto& cv : obj.customvariables()) {
+  // Custom variables, sent to broker after the host below.
+  for (auto& cv : obj.customvariables())
     h->custom_variables[cv.name()] =
         engine::customvariable(cv.value(), cv.is_sent());
-
-    if (cv.is_sent()) {
-      timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, h.get(), cv.name(),
-                             cv.value(), &tv);
-    }
-  }
 
   // add tags
   for (auto& t : obj.tags()) {
@@ -140,6 +133,16 @@ void applier::host::add_object(const configuration::Host& obj) {
   // Notify event broker.
   broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, h.get(),
                             MODATTR_ALL);
+
+  /* After the host,when a host moves to this poller,
+   * broker can handle the perivous custom variables before the news one*/
+  for (auto& cv : obj.customvariables()) {
+    if (cv.is_sent()) {
+      timeval tv(get_broker_timestamp(nullptr));
+      broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD, h.get(), cv.name(),
+                             cv.value(), &tv);
+    }
+  }
 }
 
 /**
@@ -296,7 +299,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
     h->custom_variables.clear();
 
     for (auto& c : new_obj.customvariables()) {
-      h->custom_variables[c.name()] = c.value();
+      h->custom_variables[c.name()] =
+          engine::customvariable(c.value(), c.is_sent());
 
       if (c.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));

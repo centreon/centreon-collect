@@ -327,6 +327,20 @@ static std::shared_ptr<io::data> _custom_variable_to_pb(
   return pb;
 }
 
+static std::shared_ptr<io::data> _custom_variable_status_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in =
+      *std::static_pointer_cast<neb::custom_variable_status>(d).get();
+  auto pb = std::make_shared<neb::pb_custom_variable_status>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(
+      translate, , (host_id)(service_id)(modified)(name)(update_time)(value));
+
+  return pb;
+}
+
 static std::shared_ptr<io::data> _index_mapping_to_pb(
     const std::shared_ptr<io::data>& d) {
   const auto& in = *std::static_pointer_cast<storage::index_mapping>(d).get();
@@ -441,6 +455,8 @@ std::shared_ptr<io::data> com::centreon::broker::bbdo2_to_bbdo3(
       return _service_status_to_pb(d);
     case neb::custom_variable::static_type():
       return _custom_variable_to_pb(d);
+    case neb::custom_variable_status::static_type():
+      return _custom_variable_status_to_pb(d);
     case storage::index_mapping::static_type():
       return _index_mapping_to_pb(d);
     case storage::metric_mapping::static_type():
