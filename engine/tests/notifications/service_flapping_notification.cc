@@ -17,6 +17,8 @@
  *
  */
 
+#include <fmt/format.h>
+
 #include "../test_engine.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
@@ -744,4 +746,81 @@ TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
   notification1 = retention.substr(pos, end - pos);
 
   ASSERT_EQ(notification0, notification1);
+}
+
+/* A service in a hard CRITICAL problem, notified, starts flapping between
+ * WARNING and CRITICAL: it never goes through OK, so no RECOVERY is sent and
+ * the PROBLEM is still ongoing when FLAPPINGSTART is sent. When it comes back
+ * to OK and stops flapping, clear_flap() sends FLAPPINGSTOP then tries the
+ * RECOVERY, which must reach the contacts told about the problem. */
+TEST_F(ServiceFlappingNotification, RecoveryAfterFlappingInProblem) {
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
+  _service->set_flap_detection_enabled(true);
+  _service->add_flap_detection_on(common::notifications::ok);
+  _service->add_flap_detection_on(common::notifications::warning);
+  _service->add_flap_detection_on(common::notifications::critical);
+  _service->set_notification_interval(1);
+  time_t now = 45000;
+  set_time(now);
+  _service->set_current_state(engine::service::state_ok);
+  _service->set_last_hard_state(engine::service::state_ok);
+  _service->set_last_hard_state_change(now);
+  _service->set_state_type(checkable::hard);
+  _service->set_max_attempts(1);
+
+  auto result = [&](int state, const char* output) {
+    now += 300;
+    set_time(now);
+    _service->set_last_state(_service->get_current_state());
+    if (notifier::hard == _service->get_state_type())
+      _service->set_last_hard_state(_service->get_current_state());
+    process_external_command(
+        fmt::format("[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;"
+                    "test_description;{};{}",
+                    now, state, output)
+            .c_str());
+    checks::checker::instance().reap();
+  };
+
+  /* Many OK in the state history. */
+  for (int i = 0; i < 21; i++)
+    result(0, "service ok");
+
+  testing::internal::CaptureStdout();
+  /* The problem, notified at once (max_attempts = 1). */
+  result(2, "service critical");
+  std::cout << "PROBLEM SENT" << std::endl;
+  /* WARNING and CRITICAL in turn: the problem goes on, the service flaps. */
+  for (int i = 0; i < 8; i++)
+    result(i % 2 == 0 ? 1 : 2,
+           i % 2 == 0 ? "service warning" : "service critical");
+  std::cout << "BACK TO OK" << std::endl;
+  /* OK until the flapping stops. */
+  for (int i = 0; i < 18; i++)
+    result(0, "service ok");
+  std::string out{testing::internal::GetCapturedStdout()};
+  std::cout << out << std::endl;
+
+  size_t problem{
+      out.find("SERVICE NOTIFICATION: "
+               "admin;test_host;test_description;CRITICAL;cmd;")};
+  ASSERT_NE(problem, std::string::npos);
+  size_t start{
+      out.find("SERVICE NOTIFICATION: "
+               "admin;test_host;test_description;FLAPPINGSTART",
+               problem)};
+  ASSERT_NE(start, std::string::npos);
+  size_t stop{
+      out.find("SERVICE NOTIFICATION: "
+               "admin;test_host;test_description;FLAPPINGSTOP",
+               start)};
+  ASSERT_NE(stop, std::string::npos);
+  /* The service never went through OK before the flapping stopped: the only
+   * RECOVERY is the one sent after FLAPPINGSTOP. */
+  size_t recovery{
+      out.find("SERVICE NOTIFICATION: "
+               "admin;test_host;test_description;RECOVERY (OK);",
+               problem)};
+  ASSERT_NE(recovery, std::string::npos);
+  ASSERT_GT(recovery, stop);
 }

@@ -1238,3 +1238,65 @@ TEST_F(ServiceNotification, RecoveryTwoUsers) {
                step6 + 1)};
   ASSERT_NE(step8, std::string::npos);
 }
+
+/* A notification sent during a problem, other than an acknowledgement or a
+ * downtime, must not prevent the RECOVERY of this problem: its contacts were
+ * told about the problem, they must be told about its end. Here, a CUSTOM
+ * notification (see RecoveryAfterFlappingInProblem for a FLAPPINGSTART). */
+static std::string recovery_after(engine::service* svc,
+                                  notifications::reason_type between) {
+  int now{50000};
+  set_time(now);
+  svc->set_current_state(engine::service::state_ok);
+  svc->set_last_hard_state(engine::service::state_ok);
+  svc->set_last_hard_state_change(now);
+  svc->set_state_type(checkable::hard);
+  svc->set_accept_passive_checks(true);
+  testing::internal::CaptureStdout();
+  /* Three critical results: the third one is hard and notified. */
+  for (int i = 0; i < 3; i++) {
+    now += 3000;
+    set_time(now);
+    svc->set_last_state(svc->get_current_state());
+    if (notifier::hard == svc->get_state_type())
+      svc->set_last_hard_state(svc->get_current_state());
+    process_external_command(
+        fmt::format(
+            "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;crit", now)
+            .c_str());
+    checks::checker::instance().reap();
+  }
+  std::cout << "NUMBER AFTER PROBLEM = " << svc->get_notification_number()
+            << std::endl;
+
+  now += 3000;
+  set_time(now);
+  svc->notify(between, "admin", "in between",
+              notifications::notification_option_none);
+  std::cout << "NUMBER AFTER " << static_cast<int>(between) << " = "
+            << svc->get_notification_number() << std::endl;
+
+  now += 3000;
+  set_time(now);
+  std::cout << "BEFORE RECOVERY" << std::endl;
+  process_external_command(
+      fmt::format("[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;ok",
+                  now)
+          .c_str());
+  checks::checker::instance().reap();
+  return testing::internal::GetCapturedStdout();
+}
+
+TEST_F(ServiceNotification, RecoveryAfterCustomNotification) {
+  std::string out{recovery_after(_svc.get(), notifications::reason_custom)};
+  std::cout << out << std::endl;
+  size_t problem{out.find(
+      "SERVICE NOTIFICATION: admin;test_host;test_svc;CRITICAL;cmd;crit")};
+  ASSERT_NE(problem, std::string::npos);
+  size_t before{out.find("BEFORE RECOVERY", problem)};
+  ASSERT_NE(before, std::string::npos);
+  ASSERT_NE(out.find("SERVICE NOTIFICATION: admin;test_host;test_svc;RECOVERY "
+                     "(OK);cmd;ok",
+                     before),
+            std::string::npos);
+}
