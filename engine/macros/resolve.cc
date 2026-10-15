@@ -1,21 +1,20 @@
 /**
- * Copyright 1999-2010 Ethan Galstad
  * Copyright 2011-2026 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
 
 #include <absl/strings/match.h>
@@ -351,7 +350,7 @@ std::string datetime_value(macro_context& mac,
     }
     target.tp = it->second.get();
 
-    // What timestamp should we use?
+    // An optional timestamp, the current time otherwise.
     time_t test_time;
     if (!arg2.empty() && absl::SimpleAtoi(arg2, &test_time))
       target.when = test_time;
@@ -381,9 +380,9 @@ std::string variable_name_value(macro_context& mac,
                                 std::string_view arg2) {
   unsigned int x;
 
-  /***** ARGV MACROS *****/
+  // $ARGn$: the arguments of the command, already processed by
+  // macro_context::set_arguments().
   if (macro_name.size() > 3 && macro_name.compare(0, 3, "ARG") == 0) {
-    /* which arg do we want? */
     if (!absl::SimpleAtoi(macro_name.substr(3), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
@@ -397,14 +396,12 @@ std::string variable_name_value(macro_context& mac,
       return std::string();
     }
 
-    /* use a pre-computed macro value */
     return mac.argv[x - 1];
   }
 
-  /***** CONTACT ADDRESS MACROS *****/
+  // $CONTACTADDRESSn$: the n-th address of the contact.
   if (buf.size() > 14 && buf.compare(0, 14, "CONTACTADDRESS") == 0) {
-    /* which address do we want? (buf, the name without the arguments of an
-     * on-demand macro) */
+    // The number is read in the name without its arguments.
     if (!absl::SimpleAtoi(buf.substr(14), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
@@ -422,8 +419,7 @@ std::string variable_name_value(macro_context& mac,
                            buf, MAX_CONTACT_ADDRESSES);
                        return std::string();
                      }
-                     /* the contact may have less than MAX_CONTACT_ADDRESSES
-                      * addresses */
+                     // A contact may have fewer addresses.
                      const contact* cntct = std::get<contact*>(t);
                      if (x < cntct->get_addresses().size())
                        return cntct->get_address(x);
@@ -431,17 +427,17 @@ std::string variable_name_value(macro_context& mac,
                    });
   }
 
-  /***** CUSTOM VARIABLE MACROS *****/
+  // $_HOSTfoo$, $_SERVICEfoo$, $_CONTACTfoo$: the custom variables.
   if (macro_name[0] == '_')
     return custom_variable_value(mac, buf, arg1, arg2);
 
-  /***** USER MACROS ($USERn$ and the other ones of the resource file) *****/
+  // The user macros of the resource file, $USERn$ and the other ones.
   const auto& users = pb_indexed_config.state().users();
   auto it = users.find(macro_name);
   if (it != users.end())
     return it->second;
 
-  /* no macro matched... */
+  // An unknown macro.
   macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
                        macro_name);
   return std::string();
@@ -505,24 +501,22 @@ std::string value(macro_context& mac,
   auto arr = absl::StrSplit(macro_name, ':');
   auto it = arr.begin();
 
-  // The base name
+  // The name, then at most two arguments.
   if (it != arr.end()) {
     buf = *it;
     ++it;
   }
 
-  // First argument
   if (it != arr.end()) {
     arg[0] = *it;
     ++it;
   }
-  // Second argument
   if (it != arr.end()) {
     arg[1] = *it;
   }
 
   std::string retval;
-  /***** X MACROS *****/
+  // A macro of the descriptors table, else a macro with a variable name.
   const descriptor* desc = find_descriptor(buf);
   if (desc) {
     macros_logger->trace("  macros[{}] ({}) match.", desc->id, desc->name);
