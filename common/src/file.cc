@@ -189,6 +189,7 @@ void save_proto_to_disk(const std::filesystem::path& file_path,
       throw exceptions::msg_fmt("Fail to map {}: {}", tmp_path, strerror(err));
     }
     data.SerializeWithCachedSizesToArray(static_cast<uint8_t*>(addr));
+    ::msync(addr, needed, MS_SYNC);
     ::munmap(addr, needed);
   }
 

@@ -139,6 +139,12 @@ void indexed_state::reset() {
   _clear_containers();
 }
 
+#define MOVE_FROM_MAP_TO_REPEATED(field)                         \
+  _state->mutable##field()->Reserve(field.size());               \
+  for (auto& [_, proto_obj] : field) {                           \
+    _state->mutable##field()->AddAllocated(proto_obj.release()); \
+  }
+
 /**
  * @brief Move indexed objects to the appropriate containers.
  *
@@ -147,57 +153,22 @@ void indexed_state::reset() {
  * containers.
  */
 void indexed_state::_apply_containers() {
-  for (auto& [_, timeperiod] : _timeperiods) {
-    _state->mutable_timeperiods()->AddAllocated(timeperiod.release());
-  }
-  for (auto& [_, command] : _commands) {
-    _state->mutable_commands()->AddAllocated(command.release());
-  }
-  for (auto& [_, connector] : _connectors) {
-    _state->mutable_connectors()->AddAllocated(connector.release());
-  }
-  for (auto& [_, severity] : _severities) {
-    _state->mutable_severities()->AddAllocated(severity.release());
-  }
-  for (auto& [_, tag] : _tags) {
-    _state->mutable_tags()->AddAllocated(tag.release());
-  }
-  for (auto& [_, contact] : _contacts) {
-    _state->mutable_contacts()->AddAllocated(contact.release());
-  }
-  for (auto& [_, contactgroup] : _contactgroups) {
-    _state->mutable_contactgroups()->AddAllocated(contactgroup.release());
-  }
-  for (auto& [_, host] : _hosts) {
-    _state->mutable_hosts()->AddAllocated(host.release());
-  }
-  for (auto& [_, hostgroup] : _hostgroups) {
-    _state->mutable_hostgroups()->AddAllocated(hostgroup.release());
-  }
-  for (auto& [_, service] : _services) {
-    _state->mutable_services()->AddAllocated(service.release());
-  }
-  for (auto& [_, anomalydetection] : _anomalydetections) {
-    _state->mutable_anomalydetections()->AddAllocated(
-        anomalydetection.release());
-  }
-  for (auto& [_, servicegroup] : _servicegroups) {
-    _state->mutable_servicegroups()->AddAllocated(servicegroup.release());
-  }
-  for (auto& [_, hostdependency] : _hostdependencies) {
-    _state->mutable_hostdependencies()->AddAllocated(hostdependency.release());
-  }
-  for (auto& [_, servicedependency] : _servicedependencies) {
-    _state->mutable_servicedependencies()->AddAllocated(
-        servicedependency.release());
-  }
-  for (auto& [_, hostescalation] : _hostescalations) {
-    _state->mutable_hostescalations()->AddAllocated(hostescalation.release());
-  }
-  for (auto& [_, serviceescalation] : _serviceescalations) {
-    _state->mutable_serviceescalations()->AddAllocated(
-        serviceescalation.release());
-  }
+  MOVE_FROM_MAP_TO_REPEATED(_timeperiods);
+  MOVE_FROM_MAP_TO_REPEATED(_commands);
+  MOVE_FROM_MAP_TO_REPEATED(_connectors);
+  MOVE_FROM_MAP_TO_REPEATED(_severities);
+  MOVE_FROM_MAP_TO_REPEATED(_tags);
+  MOVE_FROM_MAP_TO_REPEATED(_contacts);
+  MOVE_FROM_MAP_TO_REPEATED(_contactgroups);
+  MOVE_FROM_MAP_TO_REPEATED(_hosts);
+  MOVE_FROM_MAP_TO_REPEATED(_hostgroups);
+  MOVE_FROM_MAP_TO_REPEATED(_services);
+  MOVE_FROM_MAP_TO_REPEATED(_anomalydetections);
+  MOVE_FROM_MAP_TO_REPEATED(_servicegroups);
+  MOVE_FROM_MAP_TO_REPEATED(_hostdependencies);
+  MOVE_FROM_MAP_TO_REPEATED(_servicedependencies);
+  MOVE_FROM_MAP_TO_REPEATED(_hostescalations)
+  MOVE_FROM_MAP_TO_REPEATED(_serviceescalations);
 }
 
 void indexed_state::_clear_containers() {

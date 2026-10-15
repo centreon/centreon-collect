@@ -134,7 +134,12 @@ void applier::state::apply(configuration::State& new_cfg,
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
     if (!proto_conf.empty()) {
-      pb_indexed_config.serialize_to_disk(proto_conf / "state.prot");
+      try {
+        pb_indexed_config.serialize_to_disk(proto_conf / "state.prot");
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(config_logger, "Fail to save config to {}",
+                            proto_conf / "state.prot");
+      }
     }
     SPDLOG_LOGGER_INFO(config_logger, "config with version {} loaded",
                        new_cfg.config_version());
@@ -172,7 +177,12 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
   try {
     _processing_state = state_ready;
     _processing_diff(diff_conf, err);
-    pb_indexed_config.serialize_to_disk(proto_conf / "state.prot");
+    try {
+      pb_indexed_config.serialize_to_disk(proto_conf / "state.prot");
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(config_logger, "Fail to save config to {}",
+                          proto_conf / "state.prot");
+    }
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.

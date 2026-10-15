@@ -2923,8 +2923,9 @@ def ctn_check_resource_ids(typ: str, logfile: str):
     for line in lines:
         m = r_add.match(line)
         if m:
-            parent_id = int(m.group(1))
-            id = int(m.group(2))
+            # Logs are formatted as <service_id>:<host_id>
+            id = int(m.group(1))
+            parent_id = int(m.group(2))
             resource_id = int(m.group(3))
             logger.console(
                 f"New resource from logs {(parent_id, id)}, resource_id={resource_id}")
@@ -2932,8 +2933,8 @@ def ctn_check_resource_ids(typ: str, logfile: str):
         else:
             m = r_del.match(line)
             if m:
-                parent_id = int(m.group(1))
-                id = int(m.group(2))
+                id = int(m.group(1))
+                parent_id = int(m.group(2))
                 if (parent_id, id) in from_logs:
                     logger.console(
                         f"Resource {(parent_id, id)} deleted, removing it from list")

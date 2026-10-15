@@ -65,6 +65,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
     SPDLOG_LOGGER_ERROR(_logger,
                         "BBDO: failed to open diff file '{}' for poller {}: {}",
                         diff_name.string(), poller_id, e.what());
+    throw;
   }
 }
 
@@ -138,13 +139,13 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
                   global_diff.add_diff_state(diff, _logger);
                   SPDLOG_LOGGER_DEBUG(_logger, "BBDO: Removing diff file '{}'",
                                       diff_name.string());
-                  std::filesystem::remove(diff_name);
                 }
               } catch (const std::exception& e) {
                 SPDLOG_LOGGER_ERROR(_logger,
                                     "BBDO: can't load diff state file. {}: {}",
                                     poller_id_str, e.what());
               }
+              ::remove(diff_name.c_str());
             } else {
               SPDLOG_LOGGER_ERROR(
                   _logger,

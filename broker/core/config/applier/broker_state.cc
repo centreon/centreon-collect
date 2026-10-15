@@ -16,8 +16,10 @@
  * For more information : contact@centreon.com
  */
 
-#include "broker/core/config/applier/broker_state.hh"
+#include <absl/cleanup/cleanup.h>
+
 #include "bbdo/bbdo.pb.h"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
@@ -440,11 +442,17 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
         "its whole configuration to send it",
         poller_id);
     if (!_prepare_diff_from_new_prot_file(poller_id)) {
+      absl::WriterMutexLock lck(&_connected_peers_m);
       // no new-<ID>.prot pending => we create a diff<ID>.prot with only
       // mismatched_state
-      _prepare_diff_for_poller(
-          poller_id,
-          std::make_unique<engine::configuration::State>(full_state));
+      engine::configuration::DiffState diff_content;
+      absl::Cleanup release = [&diff_content] {
+        // mandatory, full_state must be deleted by engine_state destructor, not
+        // by diff_content one
+        auto dummy [[maybe_unused]] = diff_content.release_state();
+      };
+      diff_content.set_allocated_state(&full_state);
+      _save_diff_prot(poller_id, full_state.config_version(), diff_content);
     }
   }
   if (poller_conf_lost) {
@@ -1035,14 +1043,42 @@ bool broker_state::_prepare_diff_for_poller(
     diff_state->set_allocated_state(state.release());
   }
 
+  return _save_diff_prot(poller_id, new_version, *diff_state);
+}
+
+/**
+ * @brief Write the given diff into the diff-<poller_id>.prot file of the
+ * pollers configuration directory, and mark config_version as the
+ * configuration available for this poller but not sent yet. The
+ * diff-<poller_id>.prot file is then sent to the poller by the broker_stream
+ * connected to it.
+ * The caller must hold _connected_peers_m in write mode since the engine peer
+ * of the poller is modified.
+ *
+ * @param poller_id The poller ID.
+ * @param config_version The configuration version the poller will run once
+ * the diff is applied.
+ * @param diff The diff to send to the poller.
+ *
+ * @return true if the file has been written, false if the poller is not a
+ * connected Engine peer or if the file can't be written.
+ */
+bool broker_state::_save_diff_prot(
+    uint64_t poller_id,
+    const std::string& config_version,
+    const engine::configuration::DiffState& diff) {
+  auto it = _engine_peers.find(poller_id);
+  if (it == _engine_peers.end())
+    return false;
+  auto& peer = it->second;
   std::filesystem::path diff_prot_conf =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
   try {
-    common::save_proto_to_disk(diff_prot_conf, *diff_state);
+    common::save_proto_to_disk(diff_prot_conf, diff);
     /* The new configuration to send to the poller is
      * new-<poller-ID>.prot. Once sent to it, this file must be renamed
      * into <poller-ID>.prot and the diff file can be removed. */
-    peer.available_conf = new_version;
+    peer.available_conf = config_version;
     peer.available_conf_sent = false;
     return true;
   } catch (const std::exception& e) {

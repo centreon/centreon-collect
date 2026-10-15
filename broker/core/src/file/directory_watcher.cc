@@ -18,9 +18,6 @@
 
 #include "com/centreon/broker/file/directory_watcher.hh"
 
-#include <errno.h>
-#include <boost/asio/error.hpp>
-#include <boost/system/detail/error_code.hpp>
 
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
