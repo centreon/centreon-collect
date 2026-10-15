@@ -25,6 +25,7 @@
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
@@ -595,4 +596,145 @@ TEST_F(PbServiceCheck, CheckUpdateMultilineOutput) {
   ASSERT_EQ(_svc->get_plugin_output(), "service critical");
   ASSERT_EQ(_svc->get_long_plugin_output(), "line2\\nline3\\nline4\\nline5");
   ASSERT_EQ(_svc->get_perf_data(), "res;2;5;5");
+}
+
+namespace {
+/**
+ * @brief opentelemetry module stub: force_check() only records its calls, as
+ * when the request is sent to a connected agent.
+ */
+class fake_open_telemetry : public commands::otel::open_telemetry_base {
+ public:
+  std::vector<std::pair<uint64_t, uint64_t>> forced;
+
+  static std::shared_ptr<fake_open_telemetry> load() {
+    auto ret = std::make_shared<fake_open_telemetry>();
+    _instance = ret;
+    return ret;
+  }
+  static void unload() { _instance.reset(); }
+
+  std::shared_ptr<commands::otel::host_serv_extractor> create_extractor(
+      const std::string&,
+      const commands::otel::host_serv_list::pointer&) override {
+    return nullptr;
+  }
+  std::shared_ptr<commands::otel::otl_check_result_builder_base>
+  create_check_result_builder(const std::string&) override {
+    return nullptr;
+  }
+  void force_check(uint64_t host_id, uint64_t serv_id) override {
+    forced.emplace_back(host_id, serv_id);
+  }
+  certificate_info get_otel_service_certificate_info() override { return {}; }
+};
+}  // namespace
+
+/**
+ * @brief A forced check of a CMA service (freshness) is a request sent to the
+ * agent and its result comes back as a passive one. It must not be counted in
+ * currently_running_service_checks, otherwise max_concurrent_checks is reached
+ * and no more active check is executed.
+ */
+TEST_F(PbServiceCheck, CmaForcedCheckNotCountedAsRunning) {
+  auto otel = fake_open_telemetry::load();
+  auto otel_cmd =
+      commands::otel_connector::create("otel_conn", "--processor=centreon_agent "
+                                       "--extractor=attributes",
+                                       nullptr);
+  _svc->set_check_command_ptr(otel_cmd);
+  _svc->set_is_cma_service(true);
+  _svc->set_accept_passive_checks(true);
+  currently_running_service_checks = 0;
+
+  set_time(50000);
+  for (int i = 0; i < 10; ++i) {
+    _svc->set_is_being_freshened(true);
+    _svc->run_async_check(
+        CHECK_OPTION_FORCE_EXECUTION | CHECK_OPTION_FRESHNESS_CHECK, 0.0, false,
+        false, nullptr, nullptr);
+
+    // the agent answers with a passive result
+    timeval now{.tv_sec = std::time(nullptr), .tv_usec = 0};
+    auto res = std::make_shared<check_result>(
+        service_check, _svc.get(), checkable::check_passive,
+        CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_CMA_RESULT, false, 0.0, now,
+        now, false, true, engine::service::state_ok, "OK");
+    checks::checker::instance().add_check_result_to_reap(res);
+    checks::checker::instance().reap();
+  }
+
+  ASSERT_EQ(otel->forced.size(), 10u);
+  ASSERT_EQ(otel->forced.front(),
+            std::make_pair(_svc->host_id(), _svc->service_id()));
+  ASSERT_EQ(currently_running_service_checks, 0u);
+
+  commands::otel_connector::remove("otel_conn");
+  fake_open_telemetry::unload();
+}
+
+/**
+ * @brief When a CMA check fails (no agent, module not loaded...), an active
+ * result is reaped. As the check was not counted, it must not release the slot
+ * of another running check.
+ */
+TEST_F(PbServiceCheck, CmaFailedCheckDoesNotReleaseOtherChecks) {
+  // no opentelemetry module => otel_connector::run() throws
+  auto otel_cmd =
+      commands::otel_connector::create("otel_conn", "--processor=centreon_agent "
+                                       "--extractor=attributes",
+                                       nullptr);
+  _svc->set_check_command_ptr(otel_cmd);
+  _svc->set_is_cma_service(true);
+  // 5 other checks are running
+  currently_running_service_checks = 5;
+
+  set_time(50000);
+  _svc->run_async_check(
+      CHECK_OPTION_FORCE_EXECUTION | CHECK_OPTION_FRESHNESS_CHECK, 0.0, false,
+      false, nullptr, nullptr);
+  ASSERT_EQ(currently_running_service_checks, 5u);
+  checks::checker::instance().reap();
+  ASSERT_EQ(currently_running_service_checks, 5u);
+  ASSERT_EQ(_svc->get_plugin_output(), "(Execute command failed)");
+
+  currently_running_service_checks = 0;
+  commands::otel_connector::remove("otel_conn");
+}
+
+/**
+ * @brief Same as CmaForcedCheckNotCountedAsRunning for a CMA host.
+ */
+TEST_F(PbServiceCheck, CmaHostForcedCheckNotCountedAsRunning) {
+  auto otel = fake_open_telemetry::load();
+  auto otel_cmd =
+      commands::otel_connector::create("otel_conn", "--processor=centreon_agent "
+                                       "--extractor=attributes",
+                                       nullptr);
+  _host->set_check_command_ptr(otel_cmd);
+  _host->set_is_cma_host(true);
+  _host->set_accept_passive_checks(true);
+  currently_running_host_checks = 0;
+
+  set_time(50000);
+  for (int i = 0; i < 10; ++i) {
+    _host->run_async_check(
+        CHECK_OPTION_FORCE_EXECUTION | CHECK_OPTION_FRESHNESS_CHECK, 0.0, false,
+        false, nullptr, nullptr);
+
+    timeval now{.tv_sec = std::time(nullptr), .tv_usec = 0};
+    auto res = std::make_shared<check_result>(
+        host_check, _host.get(), checkable::check_passive,
+        CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_CMA_RESULT, false, 0.0, now,
+        now, false, true, engine::host::state_up, "OK");
+    checks::checker::instance().add_check_result_to_reap(res);
+    checks::checker::instance().reap();
+  }
+
+  ASSERT_EQ(otel->forced.size(), 10u);
+  ASSERT_EQ(otel->forced.front(), std::make_pair(_host->host_id(), 0ul));
+  ASSERT_EQ(currently_running_host_checks, 0u);
+
+  commands::otel_connector::remove("otel_conn");
+  fake_open_telemetry::unload();
 }
