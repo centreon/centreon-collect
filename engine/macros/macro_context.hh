@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "common/notifications/notification_types.hh"
 #include "engine/macros/defines.hh"
@@ -66,6 +67,7 @@ class macro_context {
   void set_host(host* hst);
   void set_service(service* svc);
   void set_contact(contact* cntct);
+  void set_arguments(std::string_view spec, int options);
   void clear_argv();
   void reset();
 

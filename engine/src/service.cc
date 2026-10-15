@@ -2188,8 +2188,10 @@ int service::obsessive_compulsive_service_check_processor() {
   mac->set_service(this);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, ocsp_command_ptr, ocsp_command.c_str(),
-                         raw_command, macro_options);
+  if (!ocsp_command_ptr)
+    return ERROR;
+  mac->set_arguments(ocsp_command, macro_options);
+  raw_command = ocsp_command_ptr->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -2963,8 +2965,7 @@ int service::notify_contact(macro_context* mac,
   for (std::shared_ptr<commands::command> const& cmd :
        cntct->get_service_notification_commands()) {
     /* get the raw command line */
-    get_raw_command_line_r(mac, cmd, cmd->get_command_line().c_str(),
-                           raw_command, macro_options);
+    raw_command = cmd->get_command_line();
     if (raw_command.empty())
       continue;
 
@@ -3555,8 +3556,6 @@ void service::set_check_command_ptr(
 std::string service::get_check_command_line(macro_context* macros) {
   macros->set_host(get_host_ptr());
   macros->set_service(this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
+  macros->set_arguments(check_command(), 0);
   return get_check_command_ptr()->process_cmd(macros);
 }

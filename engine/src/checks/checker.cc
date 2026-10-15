@@ -415,9 +415,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   macro_context local_macros;
   macro_context* macros(&local_macros);
   macros->set_host(hst);
-  std::string tmp;
-  get_raw_command_line_r(macros, hst->get_check_command_ptr(),
-                         hst->check_command().c_str(), tmp, 0);
+  macros->set_arguments(hst->check_command(), 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);

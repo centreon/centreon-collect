@@ -36,7 +36,10 @@
 
 namespace com::centreon::engine {
 class enginerpc;
+namespace commands {
+class command;
 }
+}  // namespace com::centreon::engine
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;

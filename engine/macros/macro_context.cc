@@ -22,6 +22,7 @@
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
+#include "engine/macros/process.hh"
 
 namespace com::centreon::engine {
 
@@ -89,6 +90,22 @@ void macro_context::set_contact(contact* cntct) {
 
   if (!cntct->get_parent_groups().empty())
     contactgroup_ptr = cntct->get_parent_groups().begin()->second;
+}
+
+/**
+ * @brief Set the $ARGn$ macros from a command specification as configured,
+ * "name!arg1!arg2": the name is skipped, it was already resolved into the
+ * command object. Each argument has its macros processed, in order, so that
+ * an argument may use the previous ones.
+ *
+ * @param spec The command specification.
+ * @param options The options of process_macros().
+ */
+void macro_context::set_arguments(std::string_view spec, int options) {
+  clear_argv();
+  const std::vector<std::string> args = macros::split_arguments(spec);
+  for (size_t i = 0; i < args.size(); ++i)
+    argv[i] = macros::process_macros(*this, args[i], options);
 }
 
 /**

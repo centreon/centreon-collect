@@ -103,4 +103,38 @@ void strip_illegal_macro_chars(std::string& value) {
               value.end());
 }
 
+/**
+ *  Split a command specification as configured, "name!arg1!arg2", into its
+ *  arguments. The name is skipped, a backslash escapes the next character
+ *  (so that a backslash before a '!' keeps it inside the argument), and at
+ *  most MAX_COMMAND_ARGUMENTS arguments are kept.
+ *
+ *  @param[in] spec The command specification.
+ *
+ *  @return The arguments, without their escapes.
+ */
+std::vector<std::string> split_arguments(std::string_view spec) {
+  std::vector<std::string> retval;
+  size_t pos = spec.find('!');
+  while (pos != std::string_view::npos &&
+         retval.size() < MAX_COMMAND_ARGUMENTS) {
+    std::string& arg = retval.emplace_back();
+    bool escaped = false;
+    for (++pos; pos < spec.size(); ++pos) {
+      const char c = spec[pos];
+      if (c == '\\' && !escaped) {
+        escaped = true;
+        continue;
+      }
+      if (c == '!' && !escaped)
+        break;
+      arg.push_back(c);
+      escaped = false;
+    }
+    if (pos >= spec.size())
+      pos = std::string_view::npos;
+  }
+  return retval;
+}
+
 }  // namespace com::centreon::engine::macros

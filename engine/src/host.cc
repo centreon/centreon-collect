@@ -2321,8 +2321,7 @@ int host::notify_contact(macro_context* mac,
   for (std::shared_ptr<commands::command> const& cmd :
        cntct->get_host_notification_commands()) {
     /* get the raw command line */
-    get_raw_command_line_r(mac, cmd, cmd->get_command_line().c_str(),
-                           raw_command, macro_options);
+    raw_command = cmd->get_command_line();
     if (raw_command.empty())
       continue;
 
@@ -3519,9 +3518,7 @@ void host::set_check_command_ptr(
  */
 std::string host::get_check_command_line(macro_context* macros) {
   macros->set_host(this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
+  macros->set_arguments(check_command(), 0);
   return get_check_command_ptr()->process_cmd(macros);
 }
 

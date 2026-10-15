@@ -349,7 +349,7 @@ class MacroGolden : public TestEngine {
    * @brief Fill the macros with the context: nothing, host h1 with
    * contact c1 (host notification), or h1, its service s and c1 (service
    * notification). The notification macros and the arguments are set as
-   * notification_execution.cc and get_raw_command_line_r() do.
+   * notification_execution.cc and macro_context::set_arguments() do.
    */
   void _set_context(macro_context* mac, ctx c) {
     if (c == ctx::none)

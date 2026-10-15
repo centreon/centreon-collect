@@ -40,7 +40,6 @@
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::common::downtimes;
@@ -106,74 +105,6 @@ char const* my_ctime(time_t const* t) {
   if (buf != nullptr)
     buf[strlen(buf) - 1] = 0;
   return buf;
-}
-
-/* given a "raw" command, return the "expanded" or "whole" command line */
-int get_raw_command_line_r(macro_context* mac,
-                           commands::command* cmd_ptr,
-                           std::string const& cmd,
-                           std::string& full_command,
-                           int macro_options) {
-  std::string temp_arg;
-  temp_arg.reserve(MAX_COMMAND_BUFFER);
-  unsigned int x = 0;
-  int escaped = false;
-
-  functions_logger->trace("get_raw_command_line_r()");
-
-  /* clear the argv macros */
-  mac->clear_argv();
-
-  /* make sure we've got all the requirements */
-  if (cmd_ptr == nullptr) {
-    return ERROR;
-  }
-
-  SPDLOG_LOGGER_DEBUG(commands_logger, "Raw Command Input: {}",
-                      cmd_ptr->get_command_line());
-
-  /* get the full command line */
-  full_command = cmd_ptr->get_command_line();
-
-  /* get the command arguments */
-  if (!cmd.empty()) {
-    std::string::const_iterator arg_iter = cmd.begin();
-    /* skip the command name (we're about to get the arguments)... */
-    for (; arg_iter != cmd.end() && *arg_iter != '!'; ++arg_iter)
-      ;
-
-    /* get each command argument */
-    for (x = 0; x < MAX_COMMAND_ARGUMENTS && arg_iter != cmd.end(); ++x) {
-      /* get the next argument */
-      temp_arg.clear();
-      for (++arg_iter; arg_iter != cmd.end(); ++arg_iter) {
-        /* backslashes escape */
-        if (*arg_iter == '\\' && escaped == false) {
-          escaped = true;
-          continue;
-        }
-
-        /* end of argument */
-        if (*arg_iter == '!' && escaped == false)
-          break;
-
-        /* normal of escaped char */
-        temp_arg.push_back(*arg_iter);
-
-        /* clear escaped flag */
-        escaped = false;
-      }
-
-      /* ADDED 01/29/04 EG */
-      /* process any macros we find in the argument */
-      mac->argv[x] = macros::process_macros(*mac, temp_arg, macro_options);
-    }
-  }
-
-  SPDLOG_LOGGER_DEBUG(commands_logger, "Expanded Command Output: {}",
-                      full_command);
-
-  return OK;
 }
 
 /******************************************************************/

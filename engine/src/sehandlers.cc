@@ -71,8 +71,10 @@ int obsessive_compulsive_host_check_processor(
   mac->set_host(hst);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, ochp_command_ptr, ochp_command.c_str(),
-                         raw_command, macro_options);
+  if (!ochp_command_ptr)
+    return ERROR;
+  mac->set_arguments(ochp_command, macro_options);
+  raw_command = ochp_command_ptr->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -164,9 +166,10 @@ int run_global_service_event_handler(macro_context* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, global_service_event_handler_ptr,
-                         global_service_event_handler.c_str(), raw_command,
-                         macro_options);
+  if (!global_service_event_handler_ptr)
+    return ERROR;
+  mac->set_arguments(global_service_event_handler, macro_options);
+  raw_command = global_service_event_handler_ptr->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -256,9 +259,10 @@ int run_service_event_handler(macro_context* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, svc->get_event_handler_ptr(),
-                         svc->event_handler().c_str(), raw_command,
-                         macro_options);
+  if (!svc->get_event_handler_ptr())
+    return ERROR;
+  mac->set_arguments(svc->event_handler(), macro_options);
+  raw_command = svc->get_event_handler_ptr()->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -394,9 +398,10 @@ int run_global_host_event_handler(macro_context* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, global_host_event_handler_ptr,
-                         global_host_event_handler.c_str(), raw_command,
-                         macro_options);
+  if (!global_host_event_handler_ptr)
+    return ERROR;
+  mac->set_arguments(global_host_event_handler, macro_options);
+  raw_command = global_host_event_handler_ptr->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -483,9 +488,10 @@ int run_host_event_handler(macro_context* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, hst->get_event_handler_ptr(),
-                         hst->event_handler().c_str(), raw_command,
-                         macro_options);
+  if (!hst->get_event_handler_ptr())
+    return ERROR;
+  mac->set_arguments(hst->event_handler(), macro_options);
+  raw_command = hst->get_event_handler_ptr()->get_command_line();
   if (raw_command.empty())
     return ERROR;
 

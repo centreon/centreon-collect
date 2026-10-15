@@ -1074,6 +1074,83 @@ TEST_F(Macro, PbUserMacroAnyName) {
   users.clear();
 }
 
+/* A command specification is "name!arg1!arg2": the name is skipped, '\'
+ * escapes the next character, at most MAX_COMMAND_ARGUMENTS are kept. */
+TEST_F(Macro, PbSplitArguments) {
+  using args = std::vector<std::string>;
+  ASSERT_EQ(macros::split_arguments(""), args{});
+  ASSERT_EQ(macros::split_arguments("check_foo"), args{});
+  ASSERT_EQ(macros::split_arguments("check_foo!"), args{""});
+  ASSERT_EQ(macros::split_arguments("check_foo!a!b"), (args{"a", "b"}));
+  ASSERT_EQ(macros::split_arguments("check_foo!a!!b!"),
+            (args{"a", "", "b", ""}));
+  ASSERT_EQ(macros::split_arguments(R"(check_foo!a\!b!c\\d)"),
+            (args{"a!b", R"(c\d)"}));
+  ASSERT_EQ(macros::split_arguments(R"(check_foo!end\)"), args{"end"});
+
+  std::string spec("check_foo");
+  for (int i = 0; i < MAX_COMMAND_ARGUMENTS + 5; ++i)
+    spec += fmt::format("!{}", i);
+  const args all = macros::split_arguments(spec);
+  ASSERT_EQ(all.size(), static_cast<size_t>(MAX_COMMAND_ARGUMENTS));
+  ASSERT_EQ(all.back(), fmt::format("{}", MAX_COMMAND_ARGUMENTS - 1));
+}
+
+/* The arguments have their macros processed, in order: an argument may use
+ * the previous ones. The old arguments are cleared. */
+TEST_F(Macro, PbSetArguments) {
+  macro_context mac;
+  mac.argv[5] = "old";
+  mac.set_arguments("check_foo!$POLLERNAME$![$ARG1$]", 0);
+  ASSERT_EQ(mac.argv[0], pb_indexed_config.state().poller_name());
+  ASSERT_EQ(mac.argv[1], fmt::format("[{}]", mac.argv[0]));
+  ASSERT_EQ(mac.argv[5], "");
+}
+
+/* The notification commands of a contact are configured by their name only,
+ * they have no arguments. Their command line used to be split on '!' as if it
+ * was "name!arg1": "echo [$ARG1$]!bang" gave "echo [bang]!bang". */
+TEST_F(Macro, PbNotificationHasNoArguments) {
+  configuration::applier::contact ct_aply;
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  fill_pb_configuration_contact(&ctct_hlp, "admin", true);
+  ct_aply.add_object(ctct);
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  ct_aply.resolve_object(ctct);
+
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  fill_pb_configuration_host(&hst_hlp, "test_host", "admin");
+  configuration::applier::host hst_aply;
+  hst_aply.add_object(hst);
+
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  fill_pb_configuration_service(&svc_hlp, "test_host", "test_svc", "admin");
+  configuration::applier::service svc_aply;
+  svc_aply.add_object(svc);
+
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
+
+  _svc = engine::service::services.begin()->second;
+
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line("echo [$ARG1$]!bang");
+  ::google::protobuf::RepeatedPtrField<std::string> contacts;
+  *contacts.Add() = "admin";
+  notification_commands_capture capture;
+  execute_broker_notification(
+      _svc->host_id(), _svc->service_id(), notifications::reason_normal, 1, 1,
+      false, "", "", notifications::notification_option_none, contacts);
+
+  ASSERT_EQ(capture.commands().size(), 1u);
+  ASSERT_EQ(capture.commands()[0], "echo []!bang");
+}
+
 TEST_F(Macro, PbIsValidTime) {
   configuration::applier::timeperiod time_aply;
   configuration::Timeperiod time;

@@ -383,13 +383,11 @@ void BM_ServiceCheckCommand(benchmark::State& state) {
 /* The same for a host check (checker.cc / host.cc). */
 void BM_HostCheckCommand(benchmark::State& state) {
   std::string out;
-  std::string tmp;
   for (auto _ : state) {
     macro_context local_macros;
     macro_context* mac(&local_macros);
     mac->set_host(p.hst);
-    get_raw_command_line_r(mac, p.hst->get_check_command_ptr(),
-                           p.hst->check_command(), tmp, 0);
+    mac->set_arguments(p.hst->check_command(), 0);
     out = p.hst->get_check_command_ptr()->process_cmd(mac);
     benchmark::DoNotOptimize(out);
   }
