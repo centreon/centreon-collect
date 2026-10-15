@@ -42,13 +42,12 @@ A notification has a **type** (`reason_type`), grouped into a **category**
 
 The mapping is done by `notification_manager::get_category()`.
 
-The **options** of a notification (`notification_option`) are
-`notification_option_forced`, `notification_option_broadcast` and
-`notification_option_increment`. Only `forced` changes the decision (see
-section 4). The two others, inherited from Nagios, are carried up to the
-poller but no longer read by the decision: `broadcast` is only read by
-`is_valid_escalation_for_notification()`, which is always called without
-option, and `increment` nowhere.
+The only **option** of a notification (`notification_option`) is
+`notification_option_forced`, which changes the decision (see section 4).
+The Nagios `broadcast` and `increment` options no longer exist: bits 1 and 4
+of the `SEND_CUSTOM_*_NOTIFICATION` external commands are accepted and
+ignored. A CUSTOM notification always increments the number (see
+section 3).
 
 **The notification state of a resource** is kept by the
 `notification_manager`, indexed by `(host_id, service_id)` (`service_id == 0`
@@ -520,7 +519,7 @@ being applied, like the command pipe:
 | Broker RPC | Engine command | Effect |
 |---|---|---|
 | `SetHostNotificationNumber` / `SetServiceNotificationNumber(…, number)` | `SET_*_NOTIFICATION_NUMBER` | `notification_manager::set_notification_number` → the backend publishes the `notification_number` adaptive (database), state persisted by T9 |
-| `SendCustomHostNotification` / `SendCustomServiceNotification(…, author, comment, broadcast, forced, increment)` | `SEND_CUSTOM_*_NOTIFICATION` (options 1/2/4) | `notify(reason_custom, …)`; `forced` bypasses the switches, the poller executes the `CUSTOM` type |
+| `SendCustomHostNotification` / `SendCustomServiceNotification(…, author, comment, forced)` | `SEND_CUSTOM_*_NOTIFICATION` (option 2, bits 1 and 4 ignored) | `notify(reason_custom, …)`; `forced` bypasses the switches, the poller executes the `CUSTOM` type |
 
 **`DELAY_*_NOTIFICATION` has no Broker counterpart, on purpose**: neither the library nor
 Engine reads `next_notification` in the viability (the interval is computed from

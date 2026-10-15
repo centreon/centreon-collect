@@ -281,9 +281,9 @@ flowchart TD
   drapeau, et donc `instances.notifications` en base, suivent.
 * **Réglages du notifier** : `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
   `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
-  `SendCustomHostNotification` / `SendCustomServiceNotification` (les options 1/2/4
-  deviennent trois booléens `broadcast`, `forced`, `increment`). Ces appels sont
-  appliqués de façon asynchrone, comme le tube. `DELAY_*_NOTIFICATION` n'a pas de
+  `SendCustomHostNotification` / `SendCustomServiceNotification` (le bit 2 devient
+  le booléen `forced` ; les bits 1, `broadcast`, et 4, `increment`, sont
+  ignorés). Ces appels sont appliqués de façon asynchrone, comme le tube. `DELAY_*_NOTIFICATION` n'a pas de
   pendant : la commande n'a aucun effet sur la décision, ni chez Engine ni chez Broker.
 * **Toutes les autres commandes par hôte ou service** (résultats de contrôle,
   contrôles forcés, bascules de checks / event handlers / flapping, changements de
