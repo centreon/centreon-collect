@@ -1,30 +1,31 @@
 # Moteur — Notifications
 
-Ce document décrit le fonctionnement des notifications côté moteur
-(`engine/`), de leur déclenchement jusqu'à l'exécution des commandes de
-notification des contacts. Le cœur de la logique est la classe abstraite
-`notifier` (`engine/src/notifier.cc`), dont héritent `host` et `service`.
+Ce document décrit le fonctionnement des notifications, de leur déclenchement
+jusqu'à l'exécution des commandes de notification des contacts.
+
+La **décision** (faut-il notifier ? qui ?) est prise par une bibliothèque
+partagée, `common/notifications/`, qui ne connaît ni Engine ni Broker. Selon
+`notification_mode`, c'est Engine (mode `engine`) ou Broker (mode `broker`)
+qui l'utilise. L'**exécution** (macros, commandes de notification) a toujours
+lieu sur le poller qui supervise la ressource, car elle a besoin de ses objets.
 
 ## Sommaire
 
   - [1. Concepts](#1-concepts)
-  - [2. Le pipeline `notify()`](#2-le-pipeline-notify)
-  - [3. Choix des contacts (escalations, groupes)](#3-choix-des-contacts-escalations-groupes)
-  - [4. Exécution des commandes de notification](#4-exécution-des-commandes-de-notification)
-  - [5. Notifications par type](#5-notifications-par-type)
-    - [5.1 PROBLEM (normal)](#51-problem-normal)
-    - [5.2 RECOVERY](#52-recovery)
-    - [5.3 ACKNOWLEDGEMENT](#53-acknowledgement)
-    - [5.4 FLAPPING](#54-flapping)
-    - [5.5 DOWNTIME](#55-downtime)
-    - [5.6 CUSTOM](#56-custom)
-  - [6. Paramètres de configuration](#6-paramètres-de-configuration)
-  - [8. Introduction à la nouvelle notification](#8-introduction-à-la-nouvelle-notification)
+  - [2. Architecture](#2-architecture)
+  - [3. Le pipeline `notify()`](#3-le-pipeline-notify)
+  - [4. Viabilité par type](#4-viabilité-par-type)
+  - [5. Choix des contacts et escalades](#5-choix-des-contacts-et-escalades)
+  - [6. Exécution des commandes de notification](#6-exécution-des-commandes-de-notification)
+  - [7. Le mode `notification_mode = broker`](#7-le-mode-notification_mode--broker)
+  - [8. Paramètres de configuration](#8-paramètres-de-configuration)
+  - [9. Fichiers (code)](#9-fichiers-code)
 
 ## 1. Concepts
 
-Une notification est caractérisée par un **type** (`notifier::reason_type`) qui
-est regroupé en **catégorie** (`notifier::notification_category`) :
+Une notification a un **type** (`reason_type`), regroupé en **catégorie**
+(`notification_category`). Les deux sont définis dans
+`common/notifications/notification_types.hh`.
 
 | `reason_type`                 | Catégorie (`notification_category`) | Macro `$NOTIFICATIONTYPE$` |
 |-------------------------------|-------------------------------------|----------------------------|
@@ -39,454 +40,73 @@ est regroupé en **catégorie** (`notifier::notification_category`) :
 | `reason_downtimecancelled`    | `cat_downtime`                      | `DOWNTIMECANCELLED`        |
 | `reason_custom` (= 99)        | `cat_custom`                        | `CUSTOM`                   |
 
-La correspondance type → catégorie est faite par `notifier::get_category()`.
-
-Chaque _notifier_ mémorise la **dernière notification de chaque catégorie** dans
-le tableau `_notification[cat]` (un `std::unique_ptr<notification>` par
-catégorie). Ce tableau forme une petite machine à états :
-
-- `_notification_number` : numéro de la notification de problème en cours
-  (incrémenté à chaque notification sauf `recovery`, remis à zéro après recovery /
-  flapping-stop, conservé pour acknowledgement et downtime).
-- `_notification[cat_normal]` présent ⇒ un PROBLEM a déjà été envoyé (condition
-  nécessaire pour qu'un RECOVERY parte).
-- `_last_notification` / `_next_notification` : horodatages utilisés pour la
-  re-notification périodique (`notification_interval`).
-
-## 2. Le pipeline `notify()` actuel
-
-Tout passe par `notifier::notify(type, author, data, options)`. Les états
-`host`/`service` et les callbacks (downtime, commandes externes) ne font que
-l'appeler avec le bon `reason_type`.
-
-Ce système n'est pas commode car très imbriqué dans le fonctionnement d'Engine.
-Le but est donc de simplifier la classe `notifier` et d'introduire un
-`notification_manager` qui sera le centre de la librairie de notification
-d'Engine dans un premier temps puis aussi de Broker si besoin.
-
-Ci-dessous sont décrits les fonctionnements actuels de la notification :
-
-```mermaid
-sequenceDiagram
-    participant SRC as host/service ou callback
-    participant N as notifier::notify()
-    participant V as is_notification_viable[cat]
-    participant C as get_contacts_to_notify()
-    participant E as notification::execute()
-
-    SRC->>N: notify(type, author, data, options)
-    N->>N: cat = get_category(type)
-    N->>V: is_notification_viable(cat, type, options)
-    alt non viable
-        V-->>N: false
-        N-->>SRC: OK (rien n'est envoyé)
-    else viable
-        V-->>N: true
-        N->>N: ++_notification_number (sauf recovery)
-        N->>C: get_contacts_to_notify(cat, type)
-        C-->>N: ensemble de contacts + notification_interval + escalated
-        N->>N: crée l'objet notification (id, number, interval, escalated)
-        N->>E: execute(contacts)
-        E-->>N: OK / ERROR
-        alt OK
-            N->>N: _last_notification = now (si contacts non vide)
-            N->>N: met à jour _notification[cat] (machine à états)
-            N->>N: remet _notification_number à 0 (sauf ack/downtime)
-        end
-        N-->>SRC: retval
-    end
-```
-
-Points clés :
-
-- Si la notification **n'est pas viable**, `notify()` retourne `OK` sans rien
-  envoyer (ce n'est pas une erreur).
-- Le compteur `_notification_number` est incrémenté **avant** l'envoi pour tous
-  les types sauf `recovery`.
-- La mise à jour de `_notification[cat]` dépend de la catégorie : un RECOVERY
-  efface `cat_normal` et `cat_recovery` ; un FLAPPINGSTOP/DISABLED efface
-  `cat_flapping` ; un DOWNTIMEEND/CANCELLED efface `cat_downtime`. Pour
-  acknowledgement et downtime, `_notification_number` est **conservé** (sinon le
-  recovery suivant ne partirait pas).
-
-## 3. Choix des contacts (escalations, groupes)
-
-`notifier::get_contacts_to_notify()` construit l'ensemble des contacts :
-
-1. **Escalations d'abord** : la viabilité de chaque escalation (état couvert par
-   `escalate_on`, plage `[first, last]` du numéro de notification, période
-   active) et l'agrégation (mode **escaladé** dès qu'une escalation est viable,
-   **plus petit** intervalle parmi les viables, union de leurs contactgroups)
-   sont désormais calculées par la fonction partagée
-   `notifications::evaluate_escalations()` (voir
-   [Escalations : évaluation mutualisée](#escalations--évaluation-mutualisée)).
-   Les contactgroups viables retournés sont ensuite résolus en contacts ici.
-2. **Sinon** (aucune escalation viable) : on prend les contacts directs du
-   notifier **et** les contacts de ses contactgroups.
-
-Dans tous les cas, chaque contact n'est retenu que si
-`contact::should_be_notified(cat, type, *this)` est vrai (filtre par contact :
-options de notification du contact, timeperiod du contact, type accepté, etc.).
-L'ensemble retourné est un `std::unordered_set` (un contact présent dans
-plusieurs groupes n'est notifié qu'une fois).
-
-## 4. Exécution des commandes de notification
-
-`run_notification_commands()` (`engine/src/notification_execution.cc`)
-exécute une notification dont les contacts sont déjà choisis. Elle sert aux
-deux modes : en mode engine, `engine_notification_callbacks::deliver()`
-l'appelle après avoir choisi les contacts ; en mode broker,
-`execute_broker_notification()` l'appelle avec ce que Broker a décidé
-(`NotificationExecute`) :
-
-```mermaid
-sequenceDiagram
-    participant R as run_notification_commands()
-    participant M as macro_context (local)
-    participant NC as host/service::notify_contact()
-    participant SH as my_system_r (shell)
-
-    R->>M: set_host(hôte), plus set_service(service) pour un service
-    R->>M: notification = type, id, numéro, escalade, destinataires, auteur, commentaire
-    loop pour chaque contact à notifier
-        R->>M: set_contact(contact) (le cache $TOTAL*$ est vidé)
-        R->>NC: notify_contact(mac, contact, type, author, data, options)
-        loop pour chaque commande de notif du contact
-            NC->>NC: ligne de la commande + macros::process_macros (sans $ARGn$)
-            NC->>NC: log "HOST/SERVICE NOTIFICATION: ..." (si log_notifications)
-            alt commande autorisée par la whitelist
-                NC->>SH: my_system_r(commande, notification_timeout)
-            else refusée
-                NC->>NC: error "not allowed by the whitelist"
-            end
-        end
-        NC-->>R: OK ⇒ contact compté parmi les notifiés
-    end
-```
-
-- Le contexte des macros est local à la notification : rien n'en reste pour
-  les évaluations suivantes. `$NOTIFICATIONRECIPIENTS$` contient tous les
-  contacts à notifier, et chaque contact le voit en entier.
-- L'identifiant et le numéro de la notification sont ceux reçus de la
-  décision (de Broker en mode broker) : les macros
-  `$HOST/SERVICENOTIFICATIONID$` et `$HOST/SERVICENOTIFICATIONNUMBER$` les
-  lisent dans la notification en cours. Voir `doc/engine-macros-fr.md`.
-
-- Les commandes exécutées sont celles du **contact** :
-  `get_host_notification_commands()` ou `get_service_notification_commands()`.
-- Chaque commande est filtrée par la **whitelist** (`command_is_allowed_by_whitelist(..., NOTIF_TYPE)`)
-  avant exécution par `my_system_r`, avec le timeout `notification_timeout`.
-- Si `log_notifications` est activé, une ligne `HOST NOTIFICATION:` /
-  `SERVICE NOTIFICATION:` est journalisée par contact et par commande.
-- `notify_contact` met à jour `last_host_notification` /
-  `last_service_notification` du contact.
-
-## 5. Notifications par type
-
-Chaque catégorie a sa propre fonction de viabilité, sélectionnée via le tableau
-`_is_notification_viable[cat]`. Le drapeau `notification_option_forced` (par
-exemple une notification forcée par commande externe) **court-circuite** la
-plupart des vérifications.
-
-### 5.1 PROBLEM (normal)
-
-Déclenché quand un host/service passe en état **hard** non-OK
-(`host::handle_*`, `service::handle_*` → `notify(reason_normal, …)`).
-
-Viabilité (`_is_notification_viable_normal`) — toutes ces conditions doivent
-être vraies (sauf si forcée) :
-
-- notifications globales activées (`enable_notifications`) et activées pour le
-  notifier (`get_notifications_enabled()`) ;
-- notifier **pas** en downtime ; **dans** la timeperiod de notification ;
-  **pas** en flapping ;
-- état **hard** (un service `volatile` est notifié même hors hard) ;
-- problème **non acquitté** ; état courant **différent d'OK/UP** ;
-- `notify_on_current_state()` (le notifier est configuré pour notifier cet état ;
-  pour un service, son host ne doit pas être down) ;
-- délai de première notification écoulé (`first_notification_delay`) ;
-- autorisé par les dépendances (`authorized_by_dependencies(notification)`) ;
-- si un PROBLEM a déjà été envoyé : respect de l'intervalle de ré-notification
-  (`notification_interval` ; `0` ⇒ pas de ré-notification).
-
-```mermaid
-sequenceDiagram
-    participant CK as service::handle_async_check_result (hard, non-OK)
-    participant N as notifier::notify(reason_normal)
-    participant V as _is_notification_viable_normal
-    participant E as execute(contacts)
-
-    CK->>N: notify(reason_normal)
-    N->>V: viable ? (enabled, hard, !downtime, !flapping,<br/>!ack, notify_on_state, delay, interval)
-    alt non viable
-        V-->>N: false → OK
-    else viable
-        V-->>N: true
-        N->>N: ++_notification_number
-        N->>E: execute(contacts directs/escaladés)
-        E-->>N: OK → _notification[cat_normal] conservé,<br/>_notification_number remis à 0
-    end
-```
-
-### 5.2 RECOVERY
-
-Déclenché quand le notifier revient en **OK/UP** (`notify(reason_recovery, …)`).
-
-Viabilité (`_is_notification_viable_recovery`) :
-
-- notifications activées (globalement et pour le notifier) ;
-- dans la timeperiod **sauf si** `send_recovery_notifications_anyways` est activé ;
-- pas en downtime ; pas en flapping ; état **hard** ; état **OK/UP** ;
-- configuré pour notifier le recovery (`notify_on(up)` / `notify_on(ok)`) ;
-- délai `recovery_notification_delay` écoulé ;
-- `_notification_number > 0` **et** `_notification[cat_normal]` présent : un
-  PROBLEM doit avoir été envoyé auparavant.
-
-La distinction `send_later` détermine si l'on réessaiera plus tard (hors
-timeperiod, downtime, flapping, soft…) ou si l'on abandonne en réinitialisant
-`_notification_number` (non configuré pour le recovery). Un recovery efface
-`cat_normal` et `cat_recovery` et remet `_notification_number` à 0.
-
-```mermaid
-sequenceDiagram
-    participant CK as host/service revient OK/UP
-    participant N as notifier::notify(reason_recovery)
-    participant V as _is_notification_viable_recovery
-    participant E as execute(contacts)
-
-    CK->>N: notify(reason_recovery)
-    N->>V: viable ? (un PROBLEM envoyé ? state OK/UP ?<br/>notify_on(ok/up) ? delay ? timeperiod/anyways ?)
-    alt non viable
-        V-->>N: false (ré-essai plus tard ou abandon)
-    else viable
-        V-->>N: true (pas d'incrément du number)
-        N->>E: execute(contacts du dernier PROBLEM)
-        E-->>N: OK → reset cat_normal + cat_recovery,<br/>_notification_number = 0
-    end
-```
-
-> Note : chaque ré-notification PROBLEM **accumule** les contacts de la
-> notification normale précédente (`notif->add_contacts(...)` dans `notify()`),
-> de sorte que `_notification[cat_normal]` conserve l'ensemble cumulé des
-> personnes déjà prévenues. La viabilité du RECOVERY exige justement que cette
-> notification normale mémorisée existe.
-
-### 5.3 ACKNOWLEDGEMENT
-
-Déclenché par la commande externe d'acquittement
-(`commands.cc` `acknowledge_host`/`acknowledge_service` →
-`notify(reason_acknowledgement, author, comment, …)`).
-
-Viabilité (`_is_notification_viable_acknowledgement`) — minimale :
-
-- forcée ⇒ envoyée ;
-- notifications activées (globalement et pour le notifier) ;
-- l'objet doit être **en problème** (état ≠ OK/UP).
-
-`_notification_number` est **conservé** (l'acquittement ne doit pas empêcher le
-recovery ultérieur).
-
-```mermaid
-sequenceDiagram
-    participant EXT as commande externe ACKNOWLEDGE_*
-    participant CMD as commands::acknowledge_*
-    participant N as notifier::notify(reason_acknowledgement)
-    participant E as execute(contacts)
-
-    EXT->>CMD: ACKNOWLEDGE_HOST_PROBLEM / _SVC_PROBLEM
-    CMD->>N: notify(reason_acknowledgement, author, comment)
-    N->>N: viable ? (enabled, state != OK/UP)
-    alt viable
-        N->>E: execute(contacts)  (author/comment dans les macros)
-        E-->>N: OK → _notification_number CONSERVÉ
-    end
-```
-
-### 5.4 FLAPPING
-
-Déclenché par la détection de flapping (`host::set_flap`/`clear_flap`,
-`service::set_flap`/`clear_flap`) :
-`reason_flappingstart`, `reason_flappingstop`, et `reason_flappingdisabled`
-(quand la détection de flapping est désactivée alors que l'objet flappe).
-
-Viabilité (`_is_notification_viable_flapping`) :
-
-- forcée ⇒ envoyée ; notifications activées ;
-- configuré pour ce type (`notify_on(flappingstart/stop/disabled)`) ;
-- **pas de START** si une notification flapping est déjà en cours ;
-- **STOP/DISABLED** uniquement si la dernière notification flapping était un
-  START ;
-- pas deux fois la même (même `reason`) ;
-- pas pendant un downtime planifié.
-
-```mermaid
-sequenceDiagram
-    participant FD as détection flapping (set_flap/clear_flap)
-    participant N as notifier::notify(reason_flapping*)
-    participant V as _is_notification_viable_flapping
-    participant E as execute(contacts)
-
-    FD->>N: notify(reason_flappingstart)
-    N->>V: viable ? (notify_on(flappingstart), pas déjà en cours, pas downtime)
-    V-->>N: true
-    N->>E: execute → _notification[cat_flapping] = START
-    Note over FD,N: plus tard, fin du flapping
-    FD->>N: notify(reason_flappingstop)
-    N->>V: viable ? (la dernière flapping était un START)
-    V-->>N: true
-    N->>E: execute → reset cat_flapping
-```
-
-### 5.5 DOWNTIME
-
-Déclenché par les callbacks de downtime
-(`engine/src/engine_downtime_callbacks.cc`) :
-`reason_downtimestart` (début), `reason_downtimeend` (fin normale),
-`reason_downtimecancelled` (annulation).
-
-Viabilité (`_is_notification_viable_downtime`) :
-
-- forcée ⇒ envoyée ; notifications activées (globalement et pour le notifier) ;
-- configuré pour le downtime (`notify_on(downtime)`) ;
-- **pas** déjà dans un downtime planifié (`get_scheduled_downtime_depth() == 0`).
-
-Comme l'acquittement, le downtime **conserve** `_notification_number`. Un
-DOWNTIMEEND/CANCELLED efface `_notification[cat_downtime]`.
-
-```mermaid
-sequenceDiagram
-    participant DT as engine_downtime_callbacks
-    participant N as notifier::notify(reason_downtime*)
-    participant V as _is_notification_viable_downtime
-    participant E as execute(contacts)
-
-    DT->>N: notify(reason_downtimestart, author, comment)
-    N->>V: viable ? (notify_on(downtime), depth == 0)
-    V-->>N: true
-    N->>E: execute → _notification[cat_downtime] = START,<br/>_notification_number CONSERVÉ
-    Note over DT,N: à la fin / annulation
-    DT->>N: notify(reason_downtimeend | reason_downtimecancelled)
-    N->>E: execute → reset cat_downtime
-```
-
-### 5.6 CUSTOM
-
-Déclenché par la commande externe de notification personnalisée
-(`engine/src/commands/processing.cc` → `notify(reason_custom, author, data, …)`).
-
-Viabilité (`_is_notification_viable_custom`) :
-
-- forcée ⇒ envoyée ; notifications activées (globalement et pour le notifier) ;
-- pas pendant un downtime planifié.
-
-Une notification CUSTOM ne touche pas la machine à états des problèmes : c'est un
-envoi ponctuel vers les contacts, avec l'auteur et le message fournis.
-
-```mermaid
-sequenceDiagram
-    participant EXT as commande externe SEND_CUSTOM_*_NOTIFICATION
-    participant PR as commands::processing
-    participant N as notifier::notify(reason_custom)
-    participant E as execute(contacts)
-
-    EXT->>PR: SEND_CUSTOM_HOST/SVC_NOTIFICATION
-    PR->>N: notify(reason_custom, author, message, options)
-    N->>N: viable ? (enabled, pas en downtime)  — forçable
-    N->>E: execute(contacts)  ($NOTIFICATIONTYPE$ = CUSTOM)
-```
-
-## 6. Paramètres de configuration
-
-Paramètres influençant la viabilité et le rythme des notifications :
-
-- **Globaux** (`pb_indexed_config.state()`) : `enable_notifications`,
-  `interval_length`, `notification_timeout`, `log_notifications`,
-  `send_recovery_notifications_anyways`.
-- **Par notifier** : `notifications_enabled`, `notification_period`,
-  `notification_interval`, `first_notification_delay`,
-  `recovery_notification_delay`, `notify_on` (masque
-  `up/down/unreachable/ok/warning/critical/unknown/flapping*/downtime`),
-  `is_volatile`.
-- **Par contact** : options de notification (host/service), timeperiod du
-  contact, commandes de notification host/service — tout cela évalué dans
-  `contact::should_be_notified()` puis `notify_contact()`.
-- **Escalations** : intervalle propre, plage `first_notification`/
-  `last_notification`, `escalate_on`, contactgroups — leur viabilité et leur
-  agrégation sont évaluées par la fonction partagée
-  `notifications::evaluate_escalations()` (côté Engine comme côté Broker).
-
-## 7. Pour aller plus loin (code)
-
-- `engine/src/notifier.cc` — `notify()`, `get_category()`,
-  `get_contacts_to_notify()`, `is_notification_viable()` et les six
-  `_is_notification_viable_*`.
-- `engine/src/notification.cc` — `notification::execute()` (macros, itération
-  contacts).
-- `engine/src/host.cc` / `engine/src/service.cc` — `notify_contact()`
-  (exécution des commandes, whitelist, logs) et les déclencheurs PROBLEM /
-  RECOVERY / FLAPPING.
-- `engine/src/engine_downtime_callbacks.cc` — déclencheurs DOWNTIME.
-- `engine/src/commands/commands.cc` — déclencheur ACKNOWLEDGEMENT.
-- `engine/src/commands/processing.cc` — déclencheur CUSTOM.
-
-## 8. Introduction à la nouvelle notification
-
-Les schémas des sections précédentes décrivent la notification **historique**,
-fortement imbriquée dans `notifier`. Cette section décrit la **librairie de
-notification partagée**, dont l'objectif est de rendre la notification
-indépendante d'Engine. Elle vit dans **`common/notifications/`** et est
-**déjà consommée par Broker** en `notification_mode = broker` (décision de
-notification côté Broker, cf. `doc/nego-engine-broker-*.md`) autant que par
-Engine : viabilité (`notification_manager`), filtrage des contacts
-(`should_notify_contact`) et, désormais, évaluation des escalades
-(`evaluate_escalations`).
-
-### Principe
-
-Le modèle suit celui de la librairie de downtimes (`common/downtimes`) : la
-librairie ne connaît plus les objets d'Engine (`notifier`, `contact`,
-contexte des macros, globaux…). Elle dialogue avec l'application hôte au travers
-d'une **interface injectée**, `notification_callbacks`, et adresse les
-ressources par **identité logique `(host_id, service_id)`** (avec
-`service_id == 0` pour un host). Tout le couplage à Engine est concentré dans
-**une seule** implémentation, `engine_notification_callbacks`, vivant côté
-`cce_core`.
-
-### Composants
+La correspondance est faite par `notification_manager::get_category()`.
+
+Les **options** d'une notification (`notification_option`) sont
+`notification_option_forced`, `notification_option_broadcast` et
+`notification_option_increment`. Seule `forced` change la décision (voir la
+section 4). Les deux autres, héritées de Nagios, sont transmises jusqu'au
+poller mais ne sont plus lues par la décision : `broadcast` ne l'est que par
+`is_valid_escalation_for_notification()`, qu'on appelle toujours sans option,
+et `increment` nulle part.
+
+**L'état de notification d'une ressource** est gardé par le
+`notification_manager`, indexé par `(host_id, service_id)` (`service_id == 0`
+pour un hôte) :
+
+- `number` : le numéro de la notification de problème en cours ;
+- `current_id` : l'identifiant de la dernière notification (unique, tiré par
+  `next_notification_id()`) ;
+- `last`, `next`, `initial` : les horodatages de la dernière notification, de
+  la prochaine et de la première ;
+- `events[cat]` : la dernière notification de chaque catégorie (`notification`,
+  une donnée pure : type, intervalle, contacts notifiés). Ce tableau forme une
+  petite machine à états : `events[cat_normal]` présent veut dire qu'un
+  PROBLEM a été envoyé, ce qu'exige un RECOVERY.
+
+Cet état est persisté par le manager (`snapshot_states()` / `restore()`), et
+purgé par `forget(host_id, service_id)` quand la ressource disparaît.
+
+## 2. Architecture
+
+Le modèle suit celui de la bibliothèque de downtimes (`common/downtimes`) : la
+bibliothèque dialogue avec l'application hôte au travers d'une **interface
+injectée**, `notification_callbacks`, et adresse les ressources par leur
+identité logique `(host_id, service_id)`.
 
 | Composant | Emplacement | Rôle |
 |---|---|---|
-| `notification_manager` | lib (`common/notifications/`) | Singleton. Politique de viabilité, état runtime par `(host_id, service_id)`, orchestration de `notify()`. **Zéro dépendance Engine/Broker.** |
-| `notification` (struct) | lib (`notification_types.hh`) | **Donnée pure** d'un événement de notification émis (type, intervalle, contacts notifiés). Plus d'`execute()`, plus de `notifier*`. |
-| `notification_callbacks` | lib | Interface abstraite vers l'application hôte, indexée par id. |
-| `contact_viability` | lib | `should_notify_contact()` : filtre pur d'un contact (options, période, type accepté) sur snapshot `contact`. |
-| `evaluate_escalations` | lib (`escalation.{hh,cc}`) | Fonction pure : viabilité + agrégation des escalades sur snapshots (partagée Engine/Broker). |
-| `notification_types.hh` | lib | Enums + structs valeur `config`, `contact`, `resource_state`, `delivery_result`, `notification`. |
-| `engine_notification_callbacks` | Engine (`cce_core`) | Implémentation : résout host/service par id, fournit l'état, et **porte la livraison** (sélection des contacts + macros + `notify_contact`). |
-| `broker_notification_callbacks` | Broker (`broker/core`) | Implémentation côté Broker : lit l'état depuis `broker_cache`, décide, et dispatche l'exécution au poller via `pb_notification_execute`. |
-| `notifier` | Engine | Ne stocke plus l'état de notification. Conserve `host_id()/service_id()` et **délègue** par id au manager. |
+| `notification_manager` | `common/notifications/` | Singleton. Viabilité, état par ressource, orchestration de `notify()`. Aucune dépendance vers Engine ou Broker. |
+| `notification` | `notification_types.hh` | Donnée pure d'une notification émise (type, intervalle, contacts notifiés). |
+| `notification_callbacks` | `common/notifications/` | Interface vers l'application hôte : `get_config()`, `get_state()`, `deliver()`, `on_notification_number_changed()`. |
+| `should_notify_contact()` | `contact_viability.{hh,cc}` | Filtre pur d'un contact (activation, période, options), partagé par Engine et Broker. |
+| `evaluate_escalations()` | `escalation.{hh,cc}` | Fonction pure : viabilité et agrégation des escalades, partagée par Engine et Broker. |
+| `engine_notification_callbacks` | Engine (`cce_core`) | Backend du mode `engine` : lit l'état des objets d'Engine et **livre** la notification (choix des contacts, macros, commandes). |
+| `broker_notification_callbacks` | Broker (`broker/core/config/applier/`) | Backend du mode `broker` : lit l'état dans `broker_cache`, choisit les contacts, et envoie l'exécution au poller (`pb_notification_execute`). |
+| `notifier` | Engine | Ne stocke plus d'état de notification : il délègue au manager par `(host_id, service_id)`. |
 
 ```mermaid
 flowchart LR
-    subgraph lib["Librairie notifications (sans dépendance Engine)"]
-        NM["notification_manager<br/>(politique + état + notify())"]
-        NEV["notification<br/>(donnée pure)"]
+    subgraph lib["common/notifications (sans dépendance Engine/Broker)"]
+        NM["notification_manager<br/>(viabilité + état + notify())"]
         CB["notification_callbacks<br/>(interface)"]
-        NM --> NEV
         NM -. utilise .-> CB
     end
-    subgraph engine["Engine (cce_core)"]
+    subgraph engine["Engine (mode engine)"]
         NF["notifier / host / service"]
-        ENC["engine_notification_callbacks<br/>(implémente l'interface)"]
+        ENC["engine_notification_callbacks"]
     end
-    NF -- "notify(...) délégué par id" --> NM
+    subgraph broker["Broker (mode broker)"]
+        BND["broker_notification_dispatcher"]
+        BNC["broker_notification_callbacks"]
+    end
+    NF -- "notify(...) par id" --> NM
+    BND -- "notify(...) par id" --> NM
     ENC -. implémente .-> CB
-    ENC -- "résout par id, lit l'état, livre" --> NF
+    BNC -. implémente .-> CB
 ```
 
-### Injection du backend (load / unload)
-
-L'application hôte injecte son implémentation **une fois**, comme pour les
+**Chargement.** L'application hôte injecte son backend une fois, comme pour les
 downtimes :
 
 ```cpp
@@ -494,18 +114,16 @@ notifications::notification_manager::load(
     std::make_unique<engine_notification_callbacks>());
 ```
 
-C'est fait dans `main.cc` (et dans le harnais de tests `engine/tests/helper.cc`)
-à côté du `downtime_manager::load`. Au teardown, `notification_manager::unload()`
-relâche le backend et vide l'état. Quand un `notifier` est détruit, son
-destructeur appelle `forget(host_id, service_id)` pour purger l'état de cette
-ressource (l'état ne vit plus avec l'objet, il faut donc le nettoyer
-explicitement).
+C'est fait dans `engine/src/main.cc` (et dans le harnais de tests
+`engine/tests/helper.cc`) et, côté Broker, dans `broker_state.cc` en mode
+`broker`. `notification_manager::unload()` relâche le backend et vide
+l'état. Le destructeur de `notifier` appelle `forget(host_id, service_id)`.
 
-### Le pipeline `notify()`
+## 3. Le pipeline `notify()`
 
-`notifier::notify(...)` n'est plus qu'un délégateur : il convertit `this` en
-`(host_id, service_id)` et appelle `notification_manager::notify(...)`. Toute la
-logique vit dans le manager, qui ne touche jamais directement le notifier.
+`notifier::notify(type, author, data, options)` n'est qu'un délégateur. En
+mode `broker`, il ne fait rien : c'est Broker qui décide. Sinon, il appelle
+`notification_manager::notify(host_id, service_id, …)`.
 
 ```mermaid
 sequenceDiagram
@@ -517,85 +135,184 @@ sequenceDiagram
     SRC->>NF: notify(type, author, data, options)
     NF->>NM: notify(host_id, service_id, type, author, data, options)
     NM->>NM: cat = get_category(type)
-    NM->>NM: is_notification_viable(host_id, service_id, cat, type, options)
+    NM->>CB: get_config() puis get_state() (voir section 4)
+    NM->>NM: is_notification_viable(...)
     alt non viable
         NM-->>NF: OK (rien n'est envoyé)
     else viable
-        NM->>NM: inc_notification_number (sauf recovery)
+        NM->>NM: number++ (sauf recovery)
         NM->>NM: current_id = next_notification_id()
-        NM->>NM: set_current_notification_id(current_id)
-        NM->>NM: already = contacts de la notif normale courante
+        NM->>NM: already = contacts du PROBLEM en cours
         NM->>CB: deliver(host_id, service_id, cat, type, id, number, author, message, options)
         CB-->>NM: { notified_contacts, notification_interval, escalated }
-        NM->>NM: crée l'objet notification (donnée pure)
-        NM->>NM: set_last_notification(now) si des contacts ont été notifiés
-        NM->>NM: machine à états sur events[cat] (carry-forward normal, reset selon cat, reset du numéro sauf ack/downtime)
+        NM->>NM: last = now si des contacts ont été notifiés
+        NM->>NM: machine à états sur events[cat]
         NM-->>NF: OK
     end
-    NF-->>SRC: retval
+    NF-->>SRC: OK
 ```
 
-La machine à états est inchangée par rapport à l'ancienne version (un RECOVERY
-efface `cat_normal` et `cat_recovery`, etc.) — seul son **lieu de stockage** a
-changé : la map `(host_id, service_id) → notification_state` du manager au lieu
-du tableau membre du `notifier`.
+Points clés :
 
-### La viabilité : un état-instantané, puis une fonction pure
+- Une notification **non viable** n'est pas une erreur : `notify()` renvoie
+  `OK` sans rien envoyer.
+- Le numéro est incrémenté **avant** `deliver()`, pour tous les types sauf
+  RECOVERY. `deliver()` reçoit donc le nouveau numéro.
+- **La machine à états**, après `deliver()` :
+  - un PROBLEM remplace `events[cat_normal]`, en y **ajoutant** les contacts
+    déjà notifiés par le PROBLEM précédent, pour qu'ils reçoivent tous le
+    RECOVERY. Le numéro est **conservé** ;
+  - un RECOVERY efface `cat_normal` et `cat_recovery` ;
+  - un FLAPPINGSTOP ou FLAPPINGDISABLED efface `cat_flapping` ; un FLAPPINGSTART
+    y reste mémorisé ;
+  - un DOWNTIMEEND ou DOWNTIMECANCELLED efface `cat_downtime` ; un
+    DOWNTIMESTART y reste mémorisé ;
+  - un ACKNOWLEDGEMENT ou un CUSTOM n'est pas mémorisé ;
+  - le numéro est **remis à 0** par un RECOVERY. Un FLAPPING ou un CUSTOM le
+    remet à 0 seulement **en dehors d'un problème** : pendant un problème, il
+    le garde, sinon le RECOVERY de ce problème ne partirait pas (il exige un
+    numéro). Un ACKNOWLEDGEMENT ou un DOWNTIME le garde toujours.
 
-La viabilité n'interroge plus le notifier méthode par méthode. Le manager
-récupère **un instantané** (`resource_state`) et la **configuration globale**
-(`global_config`) via le backend, puis la décision est une fonction **pure** de
-ces valeurs (plus l'état interne du manager : notification courante, numéro).
+## 4. Viabilité par type
 
-```mermaid
-sequenceDiagram
-    participant NM as notification_manager
-    participant CB as notification_callbacks (backend)
-    participant ENG as Engine (host/service, config, timeperiod)
+Le manager ne questionne pas l'objet méthode par méthode : il demande au
+backend la configuration (`get_config()` : `enabled`, qui combine
+`enable_notifications` et l'activation des notifications de la ressource, et
+`send_recovery_notifications_anyway`), puis un **instantané** de la ressource
+(`get_state()` : `resource_state`). La décision est ensuite une fonction de ces
+valeurs et de l'état du manager (notifications en cours, numéro).
 
-    NM->>CB: get_global_config()
-    CB->>ENG: lit pb_indexed_config.state()
-    CB-->>NM: global_config { enabled, interval_length, send_recovery_notifications_anyway }
-    NM->>CB: get_state(host_id, service_id)
-    CB->>ENG: résout la ressource par id, lit son état + période de notif (évaluée à l'heure courante, lue en interne)
-    CB-->>NM: resource_state (flapping, downtime, hard_state, ack, current_state, notify_on, délais…)
-    NM->>NM: _is_notification_viable_<cat>(resource_state, global_config, ...)
-    note over NM: décision = fonction pure de (resource_state, global_config)<br/>+ état manager (current_notification, notification_number)
-```
+Deux règles s'appliquent avant celles de chaque type
+(`is_notification_viable()`) :
 
-### La livraison : `deliver()`
+1. une notification **forcée** (`notification_option_forced`) est toujours
+   viable, **sauf un RECOVERY**, qu'on ne force jamais ;
+2. sinon, si les notifications sont désactivées (`enabled` faux), rien ne
+   part.
 
-La sélection des contacts (escalations, groupes) et l'envoi effectif (macros,
-exécution des commandes via `notify_contact`) restent **côté Engine**, dans
-`engine_notification_callbacks::deliver()`. Le manager fournit l'identité et les
-paramètres ; le backend renvoie qui a été notifié et les paramètres ajustés par
-escalation.
+### 4.1 PROBLEM (normal)
 
-```mermaid
-sequenceDiagram
-    participant NM as notification_manager
-    participant ENC as engine_notification_callbacks::deliver()
-    participant NF as notifier (host/service)
-    participant CT as contacts
+Déclenché quand un hôte ou un service est en état non-OK (`notify(reason_normal)`
+depuis le traitement des résultats de check).
 
-    NM->>ENC: deliver(host_id, service_id, cat, type, id, number, author, message, options)
-    ENC->>ENC: n = get_resource(host_id, service_id)
-    ENC->>NF: get_contacts_to_notify(cat, type) → contacts + interval + escalated
-    ENC->>ENC: run_notification_commands(n, contacts, type, id, number, ...)
-    loop pour chaque contact (voir section 4)
-        ENC->>NF: notify_contact(mac, contact, type, ...)
-        NF->>CT: exécute la commande de notification
-        ENC->>ENC: si OK, ajoute le contact aux notifiés
-    end
-    ENC-->>NM: delivery_result { notified_contacts, notification_interval, escalated }
-```
+Viable si, dans cet ordre :
 
-> Pour le routage du **recovery**, la sélection (`get_contacts_to_notify` →
-> `contact::should_be_notified`) consulte la notification normale précédente via
-> les accesseurs du `notifier`, qui délèguent au manager par id. La boucle
-> reste donc correcte sans que la librairie n'ait à connaître les contacts.
+- la ressource n'est **pas en downtime** ;
+- on est **dans sa période de notification** ;
+- elle **ne flappe pas** ;
+- **si le service est volatile, la notification part** ici, sans les
+  vérifications suivantes ;
+- l'état est **hard** ;
+- le problème n'est **pas acquitté** ;
+- l'état courant n'est **pas OK/UP** ;
+- la ressource est configurée pour notifier cet état
+  (`notify_on_current_state` ; pour un service, son hôte ne doit pas être
+  en panne) ;
+- pour une **première** notification, le délai `first_notification_delay`
+  depuis le dernier changement d'état hard est écoulé ;
+- les **dépendances** de notification l'autorisent ;
+- si un PROBLEM a déjà été envoyé et que l'état n'a pas changé depuis :
+  l'intervalle de re-notification est écoulé (`notification_interval`, celui
+  de l'escalade active s'il y en a une ; `0` = pas de re-notification). Après
+  un changement d'état hard, on notifie sans attendre l'intervalle.
 
-### Escalations : évaluation mutualisée
+### 4.2 RECOVERY
+
+Déclenché quand la ressource revient en OK/UP (`notify(reason_recovery)`). On ne
+force jamais un RECOVERY.
+
+Viable si, dans cet ordre :
+
+- on est dans la période de notification, **sauf si**
+  `send_recovery_notifications_anyway` est activé ;
+- pas de downtime, pas de flapping, état **hard**, état **OK/UP** ;
+- la ressource est configurée pour notifier le retour (`notify_on` contient
+  `up` ou `ok`) ;
+- le délai `recovery_notification_delay` depuis le changement d'état hard est
+  écoulé ;
+- le numéro est différent de 0 **et** un PROBLEM est mémorisé
+  (`events[cat_normal]`).
+
+Quand une condition échoue, deux cas : soit on **réessaiera plus tard**
+(hors période, downtime, flapping, état soft, état pas encore OK, délai pas
+écoulé) ; soit on **abandonne** (ressource non configurée pour le retour, pas
+de PROBLEM envoyé) : le PROBLEM mémorisé est alors effacé et le numéro remis
+à 0.
+
+Seuls les contacts qui ont reçu le PROBLEM reçoivent le RECOVERY (voir
+section 5).
+
+### 4.3 ACKNOWLEDGEMENT
+
+Déclenché par un acquittement (`commands.cc`, `acknowledge_host` /
+`acknowledge_service`, ou `broker_acknowledgement_manager` en mode broker).
+
+Viable si la ressource est **en problème** (état différent d'OK/UP). Le numéro
+est conservé.
+
+### 4.4 FLAPPING
+
+Déclenché par la détection de flapping (`set_flap()` / `clear_flap()` des
+hôtes et des services) : `reason_flappingstart`, `reason_flappingstop`, et
+`reason_flappingdisabled` quand la détection est désactivée pendant un
+flapping.
+
+Viable si :
+
+- la ressource est configurée pour ce type (`notify_on` contient
+  `flappingstart`, `flappingstop` ou `flappingdisabled`) ;
+- pour un START : aucune notification de flapping n'est en cours ;
+- pour un STOP ou un DISABLED : la notification de flapping en cours est un
+  START ;
+- la même notification n'a pas déjà été envoyée ;
+- la ressource n'est pas en downtime.
+
+### 4.5 DOWNTIME
+
+Déclenché par les callbacks de downtime (`engine_downtime_callbacks.cc`) :
+`reason_downtimestart`, `reason_downtimeend`, `reason_downtimecancelled`.
+
+Viable si la ressource est configurée pour les downtimes (`notify_on`
+contient `downtime`) et qu'elle n'est **pas déjà** dans un downtime planifié
+(`scheduled_downtime_depth == 0`). Le numéro est conservé.
+
+### 4.6 CUSTOM
+
+Déclenché par la commande externe `SEND_CUSTOM_HOST_NOTIFICATION` /
+`SEND_CUSTOM_SVC_NOTIFICATION` (`commands/processing.cc`), ou par la RPC
+Broker correspondante en mode broker.
+
+Viable si la ressource n'est pas en downtime. Avec
+`notification_option_forced`, elle part toujours.
+
+## 5. Choix des contacts et escalades
+
+Le backend choisit les contacts dans `deliver()`. Côté Engine, c'est
+`notifier::get_contacts_to_notify()` ; côté Broker,
+`broker_notification_callbacks::deliver()` reproduit la même logique sur
+`broker_cache`.
+
+1. **Les escalades d'abord.** Leur viabilité (état couvert par `escalate_on`,
+   numéro dans `[first, last]`, période active) et leur agrégation (mode
+   **escaladé** dès qu'une escalade est viable, **plus petit** intervalle
+   parmi les viables, union de leurs groupes de contacts) sont calculées par
+   `evaluate_escalations()`. Les groupes viables sont ensuite résolus en
+   contacts.
+2. **Sinon** : les contacts directs de la ressource et ceux de ses groupes de
+   contacts.
+
+Chaque contact est ensuite filtré par `should_notify_contact()` :
+
+- ses notifications d'hôte ou de service sont activées ;
+- on est dans **sa** période de notification, évaluée dans son fuseau ;
+- ses options couvrent la notification : l'état courant pour un PROBLEM,
+  `ok`/`up` pour un RECOVERY, le type de flapping, `downtime` ;
+  l'ACKNOWLEDGEMENT et le CUSTOM passent toujours ;
+- pour un **RECOVERY** : il a reçu le PROBLEM en cours.
+
+Un contact présent dans plusieurs groupes n'est notifié qu'une fois.
+
+### Escalades : évaluation mutualisée
 
 Engine et Broker évaluent tous deux les escalades d'une ressource, mais à partir
 de sources de données différentes : Engine parcourt la liste `_escalations` du
@@ -684,46 +401,76 @@ contacts (Engine filtre par `should_be_notified` et gère le fallback
 non-escaladé ; Broker retourne les noms des membres, filtrés plus loin par
 `should_notify_contact`) et le calcul de `in_period`.
 
-### Points clés
+## 6. Exécution des commandes de notification
 
-- L'état runtime de notification (numéro, ids, horodatages, et les six
-  événements `notification`) vit dans le manager, **indexé par
-  `(host_id, service_id)`** — ce qui le rend persistable / centralisable (vers
-  Broker) sans changer l'API.
-- `notification_manager`, `notification` et l'interface **ne référencent aucun
-  type d'Engine** ; la librairie loggue via `common/log_v2`
-  (catégories `FUNCTIONS` / `NOTIFICATIONS`).
-- Le couplage à l'application hôte est concentré dans les implémentations du
-  backend, injectées au démarrage : `engine_notification_callbacks` (Engine) et
-  `broker_notification_callbacks` (Broker en `notification_mode = broker`).
-- Le destructeur de `notifier` appelle `forget(host_id, service_id)` ; sans cela
-  l'état fuirait dans la map globale.
+`run_notification_commands()` (`engine/src/notification_execution.cc`)
+exécute une notification dont les contacts sont déjà choisis. Elle sert aux
+deux modes : en mode `engine`, `engine_notification_callbacks::deliver()`
+l'appelle après avoir choisi les contacts ; en mode `broker`,
+`execute_broker_notification()` l'appelle avec ce que Broker a décidé
+(`NotificationExecute`) :
 
-### Fichiers (code)
+```mermaid
+sequenceDiagram
+    participant R as run_notification_commands()
+    participant M as macro_context (local)
+    participant NC as host/service::notify_contact()
+    participant SH as my_system_r (shell)
 
-Librairie partagée (`common/notifications/`, aucune dépendance Engine/Broker) :
+    R->>M: set_host(hôte), plus set_service(service) pour un service
+    R->>M: notification = type, id, numéro, escalade, destinataires, auteur, commentaire
+    loop pour chaque contact à notifier
+        R->>M: set_contact(contact) (le cache $TOTAL*$ est vidé)
+        R->>NC: notify_contact(mac, contact, type, author, data, options)
+        loop pour chaque commande de notif du contact
+            NC->>NC: ligne de la commande + macros::process_macros (sans $ARGn$)
+            NC->>NC: log "HOST/SERVICE NOTIFICATION: ..." (si log_notifications)
+            alt commande autorisée par la whitelist
+                NC->>SH: my_system_r(commande, notification_timeout)
+            else refusée
+                NC->>NC: error "not allowed by the whitelist"
+            end
+        end
+        NC-->>R: OK ⇒ contact compté parmi les notifiés
+    end
+```
 
-- `notification_manager.{hh,cc}` — politique, état, `notify()`, viabilité.
-- `notification_callbacks.hh` — l'interface injectée.
-- `contact_viability.{hh,cc}` — `should_notify_contact()` (filtre pur d'un
-  contact).
-- `escalation.{hh,cc}` — `evaluate_escalations()` (viabilité + agrégation des
-  escalades).
-- `notification_types.hh` — enums + structs valeur (`config`, `contact`,
-  `resource_state`, `delivery_result`, `notification`, `escalation`…).
+- Le contexte des macros est local à la notification : rien n'en reste pour
+  les évaluations suivantes. `$NOTIFICATIONRECIPIENTS$` contient tous les
+  contacts à notifier, et chaque contact le voit en entier.
+- L'identifiant et le numéro de la notification sont ceux reçus de la
+  décision (de Broker en mode broker) : les macros
+  `$HOST/SERVICENOTIFICATIONID$` et `$HOST/SERVICENOTIFICATIONNUMBER$` les
+  lisent dans la notification en cours. Voir `doc/engine-macros-fr.md`.
+- Les commandes exécutées sont celles du **contact** :
+  `get_host_notification_commands()` ou `get_service_notification_commands()`.
+  Elles sont configurées par leur seul nom, donc sans `$ARGn$`.
+- Chaque commande est filtrée par la **whitelist**
+  (`command_is_allowed_by_whitelist(..., NOTIF_TYPE)`) avant d'être exécutée
+  par `my_system_r`, avec le timeout `notification_timeout`.
+- Si `log_notifications` est activé, une ligne `HOST NOTIFICATION:` /
+  `SERVICE NOTIFICATION:` est journalisée par contact et par commande.
+- `notify_contact` met à jour `last_host_notification` /
+  `last_service_notification` du contact.
 
-Implémentations hôtes (le seul couplage) :
+## 7. Le mode `notification_mode = broker`
 
-- `engine/src/engine_notification_callbacks.{hh,cc}` — backend Engine
-  (résolution par id, livraison locale via `notify_contact`).
-- `engine/src/notifier.cc` — délégateurs par id, `get_contacts_to_notify()`
-  (appelle `evaluate_escalations`), `~notifier` → `forget`.
-- `broker/core/src/broker_notification_callbacks.cc` — backend Broker (décision
-  puis dispatch `pb_notification_execute`).
-- `broker/core/cache/broker_cache.cc` — `notification_escalation()` (appelle
-  `evaluate_escalations`).
+Le mode est annoncé à la négociation. En mode `broker`, Engine ne décide plus
+(`notifier::notify()` ne fait rien) :
 
-## 9. Bascules de notification en `notification_mode = broker`
+1. `broker_notification_dispatcher` reçoit les événements de statut des hôtes
+   et des services et appelle `notification_manager::notify()`, comme
+   `notifier::notify()` le ferait côté Engine. Le manager n'étant pas
+   thread-safe, tout accès passe par le **strand** du dispatcher.
+2. Le manager appelle `broker_notification_callbacks::deliver()`, qui choisit
+   les contacts (section 5) et publie le numéro de notification pour la base.
+3. `deliver()` envoie un `pb_notification_execute` (`NotificationExecute` :
+   ressource, type, identifiant, numéro, escalade, auteur, message, options,
+   contacts) au poller qui supervise la ressource.
+4. La boucle d'événements d'Engine appelle `execute_broker_notification()`,
+   puis `run_notification_commands()` (section 6).
+
+### Bascules de notification
 
 `broker/core/cache/notification_toggles.cc`, `broker_cache::set_notify`
 
@@ -768,7 +515,7 @@ Tests : `tests/broker-engine/notification-toggles-broker.robot` (`BENOTBRK1` à 
 UT `BrokerNotificationDeliverTest.{NotifyOverrideSurvivesDefinition,
 ReinjectNotificationOverrides, HostChildrenIndex}`.
 
-### 9.1 Réglages du notifier et sérialisation
+#### Réglages du notifier et sérialisation
 
 `broker_notification_dispatcher` possède un **strand** : le multiplexeur y poste les lots
 (`event_sink::executor()`), et tout autre appelant du `notification_manager`, qui n'est pas
@@ -789,7 +536,7 @@ est un no-op sur la décision, on ne l'expose pas.
 
 Tests : `tests/broker-engine/notification-settings-broker.robot` (`BENOTSET1`, `BENOTSET2`).
 
-### 9.2 Contacts, contactgroups et timeperiods de notification
+#### Contacts, contactgroups et timeperiods de notification
 
 `broker/core/cache/notification_toggles.cc`, `broker_cache::set_contact_notifications`,
 `broker_cache::set_contact_notification_period`, `broker_cache::set_notification_period`
@@ -845,7 +592,7 @@ Tests : `tests/broker-engine/contact-toggles-broker.robot` (`BECNTBRK1` à `3`) 
 `BrokerNotificationDeliverTest.{NotificationPeriodOverrideSurvivesDefinition,
 ContactOverrideSurvivesMerge, ContactgroupToggleAndContactPeriod}`.
 
-### 9.3 Interrupteur global d'un poller
+#### Interrupteur global d'un poller
 
 `broker_cache::set_poller_notifications`, `cache/notification_toggles.cc`
 
@@ -869,11 +616,57 @@ en legacy. Pour toute la plateforme, PHP boucle sur ses pollers. Une bascule à 
 d'une zone n'a de sens qu'avec la distribution dynamique des ressources et est différée à ce
 jalon.
 
-**Trou connu.** Rien n'est publié : `instances.notifications` en base continue de refléter le
-drapeau d'Engine, pas la surcouche Broker. Il n'existe pas d'adaptatif d'instance, et publier
-un statut d'instance complet écraserait les autres colonnes. Ce trou sera fermé par le canal
-descendant du prérequis 4 (redescente de la commande à Engine), qui alignera d'un coup sa
-rétention, ses macros et la base.
+## 8. Paramètres de configuration
 
-Tests : `tests/broker-engine/poller-toggles-broker.robot` (`BEPOLBRK1`) ; UT
-`BrokerNotificationDeliverTest.PollerOverrideSurvivesMerge`.
+- **Globaux** (`pb_indexed_config.state()`) : `enable_notifications`,
+  `interval_length`, `notification_timeout`, `log_notifications`,
+  `send_recovery_notifications_anyway`.
+- **Par ressource** : `notifications_enabled`, `notification_period`,
+  `notification_interval`, `first_notification_delay`,
+  `recovery_notification_delay`, `notify_on` (masque
+  `up/down/unreachable/ok/warning/critical/unknown/flapping*/downtime`),
+  `is_volatile`. Les intervalles et délais sont en unités de
+  `interval_length` dans la configuration ; le backend les convertit en
+  secondes avant de les donner à la bibliothèque.
+- **Par contact** : activation des notifications d'hôte et de service,
+  périodes de notification, options, fuseau, commandes de notification.
+- **Escalades** : intervalle propre, plage `first_notification` /
+  `last_notification`, `escalate_on`, période, groupes de contacts.
+
+## 9. Fichiers (code)
+
+Bibliothèque partagée (`common/notifications/`, sans dépendance vers Engine
+ou Broker) :
+
+- `notification_manager.{hh,cc}` : viabilité, état par ressource, `notify()`,
+  persistance (`snapshot_states()` / `restore()`).
+- `notification_callbacks.hh` : l'interface injectée.
+- `contact_viability.{hh,cc}` : `should_notify_contact()`.
+- `escalation.{hh,cc}` : `evaluate_escalations()`.
+- `notification_types.hh` : enums et structures valeur (`config`, `contact`,
+  `resource_state`, `delivery_result`, `notification`…).
+
+Engine :
+
+- `engine/src/engine_notification_callbacks.{hh,cc}` : le backend du mode
+  `engine`.
+- `engine/src/notifier.cc` : délégation au manager par id,
+  `get_contacts_to_notify()`, `~notifier` → `forget`.
+- `engine/src/notification_execution.cc` : `run_notification_commands()`,
+  `execute_broker_notification()`.
+- `engine/src/host.cc`, `engine/src/service.cc` : `notify_contact()`
+  (exécution, whitelist, logs) et les déclencheurs PROBLEM, RECOVERY et
+  FLAPPING.
+- `engine/src/engine_downtime_callbacks.cc` : déclencheurs DOWNTIME.
+- `engine/src/commands/commands.cc` : déclencheur ACKNOWLEDGEMENT.
+- `engine/src/commands/processing.cc` : déclencheur CUSTOM.
+
+Broker :
+
+- `broker/core/config/applier/broker_notification_callbacks.{hh,cc}` : le
+  backend du mode `broker` (décision, puis envoi de `pb_notification_execute`).
+- `broker/core/src/broker_notification_dispatcher.cc` : le déclencheur, à
+  partir des statuts, et le strand qui sérialise l'accès au manager.
+- `broker/core/cache/broker_cache.cc` : `notification_escalation()` (appelle
+  `evaluate_escalations`).
+- `broker/core/cache/notification_toggles.cc` : les bascules (section 7).
