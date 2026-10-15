@@ -91,7 +91,6 @@ enum reason_type {
 enum notification_option {
   notification_option_none = 0,
   notification_option_forced = 2,
-  notification_option_increment = 4,
 };
 
 /**

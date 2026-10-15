@@ -647,13 +647,12 @@ message ServiceNotificationNumberRequest {
   uint32 number = 2;
 }
 
-/* Custom notification; the two flags are Engine's option bits (2, 4). */
+/* Custom notification; forced is Engine's option bit 2. */
 message HostCustomNotificationRequest {
   HostIdentifier host = 1;
   string author = 2;
   string comment = 3;
-  bool forced = 4;     // bypass the enabled switches and periods
-  bool increment = 5;  // count it in the notification number
+  bool forced = 4;  // bypass the enabled switches and periods
 }
 
 message ServiceCustomNotificationRequest {
@@ -661,7 +660,6 @@ message ServiceCustomNotificationRequest {
   string author = 2;
   string comment = 3;
   bool forced = 4;
-  bool increment = 5;
 }
 
 message HostNotificationPeriodRequest {

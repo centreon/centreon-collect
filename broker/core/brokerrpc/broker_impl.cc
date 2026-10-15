@@ -1894,17 +1894,13 @@ static broker_notification_dispatcher* _notification_dispatcher() {
 }
 
 /**
- * @brief Combine the custom notification flags into the library options.
+ * @brief Convert the custom notification flag into the library options.
  */
 static com::centreon::common::notifications::notification_option
-_custom_options(bool forced, bool increment) {
+_custom_options(bool forced) {
   namespace notif = com::centreon::common::notifications;
-  uint32_t o = notif::notification_option_none;
-  if (forced)
-    o |= notif::notification_option_forced;
-  if (increment)
-    o |= notif::notification_option_increment;
-  return static_cast<notif::notification_option>(o);
+  return forced ? notif::notification_option_forced
+                : notif::notification_option_none;
 }
 
 /**
@@ -1962,7 +1958,7 @@ grpc::Status broker_impl::SendCustomHostNotification(
   d->post_notify(h->obj().host_id(), 0,
                  com::centreon::common::notifications::reason_custom,
                  request->author(), request->comment(),
-                 _custom_options(request->forced(), request->increment()));
+                 _custom_options(request->forced()));
   return grpc::Status::OK;
 }
 
@@ -1984,7 +1980,7 @@ grpc::Status broker_impl::SendCustomServiceNotification(
   d->post_notify(s->obj().host_id(), s->obj().service_id(),
                  com::centreon::common::notifications::reason_custom,
                  request->author(), request->comment(),
-                 _custom_options(request->forced(), request->increment()));
+                 _custom_options(request->forced()));
   return grpc::Status::OK;
 }
 
