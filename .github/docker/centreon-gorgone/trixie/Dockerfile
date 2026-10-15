@@ -188,6 +188,9 @@ mkdir -p /etc/centreon/config.d/ \
          /var/lib/centreon-gorgone/.keys \
          /var/log/centreon-gorgone \
          /var/lib/centreon-engine/rw \
+         /etc/centreon-engine \
+         /etc/centreon-broker \
+         /etc/snmp/centreon_traps \
          /usr/local/lib/centreon-gorgone
 chown -R centreon-gorgone:centreon /etc/centreon/
 chmod -R 775 /etc/centreon/
@@ -201,6 +204,10 @@ chmod -R 775 /var/lib/centreon/
 chown -R centreon-engine:centreon-engine /var/lib/centreon-engine
 chmod 0755 /var/lib/centreon-engine
 chmod 775 /var/lib/centreon-engine/rw
+chown centreon-engine:centreon-engine /etc/centreon-engine /etc/centreon-broker
+chmod 775 /etc/centreon-engine /etc/centreon-broker
+chown centreon:centreon /etc/snmp/centreon_traps
+chmod 775 /etc/snmp/centreon_traps
 chown -R centreon-gorgone:centreon-gorgone \
           /var/lib/centreon-gorgone \
           /var/log/centreon-gorgone
