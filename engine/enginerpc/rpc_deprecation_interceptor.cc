@@ -21,6 +21,7 @@
 namespace asio = boost::asio;
 
 #include <google/protobuf/descriptor.h>
+#include <google/protobuf/descriptor.pb.h>
 
 #include <absl/container/flat_hash_set.h>
 #include <mutex>

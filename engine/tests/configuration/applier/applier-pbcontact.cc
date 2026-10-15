@@ -24,7 +24,7 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/contact.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "helper.hh"
 

@@ -23,10 +23,10 @@
 #include <absl/strings/str_join.h>
 #include <fmt/format.h>
 
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/service.hh"
 #include "engine/macros/macro_context.hh"
 
 namespace notifications = com::centreon::common::notifications;

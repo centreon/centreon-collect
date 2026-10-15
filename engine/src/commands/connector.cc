@@ -21,6 +21,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/my_lock.hh"
+#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/version.hh"
 
 using namespace com::centreon::engine::commands;

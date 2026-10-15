@@ -21,6 +21,9 @@
  */
 
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/enginerpc.hh"
+#include "engine/macros/defines.hh"
 
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;

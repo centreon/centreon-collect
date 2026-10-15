@@ -26,7 +26,7 @@
 
 #include "com/centreon/engine/commands/raw_v2.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "common/engine_conf/host_helper.hh"
+#include "com/centreon/engine/host.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"

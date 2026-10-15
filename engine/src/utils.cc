@@ -34,6 +34,7 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"

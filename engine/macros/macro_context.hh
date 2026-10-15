@@ -21,17 +21,22 @@
 #define CCE_MACROS_MACRO_CONTEXT_HH
 
 #include <array>
+#include <cstdint>
 #include <optional>
+#include <string>
 
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/servicegroup.hh"
 #include "common/notifications/notification_types.hh"
 #include "engine/macros/defines.hh"
 
 namespace com::centreon::engine {
 
+class contact;
+class contactgroup;
+class host;
+class hostgroup;
 class notifier;
+class service;
+class servicegroup;
 
 /**
  * @brief The values of the $NOTIFICATION*$ macros, given by the notification

@@ -23,7 +23,11 @@
 #include "engine/macros/resolve.hh"
 
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/contact.hh"
+#include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/hostgroup.hh"
+#include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/string.hh"
 #include "engine/macros/process.hh"
 

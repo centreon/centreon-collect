@@ -18,9 +18,10 @@
 
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/commands/environment.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "engine/macros/descriptors.hh"
+#include "com/centreon/engine/host.hh"
 #include "engine/macros/process.hh"
 #include "engine/macros/resolve.hh"
 

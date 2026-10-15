@@ -39,7 +39,6 @@
 #include <benchmark/benchmark.h>
 
 #include <cstdlib>
-#include <string>
 #include <vector>
 
 #include "absl/strings/str_cat.h"
@@ -54,6 +53,8 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
+#include "com/centreon/engine/contact.hh"
+#include "com/centreon/engine/host.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "engine/macros/descriptors.hh"
 #include "engine/macros/process.hh"

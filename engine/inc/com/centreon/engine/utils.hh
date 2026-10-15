@@ -22,8 +22,15 @@
 #ifndef CCE_UTILS_HH
 #define CCE_UTILS_HH
 
-#include "com/centreon/engine/enginerpc.hh"
-#include "engine/macros/macro_context.hh"
+#include <memory>
+#include <string>
+
+namespace com::centreon::engine {
+class macro_context;
+namespace commands {
+class command;
+}
+}  // namespace com::centreon::engine
 
 #ifdef __cplusplus
 extern "C" {

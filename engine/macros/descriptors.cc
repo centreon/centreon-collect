@@ -25,8 +25,11 @@
 #include <type_traits>
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/hostgroup.hh"
+#include "com/centreon/engine/servicegroup.hh"
 #include "engine/macros/process.hh"
 #include "engine/macros/resolve.hh"
 #include "engine/macros/summary.hh"
@@ -131,8 +134,7 @@ std::string check_type_string(const checkable& chk) {
  *
  *  @return The value with its macros processed.
  */
-std::string recursive_string(macro_context& mac,
-                                    const std::string& value) {
+std::string recursive_string(macro_context& mac, const std::string& value) {
   return process_macros(mac, value, 0);
 }
 

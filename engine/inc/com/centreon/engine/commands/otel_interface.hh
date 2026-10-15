@@ -20,7 +20,6 @@
 #define CCE_COMMANDS_OTEL_INTERFACE_HH
 
 #include "com/centreon/engine/commands/result.hh"
-#include "engine/macros/macro_context.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 class metric_to_datapoints;

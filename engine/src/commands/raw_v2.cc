@@ -18,9 +18,10 @@
 
 #include "com/centreon/engine/commands/raw_v2.hh"
 #include "com/centreon/engine/commands/environment.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "engine/macros/descriptors.hh"
 #include "engine/macros/process.hh"
 #include "engine/macros/resolve.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"

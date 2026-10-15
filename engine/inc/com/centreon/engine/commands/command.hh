@@ -19,12 +19,17 @@
 #ifndef CCE_COMMANDS_COMMAND_HH
 #define CCE_COMMANDS_COMMAND_HH
 
-#include "com/centreon/engine/commands/command_listener.hh"
-#include "engine/macros/macro_context.hh"
+#include <absl/container/flat_hash_map.h>
 
-namespace com::centreon::engine::commands {
+#include "com/centreon/engine/check_result.hh"
+#include "com/centreon/engine/commands/command_listener.hh"
+
+namespace com::centreon::engine {
+class macro_context;
+namespace commands {
 class command;
-}  // namespace com::centreon::engine::commands
+}
+}  // namespace com::centreon::engine
 
 using command_map = absl::flat_hash_map<
     std::string,

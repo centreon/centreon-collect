@@ -24,6 +24,7 @@
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/host.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
