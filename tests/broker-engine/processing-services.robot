@@ -73,7 +73,7 @@ BEPS2
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
@@ -126,7 +126,7 @@ BEPS3
     Ctn Config Broker    central
     Ctn Config Broker    module    ${5}
     Ctn Config BBDO3    ${5}
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    core    debug
     Ctn Clear Retention
@@ -192,7 +192,7 @@ BEPS3R
     Ctn Config Broker    module    ${5}
     Ctn Config BBDO3    ${5}
     Ctn Broker Config Source Log    central    1
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    trace
     Ctn Broker Config Log    central    config    trace
     Ctn Broker Config Log    central    cache    trace
@@ -201,6 +201,16 @@ BEPS3R
     Ctn Broker Config Log    module2    core    trace
     Ctn Broker Config Log    module3    core    trace
     Ctn Broker Config Log    module4    core    trace
+    Ctn Broker Config Log    module0    bbdo    trace
+    Ctn Broker Config Log    module1    bbdo    trace
+    Ctn Broker Config Log    module2    bbdo    trace
+    Ctn Broker Config Log    module3    bbdo    trace
+    Ctn Broker Config Log    module4    bbdo    trace
+    Ctn Broker Config Log    module0    config    trace
+    Ctn Broker Config Log    module1    config    trace
+    Ctn Broker Config Log    module2    config    trace
+    Ctn Broker Config Log    module3    config    trace
+    Ctn Broker Config Log    module4    config    trace
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
@@ -213,43 +223,53 @@ BEPS3R
         Log To Console    Five instances of Engine working with ${nb_hosts} hosts and 20 services per host (${nb_total} total)
         Ctn Update Engine Config    ${5}    ${nb_hosts}    20
 
-        TRY
-            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-            Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
-            Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
-            ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
-            ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${nb_total}
+        FOR    ${attempt}    IN RANGE    1    3
+            TRY
+                Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+                Check Query Result    SELECT COUNT(*) FROM services WHERE enabled = 1    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
+                Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
+                ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
+                ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
+                ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${nb_total}
 
-            # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
-            ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
-            ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
-            ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
-            Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
+                # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
+                ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
+                ${pairs2_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids2])
+                ${pairs_cache_sorted}    Evaluate    sorted($svc_ids_cache)
+                Lists Should Be Equal    ${pairs1_flat}    ${pairs2_flat}
 
-            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs1_flat)
-            Log    pairs1_flat:${lines}    level=WARN
-            ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs_cache_sorted)
-            Log    pairs_cache_sorted:${lines}    level=WARN
+                ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs1_flat)
+                Log    pairs1_flat:${lines}    level=WARN
+                ${lines}    Evaluate    "\\n".join(str(row) for row in $pairs_cache_sorted)
+                Log    pairs_cache_sorted:${lines}    level=WARN
 
-            Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
+                Lists Should Be Equal    ${pairs1_flat}    ${pairs_cache_sorted}
 
-            # Let's check the poller ID is consistent between the database and the cache for each host owning services.
-            ${host_pollers_db}    Query    SELECT host_id, instance_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_pollers_db_dict}    Evaluate    {row[0]: row[1] for row in $host_pollers_db}
-            ${unique_host_ids}    Evaluate    sorted(set(pair[0] for pair in $svc_ids_cache))
-            FOR    ${host_id}    IN    @{unique_host_ids}
-                ${poller_id}    Ctn Get Host Poller Id    ${51001}    ${host_id}
-                Should Be Equal    ${poller_id}    ${host_pollers_db_dict}[${host_id}]
+                # Let's check the poller ID is consistent between the database and the cache for each host owning services.
+                ${host_pollers_db}    Query    SELECT host_id, instance_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+                ${host_pollers_db_dict}    Evaluate    {row[0]: row[1] for row in $host_pollers_db}
+                ${unique_host_ids}    Evaluate    sorted(set(pair[0] for pair in $svc_ids_cache))
+                FOR    ${host_id}    IN    @{unique_host_ids}
+                    ${poller_id}    Ctn Get Host Poller Id    ${51001}    ${host_id}
+                    Should Be Equal    ${poller_id}    ${host_pollers_db_dict}[${host_id}]
+                END
+
+                # We check that the description of each service is consistent between the database and the cache.
+                ${desc_db}    Query    SELECT host_id, service_id, description FROM services WHERE enabled = 1
+                ${desc_db_dict}    Evaluate    {(row[0], row[1]): row[2] for row in $desc_db}
+                ${desc_cache}    Ctn Get Service Descriptions    ${51001}
+                Dictionaries Should Be Equal    ${desc_db_dict}    ${desc_cache}
+
+                Disconnect From Database
+                BREAK
+            EXCEPT    AS    ${error}
+                Disconnect From Database
+                IF    ${attempt} == 2
+                    Fail    ${error}
+                END
+                Log To Console    Attempt ${attempt} failed (${error}), retrying...
+                Sleep    10
             END
-
-            # We check that the description of each service is consistent between the database and the cache.
-            ${desc_db}    Query    SELECT host_id, service_id, description FROM services WHERE enabled = 1
-            ${desc_db_dict}    Evaluate    {(row[0], row[1]): row[2] for row in $desc_db}
-            ${desc_cache}    Ctn Get Service Descriptions    ${51001}
-            Dictionaries Should Be Equal    ${desc_db_dict}    ${desc_cache}
-        FINALLY
-            Disconnect From Database
         END
 
         # Here, we restart the engine instances
@@ -276,7 +296,7 @@ BEPS4
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True

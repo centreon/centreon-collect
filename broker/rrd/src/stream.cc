@@ -468,7 +468,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           }
         } else
           // Cache value.
-          it->second.push_back(d);
+          it->second.postponed.push_back(d);
       }
       break;
     case storage::pb_status::static_type():
@@ -584,7 +584,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           }
         } else
           // Cache value.
-          it->second.push_back(d);
+          it->second.postponed.push_back(d);
       }
       break;
     case storage::status::static_type():
@@ -645,23 +645,16 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           // Rebuild is ending.
           for (auto& m : e->obj().metric_to_index_id()) {
             auto it = _metrics_rebuild.find(m.first);
-            std::list<std::shared_ptr<io::data>> l;
             if (it != _metrics_rebuild.end()) {
-              l = std::move(it->second);
+              rebuild_entry entry = std::move(it->second);
               _metrics_rebuild.erase(it);
-              while (!l.empty()) {
-                write(l.front());
-                l.pop_front();
-              }
+              _write_postponed(entry, m.first, false);
             }
             it = _status_rebuild.find(m.second);
             if (it != _status_rebuild.end()) {
-              l = std::move(it->second);
+              rebuild_entry entry = std::move(it->second);
               _status_rebuild.erase(it);
-              while (!l.empty()) {
-                write(l.front());
-                l.pop_front();
-              }
+              _write_postponed(entry, m.second, true);
             }
             _metrics_to_index_rebuild.erase(m.first);
           }
@@ -1175,6 +1168,15 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
                           path);
       _backend.update(query);
 
+      auto rebuild_it = _metrics_rebuild.find(p.first);
+      if (rebuild_it != _metrics_rebuild.end()) {
+        for (auto& pt : p.second.pts()) {
+          if (static_cast<uint64_t>(pt.ctime()) >
+              rebuild_it->second.last_rebuilt_time)
+            rebuild_it->second.last_rebuilt_time = pt.ctime();
+        }
+      }
+
     } else
       SPDLOG_LOGGER_TRACE(_logger, "Nothing to rebuild in '{}'", path);
   }
@@ -1215,6 +1217,50 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
     }
 
     _backend.update(status_query);
+
+    auto rebuild_it = _status_rebuild.find(by_index_status_values.first);
+    if (rebuild_it != _status_rebuild.end()) {
+      uint64_t last_time =
+          by_index_status_values.second.time_to_value.rbegin()->first;
+      if (last_time > rebuild_it->second.last_rebuilt_time)
+        rebuild_it->second.last_rebuilt_time = last_time;
+    }
+  }
+}
+
+/**
+ * @brief Write events postponed during a rebuild. Events whose time is not
+ * after the last timestamp written by the rebuild are dropped: they are
+ * already in the rebuilt RRD file (rebuild reads data_bin, which also contains
+ * real-time data inserted while the rebuild was running) and rrd would reject
+ * them with an "illegal attempt to update" error.
+ *
+ * @tparam T The backend RRD.
+ * @param entry The rebuild cache entry (no more in the cache).
+ * @param id metric_id or index_id
+ * @param is_status true if id is an index_id
+ */
+template <typename T>
+void stream<T>::_write_postponed(rebuild_entry& entry,
+                                 uint64_t id,
+                                 bool is_status) {
+  while (!entry.postponed.empty()) {
+    std::shared_ptr<io::data> d = std::move(entry.postponed.front());
+    entry.postponed.pop_front();
+    uint64_t t = 0;
+    if (d->type() == storage::pb_metric::static_type())
+      t = std::static_pointer_cast<storage::pb_metric>(d)->obj().time();
+    else if (d->type() == storage::pb_status::static_type())
+      t = std::static_pointer_cast<storage::pb_status>(d)->obj().time();
+    if (t && t <= entry.last_rebuilt_time) {
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "RRD: postponed {} {} data at {} already written by "
+                          "rebuild (last rebuilt time {}), ignored",
+                          is_status ? "status" : "metric", id, t,
+                          entry.last_rebuilt_time);
+      continue;
+    }
+    write(d);
   }
 }
 

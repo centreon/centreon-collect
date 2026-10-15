@@ -195,15 +195,6 @@ void broker_cache::merge(
                                  found->first);
       }
     }
-    // we have first erased members for this poller so we will empty hostgroups
-    const auto& host_hostgroup_index = _host_hostgroups.get<by_hostgroup>();
-    for (auto iter = _hostgroups.begin(); iter != _hostgroups.end();) {
-      if (host_hostgroup_index.contains(iter->first->obj().hostgroup_id())) {
-        ++iter;
-      } else {
-        iter = _hostgroups.erase(iter);
-      }
-    }
   }
 
   /* Work on services */
@@ -286,19 +277,11 @@ void broker_cache::merge(
             {host_id, service_id, instance_id, found->first});
       }
     }
-    // we have first erased members for this poller so we will erase empty
-    // groups
-    auto& service_service_group_index =
-        _service_servicegroups.get<by_servicegroup>();
-    for (auto iter = _servicegroups.begin(); iter != _servicegroups.end();) {
-      if (service_service_group_index.contains(
-              iter->first->obj().servicegroup_id())) {
-        ++iter;
-      } else {
-        iter = _servicegroups.erase(iter);
-      }
-    }
   }
+
+  // we have first erased members for this poller so we will erase empty
+  // groups
+  _clean_empty_groups();
 
   /* Work on tags */
   if (section_enabled(CACHE_TAGS)) {
@@ -358,14 +341,12 @@ void broker_cache::apply(
   //   merge(diff.state());
   // }
 
-  /*
-  FIX ME JCR
-  là, state est vide et seuls "fullConfPollerId"
-      : [ "5", "3" ] est renseigné de plus le traitement de full_conf_poller_id
-            dans database_configurator ne couvre que les hosts et services
-            Il faut revoir le mécanisme pour les state complets
-*/
   absl::WriterMutexLock lck{&_mutex};
+
+  for (uint64_t poller_id : diff.full_conf_poller_id()) {
+    _remove_instance_no_lock(poller_id, false);
+  }
+
   /* Work on instances */
   // if (diff.has_poller_name() && diff.poller_id())
   //   _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
@@ -1127,22 +1108,23 @@ void broker_cache::update_instance(
  * @param instance_id The ID of the instance to remove
  */
 void broker_cache::remove_instance(uint64_t instance_id) {
+  absl::WriterMutexLock l{&_mutex};
+
+  _remove_instance_no_lock(instance_id, true);
+}
+
+void broker_cache::_remove_instance_no_lock(uint64_t instance_id,
+                                            bool erase_instance) {
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{&_mutex};
-  _instances.erase(instance_id);
+  if (erase_instance)
+    _instances.erase(instance_id);
 
-  auto& index_svc = _services.get<by_id>();
-  auto& host_by_instance = _hosts.get<by_instance>();
-  auto range = host_by_instance.equal_range(instance_id);
-  for (auto it = range.first; it != range.second;) {
-    auto lower =
-        index_svc.lower_bound(std::make_pair((*it)->obj().host_id(), 0));
-    auto upper =
-        index_svc.upper_bound(std::make_pair((*it)->obj().host_id() + 1, 0));
-    index_svc.erase(lower, upper);
-    it = host_by_instance.erase(it);
-  }
+  _hosts.get<by_instance>().erase(instance_id);
+  _services.get<by_instance>().erase(instance_id);
+  _host_hostgroups.get<by_instance>().erase(instance_id);
+  _service_servicegroups.get<by_instance>().erase(instance_id);
+  _clean_empty_groups();
 }
 
 /**
@@ -2903,5 +2885,29 @@ void broker_cache::remove_index_mapping(uint64_t host_id, uint64_t service_id) {
   absl::WriterMutexLock l{&_mutex};
   auto& index = _index_mappings.get<by_service>();
   index.erase(std::make_pair(host_id, service_id));
+}
+
+void broker_cache::_clean_empty_groups() {
+  if (section_enabled(CACHE_GROUPS)) {
+    const auto& host_hostgroup_index = _host_hostgroups.get<by_hostgroup>();
+    for (auto iter = _hostgroups.begin(); iter != _hostgroups.end();) {
+      if (host_hostgroup_index.contains(iter->first->obj().hostgroup_id())) {
+        ++iter;
+      } else {
+        iter = _hostgroups.erase(iter);
+      }
+    }
+
+    auto& service_service_group_index =
+        _service_servicegroups.get<by_servicegroup>();
+    for (auto iter = _servicegroups.begin(); iter != _servicegroups.end();) {
+      if (service_service_group_index.contains(
+              iter->first->obj().servicegroup_id())) {
+        ++iter;
+      } else {
+        iter = _servicegroups.erase(iter);
+      }
+    }
+  }
 }
 }  // namespace com::centreon::broker::cache

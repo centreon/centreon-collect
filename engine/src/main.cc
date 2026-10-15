@@ -343,8 +343,9 @@ int main(int argc, char* argv[]) {
           configuration::error_cnt err;
           auto new_conf = std::make_unique<configuration::State>();
           bool proto_valid = false;
+          std::filesystem::path proto_conf_file;
           if (!proto_conf.empty()) {
-            std::filesystem::path proto_conf_file(proto_conf / "state.prot");
+            proto_conf_file = proto_conf / "state.prot";
             std::error_code ec;
             if (std::filesystem::exists(proto_conf_file, ec)) {
               std::ifstream ifs(proto_conf_file);
@@ -423,6 +424,16 @@ int main(int argc, char* argv[]) {
 
           init_loggers();
           com::centreon::common::pool::instance().set_logger(runtime_logger);
+
+          if (proto_valid) {
+            SPDLOG_LOGGER_INFO(
+                config_logger, "Configuration loaded from: {} version: {}",
+                proto_conf_file.c_str(), new_conf->config_version());
+          } else {
+            SPDLOG_LOGGER_INFO(
+                config_logger,
+                "No configuration file => default configuration");
+          }
 
           neb_init_callback_list();
 

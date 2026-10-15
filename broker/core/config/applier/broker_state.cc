@@ -19,6 +19,7 @@
 #include "broker/core/config/applier/broker_state.hh"
 #include "bbdo/bbdo.pb.h"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/vars.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/engine_conf/indexed_state.hh"
@@ -46,9 +47,9 @@ broker_state::~broker_state() {
  */
 void broker_state::apply(const com::centreon::broker::config::state& s,
                          bool run_mux) {
-  state::apply(s, run_mux);
-
-  // FIXME DBO: before modules application, or this can be later?
+  /* This must be done before state::apply() that creates the endpoints: an
+   * Engine can connect as soon as the acceptor is created and the watcher must
+   * already be there to detect its <ID>.lck file. */
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).
     set_cache_config_dir(s.cache_config_dir());
@@ -56,12 +57,14 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
     // Pollers configuration directory (for Broker).
     // If not provided in the configuration, use a default directory.
     if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
-      set_pollers_config_dir(std::filesystem::path(cache_dir()) /
-                             "pollers-configuration/");
+      std::filesystem::path cache_dir = calc_cache_dir(s);
+      set_pollers_config_dir(cache_dir / "pollers-configuration/");
       load_topology_cache();
     } else
       set_pollers_config_dir(s.pollers_config_dir());
   }
+
+  state::apply(s, run_mux);
 }
 
 /**
