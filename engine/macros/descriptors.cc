@@ -297,6 +297,52 @@ std::string next_valid_time_string(const common::timeperiods::timeperiod& tp,
 }
 
 /**
+ * @brief The notification being sent, if it is about this host or service.
+ *
+ * @param n   The host or the service.
+ * @param mac The macros.
+ *
+ * @return The values of the notification, nullptr if no notification about
+ * n is being sent.
+ */
+const notification_values* notification_about(const notifier& n,
+                                              const macro_context& mac) {
+  if (mac.notification && mac.notification->resource == &n)
+    return &*mac.notification;
+  return nullptr;
+}
+
+/**
+ * @brief The notification number of a host or a service: the one of the
+ * notification being sent about it, else the one it knows.
+ *
+ * @param n   The host or the service.
+ * @param mac The macros.
+ *
+ * @return The notification number.
+ */
+std::string notification_number(const notifier& n, const macro_context& mac) {
+  if (const notification_values* values = notification_about(n, mac))
+    return to_macro_string(values->number);
+  return to_macro_string(n.get_notification_number());
+}
+
+/**
+ * @brief The notification id of a host or a service: the one of the
+ * notification being sent about it, else the one it knows.
+ *
+ * @param n   The host or the service.
+ * @param mac The macros.
+ *
+ * @return The notification id.
+ */
+std::string notification_id(const notifier& n, const macro_context& mac) {
+  if (const notification_values* values = notification_about(n, mac))
+    return to_macro_string(values->id);
+  return to_macro_string(n.get_current_notification_id());
+}
+
+/**
  *  One of the $TOTAL*$ macros, computed for all of them at the first use.
  *
  *  @param[in] macro_id The macro id.
@@ -542,14 +588,11 @@ constexpr std::array descriptors{
     D(LONGHOSTOUTPUT, host, true, hst->get_long_plugin_output()),
     D(LONGSERVICEOUTPUT, service, true, svc->get_long_plugin_output()),
     STATIC(TEMPPATH, "/tmp"),
-    D(HOSTNOTIFICATIONNUMBER, host, false,
-      to_macro_string(hst->get_notification_number())),
+    D(HOSTNOTIFICATIONNUMBER, host, false, notification_number(*hst, mac)),
     D(SERVICENOTIFICATIONNUMBER, service, false,
-      to_macro_string(svc->get_notification_number())),
-    D(HOSTNOTIFICATIONID, host, false,
-      to_macro_string(hst->get_current_notification_id())),
-    D(SERVICENOTIFICATIONID, service, false,
-      to_macro_string(svc->get_current_notification_id())),
+      notification_number(*svc, mac)),
+    D(HOSTNOTIFICATIONID, host, false, notification_id(*hst, mac)),
+    D(SERVICENOTIFICATIONID, service, false, notification_id(*svc, mac)),
     D(HOSTEVENTID, host, false, to_macro_string(hst->get_current_event_id())),
     D(LASTHOSTEVENTID, host, false,
       to_macro_string(hst->get_last_event_id())),

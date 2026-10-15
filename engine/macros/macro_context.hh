@@ -31,12 +31,18 @@
 
 namespace com::centreon::engine {
 
+class notifier;
+
 /**
  * @brief The values of the $NOTIFICATION*$ macros, given by the notification
- * being sent.
+ * being sent. In notification_mode=broker, they come from Broker which made
+ * the decision: the notifier does not know them.
  */
 struct notification_values {
+  /* The host or service the notification is about. */
+  const notifier* resource = nullptr;
   com::centreon::common::notifications::reason_type type;
+  uint64_t id = 0;
   uint32_t number;
   bool is_escalated;
   std::string recipients;

@@ -64,8 +64,7 @@ notifier* get_resource(uint64_t host_id, uint64_t service_id) {
  * @param n The notifier the notification is about.
  * @param to_notify The contacts to notify (already selected/filtered).
  * @param type The notification reason (drives the $NOTIFICATIONTYPE$ macro).
- * @param notification_id The unique notification id, not used: the
- * $HOSTNOTIFICATIONID$ and $SERVICENOTIFICATIONID$ macros read the notifier.
+ * @param notification_id The unique notification id (for macros).
  * @param notification_number The notification number (for macros).
  * @param escalated Whether the notification is escalated (for macros).
  * @param author The notification author.
@@ -78,7 +77,7 @@ absl::btree_set<std::string> run_notification_commands(
     notifier* n,
     const absl::flat_hash_set<std::shared_ptr<contact>>& to_notify,
     notifications::reason_type type,
-    uint64_t notification_id [[maybe_unused]],
+    uint64_t notification_id,
     uint32_t notification_number,
     bool escalated,
     const std::string& author,
@@ -102,7 +101,9 @@ absl::btree_set<std::string> run_notification_commands(
     author_contact = it->second.get();
 
   notification_values& values = mac->notification.emplace();
+  values.resource = n;
   values.type = type;
+  values.id = notification_id;
   values.number = notification_number;
   values.is_escalated = escalated;
   /* Every notification command knows all the recipients. */

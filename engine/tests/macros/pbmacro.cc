@@ -38,6 +38,7 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
+#include "com/centreon/engine/notification_execution.hh"
 #include "engine/macros/process.hh"
 // #include "engine/macros/process.hh"
 // #include "common/engine_conf/contact_helper.hh"
@@ -986,6 +987,57 @@ TEST_F(Macro, PbNotificationComment) {
   ASSERT_FALSE(capture.commands().empty());
   for (const std::string& cmd : capture.commands())
     ASSERT_EQ(cmd, "echo test_comment");
+}
+
+/* In notification_mode=broker, Broker decides the notification and gives its
+ * id and its number: the service does not know them, its macros used to show
+ * the ones it knew. The host macros are about the host, not the
+ * notification. */
+TEST_F(Macro, PbNotificationIdAndNumberFromBroker) {
+  configuration::applier::contact ct_aply;
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  fill_pb_configuration_contact(&ctct_hlp, "admin", true);
+  ct_aply.add_object(ctct);
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
+  ct_aply.resolve_object(ctct);
+
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  fill_pb_configuration_host(&hst_hlp, "test_host", "admin");
+  configuration::applier::host hst_aply;
+  hst_aply.add_object(hst);
+
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  fill_pb_configuration_service(&svc_hlp, "test_host", "test_svc", "admin");
+  configuration::applier::service svc_aply;
+  svc_aply.add_object(svc);
+
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
+
+  _svc = engine::service::services.begin()->second;
+
+  for (auto& [name, ctc] : engine::contact::contacts)
+    for (auto& cmd : ctc->get_service_notification_commands())
+      cmd->set_command_line(
+          "echo $SERVICENOTIFICATIONID$ $SERVICENOTIFICATIONNUMBER$ "
+          "$NOTIFICATIONNUMBER$ $HOSTNOTIFICATIONID$ "
+          "$HOSTNOTIFICATIONNUMBER$");
+  ::google::protobuf::RepeatedPtrField<std::string> contacts;
+  *contacts.Add() = "admin";
+  notification_commands_capture capture;
+  execute_broker_notification(
+      _svc->host_id(), _svc->service_id(), notifications::reason_normal, 4242,
+      7, false, "", "", notifications::notification_option_none, contacts);
+
+  ASSERT_EQ(capture.commands().size(), 1u);
+  ASSERT_EQ(capture.commands()[0],
+            fmt::format("echo 4242 7 7 {} {}",
+                        _svc->get_host_ptr()->get_current_notification_id(),
+                        _svc->get_host_ptr()->get_notification_number()));
 }
 
 TEST_F(Macro, PbIsValidTime) {
