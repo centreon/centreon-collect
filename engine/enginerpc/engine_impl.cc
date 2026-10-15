@@ -3553,7 +3553,6 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
       case ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER:
         pb_indexed_config.mut_state().set_global_host_event_handler(
             request->charval());
-        global_host_event_handler_ptr = cmd_found->second.get();
         attr = MODATTR_EVENT_HANDLER_COMMAND;
         /* set the modified host attribute */
         modified_host_process_attributes |= attr;
@@ -3668,7 +3667,6 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER) {
       pb_indexed_config.mut_state().set_global_service_event_handler(
           request->charval());
-      global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
     } else if (request->mode() == ChangeObjectChar_Mode_CHANGE_EVENT_HANDLER) {
       temp_service->set_event_handler(request->charval());

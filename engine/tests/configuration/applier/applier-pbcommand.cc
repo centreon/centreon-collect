@@ -74,6 +74,27 @@ TEST_F(ApplierPbCommand, PbNewCommandFromConfig) {
   ASSERT_EQ(found->second->get_name(), "cmd");
   ASSERT_EQ(found->second->get_command_line(), "echo 1");
 }
+
+// Given a command "cmd"
+// Then find_command() finds it from a specification "cmd!arg1!arg2", and
+// returns nullptr for an unknown name
+TEST_F(ApplierPbCommand, PbFindCommandFromSpecification) {
+  configuration::applier::command aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo $ARG1$");
+  aply.add_object(cmd);
+
+  commands::command* found = commands::command::find_command("cmd");
+  ASSERT_NE(found, nullptr);
+  ASSERT_EQ(found->get_name(), "cmd");
+  ASSERT_EQ(commands::command::find_command("cmd!a!b"), found);
+  ASSERT_EQ(commands::command::find_command("cmd!"), found);
+  ASSERT_EQ(commands::command::find_command("unknown!cmd"), nullptr);
+  ASSERT_EQ(commands::command::find_command(""), nullptr);
+}
+
 // Given a command applier
 // And a configuration command with a name, a command line and a connector
 // Then the applier add_object adds the command into the configuration set

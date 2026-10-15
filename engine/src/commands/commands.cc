@@ -1880,13 +1880,11 @@ int cmd_change_object_char_var(int cmd, std::string_view args) {
   switch (cmd) {
     case CMD_CHANGE_GLOBAL_HOST_EVENT_HANDLER:
       pb_indexed_config.mut_state().set_global_host_event_handler(temp_ptr);
-      global_host_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
 
     case CMD_CHANGE_GLOBAL_SVC_EVENT_HANDLER:
       pb_indexed_config.mut_state().set_global_service_event_handler(temp_ptr);
-      global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
 

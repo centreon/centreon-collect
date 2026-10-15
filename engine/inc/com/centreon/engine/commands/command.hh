@@ -147,6 +147,7 @@ class command : public std::enable_shared_from_this<command> {
   void set_listener(command_listener* listener) noexcept;
 
   static command_map commands;
+  static command* find_command(std::string_view spec);
 };
 
 template <typename caller_iterator>

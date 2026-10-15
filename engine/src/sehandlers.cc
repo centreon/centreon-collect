@@ -71,10 +71,16 @@ int obsessive_compulsive_host_check_processor(
   mac->set_host(hst);
 
   /* get the raw command line */
-  if (!ochp_command_ptr)
+  const commands::command* cmd = commands::command::find_command(ochp_command);
+  if (!cmd) {
+    events_logger->error(
+        "Error: Obsessive compulsive host processor command '{}' is not "
+        "defined",
+        ochp_command);
     return ERROR;
+  }
   mac->set_arguments(ochp_command, macro_options);
-  raw_command = ochp_command_ptr->get_command_line();
+  raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -166,10 +172,16 @@ int run_global_service_event_handler(macro_context* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  if (!global_service_event_handler_ptr)
+  const commands::command* cmd =
+      commands::command::find_command(global_service_event_handler);
+  if (!cmd) {
+    events_logger->error(
+        "Error: Global service event handler command '{}' is not defined",
+        global_service_event_handler);
     return ERROR;
+  }
   mac->set_arguments(global_service_event_handler, macro_options);
-  raw_command = global_service_event_handler_ptr->get_command_line();
+  raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -398,10 +410,16 @@ int run_global_host_event_handler(macro_context* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  if (!global_host_event_handler_ptr)
+  const commands::command* cmd =
+      commands::command::find_command(global_host_event_handler);
+  if (!cmd) {
+    events_logger->error(
+        "Error: Global host event handler command '{}' is not defined",
+        global_host_event_handler);
     return ERROR;
+  }
   mac->set_arguments(global_host_event_handler, macro_options);
-  raw_command = global_host_event_handler_ptr->get_command_line();
+  raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
 

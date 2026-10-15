@@ -68,13 +68,6 @@ extern std::string config_file;
 extern std::filesystem::path proto_conf;
 extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 
-extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
-extern com::centreon::engine::commands::command*
-    global_service_event_handler_ptr;
-
-extern com::centreon::engine::commands::command* ocsp_command_ptr;
-extern com::centreon::engine::commands::command* ochp_command_ptr;
-
 extern time_t last_command_check;
 extern time_t last_command_status_update;
 extern time_t last_log_rotation;

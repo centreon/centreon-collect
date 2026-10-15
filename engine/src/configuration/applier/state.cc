@@ -568,81 +568,28 @@ void applier::state::_apply(const configuration::State& new_cfg,
   if (verify_config) {
     events_logger->info("Checking global event handlers...");
   }
-  if (!pb_indexed_config.state().global_host_event_handler().empty()) {
-    // Check the event handler command.
-    std::string temp_command_name(
-        pb_indexed_config.state().global_host_event_handler().substr(
-            0,
-            pb_indexed_config.state().global_host_event_handler().find_first_of(
-                '!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Global host event handler command '{}' is not defined "
-          "anywhere!",
-          temp_command_name);
+  /* The command of a specification "name!args" must exist. It is looked up
+   * again when it is run. */
+  auto check_command = [&err](const std::string& spec, std::string_view what) {
+    if (!spec.empty() && !commands::command::find_command(spec)) {
+      config_logger->error("Error: {} '{}' is not defined anywhere!", what,
+                           spec.substr(0, spec.find('!')));
       ++err.config_errors;
-      global_host_event_handler_ptr = nullptr;
-    } else
-      global_host_event_handler_ptr = found->second.get();
-  }
-  if (!pb_indexed_config.state().global_service_event_handler().empty()) {
-    // Check the event handler command.
-    std::string temp_command_name(
-        pb_indexed_config.state().global_service_event_handler().substr(
-            0, pb_indexed_config.state()
-                   .global_service_event_handler()
-                   .find_first_of('!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Global service event handler command '{}' is not defined "
-          "anywhere!",
-          temp_command_name);
-      ++err.config_errors;
-      global_service_event_handler_ptr = nullptr;
-    } else
-      global_service_event_handler_ptr = found->second.get();
-  }
+    }
+  };
+  check_command(pb_indexed_config.state().global_host_event_handler(),
+                "Global host event handler command");
+  check_command(pb_indexed_config.state().global_service_event_handler(),
+                "Global service event handler command");
 
   // Check obsessive processor commands...
   if (verify_config) {
     events_logger->info("Checking obsessive compulsive processor commands...");
   }
-  if (!pb_indexed_config.state().ocsp_command().empty()) {
-    std::string temp_command_name(
-        pb_indexed_config.state().ocsp_command().substr(
-            0, pb_indexed_config.state().ocsp_command().find_first_of('!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Obsessive compulsive service processor command '{}' is not "
-          "defined anywhere!",
-          temp_command_name);
-      ++err.config_errors;
-      ocsp_command_ptr = nullptr;
-    } else
-      ocsp_command_ptr = found->second.get();
-  }
-  if (!pb_indexed_config.state().ochp_command().empty()) {
-    std::string temp_command_name(
-        pb_indexed_config.state().ochp_command().substr(
-            0, pb_indexed_config.state().ochp_command().find_first_of('!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Obsessive compulsive host processor command '{}' is not "
-          "defined anywhere!",
-          temp_command_name);
-      ++err.config_errors;
-      ochp_command_ptr = nullptr;
-    } else
-      ochp_command_ptr = found->second.get();
-  }
+  check_command(pb_indexed_config.state().ocsp_command(),
+                "Obsessive compulsive service processor command");
+  check_command(pb_indexed_config.state().ochp_command(),
+                "Obsessive compulsive host processor command");
 }
 
 /**

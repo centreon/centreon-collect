@@ -30,6 +30,21 @@ static std::atomic<uint64_t> _id{0};
 command_map commands::command::commands;
 
 /**
+ * @brief Find the command object of a command specification as configured,
+ * "name!arg1!arg2": only the name is looked up.
+ *
+ * @param spec The command specification.
+ *
+ * @return The command, nullptr if no command has this name.
+ */
+commands::command* commands::command::find_command(std::string_view spec) {
+  auto it = commands.find(spec.substr(0, spec.find('!')));
+  if (it == commands.end())
+    return nullptr;
+  return it->second.get();
+}
+
+/**
  *  Default constructor
  *
  *  @param[in] name         The command name.

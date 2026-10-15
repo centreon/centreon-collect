@@ -70,11 +70,6 @@ char* ocsp_command(NULL);
 char* use_timezone(NULL);
 check_stats check_statistics[MAX_CHECK_STATS_TYPES];
 circular_buffer<std::string> external_command_buffer;
-com::centreon::engine::commands::command* global_host_event_handler_ptr(NULL);
-com::centreon::engine::commands::command* global_service_event_handler_ptr(
-    NULL);
-com::centreon::engine::commands::command* ochp_command_ptr(NULL);
-com::centreon::engine::commands::command* ocsp_command_ptr(NULL);
 int additional_freshness_latency(15);
 int sig_id(0);
 bool sighup{false};

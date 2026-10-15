@@ -2188,10 +2188,16 @@ int service::obsessive_compulsive_service_check_processor() {
   mac->set_service(this);
 
   /* get the raw command line */
-  if (!ocsp_command_ptr)
+  const commands::command* cmd = commands::command::find_command(ocsp_command);
+  if (!cmd) {
+    checks_logger->error(
+        "Error: Obsessive compulsive service processor command '{}' is not "
+        "defined",
+        ocsp_command);
     return ERROR;
+  }
   mac->set_arguments(ocsp_command, macro_options);
-  raw_command = ocsp_command_ptr->get_command_line();
+  raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
