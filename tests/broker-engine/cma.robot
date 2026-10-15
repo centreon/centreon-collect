@@ -829,6 +829,99 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
     Should Be True    ${result}    resources table not updated
 
 
+BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_STORAGE_TYPE
+    [Documentation]    Given a windows agent with native check storage,
+    ...    when filter-storage-type contains a storage type (hrstoragefixeddisk, whatever its case)
+    ...    or a file system format (hrfsntfs, other|ntfs), then C: drive is checked and service is OK.
+    ...    When filter-storage-type doesn't match any drive, then service is CRITICAL with
+    ...    'No storage found (filters issue)'.
+    ...    Between each filter, a filter that refuses all drives is applied in order to be sure that
+    ...    OK state comes from the new filter.
+    [Tags]    broker    engine    opentelemetry    MON-199565    MON-207844
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Start Native Storage Check Test    {"free": true, "unit": "%", "filter-storage-type": "hrstoragefixeddisk"}
+
+    ${drive_c}    Create List    C
+    ${expected_perfdata}    Ctn Get Drive Statistics    free_{}:\\    ${drive_c}
+    ${idx}    Set Variable    ${0}
+    # hrstoragefixeddisk is the default value of FILTERSTORAGETYPE macro
+    FOR    ${filter}    IN
+    ...    hrstoragefixeddisk
+    ...    hrStorageFixedDisk
+    ...    HRSTORAGEFIXEDDISK
+    ...    .*
+    ...    hrfsntfs
+    ...    hrfs.*
+    ...    hrstoragefixeddisk|hrfsntfs
+    ...    other|ntfs
+        ${idx}    Evaluate    ${idx} + 1
+        Log To Console    filter-storage-type: ${filter}
+        Ctn Set Native Storage Check Args    storage_none_${idx}    {"free": true, "unit": "%", "filter-fs": "no_drive_match"}
+        Ctn Native Storage Check Should Be Critical No Storage
+        Ctn Set Native Storage Check Args    storage_${idx}    {"free": true, "unit": "%", "filter-storage-type": "${filter}"}
+        ${result}    ${output}    Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    0    60    ANY
+        Should Be True    ${result}    filter-storage-type ${filter}: service_1 should be OK
+        Should Contain    ${output}    OK: All storages are ok    filter-storage-type ${filter}: unexpected output
+        ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
+        Should Be True    ${result}    filter-storage-type ${filter}: C: perfdata not found
+    END
+
+    # storage type is compared to drive type and not to file system format (MON-207844)
+    Ctn Set Native Storage Check Args    storage_network    {"free": true, "unit": "%", "filter-storage-type": "hrstoragenetworkdisk"}
+    Ctn Native Storage Check Should Be Critical No Storage
+
+    # filter that matches neither a storage type nor a format
+    Ctn Set Native Storage Check Args    storage_unknown_fs    {"free": true, "unit": "%", "filter-storage-type": "other|unknown_fs"}
+    Ctn Native Storage Check Should Be Critical No Storage
+
+BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS
+    [Documentation]    Given a windows agent with native check storage,
+    ...    when filter-fs or exclude-fs refuses a drive, then this drive is refused before any system call
+    ...    on it (no GetVolumeInformation or GetDiskFreeSpaceEx), so no error is logged even for drives
+    ...    without media. filter-fs and exclude-fs are case insensitive.
+    [Tags]    broker    engine    opentelemetry    MON-201438    MON-207844
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    ${agent_log}    Set Variable    ../reports/centagent.log
+
+    Ctn Start Native Storage Check Test    {"free": true, "unit": "%", "filter-storage-type": "hrstoragefixeddisk", "filter-fs": "c:.*"}
+
+    ${drive_c}    Create List    C
+    ${expected_perfdata}    Ctn Get Drive Statistics    free_{}:\\    ${drive_c}
+    ${result}    ${output}    Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    0    120    ANY
+    Should Be True    ${result}    service_1 should be OK with filter-fs c:.*
+    Should Contain    ${output}    OK: All storages are ok
+    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
+    Should Be True    ${result}    C: perfdata not found
+
+    # other drives are refused by filter-fs
+    ${drives}    Ctn Get Drive Names
+    FOR    ${drive}    IN    @{drives}
+        IF    "${drive}" != "C"
+            Wait Until Keyword Succeeds    60s    2s
+            ...    Ctn Agent Log Should Contain    ${agent_log}    ${drive}:\\ refused because of filter-fs
+        END
+    END
+
+    # C: is refused by exclude-fs (upper case regex)
+    Ctn Set Native Storage Check Args    storage_exclude_c    {"free": true, "unit": "%", "exclude-fs": "C:.*"}
+    Wait Until Keyword Succeeds    60s    2s
+    ...    Ctn Agent Log Should Contain    ${agent_log}    C:\\ refused because of exclude-fs
+
+    # filter-fs that refuses every drive
+    Ctn Set Native Storage Check Args    storage_none    {"free": true, "unit": "%", "filter-fs": "no_drive_match"}
+    Ctn Native Storage Check Should Be Critical No Storage
+
+    # a drive whose format can't be read (no media) must not produce error logs
+    ${content}    Get File    ${agent_log}
+    ${lines}    Get Lines Matching Regexp    ${content}    \\[error\\].*(unable to get file system type|unable to get free space)    partial_match=True
+    Should Be Empty    ${lines}    errors logged for drives that should be ignored
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     [Documentation]    agent check service with native check uptime and we expect to get it in check result
@@ -1650,6 +1743,64 @@ Ctn Create Cert And Init
    END
 
     Ctn Clean Before Suite
+
+Ctn Start Native Storage Check Test
+    [Documentation]    configure and start broker, engine and agent with service_1 checked by a native storage check
+    [Arguments]    ${check_args}
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+
+    Ctn Engine Config Add Command    ${0}    otel_check   {"check": "storage", "args": ${check_args}}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+Ctn Set Native Storage Check Args
+    [Documentation]    create a new storage command with the given args, set it to service_1 and reload engine
+    [Arguments]    ${command_name}    ${check_args}
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    ${command_name}
+    Ctn Engine Config Add Command    ${0}    ${command_name}   {"check": "storage", "args": ${check_args}}    OTEL connector
+    Ctn Reload Engine
+
+Ctn Native Storage Check Should Be Critical No Storage
+    [Documentation]    wait for service_1 to be critical because no drive is allowed by filters
+    ${result}    ${output}    Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result}    service_1 should be critical
+    Should Contain    ${output}    No storage found (filters issue)
+
+Ctn Agent Log Should Contain
+    [Documentation]    fail if agent log doesn't contain the given string
+    [Arguments]    ${log_path}    ${expected}
+    ${content}    Get File    ${log_path}
+    Should Contain    ${content}    ${expected}
 
 *** Variables ***
 ${Salt}        U2FsdA==

@@ -709,3 +709,88 @@ TEST_F(drive_size_test, test_fs_format_filter) {
       "Used: 30G Free: 70G");
   ASSERT_EQ(perfs.size(), 2);
 }
+
+TEST_F(drive_size_test, test_fs_empty_filters) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "warning" : "1000000", "critical" : 20000000, "unit": "b",
+        "filter-storage-type": "", "filter-type": "", "filter-fs": "",
+        "exclude-fs": "", "filter-mountpoint": "", "exclude-mountpoint": ""})"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+
+  auto is_complete = [&]() { return !perfs.empty(); };
+
+  auto checker = std::make_shared<check_drive_size>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, check_args, nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          [[maybe_unused]] int status,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          [[maybe_unused]] const std::list<std::string>& outputs) {
+        absl::MutexLock lck(wait_m);
+        perfs = perfdata;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(1));
+
+  absl::MutexLock lck(wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  // empty filters are ignored => all storages are checked
+  ASSERT_EQ(output,
+            "WARNING: /run Total: 1G Used: 0G Free: 1G CRITICAL: / Total: 322G "
+            "Used: 127G Free: 194G CRITICAL: /data Total: 5G Used: 2G Free: 2G "
+            "CRITICAL: c:\\ Total: 5G Used: 2G Free: 2G CRITICAL: Z:\\ Total: "
+            "100G Used: 30G Free: 70G");
+  ASSERT_EQ(perfs.size(), _samples.size());
+
+  for (const auto& p : perfs) {
+    ASSERT_EQ(p.unit(), "B");
+    ASSERT_EQ(p.min(), 0);
+    ASSERT_EQ(p.warning(), 1000000);
+    ASSERT_EQ(p.critical(), 20000000);
+  }
+}
+
+TEST_F(drive_size_test, drive_fs_type_from_string) {
+  using namespace check_drive_size_detail;
+  ASSERT_EQ(drive_fs_type_from_string("hrfsntfs"), hr_fs_ntfs);
+  // windows returns format without hrfs prefix
+  ASSERT_EQ(drive_fs_type_from_string("ntfs"), hr_fs_ntfs);
+  ASSERT_EQ(drive_fs_type_from_string("fat32"), hr_fs_fat32);
+  ASSERT_EQ(drive_fs_type_from_string("exfat"), hr_fs_exfat);
+  ASSERT_EQ(drive_fs_type_from_string("hrstoragefixeddisk"),
+            hr_storage_fixed_disk);
+  ASSERT_EQ(drive_fs_type_from_string("vboxsharedfolderfs"), hr_unknown);
+  ASSERT_EQ(drive_fs_type_from_string(""), hr_unknown);
+}
+
+TEST_F(drive_size_test, default_storage_type_filter_allows_ntfs_fixed_disk) {
+  using namespace check_drive_size_detail;
+  // default value of FILTERSTORAGETYPE macro (MON-199565)
+  for (const char* json_filter :
+       {R"({"filter-storage-type": "hrstoragefixeddisk"})",
+        R"({"filter-storage-type": "hrStorageFixedDisk"})",
+        R"({"filter-storage-type": "hrfsntfs"})",
+        R"({"filter-storage-type": "other|ntfs"})"}) {
+    rapidjson::Document args;
+    args.Parse(json_filter);
+    filter filt(args);
+    ASSERT_TRUE(filt.is_allowed("C:\\", drive_fs_type_from_string("ntfs"),
+                                "ntfs", hr_storage_fixed_disk,
+                                spdlog::default_logger()))
+        << json_filter;
+  }
+  rapidjson::Document args;
+  args.Parse(R"({"filter-storage-type": "hrstoragenetworkdisk"})");
+  filter filt(args);
+  ASSERT_FALSE(filt.is_allowed("C:\\", drive_fs_type_from_string("ntfs"),
+                               "ntfs", hr_storage_fixed_disk,
+                               spdlog::default_logger()));
+}

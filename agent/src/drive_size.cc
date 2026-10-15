@@ -122,7 +122,7 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
   hrfs_str += str;
   found = std::lower_bound(_drive_format_type.begin(), _drive_format_type.end(),
                            hrfs_str, comp);
-  if (found != _drive_format_type.end() && found->first == str)
+  if (found != _drive_format_type.end() && found->first == hrfs_str)
     return found->second;
 
   return e_drive_fs_type::hr_unknown;
@@ -136,7 +136,9 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
  *    filter-storage-type or filter-type: regex applied on each label of
  *      _drive_format_type. Matching hrstorage* labels fill _drive_type_filter,
  *      matching hrfs* labels fill _format_filter. If no label of a family
- *      matches, every value of this family is allowed.
+ *      matches, every value of this family is allowed, except if the regex
+ *      matches no label at all: in that case, it is applied on the format name
+ *      returned by the os (ntfs, other_format...).
  *    filter-fs
  *    exclude-fs
  *    filter-mountpoint
@@ -145,7 +147,9 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
  * converted to lower case in order to be case insensitive (see is_fs_allowed)
  * @throw exceptions::msg_fmt if a regex is invalid
  */
-filter::filter(const rapidjson::Value& args) : _drive_type_filter(0xFFFFFFFFU) {
+filter::filter(const rapidjson::Value& args)
+    : _drive_type_filter(std::numeric_limits<uint64_t>::max()),
+      _format_filter(std::numeric_limits<uint64_t>::max()) {
   if (args.IsObject()) {
     std::string lower_re;
     for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();
@@ -171,6 +175,17 @@ filter::filter(const rapidjson::Value& args) : _drive_type_filter(0xFFFFFFFFU) {
               else
                 _drive_type_filter |= flag;
             }
+          }
+          // regex matches only hrstorage* labels => allow all formats
+          // if it matches no label at all, it's a custom format regex (ntfs,
+          // other_format...), so _format_filter stays at 0 and is_allowed
+          // applies the regex on format name
+          if (_format_filter == 0 && _drive_type_filter != 0) {
+            _format_filter = std::numeric_limits<uint64_t>::max();
+          }
+          // no drive type filter => allow all
+          if (_drive_type_filter == 0) {
+            _drive_type_filter = std::numeric_limits<uint64_t>::max();
           }
         }
       } else if (member_iter->name == "filter-fs" &&
@@ -216,14 +231,6 @@ filter::filter(const rapidjson::Value& args) : _drive_type_filter(0xFFFFFFFFU) {
         }
       }
     }
-  }
-  // no format filter => allow all
-  if (_format_filter == 0) {
-    _format_filter = std::numeric_limits<uint64_t>::max();
-  }
-  // no drive type filter => allow all
-  if (_drive_type_filter == 0) {
-    _drive_type_filter = std::numeric_limits<uint64_t>::max();
   }
 }
 
