@@ -2937,11 +2937,6 @@ bool service::verify_check_viability(int check_options,
   return perform_check;
 }
 
-void service::grab_macros_r(macro_context* mac) {
-  mac->set_host(_host_ptr);
-  mac->set_service(this);
-}
-
 /* notify a specific contact about a service problem or recovery */
 int service::notify_contact(macro_context* mac,
                             contact* cntct,

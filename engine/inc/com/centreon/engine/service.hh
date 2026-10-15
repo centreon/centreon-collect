@@ -223,7 +223,6 @@ class service : public notifier {
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,
                               time_t* new_time);
-  void grab_macros_r(macro_context* mac) override;
   int notify_contact(macro_context* mac,
                      contact* cntct,
                      common::notifications::reason_type type,

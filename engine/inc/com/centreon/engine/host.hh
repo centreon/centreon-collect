@@ -140,7 +140,6 @@ class host : public notifier {
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,
                               time_t* new_time);
-  void grab_macros_r(macro_context* mac) override;
   bool operator==(host const& other) = delete;  // throw ();
   bool operator!=(host const& other) = delete;  // throw ();
   bool is_result_fresh(time_t current_time, int log_this);

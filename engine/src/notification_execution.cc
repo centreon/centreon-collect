@@ -26,6 +26,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/neberrors.hh"
+#include "com/centreon/engine/service.hh"
 #include "engine/macros/macro_context.hh"
 
 namespace notifications = com::centreon::common::notifications;
@@ -87,8 +88,14 @@ absl::btree_set<std::string> run_notification_commands(
   macro_context local_macros;
   macro_context* mac(&local_macros);
 
-  /* Grab the macro variables */
-  n->grab_macros_r(mac);
+  /* The macros are about the resource; a service also brings its host. */
+  if (n->service_id() == 0)
+    mac->set_host(static_cast<host*>(n));
+  else {
+    service* svc = static_cast<service*>(n);
+    mac->set_host(svc->get_host_ptr());
+    mac->set_service(svc);
+  }
 
   /* The author is given by name; fall back to a lookup by alias. */
   contact* author_contact = nullptr;

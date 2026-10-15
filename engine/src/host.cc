@@ -2291,10 +2291,6 @@ bool host::verify_check_viability(int check_options,
   return result;
 }
 
-void host::grab_macros_r(macro_context* mac) {
-  mac->set_host(this);
-}
-
 /* notify a specific contact that an entire host is down or up */
 int host::notify_contact(macro_context* mac,
                          contact* cntct,
