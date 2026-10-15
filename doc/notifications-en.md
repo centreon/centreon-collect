@@ -132,23 +132,26 @@ groups is notified only once).
 
 ## 4. Notification command execution
 
-`notification::execute(contacts)` (`engine/src/notification.cc`):
+`run_notification_commands()` (`engine/src/notification_execution.cc`) runs
+a notification whose contacts are already chosen. Both modes use it: in
+engine mode, `engine_notification_callbacks::deliver()` calls it after
+choosing the contacts; in broker mode, `execute_broker_notification()` calls
+it with what Broker decided (`NotificationExecute`):
 
 ```mermaid
 sequenceDiagram
-    participant N as notification::execute()
-    participant M as nagios_macros
-    participant CT as for each contact
+    participant R as run_notification_commands()
+    participant M as macro_context (local)
     participant NC as host/service::notify_contact()
     participant SH as my_system_r (shell)
 
-    N->>M: grab_macros_r(parent)  (host/service macros)
-    N->>M: set $NOTIFICATIONTYPE$, author/comment, number, id, escalated
+    R->>M: set_host(host), plus set_service(service) for a service
+    R->>M: notification = type, id, number, escalated, recipients, author, comment
     loop for each contact to notify
-        N->>M: grab_contact_macros_r(contact) + clear_summary_macros_r
-        N->>NC: notify_contact(mac, contact, type, author, data, options)
+        R->>M: set_contact(contact) (the $TOTAL*$ cache is cleared)
+        R->>NC: notify_contact(mac, contact, type, author, data, options)
         loop for each of the contact's notif commands
-            NC->>NC: get_raw_command_line_r + process_macros_r
+            NC->>NC: get_raw_command_line_r + macros::process_macros
             NC->>NC: log "HOST/SERVICE NOTIFICATION: ..." (if log_notifications)
             alt command allowed by the whitelist
                 NC->>SH: my_system_r(command, notification_timeout)
@@ -156,9 +159,17 @@ sequenceDiagram
                 NC->>NC: error "not allowed by the whitelist"
             end
         end
-        NC-->>N: OK ⇒ contact counted, added to $NOTIFICATIONRECIPIENTS$
+        NC-->>R: OK ⇒ contact counted among the notified ones
     end
 ```
+
+- The macros context is local to the notification: nothing of it remains
+  for the next evaluations. `$NOTIFICATIONRECIPIENTS$` holds all the contacts
+  to notify, and each contact sees all of them.
+- The id and the number of the notification are the ones given by the
+  decision (by Broker in broker mode): the `$HOST/SERVICENOTIFICATIONID$` and
+  `$HOST/SERVICENOTIFICATIONNUMBER$` macros read them from the current
+  notification. See `doc/engine-macros-en.md`.
 
 - The commands executed are the **contact's**:
   `get_host_notification_commands()` or `get_service_notification_commands()`.
@@ -432,7 +443,7 @@ escalation evaluation (`evaluate_escalations`).
 
 The model follows the one of the downtimes library (`common/downtimes`): the
 library no longer knows about Engine objects (`notifier`, `contact`,
-`nagios_macros`, globals…). It talks to the host application through an
+macros context, globals…). It talks to the host application through an
 **injected interface**, `notification_callbacks`, and addresses resources by
 **logical id `(host_id, service_id)`** (with `service_id == 0` for a host). All
 the coupling to Engine is concentrated in a **single** implementation,
@@ -567,8 +578,8 @@ sequenceDiagram
     NM->>ENC: deliver(host_id, service_id, cat, type, id, number, author, message, options)
     ENC->>ENC: n = get_resource(host_id, service_id)
     ENC->>NF: get_contacts_to_notify(cat, type) → contacts + interval + escalated
-    ENC->>NF: grab_macros_r(mac) + author/type/number/id macros
-    loop for each contact
+    ENC->>ENC: run_notification_commands(n, contacts, type, id, number, ...)
+    loop for each contact (see section 4)
         ENC->>NF: notify_contact(mac, contact, type, ...)
         NF->>CT: runs the notification command
         ENC->>ENC: if OK, add the contact to the notified set

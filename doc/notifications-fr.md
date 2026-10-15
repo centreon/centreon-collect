@@ -132,23 +132,27 @@ plusieurs groupes n'est notifié qu'une fois).
 
 ## 4. Exécution des commandes de notification
 
-`notification::execute(contacts)` (`engine/src/notification.cc`) :
+`run_notification_commands()` (`engine/src/notification_execution.cc`)
+exécute une notification dont les contacts sont déjà choisis. Elle sert aux
+deux modes : en mode engine, `engine_notification_callbacks::deliver()`
+l'appelle après avoir choisi les contacts ; en mode broker,
+`execute_broker_notification()` l'appelle avec ce que Broker a décidé
+(`NotificationExecute`) :
 
 ```mermaid
 sequenceDiagram
-    participant N as notification::execute()
-    participant M as nagios_macros
-    participant CT as pour chaque contact
+    participant R as run_notification_commands()
+    participant M as macro_context (local)
     participant NC as host/service::notify_contact()
     participant SH as my_system_r (shell)
 
-    N->>M: grab_macros_r(parent)  (macros host/service)
-    N->>M: set $NOTIFICATIONTYPE$, author/comment, number, id, escalated
+    R->>M: set_host(hôte), plus set_service(service) pour un service
+    R->>M: notification = type, id, numéro, escalade, destinataires, auteur, commentaire
     loop pour chaque contact à notifier
-        N->>M: grab_contact_macros_r(contact) + clear_summary_macros_r
-        N->>NC: notify_contact(mac, contact, type, author, data, options)
+        R->>M: set_contact(contact) (le cache $TOTAL*$ est vidé)
+        R->>NC: notify_contact(mac, contact, type, author, data, options)
         loop pour chaque commande de notif du contact
-            NC->>NC: get_raw_command_line_r + process_macros_r
+            NC->>NC: get_raw_command_line_r + macros::process_macros
             NC->>NC: log "HOST/SERVICE NOTIFICATION: ..." (si log_notifications)
             alt commande autorisée par la whitelist
                 NC->>SH: my_system_r(commande, notification_timeout)
@@ -156,9 +160,17 @@ sequenceDiagram
                 NC->>NC: error "not allowed by the whitelist"
             end
         end
-        NC-->>N: OK ⇒ contact compté, ajouté à $NOTIFICATIONRECIPIENTS$
+        NC-->>R: OK ⇒ contact compté parmi les notifiés
     end
 ```
+
+- Le contexte des macros est local à la notification : rien n'en reste pour
+  les évaluations suivantes. `$NOTIFICATIONRECIPIENTS$` contient tous les
+  contacts à notifier, et chaque contact le voit en entier.
+- L'identifiant et le numéro de la notification sont ceux reçus de la
+  décision (de Broker en mode broker) : les macros
+  `$HOST/SERVICENOTIFICATIONID$` et `$HOST/SERVICENOTIFICATIONNUMBER$` les
+  lisent dans la notification en cours. Voir `doc/engine-macros-fr.md`.
 
 - Les commandes exécutées sont celles du **contact** :
   `get_host_notification_commands()` ou `get_service_notification_commands()`.
@@ -433,7 +445,7 @@ Engine : viabilité (`notification_manager`), filtrage des contacts
 
 Le modèle suit celui de la librairie de downtimes (`common/downtimes`) : la
 librairie ne connaît plus les objets d'Engine (`notifier`, `contact`,
-`nagios_macros`, globaux…). Elle dialogue avec l'application hôte au travers
+contexte des macros, globaux…). Elle dialogue avec l'application hôte au travers
 d'une **interface injectée**, `notification_callbacks`, et adresse les
 ressources par **identité logique `(host_id, service_id)`** (avec
 `service_id == 0` pour un host). Tout le couplage à Engine est concentré dans
@@ -569,8 +581,8 @@ sequenceDiagram
     NM->>ENC: deliver(host_id, service_id, cat, type, id, number, author, message, options)
     ENC->>ENC: n = get_resource(host_id, service_id)
     ENC->>NF: get_contacts_to_notify(cat, type) → contacts + interval + escalated
-    ENC->>NF: grab_macros_r(mac) + macros auteur/type/numéro/id
-    loop pour chaque contact
+    ENC->>ENC: run_notification_commands(n, contacts, type, id, number, ...)
+    loop pour chaque contact (voir section 4)
         ENC->>NF: notify_contact(mac, contact, type, ...)
         NF->>CT: exécute la commande de notification
         ENC->>ENC: si OK, ajoute le contact aux notifiés
