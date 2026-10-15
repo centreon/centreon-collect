@@ -85,16 +85,15 @@ absl::btree_set<std::string> run_notification_commands(
     const std::string& message,
     notifications::notification_option options) {
   absl::btree_set<std::string> notified;
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
 
   /* The macros are about the resource; a service also brings its host. */
   if (n->service_id() == 0)
-    mac->set_host(static_cast<host*>(n));
+    mac.set_host(static_cast<host*>(n));
   else {
     service* svc = static_cast<service*>(n);
-    mac->set_host(svc->get_host_ptr());
-    mac->set_service(svc);
+    mac.set_host(svc->get_host_ptr());
+    mac.set_service(svc);
   }
 
   /* The author is given by name; fall back to a lookup by alias. */
@@ -107,7 +106,7 @@ absl::btree_set<std::string> run_notification_commands(
   if (it != contact::contacts.end())
     author_contact = it->second.get();
 
-  notification_values& values = mac->notification.emplace();
+  notification_values& values = mac.notification.emplace();
   values.resource = n;
   values.type = type;
   values.id = notification_id;
@@ -130,7 +129,7 @@ absl::btree_set<std::string> run_notification_commands(
 
     /* grab the macro variables for this contact, the summary macros are
      * computed again for each of them */
-    mac->set_contact(ctc);
+    mac.set_contact(ctc);
 
     if (n->notify_contact(mac, ctc, type, author, message, options,
                           escalated) == OK)

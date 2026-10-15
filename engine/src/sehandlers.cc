@@ -43,8 +43,7 @@ int obsessive_compulsive_host_check_processor(
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
 
   bool obsess_over_hosts;
   uint32_t ochp_timeout;
@@ -68,7 +67,7 @@ int obsessive_compulsive_host_check_processor(
     return ERROR;
 
   /* update macros */
-  mac->set_host(hst);
+  mac.set_host(hst);
 
   /* get the raw command line */
   const commands::command* cmd = commands::command::find_command(ochp_command);
@@ -79,7 +78,7 @@ int obsessive_compulsive_host_check_processor(
         ochp_command);
     return ERROR;
   }
-  mac->set_arguments(ochp_command, macro_options);
+  mac.set_arguments(ochp_command, macro_options);
   raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
@@ -88,7 +87,7 @@ int obsessive_compulsive_host_check_processor(
       "Raw obsessive compulsive host processor command line: {}", raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = macros::process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -131,7 +130,7 @@ int obsessive_compulsive_host_check_processor(
 /******************************************************************/
 
 /* runs the global service event handler */
-int run_global_service_event_handler(macro_context* mac,
+int run_global_service_event_handler(macro_context& mac,
                                      com::centreon::engine::service* svc) {
   std::string raw_command;
   std::string processed_command;
@@ -180,7 +179,7 @@ int run_global_service_event_handler(macro_context* mac,
         global_service_event_handler);
     return ERROR;
   }
-  mac->set_arguments(global_service_event_handler, macro_options);
+  mac.set_arguments(global_service_event_handler, macro_options);
   raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
@@ -189,7 +188,7 @@ int run_global_service_event_handler(macro_context* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = macros::process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -203,7 +202,7 @@ int run_global_service_event_handler(macro_context* mac,
         << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << global_service_event_handler;
-    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->debug(processed_logentry);
   }
 
@@ -239,7 +238,7 @@ int run_global_service_event_handler(macro_context* mac,
 }
 
 /* runs a service event handler command */
-int run_service_event_handler(macro_context* mac,
+int run_service_event_handler(macro_context& mac,
                               com::centreon::engine::service* svc) {
   std::string raw_command;
   std::string processed_command;
@@ -273,7 +272,7 @@ int run_service_event_handler(macro_context* mac,
   /* get the raw command line */
   if (!svc->get_event_handler_ptr())
     return ERROR;
-  mac->set_arguments(svc->event_handler(), macro_options);
+  mac.set_arguments(svc->event_handler(), macro_options);
   raw_command = svc->get_event_handler_ptr()->get_command_line();
   if (raw_command.empty())
     return ERROR;
@@ -282,7 +281,7 @@ int run_service_event_handler(macro_context* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = macros::process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -295,7 +294,7 @@ int run_service_event_handler(macro_context* mac,
         << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << svc->event_handler();
-    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 
@@ -333,8 +332,7 @@ int run_service_event_handler(macro_context* mac,
 
 /* handles a change in the status of a host */
 int handle_host_event(com::centreon::engine::host* hst) {
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
 
   functions_logger->trace("handle_host_event()");
 
@@ -354,7 +352,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
     return OK;
 
   /* update host macros */
-  mac->set_host(hst);
+  mac.set_host(hst);
 
   /* run the global host event handler */
   run_global_host_event_handler(mac, hst);
@@ -370,7 +368,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
 }
 
 /* runs the global host event handler */
-int run_global_host_event_handler(macro_context* mac,
+int run_global_host_event_handler(macro_context& mac,
                                   com::centreon::engine::host* hst) {
   std::string raw_command;
   std::string processed_command;
@@ -418,7 +416,7 @@ int run_global_host_event_handler(macro_context* mac,
         global_host_event_handler);
     return ERROR;
   }
-  mac->set_arguments(global_host_event_handler, macro_options);
+  mac.set_arguments(global_host_event_handler, macro_options);
   raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
@@ -427,7 +425,7 @@ int run_global_host_event_handler(macro_context* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = macros::process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -439,7 +437,7 @@ int run_global_host_event_handler(macro_context* mac,
     oss << "GLOBAL HOST EVENT HANDLER: " << hst->name()
         << "$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << global_host_event_handler;
-    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 
@@ -475,7 +473,7 @@ int run_global_host_event_handler(macro_context* mac,
 }
 
 /* runs a host event handler command */
-int run_host_event_handler(macro_context* mac,
+int run_host_event_handler(macro_context& mac,
                            com::centreon::engine::host* hst) {
   std::string raw_command;
   std::string processed_command;
@@ -508,7 +506,7 @@ int run_host_event_handler(macro_context* mac,
   /* get the raw command line */
   if (!hst->get_event_handler_ptr())
     return ERROR;
-  mac->set_arguments(hst->event_handler(), macro_options);
+  mac.set_arguments(hst->event_handler(), macro_options);
   raw_command = hst->get_event_handler_ptr()->get_command_line();
   if (raw_command.empty())
     return ERROR;
@@ -516,7 +514,7 @@ int run_host_event_handler(macro_context* mac,
   events_logger->debug("Raw host event handler command line: {}", raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = macros::process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -528,7 +526,7 @@ int run_host_event_handler(macro_context* mac,
     oss << "HOST EVENT HANDLER: " << hst->name()
         << ";$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << hst->event_handler();
-    processed_logentry = macros::process_macros(*mac, oss.str(), macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 

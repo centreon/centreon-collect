@@ -223,7 +223,7 @@ class service : public notifier {
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,
                               time_t* new_time);
-  int notify_contact(macro_context* mac,
+  int notify_contact(macro_context& mac,
                      contact* cntct,
                      common::notifications::reason_type type,
                      std::string const& not_author,
@@ -262,7 +262,7 @@ class service : public notifier {
   static service_map services;
   static service_id_map services_by_id;
 
-  std::string get_check_command_line(macro_context* macros);
+  std::string get_check_command_line(macro_context& macros);
 
  private:
   std::string _hostname;

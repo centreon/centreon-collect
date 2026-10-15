@@ -51,7 +51,7 @@ using namespace com::centreon::engine::events;
 /******************************************************************/
 
 /* executes a system command - used for notifications, event handlers, etc. */
-int my_system_r(macro_context* mac,
+int my_system_r(macro_context& mac,
                 std::string const& cmd,
                 int timeout,
                 bool* early_timeout,
@@ -79,7 +79,7 @@ int my_system_r(macro_context* mac,
 
   commands::raw raw_cmd("system", cmd);
   commands::result res;
-  raw_cmd.run(cmd, *mac, timeout, res);
+  raw_cmd.run(cmd, mac, timeout, res);
 
   end_time.tv_sec = res.end_time.to_seconds();
   end_time.tv_usec = res.end_time.to_useconds() - end_time.tv_sec * 1000000ull;

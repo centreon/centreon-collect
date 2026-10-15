@@ -2115,8 +2115,7 @@ void service::check_for_flapping(bool update,
 
 /* handles changes in the state of a service */
 int service::handle_service_event() {
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
 
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_service_event()");
 
@@ -2133,8 +2132,8 @@ int service::handle_service_event() {
     return ERROR;
 
   /* update service macros */
-  mac->set_host(get_host_ptr());
-  mac->set_service(this);
+  mac.set_host(get_host_ptr());
+  mac.set_service(this);
 
   /* run the global service event handler */
   run_global_service_event_handler(mac, this);
@@ -2157,8 +2156,7 @@ int service::obsessive_compulsive_service_check_processor() {
   bool early_timeout = false;
   double exectime = 0.0;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
 
   bool obsess_over_services;
   uint32_t ocsp_timeout;
@@ -2184,8 +2182,8 @@ int service::obsessive_compulsive_service_check_processor() {
     return ERROR;
 
   /* update service macros */
-  mac->set_host(temp_host);
-  mac->set_service(this);
+  mac.set_host(temp_host);
+  mac.set_service(this);
 
   /* get the raw command line */
   const commands::command* cmd = commands::command::find_command(ocsp_command);
@@ -2196,7 +2194,7 @@ int service::obsessive_compulsive_service_check_processor() {
         ocsp_command);
     return ERROR;
   }
-  mac->set_arguments(ocsp_command, macro_options);
+  mac.set_arguments(ocsp_command, macro_options);
   raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
@@ -2207,7 +2205,7 @@ int service::obsessive_compulsive_service_check_processor() {
                       raw_command);
 
   /* process any macros in the raw command line */
-  processed_command = macros::process_macros(*mac, raw_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -2463,8 +2461,7 @@ int service::run_async_check_local(int check_options,
   set_latency(latency);
 
   // Get current host and service macros.
-  macro_context local_macros;
-  macro_context* macros(&local_macros);
+  macro_context macros;
   std::string processed_cmd = svc->get_check_command_line(macros);
 
   // Time to start command.
@@ -2551,7 +2548,7 @@ int service::run_async_check_local(int check_options,
         // Run command.
         uint32_t service_check_timeout =
             pb_indexed_config.state().service_check_timeout();
-        uint64_t id = get_check_command_ptr()->run(processed_cmd, *macros,
+        uint64_t id = get_check_command_ptr()->run(processed_cmd, macros,
                                                    service_check_timeout,
                                                    check_result_info, this);
         SPDLOG_LOGGER_DEBUG(checks_logger,
@@ -2947,7 +2944,7 @@ bool service::verify_check_viability(int check_options,
 }
 
 /* notify a specific contact about a service problem or recovery */
-int service::notify_contact(macro_context* mac,
+int service::notify_contact(macro_context& mac,
                             contact* cntct,
                             reason_type type,
                             const std::string& not_author,
@@ -2978,8 +2975,7 @@ int service::notify_contact(macro_context* mac,
     notifications_logger->debug("Raw notification command: {}", raw_command);
 
     /* process any macros contained in the argument */
-    processed_command =
-        macros::process_macros(*mac, raw_command, macro_options);
+    processed_command = macros::process_macros(mac, raw_command, macro_options);
     if (processed_command.empty())
       continue;
 
@@ -3559,9 +3555,9 @@ void service::set_check_command_ptr(
  *
  * @return std::string
  */
-std::string service::get_check_command_line(macro_context* macros) {
-  macros->set_host(get_host_ptr());
-  macros->set_service(this);
-  macros->set_arguments(check_command(), 0);
+std::string service::get_check_command_line(macro_context& macros) {
+  macros.set_host(get_host_ptr());
+  macros.set_service(this);
+  macros.set_arguments(check_command(), 0);
   return get_check_command_ptr()->process_cmd(macros);
 }

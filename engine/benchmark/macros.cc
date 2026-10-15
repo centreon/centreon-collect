@@ -287,30 +287,30 @@ macro_context context;
  * @brief Fill the macros context with the context of a service notification
  * to contact c0, as notification_execution.cc does.
  */
-macro_context* set_context() {
-  macro_context* mac = &context;
-  mac->reset();
-  mac->set_host(p.hst);
-  mac->set_service(p.svc);
-  mac->set_contact(p.cntct);
-  notification_values& notification = mac->notification.emplace();
+macro_context& set_context() {
+  macro_context& mac = context;
+  mac.reset();
+  mac.set_host(p.hst);
+  mac.set_service(p.svc);
+  mac.set_contact(p.cntct);
+  notification_values& notification = mac.notification.emplace();
   notification.type = com::centreon::common::notifications::reason_normal;
   notification.number = 1;
   notification.is_escalated = false;
   notification.recipients = "c0";
   notification.author = "admin";
   notification.comment = "a comment";
-  mac->argv[0] = "80";
-  mac->argv[1] = "/health";
+  mac.argv[0] = "80";
+  mac.argv[1] = "/health";
   return mac;
 }
 
 /* Evaluate one line in the notification context. */
 void eval_line(benchmark::State& state, const std::string& line, int options) {
-  macro_context* mac = set_context();
+  macro_context& mac = set_context();
   std::string out;
   for (auto _ : state) {
-    out = macros::process_macros(*mac, line, options);
+    out = macros::process_macros(mac, line, options);
     benchmark::DoNotOptimize(out);
   }
   state.SetLabel(out.size() > 40 ? out.substr(0, 40) + "..." : out);
@@ -340,13 +340,13 @@ void BM_Group(benchmark::State& state, std::string line) {
  * cached: here the cache is emptied at each iteration, as for each contact of
  * a notification. state.range(0) tells whether a contact filters the totals. */
 void BM_SummaryComputed(benchmark::State& state) {
-  macro_context* mac = set_context();
+  macro_context& mac = set_context();
   if (!state.range(0))
-    mac->contact_ptr = nullptr;
+    mac.contact_ptr = nullptr;
   std::string out;
   for (auto _ : state) {
-    mac->summary.reset();
-    out = macros::process_macros(*mac, "$TOTALSERVICESCRITICALUNHANDLED$", 0);
+    mac.summary.reset();
+    out = macros::process_macros(mac, "$TOTALSERVICESCRITICALUNHANDLED$", 0);
     benchmark::DoNotOptimize(out);
   }
   state.SetLabel(state.range(0) ? "with contact" : "without contact");
@@ -355,11 +355,11 @@ void BM_SummaryComputed(benchmark::State& state) {
 /* $TOTALHOSTSERVICES*$: walk through the services of the host, cached until
  * the next set_host(). */
 void BM_HostTotalsComputed(benchmark::State& state) {
-  macro_context* mac = set_context();
+  macro_context& mac = set_context();
   std::string out;
   for (auto _ : state) {
-    mac->set_host(p.hst);
-    out = macros::process_macros(*mac, "$TOTALHOSTSERVICESCRITICAL$", 0);
+    mac.set_host(p.hst);
+    out = macros::process_macros(mac, "$TOTALHOSTSERVICESCRITICAL$", 0);
     benchmark::DoNotOptimize(out);
   }
 }
@@ -374,7 +374,7 @@ void BM_ServiceCheckCommand(benchmark::State& state) {
   std::string out;
   for (auto _ : state) {
     macro_context local_macros;
-    out = p.svc->get_check_command_line(&local_macros);
+    out = p.svc->get_check_command_line(local_macros);
     benchmark::DoNotOptimize(out);
   }
   state.SetLabel(out);
@@ -384,10 +384,9 @@ void BM_ServiceCheckCommand(benchmark::State& state) {
 void BM_HostCheckCommand(benchmark::State& state) {
   std::string out;
   for (auto _ : state) {
-    macro_context local_macros;
-    macro_context* mac(&local_macros);
-    mac->set_host(p.hst);
-    mac->set_arguments(p.hst->check_command(), 0);
+    macro_context mac;
+    mac.set_host(p.hst);
+    mac.set_arguments(p.hst->check_command(), 0);
     out = p.hst->get_check_command_ptr()->process_cmd(mac);
     benchmark::DoNotOptimize(out);
   }
@@ -405,11 +404,11 @@ void BM_NotificationLine(benchmark::State& state) {
       "Info:\\n\\n$SERVICEOUTPUT$\\n$LONGSERVICEOUTPUT$\" | /bin/mail -s \"** "
       "$NOTIFICATIONTYPE$ Service Alert: $HOSTNAME$/$SERVICEDESC$ is "
       "$SERVICESTATE$ **\" $CONTACTEMAIL$";
-  macro_context* mac = set_context();
+  macro_context& mac = set_context();
   std::string out;
   for (auto _ : state) {
-    mac->set_contact(p.cntct);
-    out = macros::process_macros(*mac, line, STRIP_ILLEGAL_MACRO_CHARS);
+    mac.set_contact(p.cntct);
+    out = macros::process_macros(mac, line, STRIP_ILLEGAL_MACRO_CHARS);
     benchmark::DoNotOptimize(out);
   }
 }

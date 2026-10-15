@@ -296,9 +296,8 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
-  macro_context local_macros;
-  macro_context* macros(&local_macros);
-  macros->set_host(hst_found->second.get());
+  macro_context macros;
+  macros.set_host(hst_found->second.get());
   std::string processed_cmd(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd,
@@ -363,9 +362,8 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
   // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
-  macro_context local_macros;
-  macro_context* macros(&local_macros);
-  macros->set_host(hst_found->second.get());
+  macro_context macros;
+  macros.set_host(hst_found->second.get());
   std::string processed_cmd(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd,

@@ -412,10 +412,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     return hst->get_current_state();
 
   // Get current host macros.
-  macro_context local_macros;
-  macro_context* macros(&local_macros);
-  macros->set_host(hst);
-  macros->set_arguments(hst->check_command(), 0);
+  macro_context macros;
+  macros.set_host(hst);
+  macros.set_arguments(hst->check_command(), 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -474,7 +473,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   } else {
     // Run command.
     try {
-      cmd->run(processed_cmd, *macros,
+      cmd->run(processed_cmd, macros,
                pb_indexed_config.state().host_check_timeout(), res);
     } catch (std::exception const& e) {
       run_failure("(Execute command failed)");

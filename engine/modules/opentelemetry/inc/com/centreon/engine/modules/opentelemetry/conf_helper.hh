@@ -98,8 +98,7 @@ bool get_otel_commands(const std::string& host_name,
   std::string cmd_line;
   // host check use otl?
   if (use_otl_command(*hst)) {
-    macro_context local_macros;
-    macro_context* macros(&local_macros);
+    macro_context macros;
     cmd_line = hst->get_check_command_line(macros);
 
     if (allowed_by_white_list(cmd_line)) {
@@ -127,8 +126,7 @@ bool get_otel_commands(const std::string& host_name,
        ++serv_iter) {
     std::shared_ptr<service> serv = serv_iter->second;
     if (use_otl_command(*serv)) {
-      macro_context local_macros;
-      macro_context* macros(&local_macros);
+      macro_context macros;
       cmd_line = serv->get_check_command_line(macros);
 
       if (allowed_by_white_list(cmd_line)) {

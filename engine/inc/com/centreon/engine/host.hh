@@ -230,7 +230,7 @@ class host : public notifier {
   void set_last_hard_state(enum host_state last_hard_state);
   enum host_state get_initial_state() const;
   void set_initial_state(enum host_state current_state);
-  int notify_contact(macro_context* mac,
+  int notify_contact(macro_context& mac,
                      contact* cntct,
                      common::notifications::reason_type type,
                      std::string const& not_author,
@@ -259,7 +259,7 @@ class host : public notifier {
   std::list<hostgroup*> const& get_parent_groups() const;
   std::list<hostgroup*>& get_parent_groups();
 
-  std::string get_check_command_line(macro_context* macros);
+  std::string get_check_command_line(macro_context& macros);
 
  private:
   void _switch_all_services_to_unknown();

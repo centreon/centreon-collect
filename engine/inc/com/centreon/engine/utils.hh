@@ -35,7 +35,7 @@ extern "C" {
 // Monitoring/Event Handler Functions
 
 // thread-safe version of the above
-int my_system_r(com::centreon::engine::macro_context* mac,
+int my_system_r(com::centreon::engine::macro_context& mac,
                 std::string const& cmd,
                 int timeout,
                 bool* early_timeout,

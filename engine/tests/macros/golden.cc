@@ -351,14 +351,14 @@ class MacroGolden : public TestEngine {
    * notification). The notification macros and the arguments are set as
    * notification_execution.cc and macro_context::set_arguments() do.
    */
-  void _set_context(macro_context* mac, ctx c) {
+  void _set_context(macro_context& mac, ctx c) {
     if (c == ctx::none)
       return;
-    mac->set_host(host::hosts.find("h1")->second.get());
+    mac.set_host(host::hosts.find("h1")->second.get());
     if (c == ctx::service)
-      mac->set_service(service::services.find({"h1", "s"})->second.get());
-    mac->set_contact(contact::contacts.find("c1")->second.get());
-    notification_values& notification = mac->notification.emplace();
+      mac.set_service(service::services.find({"h1", "s"})->second.get());
+    mac.set_contact(contact::contacts.find("c1")->second.get());
+    notification_values& notification = mac.notification.emplace();
     notification.type = com::centreon::common::notifications::reason_normal;
     notification.number = 3;
     notification.is_escalated = false;
@@ -367,9 +367,9 @@ class MacroGolden : public TestEngine {
     notification.author_name = "Admin|istrator";
     notification.author_alias = "admin <alias>";
     notification.comment = "it's a \"comment\" & $more";
-    mac->argv[0] = "80";
-    mac->argv[1] = "/health";
-    mac->argv[2] = "arg with $ and `backquote`";
+    mac.argv[0] = "80";
+    mac.argv[1] = "/health";
+    mac.argv[2] = "arg with $ and `backquote`";
   }
 
   /**
@@ -386,10 +386,9 @@ class MacroGolden : public TestEngine {
                       int options,
                       const std::string& line,
                       bool group = false) {
-    macro_context local_macros;
-    macro_context* mac(&local_macros);
+    macro_context mac;
     _set_context(mac, c);
-    std::string out = macros::process_macros(*mac, line, options);
+    std::string out = macros::process_macros(mac, line, options);
     if (group || line.find("MEMBERS") != std::string::npos) {
       std::vector<std::string_view> parts =
           absl::StrSplit(out, absl::ByAnyChar("#,"));
@@ -403,12 +402,11 @@ class MacroGolden : public TestEngine {
   /* The flow of a check: the context, the arguments, the command line. */
   std::vector<std::string> _check_records() {
     std::vector<std::string> retval;
-    macro_context local_macros;
-    macro_context* mac(&local_macros);
+    macro_context mac;
     host* h = host::hosts.find("h1")->second.get();
     retval.push_back("check h1 => " +
                      absl::CEscape(h->get_check_command_line(mac)));
-    mac->reset();
+    mac.reset();
     service* s = service::services.find({"h1", "s"})->second.get();
     retval.push_back("check h1/s => " +
                      absl::CEscape(s->get_check_command_line(mac)));

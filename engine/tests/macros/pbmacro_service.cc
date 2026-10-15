@@ -77,9 +77,8 @@ class MacroService : public TestEngine {
 // Then the applier add_object throws an exception.
 TEST_F(MacroService, TotalServicesOkZero) {
   std::string out;
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
-  out = macros::process_macros(*mac, "$TOTALSERVICESOK$", 0);
+  macro_context mac;
+  out = macros::process_macros(mac, "$TOTALSERVICESOK$", 0);
   ASSERT_EQ(out, "0");
 }
 

@@ -103,7 +103,7 @@ class command : public std::enable_shared_from_this<command> {
   virtual const std::string& get_command_line() const noexcept;
   virtual const std::string& get_name() const noexcept;
   e_type get_type() const { return _type; }
-  virtual std::string process_cmd(macro_context* macros) const;
+  virtual std::string process_cmd(macro_context& macros) const;
   virtual uint64_t run(const std::string& processed_cmd,
                        macro_context& macors,
                        uint32_t timeout,

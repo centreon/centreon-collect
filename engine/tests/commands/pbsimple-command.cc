@@ -108,12 +108,11 @@ TEST_F(PbSimpleCommand, CommandAlreadyExisting) {
 TEST_F(PbSimpleCommand, NewCommandSync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/echo bonjour")};
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
   commands::result res;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
-  cmd->run(cc, *mac, 2, res);
+  cmd->run(cc, mac, 2, res);
   ASSERT_EQ(res.output, "bonjour\n");
 }
 
@@ -127,11 +126,10 @@ TEST_F(PbSimpleCommand, NewCommandAsync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/echo bonjour")};
   cmd->set_listener(lstnr.get());
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{3000};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -147,15 +145,14 @@ TEST_F(PbSimpleCommand, LongCommandAsync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/sleep 10")};
   cmd->set_listener(lstnr.get());
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/sleep 10");
 
   // We force the time to be coherent with now because the function gettimeofday
   // that is not simulated.
   set_time(std::time(nullptr));
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{15};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -179,12 +176,11 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[0]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[0]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -197,7 +193,7 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   ASSERT_EQ(stat(path, &file_stat), 0);
   ASSERT_EQ(file_stat.st_size, 4);
   ++now;
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[1]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[1]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -222,12 +218,11 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   cmd->set_listener(lstnr.get());
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[0]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[0]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -242,7 +237,7 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   now += 10;
   set_time(now);
   lstnr->get_result().output = "";
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[1]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[1]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -259,13 +254,12 @@ TEST_F(PbSimpleCommand, WithOneArgument) {
   std::shared_ptr<commands::command> cmd{std::make_unique<commands::raw_v2>(
       g_io_context, "test", "/bin/echo $ARG1$")};
   cmd->set_listener(lstnr.get());
-  macro_context local_macros;
-  macro_context* mac(&local_macros);
-  mac->argv[0] = "Hello";
-  mac->argv[1] = "";
+  macro_context mac;
+  mac.argv[0] = "Hello";
+  mac.argv[1] = "";
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo Hello");
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{3000};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -294,21 +288,19 @@ TEST_F(PbSimpleCommand, EnvironmentMacros) {
   hst_hlp.insert_customvariable("_FOO", "bar");
   hst_aply.add_object(hst);
 
-  macro_context local_macros;
-
-  macro_context* mac(&local_macros);
-  mac->host_ptr = host::hosts.find("host_1")->second.get();
-  mac->argv[0] = "Hello";
-  mac->argv[1].clear();
+  macro_context mac;
+  mac.host_ptr = host::hosts.find("host_1")->second.get();
+  mac.argv[0] = "Hello";
+  mac.argv[1].clear();
   std::string cc(cmd->process_cmd(mac));
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{3000};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
     usleep(100000);
     ++timeout;
   }
-  mac->reset();
+  mac.reset();
   ASSERT_TRUE(timeout < max_timeout);
   std::vector<std::string_view> lines =
       absl::StrSplit(lstnr->get_result().output, '\n');

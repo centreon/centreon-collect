@@ -133,7 +133,7 @@ class notifier : public checkable {
 
   void set_current_notification_id(uint64_t id) noexcept;
   uint64_t get_current_notification_id() const noexcept;
-  virtual int notify_contact(macro_context* mac,
+  virtual int notify_contact(macro_context& mac,
                              contact* cntct,
                              common::notifications::reason_type type,
                              std::string const& not_author,

@@ -1573,8 +1573,7 @@ int host::run_async_check(int check_options,
   set_latency(latency);
 
   // Get current host macros.
-  macro_context local_macros;
-  macro_context* macros(&local_macros);
+  macro_context macros;
 
   std::string processed_cmd = get_check_command_line(macros);
 
@@ -1643,7 +1642,7 @@ int host::run_async_check(int check_options,
       retry = false;
       try {
         // Run command.
-        get_check_command_ptr()->run(processed_cmd, *macros, host_check_timeout,
+        get_check_command_ptr()->run(processed_cmd, macros, host_check_timeout,
                                      check_result_info);
       } catch (std::exception const& e) {
         // Update check result.
@@ -2292,7 +2291,7 @@ bool host::verify_check_viability(int check_options,
 }
 
 /* notify a specific contact that an entire host is down or up */
-int host::notify_contact(macro_context* mac,
+int host::notify_contact(macro_context& mac,
                          contact* cntct,
                          notifications::reason_type type,
                          const std::string& not_author,
@@ -2329,7 +2328,7 @@ int host::notify_contact(macro_context* mac,
 
     /* process any macros contained in the argument */
     processed_command = com::centreon::engine::macros::process_macros(
-        *mac, raw_command, macro_options);
+        mac, raw_command, macro_options);
     if (processed_command.empty())
       continue;
 
@@ -3516,9 +3515,9 @@ void host::set_check_command_ptr(
  *
  * @return std::string
  */
-std::string host::get_check_command_line(macro_context* macros) {
-  macros->set_host(this);
-  macros->set_arguments(check_command(), 0);
+std::string host::get_check_command_line(macro_context& macros) {
+  macros.set_host(this);
+  macros.set_arguments(check_command(), 0);
   return get_check_command_ptr()->process_cmd(macros);
 }
 
