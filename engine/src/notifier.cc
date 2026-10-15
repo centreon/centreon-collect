@@ -758,8 +758,7 @@ time_t notifier::get_next_notification_time(time_t offset) {
       continue;
 
     /* skip this entry if it isn't appropriate */
-    if (!is_valid_escalation_for_notification(
-            e, notifications::notification_option_none))
+    if (!is_valid_escalation_for_notification(e))
       continue;
 
     SPDLOG_LOGGER_INFO(notifications_logger,

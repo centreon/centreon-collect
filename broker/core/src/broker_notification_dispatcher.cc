@@ -47,7 +47,7 @@ broker_notification_dispatcher::broker_notification_dispatcher(
  * @param reason     The notification reason (acknowledgement, custom, ...).
  * @param author     The author carried by the notification.
  * @param comment    The comment carried by the notification.
- * @param options    broadcast / forced / increment flags.
+ * @param options    forced / increment flags.
  */
 void broker_notification_dispatcher::post_notify(
     uint64_t host_id,

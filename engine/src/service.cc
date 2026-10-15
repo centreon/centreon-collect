@@ -3071,8 +3071,7 @@ void service::update_notification_flags() {
  * checks to see if a service escalation entry is a match for the current
  * service notification
  */
-bool service::is_valid_escalation_for_notification(escalation const* e,
-                                                   int options) const {
+bool service::is_valid_escalation_for_notification(escalation const* e) const {
   uint32_t notification_number;
   time_t current_time;
 
@@ -3094,11 +3093,6 @@ bool service::is_valid_escalation_for_notification(escalation const* e,
   /* find the service this escalation entry is associated with */
   if (e->notifier_ptr != this)
     return false;
-
-  /*** EXCEPTION ***/
-  /* broadcast options go to everyone, so this escalation is valid */
-  if (options & notification_option_broadcast)
-    return true;
 
   /* skip this escalation if it happens later */
   if (e->get_first_notification() > notification_number)

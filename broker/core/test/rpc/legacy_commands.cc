@@ -120,8 +120,8 @@ TEST(LegacyCommands, NotifierSettings) {
   EXPECT_EQ(sn.service().description(), "service_1");
 
   HostCustomNotificationRequest c;
+  /* Bit 1 (broadcast) is still accepted and ignored. */
   ASSERT_TRUE(lc::host_custom_notification("host_1;5;admin;hey;you", &c).ok());
-  EXPECT_TRUE(c.broadcast());
   EXPECT_FALSE(c.forced());
   EXPECT_TRUE(c.increment());
   EXPECT_EQ(c.comment(), "hey;you");
@@ -129,7 +129,7 @@ TEST(LegacyCommands, NotifierSettings) {
   ASSERT_TRUE(
       lc::service_custom_notification("host_1;service_1;2;admin;x", &sc).ok());
   EXPECT_TRUE(sc.forced());
-  EXPECT_FALSE(sc.broadcast());
+  EXPECT_FALSE(sc.increment());
 
   HostNotificationPeriodRequest p;
   ASSERT_TRUE(lc::host_notification_period("host_1;24x7", &p).ok());

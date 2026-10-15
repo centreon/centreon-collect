@@ -239,8 +239,7 @@ class host : public notifier {
                      int escalated) override;
   void update_notification_flags() override;
   void schedule_acknowledgement_expiration();
-  bool is_valid_escalation_for_notification(escalation const* e,
-                                            int options) const override;
+  bool is_valid_escalation_for_notification(escalation const* e) const override;
   void handle_flap_detection_disabled();
   com::centreon::common::timeperiods::timeperiod* get_notification_timeperiod()
       const override;
