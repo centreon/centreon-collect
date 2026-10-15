@@ -23,7 +23,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "engine/macros/process.hh"

@@ -18,7 +18,6 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
-#include <future>
 
 #include <boost/asio.hpp>
 namespace asio = boost::asio;
@@ -38,6 +37,7 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/processing.hh"
+#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"

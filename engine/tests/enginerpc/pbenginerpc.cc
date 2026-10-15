@@ -43,6 +43,7 @@
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/downtimes/downtime_manager.hh"

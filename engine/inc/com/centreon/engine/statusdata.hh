@@ -21,8 +21,6 @@
 #ifndef CCE_STATUSDATA_HH
 #define CCE_STATUSDATA_HH
 
-#include "com/centreon/engine/host.hh"
-
 #ifdef __cplusplus
 extern "C" {
 #endif  // C++

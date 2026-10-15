@@ -28,6 +28,11 @@
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 
+namespace com::centreon::engine {
+class host;
+class service;
+}  // namespace com::centreon::engine
+
 /* Event broker options. */
 #define BROKER_NOTHING 0
 #define BROKER_PROGRAM_STATE (1 << 0)

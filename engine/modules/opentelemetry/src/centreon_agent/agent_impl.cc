@@ -17,6 +17,7 @@
  */
 
 #include <google/protobuf/util/message_differencer.h>
+#include <grpcpp/support/client_callback.h>
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/globals.hh"

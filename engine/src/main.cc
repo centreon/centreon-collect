@@ -22,9 +22,6 @@
 #include <unistd.h>
 #include <chrono>
 #include <random>
-#include <string>
-#include <utility>
-#include <vector>
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -44,13 +41,13 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "common/notifications/notification_manager.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/diagnostic.hh"
 #include "com/centreon/engine/engine_downtime_callbacks.hh"
 #include "com/centreon/engine/engine_notification_callbacks.hh"
@@ -65,7 +62,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "com/centreon/common/deferred_dlclose.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"

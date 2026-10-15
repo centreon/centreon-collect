@@ -20,9 +20,9 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/notifier.hh"
 
 using namespace com::centreon::engine::configuration;
 

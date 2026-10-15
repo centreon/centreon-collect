@@ -26,6 +26,7 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/tag.hh"
+#include "com/centreon/engine/contact.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"

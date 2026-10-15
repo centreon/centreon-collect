@@ -20,8 +20,17 @@
 #ifndef CCE_COMMAND_MANAGER_HH
 #define CCE_COMMAND_MANAGER_HH
 
-#include "com/centreon/engine/engine_impl.hh"
-#include "com/centreon/engine/host.hh"
+#include <ctime>
+#include <deque>
+#include <future>
+#include <mutex>
+#include <string>
+
+#include "engine.pb.h"
+
+namespace com::centreon::engine {
+class host;
+}  // namespace com::centreon::engine
 
 /**
  *  @class command_manager command_manager.hh
