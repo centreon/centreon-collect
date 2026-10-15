@@ -794,3 +794,58 @@ TEST_F(drive_size_test, default_storage_type_filter_allows_ntfs_fixed_disk) {
                                "ntfs", hr_storage_fixed_disk,
                                spdlog::default_logger()));
 }
+
+TEST_F(drive_size_test, storage_type_filter_allows_format_unknown_by_agent) {
+  using namespace check_drive_size_detail;
+  // refs is not in hrfs* list => hr_unknown
+  ASSERT_EQ(drive_fs_type_from_string("refs"), hr_unknown);
+  for (const char* json_filter :
+       {R"({"filter-storage-type": "hrstoragefixeddisk"})",
+        R"({"filter-storage-type": "other|refs"})", R"({})"}) {
+    rapidjson::Document args;
+    args.Parse(json_filter);
+    filter filt(args);
+    ASSERT_TRUE(filt.is_allowed("E:\\", drive_fs_type_from_string("refs"),
+                                "refs", hr_storage_fixed_disk,
+                                spdlog::default_logger()))
+        << json_filter;
+  }
+  for (const char* json_filter :
+       {R"({"filter-storage-type": "hrstoragenetworkdisk"})",
+        R"({"filter-storage-type": "hrfsntfs"})"}) {
+    rapidjson::Document args;
+    args.Parse(json_filter);
+    filter filt(args);
+    ASSERT_FALSE(filt.is_allowed("E:\\", drive_fs_type_from_string("refs"),
+                                 "refs", hr_storage_fixed_disk,
+                                 spdlog::default_logger()))
+        << json_filter;
+  }
+}
+
+TEST_F(drive_size_test, fs_filters_are_case_insensitive_and_keep_escapes) {
+  using namespace check_drive_size_detail;
+  rapidjson::Document args;
+  // \D must not be turned into \d
+  args.Parse(R"({"exclude-fs": "\\D:\\\\"})");
+  filter exclude_filt(args);
+  ASSERT_FALSE(
+      exclude_filt.is_fs_allowed("C:\\", "", spdlog::default_logger()));
+
+  args.Parse(R"({"filter-fs": "C:\\\\", "filter-mountpoint": "/DATA"})");
+  filter case_filt(args);
+  ASSERT_TRUE(
+      case_filt.is_fs_allowed("c:\\", "/data", spdlog::default_logger()));
+  ASSERT_FALSE(
+      case_filt.is_fs_allowed("d:\\", "/data", spdlog::default_logger()));
+
+  // \p{Greek} must stay a valid regex
+  args.Parse(R"({"filter-fs": "\\p{Greek}+"})");
+  ASSERT_NO_THROW(filter{args});
+}
+
+TEST_F(drive_size_test, drive_type_to_string_64_bits) {
+  using namespace check_drive_size_detail;
+  ASSERT_EQ(drive_type_to_string(hr_fs_exfat), "hrfsexfat");
+  ASSERT_EQ(drive_type_to_string(hr_fs_linux_ext4), "hrfslinuxext4");
+}

@@ -17,7 +17,6 @@
  */
 
 #include "drive_size.hh"
-#include "absl/strings/ascii.h"
 #include "com/centreon/common/rapidjson_helper.hh"
 
 using namespace com::centreon::agent;
@@ -86,7 +85,7 @@ constexpr std::array<std::pair<std::string_view, e_drive_fs_type>, 35>
  * @return std::string labels of the flags set, separated by '|' (ex:
  * "hrstoragefixeddisk|hrfsntfs")
  */
-std::string drive_type_to_string(unsigned drive_type) {
+std::string drive_type_to_string(uint64_t drive_type) {
   std::string ret;
   for (const auto& to_test : _drive_format_type) {
     if (drive_type & to_test.second) {
@@ -129,6 +128,20 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
 }
 
 /**
+ * @brief build a case insensitive regex
+ * The regex is not lowered in order to keep escape sequences (\S, \p{Greek}...)
+ *
+ * @param re regex given by user
+ * @return std::unique_ptr<re2::RE2>
+ */
+static std::unique_ptr<re2::RE2> make_case_insensitive_regex(
+    const std::string_view& re) {
+  re2::RE2::Options options;
+  options.set_case_sensitive(false);
+  return std::make_unique<re2::RE2>(re, options);
+}
+
+/**
  * @brief Construct a new filter::filter object
  *
  *
@@ -143,24 +156,21 @@ e_drive_fs_type drive_fs_type_from_string(const std::string_view& str) {
  *    exclude-fs
  *    filter-mountpoint
  *    exclude-mountpoint
- * filter-fs, exclude-fs, filter-mountpoint and exclude-mountpoint regexes are
- * converted to lower case in order to be case insensitive (see is_fs_allowed)
+ * All these regexes are case insensitive.
  * @throw exceptions::msg_fmt if a regex is invalid
  */
 filter::filter(const rapidjson::Value& args)
     : _drive_type_filter(std::numeric_limits<uint64_t>::max()),
       _format_filter(std::numeric_limits<uint64_t>::max()) {
   if (args.IsObject()) {
-    std::string lower_re;
     for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();
          ++member_iter) {
       if (member_iter->name == "filter-storage-type" ||
           member_iter->name == "filter-type") {
         if (member_iter->value.IsString() &&
             member_iter->value.GetStringLength() > 0) {
-          std::string sz_regexp(member_iter->value.GetString());
-          boost::to_lower(sz_regexp);
-          _filter_fs_type = std::make_unique<re2::RE2>(sz_regexp);
+          _filter_fs_type =
+              make_case_insensitive_regex(member_iter->value.GetString());
           if (!_filter_fs_type->ok()) {
             throw exceptions::msg_fmt(
                 "invalid regex for filter-storage-type: {}",
@@ -191,9 +201,8 @@ filter::filter(const rapidjson::Value& args)
       } else if (member_iter->name == "filter-fs" &&
                  member_iter->value.IsString() &&
                  member_iter->value.GetStringLength() > 0) {
-        lower_re = member_iter->value.GetString();
-        absl::AsciiStrToLower(&lower_re);
-        _filter_fs = std::make_unique<re2::RE2>(lower_re);
+        _filter_fs =
+            make_case_insensitive_regex(member_iter->value.GetString());
         if (!_filter_fs->ok()) {
           throw exceptions::msg_fmt("invalid regex for filter-fs: {}",
                                     member_iter->value.GetString());
@@ -201,9 +210,8 @@ filter::filter(const rapidjson::Value& args)
       } else if (member_iter->name == "exclude-fs" &&
                  member_iter->value.IsString() &&
                  member_iter->value.GetStringLength() > 0) {
-        lower_re = member_iter->value.GetString();
-        absl::AsciiStrToLower(&lower_re);
-        _filter_exclude_fs = std::make_unique<re2::RE2>(lower_re);
+        _filter_exclude_fs =
+            make_case_insensitive_regex(member_iter->value.GetString());
         if (!_filter_exclude_fs->ok()) {  // NOLINT
           throw exceptions::msg_fmt("invalid regex for filter-exclude-fs: {}",
                                     member_iter->value.GetString());
@@ -211,9 +219,8 @@ filter::filter(const rapidjson::Value& args)
       } else if (member_iter->name == "filter-mountpoint" &&
                  member_iter->value.IsString() &&
                  member_iter->value.GetStringLength() > 0) {
-        lower_re = member_iter->value.GetString();
-        absl::AsciiStrToLower(&lower_re);
-        _filter_mountpoint = std::make_unique<re2::RE2>(lower_re);
+        _filter_mountpoint =
+            make_case_insensitive_regex(member_iter->value.GetString());
         if (!_filter_mountpoint->ok()) {
           throw exceptions::msg_fmt("invalid regex for filter-mountpoint: {}",
                                     member_iter->value.GetString());
@@ -221,9 +228,8 @@ filter::filter(const rapidjson::Value& args)
       } else if (member_iter->name == "exclude-mountpoint" &&
                  member_iter->value.IsString() &&
                  member_iter->value.GetStringLength() > 0) {
-        lower_re = member_iter->value.GetString();
-        absl::AsciiStrToLower(&lower_re);
-        _filter_exclude_mountpoint = std::make_unique<re2::RE2>(lower_re);
+        _filter_exclude_mountpoint =
+            make_case_insensitive_regex(member_iter->value.GetString());
         if (!_filter_exclude_mountpoint->ok()) {
           throw exceptions::msg_fmt(
               "invalid regex for filter-exclude-mountpoint: {}",
@@ -239,8 +245,7 @@ filter::filter(const rapidjson::Value& args)
  * exclude-fs, filter-mountpoint and exclude-mountpoint.
  * It needs no system call, so it is called before getting drive type and
  * format in order to avoid querying refused drives.
- * Test is case insensitive: fs and mount_point are converted to lower case as
- * the regexes.
+ * Test is case insensitive (see make_case_insensitive_regex).
  *
  * @param fs file system (C:\ on windows, /dev/sda1 on linux)
  * @param mount_point (linux only, empty on windows)
@@ -252,29 +257,23 @@ bool filter::is_fs_allowed(
     const std::string_view& fs,
     const std::string_view& mount_point,
     const std::shared_ptr<spdlog::logger>& logger) const {
-  std::string lower_fs(fs);
-  absl::AsciiStrToLower(&lower_fs);
-  std::string lower_mount_point(mount_point);
-  absl::AsciiStrToLower(&lower_mount_point);
-
-  if (_filter_exclude_fs && RE2::FullMatch(lower_fs, *_filter_exclude_fs)) {
+  if (_filter_exclude_fs && RE2::FullMatch(fs, *_filter_exclude_fs)) {
     SPDLOG_LOGGER_TRACE(logger, "{} refused because of exclude-fs", fs);
     return false;
   }
 
-  if (_filter_fs && !RE2::FullMatch(lower_fs, *_filter_fs)) {
+  if (_filter_fs && !RE2::FullMatch(fs, *_filter_fs)) {
     SPDLOG_LOGGER_TRACE(logger, "{} refused because of filter-fs", fs);
     return false;
   }
 
   if (_filter_exclude_mountpoint &&
-      RE2::FullMatch(lower_mount_point, *_filter_exclude_mountpoint)) {
+      RE2::FullMatch(mount_point, *_filter_exclude_mountpoint)) {
     SPDLOG_LOGGER_TRACE(logger, "{} refused because of exclude-mountpoint", fs);
     return false;
   }
 
-  if (_filter_mountpoint &&
-      !RE2::FullMatch(lower_mount_point, *_filter_mountpoint)) {
+  if (_filter_mountpoint && !RE2::FullMatch(mount_point, *_filter_mountpoint)) {
     SPDLOG_LOGGER_TRACE(logger, "{} refused because of filter-mountpoint", fs);
     return false;
   }
@@ -305,7 +304,10 @@ bool filter::is_allowed(const std::string_view& fs,
                         e_drive_fs_type media_type,
                         const std::shared_ptr<spdlog::logger>& logger) const {
   // we can't known every fs formats, so we allow other|<custom format>
-  if (!(_format_filter & format_type)) {
+  // _format_filter at max means no format filter, so formats unknown by the
+  // agent (hr_unknown = 0) are also allowed
+  if (_format_filter != std::numeric_limits<uint64_t>::max() &&
+      !(_format_filter & format_type)) {
     if (_filter_fs_type &&
         !RE2::FullMatch(unknown_format_type, *_filter_fs_type)) {
       // there are special filter words, we traduce them and reapply filter

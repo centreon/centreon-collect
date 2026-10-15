@@ -69,7 +69,7 @@ enum e_drive_fs_type : uint64_t {
   hr_fs_linux_ext4 = 1ULL << 32,
   hr_fs_exfat = 1ULL << 33
 };
-std::string drive_type_to_string(unsigned drive_type);
+std::string drive_type_to_string(uint64_t drive_type);
 e_drive_fs_type drive_fs_type_from_string(const std::string_view& str);
 
 /**
