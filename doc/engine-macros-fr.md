@@ -65,11 +65,16 @@ Le « premier » groupe ou contact est lu dans une table de hachage : c'est un
 | notification (`run_notification_commands()`, `notification_execution.cc`) | `set_host` de la ressource, plus `set_service` pour un service, puis `notification`, puis `set_contact` pour **chaque** contact |
 | connecteur (`applier/connector.cc`) | rien : seules les macros sans objet sont utiles |
 
-`get_raw_command_line_r()` (`utils.cc`) découpe ensuite la commande
-`check_foo!arg1!arg2` sur les `!`, **évalue les macros de chaque argument** et
-range le résultat dans `argv`. La ligne de commande elle-même est évaluée
-après, par `macros::process_macros()` (directement, ou via
-`command::process_cmd()`), et c'est là que `$ARGn$` est remplacé.
+Ensuite `set_arguments()` découpe la commande configurée,
+`check_foo!arg1!arg2`, sur les `!` (`macros::split_arguments()` : le nom est
+sauté, `\` échappe le caractère suivant, 32 arguments au plus), **évalue les
+macros de chaque argument** et range le résultat dans `argv`. La ligne de
+commande elle-même est évaluée après, par `macros::process_macros()`
+(directement, ou via `command::process_cmd()`), et c'est là que `$ARGn$` est
+remplacé.
+
+Les commandes de notification d'un contact n'ont pas d'arguments : elles sont
+configurées par leur seul nom. Leurs `$ARGn$` sont donc vides.
 
 Les connecteurs `raw` et `raw_v2` exportent aussi toutes les macros de la
 table dans l'environnement de la commande (`NAGIOS_HOSTNAME`…), avec les
@@ -113,7 +118,7 @@ flowchart TD
     D -->|"oui : macro de la table"| E["table_value()<br/>selon la famille du descripteur"]
     D -->|"non : nom variable"| F{"variable_name_value()<br/>préfixe"}
 
-    F -->|"ARGn"| F1["argv[n-1]<br/>(déjà évalué par get_raw_command_line_r)"]
+    F -->|"ARGn"| F1["argv[n-1]<br/>(déjà évalué par set_arguments)"]
     F -->|"CONTACTADDRESSn"| R1
     F -->|"_HOST… _SERVICE… _CONTACT…"| R1
     F -->|"macro utilisateur<br/>($USERn$, $NOM$…)"| F5["users() de la configuration<br/>(fichier de ressources)"]
@@ -205,7 +210,7 @@ les valeurs vides sont sautées.
 |---|---|---|
 | statiques (`$ADMINEMAIL$`, `$POLLERNAME$`…) | lue dans la configuration ou l'état d'Engine, à chaque appel | aucune mise en cache |
 | macros utilisateur (`$USERn$`, `$CENTREONPLUGINS$`…) | `users()` de la configuration (fichier de ressources), lu à chaque appel | aucune mise en cache : un rechargement est pris en compte aussitôt |
-| `$ARGn$` | `argv`, évalué par `get_raw_command_line_r()` | une commande |
+| `$ARGn$` | `argv`, évalué par `set_arguments()` | une commande |
 | notification (`$NOTIFICATIONTYPE$`…) | `notification`, rempli par `run_notification_commands()` | une notification |
 | hôte, service, contact, groupes | getter sur l'objet, **à chaque appel** | aucune mise en cache |
 | `$HOST/SERVICENOTIFICATIONID$`, `$HOST/SERVICENOTIFICATIONNUMBER$` | la notification en cours si elle porte sur cet objet, l'objet sinon | — |

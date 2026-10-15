@@ -151,7 +151,7 @@ sequenceDiagram
         R->>M: set_contact(contact) (the $TOTAL*$ cache is cleared)
         R->>NC: notify_contact(mac, contact, type, author, data, options)
         loop for each of the contact's notif commands
-            NC->>NC: get_raw_command_line_r + macros::process_macros
+            NC->>NC: command line + macros::process_macros (no $ARGn$)
             NC->>NC: log "HOST/SERVICE NOTIFICATION: ..." (if log_notifications)
             alt command allowed by the whitelist
                 NC->>SH: my_system_r(command, notification_timeout)

@@ -63,11 +63,15 @@ The "first" group or contact is read from a hash table: it is any of them.
 | notification (`run_notification_commands()`, `notification_execution.cc`) | `set_host` of the resource, plus `set_service` for a service, then `notification`, then `set_contact` for **each** contact |
 | connector (`applier/connector.cc`) | nothing: only the macros without object are useful |
 
-Then `get_raw_command_line_r()` (`utils.cc`) splits the `check_foo!arg1!arg2`
-command on `!`, **evaluates the macros of each argument** and stores the
-result in `argv`. The command line itself is evaluated afterwards, by
-`macros::process_macros()` (directly, or through `command::process_cmd()`),
-and that is where `$ARGn$` is replaced.
+Then `set_arguments()` splits the configured command, `check_foo!arg1!arg2`,
+on `!` (`macros::split_arguments()`: the name is skipped, `\` escapes the
+next character, at most 32 arguments), **evaluates the macros of each
+argument** and stores the result in `argv`. The command line itself is
+evaluated afterwards, by `macros::process_macros()` (directly, or through
+`command::process_cmd()`), and that is where `$ARGn$` is replaced.
+
+The notification commands of a contact have no arguments: they are
+configured by their name only. Their `$ARGn$` macros are thus empty.
 
 The `raw` and `raw_v2` connectors also export all the macros of the table to
 the environment of the command (`NAGIOS_HOSTNAME`…), with the custom
@@ -110,7 +114,7 @@ flowchart TD
     D -->|"yes: macro of the table"| E["table_value()<br/>by the family of the descriptor"]
     D -->|"no: variable name"| F{"variable_name_value()<br/>prefix"}
 
-    F -->|"ARGn"| F1["argv[n-1]<br/>(already evaluated by get_raw_command_line_r)"]
+    F -->|"ARGn"| F1["argv[n-1]<br/>(already evaluated by set_arguments)"]
     F -->|"CONTACTADDRESSn"| R1
     F -->|"_HOST… _SERVICE… _CONTACT…"| R1
     F -->|"user macro<br/>($USERn$, $NAME$…)"| F5["users() of the configuration<br/>(resource file)"]
@@ -202,7 +206,7 @@ values are skipped.
 |---|---|---|
 | static (`$ADMINEMAIL$`, `$POLLERNAME$`…) | read from the configuration or the state of Engine, at each call | no caching |
 | user macros (`$USERn$`, `$CENTREONPLUGINS$`…) | `users()` of the configuration (resource file), read at each call | no caching: a reload is taken into account at once |
-| `$ARGn$` | `argv`, evaluated by `get_raw_command_line_r()` | one command |
+| `$ARGn$` | `argv`, evaluated by `set_arguments()` | one command |
 | notification (`$NOTIFICATIONTYPE$`…) | `notification`, filled by `run_notification_commands()` | one notification |
 | host, service, contact, groups | getter on the object, **at each call** | no caching |
 | `$HOST/SERVICENOTIFICATIONID$`, `$HOST/SERVICENOTIFICATIONNUMBER$` | the current notification if it is about this object, the object otherwise | — |
