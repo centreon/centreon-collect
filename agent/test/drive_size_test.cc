@@ -849,3 +849,24 @@ TEST_F(drive_size_test, drive_type_to_string_64_bits) {
   ASSERT_EQ(drive_type_to_string(hr_fs_exfat), "hrfsexfat");
   ASSERT_EQ(drive_type_to_string(hr_fs_linux_ext4), "hrfslinuxext4");
 }
+
+TEST_F(drive_size_test, unknown_drive_type_filter) {
+  using namespace check_drive_size_detail;
+  auto is_allowed = [](const char* json_filter, e_drive_fs_type media_type) {
+    rapidjson::Document args;
+    args.Parse(json_filter);
+    filter filt(args);
+    return filt.is_allowed("E:\\", drive_fs_type_from_string("ntfs"), "ntfs",
+                           media_type, spdlog::default_logger());
+  };
+  // no filter => drive of unknown type is allowed
+  ASSERT_TRUE(is_allowed(R"({})", hr_unknown));
+  ASSERT_TRUE(is_allowed(R"({"filter-storage-type": "hrfsntfs"})", hr_unknown));
+  ASSERT_FALSE(is_allowed(R"({"filter-storage-type": "hrstoragefixeddisk"})",
+                          hr_unknown));
+  // hrunknown selects only drives of unknown type
+  ASSERT_TRUE(
+      is_allowed(R"({"filter-storage-type": "hrunknown"})", hr_unknown));
+  ASSERT_FALSE(is_allowed(R"({"filter-storage-type": "hrunknown"})",
+                          hr_storage_fixed_disk));
+}

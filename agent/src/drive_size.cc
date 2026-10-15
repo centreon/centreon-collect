@@ -304,10 +304,7 @@ bool filter::is_allowed(const std::string_view& fs,
                         e_drive_fs_type media_type,
                         const std::shared_ptr<spdlog::logger>& logger) const {
   // we can't known every fs formats, so we allow other|<custom format>
-  // _format_filter at max means no format filter, so formats unknown by the
-  // agent (hr_unknown = 0) are also allowed
-  if (_format_filter != std::numeric_limits<uint64_t>::max() &&
-      !(_format_filter & format_type)) {
+  if (!(_format_filter & format_type)) {
     if (_filter_fs_type &&
         !RE2::FullMatch(unknown_format_type, *_filter_fs_type)) {
       // there are special filter words, we traduce them and reapply filter
