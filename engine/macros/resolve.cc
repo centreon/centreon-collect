@@ -275,10 +275,10 @@ std::string resolve(macro_context& mac,
  *
  *  @return The value of the macro, empty on failure.
  */
-std::string grab_custom_macro_value(macro_context& mac,
-                                    std::string_view macro_name,
-                                    std::string_view arg1,
-                                    std::string_view arg2) {
+std::string custom_variable_value(macro_context& mac,
+                                  std::string_view macro_name,
+                                  std::string_view arg1,
+                                  std::string_view arg2) {
   family fam;
   std::string_view name;
   if (absl::StartsWith(macro_name, "_HOST")) {
@@ -335,10 +335,10 @@ std::string grab_custom_macro_value(macro_context& mac,
  *
  *  @return The value of the macro, empty on failure.
  */
-std::string grab_datetime_macro_value(macro_context& mac,
-                                      const descriptor& desc,
-                                      std::string_view arg1,
-                                      std::string_view arg2) {
+std::string datetime_value(macro_context& mac,
+                           const descriptor& desc,
+                           std::string_view arg1,
+                           std::string_view arg2) {
   macros::datetime_target target;
   target.when = time(nullptr);
   if (desc.id == MACRO_ISVALIDTIME || desc.id == MACRO_NEXTVALIDTIME) {
@@ -361,9 +361,10 @@ std::string grab_datetime_macro_value(macro_context& mac,
 }
 
 /**
- *  Get the value of a macro that is not in the descriptors table: $ARGn$,
- *  $USERn$, $CONTACTADDRESSn$, the custom macros and the user macros of the
- *  configuration. The reason of a failure is logged.
+ *  Get the value of a macro whose name is not fixed, so that it cannot be in
+ *  the descriptors table: $ARGn$, $USERn$, $CONTACTADDRESSn$, the custom
+ *  macros and the user macros of the configuration. The reason of a failure
+ *  is logged.
  *
  *  @param[in] mac        The macros.
  *  @param[in] macro_name The whole macro, with its arguments.
@@ -373,11 +374,11 @@ std::string grab_datetime_macro_value(macro_context& mac,
  *
  *  @return The value of the macro, empty on failure.
  */
-std::string grab_other_macro_value(macro_context& mac,
-                                   std::string_view macro_name,
-                                   std::string_view buf,
-                                   std::string_view arg1,
-                                   std::string_view arg2) {
+std::string variable_name_value(macro_context& mac,
+                                std::string_view macro_name,
+                                std::string_view buf,
+                                std::string_view arg1,
+                                std::string_view arg2) {
   unsigned int x;
 
   /***** ARGV MACROS *****/
@@ -452,7 +453,7 @@ std::string grab_other_macro_value(macro_context& mac,
 
   /***** CUSTOM VARIABLE MACROS *****/
   if (macro_name[0] == '_')
-    return grab_custom_macro_value(mac, buf, arg1, arg2);
+    return custom_variable_value(mac, buf, arg1, arg2);
 
   /*** New style user macros ***/
   const auto& user_macros =
@@ -512,9 +513,9 @@ void decrypt_macro_value(std::string_view macro_name, std::string& value) {
  *
  *  @return The value of the macro, empty on failure.
  */
-std::string grab_macro_value(macro_context& mac,
-                             std::string_view macro_name,
-                             bool strip_illegal) {
+std::string value(macro_context& mac,
+                  std::string_view macro_name,
+                  bool strip_illegal) {
   if (macro_name.empty())
     return std::string();
 
@@ -546,11 +547,11 @@ std::string grab_macro_value(macro_context& mac,
   const descriptor* desc = find_descriptor(buf);
   if (desc) {
     macros_logger->trace("  macros[{}] ({}) match.", desc->id, desc->name);
-    retval = grab_macrox_value(mac, *desc, arg[0], arg[1]);
+    retval = table_value(mac, *desc, arg[0], arg[1]);
     if (desc->cleaned)
       strip_illegal = true;
   } else
-    retval = grab_other_macro_value(mac, macro_name, buf, arg[0], arg[1]);
+    retval = variable_name_value(mac, macro_name, buf, arg[0], arg[1]);
 
   // some macros are encrypted?
   decrypt_macro_value(macro_name, retval);
@@ -571,10 +572,10 @@ std::string grab_macro_value(macro_context& mac,
  *
  *  @return The value of the macro, empty on failure.
  */
-std::string grab_macrox_value(macro_context& mac,
-                              const descriptor& desc,
-                              std::string_view arg1,
-                              std::string_view arg2) {
+std::string table_value(macro_context& mac,
+                        const descriptor& desc,
+                        std::string_view arg1,
+                        std::string_view arg2) {
   switch (desc.fam) {
     case family::host:
     case family::hostgroup:
@@ -586,7 +587,7 @@ std::string grab_macrox_value(macro_context& mac,
           mac, desc.name, desc.fam, arg1, arg2,
           [&desc, &mac](const macro_target& t) { return desc.get(t, mac); });
     case family::datetime:
-      return grab_datetime_macro_value(mac, desc, arg1, arg2);
+      return datetime_value(mac, desc, arg1, arg2);
     case family::notification:
     case family::statics:
     case family::summary:

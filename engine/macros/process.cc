@@ -74,9 +74,9 @@ std::string process_macros(macro_context& mac,
       continue;
 
     const std::string_view token = input.substr(where + 1, pos - where - 1);
-    const std::string value = grab_macro_value(mac, token, strip_illegal);
-    macros_logger->trace("  Processed '{}', To '{}'", token, value);
-    retval.append(value);
+    const std::string token_value = value(mac, token, strip_illegal);
+    macros_logger->trace("  Processed '{}', To '{}'", token, token_value);
+    retval.append(token_value);
     it += pos - where;
   }
 
