@@ -36,7 +36,6 @@
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
-#include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/runtime_state.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
@@ -233,7 +232,6 @@ void applier::state::clear() {
   engine::comment::set_next_comment_id(1llu);
 
   applier::scheduler::instance().clear();
-  applier::macros::instance().clear();
   applier::globals::instance().clear();
   applier::logging::instance().clear();
 
@@ -266,27 +264,6 @@ applier::state::~state() noexcept {
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
   engine::comment::set_next_comment_id(1llu);
-}
-
-/**
- *  Return the user macros.
- *
- *  @return  The user macros.
- */
-absl::flat_hash_map<std::string, std::string>& applier::state::user_macros() {
-  return _user_macros;
-}
-
-/**
- *  Find a user macro.
- *
- *  @param[in] key  The key.
- *
- *  @return  Iterator to user macros.
- */
-absl::flat_hash_map<std::string, std::string>::const_iterator
-applier::state::user_macros_find(const std::string_view& key) const {
-  return _user_macros.find(key);
 }
 
 /**
@@ -1392,9 +1369,6 @@ void applier::state::_apply_diff_conf(
 
   // Apply globals configurations.
   applier::globals::instance().apply(pb_indexed_config.mut_state());
-
-  // Apply macros configurations.
-  applier::macros::instance().apply(pb_indexed_config.mut_state());
 
   // Timing.
   tv->at(2) = std::chrono::steady_clock::now();

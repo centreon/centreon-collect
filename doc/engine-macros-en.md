@@ -94,8 +94,8 @@ The macros with an id (`MACRO_HOSTNAME`…) are described by a **descriptors
 table** (`macros/descriptors.cc`). `find_descriptor()` looks the macro name
 up in it: if it is there, `table_value()` computes the value from the
 descriptor; otherwise, `variable_name_value()` handles the macros whose
-name is not fixed, so that they cannot be in the table (`$ARGn$`, `$USERn$`,
-`$CONTACTADDRESSn$`, custom variables, user macros). A descriptor gives the name of the macro,
+name is not fixed, so that they cannot be in the table (`$ARGn$`,
+`$CONTACTADDRESSn$`, custom variables, user macros such as `$USERn$`). A descriptor gives the name of the macro,
 its **family**, whether its value must be cleaned, and the function computing
 this value on an object (the *getter*). The family tells what the macro is
 about, hence how to find the object.
@@ -111,10 +111,9 @@ flowchart TD
     D -->|"no: variable name"| F{"variable_name_value()<br/>prefix"}
 
     F -->|"ARGn"| F1["argv[n-1]<br/>(already evaluated by get_raw_command_line_r)"]
-    F -->|"USERn"| F2["macro_user[n-1]<br/>(resource file, set at apply)"]
     F -->|"CONTACTADDRESSn"| R1
     F -->|"_HOST… _SERVICE… _CONTACT…"| R1
-    F -->|"user macro name"| F5["user_macros() of the conf"]
+    F -->|"user macro<br/>($USERn$, $NAME$…)"| F5["users() of the configuration<br/>(resource file)"]
     F -->|otherwise| F6["unknown macro: empty value"]
 
     E -->|"host, service, contact,<br/>groups"| R1{"resolve()<br/>arguments"}
@@ -136,7 +135,6 @@ flowchart TD
     P3 --> Z
     P4 --> Z
     F1 --> Z
-    F2 --> Z
     F5 --> Z
     Z --> Z2["illegal characters removed<br/>if the caller asks for it<br/>or if the descriptor requires it"]
     Z2 --> A
@@ -187,10 +185,13 @@ host of the `hg_web` group, separated by commas.
 | `$X$` | the context group: the first group of the host, service or contact |
 | `$X:group$` | the group `group`; `arg2` is ignored |
 
-**Macros without object** (date and time, static, `$TOTAL*$`, notification,
-`$ARGn$`, `$USERn$`): the arguments are ignored, except for
+**Macros without object** (date and time, static, `$TOTAL*$`,
+notification): the arguments are ignored, except for
 `$ISVALIDTIME:period[:t]$` and `$NEXTVALIDTIME:period[:t]$`, where `t` is a
 timestamp (the current time by default).
+
+**`$ARGn$` and user macros** (`$USERn$`, `$CENTREONPLUGINS$`…): they take
+no argument; with arguments, their value is empty.
 
 In a group form, the members come in no particular order, and the empty
 values are skipped.
@@ -200,8 +201,7 @@ values are skipped.
 | Family | Where the value comes from | Lifetime |
 |---|---|---|
 | static (`$ADMINEMAIL$`, `$POLLERNAME$`…) | read from the configuration or the state of Engine, at each call | no caching |
-| `$USERn$` | `macro_user[]`, filled by `applier::macros` from the resource file | until the next apply |
-| user macros | `user_macros()` of the configuration | same |
+| user macros (`$USERn$`, `$CENTREONPLUGINS$`…) | `users()` of the configuration (resource file), read at each call | no caching: a reload is taken into account at once |
 | `$ARGn$` | `argv`, evaluated by `get_raw_command_line_r()` | one command |
 | notification (`$NOTIFICATIONTYPE$`…) | `notification`, filled by `run_notification_commands()` | one notification |
 | host, service, contact, groups | getter on the object, **at each call** | no caching |

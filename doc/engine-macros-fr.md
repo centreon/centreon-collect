@@ -97,8 +97,8 @@ Les macros qui ont un identifiant (`MACRO_HOSTNAME`…) sont décrites par une
 cherche le nom de la macro : s'il y est, `table_value()` calcule la
 valeur à partir du descripteur ; sinon, `variable_name_value()` traite
 les macros dont le nom n'est pas fixe et qui ne peuvent donc pas être dans la
-table (`$ARGn$`, `$USERn$`, `$CONTACTADDRESSn$`, variables custom, macros
-utilisateur). Un descripteur donne le
+table (`$ARGn$`, `$CONTACTADDRESSn$`, variables custom, macros utilisateur
+comme `$USERn$`). Un descripteur donne le
 nom de la macro, sa **famille**, s'il faut nettoyer sa valeur, et la fonction
 qui calcule cette valeur sur un objet (le *getter*). La famille dit sur quoi
 porte la macro, donc comment trouver l'objet.
@@ -114,10 +114,9 @@ flowchart TD
     D -->|"non : nom variable"| F{"variable_name_value()<br/>préfixe"}
 
     F -->|"ARGn"| F1["argv[n-1]<br/>(déjà évalué par get_raw_command_line_r)"]
-    F -->|"USERn"| F2["macro_user[n-1]<br/>(fichier de ressources, fixé à l'apply)"]
     F -->|"CONTACTADDRESSn"| R1
     F -->|"_HOST… _SERVICE… _CONTACT…"| R1
-    F -->|"nom de macro utilisateur"| F5["user_macros() de la conf"]
+    F -->|"macro utilisateur<br/>($USERn$, $NOM$…)"| F5["users() de la configuration<br/>(fichier de ressources)"]
     F -->|sinon| F6["macro inconnue : valeur vide"]
 
     E -->|"hôte, service, contact,<br/>groupes"| R1{"resolve()<br/>arguments"}
@@ -139,7 +138,6 @@ flowchart TD
     P3 --> Z
     P4 --> Z
     F1 --> Z
-    F2 --> Z
     F5 --> Z
     Z --> Z2["nettoyage des caractères interdits<br/>si l'appelant le demande<br/>ou si le descripteur l'exige"]
     Z2 --> A
@@ -190,10 +188,13 @@ hôte du groupe `hg_web`, séparés par des virgules.
 | `$X$` | le groupe du contexte : le premier groupe de l'hôte, du service ou du contact |
 | `$X:groupe$` | le groupe `groupe` ; `arg2` est ignoré |
 
-**Macros sans objet** (date et heure, statiques, `$TOTAL*$`, notification,
-`$ARGn$`, `$USERn$`) : les arguments sont ignorés, sauf pour
-`$ISVALIDTIME:période[:t]$` et `$NEXTVALIDTIME:période[:t]$`, où `t` est un
-horodatage (l'heure courante par défaut).
+**Macros sans objet** (date et heure, statiques, `$TOTAL*$`, notification) :
+les arguments sont ignorés, sauf pour `$ISVALIDTIME:période[:t]$` et
+`$NEXTVALIDTIME:période[:t]$`, où `t` est un horodatage (l'heure courante par
+défaut).
+
+**`$ARGn$` et macros utilisateur** (`$USERn$`, `$CENTREONPLUGINS$`…) : elles
+ne prennent pas d'argument ; avec des arguments, leur valeur est vide.
 
 Dans une forme de groupe, les membres arrivent dans un ordre quelconque, et
 les valeurs vides sont sautées.
@@ -203,8 +204,7 @@ les valeurs vides sont sautées.
 | Famille | D'où vient la valeur | Durée de vie |
 |---|---|---|
 | statiques (`$ADMINEMAIL$`, `$POLLERNAME$`…) | lue dans la configuration ou l'état d'Engine, à chaque appel | aucune mise en cache |
-| `$USERn$` | `macro_user[]`, rempli par `applier::macros` depuis le fichier de ressources | jusqu'au prochain apply |
-| macros utilisateur | `user_macros()` de la configuration | idem |
+| macros utilisateur (`$USERn$`, `$CENTREONPLUGINS$`…) | `users()` de la configuration (fichier de ressources), lu à chaque appel | aucune mise en cache : un rechargement est pris en compte aussitôt |
 | `$ARGn$` | `argv`, évalué par `get_raw_command_line_r()` | une commande |
 | notification (`$NOTIFICATIONTYPE$`…) | `notification`, rempli par `run_notification_commands()` | une notification |
 | hôte, service, contact, groupes | getter sur l'objet, **à chaque appel** | aucune mise en cache |

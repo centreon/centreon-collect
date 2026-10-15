@@ -362,9 +362,9 @@ std::string datetime_value(macro_context& mac,
 
 /**
  *  Get the value of a macro whose name is not fixed, so that it cannot be in
- *  the descriptors table: $ARGn$, $USERn$, $CONTACTADDRESSn$, the custom
- *  macros and the user macros of the configuration. The reason of a failure
- *  is logged.
+ *  the descriptors table: $ARGn$, $CONTACTADDRESSn$, the custom macros and
+ *  the user macros of the resource file ($USERn$ and the other ones), read
+ *  in the configuration. The reason of a failure is logged.
  *
  *  @param[in] mac        The macros.
  *  @param[in] macro_name The whole macro, with its arguments.
@@ -401,26 +401,6 @@ std::string variable_name_value(macro_context& mac,
     return mac.argv[x - 1];
   }
 
-  /***** USER MACROS *****/
-  if (macro_name.size() > 4 && macro_name.compare(0, 4, "USER") == 0) {
-    /* which macro do we want? */
-    if (!absl::SimpleAtoi(macro_name.substr(4), &x)) {
-      macros_logger->error(
-          "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.substr(4));
-      return std::string();
-    }
-
-    if (!x || x > MAX_USER_MACROS) {
-      macros_logger->debug("macro {}: the number must be between 1 and {}",
-                           macro_name, MAX_USER_MACROS);
-      return std::string();
-    }
-
-    /* use a pre-computed macro value */
-    return macro_user[x - 1];
-  }
-
   /***** CONTACT ADDRESS MACROS *****/
   if (buf.size() > 14 && buf.compare(0, 14, "CONTACTADDRESS") == 0) {
     /* which address do we want? (buf, the name without the arguments of an
@@ -455,11 +435,10 @@ std::string variable_name_value(macro_context& mac,
   if (macro_name[0] == '_')
     return custom_variable_value(mac, buf, arg1, arg2);
 
-  /*** New style user macros ***/
-  const auto& user_macros =
-      configuration::applier::state::instance().user_macros();
-  auto it = user_macros.find(macro_name);
-  if (it != user_macros.end())
+  /***** USER MACROS ($USERn$ and the other ones of the resource file) *****/
+  const auto& users = pb_indexed_config.state().users();
+  auto it = users.find(macro_name);
+  if (it != users.end())
     return it->second;
 
   /* no macro matched... */

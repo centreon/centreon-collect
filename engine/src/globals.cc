@@ -23,7 +23,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/enginerpc.hh"
-#include "engine/macros/defines.hh"
 
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
@@ -66,7 +65,6 @@ char* illegal_object_chars(NULL);
 char* illegal_output_chars(NULL);
 timeperiod_map timeperiods;
 char* log_file(NULL);
-std::string macro_user[MAX_USER_MACROS];  // $USERx$ macros
 char* ochp_command(NULL);
 char* ocsp_command(NULL);
 char* use_timezone(NULL);

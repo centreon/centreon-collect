@@ -49,7 +49,6 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
-#include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
@@ -261,8 +260,6 @@ void build_poller(configuration::state_helper& state_hlp) {
     svc_aply.resolve_object(s);
   for (auto& sg : sgs)
     sg_aply.resolve_object(sg);
-
-  configuration::applier::macros::instance().apply(st);
 
   /* Some states, so that the $TOTAL*$ macros have something to count. */
   for (auto& [name, h] : host::hosts) {

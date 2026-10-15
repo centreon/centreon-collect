@@ -28,7 +28,6 @@
 
 // Macro Definitions
 #define MACRO_ENV_VAR_PREFIX "NAGIOS_"
-#define MAX_USER_MACROS 256  // maximum number of $USERx$ macros
 
 #define MACRO_HOSTNAME 0
 #define MACRO_HOSTALIAS 1

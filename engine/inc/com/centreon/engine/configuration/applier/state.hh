@@ -63,9 +63,6 @@ class state {
 
   servicedependency_mmap const& servicedependencies() const throw();
   servicedependency_mmap& servicedependencies() throw();
-  absl::flat_hash_map<std::string, std::string>& user_macros();
-  absl::flat_hash_map<std::string, std::string>::const_iterator
-  user_macros_find(const std::string_view& key) const;
   void lock();
   void unlock();
 
@@ -168,7 +165,6 @@ class state {
   processing_state _processing_state;
 
   servicedependency_mmap _servicedependencies;
-  absl::flat_hash_map<std::string, std::string> _user_macros;
 };
 
 }  // namespace applier

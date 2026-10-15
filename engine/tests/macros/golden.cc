@@ -42,7 +42,6 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
-#include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
@@ -281,8 +280,6 @@ class MacroGolden : public TestEngine {
       svc_aply.resolve_object(s);
     sg_aply.resolve_object(sg);
     sg_aply.resolve_object(sg3);
-
-    configuration::applier::macros::instance().apply(st);
 
     _set_states();
   }

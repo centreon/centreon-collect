@@ -1040,6 +1040,40 @@ TEST_F(Macro, PbNotificationIdAndNumberFromBroker) {
                         _svc->get_host_ptr()->get_notification_number()));
 }
 
+/* The user macros of the resource file are read in the configuration: a
+ * reload changing or removing $USER5$ is taken into account at once. Before,
+ * a removed $USERn$ kept its old value until Engine restarted. */
+TEST_F(Macro, PbUserMacroFollowsReload) {
+  auto& users = *pb_indexed_config.mut_state().mutable_users();
+  macro_context mac;
+
+  users["USER5"] = "/first";
+  ASSERT_EQ(macros::process_macros(mac, "$USER5$", 0), "/first");
+  users["USER5"] = "/second";
+  ASSERT_EQ(macros::process_macros(mac, "$USER5$", 0), "/second");
+  users.erase("USER5");
+  ASSERT_EQ(macros::process_macros(mac, "$USER5$", 0), "");
+}
+
+/* $USERn$ is a user macro like the other ones: no limit on n, and the name
+ * is taken as it is. */
+TEST_F(Macro, PbUserMacroAnyName) {
+  auto& users = *pb_indexed_config.mut_state().mutable_users();
+  macro_context mac;
+
+  users["USER300"] = "three hundred";
+  users["USER3"] = "three";
+  users["CENTREONPLUGINS"] = "/usr/lib/centreon/plugins";
+  ASSERT_EQ(macros::process_macros(mac, "$USER300$", 0), "three hundred");
+  ASSERT_EQ(macros::process_macros(mac, "$USER3$", 0), "three");
+  ASSERT_EQ(macros::process_macros(mac, "$USER03$", 0), "");
+  ASSERT_EQ(macros::process_macros(mac, "$CENTREONPLUGINS$", 0),
+            "/usr/lib/centreon/plugins");
+  /* A user macro takes no argument. */
+  ASSERT_EQ(macros::process_macros(mac, "$USER3:h1$", 0), "");
+  users.clear();
+}
+
 TEST_F(Macro, PbIsValidTime) {
   configuration::applier::timeperiod time_aply;
   configuration::Timeperiod time;
