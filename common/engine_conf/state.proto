@@ -1032,14 +1032,16 @@ message RuntimeOverrides {
  * no retention file, or that takes over resources it never supervised, starts
  * from the last known state instead of PENDING.
  *
- * The check result fields are the ones Engine needs in every mode. The check
- * output is deliberately left out: Engine reads it only through the macros of
- * a command run before the first check (a custom notification, the host
- * output in a service notification), and those macros are to be reworked so
- * that they do without it. `perfdata` has a single reader, anomalydetection,
- * which parses the perfdata
- * of the service it depends on at its own check: Broker fills it only for the
- * services an anomalydetection depends on, and leaves it empty otherwise. The
+ * The check result fields are the ones Engine needs in every mode. `output`
+ * is carried so that the $HOSTOUTPUT$ and $SERVICEOUTPUT$ macros of a command
+ * run before the first check of the resource (a custom notification, a daily
+ * check, the host output in a service notification...) are not empty. The long
+ * output is deliberately left out, being the bulky part of a check result: the
+ * $LONGHOSTOUTPUT$ and $LONGSERVICEOUTPUT$ macros stay empty until that first
+ * check. `perfdata` has a single reader, anomalydetection, which parses the
+ * perfdata of the service it depends on at its own check: Broker fills it only
+ * for the services an anomalydetection depends on, and leaves it empty
+ * otherwise. The
  * acknowledgement and notification fields are meaningful only when Engine
  * owns them (notification_mode=engine): when Broker does, it replays them to
  * Engine itself and these fields are left at their defaults. The downtime
@@ -1059,21 +1061,22 @@ message HostRuntime {
   int64 last_time_up = 9;
   int64 last_time_down = 10;
   int64 last_time_unreachable = 11;
-  string perfdata = 12;
-  bool flapping = 13;
-  double percent_state_change = 14;
-  double latency = 15;
-  double execution_time = 16;
-  int64 last_check = 17;
-  int32 check_attempt = 18;
+  string output = 12;
+  string perfdata = 13;
+  bool flapping = 14;
+  double percent_state_change = 15;
+  double latency = 16;
+  double execution_time = 17;
+  int64 last_check = 18;
+  int32 check_attempt = 19;
   /* notification_mode=engine only, see above. */
-  bool acknowledged = 19;
-  RuntimeAckType acknowledgement_type = 20;
-  int32 notification_number = 21;
-  bool no_more_notifications = 22;
-  int64 last_notification = 23;
-  int64 next_notification = 24;
-  RuntimeOverrides overrides = 25;
+  bool acknowledged = 20;
+  RuntimeAckType acknowledgement_type = 21;
+  int32 notification_number = 22;
+  bool no_more_notifications = 23;
+  int64 last_notification = 24;
+  int64 next_notification = 25;
+  RuntimeOverrides overrides = 26;
 }
 
 /* The runtime part of a service, see HostRuntime. */
@@ -1092,21 +1095,22 @@ message ServiceRuntime {
   int64 last_time_warning = 11;
   int64 last_time_critical = 12;
   int64 last_time_unknown = 13;
-  string perfdata = 14;
-  bool flapping = 15;
-  double percent_state_change = 16;
-  double latency = 17;
-  double execution_time = 18;
-  int64 last_check = 19;
-  int32 check_attempt = 20;
+  string output = 14;
+  string perfdata = 15;
+  bool flapping = 16;
+  double percent_state_change = 17;
+  double latency = 18;
+  double execution_time = 19;
+  int64 last_check = 20;
+  int32 check_attempt = 21;
   /* notification_mode=engine only, see HostRuntime. */
-  bool acknowledged = 21;
-  RuntimeAckType acknowledgement_type = 22;
-  int32 notification_number = 23;
-  bool no_more_notifications = 24;
-  int64 last_notification = 25;
-  int64 next_notification = 26;
-  RuntimeOverrides overrides = 27;
+  bool acknowledged = 22;
+  RuntimeAckType acknowledgement_type = 23;
+  int32 notification_number = 24;
+  bool no_more_notifications = 25;
+  int64 last_notification = 26;
+  int64 next_notification = 27;
+  RuntimeOverrides overrides = 28;
 }
 
 /* The runtime part of every resource Broker knows for a poller: the snapshot

@@ -17,6 +17,7 @@ CERS1
     ...    When Engine is stopped, its retention.dat is deleted and Engine is started again
     ...    Then Broker, finding the poller up to date, sends it its runtime state alone
     ...    And Engine restores the state of its hosts and services from that snapshot
+    ...    And service_1 gets back its check output, but not its long output
     ...    And an OK result on service_1 is logged as a recovery from CRITICAL, which only a restored state allows
     [Tags]    engine    broker    centralized    retention    MON-187019
     Ctn Config Centralized Engine    ${1}    ${5}    ${5}
@@ -41,9 +42,13 @@ CERS1
     Ctn Start Engine    newGeneration=True
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    # A long output after the escaped newline: the snapshot must carry the
+    # first line only.
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1\\nlong output of service_1
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
     Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD
+    ${output}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${output}[longPluginOutput]    long output of service_1    Engine should split the long output from the output
 
     # Engine restarts with no retention file: the only state it can get back
     # is the one Broker sends at its connection.
@@ -70,6 +75,11 @@ CERS1
     ${content}    Create List    services restored from the Broker snapshot
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
     Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+    # The output is in the snapshot so that $SERVICEOUTPUT$ is not empty
+    # before the next check; the long output is not.
+    ${output}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${output}[pluginOutput]    output critical for service_1    service_1 should get its check output back from the snapshot
+    Should Be Empty    ${output}[longPluginOutput]    the long output is not part of the snapshot
 
     # A recovery can only be logged from a restored CRITICAL: a fresh Engine
     # would see an OK result on a PENDING service and log nothing of the kind.

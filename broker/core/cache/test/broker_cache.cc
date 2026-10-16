@@ -1481,7 +1481,8 @@ TEST_F(BrokerCacheTest, RestoreRuntime) {
 /**
  * @brief fill_runtime_state() describes the checked hosts and services of
  * the poller only, leaves out a never-checked resource and another poller's,
- * and copies the perfdata only for a service an anomalydetection depends on.
+ * copies the perfdata only for a service an anomalydetection depends on, and
+ * the check output of every resource.
  */
 TEST_F(BrokerCacheTest, FillRuntimeState) {
   namespace cfg = com::centreon::engine::configuration;
@@ -1516,6 +1517,8 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
     ss->mut_obj().set_state_type(ServiceStatus_StateType_HARD);
     ss->mut_obj().set_last_check(2000);
     ss->mut_obj().set_perfdata("rta=1ms");
+    ss->mut_obj().set_output(fmt::format("service {} critical", svc));
+    ss->mut_obj().set_long_output("details");
     _cache->publish(ss);
   }
 
@@ -1524,10 +1527,12 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
   ASSERT_EQ(out.hosts_size(), 1) << "host 2 was never checked, host 3 is poller 2's";
   EXPECT_EQ(out.hosts(0).host_id(), 1u);
   EXPECT_EQ(out.hosts(0).state(), cfg::state_down);
+  EXPECT_EQ(out.hosts(0).output(), "host down");
   ASSERT_EQ(out.services_size(), 2);
   for (const auto& s : out.services()) {
     EXPECT_EQ(s.state(), cfg::state_critical);
     EXPECT_EQ(s.state_type(), cfg::HARD);
+    EXPECT_EQ(s.output(), fmt::format("service {} critical", s.service_id()));
     if (s.service_id() == 1)
       EXPECT_EQ(s.perfdata(), "rta=1ms") << "an anomalydetection depends on it";
     else

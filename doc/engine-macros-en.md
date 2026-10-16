@@ -249,6 +249,19 @@ downtimes and acknowledgements are managed by Broker and are not yet sent
 down to the poller: these macros **overcount** the unhandled problems there.
 This is a known bug, to be fixed.
 
+### Check outputs after a poller restart
+
+`$HOSTOUTPUT$`, `$SERVICEOUTPUT$`, `$LONGHOSTOUTPUT$` and
+`$LONGSERVICEOUTPUT$` read the last check output of the object. In
+centralized configuration (BBDO3), a restarting poller no longer reads
+`retention.dat`: it receives from Broker the `RuntimeState` snapshot, which
+carries the output (`output`) of each resource but not the long output
+(`long_output`), the bulky part of a check result. So a command run before
+the first check of the resource (daily check, passive check, custom
+notification, host output in a service notification, on-demand macro) finds
+`$HOSTOUTPUT$` and `$SERVICEOUTPUT$` filled, but `$LONGHOSTOUTPUT$` and
+`$LONGSERVICEOUTPUT$` **empty** until that first check.
+
 ## 5. Code layout
 
 The `engine/macros/` module has its own `CMakeLists.txt`.

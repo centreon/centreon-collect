@@ -6232,30 +6232,33 @@ message HostRuntime {
   int64      last_time_up = 9;
   int64      last_time_down = 10;
   int64      last_time_unreachable = 11;
-  string     perfdata = 12;    // rempli seulement pour les services dont une anomalydetection dépend
-  bool       flapping = 13;
-  double     percent_state_change = 14;
-  double     latency = 15;
-  double     execution_time = 16;
-  int64      last_check = 17;
-  int32      check_attempt = 18;
+  string     output = 12;      // pas la sortie longue
+  string     perfdata = 13;    // rempli seulement pour les services dont une anomalydetection dépend
+  bool       flapping = 14;
+  double     percent_state_change = 15;
+  double     latency = 16;
+  double     execution_time = 17;
+  int64      last_check = 18;
+  int32      check_attempt = 19;
   // notification_mode=engine seulement : quand Broker possède acquittements
   // et notifications, il les rejoue lui-même et ces champs restent à leur
   // valeur par défaut.
-  bool       acknowledged = 19;
-  RuntimeAckType    acknowledgement_type = 20;
+  bool       acknowledged = 20;
+  RuntimeAckType    acknowledgement_type = 21;
   // La profondeur de downtime n'est jamais transportée : c'est le compte des
   // downtimes en cours, qu'Engine reconstruit à leur démarrage. Un nombre
   // restauré sans eux serait recompté par le downtime suivant.
-  int32      notification_number = 21;
-  bool       no_more_notifications = 22;
-  int64      last_notification = 23;
-  int64      next_notification = 24;
+  int32      notification_number = 22;
+  bool       no_more_notifications = 23;
+  int64      last_notification = 24;
+  int64      next_notification = 25;
+  RuntimeOverrides  overrides = 26;  // voir le lot 4 plus haut
 }
 
 message ServiceRuntime {
   // mêmes champs, plus service_id = 2 et last_time_ok/warning/critical/unknown
-  // = 10..13 ; numérotés 1..26. La sortie du check n'est pas envoyée, voir ci-dessous.
+  // = 10..13 ; numérotés 1..28. Seule la sortie du check est envoyée, pas la
+  // sortie longue, voir ci-dessous.
 }
 
 message RuntimeState {
@@ -6270,11 +6273,12 @@ message DiffState {
 }
 ```
 
-La sortie du check (`output`, `long_output`) est volontairement absente du snapshot (décision du
-2026-10-05). Engine ne la lisait que par les macros `$HOSTOUTPUT$`, `$SERVICEOUTPUT$` et
-`$LONGSERVICEOUTPUT$` d'une commande lancée avant le premier check de la ressource : notification
-personnalisée par commande externe, ou sortie de l'hôte dans la notification d'un service. Ces macros
-seront revues pour s'en passer, chantier séparé.
+Le snapshot transporte la sortie du check (`output`) de chaque ressource, mais pas la sortie longue
+(`long_output`), partie volumineuse d'un résultat de check (décision du 2026-10-16). Engine ne lit la
+sortie restaurée que par les macros `$HOSTOUTPUT$` et `$SERVICEOUTPUT$` d'une commande lancée avant le
+premier check de la ressource : check quotidien, check passif, notification personnalisée, sortie de
+l'hôte dans la notification d'un service, macro à la demande. `$LONGHOSTOUTPUT$` et
+`$LONGSERVICEOUTPUT$` restent vides jusqu'à ce premier check.
 
 Engine initialise l'état interne de chaque host/service à partir de ce snapshot avant de commencer
 à les superviser. Il planifie le prochain check à `last_check + check_interval` plutôt

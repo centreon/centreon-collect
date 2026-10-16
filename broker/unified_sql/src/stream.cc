@@ -958,7 +958,15 @@ void stream::_restore_runtime_from_hosts_services(size_t& hosts_read,
       row.set_last_time_up(res.value_as_i64(8));
       row.set_last_time_down(res.value_as_i64(9));
       row.set_last_time_unreachable(res.value_as_i64(10));
-      row.set_output(res.value_as_str(11));
+      {
+        /* The column holds output + '\n' + long_output, and the cached host
+         * has no long output. */
+        std::string output{res.value_as_str(11)};
+        size_t nl = output.find('\n');
+        if (nl != std::string::npos)
+          output.resize(nl);
+        row.set_output(std::move(output));
+      }
       row.set_perfdata(res.value_as_str(12));
       row.set_flapping(res.value_as_bool(13));
       row.set_percent_state_change(res.value_as_f64(14));

@@ -254,6 +254,20 @@ downtimes et les acquittements sont gérés par Broker et ne redescendent pas
 encore vers le poller : ces macros y **surcomptent** les problèmes non
 traités. C'est un bug connu, à corriger.
 
+### Sorties de check après un redémarrage du poller
+
+`$HOSTOUTPUT$`, `$SERVICEOUTPUT$`, `$LONGHOSTOUTPUT$` et
+`$LONGSERVICEOUTPUT$` lisent la dernière sortie de check de l'objet. En
+configuration centralisée (BBDO3), un poller qui redémarre ne lit plus
+`retention.dat` : il reçoit de Broker le snapshot `RuntimeState`, qui
+transporte la sortie (`output`) de chaque ressource mais pas la sortie longue
+(`long_output`), partie volumineuse d'un résultat de check. Ainsi, une
+commande lancée avant le premier check de la ressource (check quotidien,
+check passif, notification personnalisée, sortie de l'hôte dans la
+notification d'un service, macro à la demande) trouve `$HOSTOUTPUT$` et
+`$SERVICEOUTPUT$` renseignées, mais `$LONGHOSTOUTPUT$` et
+`$LONGSERVICEOUTPUT$` **vides** jusqu'à ce premier check.
+
 ## 5. Organisation du code
 
 Le module `engine/macros/` a son propre `CMakeLists.txt`.
