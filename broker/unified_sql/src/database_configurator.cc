@@ -182,7 +182,7 @@ void database_configurator::_wake_up_resources_mariadb(
     bind->reserve(state.services_size());
     for (const auto& svc : state.services()) {
       SPDLOG_LOGGER_TRACE(_logger, "Waking up service {}:{} in table services",
-                          svc.host_id(), svc.service_id());
+                          svc.service_id(), svc.host_id());
       bind->set_value_as_u32(0, svc.host_id());
       bind->set_value_as_u32(1, svc.service_id());
       bind->next_row();
@@ -206,7 +206,7 @@ void database_configurator::_wake_up_resources_mariadb(
     bind->reserve(state.services_size());
     for (const auto& service : state.services()) {
       SPDLOG_LOGGER_TRACE(_logger, "Waking up service {}:{} in table resources",
-                          service.host_id(), service.service_id());
+                          service.service_id(), service.host_id());
       bind->set_value_as_u32(0, service.host_id());
       bind->set_value_as_u32(1, service.service_id());
       bind->next_row();
@@ -1520,8 +1520,8 @@ void database_configurator::_add_services_mariadb(
 
   uint32_t count = 0;
   for (const auto& msg : lst) {
-    SPDLOG_LOGGER_DEBUG(_logger, "Processing service {}:{}", msg.host_id(),
-                        msg.service_id());
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing service {}:{}", msg.service_id(),
+                        msg.host_id());
     bind->set_value_as_i32(0, msg.host_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.service_description(),
@@ -1865,7 +1865,7 @@ void database_configurator::_disable_service_resources_mariadb(
     bind->set_value_as_i64(1, msg.service_id());
     bind->next_row();
     SPDLOG_LOGGER_TRACE(_logger, "Disabling service resource with id {}:{}",
-                        msg.host_id(), msg.service_id());
+                        msg.service_id(), msg.host_id());
   }
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -1890,7 +1890,7 @@ void database_configurator::_disable_service_resources_mysql(
     _disable_service_resources_stmt->bind_value_as_i64(1, msg.service_id());
     mysql.run_statement(*_disable_service_resources_stmt);
     SPDLOG_LOGGER_TRACE(_logger, "Disabling service resource with id {}:{}",
-                        msg.host_id(), msg.service_id());
+                        msg.service_id(), msg.host_id());
   }
 }
 
@@ -3062,7 +3062,7 @@ void database_configurator::_add_servicegroups_mariadb(
       bind_members->set_value_as_i32(2, msg_sg.servicegroup_id());
       SPDLOG_LOGGER_INFO(
           _logger, "enabling membership of service ({}:{}) to service group {}",
-          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id());
+          fnd_service->second, fnd_host->second, msg_sg.servicegroup_id());
       bind_members->next_row();
     }
   }
@@ -3156,7 +3156,7 @@ void database_configurator::_add_servicegroups_mysql(
       values.emplace_back(value);
       SPDLOG_LOGGER_INFO(
           _logger, "enabling membership of service ({}:{}) to service group {}",
-          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id());
+          fnd_service->second, fnd_host->second, msg_sg.servicegroup_id());
     }
   }
   if (!values.empty()) {

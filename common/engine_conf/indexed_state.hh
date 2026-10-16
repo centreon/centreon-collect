@@ -142,6 +142,10 @@ class indexed_state {
     }
   }
 
+  void _set_state_no_lock(std::unique_ptr<State>&& state)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_state_m);
+  State* _release_no_lock() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_state_m);
+
  public:
   indexed_state() = default;
   indexed_state(std::unique_ptr<State>&& state);
@@ -300,7 +304,7 @@ class indexed_state {
   void diff_with_new_config(State& new_state,
                             const std::shared_ptr<spdlog::logger>& logger,
                             DiffState* result);
-  void serialize_to_ostream(std::ostream* os);
+  void serialize_to_disk(const std::filesystem::path& file_path);
 };
 }  // namespace com::centreon::engine::configuration
 #endif /* !CCE_CONFIGURATION_INDEXED_STATE */

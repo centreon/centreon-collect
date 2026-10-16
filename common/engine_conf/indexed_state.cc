@@ -18,6 +18,7 @@
  */
 #include "common/engine_conf/indexed_state.hh"
 #include <google/protobuf/util/message_differencer.h>
+#include "com/centreon/common/file.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
@@ -74,10 +75,20 @@ indexed_state::indexed_state(const indexed_state& other) {
  *
  * @param state
  */
-void indexed_state::set_state(std::unique_ptr<State>&& state) {
-  absl::MutexLock l(&_state_m);
+void indexed_state::_set_state_no_lock(std::unique_ptr<State>&& state) {
   _state = std::move(state);
   _index(_state.get());
+}
+
+/**
+ * @brief Set the State object to this. The State containers are emptied
+ * and their items are stored directly in the indexed_state.
+ *
+ * @param state
+ */
+void indexed_state::set_state(std::unique_ptr<State>&& state) {
+  absl::MutexLock l(&_state_m);
+  _set_state_no_lock(std::move(state));
 }
 
 void indexed_state::merge_state(State* state) {
@@ -95,8 +106,7 @@ void indexed_state::merge_state(const State& state) {
  *
  * @return State* The State object contained in the indexed_state.
  */
-State* indexed_state::release() {
-  absl::MutexLock l(&_state_m);
+State* indexed_state::_release_no_lock() {
   State* retval;
   if (_state) {
     _apply_containers();
@@ -105,6 +115,18 @@ State* indexed_state::release() {
     retval = nullptr;
   }
   return retval;
+}
+
+/**
+ * @brief Reset the indexed_state. The contained State has its containers
+ * filled with the items stored in the indexed_state. And the contained State
+ * is returned. If there is no State object, nullptr is returned.
+ *
+ * @return State* The State object contained in the indexed_state.
+ */
+State* indexed_state::release() {
+  absl::MutexLock l(&_state_m);
+  return _release_no_lock();
 }
 
 /**
@@ -117,6 +139,12 @@ void indexed_state::reset() {
   _clear_containers();
 }
 
+#define MOVE_FROM_MAP_TO_REPEATED(field)                         \
+  _state->mutable##field()->Reserve(field.size());               \
+  for (auto& [_, proto_obj] : field) {                           \
+    _state->mutable##field()->AddAllocated(proto_obj.release()); \
+  }
+
 /**
  * @brief Move indexed objects to the appropriate containers.
  *
@@ -125,57 +153,22 @@ void indexed_state::reset() {
  * containers.
  */
 void indexed_state::_apply_containers() {
-  for (auto& [_, timeperiod] : _timeperiods) {
-    _state->mutable_timeperiods()->AddAllocated(timeperiod.release());
-  }
-  for (auto& [_, command] : _commands) {
-    _state->mutable_commands()->AddAllocated(command.release());
-  }
-  for (auto& [_, connector] : _connectors) {
-    _state->mutable_connectors()->AddAllocated(connector.release());
-  }
-  for (auto& [_, severity] : _severities) {
-    _state->mutable_severities()->AddAllocated(severity.release());
-  }
-  for (auto& [_, tag] : _tags) {
-    _state->mutable_tags()->AddAllocated(tag.release());
-  }
-  for (auto& [_, contact] : _contacts) {
-    _state->mutable_contacts()->AddAllocated(contact.release());
-  }
-  for (auto& [_, contactgroup] : _contactgroups) {
-    _state->mutable_contactgroups()->AddAllocated(contactgroup.release());
-  }
-  for (auto& [_, host] : _hosts) {
-    _state->mutable_hosts()->AddAllocated(host.release());
-  }
-  for (auto& [_, hostgroup] : _hostgroups) {
-    _state->mutable_hostgroups()->AddAllocated(hostgroup.release());
-  }
-  for (auto& [_, service] : _services) {
-    _state->mutable_services()->AddAllocated(service.release());
-  }
-  for (auto& [_, anomalydetection] : _anomalydetections) {
-    _state->mutable_anomalydetections()->AddAllocated(
-        anomalydetection.release());
-  }
-  for (auto& [_, servicegroup] : _servicegroups) {
-    _state->mutable_servicegroups()->AddAllocated(servicegroup.release());
-  }
-  for (auto& [_, hostdependency] : _hostdependencies) {
-    _state->mutable_hostdependencies()->AddAllocated(hostdependency.release());
-  }
-  for (auto& [_, servicedependency] : _servicedependencies) {
-    _state->mutable_servicedependencies()->AddAllocated(
-        servicedependency.release());
-  }
-  for (auto& [_, hostescalation] : _hostescalations) {
-    _state->mutable_hostescalations()->AddAllocated(hostescalation.release());
-  }
-  for (auto& [_, serviceescalation] : _serviceescalations) {
-    _state->mutable_serviceescalations()->AddAllocated(
-        serviceescalation.release());
-  }
+  MOVE_FROM_MAP_TO_REPEATED(_timeperiods);
+  MOVE_FROM_MAP_TO_REPEATED(_commands);
+  MOVE_FROM_MAP_TO_REPEATED(_connectors);
+  MOVE_FROM_MAP_TO_REPEATED(_severities);
+  MOVE_FROM_MAP_TO_REPEATED(_tags);
+  MOVE_FROM_MAP_TO_REPEATED(_contacts);
+  MOVE_FROM_MAP_TO_REPEATED(_contactgroups);
+  MOVE_FROM_MAP_TO_REPEATED(_hosts);
+  MOVE_FROM_MAP_TO_REPEATED(_hostgroups);
+  MOVE_FROM_MAP_TO_REPEATED(_services);
+  MOVE_FROM_MAP_TO_REPEATED(_anomalydetections);
+  MOVE_FROM_MAP_TO_REPEATED(_servicegroups);
+  MOVE_FROM_MAP_TO_REPEATED(_hostdependencies);
+  MOVE_FROM_MAP_TO_REPEATED(_servicedependencies);
+  MOVE_FROM_MAP_TO_REPEATED(_hostescalations)
+  MOVE_FROM_MAP_TO_REPEATED(_serviceescalations);
 }
 
 void indexed_state::_clear_containers() {
@@ -729,11 +722,30 @@ void indexed_state::diff_with_new_config(
   SET_IF_CHANGED(config_version);
 }
 
-void indexed_state::serialize_to_ostream(std::ostream* os) {
-  std::unique_ptr<State> state(release());
+/**
+ * @brief Serialize the whole configuration State to a file.
+ *
+ * The indexed objects (hosts, services, commands...) are stored outside of
+ * _state, so release() is used to move them back into a complete State
+ * message. Once it has been saved, the State is given back with set_state()
+ * so the indexes are rebuilt. This is also done if the save fails, so the
+ * indexed_state stays usable, and the exception is rethrown.
+ * If there is no State, nothing is written.
+ *
+ * @param file_path Path of the destination file.
+ * @throw std::exception if the file cannot be written.
+ */
+void indexed_state::serialize_to_disk(const std::filesystem::path& file_path) {
+  absl::MutexLock l(&_state_m);
+  std::unique_ptr<State> state(_release_no_lock());
   if (state) {
-    state->SerializeToOstream(os);
-    set_state(std::move(state));
+    try {
+      com::centreon::common::save_proto_to_disk(file_path, *state);
+    } catch (const std::exception&) {
+      _set_state_no_lock(std::move(state));
+      throw;
+    }
+    _set_state_no_lock(std::move(state));
   }
 }
 
