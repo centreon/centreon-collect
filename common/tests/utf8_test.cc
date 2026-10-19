@@ -59,6 +59,15 @@ TEST(string_check_utf8, cp1252_bis) {
 }
 
 /*
+ * Given a string encoded in CP-1252 containing 0x9B (›), a valid CP-1252 char
+ * Then the check_string_utf8 function converts it as CP-1252.
+ */
+TEST(string_check_utf8, cp1252_single_right_angle_quote) {
+  std::string txt("Contr\xf4le \x9b l\xe9galit\xe9");
+  ASSERT_EQ(check_string_utf8(txt), "Contrôle › légalité");
+}
+
+/*
  * Given a string encoded in ISO-8859-15
  * Then the check_string_utf8 function converts it to UTF-8.
  */
