@@ -30,6 +30,8 @@
 # Flags:
 #   --dry-run        Log what would happen without executing uploads
 #   --force-reupload Re-upload to GitHub release even if the asset is already there
+#   --strict         Action mode: fail when a distrib or the windows installer is missing from
+#                    Pulp stable, instead of only warning
 
 set -euo pipefail
 
@@ -58,6 +60,7 @@ VERSION="${DELIVER_VERSION:-}"
 DISTRIBS="${DELIVER_DISTRIB:-}"
 DRY_RUN="${DELIVER_DRY_RUN:-false}"
 FORCE_REUPLOAD="false"
+STRICT="${DELIVER_STRICT:-false}"
 REPO="${DELIVER_REPO:-${GITHUB_REPOSITORY:-centreon/centreon-collect}}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 PACKAGES_URL="${DELIVER_PACKAGES_URL:-https://packages.centreon.com}"
@@ -75,6 +78,7 @@ while [[ $# -gt 0 ]]; do
     --github-token)      GITHUB_TOKEN="$2";       shift 2 ;;
     --dry-run)           DRY_RUN="true";          shift   ;;
     --force-reupload)    FORCE_REUPLOAD="true";   shift   ;;
+    --strict)            STRICT="true";           shift   ;;
     *) log_error "Unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -138,6 +142,16 @@ pulp_get() {
   curl --fail --silent --show-error --location --max-time 300 --retry 3 --retry-delay 5 "$@"
 }
 
+# A missing distrib drops its row from the download site: an error in strict mode.
+report_missing() {
+  if [[ "$STRICT" == "true" ]]; then
+    log_error "$*"
+    (( fetch_failed++ )) || true
+  else
+    log_warn "$*"
+  fi
+}
+
 http_status() {
   curl --silent --location --head --max-time 60 -o /dev/null -w '%{http_code}' "$1" || true
 }
@@ -171,7 +185,7 @@ fetch_rpm() {
   base="${PACKAGES_URL}/standard/rpm/${MAJOR}/${distrib}/stable/x86_64"
   # no stable repository for this major/distrib: nothing to fetch, like an empty search
   if [[ "$(http_status "${base}/repodata/repomd.xml")" == "404" ]]; then
-    log_warn "No ${distrib} stable repository for ${MAJOR}"
+    report_missing "No ${distrib} stable repository for ${MAJOR}"
     return 0
   fi
   if ! primary=$(pulp_get "${base}/repodata/repomd.xml" | grep -m1 -o 'repodata/[^"]*primary\.xml[^"]*') \
@@ -186,7 +200,7 @@ fetch_rpm() {
       found=1
     fi
   done < <(grep -o 'location href="[^"]*"' <<< "$primary_xml" | sed 's/^location href="//; s/"$//' || true)
-  [[ "$found" -eq 1 ]] || log_warn "No CMA ${VERSION} in ${distrib} stable"
+  [[ "$found" -eq 1 ]] || report_missing "No CMA ${VERSION} in ${distrib} stable"
 }
 
 fetch_deb() {
@@ -218,7 +232,7 @@ fetch_deb() {
         if (index(v, ver) == 1) print f
       }' <<< "$packages")
   done
-  [[ "$found" -eq 1 ]] || log_warn "No CMA ${VERSION} in ${distrib} stable"
+  [[ "$found" -eq 1 ]] || report_missing "No CMA ${VERSION} in ${distrib} stable"
 }
 
 fetch_installer() {
@@ -227,7 +241,7 @@ fetch_installer() {
   code=$(http_status "$url")
   case "$code" in
     200) fetch_to_tmp "$url" ;;
-    404) log_warn "No CMA ${VERSION} windows installer in stable" ;;
+    404) report_missing "No CMA ${VERSION} windows installer in stable" ;;
     *)   log_error "Cannot reach ${url} (HTTP ${code:-network-error})"; (( fetch_failed++ )) || true ;;
   esac
 }
