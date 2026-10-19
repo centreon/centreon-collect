@@ -18,10 +18,13 @@
 
 #include "check_files.hh"
 
+#include <format>
+
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/common/utf8.hh"
 #include "windows_util.hh"
 
 #include <re2/re2.h>
@@ -35,6 +38,32 @@ static std::thread* _worker_thread_files_check = nullptr;
 /*********************************************************************************************
  *                                          utilities
  *********************************************************************************************/
+
+/**
+ * @brief Builds a path from an UTF-8 string.
+ *
+ * Paths given by the user and stored in file_metadata are UTF-8, whereas a
+ * path built from a narrow string is decoded with the ANSI code page.
+ *
+ * @param utf8 The UTF-8 path.
+ * @return The path.
+ */
+static fs::path utf8_to_path(const std::string& utf8) {
+  return fs::path(com::centreon::common::utf8_to_wstring(utf8));
+}
+
+/**
+ * @brief Converts a path to an UTF-8 string.
+ *
+ * path::string() would encode it in the ANSI code page and throw on
+ * characters that do not belong to it.
+ *
+ * @param path The path.
+ * @return The UTF-8 path.
+ */
+static std::string path_to_utf8(const fs::path& path) {
+  return com::centreon::common::wstring_to_utf8(path.native());
+}
 
 /**
  * @brief Formats a file size in bytes into a human-readable string with
@@ -155,16 +184,16 @@ std::string com::centreon::agent::glob_to_regex(std::string_view glob) {
  *
  * @param filename The path to the file whose version information is to be
  * retrieved.
- * @return A std::string containing the file version, or an empty string if not
- * available.
+ * @return A std::string containing the file version (UTF-8), or an empty
+ * string if not available.
  */
-std::string get_file_version(const std::string& filename) {
+std::string get_file_version(const std::wstring& filename) {
   DWORD handle = 0;
-  DWORD size = GetFileVersionInfoSizeA(filename.c_str(), &handle);
+  DWORD size = GetFileVersionInfoSizeW(filename.c_str(), &handle);
   if (size == 0)
     return "";
   std::vector<char> data(size);
-  if (!GetFileVersionInfoA(filename.c_str(), handle, size, data.data()))
+  if (!GetFileVersionInfoW(filename.c_str(), handle, size, data.data()))
     return "";
   // Query the language and codepage
   struct LANGANDCODEPAGE {
@@ -173,19 +202,22 @@ std::string get_file_version(const std::string& filename) {
   };
   LANGANDCODEPAGE* lpTranslate = nullptr;
   UINT cbTranslate = 0;
-  if (!VerQueryValueA(data.data(), "\\VarFileInfo\\Translation",
+  if (!VerQueryValueW(data.data(), L"\\VarFileInfo\\Translation",
                       (LPVOID*)&lpTranslate, &cbTranslate) ||
       !lpTranslate)
     return "";
   // Use first translation found
-  char subBlock[50];
-  snprintf(subBlock, sizeof(subBlock),
-           "\\StringFileInfo\\%04x%04x\\FileVersion", lpTranslate[0].wLanguage,
-           lpTranslate[0].wCodePage);
+  std::wstring sub_block =
+      std::format(L"\\StringFileInfo\\{:04x}{:04x}\\FileVersion",
+                  lpTranslate[0].wLanguage, lpTranslate[0].wCodePage);
   LPVOID lpBuffer = nullptr;
   UINT sizeVer = 0;
-  if (VerQueryValueA(data.data(), subBlock, &lpBuffer, &sizeVer) && lpBuffer) {
-    return std::string(static_cast<char*>(lpBuffer), sizeVer - 1);
+  if (VerQueryValueW(data.data(), sub_block.c_str(), &lpBuffer, &sizeVer) &&
+      lpBuffer) {
+    // sizeVer is a number of characters
+    const wchar_t* version = static_cast<const wchar_t*>(lpBuffer);
+    return com::centreon::common::wstring_to_utf8(
+        std::wstring_view(version, wcsnlen(version, sizeVer)));
   }
   return "";
 }
@@ -227,7 +259,8 @@ std::string format_file_time(const std::filesystem::file_time_type& ftime) {
  * timestamps (creation, last access, last write), size, version (for
  * executables and DLLs), and optionally, the number of lines in the file.
  *
- * @param file_path The path to the file whose metadata is to be collected.
+ * @param file_path The UTF-8 path to the file whose metadata is to be
+ * collected.
  * @param line_count_needed If true, the constructor will count the number of
  * lines in the file.
  *
@@ -247,15 +280,17 @@ file_metadata::file_metadata(
     bool line_count_needed,
     const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
         files_metadata)
-    : path(file_path),
-      name(fs::path(file_path).filename().string()),
-      extension(fs::path(file_path).extension().string()) {
+    : path(file_path) {
+  // all file accesses use this wide path
+  const fs::path native_path = utf8_to_path(file_path);
+  name = path_to_utf8(native_path.filename());
+  extension = path_to_utf8(native_path.extension());
   has_changed = true;
 
   HANDLE hFile =
-      CreateFile(file_path.c_str(), GENERIC_READ,
-                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
-                 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+      CreateFileW(native_path.c_str(), GENERIC_READ,
+                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (hFile != INVALID_HANDLE_VALUE) {
     FILETIME ftCreate, ftAccess, ftWrite;
     if (GetFileTime(hFile, &ftCreate, &ftAccess, &ftWrite)) {
@@ -284,17 +319,17 @@ file_metadata::file_metadata(
   } else {
     has_changed = true;
 
-    size = fs::file_size(file_path);
+    size = fs::file_size(native_path);
     version = "";
     if (extension == ".exe" || extension == ".dll") {
-      version = get_file_version(fs::path(file_path).string());
+      version = get_file_version(native_path.native());
     }
 
     number_of_lines = 0;
     if (line_count_needed) {
       if (size > 0) {
         boost::interprocess::file_mapping file_map(
-            file_path.c_str(), boost::interprocess::read_only);
+            native_path.c_str(), boost::interprocess::read_only);
         boost::interprocess::mapped_region region(
             file_map, boost::interprocess::read_only);
 
@@ -350,7 +385,9 @@ void ::check_files_detail::filter::find_files() {
                               regex_pattern.error());
   }
 
-  fs::path search_path(_root_path);
+  // _root_path and _pattern are UTF-8, so are the file names we compare to
+  // _pattern
+  fs::path search_path = utf8_to_path(_root_path);
 
   // rebuild the map on each scan
   absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>
@@ -374,9 +411,9 @@ void ::check_files_detail::filter::find_files() {
 
     try {
       if (fs::is_regular_file(*it)) {
-        std::string filename = it->path().filename().string();
+        std::string filename = path_to_utf8(it->path().filename());
         if (re2::RE2::FullMatch(filename, regex_pattern)) {
-          auto path_str = it->path().string();
+          std::string path_str = path_to_utf8(it->path());
           auto metadata = std::make_unique<file_metadata>(
               path_str, _line_count_needed, _files_metadata);
           if (metadata->has_changed) {
