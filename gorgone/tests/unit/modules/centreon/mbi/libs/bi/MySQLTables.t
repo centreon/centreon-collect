@@ -148,7 +148,49 @@ sub test_getCollationRealignStatements {
     }
 }
 
+# Without partitions, the table is dropped, created and indexed. A CREATE
+# failing because of an orphaned tablespace must report the hint and not index
+# the table.
+sub test_emptyTableForRebuild {
+    my $structure = "CREATE TABLE `mod_bi_ut_rebuild` (\n  `time_id` int(11) NOT NULL\n) ENGINE=InnoDB";
+    my $drop = 'DROP TABLE IF EXISTS `mod_bi_ut_rebuild`';
+    my $index = 'ALTER TABLE `mod_bi_ut_rebuild` ADD INDEX `idx_mod_bi_ut_rebuild_time_id` (`time_id`)';
+
+    for my $fail (0, 1) {
+        my @queries;
+        my $db = mock { die => 1 } => (
+            add => [
+                query => sub {
+                    my ($self, $options) = @_;
+
+                    push @queries, $options->{query};
+                    die "SQL error: Tablespace '`centreon_storage`.`mod_bi_ut_rebuild`' exists. (caller: x:y:1)\n"
+                        . "Query: $options->{query}\n"
+                        if ($fail && $options->{query} eq $structure);
+                    return 1;
+                }
+            ]
+        );
+        my $tables = gorgone::modules::centreon::mbi::libs::bi::MySQLTables->new(
+            gorgone::modules::centreon::mbi::libs::Messages->new(),
+            $db
+        );
+
+        if (!$fail) {
+            ok(lives { $tables->emptyTableForRebuild('mod_bi_ut_rebuild', $structure, 'time_id') },
+                'the table should be rebuilt.');
+            is(\@queries, [$drop, $structure, $index], 'the table should be dropped, created and indexed.');
+        } else {
+            like(dies { $tables->emptyTableForRebuild('mod_bi_ut_rebuild', $structure, 'time_id') },
+                qr/Cannot create table `mod_bi_ut_rebuild`: an orphaned InnoDB tablespace/,
+                'an orphaned tablespace should be reported.');
+            is(\@queries, [$drop, $structure], 'the table should not be indexed after a failure.');
+        }
+    }
+}
+
 sub main {
+    test_emptyTableForRebuild();
     test_getCollationRealignStatements();
     done_testing();
 }
