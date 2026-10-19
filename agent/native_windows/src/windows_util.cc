@@ -64,29 +64,6 @@ std::string com::centreon::agent::error_as_string(DWORD error_message_id) {
 }
 
 /**
- * @brief convert a wchar_t string to a char string
- *
- * @param lpwstr wchar_t string
- * @return std::string
- */
-std::string com::centreon::agent::lpwcstr_to_acp(LPCWSTR lpwstr) {
-  // get needed size
-  int size_needed =
-      WideCharToMultiByte(CP_ACP, 0, lpwstr, -1, NULL, 0, NULL, NULL);
-
-  std::string utf8(size_needed, 0);
-
-  // convert
-  WideCharToMultiByte(CP_ACP, 0, lpwstr, -1, &utf8[0], size_needed, NULL, NULL);
-
-  // remove \0
-  if (!utf8.empty() && !*utf8.rbegin()) {
-    utf8.resize(utf8.size() - 1);
-  }
-  return utf8;
-}
-
-/**
  * @brief Converts a Windows FILETIME value to a
  * std::chrono::file_clock::time_point.
  *

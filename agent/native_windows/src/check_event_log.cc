@@ -25,6 +25,7 @@
 #include "event_log/data.hh"
 
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/common/utf8.hh"
 #include "event_log/uniq.hh"
 #include "windows_util.hh"
 
@@ -345,7 +346,7 @@ e_status check_event_log::compute(
     event_format = &check_event_log::print_event_detail<false>;
   }
 
-  std::string file = lpwcstr_to_acp(data.get_file().c_str());
+  std::string file = com::centreon::common::wstring_to_utf8(data.get_file());
 
   std::unique_ptr<
       absl::flat_hash_set<const event_log::event*, event_log::event_comparator,
