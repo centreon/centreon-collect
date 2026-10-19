@@ -123,7 +123,7 @@ void native_check_base<nb_metric>::start_check(const duration& timeout) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to get memory info: {}", e.what());
     asio::post(*_io_context, [me = shared_from_this(),
                               start_check_index = _get_running_check_index(),
-                              err = e.what()] {
+                              err = std::string(e.what())] {
       me->on_completion(start_check_index, e_status::unknown, {}, {err});
     });
   }
