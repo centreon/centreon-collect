@@ -19,6 +19,7 @@
 #include "windows_util.hh"
 #include <absl/base/call_once.h>
 #include <comdef.h>
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 /**
@@ -39,23 +40,24 @@ std::string com::centreon::agent::get_last_error_as_string() {
  * @brief Get message of error_message_id
  *
  * @param error_message_id
- * @return std::string
+ * @return std::string message in UTF-8 (localized messages may be accented)
  */
 std::string com::centreon::agent::error_as_string(DWORD error_message_id) {
-  LPSTR message_buffer = nullptr;
+  LPWSTR message_buffer = nullptr;
 
   // Ask Win32 to give us the string version of that message ID.
   // The parameters we pass in, tell Win32 to create the buffer that holds the
   // message for us (because we don't yet know how long the message string will
   // be).
-  size_t size = FormatMessageA(
+  size_t size = FormatMessageW(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
           FORMAT_MESSAGE_IGNORE_INSERTS,
       NULL, error_message_id, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      (LPSTR)&message_buffer, 0, NULL);
+      (LPWSTR)&message_buffer, 0, NULL);
 
-  // Copy the error message into a std::string.
-  std::string message(message_buffer, size);
+  // Copy the error message into an UTF-8 std::string.
+  std::string message = com::centreon::common::wstring_to_utf8(
+      std::wstring_view(message_buffer, size));
 
   // Free the Win32's string's buffer.
   LocalFree(message_buffer);
