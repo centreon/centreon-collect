@@ -232,3 +232,62 @@ TEST(adjust_size_utf8, utf8_1) {
     ASSERT_EQ(sv.size(), tmp.size());
   }
 }
+
+TEST(is_utf8, valid) {
+  ASSERT_TRUE(is_utf8(""));
+  ASSERT_TRUE(is_utf8("ascii"));
+  ASSERT_TRUE(is_utf8("Contrôle Légalité"));
+  ASSERT_TRUE(is_utf8("Москва 東京 📁"));
+}
+
+TEST(is_utf8, invalid) {
+  // cp1252 é
+  ASSERT_FALSE(is_utf8("l\xe9galit\xe9"));
+  // truncated sequence
+  ASSERT_FALSE(is_utf8("contr\xc3"));
+  // overlong '/'
+  ASSERT_FALSE(is_utf8("\xc0\xaf"));
+  // surrogate U+D800
+  ASSERT_FALSE(is_utf8("\xed\xa0\x80"));
+  // above U+10FFFF
+  ASSERT_FALSE(is_utf8("\xf4\x90\x80\x80"));
+}
+
+/*
+ * Given UTF-8 strings with 2, 3 and 4 bytes sequences
+ * Then utf8_to_wstring and wstring_to_utf8 convert them back and forth.
+ */
+TEST(utf8_to_wstring, round_trip) {
+  for (std::string_view str :
+       {"", "ascii", "Contrôle Légalité", "S=Côte-d'Or, C=FR", "Zażółć",
+        "Москва", "東京", "📁 ✅"}) {
+    ASSERT_EQ(wstring_to_utf8(utf8_to_wstring(str)), str);
+  }
+  ASSERT_EQ(utf8_to_wstring("Contrôle Légalité"), L"Contrôle Légalité");
+  ASSERT_EQ(utf8_to_wstring("東京"), L"東京");
+  ASSERT_EQ(utf8_to_wstring("📁"), L"📁");
+  ASSERT_EQ(wstring_to_utf8(L"Contrôle Légalité"), "Contrôle Légalité");
+  ASSERT_EQ(wstring_to_utf8(L"📁"), "📁");
+}
+
+/*
+ * Given an invalid UTF-8 string
+ * Then each invalid byte is replaced by U+FFFD
+ */
+TEST(utf8_to_wstring, invalid) {
+  ASSERT_EQ(utf8_to_wstring("l\xe9galit\xe9"), L"l\xfffdgalit\xfffd");
+  ASSERT_EQ(utf8_to_wstring("contr\xc3"), L"contr\xfffd");
+  ASSERT_EQ(utf8_to_wstring("\xc0\xaf"), L"\xfffd\xfffd");
+  ASSERT_EQ(utf8_to_wstring("\xed\xa0\x80"), L"\xfffd\xfffd\xfffd");
+}
+
+/*
+ * Given a wide string with an unpaired surrogate
+ * Then it is replaced by U+FFFD
+ */
+TEST(wstring_to_utf8, unpaired_surrogate) {
+  std::wstring str{L'a', static_cast<wchar_t>(0xd800), L'b'};
+  ASSERT_EQ(wstring_to_utf8(str),
+            "a\xef\xbf\xbd"
+            "b");
+}
