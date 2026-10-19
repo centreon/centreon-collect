@@ -18,6 +18,7 @@
 
 #include <windows.h>
 
+#include "com/centreon/common/utf8.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
@@ -113,13 +114,14 @@ config::config(const std::string& registry_key) {
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
   _ca_name = get_sz_reg_or_default("ca_name", "");
   _ca_fingerprint = get_sz_reg_or_default("fingerprint", "");
-  _host = get_sz_reg_or_default("host", "");
+  // host and host_template are sent in protobuf strings that must be UTF-8
+  _host = common::ensure_utf8(get_sz_reg_or_default("host", ""));
   if (_host.empty()) {
-    _host = boost::asio::ip::host_name();
+    _host = common::ensure_utf8(boost::asio::ip::host_name());
   }
 
-  _host_template = get_sz_reg_or_default(
-      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom");
+  _host_template = common::ensure_utf8(get_sz_reg_or_default(
+      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom"));
 
   _reverse_connection = get_bool("reversed_grpc_streaming");
   _second_max_reconnect_backoff =

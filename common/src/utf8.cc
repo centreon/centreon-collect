@@ -18,6 +18,10 @@
 
 #include "utf8.hh"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 /**
  * @brief Find the first byte of str that does not belong to a valid UTF-8
  * sequence (overlong forms, surrogates and code points above U+10FFFF are
@@ -306,6 +310,35 @@ size_t com::centreon::common::adjust_size_utf8(const std::string& str,
  */
 bool com::centreon::common::is_utf8(const std::string_view& str) noexcept {
   return _first_invalid_utf8(str) == str.end();
+}
+
+/**
+ * @brief Returns str converted to UTF-8 if needed.
+ * A valid UTF-8 string is returned unchanged. Otherwise, on Windows, str is
+ * decoded with the ANSI code page of the system (the encoding of the strings
+ * returned by the A APIs). On other systems, or if this decoding fails,
+ * check_string_utf8 is used (CP-1252 and ISO-8859-15).
+ *
+ * @param str The string to convert
+ *
+ * @return A valid UTF-8 string.
+ */
+std::string com::centreon::common::ensure_utf8(const std::string_view& str) {
+#ifdef _WIN32
+  if (!is_utf8(str)) {
+    int size = MultiByteToWideChar(CP_ACP, 0, str.data(),
+                                   static_cast<int>(str.size()), nullptr, 0);
+    if (size > 0) {
+      std::wstring wstr(size, L'\0');
+      if (MultiByteToWideChar(CP_ACP, 0, str.data(),
+                              static_cast<int>(str.size()), wstr.data(),
+                              size) == size) {
+        return wstring_to_utf8(wstr);
+      }
+    }
+  }
+#endif
+  return check_string_utf8(str);
 }
 
 /**
