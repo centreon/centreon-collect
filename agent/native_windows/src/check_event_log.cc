@@ -357,9 +357,12 @@ e_status check_event_log::compute(
                           event_log::event_comparator>>
       warning_uniq;
 
-  // Group events by _event_compare if needed
-  if (_event_compare && _verbose ||
-      out_format->find("{2}") != std::string::npos) {
+  bool need_event_list =
+      _verbose || out_format->find("{2}") != std::string::npos;
+
+  // Group events by _event_compare if needed (an empty unique-index means no
+  // grouping and no _event_compare)
+  if (need_event_list && _event_compare) {
     critical_uniq =
         std::make_unique<absl::flat_hash_set<const event_log::event*,
                                              event_log::event_comparator,
@@ -394,10 +397,18 @@ e_status check_event_log::compute(
     for (const event_log::event* evt : *critical_uniq) {
       critical_ordered.insert(evt);
     }
+  } else if (need_event_list) {
+    for (const auto& evt : data.get_critical()) {
+      critical_ordered.insert(&evt.second);
+    }
   }
   if (warning_uniq) {
     for (const event_log::event* evt : *warning_uniq) {
       warning_ordered.insert(evt);
+    }
+  } else if (need_event_list) {
+    for (const auto& evt : data.get_warning()) {
+      warning_ordered.insert(&evt.second);
     }
   }
 
