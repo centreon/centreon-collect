@@ -1657,6 +1657,109 @@ def ctn_create_status_retention_file(index_id, *points: str):
         f"Created status retention file {path} with {len(points)} point(s)")
 
 
+def ctn_create_retention_files_range(metric_ids: list, index_ids: list, start: int, end: int, step: int, value: float, status: int):
+    """
+    Create a retention .prot file for each metric and each status index. Each
+    file contains one point every step seconds from start to end (included).
+
+    Args:
+        metric_ids (list): Metric IDs, all their points are set to value.
+        index_ids (list): Status index IDs, all their points are set to status.
+        start (int): Timestamp of the first point.
+        end (int): Timestamp of the last point.
+        step (int): Seconds between two points.
+        value (float): Value of the metric points.
+        status (int): Status of the status points (0, 1 or 2).
+
+    *Example:*
+
+    | Ctn Create Retention Files Range | ${metric_ids} | ${index_ids} | ${start} | ${end} | 30 | 1.0 | 2 |
+    """
+    times = range(int(start), int(end) + 1, int(step))
+    batch = rrd_retention_pb2.MetricRetentionBatch()
+    for t in times:
+        pt = batch.points.add()
+        pt.time = t
+        pt.value = float(value)
+    data = batch.SerializeToString()
+    for metric_id in metric_ids:
+        with open(f"{VAR_ROOT}/lib/centreon/metrics/{metric_id}.prot", 'wb') as f:
+            f.write(data)
+
+    batch = rrd_retention_pb2.StatusRetentionBatch()
+    for t in times:
+        pt = batch.points.add()
+        pt.time = t
+        pt.status = int(status)
+    data = batch.SerializeToString()
+    for index_id in index_ids:
+        with open(f"{VAR_ROOT}/lib/centreon/status/{index_id}.prot", 'wb') as f:
+            f.write(data)
+    logger.console(
+        f"Created {len(metric_ids)} metric and {len(index_ids)} status retention files with {len(times)} point(s)")
+
+
+def ctn_check_rrd_constant_value(kind: str, rrd_id: int, start: int, end: int, expected: float, timeout: int = 60):
+    """
+    Check that an RRD file contains expected for each step between start and
+    end. The two first and two last steps of the range are not checked because
+    they may be consolidated with the values around. A missing value (nan) is
+    an error.
+
+    Args:
+        kind (str): 'metrics' or 'status'.
+        rrd_id (int): The metric ID or the status index ID.
+        start (int): Beginning of the range.
+        end (int): End of the range.
+        expected (float): The expected value.
+        timeout (int, optional): Defaults to 60.
+
+    Returns:
+        True if all the values in the range are equal to expected.
+
+    *Example:*
+
+    | ${result} | Ctn Check Rrd Constant Value | metrics | 12 | ${start} | ${end} | 3.0 |
+    | Should Be True | ${result} |
+    """
+    path = f"{VAR_ROOT}/lib/centreon/{kind}/{rrd_id}.rrd"
+    limit = time.time() + int(timeout)
+    error = ""
+    while True:
+        res = getoutput(
+            f"rrdtool fetch {path} AVERAGE -s {int(start)} -e {int(end)}")
+        rows = []
+        for line in res.splitlines():
+            m = re.match(r"^\s*(\d+):\s*(\S+)", line)
+            if m:
+                rows.append((int(m.group(1)), m.group(2)))
+        error = ""
+        if len(rows) < 2:
+            error = f"no data in {path} between {start} and {end}: {res}"
+        else:
+            step = rows[1][0] - rows[0][0]
+            checked = 0
+            for t, v in rows:
+                if t < int(start) + 2 * step or t > int(end) - 2 * step:
+                    continue
+                checked += 1
+                if "nan" in v.lower():
+                    error = f"{path}: value missing at {t}"
+                    break
+                if abs(float(v) - float(expected)) > 0.001:
+                    error = f"{path}: value {v} at {t} instead of {expected}"
+                    break
+            if not error and checked == 0:
+                error = f"{path}: range {start}-{end} too short to be checked (step {step})"
+        if not error:
+            return True
+        if time.time() >= limit:
+            break
+        time.sleep(5)
+    logger.console(error)
+    return False
+
+
 def ctn_delete_all_rrd_metrics():
     """
     Remove all rrd metrics files.

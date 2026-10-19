@@ -43,7 +43,7 @@ namespace rrd {
  * non-NaN (known) values, sorted by ascending timestamp.
  */
 struct rrd_existing_data {
-  uint32_t step = 0;        ///< Time step in seconds (0 = unknown/error)
+  uint32_t step = 0;        ///< Base RRA resolution in seconds (0 = error)
   uint32_t rrd_len = 0;     ///< Total retention in seconds
   short value_type = 0;     ///< 0=GAUGE, 1=COUNTER, 2=DERIVE, 3=ABSOLUTE
   /// Known data points: (unix_timestamp, value), sorted ascending.

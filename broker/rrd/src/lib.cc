@@ -231,12 +231,17 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
         result.value_type = 3;
       // else GAUGE = 0 (default)
     } else {
+      // sscanf returns 1 as soon as %d is read, even if the end of the key
+      // differs (rra[0].cur_row...), so %n checks that the whole key matched.
       int rra_idx = -1;
-      if (std::sscanf(it->key, "rra[%d].pdp_per_row", &rra_idx) == 1 &&
-          it->type == RD_I_CNT) {
+      int end = 0;
+      if (it->type == RD_I_CNT &&
+          std::sscanf(it->key, "rra[%d].pdp_per_row%n", &rra_idx, &end) == 1 &&
+          end > 0 && it->key[end] == '\0') {
         rra_pdp_per_row[rra_idx] = static_cast<uint32_t>(it->value.u_cnt);
-      } else if (std::sscanf(it->key, "rra[%d].rows", &rra_idx) == 1 &&
-                 it->type == RD_I_CNT) {
+      } else if (it->type == RD_I_CNT &&
+                 std::sscanf(it->key, "rra[%d].rows%n", &rra_idx, &end) == 1 &&
+                 end > 0 && it->key[end] == '\0') {
         rra_rows[rra_idx] = static_cast<uint32_t>(it->value.u_cnt);
       }
     }
@@ -248,14 +253,24 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
     return result;
   }
 
-  // Compute max retention across all RRAs.
+  // Compute max retention across all RRAs. creator adds one row to each RRA
+  // (length / step + 1), it is removed so that a recreated file keeps the same
+  // size.
+  const uint32_t file_step = result.step;
   for (auto& [idx, pdp] : rra_pdp_per_row) {
     auto rows_it = rra_rows.find(idx);
-    if (rows_it != rra_rows.end()) {
-      uint32_t retention = result.step * pdp * rows_it->second;
+    if (rows_it != rra_rows.end() && rows_it->second > 1) {
+      uint32_t retention = file_step * pdp * (rows_it->second - 1);
       result.rrd_len = std::max(result.rrd_len, retention);
     }
   }
+
+  // Files are created by creator with a step of 1s, the interval being the
+  // pdp_per_row of the base RRA (rra[0]). The interval is what is needed to
+  // recreate the file and to read its data.
+  auto base_rra = rra_pdp_per_row.find(0);
+  if (base_rra != rra_pdp_per_row.end() && base_rra->second > 0)
+    result.step = file_step * base_rra->second;
 
   // ---- 2. Fetch data via rrd_fetch_r ----
   time_t start = static_cast<time_t>(from_ts) - static_cast<time_t>(result.step);

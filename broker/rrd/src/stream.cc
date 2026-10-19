@@ -361,6 +361,10 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         it = _pending_metric_merges.find(m.metric_id());
         if (it != _pending_metric_merges.end()) {
           // merge running => will be replay later
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "RRD: merge of metric {} running, data at {} "
+                              "postponed",
+                              m.metric_id(), m.time());
           it->second.postponed.push_back(d);
           break;
         }
@@ -507,7 +511,11 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         }
         it = _pending_status_merges.find(s.index_id());
         if (it != _pending_status_merges.end()) {
-          // rebuild running => will be replay later
+          // merge running => will be replay later
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "RRD: merge of status {} running, data at {} "
+                              "postponed",
+                              s.index_id(), s.time());
           it->second.postponed.push_back(d);
           break;
         }
@@ -757,11 +765,17 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
       auto received_while_merging =
           _pending_metric_merges.find(evt.metric_id());
       if (received_while_merging != _pending_metric_merges.end()) {
-        received_while_merging->second.last_rebuilt_time =
-            evt.last_metric_time();
-        _write_postponed(received_while_merging->second, evt.metric_id(),
-                         false);
+        // Entry must be erased before the replay, otherwise write() would
+        // postpone again the replayed events in it.
+        rebuild_entry entry = std::move(received_while_merging->second);
         _pending_metric_merges.erase(received_while_merging);
+        entry.last_rebuilt_time = evt.last_metric_time();
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "RRD: end of merge of metric {}, {} postponed "
+                            "events to replay, last merged time {}",
+                            evt.metric_id(), entry.postponed.size(),
+                            entry.last_rebuilt_time);
+        _write_postponed(entry, evt.metric_id(), false);
       }
     } break;
     case storage::pb_end_status_merge::static_type(): {
@@ -770,10 +784,15 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           std::static_pointer_cast<storage::pb_end_status_merge>(d)->obj();
       auto received_while_merging = _pending_status_merges.find(evt.index_id());
       if (received_while_merging != _pending_status_merges.end()) {
-        received_while_merging->second.last_rebuilt_time =
-            evt.last_status_time();
-        _write_postponed(received_while_merging->second, evt.index_id(), true);
+        rebuild_entry entry = std::move(received_while_merging->second);
         _pending_status_merges.erase(received_while_merging);
+        entry.last_rebuilt_time = evt.last_status_time();
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "RRD: end of merge of status {}, {} postponed "
+                            "events to replay, last merged time {}",
+                            evt.index_id(), entry.postponed.size(),
+                            entry.last_rebuilt_time);
+        _write_postponed(entry, evt.index_id(), true);
       }
     } break;
     default:

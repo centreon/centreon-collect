@@ -670,8 +670,145 @@ BERRDREC2
     # Step 3: .prot file deleted.
     File Should Not Exist    ${VarRoot}/lib/centreon/status/${index}.prot
 
+BERRDREC3
+    [Documentation]    RRD retention merge with metrics and statuses received during the merge.
+    ...
+    ...    Given 20 passive services with 5 metrics each, RRD step = 30s
+    ...    And their metric and status .rrd files are created (phase A)
+    ...    When check results are sent every 5s (phase B, metric value 3, state WARNING)
+    ...    And during phase B the RRD broker is stopped, 7 days of retention points
+    ...    ...    (metric value 1, state CRITICAL) are planted for each metric and status,
+    ...    ...    then the RRD broker is restarted
+    ...    Then startup merges run while the central broker sends its backlog and the new data,
+    ...    ...    these data are postponed during the merge and replayed at its end
+    ...    When check results are sent every 5s (phase C, metric value 4, state OK)
+    ...    Then each RRD file contains the planted points, the phase B and the phase C data
+    ...    ...    without any missing value
+    [Tags]    rrd    retention    merge    bbdo3    MON-206113
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
+    # check_interval (5) * interval (6) => RRD step of 30s
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    interval    6
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Clear Metrics
+
+    ${step}    Set Variable    ${30}
+    ${nb_svc}    Set Variable    ${20}
+    ${nb_metrics}    Set Variable    ${5}
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Phase A: create the metric and status .rrd files.
+    ${a_start}    Evaluate    int(time.time())    modules=time
+    FOR    ${i}    IN RANGE    2
+        Ctn Process Services Check Result With Value    host_1    1    ${nb_svc}    0    2.0    ${nb_metrics}
+        Sleep    5s
+    END
+
+    ${metric_ids}    Create List
+    ${index_ids}    Create List
+    FOR    ${svc}    IN RANGE    1    ${nb_svc + 1}
+        ${metrics}    Ctn Get Metrics For Service    ${svc}    metric%
+        Should Not Be Equal    ${metrics}    ${None}    No metric found for service_${svc}
+        Append To List    ${metric_ids}    @{metrics}
+        ${index}    Ctn Get Service Index    1    ${svc}
+        Should Not Be Equal    ${index}    ${None}    No index found for service_${svc}
+        Append To List    ${index_ids}    ${index}
+    END
+    Length Should Be    ${metric_ids}    ${{$nb_svc * $nb_metrics}}
+
+    FOR    ${metric_id}    IN    @{metric_ids}
+        Wait Until Created    ${VarRoot}/lib/centreon/metrics/${metric_id}.rrd    timeout=60s
+    END
+    FOR    ${index}    IN    @{index_ids}
+        Wait Until Created    ${VarRoot}/lib/centreon/status/${index}.rrd    timeout=60s
+    END
+    # RRD files are created with a step of 1s, the interval is the RRA resolution.
+    ${result}    Ctn Check Rrd Info    ${metric_ids[0]}    rra[0].pdp_per_row    ${step}
+    Should Be True    ${result}    The RRD resolution should be ${step}s
+
+    # Planted retention points end two steps before phase A.
+    ${p_end}    Evaluate    (${a_start} // ${step} - 2) * ${step}
+    ${p_start}    Evaluate    ${p_end} - 7 * 86400
+
+    # Phase B: results sent every 5s, the RRD broker is restarted in the middle.
+    ${b_start}    Evaluate    int(time.time())    modules=time
+    FOR    ${i}    IN RANGE    36
+        Ctn Process Services Check Result With Value    host_1    1    ${nb_svc}    1    3.0    ${nb_metrics}
+        IF    ${i} == 2
+            Ctn Stop Rrd Broker
+            Ctn Create Retention Files Range
+            ...    ${metric_ids}    ${index_ids}    ${p_start}    ${p_end}    ${step}    1.0    2
+        ELSE IF    ${i} == 8
+            ${restart}    Get Current Date
+            Ctn Start Rrd Broker
+        END
+        Sleep    5s
+    END
+    ${b_end}    Evaluate    int(time.time())    modules=time
+
+    # Phase C: back to OK.
+    ${c_start}    Evaluate    int(time.time())    modules=time
+    FOR    ${i}    IN RANGE    24
+        Ctn Process Services Check Result With Value    host_1    1    ${nb_svc}    0    4.0    ${nb_metrics}
+        Sleep    5s
+    END
+    ${c_end}    Evaluate    int(time.time())    modules=time
+
+    # Merges ran and data were received while they were running.
+    ${content}    Create List    RRD: startup merge for recovered metric    RRD: startup merge for recovered status
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${restart}    ${content}    10
+    Should Be True    ${result}    No startup merge after the RRD broker restart
+    ${result}    ${line}    Ctn Find Regex In Log With Timeout
+    ...    ${rrdLog}    ${restart}    ${{ [r"RRD: merge of metric [0-9]+ running, data at [0-9]+ postponed"] }}    10
+    Should Be True    ${result}    No metric received during a merge, the test does not check anything
+    ${result}    ${line}    Ctn Find Regex In Log With Timeout
+    ...    ${rrdLog}    ${restart}    ${{ [r"RRD: merge of status [0-9]+ running, data at [0-9]+ postponed"] }}    10
+    Should Be True    ${result}    No status received during a merge, the test does not check anything
+
+    # No metric must be missing.
+    FOR    ${metric_id}    IN    @{metric_ids}
+        ${result}    Ctn Check Rrd Constant Value    metrics    ${metric_id}    ${p_start}    ${p_end}    1.0
+        Should Be True    ${result}    Retention points missing in metric ${metric_id}
+        ${result}    Ctn Check Rrd Constant Value    metrics    ${metric_id}    ${b_start}    ${b_end}    3.0
+        Should Be True    ${result}    Phase B points missing in metric ${metric_id}
+        ${result}    Ctn Check Rrd Constant Value    metrics    ${metric_id}    ${c_start}    ${c_end}    4.0
+        Should Be True    ${result}    Phase C points missing in metric ${metric_id}
+    END
+    # Status RRD values: OK => 100, WARNING => 75, CRITICAL => 0
+    FOR    ${index}    IN    @{index_ids}
+        ${result}    Ctn Check Rrd Constant Value    status    ${index}    ${p_start}    ${p_end}    0
+        Should Be True    ${result}    Retention points missing in status ${index}
+        ${result}    Ctn Check Rrd Constant Value    status    ${index}    ${b_start}    ${b_end}    75
+        Should Be True    ${result}    Phase B points missing in status ${index}
+        ${result}    Ctn Check Rrd Constant Value    status    ${index}    ${c_start}    ${c_end}    100
+        Should Be True    ${result}    Phase C points missing in status ${index}
+    END
+
 
 *** Keywords ***
+Ctn Stop Rrd Broker
+    [Documentation]    Stop only the RRD broker, the central broker keeps its events for it.
+    Send Signal To Process    SIGTERM    b2
+    ${result}    Wait For Process    b2    timeout=60s
+    Should Not Be Equal    ${result}    ${None}    RRD broker not stopped
+
+Ctn Start Rrd Broker
+    [Documentation]    Start only the RRD broker with its current configuration.
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
+    ...    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
+
 Ctn Test Clean
     [Documentation]    Stop engine and broker, then save logs if the test failed.
     Ctn Stop Engine
