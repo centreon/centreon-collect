@@ -20,6 +20,7 @@
 
 #include <format>
 
+#include <absl/strings/match.h>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -321,7 +322,9 @@ file_metadata::file_metadata(
 
     size = fs::file_size(native_path);
     version = "";
-    if (extension == ".exe" || extension == ".dll") {
+    // windows file names are case insensitive (CMD.EXE)
+    if (absl::EqualsIgnoreCase(extension, ".exe") ||
+        absl::EqualsIgnoreCase(extension, ".dll")) {
       version = get_file_version(native_path.native());
     }
 
