@@ -291,3 +291,20 @@ TEST(wstring_to_utf8, unpaired_surrogate) {
             "a\xef\xbf\xbd"
             "b");
 }
+
+/*
+ * Given a valid UTF-8 string
+ * Then ensure_utf8 returns it unchanged
+ * Given a string in a legacy encoding
+ * Then ensure_utf8 returns a valid UTF-8 string
+ */
+TEST(ensure_utf8, nominal) {
+  ASSERT_EQ(ensure_utf8("Contrôle Légalité"), "Contrôle Légalité");
+  ASSERT_EQ(ensure_utf8("東京"), "東京");
+  ASSERT_TRUE(is_utf8(ensure_utf8("C=FR, S=C\xf4te-d'Or")));
+  ASSERT_TRUE(is_utf8(ensure_utf8("\x81\x8d\x8f\x90\x9d")));
+#ifndef _WIN32
+  // on Windows, result depends on the ANSI code page
+  ASSERT_EQ(ensure_utf8("C=FR, S=C\xf4te-d'Or"), "C=FR, S=Côte-d'Or");
+#endif
+}
