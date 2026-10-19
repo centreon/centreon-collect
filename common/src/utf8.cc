@@ -137,7 +137,7 @@ std::string com::centreon::common::check_string_utf8(
       is_iso8859 = false;
     /* not cp1252 */
     if (c & 128)
-      if (c == 129 || c == 141 || c == 143 || c == 144 || c == 155)
+      if (c == 129 || c == 141 || c == 143 || c == 144 || c == 157)
         is_cp1252 = false;
     if (!is_cp1252)
       return iso8859_to_utf8();
