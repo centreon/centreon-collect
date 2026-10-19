@@ -28,6 +28,10 @@ inputs:
   is_cloud:
     description: "Release context (cloud or not cloud)"
     required: true
+outputs:
+  artifactory_available:
+    description: "true when Artifactory was reachable and the packages were promoted on it"
+    value: ${{ steps.artifactory.outputs.available }}
 
 runs:
   using: "composite"
@@ -42,7 +46,14 @@ runs:
             throw new Error('release_type input must be defined (release or hotfix)');
           }
 
-    - uses: jfrog/setup-jfrog-cli@1641575d87647fb969c0545f0b6a76873e328b7c # v5.0.0
+    - name: Check Artifactory availability
+      id: artifactory
+      uses: ./.github/actions/check-artifactory
+      with:
+        artifactory_token: ${{ inputs.artifactory_token }}
+
+    - if: steps.artifactory.outputs.available == 'true'
+      uses: jfrog/setup-jfrog-cli@1641575d87647fb969c0545f0b6a76873e328b7c # v5.0.0
       env:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
@@ -54,7 +65,7 @@ runs:
         distrib: ${{ inputs.distrib }}
 
     - name: Promote RPM packages to stable
-      if: ${{ steps.parse-distrib.outputs.package_extension == 'rpm' }}
+      if: ${{ steps.parse-distrib.outputs.package_extension == 'rpm' && steps.artifactory.outputs.available == 'true' }}
       env:
         MAJOR_VERSION: ${{ inputs.major_version }}
         MINOR_VERSION: ${{ inputs.minor_version }}
@@ -134,7 +145,7 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
-      if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' && inputs.is_cloud == 'false' }}
+      if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' && inputs.is_cloud == 'false' && steps.artifactory.outputs.available == 'true' }}
       env:
         MAJOR_VERSION: ${{ inputs.major_version }}
         MINOR_VERSION: ${{ inputs.minor_version }}
