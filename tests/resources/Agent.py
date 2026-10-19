@@ -266,18 +266,34 @@ def ctn_check_pl_command(arg: str):
         return "/tmp/var/lib/centreon-engine/check.pl " + arg
 
 
-def ctn_get_drive_statistics(drive_name_format: str):
+def ctn_get_drive_names():
+    """
+    ctn_get_drive_names
+    return the list of the windows drive letters (C, D...) that have a size
+    (drives without media are ignored)
+    """
+    if environ.get("RUN_ENV", "") == "WSL":
+        json_test_args = environ.get("JSON_TEST_PARAMS")
+        test_args = json.loads(json_test_args)
+        return [drive['Name'] for drive in test_args["drive"] if drive['Free'] is not None]
+    return []
+
+
+def ctn_get_drive_statistics(drive_name_format: str, drive_names: list = None):
     """
     ctn_get_drive_statistics
     return a dictionary of drive statistics indexed by expected perfdata names
     Args:
         drive_name_format: format of the drive name to search for
+        drive_names: if not None, only these drive letters are returned
     """
     if environ.get("RUN_ENV", "") == "WSL":
         drive_dict = {}
         json_test_args = environ.get("JSON_TEST_PARAMS")
         test_args = json.loads(json_test_args)
         for drive in test_args["drive"]:
+            if drive_names is not None and drive['Name'] not in drive_names:
+                continue
             if drive['Free'] is not None:
                 drive_dict[drive_name_format.format(drive['Name'])] = (
                     100 * drive['Free']) / (drive['Used'] + drive['Free'])
