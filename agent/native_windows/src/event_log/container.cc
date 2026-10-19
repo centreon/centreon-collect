@@ -190,6 +190,7 @@ LPWSTR event_container::_get_message_string(EVT_HANDLE h_metadata,
     return _read_message_buffer;
   }
   if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+    free(_read_message_buffer);
     _read_message_buffer = static_cast<LPWSTR>(
         malloc((buffer_used + 1) * sizeof(wchar_t)));  //+1 for \0
     _message_buffer_size = buffer_used;
