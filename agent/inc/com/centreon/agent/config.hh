@@ -19,6 +19,7 @@
 #define CENTREON_AGENT_CONFIG_HH
 
 #include "com/centreon/common/grpc/grpc_config.hh"
+#include "com/centreon/common/utf8.hh"
 
 namespace com::centreon::agent {
 
@@ -147,6 +148,7 @@ class config {
   /**
    * @brief read the custom checks file and replace commands on success
    * If the file can't be read or is malformed, the previous commands are kept
+   * The file should be UTF-8 (with or without BOM), an ANSI file is converted
    *
    * @return true if commands have been refreshed
    */
@@ -171,6 +173,12 @@ class config {
       unsigned line_number = 0;
       while (std::getline(f, line)) {
         ++line_number;
+        // notepad and powershell may save the file with an UTF-8 BOM
+        if (line_number == 1 && !line.compare(0, 3, "\xEF\xBB\xBF")) {
+          line.erase(0, 3);
+        }
+        // commands are passed as UTF-8 to the checks
+        line = common::ensure_utf8(line);
         trimming(line);
         // skip comments, empty lines and section headers like [custom_checks]
         if (line.empty() || line[0] == ';' || line[0] == '[') {
