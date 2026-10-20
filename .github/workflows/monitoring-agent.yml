@@ -712,7 +712,20 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/check-artifactory
+
+      # bash is git bash on windows runners
+      - name: Check Artifactory availability
+        id: artifactory
+        uses: ./.github/actions/check-artifactory
+        with:
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      - if: steps.artifactory.outputs.available == 'true'
+        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -727,6 +740,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Deliver
+        if: steps.artifactory.outputs.available == 'true'
         env:
           CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
           CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
@@ -824,6 +838,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
+        id: promote
         uses: ./.github/actions/promote-to-stable
         with:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -842,8 +857,9 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
 
+      # without artifactory nothing is promoted locally: deliver-github-assets-from-pulp takes over
       - name: Deliver monitoring agent to github release
-        if: ${{ needs.get-environment.outputs.is_cloud == 'false' }}
+        if: ${{ needs.get-environment.outputs.is_cloud == 'false' && steps.promote.outputs.artifactory_available == 'true' }}
         uses: ./.github/actions/deliver-github-asset
         with:
           file_pattern: /tmp/promoted-packages/centreon-monitoring-agent${{ steps.parse-distrib.outputs.package_version_separator }}${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
@@ -902,12 +918,21 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+      # bash is git bash on windows runners
+      - name: Check Artifactory availability
+        id: artifactory
+        uses: ./.github/actions/check-artifactory
+        with:
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      - if: steps.artifactory.outputs.available == 'true'
+        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Promote testing to stable
+        if: steps.artifactory.outputs.available == 'true'
         env:
           CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
           CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
@@ -935,8 +960,9 @@ jobs:
           jf rt upload $VERSION_EXE "${TARGET_PATH}"
         shell: powershell
 
+      # without artifactory nothing is downloaded locally: deliver-github-assets-from-pulp takes over
       - name: Deliver monitoring agent to github release
-        if: ${{ needs.get-environment.outputs.is_cloud == 'false' }}
+        if: ${{ needs.get-environment.outputs.is_cloud == 'false' && steps.artifactory.outputs.available == 'true' }}
         uses: ./.github/actions/deliver-github-asset
         with:
           file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe
@@ -974,11 +1000,43 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
+  # Completes the github release assets from the Pulp stable repositories, after both Pulp
+  # promotions: fills in what the artifactory based local mode could not deliver. Strict, so a
+  # distrib missing from Pulp fails here instead of dropping its row from the download site.
+  # A single job, as parallel uploads of the same asset would conflict; already present assets
+  # are skipped.
+  deliver-github-assets-from-pulp:
+    needs: [get-environment, promote-linux, promote-windows, promote-linux-pulp, promote-windows-pulp]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.is_cloud == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    runs-on: centreon-ubuntu-26.04-small
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Deliver monitoring agent to github release from Pulp
+        uses: ./.github/actions/deliver-github-asset
+        with:
+          mode: action
+          strict: "true"
+          version: ${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
+          github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
+
   # One job, after both promotions: every asset is on the github release by then, so this reads
   # them back rather than reconstructing names, and a single writer needs no branch merging
   # between the 8 promote jobs. Re-runnable on its own.
   publish-cma-download-site:
-    needs: [get-environment, promote-linux, promote-windows]
+    needs: [get-environment, promote-linux, promote-windows, deliver-github-assets-from-pulp]
     # Two ways in: the component tag, and an explicit dispatch naming a version. The dispatch is
     # the retry path -- re-running a failed job replays the same commit, so it cannot pick up a
     # fix, and re-tagging a released component is not an option.
@@ -991,7 +1049,8 @@ jobs:
       (
         (github.event_name != 'workflow_dispatch' &&
          needs.get-environment.outputs.is_cloud == 'false' &&
-         contains(fromJson('["stable"]'), needs.get-environment.outputs.stability))
+         contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) &&
+         needs.deliver-github-assets-from-pulp.result == 'success')
         ||
         (github.event_name == 'workflow_dispatch' && inputs.publish_cma_version != '')
       )
