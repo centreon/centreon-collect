@@ -17,6 +17,10 @@ inputs:
   distrib:
     description: "Comma-separated distros to fetch in action mode (default: all)"
     required: false
+  strict:
+    description: "Action mode: fail when a distrib or the windows installer is missing from Pulp stable"
+    required: false
+    default: "false"
   dry_run:
     description: "Dry run — log actions without executing"
     required: false
@@ -36,5 +40,6 @@ runs:
         DELIVER_DISTRIB: ${{ inputs.distrib }}
         DELIVER_REPO: ${{ github.repository }}
         DELIVER_DRY_RUN: ${{ inputs.dry_run }}
+        DELIVER_STRICT: ${{ inputs.strict }}
       run: |
         bash "${GITHUB_ACTION_PATH}/../../scripts/deliver-cma-assets.sh"
