@@ -16,7 +16,6 @@ Please include a short resume of the changes and what is the purpose of PR. Any 
 ## Target serie
 
 - [ ] 23.10.x
-- [ ] 24.04.x
 - [ ] 24.10.x
 - [ ] 25.10.x
 - [ ] master
