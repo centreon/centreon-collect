@@ -915,7 +915,7 @@ define contact {
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
-            for file in ["check.pl", "check.sh", "check_long.sh", "notif.pl", "check_centreon_bam"]:
+            for file in ["check.pl", "check.sh", "check_long.sh", "notif.pl", "check_centreon_bam", "echo_encoded.sh"]:
                 shutil.copyfile(f"{SCRIPT_DIR}/{file}",
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
