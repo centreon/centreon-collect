@@ -82,6 +82,7 @@ add_library(
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
+  "${SRC_DIR}/retention_file.cc"
   "${SRC_DIR}/retention_manager.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
@@ -131,6 +132,7 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES} "${TEST_DIR}/cached.cc" "${TEST_DIR}/exceptions.cc"
       "${TEST_DIR}/factory.cc" "${TEST_DIR}/lib.cc" "${TEST_DIR}/rrd.cc"
+      "${TEST_DIR}/retention_file_test.cc"
       "${TEST_DIR}/retention_manager.cc"
       "${TEST_DIR}/stream_bifurcation.cc"
       PARENT_SCOPE)

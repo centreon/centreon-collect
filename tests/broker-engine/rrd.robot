@@ -695,6 +695,7 @@ BERRDREC3
     Ctn Broker Config Log    central    sql    error
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Source Log    rrd    1
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Set Services Passive    ${0}    service_.*

@@ -19,9 +19,7 @@
 #ifndef CCB_RRD_RETENTION_MANAGER_HH
 #define CCB_RRD_RETENTION_MANAGER_HH
 
-#include <filesystem>
-
-#include "absl/synchronization/mutex.h"
+#include "retention_file.hh"
 #include "rrd_retention.pb.h"
 
 namespace com::centreon::broker::rrd {
