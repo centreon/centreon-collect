@@ -17,13 +17,30 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: jfrog/setup-jfrog-cli@1641575d87647fb969c0545f0b6a76873e328b7c # v5.0.0
+      # The merge ref of a closed unmerged PR may be gone: only fetch the check action from
+      # the default branch.
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: .github/actions/check-artifactory
+          persist-credentials: false
+
+      - name: Check Artifactory availability
+        id: artifactory
+        uses: ./.github/actions/check-artifactory
+        with:
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      - if: steps.artifactory.outputs.available == 'true'
+        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Check if feature branch had associated feature repository
         id: check_feature_repository
+        if: steps.artifactory.outputs.available == 'true'
         shell: bash
         env:
           GH_HEAD_REF: ${{ github.head_ref }}
