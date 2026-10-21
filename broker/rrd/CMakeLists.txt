@@ -59,15 +59,6 @@ else()
       PARENT_SCOPE)
 endif()
 
-# Retention buffer protobuf library (internal to RRD module).
-set(RRD_PROTO_DIR "${PROJECT_SOURCE_DIR}/rrd/proto")
-add_library(pb_rrd_retention_lib "${RRD_PROTO_DIR}/rrd_retention.proto")
-set_target_properties(pb_rrd_retention_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-protobuf_generate(
-  TARGET pb_rrd_retention_lib
-  IMPORT_DIRS "${RRD_PROTO_DIR}")
-target_include_directories(pb_rrd_retention_lib PUBLIC
-  "${CMAKE_CURRENT_BINARY_DIR}")
 
 # RRD module.
 set(RRD "70-rrd")
@@ -98,8 +89,6 @@ add_library(
 set_target_properties("${RRD}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hh)
-target_include_directories("${RRD}" PRIVATE
-  $<TARGET_PROPERTY:pb_rrd_retention_lib,INTERFACE_INCLUDE_DIRECTORIES>)
 add_dependencies("${RRD}" pb_all_libs process_stat)
 
 # Compile with librrd flags.
@@ -124,7 +113,6 @@ target_link_libraries(
   pb_storage_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
-  pb_rrd_retention_lib
   spdlog::spdlog)
 
 # Testing.

@@ -168,6 +168,9 @@ class stream : public io::stream {
   uint32_t write(std::shared_ptr<io::data> const& d) override;
   uint32_t stop() override { return 0; }
 
+  void append_metric_to_rrd(const Metric& metric);
+  void append_status_to_rrd(const Status& status);
+
   /**
    * @brief Block until all currently queued background merge tasks complete.
    *

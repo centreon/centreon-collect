@@ -16,14 +16,10 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/rrd/retention_file.hh"
 #include <absl/cleanup/cleanup.h>
-#include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <limits>
-#include <stdexcept>
+
+#include "com/centreon/broker/rrd/retention_file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker::rrd;
@@ -38,9 +34,9 @@ using namespace com::centreon::broker::rrd;
  * @param first_metric First metric point, also written in the file.
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
-                               const Metric& first_metric) {
-  _file_path =
-      rrd_data_dir / fmt::format("{}_metric.ret", first_metric.metric_id());
+                               const Metric& first_metric)
+    : _last_activity(time(nullptr)) {
+  _file_path = rrd_data_dir / fmt::format("{}.ret", first_metric.metric_id());
 
   _header.id = first_metric.metric_id();
   _header.is_status = false;
@@ -64,9 +60,9 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
  * @param first_status First status point, also written in the file.
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
-                               const Status& first_status) {
-  _file_path =
-      rrd_data_dir / fmt::format("{}_status.ret", first_status.index_id());
+                               const Status& first_status)
+    : _last_activity(time(nullptr)) {
+  _file_path = rrd_data_dir / fmt::format("{}.ret", first_status.index_id());
   _header.id = first_status.index_id();
   _header.is_status = true;
   _header.value_type = Metric::ValueType::Metric_ValueType_GAUGE;
@@ -86,7 +82,7 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
  * @param file_path Path of the retention file.
  */
 retention_file::retention_file(const std::filesystem::path& file_path)
-    : _file_path(file_path) {
+    : _file_path(file_path), _last_activity(time(nullptr)) {
   int fd = ::open(_file_path.c_str(), O_RDWR);
   if (fd < 0) {
     throw exceptions::msg_fmt("fail to open {}: {}", _file_path.string(),
@@ -156,6 +152,13 @@ void retention_file::_append(const slot& to_append) {
     update_header();
   }
   ::close(fd);
+
+  // we add previous data of ones stored in rrd file => rebuild it from scratch
+  if (to_append.ts < _last_partial_merge_ts) {
+    _last_partial_merge_ts = 0;
+  }
+
+  _last_activity = time(nullptr);
 }
 
 /**
@@ -210,56 +213,17 @@ void retention_file::_create_file() {
 }
 
 /**
- * @brief Sort the slots of the file by timestamp. The file is mapped in
- * read/write mode so that the slots are sorted in place.
- */
-void retention_file::sort_slots() {
-  int fd = ::open(_file_path.c_str(), O_RDWR);
-  if (fd < 0) {
-    throw exceptions::msg_fmt("fail to open {}: {}", _file_path.string(),
-                              strerror(errno));
-  }
-  absl::Cleanup closer = [fd]() { ::close(fd); };
-
-  struct stat file_stat;
-  if (::fstat(fd, &file_stat)) {
-    throw exceptions::msg_fmt("fail to get size of file {}: {}",
-                              _file_path.string(), strerror(errno));
-  }
-  size_t file_size = file_stat.st_size;
-  if (file_size < sizeof(header)) {
-    throw exceptions::msg_fmt("file {} is too small: {} bytes",
-                              _file_path.string(), file_size);
-  }
-  // no slot => nothing to sort
-  if (file_size == sizeof(header))
-    return;
-
-  void* addr =
-      ::mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (addr == MAP_FAILED) {
-    throw exceptions::msg_fmt("fail to map file {}: {}", _file_path.string(),
-                              strerror(errno));
-  }
-  absl::Cleanup unmapper = [addr, file_size]() { ::munmap(addr, file_size); };
-
-  file_content* content = static_cast<file_content*>(addr);
-  slot* begin = content->data;
-  slot* end = begin + (file_size - sizeof(header)) / sizeof(slot);
-  std::sort(begin, end, [](const slot& left, const slot& right) {
-    return left.ts < right.ts;
-  });
-}
-
-/**
  * @brief Map the slots of the file in read only mode.
  *
  * @return An object that gives access to the slots through begin() and end()
  * and unmaps the file when it is destroyed.
  */
-const retention_file::mapped_slot retention_file::get_slots() const {
+const retention_file::mapped_slot retention_file::sort_and_get_slots() {
   return mapped_slot(_file_path);
 }
+
+retention_file::mapped_slot::mapped_slot()
+    : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {}
 
 /**
  * @brief Map in read only mode the slots of a retention file.
@@ -271,7 +235,7 @@ const retention_file::mapped_slot retention_file::get_slots() const {
  */
 retention_file::mapped_slot::mapped_slot(const std::filesystem::path& path)
     : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {
-  int fd = ::open(path.c_str(), O_RDONLY);
+  int fd = ::open(path.c_str(), O_RDWR);
   if (fd < 0) {
     throw exceptions::msg_fmt("fail to open {}: {}", path.string(),
                               strerror(errno));
@@ -293,14 +257,20 @@ retention_file::mapped_slot::mapped_slot(const std::filesystem::path& path)
   if (_file_size == sizeof(header))
     return;
 
-  void* addr = ::mmap(nullptr, _file_size, PROT_READ, MAP_SHARED, fd, 0);
+  void* addr =
+      ::mmap(nullptr, _file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (addr == MAP_FAILED) {
     throw exceptions::msg_fmt("fail to map file {}: {}", path.string(),
                               strerror(errno));
   }
   _data = static_cast<file_content*>(addr);
-  _begin = _data->data;
-  _end = _begin + (_file_size - sizeof(header)) / sizeof(slot);
+  slot* begin = _data->data;
+  _begin = begin;
+  slot* end = begin + (_file_size - sizeof(header)) / sizeof(slot);
+  _end = end;
+  std::sort(begin, end, [](const slot& left, const slot& right) {
+    return left.ts < right.ts;
+  });
 }
 
 /**

@@ -52,6 +52,8 @@ class retention_file {
 
   std::filesystem::path _file_path;
   header _header;
+  uint64_t _last_partial_merge_ts = 0;
+  time_t _last_activity;
 
   void _create_file();
 
@@ -68,6 +70,7 @@ class retention_file {
 
    public:
     mapped_slot(const std::filesystem::path& path);
+    mapped_slot();
     mapped_slot(const mapped_slot&) = delete;
     mapped_slot& operator=(const mapped_slot&) = delete;
     ~mapped_slot();
@@ -86,15 +89,18 @@ class retention_file {
   void add_metric(const Metric& metric);
   void add_status(const Status& status);
 
-  uint64_t get_id() const { return _header.id; }
+  uint64_t id() const { return _header.id; }
+  const std::filesystem::path file_path() const { return _file_path; }
   bool is_status() const { return _header.is_status; }
   uint64_t rrd_len() const { return _header.rrd_len; }
   uint64_t interval() const { return _header.interval; }
   uint64_t first_ts() const { return _header.first_ts; }
   uint64_t last_ts() const { return _header.last_ts; }
 
-  void sort_slots();
-  const mapped_slot get_slots() const;
+  const mapped_slot sort_and_get_slots();
+  void set_last_partial_merge_ts(uint64_t ts) { _last_partial_merge_ts = ts; }
+  uint64_t last_partial_merge_ts() const { return _last_partial_merge_ts; }
+  time_t last_activity() const { return _last_activity; }
 };
 
 }  // namespace com::centreon::broker::rrd

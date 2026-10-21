@@ -322,6 +322,87 @@ void stream<T>::update() {
   }
 }
 
+template <typename T>
+void stream<T>::append_metric_to_rrd(const Metric& m) {
+  // Metric path.
+  auto metric_path = _metrics_path / fmt::format("{}.rrd", m.metric_id());
+  try {
+    _backend.open(metric_path);
+  } catch (exceptions::open const& b) {
+    time_t interval(m.interval() ? m.interval() : 60);
+    assert(m.rrd_len());
+    _backend.open(metric_path, m.rrd_len(), m.time() - 1, interval,
+                  m.value_type());
+  }
+  std::string v;
+  switch (m.value_type()) {
+    case Metric_ValueType_GAUGE:
+      v = fmt::format("{:f}", m.value());
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "RRD: update metric {} of type GAUGE with {}",
+                          m.metric_id(), v);
+      break;
+    case Metric_ValueType_COUNTER:
+      v = fmt::format("{}", static_cast<uint64_t>(m.value()));
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "RRD: update metric {} of type COUNTER with {}",
+                          m.metric_id(), v);
+      break;
+    case Metric_ValueType_DERIVE:
+      v = fmt::format("{}", static_cast<int64_t>(m.value()));
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "RRD: update metric {} of type DERIVE with {}",
+                          m.metric_id(), v);
+      break;
+    case Metric_ValueType_ABSOLUTE:
+      v = fmt::format("{}", static_cast<uint64_t>(m.value()));
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "RRD: update metric {} of type ABSOLUTE with {}",
+                          m.metric_id(), v);
+      break;
+    default:
+      v = fmt::format("{:f}", m.value());
+      SPDLOG_LOGGER_TRACE(_logger, "RRD: update metric {} of type {} with {}",
+                          m.metric_id(), m.value_type(), v);
+      break;
+  }
+
+  _backend.update(m.time(), v);
+}
+
+template <typename T>
+void stream<T>::append_status_to_rrd(const Status& s) {
+  auto status_path = _status_path / fmt::format("{}.rrd", s.index_id());
+  const std::string* value;
+  using namespace std::string_literals;
+  static const std::string _100 = "100";
+  static const std::string _75 = "75";
+  static const std::string _0 = "0";
+  static const std::string _undefined = "U";
+  switch (s.state()) {
+    case 0:
+      value = &_100;
+      break;
+    case 1:
+      value = &_75;
+      break;
+    case 2:
+      value = &_0;
+      break;
+    default:
+      value = &_undefined;
+      break;
+  }
+  try {
+    _backend.open(status_path);
+  } catch (exceptions::open const& b) {
+    time_t interval(s.interval() ? s.interval() : 60);
+    assert(s.rrd_len());
+    _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
+  }
+  _backend.update(s.time(), *value);
+}
+
 /**
  *  Write an event.
  *
@@ -340,7 +421,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
     case storage::metric::static_type():
       return write(neb::bbdo2_to_bbdo3(d));
     case storage::pb_metric::static_type():
-      if (_write_metrics) {
+      if (!_write_metrics) {
         // Debug message.
         std::shared_ptr<storage::pb_metric> e(
             std::static_pointer_cast<storage::pb_metric>(d));
@@ -358,63 +439,22 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.postponed.push_back(d);
           break;
         }
-        it = _pending_metric_merges.find(m.metric_id());
-        if (it != _pending_metric_merges.end()) {
-          // merge running => will be replay later
-          SPDLOG_LOGGER_DEBUG(_logger,
-                              "RRD: merge of metric {} running, data at {} "
-                              "postponed",
-                              m.metric_id(), m.time());
-          it->second.postponed.push_back(d);
-          break;
-        }
-        std::string v;
-        switch (m.value_type()) {
-          case Metric_ValueType_GAUGE:
-            v = fmt::format("{:f}", m.value());
-            SPDLOG_LOGGER_TRACE(_logger,
-                                "RRD: update metric {} of type GAUGE with {}",
-                                m.metric_id(), v);
-            break;
-          case Metric_ValueType_COUNTER:
-            v = fmt::format("{}", static_cast<uint64_t>(m.value()));
-            SPDLOG_LOGGER_TRACE(_logger,
-                                "RRD: update metric {} of type COUNTER with {}",
-                                m.metric_id(), v);
-            break;
-          case Metric_ValueType_DERIVE:
-            v = fmt::format("{}", static_cast<int64_t>(m.value()));
-            SPDLOG_LOGGER_TRACE(_logger,
-                                "RRD: update metric {} of type DERIVE with {}",
-                                m.metric_id(), v);
-            break;
-          case Metric_ValueType_ABSOLUTE:
-            v = fmt::format("{}", static_cast<uint64_t>(m.value()));
-            SPDLOG_LOGGER_TRACE(
-                _logger, "RRD: update metric {} of type ABSOLUTE with {}",
-                m.metric_id(), v);
-            break;
-          default:
-            v = fmt::format("{:f}", m.value());
-            SPDLOG_LOGGER_TRACE(_logger,
-                                "RRD: update metric {} of type {} with {}",
-                                m.metric_id(), m.value_type(), v);
-            break;
-        }
         const uint32_t step = m.interval() ? m.interval() : 60;
         if (!_retention.enabled() ||
             static_cast<time_t>(m.time()) >=
                 std::time(nullptr) - static_cast<time_t>(step)) {
-          // Current data → open/create RRD file and write directly.
-          try {
-            _backend.open(metric_path);
-          } catch (exceptions::open const& b) {
-            time_t interval(m.interval() ? m.interval() : 60);
-            assert(m.rrd_len());
-            _backend.open(metric_path, m.rrd_len(), m.time() - 1, interval,
-                          m.value_type());
+          it = _pending_metric_merges.find(m.metric_id());
+          if (it != _pending_metric_merges.end()) {
+            // merge running => will be replay later
+            SPDLOG_LOGGER_DEBUG(_logger,
+                                "RRD: merge of metric {} running, data at {} "
+                                "postponed",
+                                m.metric_id(), m.time());
+            it->second.postponed.push_back(d);
+            break;
           }
-          _backend.update(m.time(), v);
+          // Current data → open/create RRD file and write directly.
+          append_metric_to_rrd(m);
           if (_retention.enabled()) {
             uint64_t ect = 0;
             {
@@ -519,34 +559,11 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.postponed.push_back(d);
           break;
         }
-        std::string value;
-        switch (s.state()) {
-          case 0:
-            value = "100";
-            break;
-          case 1:
-            value = "75";
-            break;
-          case 2:
-            value = "0";
-            break;
-          default:
-            value = "U";
-            break;
-        }
         const uint32_t step = s.interval() ? s.interval() : 60;
         if (!_retention.enabled() ||
             static_cast<time_t>(s.time()) >=
                 std::time(nullptr) - static_cast<time_t>(step)) {
-          // Current data → open/create RRD file and write directly.
-          try {
-            _backend.open(status_path);
-          } catch (exceptions::open const& b) {
-            time_t interval(s.interval() ? s.interval() : 60);
-            assert(s.rrd_len());
-            _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
-          }
-          _backend.update(s.time(), value);
+          append_status_to_rrd(s);
           if (_retention.enabled()) {
             uint64_t ect = 0;
             {
