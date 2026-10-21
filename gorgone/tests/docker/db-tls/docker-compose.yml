@@ -1,0 +1,42 @@
+# End to end environment for MON-211445: gorgone (Debian 13 Perl drivers) connecting to a
+# MariaDB server with TLS. See README.md for the commands.
+name: gorgone-db-tls
+
+services:
+  db:
+    image: ${DB_IMAGE:-mariadb:11.8}
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      # ON: TLS is required by the server (require_secure_transport + REQUIRE SSL on the centreon user)
+      # OFF: TLS is offered by the server but clear connections are accepted
+      DB_TLS_REQUIRED: ${DB_TLS_REQUIRED:-ON}
+    command:
+      - --ssl-ca=/certs/ca.pem
+      - --ssl-cert=/certs/server.pem
+      - --ssl-key=/certs/server-key.pem
+      - --require-secure-transport=${DB_TLS_REQUIRED:-ON}
+      # to read the TLS cipher of every session (see check-tls.sh)
+      - --performance-schema=ON
+    volumes:
+      - ./certs:/certs:ro
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  gorgone:
+    # Debian 13 image: DBD::mysql 4.053 and DBD::MariaDB 1.22 built against libmariadb3 11.8
+    image: ${GORGONE_IMAGE:-docker.centreon.com/centreon/gorgone-testing-trixie:release-26.09-next}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GORGONE_DSN: ${GORGONE_DSN:-MariaDB:host=db;port=3306;database=centreon;mariadb_ssl=1;mariadb_ssl_ca_file=/certs/ca.pem;mariadb_ssl_verify_server_cert=1}
+    volumes:
+      # gorgone source code to test (gorgoned loads its modules from its own directory)
+      - ${GORGONE_SRC:-../../..}:/usr/src/gorgone:ro
+      - ./certs:/certs:ro
+      - ./gorgone-entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["bash", "/entrypoint.sh"]
