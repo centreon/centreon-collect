@@ -1,19 +1,51 @@
 services:
-  gorgone:
+  # test CA and server certificate, so the database offers TLS (MON-211445).
+  # The container stays up: with --exit-code-from, any container exiting stops the whole stack.
+  db-certs:
     image: "${GORGONE_IMAGE}"
-    depends_on:
-      - mariadb
-    environment:
-      MYSQL_HOST: mariadb
     volumes:
       - type: bind
         source: ../..
         target: /test_gorgone
+      - db-certs:/db-certs
+    entrypoint:
+      - bash
+      - -c
+      - |
+        rm -f /db-certs/.ready
+        /test_gorgone/gorgone/tests/docker/db-tls/gen-certs.sh /db-certs && touch /db-certs/.ready
+        trap 'exit 0' TERM
+        sleep infinity & wait
+    healthcheck:
+      test: ["CMD", "test", "-f", "/db-certs/.ready"]
+      interval: 1s
+      retries: 30
+
+  gorgone:
+    image: "${GORGONE_IMAGE}"
+    depends_on:
+      mariadb:
+        condition: service_started
+      db-certs:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mariadb
+      # 1: run the robot tests with gorgone connected to the database with TLS
+      DB_TLS: "${DB_TLS:-0}"
+      ROBOT_EXTRA_ARGS: "${ROBOT_EXTRA_ARGS:-}"
+    volumes:
+      - type: bind
+        source: ../..
+        target: /test_gorgone
+      - db-certs:/db-certs:ro
     working_dir: /test_gorgone
     entrypoint: ["./.github/scripts/gorgone-test-robot.sh", "${FEATURE:-}"]
 
   mariadb:
     image: "${MARIADB_IMAGE:-bitnamilegacy/mariadb:10.11}"
+    depends_on:
+      db-certs:
+        condition: service_healthy
     ports: ["3306"]
     deploy:
       resources:
@@ -27,3 +59,10 @@ services:
       MARIADB_USER: centreon
       MARIADB_PASSWORD: password
       MARIADB_ROOT_PASSWORD: password
+      # TLS is offered, not required: the tests not using TLS are not impacted
+      MARIADB_EXTRA_FLAGS: "--ssl-ca=/db-certs/ca.pem --ssl-cert=/db-certs/server.pem --ssl-key=/db-certs/server-key.pem"
+    volumes:
+      - db-certs:/db-certs:ro
+
+volumes:
+  db-certs:

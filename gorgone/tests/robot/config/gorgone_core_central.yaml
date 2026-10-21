@@ -12,10 +12,10 @@ gorgone:
 centreon:
   database:
     db_configuration:
-      dsn: "mysql:host=@DBHOST@:port=3306;dbname=@DBNAME@"
+      dsn: "@DBDRIVER@:host=@DBHOST@;port=3306;dbname=@DBNAME@@DBDSNOPTIONS@"
       username: "@DBUSER@"
       password: "@DBPASSWORD@"
     db_realtime:
-      dsn: "mysql:host=@DBHOST@:port=3306;dbname=@DBNAME_STORAGE@"
+      dsn: "@DBDRIVER@:host=@DBHOST@;port=3306;dbname=@DBNAME_STORAGE@@DBDSNOPTIONS@"
       username: "@DBUSER@"
       password: "@DBPASSWORD@"

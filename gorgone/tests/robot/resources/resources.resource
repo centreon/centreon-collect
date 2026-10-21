@@ -26,6 +26,15 @@ ${DBNAME}                   centreon_gorgone_test
 ${DBNAME_STORAGE}           centreon-storage
 ${DBUSER}                   centreon
 ${DBPASSWORD}               password
+${DBROOTUSER}               root
+${DBROOTPASSWORD}           password
+# DBI driver and DSN options of the Centreon databases, e.g. to run every test with TLS:
+# -v DBDRIVER:MariaDB -v 'DBDSNOPTIONS:;mariadb_ssl=1;mariadb_ssl_ca_file=/db-certs/ca.pem;mariadb_ssl_verify_server_cert=1'
+${DBDRIVER}                 mysql
+${DBDSNOPTIONS}             ${EMPTY}
+# CA of the database server certificate, and another CA to check the certificate is verified
+${DBCAFILE}                 /db-certs/ca.pem
+${DBWRONGCAFILE}            /db-certs/wrong-ca.pem
 
 # central gorgone rest api port. there can be remote server in some tests, but the central gorgone rest api is always present.
 ${Capi_port}                8085
@@ -145,11 +154,15 @@ Setup Gorgone Config
     ${result}    Run    sed -i -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g' /etc/centreon-gorgone/${gorgone_name}/includer.yaml
     ${dynamic_expr}    Set Variable    ${EMPTY}
     FOR    ${old}    ${new}    IN ZIP    ${replace_from}    ${replace_to}
-        ${dynamic_expr}    Catenate    SEPARATOR=    ${dynamic_expr} -e 's/${old}/${new}/g'
+        # | as separator: replacement values can be paths
+        ${dynamic_expr}    Catenate    SEPARATOR=    ${dynamic_expr} -e 's|${old}|${new}|g'
     END
     ${CMD}    Catenate
     ...    sed -i -e 's/@KEYTHUMBPRINT@/${key_thumbprint}/g'
     ...     ${dynamic_expr}
+    ...    -e 's/@DBDRIVER@/${DBDRIVER}/g'
+    ...    -e 's|@DBDSNOPTIONS@|${DBDSNOPTIONS}|g'
+    ...    -e 's|@DBCAFILE@|${DBCAFILE}|g'
     ...    -e 's/@DBNAME@/${DBNAME}/g'
     ...    -e 's/@DBNAME_STORAGE@/${DBNAME_STORAGE}/g'
     ...    -e 's/@DBHOST@/${DBHOST}/g'

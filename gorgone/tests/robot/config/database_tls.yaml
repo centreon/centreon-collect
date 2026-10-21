@@ -1,0 +1,27 @@
+gorgone:
+  gorgonecore:
+    internal_com_type: ipc
+    internal_com_path: /etc/centreon-gorgone/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/routing.ipc
+
+    gorgone_db_type: SQLite
+    gorgone_db_name: dbname=/etc/centreon-gorgone/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/history.sdb
+
+    privkey: "/var/lib/centreon-gorgone/.keys/rsakey.priv.pem"
+    pubkey: "/var/lib/centreon-gorgone/.keys/rsakey.pub.pem"
+
+  modules:
+    # reads the centreon database as soon as it starts
+    - name: nodes
+      package: "gorgone::modules::centreon::nodes::hooks"
+      enable: true
+
+centreon:
+  database:
+    db_configuration:
+      dsn: "MariaDB:host=@DBHOST@;port=3306;dbname=@DBNAME@@TESTDSNOPTIONS@"
+      username: "@TESTDBUSER@"
+      password: "@DBPASSWORD@"
+    db_realtime:
+      dsn: "MariaDB:host=@DBHOST@;port=3306;dbname=@DBNAME_STORAGE@@TESTDSNOPTIONS@"
+      username: "@TESTDBUSER@"
+      password: "@DBPASSWORD@"
