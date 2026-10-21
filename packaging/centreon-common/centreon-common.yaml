@@ -103,7 +103,6 @@ scripts:
 overrides:
   rpm:
     depends:
-      - findutils
       - sudo
   deb:
     depends:

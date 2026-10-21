@@ -9,8 +9,10 @@ fixCacheConfigRights() {
   chmod 2775 /var/cache/centreon/config/export
   chmod 2775 /var/cache/centreon/config/vmware
 
-  # MON-38165 (find instead of a glob: no error on empty directories)
-  find /var/cache/centreon/config/engine /var/cache/centreon/config/broker -mindepth 1 -maxdepth 1 -exec chmod 0770 {} +
+  # MON-38165 (skip the unexpanded glob of an empty directory)
+  for f in /var/cache/centreon/config/engine/* /var/cache/centreon/config/broker/*; do
+    [[ -e "${f}" ]] && chmod 0770 "${f}"
+  done
 }
 
 startCentreon() {
