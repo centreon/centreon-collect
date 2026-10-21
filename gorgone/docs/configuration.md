@@ -36,14 +36,26 @@ configuration:
         password: centreon
 ```
 
-To use an SSL connection to Centreon databases, the following options can be added to the DSN:
+The DSN prefix selects the Perl DBI driver: `mysql:` for DBD::mysql (default) or `MariaDB:` for DBD::MariaDB.
+Driver specific options must use the prefix of the selected driver (`mysql_*` or `mariadb_*`), the other driver rejects them.
 
-| Options         | Description                                  |
-| :-------------- | :------------------------------------------- |
-| mysql_ssl       | Must be set to 1 to enable SSL               |
-| mysql_ssl_ca    | Path to the Certificate Authority (CA) file  |
-| mysql_ssl_cert  | Path to the client certificate               |
-| mysql_ssl_key   | Path to the client's private key             |
+### TLS connection
+
+To use a TLS connection to Centreon databases, the following options can be added to the DSN:
+
+| DBD::MariaDB option            | DBD::mysql option            | Description                                                     |
+| :----------------------------- | :--------------------------- | :-------------------------------------------------------------- |
+| mariadb_ssl                    | mysql_ssl                    | Must be set to 1 to enable TLS                                  |
+| mariadb_ssl_ca_file            | mysql_ssl_ca_file            | Path to the Certificate Authority (CA) file                     |
+| mariadb_ssl_verify_server_cert | mysql_ssl_verify_server_cert | Set to 1 to check that the server certificate matches the host |
+| mariadb_ssl_client_cert        | mysql_ssl_client_cert        | Path to the client certificate                                  |
+| mariadb_ssl_client_key         | mysql_ssl_client_key         | Path to the client's private key                                |
+
+When DBD::mysql is built against MariaDB Connector/C (Debian packages), `mysql_ssl=1` alone fails with
+`SSL connection error: Enforcing SSL encryption is not supported`. Use the `MariaDB:` driver
+(`libdbd-mariadb-perl` package) instead, or add `mysql_ssl_optional=1` to the DBD::mysql DSN. With
+`mysql_ssl_optional=1` the client falls back to a clear connection when the server does not offer TLS,
+so TLS must then be enforced on the server side (for example `REQUIRE SSL` on the database user).
 
 #### Example
 
@@ -52,7 +64,11 @@ configuration:
   centreon:
     database:
       db_configuration:
-        dsn: "mysql:host=localhost;dbname=centreon;mysql_ssl=1;mysql_ssl_ca=ca.pem;mysql_ssl_cert=client-cert.pem;mysql_ssl_key=client-key.pem"
+        dsn: "MariaDB:host=db.example.com;port=3306;database=centreon;mariadb_ssl=1;mariadb_ssl_ca_file=/etc/centreon/ca.pem;mariadb_ssl_verify_server_cert=1"
+        username: centreon
+        password: centreon
+      db_realtime:
+        dsn: "mysql:host=db.example.com;port=3306;database=centreon_storage;mysql_ssl=1;mysql_ssl_optional=1;mysql_ssl_ca_file=/etc/centreon/ca.pem;mysql_ssl_verify_server_cert=1"
         username: centreon
         password: centreon
 ```

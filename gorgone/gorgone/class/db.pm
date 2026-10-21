@@ -32,6 +32,20 @@ BEGIN {
     }
 }
 
+# Driver specific connection attributes. DBD::MariaDB always handles UTF-8 and
+# rejects any mysql_* attribute ("Unknown attribute mysql_enable_utf8").
+my %driver_attributes = (
+    mysql => { mysql_enable_utf8 => 1 },
+    MariaDB => {},
+    SQLite => { sqlite_unicode => 1 }
+);
+
+# Prefix of the driver private attributes (mysql_thread_id, mariadb_multi_statements, ...)
+my %driver_prefix = (
+    mysql => 'mysql',
+    MariaDB => 'mariadb'
+);
+
 sub new {
     my ($class, %options) = @_;
     my %defaults = (
@@ -43,7 +57,8 @@ sub new {
        password => undef,
        port => 3306,
        force => 0,
-       type => "mysql"
+       type => "mysql",
+       multi_statements => 0
     );
     my $self = {%defaults, %options};
     $self->{type} = 'mysql' if (!defined($self->{type}));
@@ -52,6 +67,8 @@ sub new {
     if (defined($self->{dsn})) {
         $self->{dsn} =~ s/^\s*"//;
         $self->{dsn} =~ s/"\s*$//;
+        # the DBI driver is given by the DSN (mysql:..., MariaDB:...)
+        $self->{type} = $1 if ($self->{dsn} =~ /^\s*([A-Za-z][A-Za-z0-9_]*):/);
     }
 
     $self->{die} = defined($options{die}) ? 1 : 0;
@@ -240,12 +257,30 @@ sub rollback {
     $self->transaction_cleanup();
 }
 
+sub driver_attributes {
+    my ($self) = @_;
+
+    return { %{$driver_attributes{$self->{type}} // {}} };
+}
+
+sub dsn {
+    my ($self) = @_;
+
+    my $dsn = $self->{dsn};
+    # multi statements is a driver private option: set it with the driver prefix
+    if ($self->{multi_statements} && defined($driver_prefix{$self->{type}})) {
+        $dsn .= ';' . $driver_prefix{$self->{type}} . '_multi_statements=1';
+    }
+    return $dsn;
+}
+
 sub kill {
     my $self = shift;
 
     if (defined($self->{instance})) {
         $self->{logger}->writeLogInfo("KILL QUERY\n");
-        my $rv = $self->{instance}->do("KILL QUERY " . $self->{instance}->{'mysql_thread_id'});
+        my $prefix = $driver_prefix{$self->{type}} // 'mysql';
+        my $rv = $self->{instance}->do("KILL QUERY " . $self->{instance}->{$prefix . '_thread_id'});
         if (!$rv) {
             my ($package, $filename, $line) = caller;
             $self->{logger}->writeLogError("MySQL error : " . $self->{instance}->errstr . " (caller: $package:$filename:$line)");
@@ -261,15 +296,15 @@ sub connect() {
     $self->{in_transaction} = 0;
 
     while (1) {
-        $self->{port} = 3306 if (!defined($self->{port}) && $self->{type} eq 'mysql');
+        $self->{port} = 3306 if (!defined($self->{port}) && defined($driver_prefix{$self->{type}}));
         if (defined($self->{dsn})) {
             $self->{instance} = DBI->connect(
-                "DBI:".$self->{dsn}, $self->{user}, $self->{password},
+                "DBI:".$self->dsn(), $self->{user}, $self->{password},
                 {
                     RaiseError => 0,
                     PrintError => 0,
                     AutoCommit => 1,
-                    mysql_enable_utf8 => 1
+                    %{$self->driver_attributes()}
                 }
             );
         } elsif ($self->{type} =~ /SQLite/i) {
@@ -292,7 +327,7 @@ sub connect() {
                     RaiseError => 0,
                     PrintError => 0,
                     AutoCommit => 1,
-                    mysql_enable_utf8 => 1
+                    %{$self->driver_attributes()}
                 }
             );
         }

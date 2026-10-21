@@ -650,7 +650,8 @@ sub run {
     my ($self, %options) = @_;
 
     $self->{db_centreon} = gorgone::class::db->new(
-        dsn => $self->{config_db_centreon}->{dsn} . ';mysql_multi_statements=1',
+        dsn => $self->{config_db_centreon}->{dsn},
+        multi_statements => 1,
         user => $self->{config_db_centreon}->{username},
         password => $self->{config_db_centreon}->{password},
         force => 2,
