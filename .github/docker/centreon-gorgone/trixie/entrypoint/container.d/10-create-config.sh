@@ -81,6 +81,8 @@ if [ "$central_config_debug_was_on" = "1" ]; then
 fi
 
 # GORGONE__CENTREON__DATABASE__* still overrides any field below after load.
+# Database TLS: DBD::mysql cannot enforce TLS on Debian, override both DSN with the MariaDB driver, e.g.
+# GORGONE__CENTREON__DATABASE__DB_CONFIGURATION__DSN='MariaDB:host=db;dbname=centreon;mariadb_ssl=1;mariadb_ssl_ca_file=/etc/ssl/db-ca.pem;mariadb_ssl_verify_server_cert=1'
 cat > "$CONFIGD/30-centreon.yaml" <<EOF
 name: 30-centreon.yaml
 centreon:

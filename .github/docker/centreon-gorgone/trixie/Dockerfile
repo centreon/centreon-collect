@@ -165,6 +165,7 @@ apt-get install -y --no-install-recommends \
     perl \
     libdbi-perl \
     libdbd-mysql-perl \
+    libdbd-mariadb-perl \
     libdbd-sqlite3-perl \
     libjson-xs-perl \
     libyaml-libyaml-perl \
