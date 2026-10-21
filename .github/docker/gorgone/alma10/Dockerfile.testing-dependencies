@@ -51,6 +51,7 @@ dnf install -y \
   "perl(Clone)" \
   "perl(DateTime)" \
   "perl(DBD::mysql)" \
+  "perl(DBD::MariaDB)" \
   "perl(EV)" \
   "perl(HTTP::Daemon::SSL)" \
   "perl(Net::Curl::Easy)" \

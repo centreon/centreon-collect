@@ -79,6 +79,7 @@ apt-get install -y \
   libclone-choose-perl \
   libdatetime-perl \
   libdbd-mysql-perl \
+  libdbd-mariadb-perl \
   libev-perl \
   libhttp-daemon-ssl-perl \
   libjson-perl \
