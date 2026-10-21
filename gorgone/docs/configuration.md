@@ -51,11 +51,11 @@ To use a TLS connection to Centreon databases, the following options can be adde
 | mariadb_ssl_client_cert        | mysql_ssl_client_cert        | Path to the client certificate                                  |
 | mariadb_ssl_client_key         | mysql_ssl_client_key         | Path to the client's private key                                |
 
-When DBD::mysql is built against MariaDB Connector/C (Debian packages), `mysql_ssl=1` alone fails with
-`SSL connection error: Enforcing SSL encryption is not supported`. Use the `MariaDB:` driver
-(`libdbd-mariadb-perl` package) instead, or add `mysql_ssl_optional=1` to the DBD::mysql DSN. With
-`mysql_ssl_optional=1` the client falls back to a clear connection when the server does not offer TLS,
-so TLS must then be enforced on the server side (for example `REQUIRE SSL` on the database user).
+DBD::mysql can only enforce TLS when it is built against the MySQL client library (`libmysqlclient`), as
+the Alma Linux 9 and 10 packages. On Debian, DBD::mysql is built against MariaDB Connector/C and
+`mysql_ssl=1` fails with `SSL connection error: Enforcing SSL encryption is not supported`: use the
+`MariaDB:` driver (`libdbd-mariadb-perl` package) instead. Do not work around it with `mysql_ssl_optional=1`:
+the client then accepts a clear connection when TLS is not offered, which can be forced by a man in the middle.
 
 #### Example
 
@@ -68,7 +68,7 @@ configuration:
         username: centreon
         password: centreon
       db_realtime:
-        dsn: "mysql:host=db.example.com;port=3306;database=centreon_storage;mysql_ssl=1;mysql_ssl_optional=1;mysql_ssl_ca_file=/etc/centreon/ca.pem;mysql_ssl_verify_server_cert=1"
+        dsn: "MariaDB:host=db.example.com;port=3306;database=centreon_storage;mariadb_ssl=1;mariadb_ssl_ca_file=/etc/centreon/ca.pem;mariadb_ssl_verify_server_cert=1"
         username: centreon
         password: centreon
 ```

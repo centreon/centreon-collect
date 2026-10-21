@@ -260,7 +260,8 @@ sub rollback {
 sub driver_attributes {
     my ($self) = @_;
 
-    return { %{$driver_attributes{$self->{type}} // {}} };
+    return {} if (!defined($driver_attributes{$self->{type}}));
+    return $driver_attributes{$self->{type}};
 }
 
 sub dsn {
@@ -277,9 +278,10 @@ sub dsn {
 sub kill {
     my $self = shift;
 
-    if (defined($self->{instance})) {
+    # KILL QUERY only exists with the MySQL and MariaDB drivers (not with SQLite)
+    my $prefix = $driver_prefix{$self->{type}};
+    if (defined($self->{instance}) && defined($prefix)) {
         $self->{logger}->writeLogInfo("KILL QUERY\n");
-        my $prefix = $driver_prefix{$self->{type}} // 'mysql';
         my $rv = $self->{instance}->do("KILL QUERY " . $self->{instance}->{$prefix . '_thread_id'});
         if (!$rv) {
             my ($package, $filename, $line) = caller;

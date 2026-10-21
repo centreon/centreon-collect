@@ -114,6 +114,11 @@ sub test_kill {
         $db->kill();
         is($db->{instance}->{queries}, [ 'KILL QUERY 42' ], "kill should use $test->[1].");
     }
+
+    my $db = gorgone::class::db->new(logger => centreon::common::logger->new(), type => 'SQLite', db => 'dbname=:memory:');
+    $db->{instance} = fakeDbh->new();
+    $db->kill();
+    is($db->{instance}->{queries}, [], 'kill should do nothing with SQLite.');
 }
 
 sub main {
