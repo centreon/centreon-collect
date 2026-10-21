@@ -18,6 +18,7 @@
 
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
+#include "absl/cleanup/cleanup.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "google/protobuf/message.h"
 
@@ -171,10 +172,10 @@ void save_proto_to_disk(const std::filesystem::path& file_path,
                               tmp_path, strerror(errno));
   }
 
+  absl::Cleanup fd_closer = [&]() { ::close(fd); };
   if (needed > 0) {
     // posix_fallocate refuses a zero length
     if (int err = ::posix_fallocate(fd, 0, needed); err) {
-      ::close(fd);
       ::unlink(tmp_path.c_str());
       throw exceptions::msg_fmt("Fail to resize {} to {} bytes: {}", tmp_path,
                                 needed, strerror(err));
@@ -184,16 +185,19 @@ void save_proto_to_disk(const std::filesystem::path& file_path,
         ::mmap(nullptr, needed, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (addr == MAP_FAILED) {
       int err = errno;
-      ::close(fd);
       ::unlink(tmp_path.c_str());
       throw exceptions::msg_fmt("Fail to map {}: {}", tmp_path, strerror(err));
     }
     data.SerializeWithCachedSizesToArray(static_cast<uint8_t*>(addr));
-    ::msync(addr, needed, MS_SYNC);
+    if (::msync(addr, needed, MS_SYNC)) {
+      int err = errno;
+      ::munmap(addr, needed);
+      ::unlink(tmp_path.c_str());
+      throw exceptions::msg_fmt("Fail to msync {}: {}", tmp_path,
+                                strerror(err));
+    }
     ::munmap(addr, needed);
   }
-
-  ::close(fd);
 
   if (::rename(tmp_path.c_str(), file_path.c_str()) < 0) {
     int err = errno;

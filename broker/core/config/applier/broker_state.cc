@@ -285,14 +285,6 @@ void broker_state::add_peer(uint64_t poller_id,
                          broker_name, poller_id);
     }
 
-    /* For ENGINE reconnections, preserve the known engine_conf if the caller
-     * did not supply a new one. */
-    std::string effective_engine_conf = engine_conf;
-    if (effective_engine_conf.empty() && peer_type == common::ENGINE) {
-      if (found_engine != _engine_peers.end())
-        effective_engine_conf = found_engine->second.engine_conf;
-    }
-
     /* Remove from all maps in case the peer type changed.
      * For BROKER peers, do NOT erase _engine_peers: a relay-registered engine
      * peer (via_remote) and a broker peer may legitimately share the same
@@ -310,19 +302,12 @@ void broker_state::add_peer(uint64_t poller_id,
                                          time(nullptr), extended_negotiation};
         break;
       case common::ENGINE:
-        _engine_peers[poller_id] = engine_peer{poller_id,
-                                               poller_name,
-                                               time(nullptr),
-                                               extended_negotiation,
-                                               "",
-                                               effective_engine_conf,
-                                               false,
-                                               true,
-                                               false,
-                                               0u};
+        _engine_peers[poller_id] = engine_peer{
+            poller_id, poller_name, time(nullptr), extended_negotiation,
+            "",        engine_conf, false,         true,
+            false,     0u};
         if (is_relay() && extended_negotiation)
-          _pending_config_requests[poller_id] = {poller_name,
-                                                 effective_engine_conf};
+          _pending_config_requests[poller_id] = {poller_name, engine_conf};
         break;
       default:
         _unknown_peers[key] =

@@ -51,22 +51,50 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
     if (!common::load_proto_from_disk(diff_name, obj)) {
       throw std::runtime_error("file not readable");
     }
-    SPDLOG_LOGGER_INFO(_logger,
-                       "BBDO: sending DiffState to poller {} (unknown={})",
-                       poller_id, obj.unknown());
-    if (_logger->level() <= spdlog::level::trace) {
-      SPDLOG_LOGGER_TRACE(_logger, "BBDO: sending DiffState to poller {} :{}",
-                          poller_id, io::data::dump_json{*pb_conf});
-    }
-    _write(pb_conf);
-    _state.set_available_conf_sent_to_engine_peer(
-        static_cast<uint32_t>(poller_id));
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger,
                         "BBDO: failed to open diff file '{}' for poller {}: {}",
                         diff_name.string(), poller_id, e.what());
-    throw;
+    // diff-<ID>.prot is corrupted => erase it and send the whole target conf
+    ::remove(diff_name.c_str());
+    obj.Clear();
+    auto all_conf = std::make_unique<engine::configuration::State>();
+
+    std::filesystem::path p =
+        _state.pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+    bool loaded = false;
+    try {
+      loaded = common::load_proto_from_disk(p, *all_conf);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(
+          _logger, "BBDO: failed to open conf file '{}' for poller {}: {}",
+          p.string(), poller_id, e.what());
+    }
+    if (!loaded) {
+      p = _state.pollers_config_dir() / fmt::format("{}.prot", poller_id);
+      try {
+        if (!common::load_proto_from_disk(p, *all_conf)) {
+          throw std::runtime_error("can't load file");
+        }
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(
+            _logger, "BBDO: failed to open conf file '{}' for poller {}: {}",
+            p.string(), poller_id, e.what());
+        throw;
+      }
+    }
+    obj.set_allocated_state(all_conf.release());
   }
+  SPDLOG_LOGGER_INFO(_logger,
+                     "BBDO: sending DiffState to poller {} (unknown={})",
+                     poller_id, pb_conf->obj().unknown());
+  if (_logger->level() <= spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(_logger, "BBDO: sending DiffState to poller {} :{}",
+                        poller_id, io::data::dump_json{*pb_conf});
+  }
+  _write(pb_conf);
+  _state.set_available_conf_sent_to_engine_peer(
+      static_cast<uint32_t>(poller_id));
 }
 
 /**
