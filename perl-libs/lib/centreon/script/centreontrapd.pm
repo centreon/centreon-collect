@@ -402,7 +402,9 @@ sub create_logdb_child {
         if ($self->{centreontrapd_config}->{mode} == 0) { 
             $centreon_db_centstorage = centreon::common::db->new(
                 db => $self->{centreon_config}->{centstorage_db},
+                type => $self->{centreon_config}->{db_type},
                 host => $self->{centreon_config}->{db_host},
+                dsn_options => $self->{centreon_config}->{db_dsn_options},
                 port => $self->{centreon_config}->{db_port},
                 user => $self->{centreon_config}->{db_user},
                 password => $self->{centreon_config}->{db_passwd},
@@ -1189,6 +1191,7 @@ sub run {
             db => $self->{centreon_config}->{centreon_db},
             type => $self->{centreon_config}->{db_type},
             host => $self->{centreon_config}->{db_host},
+            dsn_options => $self->{centreon_config}->{db_dsn_options},
             port => $self->{centreon_config}->{db_port},
             user => $self->{centreon_config}->{db_user},
             password => $self->{centreon_config}->{db_passwd},
@@ -1200,7 +1203,9 @@ sub run {
         $self->{cmdDir} = $self->{centreon_config}->{VarLib} . "/centcore";
         $self->{csdb} = centreon::common::db->new(
             db => $self->{centreon_config}->{centstorage_db},
+            type => $self->{centreon_config}->{db_type},
             host => $self->{centreon_config}->{db_host},
+            dsn_options => $self->{centreon_config}->{db_dsn_options},
             port => $self->{centreon_config}->{db_port},
             user => $self->{centreon_config}->{db_user},
             password => $self->{centreon_config}->{db_passwd},

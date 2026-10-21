@@ -100,7 +100,9 @@ sub init {
     if ($self->{centreon_db_conn}) {
         $self->{cdb} = centreon::common::db->new
           (db => $self->{centreon_config}->{centreon_db},
+           type => $self->{centreon_config}->{db_type},
            host => $self->{centreon_config}->{db_host},
+           dsn_options => $self->{centreon_config}->{db_dsn_options},
            port => $self->{centreon_config}->{db_port},
            user => $self->{centreon_config}->{db_user},
            password => $self->{centreon_config}->{db_passwd},
@@ -111,7 +113,9 @@ sub init {
     if ($self->{centstorage_db_conn}) {
         $self->{csdb} = centreon::common::db->new
           (db => $self->{centreon_config}->{centstorage_db},
+           type => $self->{centreon_config}->{db_type},
            host => $self->{centreon_config}->{db_host},
+           dsn_options => $self->{centreon_config}->{db_dsn_options},
            port => $self->{centreon_config}->{db_port},
            user => $self->{centreon_config}->{db_user},
            password => $self->{centreon_config}->{db_passwd},

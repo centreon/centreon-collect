@@ -167,7 +167,8 @@ sub kill {
 
     if (defined($self->{instance})) {
         $self->{logger}->writeLogInfo("KILL QUERY\n");
-        my $rv = $self->{instance}->do("KILL QUERY " . $self->{instance}->{'mysql_thread_id'});
+        my $thread_id = $self->{type} eq 'MariaDB' ? 'mariadb_thread_id' : 'mysql_thread_id';
+        my $rv = $self->{instance}->do("KILL QUERY " . $self->{instance}->{$thread_id});
         if (!$rv) {
             my ($package, $filename, $line) = caller;
             $self->{logger}->writeLogError("MySQL error : " . $self->{instance}->errstr . " (caller: $package:$filename:$line)");
@@ -184,11 +185,23 @@ sub connect {
     my $connect_options = {};
     $connect_options = $options{connect_options} if (defined($options{connect_options}) && ref($options{connect_options}) eq "HASH");
     while (1) {
-        $self->{port} = 3306 if (!defined($self->{port}) && $self->{type} eq 'mysql');
+        $self->{port} = 3306 if (!defined($self->{port}) && $self->{type} =~ /^(?:mysql|MariaDB)$/);
         if ($self->{type} =~ /SQLite/i) {
             $self->{instance} = DBI->connect(
                 "DBI:".$self->{type} 
                     .":".$self->{db},
+                $self->{user},
+                $self->{password},
+                { "RaiseError" => 0, "PrintError" => 0, "AutoCommit" => 1, %{$connect_options} }
+            );
+        } elsif (defined($self->{dsn_options}) && $self->{dsn_options} ne '') {
+            # driver options (TLS, ...) given by the db_dsn_options key of conf.pm
+            $self->{instance} = DBI->connect(
+                "DBI:".$self->{type}
+                    .":database=".$self->{db}
+                    .";host=".$self->{host}
+                    .";port=".$self->{port}
+                    .";".$self->{dsn_options},
                 $self->{user},
                 $self->{password},
                 { "RaiseError" => 0, "PrintError" => 0, "AutoCommit" => 1, %{$connect_options} }

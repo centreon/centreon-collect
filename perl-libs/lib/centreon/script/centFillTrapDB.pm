@@ -762,7 +762,9 @@ sub run {
         exit(1);
     }
     $self->{centreon_dbc} = centreon::common::db->new(db => $self->{centreon_config}->{centreon_db},
+                                                      type => $self->{centreon_config}->{db_type},
                                                       host => $self->{centreon_config}->{db_host},
+                                                      dsn_options => $self->{centreon_config}->{db_dsn_options},
                                                       port => $self->{centreon_config}->{db_port},
                                                       user => $self->{centreon_config}->{db_user},
                                                       password => $self->{centreon_config}->{db_passwd},
