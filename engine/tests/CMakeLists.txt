@@ -121,6 +121,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/helper.cc
       ${TESTS_DIR}/macros/pbmacro.cc
       ${TESTS_DIR}/macros/pbmacro_custom_recursive.cc
+      ${TESTS_DIR}/macros/pbmacro_global_context.cc
       ${TESTS_DIR}/macros/pbmacro_hostname.cc
       ${TESTS_DIR}/macros/pbmacro_service.cc
       ${TESTS_DIR}/external_commands/pbanomalydetection.cc
