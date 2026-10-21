@@ -14,6 +14,10 @@ services:
       - --ssl-ca=/certs/ca.pem
       - --ssl-cert=/certs/server.pem
       - --ssl-key=/certs/server-key.pem
+      # DB_TLS=OFF: the server does not offer TLS at all (like a man in the middle removing it),
+      # to check that the TLS DSN refuse to fall back to a clear connection. Use DB_TLS_REQUIRED=OFF with it.
+      # Must be after the --ssl-* options, which enable TLS.
+      - --ssl=${DB_TLS:-ON}
       - --require-secure-transport=${DB_TLS_REQUIRED:-ON}
       # to read the TLS cipher of every session (see check-tls.sh)
       - --performance-schema=ON

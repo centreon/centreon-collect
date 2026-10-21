@@ -51,11 +51,25 @@ To use a TLS connection to Centreon databases, the following options can be adde
 | mariadb_ssl_client_cert        | mysql_ssl_client_cert        | Path to the client certificate                                  |
 | mariadb_ssl_client_key         | mysql_ssl_client_key         | Path to the client's private key                                |
 
-DBD::mysql can only enforce TLS when it is built against the MySQL client library (`libmysqlclient`), as
-the Alma Linux 9 and 10 packages. On Debian, DBD::mysql is built against MariaDB Connector/C and
-`mysql_ssl=1` fails with `SSL connection error: Enforcing SSL encryption is not supported`: use the
-`MariaDB:` driver (`libdbd-mariadb-perl` package) instead. Do not work around it with `mysql_ssl_optional=1`:
-the client then accepts a clear connection when TLS is not offered, which can be forced by a man in the middle.
+The `MariaDB:` driver is recommended: TLS with certificate verification works with it on every supported
+OS and database server.
+
+With DBD::mysql, `mysql_ssl=1` works when DBD::mysql is built against the MySQL client library
+(`libmysqlclient`, Alma Linux 9 and 10 packages). On Debian, DBD::mysql is built against MariaDB
+Connector/C and `mysql_ssl=1` fails with `SSL connection error: Enforcing SSL encryption is not supported`
+(DBD::mysql 4.053 does not recognize the Connector/C 3.x version). On Debian only, if the `MariaDB:` driver
+cannot be used, add `mysql_ssl_optional=1` with **both** `mysql_ssl_ca_file` and
+`mysql_ssl_verify_server_cert=1`: Connector/C then still requires TLS and refuses a server (or a man in the
+middle) that does not offer it. Without `mysql_ssl_verify_server_cert=1`, it falls back to a clear connection.
+
+```
+mysql:host=db.example.com;port=3306;database=centreon;mysql_ssl=1;mysql_ssl_optional=1;mysql_ssl_ca_file=/etc/centreon/ca.pem;mysql_ssl_verify_server_cert=1
+```
+
+Never use `mysql_ssl_optional=1` on Alma Linux: with `libmysqlclient` it always falls back to a clear
+connection when the server does not offer TLS, even with `mysql_ssl_verify_server_cert=1`. DBD::MariaDB
+rejects `mariadb_ssl_optional=1` with `mariadb_ssl_verify_server_cert=1`: do not copy this workaround to a
+`MariaDB:` DSN.
 
 #### Example
 

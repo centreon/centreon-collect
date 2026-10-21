@@ -11,13 +11,14 @@ mounted in the container, with the `nodes` module which reads the `centreon` dat
 | `db-init/01-centreon.sh`| minimal `centreon` database and `centreon` user (`REQUIRE SSL` when TLS is ON) |
 | `gorgone-entrypoint.sh` | writes the gorgone configuration with `GORGONE_DSN` and starts gorgoned        |
 | `check-tls.sh`          | TLS cipher of the `centreon` sessions, read on the server side                 |
-| `run-scenarios.sh`      | runs every DSN with TLS required and not required, and reports the results     |
+| `run-scenarios.sh`      | runs every DSN in the 3 database modes (ON, OFF, NOTLS) and reports the results |
 
 Variables:
 
 | Variable          | Default                                                        | Description                                       |
 | :---------------- | :------------------------------------------------------------- | :------------------------------------------------ |
 | `DB_TLS_REQUIRED` | `ON`                                                           | `ON`: `require_secure_transport` + `REQUIRE SSL` |
+| `DB_TLS`          | `ON`                                                           | `OFF`: the server does not offer TLS (use with `DB_TLS_REQUIRED=OFF`) |
 | `GORGONE_DSN`     | `MariaDB:` DSN with TLS and CA verification                    | DSN used by gorgone                               |
 | `GORGONE_SRC`     | `../../..` (the `gorgone` directory of this repository)        | gorgone source code to test                       |
 | `GORGONE_IMAGE`   | `docker.centreon.com/centreon/gorgone-testing-trixie:release-26.09-next` | image with the Debian 13 drivers  |
@@ -29,7 +30,7 @@ All commands are run from this directory.
 
 ```shell
 ./gen-certs.sh                 # once
-./run-scenarios.sh             # TLS required and not required (or ./run-scenarios.sh ON / OFF)
+./run-scenarios.sh             # modes ON, OFF and NOTLS (or ./run-scenarios.sh ON|OFF|NOTLS)
 ```
 
 The `expected` column is the behaviour with the fix, the `detail` column gives the error or the TLS cipher
