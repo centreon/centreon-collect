@@ -178,6 +178,7 @@ overrides:
       - perl(YAML::XS)
       - perl(DBD::SQLite)
       - perl(DBD::mysql)
+      - perl(DBD::MariaDB) # MariaDB: DSN, needed for database TLS on some OS (MON-211445)
       - perl(DBI)
       - perl(UUID)
       - perl(HTTP::Daemon)
