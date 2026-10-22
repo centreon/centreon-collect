@@ -56,6 +56,10 @@ static bool is_old_style_user_macro(std::string const& key, unsigned int& val) {
  *  @param[in] config The new configuration.
  */
 void applier::macros::apply(configuration::State& pb_config) {
+  // The objects pointed by the volatile macros (host, service, contact...) may
+  // be destroyed by the configuration being applied.
+  clear_volatile_macros_r(_mac);
+
   _set_macro(MACRO_ADMINEMAIL, pb_config.admin_email());
   _set_macro(MACRO_ADMINPAGER, pb_config.admin_pager());
   _set_macro(MACRO_COMMANDFILE, pb_config.command_file());
