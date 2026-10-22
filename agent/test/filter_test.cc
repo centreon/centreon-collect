@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <rapidjson/document.h>
 
 #include "filter.hh"
 #include "filter_rules.cc"
@@ -165,6 +166,79 @@ TEST(filter_test, filter_in) {
   EXPECT_EQ(res5->get_rule(), filters::in_not::not_in);
   EXPECT_EQ(res5->get_values().size(), 1);
   EXPECT_EQ(res5->get_values().count(L"titi"), 1);
+}
+
+TEST(filter_test, quoted_value_with_backslashes) {
+  // a backslash that escapes nothing is a literal backslash
+  for (std::string_view filter_str :
+       {R"(filename = 'C:\Windows\System32\svchost.exe')",
+        R"(filename = 'C:\\Windows\\System32\\svchost.exe')"}) {
+    auto res =
+        bp::parse(filter_str, label_compare_to_string_rule, bp::trace::off);
+    ASSERT_TRUE(res) << filter_str;
+    EXPECT_EQ(res->get_value(), R"(C:\Windows\System32\svchost.exe)")
+        << filter_str;
+
+    auto res_w =
+        bp::parse(filter_str, label_compare_to_string_rule_w, bp::trace::off);
+    ASSERT_TRUE(res_w) << filter_str;
+    EXPECT_EQ(res_w->get_value(), LR"(C:\Windows\System32\svchost.exe)")
+        << filter_str;
+  }
+
+  auto escaped_quote = bp::parse(R"(name = 'it\'s')",
+                                 label_compare_to_string_rule, bp::trace::off);
+  ASSERT_TRUE(escaped_quote);
+  EXPECT_EQ(escaped_quote->get_value(), "it's");
+
+  // \' is an escaped quote, so a trailing backslash must be escaped
+  auto trailing_backslash = bp::parse(
+      R"(path = 'C:\\')", label_compare_to_string_rule, bp::trace::off);
+  ASSERT_TRUE(trailing_backslash);
+  EXPECT_EQ(trailing_backslash->get_value(), R"(C:\)");
+
+  auto res_in = bp::parse(
+      R"(folder in ('\Folder\To\Task', "\\Other\\Task", "say \"hi\""))",
+      label_in_rule, bp::trace::off);
+  ASSERT_TRUE(res_in);
+  EXPECT_EQ(res_in->get_values().size(), 3);
+  EXPECT_EQ(res_in->get_values().count(R"(\Folder\To\Task)"), 1);
+  EXPECT_EQ(res_in->get_values().count(R"(\Other\Task)"), 1);
+  EXPECT_EQ(res_in->get_values().count(R"(say "hi")"), 1);
+
+  auto res_in_w = bp::parse(R"(folder in ('\Folder\To\Task'))", label_in_rule_w,
+                            bp::trace::off);
+  ASSERT_TRUE(res_in_w);
+  EXPECT_EQ(res_in_w->get_values().count(LR"(\Folder\To\Task)"), 1);
+}
+
+TEST(filter_test, filter_macro_backslash_escaped_once_or_twice) {
+  std::string dumps[2];
+  int idx = 0;
+  // filter macro escaped once and twice (legacy form), engine copies it as is
+  // in the json command line
+  for (std::string_view macro :
+       {R"(filename = 'C:\\Windows\\System32\\svchost.exe' && )"
+        R"(folder in ('\\Folder\\To\\Task'))",
+        R"(filename = 'C:\\\\Windows\\\\System32\\\\svchost.exe' && )"
+        R"(folder in ('\\\\Folder\\\\To\\\\Task'))"}) {
+    rapidjson::Document args;
+    args.Parse(absl::StrCat(R"({"filter": ")", macro, R"("})").c_str());
+    ASSERT_FALSE(args.HasParseError()) << macro;
+
+    filters::filter_combinator res;
+    ASSERT_TRUE(filter::create_filter(args["filter"].GetString(),
+                                      spdlog::default_logger(), &res))
+        << macro;
+    std::ostringstream dump;
+    dump << res;
+    dumps[idx++] = dump.str();
+  }
+  EXPECT_EQ(dumps[0], dumps[1]);
+  EXPECT_NE(dumps[0].find(R"(C:\Windows\System32\svchost.exe)"),
+            std::string::npos)
+      << dumps[0];
+  EXPECT_NE(dumps[0].find(R"(\Folder\To\Task)"), std::string::npos) << dumps[0];
 }
 
 TEST(filter_test, filter_combinator) {

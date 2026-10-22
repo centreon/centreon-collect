@@ -34,6 +34,26 @@ namespace bp = boost::parser;
     bp::char_('0', '9') | bp::char_('-') | bp::char_('/') | bp::char_(':'))
 
 /************************************************************************
+quoted values grammar
+
+Unlike bp::quoted_string, a backslash that doesn't escape a backslash or the
+quote is a literal backslash. Filters are json strings whose backslashes are
+already unescaped once, so a windows path must be written 'C:\\Windows' in the
+json (C:\\Windows in a macro) and not only 'C:\\\\Windows' (legacy form).
+A value ending with a backslash still needs the legacy form ('C:\\\\' in json)
+because \' is an escaped quote.
+
+**************************************************************************/
+
+const auto single_quoted_value = '\'' >> *((bp::lit('\\') >> bp::char_("\\'")) |
+                                           (bp::char_ - '\'')) >>
+                                 '\'';
+
+const auto double_quoted_value = '"' >> *((bp::lit('\\') >> bp::char_("\\\"")) |
+                                          (bp::char_ - '"')) >>
+                                 '"';
+
+/************************************************************************
 label_compare_to_value grammar
 
 We expect a string like 5.5<unit> <= label or label >= 5.5<unit> with or not
@@ -82,7 +102,7 @@ const bp::symbols<string_comparison> str_comparison_symbols = {
 
 const auto label_compare_to_string_rule_def = label_grammar >> *bp::ws >>
                                               str_comparison_symbols >>
-                                              *bp::ws >> bp::quoted_string("'");
+                                              *bp::ws >> single_quoted_value;
 
 /************************************************************************
 label_in grammar
@@ -105,9 +125,9 @@ const bp::symbols<in_not> in_symbols = {{"in", in_not::in},
 
 const auto label_in_rule_def =
     label_grammar >> *bp::ws >> in_symbols >> *bp::ws >> '(' >> *bp::ws >>
-    (bp::quoted_string("'\"") | label_in_value_grammar) >>
+    (single_quoted_value | double_quoted_value | label_in_value_grammar) >>
     *(*bp::ws >> ',' >> *bp::ws >>
-      (bp::quoted_string("'\"") | label_in_value_grammar)) >>
+      (single_quoted_value | double_quoted_value | label_in_value_grammar)) >>
     *bp::ws >> ')';
 
 /************************************************************************
@@ -172,14 +192,13 @@ const auto filter_combinator_rule_def =
 
 const auto label_compare_to_string_rule_w_def = label_grammar >> *bp::ws >>
                                                 str_comparison_symbols >>
-                                                *bp::ws >>
-                                                bp::quoted_string("'");
+                                                *bp::ws >> single_quoted_value;
 
 const auto label_in_rule_w_def =
     label_grammar >> *bp::ws >> in_symbols >> *bp::ws >> '(' >> *bp::ws >>
-    (bp::quoted_string("'\"") | label_in_value_grammar) >>
+    (single_quoted_value | double_quoted_value | label_in_value_grammar) >>
     *(*bp::ws >> ',' >> *bp::ws >>
-      (bp::quoted_string("'\"") | label_in_value_grammar)) >>
+      (single_quoted_value | double_quoted_value | label_in_value_grammar)) >>
     *bp::ws >> ')';
 
 const auto filter_combinator_rule1_w_def =
