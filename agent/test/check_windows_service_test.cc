@@ -255,6 +255,71 @@ TEST_F(check_service_test, service_no_threshold_one_by_state) {
   }
 }
 
+TEST_F(check_service_test, service_empty_filters_are_ignored) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv("service_stopped",
+                                           "desc service_stopped",
+                                           SERVICE_STOPPED, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_stop_pending", "desc service_stop_pending",
+          SERVICE_STOP_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_AUTO_START),
+  };
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  // filters given by unset macros
+  rapidjson::Document check_args =
+      R"({ "filter-name": "", "exclude-name": "", "filter-display": "",
+        "exclude-display": "" })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  // same result as without filters
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output,
+            "OK: services: 1 stopped, 1 starting, 1 stopping, 1 running, "
+            "1 continuing, 1 pausing, 1 paused");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_EQ(perf.value(), 1.0);
+  }
+}
+
 TEST_F(check_service_test, service_filter_exclude_all_service) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
