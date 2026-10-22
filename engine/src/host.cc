@@ -1585,6 +1585,7 @@ int host::handle_async_check_result_3x(
     // broker
     nagios_macros* macros(get_global_macros());
     std::string cmdline = get_check_command_line(macros);
+    clear_volatile_macros_r(macros);
     if (!cmdline.empty()) {
       broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this,
                         checkable::check_passive, cmdline.c_str());
