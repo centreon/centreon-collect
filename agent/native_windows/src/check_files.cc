@@ -1082,7 +1082,7 @@ void check_files::_completion_handler(
         break;
     }
     output = fmt::format(
-        "{}: Ok:{}|Nok:{}|total:{}  warning:{}|critical:{}\n", status_str,
+        "{}: Ok:{}/Nok:{}/total:{}  warning:{}/critical:{}\n", status_str,
         _ok_list.size(), _warning_list.size() + _critical_list.size(),
         result.size(), _warning_list.size(), _critical_list.size());
     for (const auto& [path, metadata_ptr] : result) {
