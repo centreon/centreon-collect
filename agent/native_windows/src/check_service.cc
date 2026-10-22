@@ -19,6 +19,7 @@
 #include <windows.h>
 
 #include "check_service.hh"
+#include "com/centreon/common/utf8.hh"
 #include "native_check_base.cc"
 #include "windows_util.hh"
 
@@ -28,6 +29,25 @@ using namespace com::centreon::agent::native_check_detail;
 
 namespace com::centreon::agent::native_check_detail {
 
+/**
+ * @brief convert a nullable wide string returned by service API to UTF-8
+ */
+static std::string _to_utf8(LPCWSTR str) {
+  return str ? common::wstring_to_utf8(str) : std::string();
+}
+
+/**
+ * @brief build a case insensitive regex
+ * RE2 is UTF-8 aware, so É matches é, and pattern escapes such as \S or \D
+ * keep their meaning (they would not if the pattern was lowercased)
+ */
+static std::unique_ptr<re2::RE2> _case_insensitive_regex(
+    const std::string& pattern) {
+  re2::RE2::Options options;
+  options.set_case_sensitive(false);
+  return std::make_unique<re2::RE2>(pattern, options);
+}
+
 /***********************************************************************************************
  *     service_enumerator
  ***********************************************************************************************/
@@ -36,7 +56,7 @@ namespace com::centreon::agent::native_check_detail {
  * @brief Constructor
  */
 service_enumerator::service_enumerator() {
-  _sc_manager_handler = OpenSCManager(nullptr, nullptr, GENERIC_READ);
+  _sc_manager_handler = OpenSCManagerW(nullptr, nullptr, GENERIC_READ);
   if (!_sc_manager_handler) {
     throw exceptions::msg_fmt("OpenSCManager failed");
   }
@@ -80,7 +100,7 @@ void service_enumerator::enumerate_services(
 bool service_enumerator::_enumerate_services(serv_array& services,
                                              DWORD* services_returned) {
   DWORD buff_size = sizeof(services);
-  return EnumServicesStatusA(_sc_manager_handler, SERVICE_TYPE_ALL,
+  return EnumServicesStatusW(_sc_manager_handler, SERVICE_TYPE_ALL,
                              SERVICE_STATE_ALL, services, sizeof(services),
                              &buff_size, services_returned, &_resume_handle);
 }
@@ -89,46 +109,46 @@ bool service_enumerator::_enumerate_services(serv_array& services,
  * @brief Query the service configuration  (overloaded in tests to do a mock)
  * @param service_name service name
  * @param query_flags e_query_service_config_type values
- * @param buffer buffer used to store QUERY_SERVICE_CONFIGA datas
+ * @param buffer buffer used to store QUERY_SERVICE_CONFIGW datas
  * @param buffer_size in/out sizeof buffer
  * @param start_delayed out set to true is service is auto start delayed
  * @param logger
  */
 bool service_enumerator::_query_service_config(
-    LPCSTR service_name,
+    LPCWSTR service_name,
     unsigned query_flags,
     std::unique_ptr<unsigned char[]>& buffer,
     size_t* buffer_size,
     BOOL* start_delayed,
     const std::shared_ptr<spdlog::logger>& logger) {
   SC_HANDLE serv_handle =
-      OpenService(_sc_manager_handler, service_name, GENERIC_READ);
+      OpenServiceW(_sc_manager_handler, service_name, GENERIC_READ);
   if (!serv_handle) {
-    SPDLOG_LOGGER_ERROR(logger, " fail to open service {}: {}", service_name,
-                        get_last_error_as_string());
+    SPDLOG_LOGGER_ERROR(logger, " fail to open service {}: {}",
+                        _to_utf8(service_name), get_last_error_as_string());
     return false;
   }
   bool success = true;
   DWORD bytes_needed = 0;
   if (query_flags & e_query_service_config_type::query_service_config) {
-    if (!QueryServiceConfigA(
-            serv_handle, reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
+    if (!QueryServiceConfigW(
+            serv_handle, reinterpret_cast<QUERY_SERVICE_CONFIGW*>(buffer.get()),
             *buffer_size, &bytes_needed)) {
       if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
         buffer = std::make_unique<unsigned char[]>(bytes_needed);
         *buffer_size = bytes_needed;
 
-        if (!QueryServiceConfigA(
+        if (!QueryServiceConfigW(
                 serv_handle,
-                reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
+                reinterpret_cast<QUERY_SERVICE_CONFIGW*>(buffer.get()),
                 *buffer_size, &bytes_needed)) {
           SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}: {}",
-                              service_name, GetLastError());
+                              _to_utf8(service_name), GetLastError());
           success = false;
         }
       } else {
         SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}: {}",
-                            service_name, GetLastError());
+                            _to_utf8(service_name), GetLastError());
         success = false;
       }
     }
@@ -136,12 +156,12 @@ bool service_enumerator::_query_service_config(
   if (query_flags &
       e_query_service_config_type::query_service_start_auto_delayed) {
     SERVICE_DELAYED_AUTO_START_INFO info;
-    if (!QueryServiceConfig2A(
+    if (!QueryServiceConfig2W(
             serv_handle, SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
             reinterpret_cast<LPBYTE>(&info),
             sizeof(SERVICE_DELAYED_AUTO_START_INFO), &bytes_needed)) {
       SPDLOG_LOGGER_ERROR(logger, " fail to query service config 2 {}: {}",
-                          service_name, GetLastError());
+                          _to_utf8(service_name), GetLastError());
       success = false;
     } else {
       *start_delayed = info.fDelayedAutostart;
@@ -165,7 +185,7 @@ void service_enumerator::_enumerate_services(
     service_filter& filter,
     service_enumerator::listener&& callback,
     const std::shared_ptr<spdlog::logger>& logger) {
-  ENUM_SERVICE_STATUSA services[512];
+  ENUM_SERVICE_STATUSW services[512];
 
   _resume_handle = 0;
 
@@ -176,17 +196,18 @@ void service_enumerator::_enumerate_services(
   size_t query_serv_conf_buff_size = 0;
   if constexpr (need_start_auto) {
     query_serv_conf_buff =
-        std::make_unique<unsigned char[]>(sizeof(QUERY_SERVICE_CONFIGA));
-    query_serv_conf_buff_size = sizeof(QUERY_SERVICE_CONFIGA);
+        std::make_unique<unsigned char[]>(sizeof(QUERY_SERVICE_CONFIGW));
+    query_serv_conf_buff_size = sizeof(QUERY_SERVICE_CONFIGW);
   }
 
   while (true) {
     BOOL success = _enumerate_services(services, &services_count);
     DWORD error_code = GetLastError();
     if (success || error_code == ERROR_MORE_DATA) {
-      LPENUM_SERVICE_STATUSA services_end = services + services_count;
+      LPENUM_SERVICE_STATUSW services_end = services + services_count;
 
-      for (LPENUM_SERVICE_STATUS serv = services; serv < services_end; ++serv) {
+      for (LPENUM_SERVICE_STATUSW serv = services; serv < services_end;
+           ++serv) {
         DWORD start_type = 0;
         BOOL start_auto_delayed = FALSE;
 
@@ -204,17 +225,21 @@ void service_enumerator::_enumerate_services(
           }
         }
         if constexpr (need_start_auto) {
-          start_type = reinterpret_cast<const QUERY_SERVICE_CONFIGA*>(
+          start_type = reinterpret_cast<const QUERY_SERVICE_CONFIGW*>(
                            query_serv_conf_buff.get())
                            ->dwStartType;
         }
 
+        // filters and outputs work on UTF-8 strings
+        std::string service_name = _to_utf8(serv->lpServiceName);
+        std::string display_name = _to_utf8(serv->lpDisplayName);
+
         if (!filter.is_allowed(serv->ServiceStatus.dwServiceType, start_type,
-                               start_auto_delayed, serv->lpServiceName,
-                               serv->lpDisplayName)) {
+                               start_auto_delayed, service_name,
+                               display_name)) {
           continue;
         }
-        callback(*serv);
+        callback(serv->ServiceStatus, service_name, display_name);
       }
     }
     if (!success && error_code != ERROR_MORE_DATA) {
@@ -259,8 +284,9 @@ w_service_info::w_service_info(service_enumerator& service_enumerator,
   memset(&_metrics, 0, sizeof(_metrics));
   service_enumerator.enumerate_services(
       filter,
-      [this](const ENUM_SERVICE_STATUSA& service_status) {
-        on_service(service_status);
+      [this](const SERVICE_STATUS& status, const std::string& service_name,
+             const std::string& display_name) {
+        on_service(status, service_name, display_name);
       },
       logger);
   if (_metrics[e_service_metric::total] == 0) {
@@ -271,11 +297,12 @@ w_service_info::w_service_info(service_enumerator& service_enumerator,
 /**
  * @brief callback called by enumerator
  */
-void w_service_info::on_service(const ENUM_SERVICE_STATUSA& service_status) {
-  unsigned state = service_status.ServiceStatus.dwCurrentState & 7;
+void w_service_info::on_service(const SERVICE_STATUS& status,
+                                const std::string& service_name,
+                                const std::string& display_name) {
+  unsigned state = status.dwCurrentState & 7;
   if (!state) {
-    SPDLOG_LOGGER_ERROR(_logger, "bad state value for {}",
-                        service_status.lpDisplayName);
+    SPDLOG_LOGGER_ERROR(_logger, "bad state value for {}", display_name);
     return;
   }
   unsigned state_flag = 1 << (state - 1);
@@ -284,8 +311,7 @@ void w_service_info::on_service(const ENUM_SERVICE_STATUSA& service_status) {
     if (!_output.empty()) {
       _output.push_back(' ');
     }
-    _output += fmt::format("CRITICAL: {} is {}", service_status.lpServiceName,
-                           _labels[state]);
+    _output += fmt::format("CRITICAL: {} is {}", service_name, _labels[state]);
   } else if (state_flag & _state_to_warning) {
     if (_status == e_status::ok) {
       _status = e_status::warning;
@@ -293,8 +319,7 @@ void w_service_info::on_service(const ENUM_SERVICE_STATUSA& service_status) {
     if (!_output.empty()) {
       _output.push_back(' ');
     }
-    _output += fmt::format("WARNING: {} is {}", service_status.lpServiceName,
-                           _labels[state]);
+    _output += fmt::format("WARNING: {} is {}", service_name, _labels[state]);
   }
   ++_metrics[state - 1];
   ++_metrics[e_service_metric::total];
@@ -358,9 +383,7 @@ service_filter::service_filter(const rapidjson::Value& args)
       } else if (key == "filter-name") {
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
-          std::string value = val.GetString();
-          absl::AsciiStrToLower(&value);
-          _name_filter = std::make_unique<re2::RE2>(value);
+          _name_filter = _case_insensitive_regex(val.GetString());
           if (!_name_filter->ok()) {
             throw exceptions::msg_fmt("filter-name: {} is not a valid regex",
                                       val.GetString());
@@ -371,9 +394,7 @@ service_filter::service_filter(const rapidjson::Value& args)
       } else if (key == "exclude-name") {
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
-          std::string value = val.GetString();
-          absl::AsciiStrToLower(&value);
-          _name_filter_exclude = std::make_unique<re2::RE2>(value);
+          _name_filter_exclude = _case_insensitive_regex(val.GetString());
           if (!_name_filter_exclude->ok()) {
             throw exceptions::msg_fmt("exclude-name: {} is not a valid regex",
                                       val.GetString());
@@ -384,9 +405,7 @@ service_filter::service_filter(const rapidjson::Value& args)
       } else if (key == "filter-display") {
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
-          std::string value = val.GetString();
-          absl::AsciiStrToLower(&value);
-          _display_filter = std::make_unique<re2::RE2>(value);
+          _display_filter = _case_insensitive_regex(val.GetString());
           if (!_display_filter->ok()) {
             throw exceptions::msg_fmt("filter-display: {} is not a valid regex",
                                       val.GetString());
@@ -397,9 +416,7 @@ service_filter::service_filter(const rapidjson::Value& args)
       } else if (key == "exclude-display") {
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
-          std::string value = val.GetString();
-          absl::AsciiStrToLower(&value);
-          _display_filter_exclude = std::make_unique<re2::RE2>(value);
+          _display_filter_exclude = _case_insensitive_regex(val.GetString());
           if (!_display_filter_exclude->ok()) {
             throw exceptions::msg_fmt(
                 "exclude-display: {} is not a valid regex", val.GetString());
@@ -413,9 +430,8 @@ service_filter::service_filter(const rapidjson::Value& args)
         if (value.empty()) {
           continue;
         }
-        absl::AsciiStrToLower(&value);
-        re2::RE2 value_re(value);
-        if (!value_re.ok()) {
+        std::unique_ptr<re2::RE2> value_re = _case_insensitive_regex(value);
+        if (!value_re->ok()) {
           throw exceptions::msg_fmt("start-type: {} is not a valid regex",
                                     value);
         }
@@ -427,7 +443,7 @@ service_filter::service_filter(const rapidjson::Value& args)
                              {"disabled"sv, e_start_auto::disabled},
                              {"system"sv, e_start_auto::system}}};
         for (const auto& to_test : str_to_value) {
-          if (RE2::PartialMatch(to_test.first, value_re)) {
+          if (RE2::PartialMatch(to_test.first, *value_re)) {
             _start_auto |= to_test.second;
           }
         }
@@ -442,9 +458,8 @@ service_filter::service_filter(const rapidjson::Value& args)
         if (value.empty()) {
           continue;
         }
-        absl::AsciiStrToLower(&value);
-        re2::RE2 value_re(value);
-        if (!value_re.ok()) {
+        std::unique_ptr<re2::RE2> value_re = _case_insensitive_regex(value);
+        if (!value_re->ok()) {
           throw exceptions::msg_fmt("type: {} is not a valid regex", value);
         }
         constexpr std::array<std::pair<std::string_view, unsigned>, 14>
@@ -464,7 +479,7 @@ service_filter::service_filter(const rapidjson::Value& args)
                  {"interactive-process", SERVICE_INTERACTIVE_PROCESS},
                  {"pkg-service", SERVICE_PKG_SERVICE}}};
         for (const auto& to_test : str_to_value) {
-          if (RE2::PartialMatch(to_test.first, value_re)) {
+          if (RE2::PartialMatch(to_test.first, *value_re)) {
             _service_type |= to_test.second;
           }
         }
@@ -474,21 +489,10 @@ service_filter::service_filter(const rapidjson::Value& args)
 }
 
 /**
- * @brief remove all negative chars
- * @param sz string to clean
- */
-static void remove_accents(std::string* sz) {
-  for (char& chr : *sz) {
-    if (chr < 0) {
-      chr = '_';
-    }
-  }
-}
-
-/**
  * @brief Check if a service is allowed by the filter.
  * @param start_auto Whether the service is set to start automatically.
- * @param service_name The name of the service.
+ * @param service_name The UTF-8 name of the service.
+ * @param service_display The UTF-8 display name of the service.
  */
 bool service_filter::is_allowed(DWORD service_type,
                                 DWORD start_type,
@@ -535,62 +539,51 @@ bool service_filter::is_allowed(DWORD service_type,
     return false;
   }
 
-  std::string lower_service_name(service_name.data(), service_name.length());
-  absl::AsciiStrToLower(&lower_service_name);
-
-  std::string lower_display(service_display.data(), service_display.length());
-  absl::AsciiStrToLower(&lower_display);
-
-  // accented characters are not supported by RE2 so we remove them
-  remove_accents(&lower_display);
-
-  if (_name_cache_excluded.find(lower_service_name) !=
-      _name_cache_excluded.end()) {
+  if (_name_cache_excluded.find(service_name) != _name_cache_excluded.end()) {
     return false;
   }
-  if (_display_cache_excluded.find(lower_display) !=
+  if (_display_cache_excluded.find(service_display) !=
       _display_cache_excluded.end()) {
     return false;
   }
 
   auto check_display = [&]() {
     if (_display_filter_exclude &&
-        RE2::FullMatch(lower_display, *_display_filter_exclude)) {
-      _display_cache_excluded.emplace(lower_display);
+        RE2::FullMatch(service_display, *_display_filter_exclude)) {
+      _display_cache_excluded.emplace(service_display);
       return false;
     }
-    if (_display_filter && !RE2::FullMatch(lower_display, *_display_filter)) {
-      _display_cache_excluded.emplace(lower_display);
+    if (_display_filter && !RE2::FullMatch(service_display, *_display_filter)) {
+      _display_cache_excluded.emplace(service_display);
       return false;
     }
-    _display_cache_allowed.emplace(lower_display);
+    _display_cache_allowed.emplace(service_display);
     return true;
   };
 
   auto check_name = [&]() {
     if (_name_filter_exclude &&
-        RE2::FullMatch(lower_service_name, *_name_filter_exclude)) {
-      _name_cache_excluded.emplace(lower_service_name);
+        RE2::FullMatch(service_name, *_name_filter_exclude)) {
+      _name_cache_excluded.emplace(service_name);
       return false;
     }
-    if (_name_filter && !RE2::FullMatch(lower_service_name, *_name_filter)) {
-      _name_cache_excluded.emplace(lower_service_name);
+    if (_name_filter && !RE2::FullMatch(service_name, *_name_filter)) {
+      _name_cache_excluded.emplace(service_name);
       return false;
     }
-    _name_cache_allowed.emplace(lower_service_name);
+    _name_cache_allowed.emplace(service_name);
     return true;
   };
 
-  if (_name_cache_allowed.find(lower_service_name) !=
-      _name_cache_allowed.end()) {
-    if (_display_cache_allowed.find(lower_display) !=
+  if (_name_cache_allowed.find(service_name) != _name_cache_allowed.end()) {
+    if (_display_cache_allowed.find(service_display) !=
         _display_cache_allowed.end()) {
       return true;
     }
     return check_display();
   }
 
-  if (_display_cache_allowed.find(lower_display) !=
+  if (_display_cache_allowed.find(service_display) !=
       _display_cache_allowed.end()) {
     return check_name();
   }

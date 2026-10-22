@@ -17,6 +17,7 @@
  */
 
 #include "process/process_data.hh"
+#include "com/centreon/common/utf8.hh"
 #include "windows_util.hh"
 
 using namespace com::centreon::agent;
@@ -60,14 +61,16 @@ process_data::process_data(DWORD pid,
 
   std::unique_ptr<HANDLE, detail::handle_close> h_process_ptr(&h_process);
 
-  char buff[MAX_PATH + 1];
-  buff[MAX_PATH] = '\0';
   if (fields & process_field::exe_filename) {
-    if (GetModuleFileNameExA(h_process, nullptr, buff, MAX_PATH) == 0) {
+    // wide API + UTF-8 conversion as filters and outputs are UTF-8
+    wchar_t buff[MAX_PATH + 1];
+    DWORD length = GetModuleFileNameExW(h_process, nullptr, buff, MAX_PATH);
+    if (length == 0) {
       SPDLOG_LOGGER_ERROR(logger, "GetModuleFileNameEx failed of process {}",
                           pid);
     } else {
-      _file_name = buff;
+      _file_name = com::centreon::common::wstring_to_utf8(
+          std::wstring_view(buff, length));
       size_t last_sep = _file_name.find_last_of("\\/");
       if (last_sep != std::string::npos) {
         _exe = _file_name.substr(last_sep + 1);

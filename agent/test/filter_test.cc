@@ -117,6 +117,14 @@ TEST(filter_test, label_compare_to_string) {
   EXPECT_EQ(res6->get_label(), "grault");
   EXPECT_EQ(res6->get_value(), L"garply");
   EXPECT_EQ(res6->get_comparison(), string_comparison::not_equal);
+
+  // values are UTF-8, they must be decoded and not widened byte by byte
+  auto res7 = bp::parse("provider == 'Tâche planifiée'",
+                        label_compare_to_string_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res7);
+  EXPECT_EQ(res7->get_label(), "provider");
+  EXPECT_EQ(res7->get_value(), L"Tâche planifiée");
 }
 
 TEST(filter_test, filter_in) {
@@ -165,6 +173,15 @@ TEST(filter_test, filter_in) {
   EXPECT_EQ(res5->get_rule(), filters::in_not::not_in);
   EXPECT_EQ(res5->get_values().size(), 1);
   EXPECT_EQ(res5->get_values().count(L"titi"), 1);
+
+  // values are UTF-8, they must be decoded and not widened byte by byte
+  auto res6 = bp::parse("provider in ('Tâche', 'Contrôle 東京')",
+                        label_in_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res6);
+  EXPECT_EQ(res6->get_values().size(), 2);
+  EXPECT_EQ(res6->get_values().count(L"Tâche"), 1);
+  EXPECT_EQ(res6->get_values().count(L"Contrôle 東京"), 1);
 }
 
 TEST(filter_test, filter_combinator) {

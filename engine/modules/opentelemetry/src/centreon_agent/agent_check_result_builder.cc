@@ -114,6 +114,28 @@ void perf_data::append_to_string(std::string* to_append) {
     absl::StrAppend(to_append, *max);
 }
 
+/**
+ * @brief append a perfdata label to output. A label that contains a space, an
+ * equal sign or a quote (an X.509 subject for example) would break the
+ * perfdata syntax, so it is quoted and its quotes are doubled.
+ *
+ * @param output
+ * @param label
+ */
+static void append_label(std::string* output, std::string_view label) {
+  if (label.find_first_of(" \t\r\n='") == std::string_view::npos) {
+    output->append(label);
+    return;
+  }
+  output->push_back('\'');
+  for (char c : label) {
+    if (c == '\'')
+      output->push_back('\'');
+    output->push_back(c);
+  }
+  output->push_back('\'');
+}
+
 }  // namespace
    // com::centreon::engine::modules::opentelemetry::centreon_agent::detail
 
@@ -181,8 +203,9 @@ bool agent_check_result_builder::build_result_from_metrics(
     if (data_pt_search != metric_to_data_pt.second.end()) {
       output.push_back(' ');
       const otl_data_point& data_pt = *data_pt_search;
-      absl::StrAppend(&output, metric_to_data_pt.first, "=",
-                      data_pt.get_value(), data_pt.get_metric().unit(), ";");
+      detail::append_label(&output, metric_to_data_pt.first);
+      absl::StrAppend(&output, "=", data_pt.get_value(),
+                      data_pt.get_metric().unit(), ";");
 
       // all other metric value (warning_lt, critical_gt, min... are stored
       // in exemplars)

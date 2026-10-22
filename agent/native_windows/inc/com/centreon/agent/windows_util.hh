@@ -23,8 +23,6 @@ namespace com::centreon::agent {
 std::string get_last_error_as_string();
 std::string error_as_string(DWORD error_message_id);
 
-std::string lpwcstr_to_acp(LPCWSTR lpwstr);
-
 std::chrono::file_clock::time_point convert_filetime_to_tp(uint64_t file_time);
 
 inline std::chrono::file_clock::time_point convert_filetime_to_tp(

@@ -18,7 +18,10 @@
 
 #include <gtest/gtest.h>
 
+#include <forward_list>
+
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/common/utf8.hh"
 
 #include "check_service.hh"
 
@@ -31,8 +34,8 @@ using namespace std::string_literals;
 
 class mock_service_enumerator : public service_enumerator {
  public:
-  using enum_with_conf = std::tuple<ENUM_SERVICE_STATUSA,
-                                    QUERY_SERVICE_CONFIGA,
+  using enum_with_conf = std::tuple<ENUM_SERVICE_STATUSW,
+                                    QUERY_SERVICE_CONFIGW,
                                     BOOL /*auto start delayed*/>;
 
   std::vector<enum_with_conf> data;
@@ -43,12 +46,22 @@ class mock_service_enumerator : public service_enumerator {
                            DWORD* services_returned) override;
 
   bool _query_service_config(
-      LPCSTR service_name,
+      LPCWSTR service_name,
       unsigned query_flags,
       std::unique_ptr<unsigned char[]>& buffer,
       size_t* buffer_size,
       BOOL* start_delayed,
       const std::shared_ptr<spdlog::logger>& logger) override;
+
+  /**
+   * @brief convert an UTF-8 string to a wide one that lives until the end of
+   * the tests (mocked services only store pointers)
+   */
+  static wchar_t* to_wide(const char* utf8) {
+    static std::forward_list<std::wstring> storage;
+    storage.push_front(com::centreon::common::utf8_to_wstring(utf8));
+    return storage.front().data();
+  }
 
   static enum_with_conf create_serv(
       const char* name,
@@ -57,9 +70,9 @@ class mock_service_enumerator : public service_enumerator {
       DWORD start_type,
       DWORD service_type = SERVICE_WIN32_OWN_PROCESS,
       BOOL start_auto_delayed = FALSE) {
-    ENUM_SERVICE_STATUSA serv;
-    serv.lpServiceName = const_cast<char*>(name);
-    serv.lpDisplayName = const_cast<char*>(display);
+    ENUM_SERVICE_STATUSW serv;
+    serv.lpServiceName = to_wide(name);
+    serv.lpDisplayName = to_wide(display);
     serv.ServiceStatus.dwCurrentState = state;
     serv.ServiceStatus.dwServiceType = service_type;
     serv.ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
@@ -68,17 +81,17 @@ class mock_service_enumerator : public service_enumerator {
     serv.ServiceStatus.dwCheckPoint = 0;
     serv.ServiceStatus.dwWaitHint = 0;
 
-    QUERY_SERVICE_CONFIGA serv_conf;
+    QUERY_SERVICE_CONFIGW serv_conf;
     serv_conf.dwServiceType = service_type;
     serv_conf.dwStartType = start_type;
     serv_conf.dwErrorControl = SERVICE_ERROR_NORMAL;
-    static char dummy_path[] = "C:\\path\\to\\service.exe";
+    static wchar_t dummy_path[] = L"C:\\path\\to\\service.exe";
     serv_conf.lpBinaryPathName = dummy_path;
     serv_conf.lpLoadOrderGroup = nullptr;
     serv_conf.dwTagId = 0;
     serv_conf.lpDependencies = nullptr;
     serv_conf.lpServiceStartName = nullptr;
-    serv_conf.lpDisplayName = const_cast<char*>(display);
+    serv_conf.lpDisplayName = serv.lpDisplayName;
 
     return {serv, serv_conf, start_auto_delayed};
   }
@@ -97,17 +110,17 @@ bool mock_service_enumerator::_enumerate_services(serv_array& services,
 }
 
 bool mock_service_enumerator::_query_service_config(
-    LPCSTR service_name,
+    LPCWSTR service_name,
     unsigned query_flags,
     std::unique_ptr<unsigned char[]>& buffer,
     size_t* buffer_size,
     BOOL* start_delayed,
     const std::shared_ptr<spdlog::logger>& logger) {
   for (const auto& service : data) {
-    if (strcmp(service_name, std::get<0>(service).lpServiceName) == 0) {
+    if (wcscmp(service_name, std::get<0>(service).lpServiceName) == 0) {
       if (query_flags & e_query_service_config_type::query_service_config) {
         memcpy(buffer.get(), &std::get<1>(service),
-               sizeof(QUERY_SERVICE_CONFIGA));
+               sizeof(QUERY_SERVICE_CONFIGW));
       }
       if (query_flags &
           e_query_service_config_type::query_service_start_auto_delayed) {
@@ -2064,4 +2077,73 @@ TEST_F(check_service_test, service_filter_type_pkg_service) {
     EXPECT_EQ(perf.min(), 0);
     EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
   }
+}
+
+/**
+ * Given services with accented names and display names
+ * When filters contain accented characters in another case
+ * Then services are matched (case insensitive and UTF-8 aware) and none is
+ * dropped by a ".*" filter
+ */
+TEST_F(check_service_test, service_filter_non_ascii) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv("ControleLegalite",
+                                           "CONTRÔLE LÉGALITÉ", SERVICE_STOPPED,
+                                           SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("Côte", "Côte-d'Or", SERVICE_PAUSED,
+                                           SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_running", "desc service_running", SERVICE_RUNNING,
+          SERVICE_AUTO_START)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  auto run_check = [&](const char* json_args, std::string* output) {
+    rapidjson::Document check_args;
+    check_args.Parse(json_args);
+    check_service test_check(
+        g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+        [](const std::shared_ptr<check>& caller, int status,
+           const std::list<com::centreon::common::perfdata>& perfdata,
+           const std::list<std::string>& outputs) {},
+        std::make_shared<checks_statistics>());
+
+    auto snap = test_check.measure();
+    std::list<com::centreon::common::perfdata> perfs;
+    output->clear();
+    return test_check.compute(*snap, output, &perfs);
+  };
+
+  std::string output;
+  e_status status = run_check(
+      R"({"filter-name":".*","filter-display":"Contrôle Légalité","warning-state":"paused","critical-state":"stopped"})",
+      &output);
+  EXPECT_EQ(status, e_status::critical);
+  EXPECT_EQ(output,
+            "CRITICAL: services: 1 stopped CRITICAL: ControleLegalite is "
+            "stopped");
+
+  status = run_check(
+      R"({"filter-name":".*","warning-state":"paused","critical-state":"stopped"})",
+      &output);
+  EXPECT_EQ(status, e_status::critical);
+  EXPECT_EQ(output,
+            "CRITICAL: services: 1 stopped, 1 running, 1 paused CRITICAL: "
+            "ControleLegalite is stopped WARNING: Côte is paused");
+
+  status =
+      run_check(R"({"filter-name":"CÔTE","warning-state":"paused"})", &output);
+  EXPECT_EQ(status, e_status::warning);
+  EXPECT_EQ(output, "WARNING: services: 1 paused WARNING: Côte is paused");
+
+  status = run_check(
+      R"({"exclude-display":"côte-d'or|contrôle légalité","critical-state":"stopped"})",
+      &output);
+  EXPECT_EQ(status, e_status::ok);
+  EXPECT_EQ(output, "OK: all services are running");
 }

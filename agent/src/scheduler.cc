@@ -722,9 +722,8 @@ void scheduler::_store_result_in_metrics_and_exemplars(
   if (!outputs.empty()) {
     const std::string& first_line = *outputs.begin();
     size_t pipe_pos = first_line.find('|');
-    state_metrics->set_description(common::check_string_utf8(
-        pipe_pos != std::string::npos ? first_line.substr(0, pipe_pos)
-                                      : first_line));
+    state_metrics->set_description(
+        common::ensure_utf8(std::string_view(first_line).substr(0, pipe_pos)));
   }
   auto data_point = state_metrics->mutable_gauge()->add_data_points();
   data_point->set_time_unix_nano(now);
@@ -818,8 +817,10 @@ void scheduler::_add_metric_to_scope(
     uint64_t now,
     const com::centreon::common::perfdata& perf,
     scope_metric_request& scope_metric) {
-  auto metric = _get_metric(scope_metric, perf.name());
-  metric->set_unit(perf.unit());
+  // protobuf strings must be UTF-8 but plugins may output perfdata labels
+  // and units in another encoding
+  auto metric = _get_metric(scope_metric, common::ensure_utf8(perf.name()));
+  metric->set_unit(common::ensure_utf8(perf.unit()));
   auto data_point = metric->mutable_gauge()->add_data_points();
   data_point->set_as_double(perf.value());
   data_point->set_time_unix_nano(now);

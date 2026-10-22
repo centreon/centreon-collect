@@ -253,6 +253,21 @@ def ctn_echo_command(to_echo: str):
         return "/bin/echo " + to_echo
 
 
+def ctn_echo_encoded_command(encoding: str, to_echo: str):
+    """
+    ctn_echo_encoded_command
+    returned a command usable by testing agent OS that prints to_echo to stdout
+    encoded in encoding, to simulate plugins whose output is not UTF-8
+    Args:
+        encoding: output encoding (UTF-8, ISO-8859-1...)
+        to_echo: string to print to stdout
+    """
+    if environ.get("RUN_ENV", "") == "WSL":
+        return '"' + environ.get('PWSH_PATH') + '"' + " C:/Users/Public/echo_encoded.ps1 " + encoding + " " + to_echo
+    else:
+        return "/tmp/var/lib/centreon-engine/echo_encoded.sh " + encoding + " " + to_echo
+
+
 def ctn_check_pl_command(arg: str):
     """
     ctn_check_pl_command

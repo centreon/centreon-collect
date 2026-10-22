@@ -17,6 +17,7 @@
  */
 
 #include "filter.hh"
+#include "com/centreon/common/utf8.hh"
 #include "filter_rules.cc"
 
 using namespace com::centreon::agent;
@@ -31,22 +32,22 @@ std::ostream& operator<<(std::ostream& s,
 }
 }  // namespace std
 
+/**
+ * @brief convert a wide string (UTF-16) to an UTF-8 string
+ */
 void com::centreon::agent::wstring_to_string(std::wstring_view in_str,
                                              std::string* out_str) {
-  out_str->clear();
-  out_str->reserve(in_str.size());
-  for (wchar_t c : in_str) {
-    out_str->push_back(c);
-  }
+  *out_str = com::centreon::common::wstring_to_utf8(in_str);
 }
 
+/**
+ * @brief convert an UTF-8 string to a wide string (UTF-16)
+ * Filter values are UTF-8, a byte by byte copy would turn é (C3 A9) into
+ * two wrong characters
+ */
 void com::centreon::agent::string_to_wstring(std::string_view in_str,
                                              std::wstring* out_str) {
-  out_str->clear();
-  out_str->reserve(in_str.size());
-  for (wchar_t c : in_str) {
-    out_str->push_back(c);
-  }
+  *out_str = com::centreon::common::utf8_to_wstring(in_str);
 }
 
 bool filter::create_filter(std::string_view filter_str,
@@ -293,7 +294,7 @@ label_in<char_t>::label_in(std::string&& label,
     }
   } else {
     for (const std::string& value : values) {
-      _values.emplace(value.begin(), value.end());
+      _values.emplace(com::centreon::common::utf8_to_wstring(value));
     }
   }
 }
@@ -312,12 +313,9 @@ void label_in<char_t>::dump(std::ostream& s) const {
       s << value << ", ";
     }
   } else {
-#pragma warning(push)
-#pragma warning(disable : 4244)
     for (const auto& value : _values) {
-      s << std::string(value.begin(), value.end()) << ", ";
+      s << com::centreon::common::wstring_to_utf8(value) << ", ";
     }
-#pragma warning(pop)
   }
 
   s << ") }";

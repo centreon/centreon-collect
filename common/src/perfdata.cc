@@ -361,8 +361,11 @@ std::list<perfdata> perfdata::parse_perfdata(
 
     // Unquote metric name. Just beginning quotes and ending quotes"'".
     // We also remove spaces by the way.
-    if (*s == '\'')
+    bool quoted = false;
+    if (*s == '\'') {
       ++s;
+      quoted = true;
+    }
     if (*end == '\'')
       --end;
 
@@ -394,6 +397,10 @@ std::list<perfdata> perfdata::parse_perfdata(
 
     if (end - s + 1 > 0) {
       p._name.assign(s, end - s + 1);
+      // in a quoted label, a quote is escaped by doubling it ('d''Or')
+      if (quoted) {
+        absl::StrReplaceAll({{"''", "'"}}, &p._name);
+      }
       current_name = std::string_view(s, end - s + 1);
 
       if (metric_name.contains(current_name)) {

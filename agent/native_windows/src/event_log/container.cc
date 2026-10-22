@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/common/utf8.hh"
 #include "event_log/data.hh"
 #include "event_log/uniq.hh"
 #include "windows_util.hh"
@@ -46,7 +47,7 @@ event_container::event_container(const std::string_view& file,
                                  const std::shared_ptr<spdlog::logger>& logger)
     : _scan_range(scan_range),
       _need_to_decode_message_content(need_to_decode_message_content),
-      _file(file.begin(), file.end()),
+      _file(com::centreon::common::utf8_to_wstring(file)),
       _insertion_cpt(0),
       _render_context(nullptr),
       _subscription(nullptr),
@@ -189,6 +190,7 @@ LPWSTR event_container::_get_message_string(EVT_HANDLE h_metadata,
     return _read_message_buffer;
   }
   if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+    free(_read_message_buffer);
     _read_message_buffer = static_cast<LPWSTR>(
         malloc((buffer_used + 1) * sizeof(wchar_t)));  //+1 for \0
     _message_buffer_size = buffer_used;
@@ -291,9 +293,9 @@ std::string event_container::_get_message_content(
     EVT_HANDLE new_publisher = EvtOpenPublisherMetadata(
         NULL, raw_event.get_provider().data(), NULL, 0, 0);
     if (!new_publisher) {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "fail to get publisher metadata for provider: {}",
-                          lpwcstr_to_acp(raw_event.get_provider().data()));
+      SPDLOG_LOGGER_ERROR(
+          _logger, "fail to get publisher metadata for provider: {}",
+          com::centreon::common::wstring_to_utf8(raw_event.get_provider()));
     } else {
       yet_open =
           _provider_metadata.emplace(raw_event.get_provider(), new_publisher)
@@ -303,7 +305,7 @@ std::string event_container::_get_message_content(
   if (yet_open != _provider_metadata.end()) {
     LPWSTR mess = _get_message_string(yet_open->second, h_event);
     if (mess) {
-      return lpwcstr_to_acp(mess);
+      return com::centreon::common::wstring_to_utf8(mess);
     }
   }
   return {};
