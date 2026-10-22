@@ -28,22 +28,51 @@ namespace check_drive_size_detail {
 /**
  * @brief these flags are passed in check parameter:filter-storage-type and
  * filter-type
+ * Values lower than hr_fs_other are storage types (hrstorage*), the others are
+ * file system formats (hrfs*).
  *
  */
-enum e_drive_type : uint64_t {
-  hr_unknown = 0,
-  hr_storage_ram = 1 << 0,
-  hr_storage_virtual_memory = 1 << 1,
-  hr_storage_fixed_disk = 1 << 2,
-  hr_storage_removable_disk = 1 << 3,
-  hr_storage_floppy_disk = 1 << 4,
-  hr_storage_compact_disc = 1 << 5,
-  hr_storage_ram_disk = 1 << 6,
-  hr_storage_flash_memory = 1 << 7,
-  hr_storage_network_disk = 1 << 8
+enum e_drive_fs_type : uint64_t {
+  // not 0 in order to be selectable in masks (unknown drive type or format
+  // unknown by the agent are allowed when there is no filter)
+  hr_unknown = 1ULL << 0,
+  hr_storage_ram = 1ULL << 1,
+  hr_storage_virtual_memory = 1ULL << 2,
+  hr_storage_fixed_disk = 1ULL << 3,
+  hr_storage_removable_disk = 1ULL << 4,
+  hr_storage_floppy_disk = 1ULL << 5,
+  hr_storage_compact_disc = 1ULL << 6,
+  hr_storage_ram_disk = 1ULL << 7,
+  hr_storage_flash_memory = 1ULL << 8,
+  hr_storage_network_disk = 1ULL << 9,
+  hr_fs_other = 1ULL << 10,  // keep it always in first fs value
+  hr_fs_unknown = 1ULL << 11,
+  hr_fs_berkeley_ffs = 1ULL << 12,
+  hr_fs_sys5_fs = 1ULL << 13,
+  hr_fs_fat = 1ULL << 14,
+  hr_fs_hpfs = 1ULL << 15,
+  hr_fs_hfs = 1ULL << 16,
+  hr_fs_mfs = 1ULL << 17,
+  hr_fs_ntfs = 1ULL << 18,
+  hr_fs_vnode = 1ULL << 19,
+  hr_fs_journaled = 1ULL << 20,
+  hr_fs_iso9660 = 1ULL << 21,
+  hr_fs_rock_ridge = 1ULL << 22,
+  hr_fs_nfs = 1ULL << 23,
+  hr_fs_netware = 1ULL << 24,
+  hr_fs_afs = 1ULL << 25,
+  hr_fs_dfs = 1ULL << 26,
+  hr_fs_appleshare = 1ULL << 27,
+  hr_fs_rfs = 1ULL << 28,
+  hr_fs_dgcfs = 1ULL << 29,
+  hr_fs_bfs = 1ULL << 30,
+  hr_fs_fat32 = 1ULL << 31,
+  hr_fs_linux_ext2 = 1ULL << 32,
+  hr_fs_linux_ext4 = 1ULL << 33,
+  hr_fs_exfat = 1ULL << 34
 };
-
-std::string drive_type_to_string(unsigned drive_type);
+std::string drive_type_to_string(uint64_t drive_type);
+e_drive_fs_type drive_fs_type_from_string(const std::string_view& str);
 
 /**
  * @brief user can check only some fs by using filters
@@ -51,7 +80,10 @@ std::string drive_type_to_string(unsigned drive_type);
  *
  */
 class filter {
-  unsigned _drive_type_filter;
+  // mask of allowed hrstorage* flags
+  uint64_t _drive_type_filter;
+  // mask of allowed hrfs* flags
+  uint64_t _format_filter;
 
   std::unique_ptr<re2::RE2> _filter_fs, _filter_exclude_fs, _filter_fs_type;
   std::unique_ptr<re2::RE2> _filter_mountpoint, _filter_exclude_mountpoint;
@@ -59,10 +91,13 @@ class filter {
  public:
   filter(const rapidjson::Value& args);
 
+  bool is_fs_allowed(const std::string_view& fs,
+                     const std::string_view& mount_point,
+                     const std::shared_ptr<spdlog::logger>& logger) const;
   bool is_allowed(const std::string_view& fs,
-                  const std::string_view& fs_type,
-                  const std::string_view& mount_point,
-                  e_drive_type media_type,
+                  e_drive_fs_type format_type,
+                  const std::string_view& unknown_format_type,
+                  e_drive_fs_type media_type,
                   const std::shared_ptr<spdlog::logger>& logger) const;
 };
 
