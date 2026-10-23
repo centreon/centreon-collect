@@ -1,0 +1,142 @@
+# Product-token Workload Identity probe of the dev Pulp stack. Reference copy and docs live in
+# centreon/delivery-tooling pulp/probe/: keep both in sync.
+#
+# The OIDC token is minted for THIS repository, so this exercises that repository's
+# rules in configmap-settings.yaml (delivery, ref-gated stable promotion, installers) on the dev
+# stack. It only sends EMPTY modify requests: pulpcore discards a repository version without
+# changes, so an allowed probe leaves no trace (checked below), and a denied one is a 403.
+
+name: pulp wi probe
+
+on:
+  # a PR ref is not a promote ref: validates the unstable-allowed / stable-denied side
+  pull_request:
+    paths:
+      - ".github/workflows/pulp-wi-probe.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "30 5 * * 1-5" # weekdays, after delivery-tooling's pulp-after-upgrade-test
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  # the probed repositories' domain (the rule's domain in configmap-settings.yaml)
+  PROBE_DOMAIN: standard
+  # also probe the installers rules (centreon-collect only). The dev installers repositories come
+  # from delivery-tooling's create-repos-installers.yml run with stack=dev.
+  PROBE_INSTALLERS: "true"
+
+jobs:
+  probe:
+    runs-on: centreon-ubuntu-26.04-small
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pulp-cli (dev stack)
+        uses: ./.github/actions/setup-pulp-cli
+        with:
+          pulp_url: ${{ vars.PULP_DEV_API_URL }}
+          audience: ${{ vars.PULP_DEV_OIDC_AUDIENCE }}
+
+      - name: Probe the Workload Identity rules
+        env:
+          PULP_URL: ${{ vars.PULP_DEV_API_URL }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          PULP_URL="${PULP_URL%/}"
+          BODY="$(mktemp)"
+          FAILURES=0
+
+          # what the rules grant this ref (configmap-settings.yaml *-stable-promote-* refs)
+          case "$REF" in
+            refs/heads/develop | refs/heads/master | refs/heads/main | refs/heads/dev-*.x \
+              | refs/heads/release-*-next | refs/heads/hotfix-*-next | refs/tags/*)
+              STABLE=allow ;;
+            *) STABLE=deny ;;
+          esac
+          # installers stable promotion is tag-only
+          if [[ "$REF" == refs/tags/* ]]; then INSTALLERS_STABLE=allow; else INSTALLERS_STABLE=deny; fi
+          echo "## Pulp WI probe: ${GITHUB_REPOSITORY}@${REF} (stable: $STABLE)" >> "$GITHUB_STEP_SUMMARY"
+
+          api() {
+            local method="$1" path="$2"
+            shift 2
+            curl -sS -o "$BODY" -w '%{http_code}' --max-time 60 -X "$method" \
+              -H "Authorization: Bearer $PULP_TOKEN" "$PULP_URL$path" "$@"
+          }
+          report() {
+            echo "$1 $2"
+            echo "| $1 | $2 |" >> "$GITHUB_STEP_SUMMARY"
+            [[ "$1" == "OK" ]] || FAILURES=$((FAILURES + 1))
+          }
+
+          # href of the first repository of <domain> <type path> whose name matches <regex>
+          find_repo() {
+            local code
+            code=$(api GET "/$1/api/v3/repositories/$2/?limit=1000&fields=name,pulp_href")
+            [[ "$code" == "200" ]] || return 1
+            jq -r --arg re "$3" '[.results[] | select(.name | test($re))][0] // empty | "\(.pulp_href) \(.name)"' "$BODY"
+          }
+
+          # empty modify on <domain> <type path> <name regex>, expecting allow or deny
+          probe() {
+            local domain="$1" type="$2" re="$3" expected="$4" href name before after code task state
+            read -r href name < <(find_repo "$domain" "$type" "$re" || true) || true
+            if [[ -z "${href:-}" ]]; then
+              report FAIL "no $domain $type repository matching $re visible to this token"
+              return
+            fi
+            api GET "$href" > /dev/null
+            before=$(jq -r '.latest_version_href' "$BODY")
+            code=$(api POST "${href}modify/" -H "Content-Type: application/json" -d '{"add_content_units": []}')
+            if [[ "$expected" == "deny" ]]; then
+              if [[ "$code" == "403" ]]; then
+                report OK "denied as expected: $domain/$name"
+              else
+                report FAIL "expected a 403 on $domain/$name, got HTTP $code"
+              fi
+              return
+            fi
+            if [[ "$code" != "202" ]]; then
+              report FAIL "expected a 202 on $domain/$name, got HTTP $code ($(head -c 200 "$BODY"))"
+              return
+            fi
+            task=$(jq -r '.task' "$BODY")
+            for _ in $(seq 60); do
+              api GET "$task" > /dev/null
+              state=$(jq -r '.state' "$BODY")
+              [[ "$state" == "completed" || "$state" == "failed" || "$state" == "canceled" ]] && break
+              sleep 2
+            done
+            api GET "$href" > /dev/null
+            after=$(jq -r '.latest_version_href' "$BODY")
+            if [[ "$state" == "completed" && "$before" == "$after" ]]; then
+              report OK "allowed as expected, no new version: $domain/$name"
+            else
+              report FAIL "allowed modify on $domain/$name ended '$state', version $before -> $after"
+            fi
+          }
+
+          echo "| | Probe |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          probe "$PROBE_DOMAIN" rpm/rpm '^rpm(-[0-9]+\.[0-9]+)?-el[0-9]+-unstable-(noarch|x86_64)$' allow
+          probe "$PROBE_DOMAIN" rpm/rpm '^rpm(-[0-9]+\.[0-9]+)?-el[0-9]+-stable-(noarch|x86_64)$' "$STABLE"
+          probe "$PROBE_DOMAIN" deb/apt '^apt-unstable$' allow
+          probe "$PROBE_DOMAIN" deb/apt '^apt-stable$' "$STABLE"
+          if [[ "$PROBE_INSTALLERS" == "true" ]]; then
+            probe default file/file '^installers-.+-unstable$' allow
+            probe default file/file '^installers-.+-stable$' "$INSTALLERS_STABLE"
+          fi
+
+          if [[ "$FAILURES" -ne 0 ]]; then
+            echo "::error::$FAILURES probe(s) failed"
+            exit 1
+          fi
