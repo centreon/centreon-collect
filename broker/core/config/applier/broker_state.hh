@@ -145,6 +145,10 @@ class broker_state : public state {
       uint64_t poller_id,
       std::unique_ptr<engine::configuration::State>&& state)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool _save_diff_prot(uint64_t poller_id,
+                       const std::string& config_version,
+                       const engine::configuration::DiffState& diff)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_connected_peers_m);
   std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void _start_watch_engine_conf_timer();

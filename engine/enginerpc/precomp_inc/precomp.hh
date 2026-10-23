@@ -20,6 +20,7 @@
 #define CCE_ENGINE_RPC_PRECOMP_HH
 
 #include <unistd.h>
+#include <filesystem>
 #include <string>
 #include <string_view>
 

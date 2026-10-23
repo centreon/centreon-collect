@@ -21,6 +21,7 @@
 #include "bbdo/bbdo/version_response.hh"
 #include "broker/core/bbdo/basic_stream.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/common/file.hh"
 #include "common/engine_conf/indexed_diff_state.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -46,25 +47,54 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   auto& obj = pb_conf->mut_obj();
   std::filesystem::path diff_name(_state.pollers_config_dir() /
                                   fmt::format("diff-{}.prot", poller_id));
-  std::ifstream f(diff_name);
-  if (f) {
-    obj.ParseFromIstream(&f);
-    f.close();
-    SPDLOG_LOGGER_INFO(_logger,
-                       "BBDO: sending DiffState to poller {} (unknown={})",
-                       poller_id, obj.unknown());
-    if (_logger->level() <= spdlog::level::trace) {
-      SPDLOG_LOGGER_TRACE(_logger, "BBDO: sending DiffState to poller {} :{}",
-                          poller_id, io::data::dump_json{*pb_conf});
+  try {
+    if (!common::load_proto_from_disk(diff_name, obj)) {
+      throw std::runtime_error("file not readable");
     }
-    _write(pb_conf);
-    _state.set_available_conf_sent_to_engine_peer(
-        static_cast<uint32_t>(poller_id));
-  } else {
+  } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger,
-                        "BBDO: failed to open diff file '{}' for poller {}",
-                        diff_name.string(), poller_id);
+                        "BBDO: failed to open diff file '{}' for poller {}: {}",
+                        diff_name.string(), poller_id, e.what());
+    // diff-<ID>.prot is corrupted => erase it and send the whole target conf
+    ::remove(diff_name.c_str());
+    obj.Clear();
+    auto all_conf = std::make_unique<engine::configuration::State>();
+
+    std::filesystem::path p =
+        _state.pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+    bool loaded = false;
+    try {
+      loaded = common::load_proto_from_disk(p, *all_conf);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(
+          _logger, "BBDO: failed to open conf file '{}' for poller {}: {}",
+          p.string(), poller_id, e.what());
+    }
+    if (!loaded) {
+      p = _state.pollers_config_dir() / fmt::format("{}.prot", poller_id);
+      try {
+        if (!common::load_proto_from_disk(p, *all_conf)) {
+          throw std::runtime_error("can't load file");
+        }
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(
+            _logger, "BBDO: failed to open conf file '{}' for poller {}: {}",
+            p.string(), poller_id, e.what());
+        throw;
+      }
+    }
+    obj.set_allocated_state(all_conf.release());
   }
+  SPDLOG_LOGGER_INFO(_logger,
+                     "BBDO: sending DiffState to poller {} (unknown={})",
+                     poller_id, pb_conf->obj().unknown());
+  if (_logger->level() <= spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(_logger, "BBDO: sending DiffState to poller {} :{}",
+                        poller_id, io::data::dump_json{*pb_conf});
+  }
+  _write(pb_conf);
+  _state.set_available_conf_sent_to_engine_peer(
+      static_cast<uint32_t>(poller_id));
 }
 
 /**
@@ -131,16 +161,19 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
             if (absl::SimpleAtoi(poller_id_view, &poller_id)) {
               std::filesystem::path diff_name(_state.pollers_config_dir() /
                                               entry.path());
-              std::ifstream f(diff_name);
               com::centreon::engine::configuration::DiffState diff;
-              if (f) {
-                diff.ParseFromIstream(&f);
-                f.close();
-                global_diff.add_diff_state(diff, _logger);
-                SPDLOG_LOGGER_DEBUG(_logger, "BBDO: Removing diff file '{}'",
-                                    diff_name.string());
-                std::filesystem::remove(diff_name);
+              try {
+                if (common::load_proto_from_disk(diff_name, diff)) {
+                  global_diff.add_diff_state(diff, _logger);
+                  SPDLOG_LOGGER_DEBUG(_logger, "BBDO: Removing diff file '{}'",
+                                      diff_name.string());
+                }
+              } catch (const std::exception& e) {
+                SPDLOG_LOGGER_ERROR(_logger,
+                                    "BBDO: can't load diff state file. {}: {}",
+                                    poller_id_str, e.what());
               }
+              ::remove(diff_name.c_str());
             } else {
               SPDLOG_LOGGER_ERROR(
                   _logger,

@@ -37,8 +37,8 @@ BECNSG1
     Ctn Notify Broker Of Engine Config Change    ${0}
 
     ${content}    Create List
-    ...    enabling membership of service (1:3) to service group 1
-    ...    enabling membership of service (1:2) to service group 1
+    ...    enabling membership of service (3:1) to service group 1
+    ...    enabling membership of service (2:1) to service group 1
     ...    enabling membership of service (1:1) to service group 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45

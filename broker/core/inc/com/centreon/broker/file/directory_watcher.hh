@@ -44,6 +44,7 @@ class directory_watcher {
   boost::asio::posix::stream_descriptor _sd;
   char _buffer[BUF_LEN];
   size_t _bytes_read = 0;
+  std::string _watch_dir;
 
   std::shared_ptr<spdlog::logger> _logger;
 

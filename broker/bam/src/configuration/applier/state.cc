@@ -23,6 +23,7 @@
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/exp_builder.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
+#include "com/centreon/common/file.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -250,21 +251,12 @@ void applier::state::save_to_cache(
   std::filesystem::path cache_file =
       fmt::format("{}.cache.{}", state.cache_dir(), name);
 
-  std::ofstream ofs(cache_file, std::ios::binary | std::ios::trunc);
-  if (ofs) {
-    if (!cache.SerializeToOstream(&ofs)) {
-      _logger->error("BAM: could not serialize BAM states to cache file {}",
-                     cache_file.string());
-    } else {
-      _logger->debug("BAM: BAM states saved to cache file {}",
-                     cache_file.string());
-    }
-    ofs.close();
-  } else {
-    _logger->error("BAM: could not open BAM cache file '{}' for writing",
-                   cache_file.string());
+  try {
+    common::save_proto_to_disk(cache_file, cache);
+    SPDLOG_LOGGER_TRACE(_logger, "BAM: States correctly saved");
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "BAM: Fail to save states: {}", e.what());
   }
-  _logger->trace("BAM: States correctly saved");
 }
 
 /**
@@ -277,23 +269,22 @@ void applier::state::load_from_cache(
     std::deque<std::string>& pending_ext_cmds) {
   _logger->debug("BAM: Loading restoring inherited downtimes and BA states");
 
-  std::ifstream ifs;
   auto& state = config::applier::state::instance();
   std::filesystem::path cache_file =
       fmt::format("{}.cache.{}", state.cache_dir(), name);
-  ifs.open(cache_file, std::ios::binary);
-  if (!ifs) {
-    _logger->debug("BAM: could not open BAM cache file '{}' for reading",
-                   cache_file.string());
-    return;
-  }
   ServicesBookState cache;
-  if (!cache.ParseFromIstream(&ifs)) {
-    _logger->error("BAM: could not parse BAM states from cache file {}",
-                   cache_file.string());
+  try {
+    if (!common::load_proto_from_disk(cache_file, cache)) {
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "BAM: could not open BAM cache file '{}' for reading",
+                          cache_file.string());
+      return;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_WARN(
+        _logger, "BAM: Fail to restore state from cache file: {}", e.what());
     return;
   }
-  ifs.close();
   _book_service.apply(cache);
   for (auto& cmd : cache.pending_external_commands()) {
     pending_ext_cmds.push_back(cmd);
