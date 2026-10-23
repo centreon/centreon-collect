@@ -28,9 +28,9 @@ permissions:
 env:
   # the probed repositories' domain (the rule's domain in configmap-settings.yaml)
   PROBE_DOMAIN: standard
-  # also probe the installers rules (centreon-collect only). Off until the installers repositories
-  # exist on dev: delivery-tooling's create-repos-installers.yml only provisions prod.
-  PROBE_INSTALLERS: "false"
+  # also probe the installers rules (centreon-collect only). The dev installers repositories come
+  # from delivery-tooling's create-repos-installers.yml run with stack=dev.
+  PROBE_INSTALLERS: "true"
 
 jobs:
   probe:
