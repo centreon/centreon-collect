@@ -24,6 +24,7 @@ use strict;
 use warnings;
 use gorgone::standard::misc;
 use File::Basename;
+use gorgone::modules::centreon::mbi::libs::TableUtils;
 
 sub sql {
     my ($etlwk, %options) = @_;
@@ -33,9 +34,9 @@ sub sql {
     foreach (@{$options{params}->{sql}}) {
         $etlwk->{messages}->writeLog('INFO', $_->[0]);
         if ($options{params}->{db} eq 'centstorage') {
-            $etlwk->{dbbi_centstorage_con}->query({ query => $_->[1] });
+            gorgone::modules::centreon::mbi::libs::TableUtils::execute_statement($etlwk->{dbbi_centstorage_con}, $_->[1]);
         } elsif ($options{params}->{db} eq 'centreon') {
-            $etlwk->{dbbi_centreon_con}->query({ query => $_->[1] });
+            gorgone::modules::centreon::mbi::libs::TableUtils::execute_statement($etlwk->{dbbi_centreon_con}, $_->[1]);
         }
     }
 }
