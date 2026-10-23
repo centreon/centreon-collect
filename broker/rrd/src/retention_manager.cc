@@ -19,6 +19,8 @@
 #include "com/centreon/broker/rrd/retention_manager.hh"
 #include <absl/synchronization/mutex.h>
 #include <re2/re2.h>
+#include <boost/asio/io_context.hpp>
+#include <chrono>
 #include <cstdio>
 #include "com/centreon/broker/rrd/retention_file.hh"
 
@@ -31,9 +33,29 @@ namespace fs = std::filesystem;
  * @param config Retention configuration (directories, file size limits, etc.)
  * @param logger Logger for retention-related messages (must not be null).
  */
-retention_manager::retention_manager(retention_config config,
-                                     std::shared_ptr<spdlog::logger> logger)
-    : _config(std::move(config)), _logger(std::move(logger)) {}
+retention_manager::retention_manager(
+    const retention_config& config,
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger)
+    : _config(config),
+      _io_context(io_context),
+      _logger(logger),
+      _minute_timer(*io_context) {}
+
+std::shared_ptr<retention_manager> retention_manager::load(
+    const retention_config& config,
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  std::shared_ptr<retention_manager> instance =
+      std::make_shared<retention_manager>(config, io_context, logger);
+  instance->_init();
+  return instance;
+}
+
+void retention_manager::_start_minute_timer() {
+  absl::MutexLock l(&_data_m);
+  _minute_timer.expires_from_now(std::chrono::minutes(1));
+}
 
 /**
  * @brief Scan metrics_dir and status_dir for existing .prot buffer files and
@@ -43,7 +65,7 @@ retention_manager::retention_manager(retention_config config,
  * write_status call.  Both directories are created if they do not yet exist.
  * Files whose names do not match the expected pattern are silently ignored.
  */
-void retention_manager::init() {
+void retention_manager::_init() {
   auto scan_dir = [&](const fs::path& dir) {
     if (dir.empty())
       return;
@@ -104,22 +126,25 @@ void retention_manager::init() {
  * needed yet.  The caller can use this return value to decide when to trigger
  * a merge of the retention data into the main RRD files.
  */
-void retention_manager::write_metric(const Metric metric) {
+void retention_manager::write_metric(const Metric& metric) {
   if (_config.metrics_dir.empty())
     return;
-
-  absl::MutexLock l(&_data_m);
-  auto exist = _metrics.find(metric.metric_id());
-  try {
-    if (exist == _metrics.end()) {
-      _metrics.emplace(metric.metric_id(),
-                       retention_file(_config.metrics_dir, metric));
-    } else {
-      exist->second.add_metric(metric);
+  {
+    absl::MutexLock l(&_data_m);
+    auto exist = _metrics.find(metric.metric_id());
+    try {
+      if (exist == _metrics.end()) {
+        _metrics.emplace(metric.metric_id(),
+                         retention_file(_config.metrics_dir, metric));
+      } else {
+        exist->second.add_metric(metric);
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger, "fail to add metric to retention: {}", e);
+      return;
     }
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to add metric to retention: {}", e);
   }
+  _check_merge_metric(metric.metric_id());
 }
 
 /**
@@ -146,22 +171,25 @@ void retention_manager::write_metric(const Metric metric) {
  * needed yet.  The caller can use this return value to decide when to trigger
  * a merge of the retention data into the main RRD files.
  */
-void retention_manager::write_status(Status status) {
+void retention_manager::write_status(const Status& status) {
   if (_config.status_dir.empty())
     return;
-
-  absl::MutexLock l(&_data_m);
-  auto exist = _metrics.find(status.index_id());
-  try {
-    if (exist == _metrics.end()) {
-      _metrics.emplace(status.index_id(),
-                       retention_file(_config.status_dir, status));
-    } else {
-      exist->second.add_status(status);
+  {
+    absl::MutexLock l(&_data_m);
+    auto exist = _metrics.find(status.index_id());
+    try {
+      if (exist == _metrics.end()) {
+        _metrics.emplace(status.index_id(),
+                         retention_file(_config.status_dir, status));
+      } else {
+        exist->second.add_status(status);
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger, "fail to add status to retention: {}", e);
+      return;
     }
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to add status to retention: {}", e);
   }
+  _check_merge_status(status.index_id());
 }
 
 // ---------------------------------------------------------------------------
@@ -190,157 +218,173 @@ void retention_manager::write_status(Status status) {
  * pending batch. If the metric ID does not exist in the retention manager, an
  * empty vector is returned.
  */
-retention_file::mapped_slot retention_manager::get_metric_merge_points(
-    uint64_t metric_id) {
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return {};
+// retention_file::mapped_sample retention_manager::get_metric_merge_points(
+//     uint64_t metric_id) {
+//   auto it = _metrics.find(metric_id);
+//   if (it == _metrics.end())
+//     return {};
 
-  retention_file& state = it->second;
-  return state.sort_and_get_slots();
-}
+//   retention_file& state = it->second;
+//   return state.sort_and_get_samples();
+// }
 
-/**
- * @brief Get all data points for a given status index ID from the rotated
- * files and current file, and combine them with any pending points in memory.
- * The caller should hold the _statuses_m when calling this function to ensure
- * thread safety.  The returned vector contains pairs of (time, status) for
- * all points associated with the index ID, including those from on-disk files
- * and the in-memory batch.  This function is typically called during a merge
- * operation to retrieve all relevant data points for merging into the main
- * RRD files.
- *
- * @param index_id The identifier of the status index for which to retrieve
- * the data points.  The function will look up the retention state for this
- * index ID, read all points from the associated rotated files and current
- * file, and combine them with any pending points in memory before returning
- * the complete list of points.
- *
- * @return A vector of pairs, where each pair consists of a timestamp
- * (uint64_t) and a status value (uint32_t).  This vector includes all points
- * for the specified index ID from both on-disk files and the in-memory
- * pending batch. If the index ID does not exist in the retention manager, an
- * empty vector is returned.
- */
-retention_file::mapped_slot retention_manager::get_status_merge_points(
-    uint64_t metric_id) {
-  auto it = _statuses.find(metric_id);
-  if (it == _statuses.end())
-    return {};
+// /**
+//  * @brief Get all data points for a given status index ID from the rotated
+//  * files and current file, and combine them with any pending points in
+//  memory.
+//  * The caller should hold the _statuses_m when calling this function to
+//  ensure
+//  * thread safety.  The returned vector contains pairs of (time, status) for
+//  * all points associated with the index ID, including those from on-disk
+//  files
+//  * and the in-memory batch.  This function is typically called during a merge
+//  * operation to retrieve all relevant data points for merging into the main
+//  * RRD files.
+//  *
+//  * @param index_id The identifier of the status index for which to retrieve
+//  * the data points.  The function will look up the retention state for this
+//  * index ID, read all points from the associated rotated files and current
+//  * file, and combine them with any pending points in memory before returning
+//  * the complete list of points.
+//  *
+//  * @return A vector of pairs, where each pair consists of a timestamp
+//  * (uint64_t) and a status value (uint32_t).  This vector includes all points
+//  * for the specified index ID from both on-disk files and the in-memory
+//  * pending batch. If the index ID does not exist in the retention manager, an
+//  * empty vector is returned.
+//  */
+// retention_file::mapped_sample retention_manager::get_status_merge_points(
+//     uint64_t metric_id) {
+//   auto it = _statuses.find(metric_id);
+//   if (it == _statuses.end())
+//     return {};
 
-  retention_file& state = it->second;
-  return state.sort_and_get_slots();
-}
+//   retention_file& state = it->second;
+//   return state.sort_and_get_samples();
+// }
 
-/**
- * @brief Clear all rotated files, the current file, and the pending batch for
- * a given metric ID after a successful merge.  This function is called after
- * the retention data for a metric has been successfully merged into the main
- * RRD files, and it resets the retention state for that metric ID by deleting
- * all associated files and clearing the in-memory batch.  The caller should
- * hold the _metrics_m when calling this function to ensure thread safety, and
- * it should also hold the mutex for the specific metric state while calling
- * this function to avoid concurrent modifications.  If the metric ID does not
- * exist in the retention manager, this function does nothing.
- *
- * @param metric_id The identifier of the metric for which to clear the
- * retention state after a merge.  The function will look up the retention
- * state for this metric ID, delete all associated rotated files and the
- * current file from disk, and clear the in-memory pending batch.  If the
- * metric ID does not exist, the function will simply return without
- * performing any actions.
- */
-void retention_manager::metric_merge_done(uint64_t metric_id,
-                                          uint64_t last_ts_merged) {
-  absl::MutexLock lk(&_data_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return;
-  it->second.set_last_partial_merge_ts(last_ts_merged);
-}
+// /**
+//  * @brief Clear all rotated files, the current file, and the pending batch
+//  for
+//  * a given metric ID after a successful merge.  This function is called after
+//  * the retention data for a metric has been successfully merged into the main
+//  * RRD files, and it resets the retention state for that metric ID by
+//  deleting
+//  * all associated files and clearing the in-memory batch.  The caller should
+//  * hold the _metrics_m when calling this function to ensure thread safety,
+//  and
+//  * it should also hold the mutex for the specific metric state while calling
+//  * this function to avoid concurrent modifications.  If the metric ID does
+//  not
+//  * exist in the retention manager, this function does nothing.
+//  *
+//  * @param metric_id The identifier of the metric for which to clear the
+//  * retention state after a merge.  The function will look up the retention
+//  * state for this metric ID, delete all associated rotated files and the
+//  * current file from disk, and clear the in-memory pending batch.  If the
+//  * metric ID does not exist, the function will simply return without
+//  * performing any actions.
+//  */
+// void retention_manager::metric_merge_done(uint64_t metric_id,
+//                                           uint64_t last_ts_merged) {
+//   absl::MutexLock lk(&_data_m);
+//   auto it = _metrics.find(metric_id);
+//   if (it == _metrics.end())
+//     return;
+//   it->second.set_last_partial_merge_ts(last_ts_merged);
+// }
 
-/**
- * @brief Clear all rotated files, the current file, and the pending batch for
- * a given status index ID after a successful merge.  This function is called
- * after the retention data for a status index has been successfully merged
- * into the main RRD files, and it resets the retention state for that index
- * ID by deleting all associated files and clearing the in-memory batch.  The
- * caller should hold the _statuses_m when calling this function to ensure
- * thread safety, and it should also hold the mutex for the specific status
- * state while calling this function to avoid concurrent modifications.  If
- * the index ID does not exist in the retention manager, this function does
- * nothing.
- *
- * @param index_id The identifier of the status index for which to clear the
- * retention state after a merge.  The function will look up the retention
- * state for this index ID, delete all associated rotated files and the
- * current file from disk, and clear the in-memory pending batch.  If the
- * index ID does not exist, the function will simply return without performing
- * any actions.
- */
-void retention_manager::status_merge_done(uint64_t index_id,
-                                          uint64_t last_ts_merged) {
-  absl::MutexLock lk(&_data_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return;
-  it->second.set_last_partial_merge_ts(last_ts_merged);
-}
+// /**
+//  * @brief Clear all rotated files, the current file, and the pending batch
+//  for
+//  * a given status index ID after a successful merge.  This function is called
+//  * after the retention data for a status index has been successfully merged
+//  * into the main RRD files, and it resets the retention state for that index
+//  * ID by deleting all associated files and clearing the in-memory batch.  The
+//  * caller should hold the _statuses_m when calling this function to ensure
+//  * thread safety, and it should also hold the mutex for the specific status
+//  * state while calling this function to avoid concurrent modifications.  If
+//  * the index ID does not exist in the retention manager, this function does
+//  * nothing.
+//  *
+//  * @param index_id The identifier of the status index for which to clear the
+//  * retention state after a merge.  The function will look up the retention
+//  * state for this index ID, delete all associated rotated files and the
+//  * current file from disk, and clear the in-memory pending batch.  If the
+//  * index ID does not exist, the function will simply return without
+//  performing
+//  * any actions.
+//  */
+// void retention_manager::status_merge_done(uint64_t index_id,
+//                                           uint64_t last_ts_merged) {
+//   absl::MutexLock lk(&_data_m);
+//   auto it = _statuses.find(index_id);
+//   if (it == _statuses.end())
+//     return;
+//   it->second.set_last_partial_merge_ts(last_ts_merged);
+// }
 
-/**
- * @brief Remove all files and in-memory state for a given metric ID when the
- * metric is removed.  This function is called when a metric is removed from
- * the system, and it cleans up all associated retention data for that metric
- * ID by deleting all rotated files and the current file from disk, and
- * removing the in-memory state from the retention manager.  The caller should
- * hold the _metrics_m when calling this function to ensure thread safety, and
- * it should also hold the mutex for the specific metric state while calling
- * this function to avoid concurrent modifications.  If the metric ID does not
- * exist in the retention manager, this function does nothing.
- *
- * @param metric_id The identifier of the metric for which to remove all
- * retention data.  The function will look up the retention state for this
- * metric ID, delete all associated rotated files and the current file from
- * disk, clear the in-memory pending batch, and remove the state from the
- * retention manager's map.  If the metric ID does not exist, the function
- * will simply return without performing any actions.
- */
-void retention_manager::remove_metric(uint64_t metric_id) {
-  absl::MutexLock lk(&_data_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return;
-  ::remove(it->second.file_path().c_str());
-  _metrics.erase(it);
-}
+// /**
+//  * @brief Remove all files and in-memory state for a given metric ID when the
+//  * metric is removed.  This function is called when a metric is removed from
+//  * the system, and it cleans up all associated retention data for that metric
+//  * ID by deleting all rotated files and the current file from disk, and
+//  * removing the in-memory state from the retention manager.  The caller
+//  should
+//  * hold the _metrics_m when calling this function to ensure thread safety,
+//  and
+//  * it should also hold the mutex for the specific metric state while calling
+//  * this function to avoid concurrent modifications.  If the metric ID does
+//  not
+//  * exist in the retention manager, this function does nothing.
+//  *
+//  * @param metric_id The identifier of the metric for which to remove all
+//  * retention data.  The function will look up the retention state for this
+//  * metric ID, delete all associated rotated files and the current file from
+//  * disk, clear the in-memory pending batch, and remove the state from the
+//  * retention manager's map.  If the metric ID does not exist, the function
+//  * will simply return without performing any actions.
+//  */
+// void retention_manager::remove_metric(uint64_t metric_id) {
+//   absl::MutexLock lk(&_data_m);
+//   auto it = _metrics.find(metric_id);
+//   if (it == _metrics.end())
+//     return;
+//   ::remove(it->second.file_path().c_str());
+//   _metrics.erase(it);
+// }
 
-/**
- * @brief Remove all files and in-memory state for a given status index ID
- * when the status is removed.  This function is called when a status index is
- * removed from the system, and it cleans up all associated retention data for
- * that index ID by deleting all rotated files and the current file from disk,
- * and removing the in-memory state from the retention manager.  The caller
- * should hold the _statuses_m when calling this function to ensure thread
- * safety, and it should also hold the mutex for the specific status state
- * while calling this function to avoid concurrent modifications.  If the
- * index ID does not exist in the retention manager, this function does
- * nothing.
- *
- * @param index_id The identifier of the status index for which to remove all
- * retention data.  The function will look up the retention state for this
- * index ID, delete all associated rotated files and the current file from
- * disk, clear the in-memory pending batch, and remove the state from the
- * retention manager's map.  If the index ID does not exist, the function will
- * simply return without performing any actions.
- */
-void retention_manager::remove_status(uint64_t index_id) {
-  absl::MutexLock lk(&_data_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return;
-  ::remove(it->second.file_path().c_str());
-  _statuses.erase(it);
-}
+// /**
+//  * @brief Remove all files and in-memory state for a given status index ID
+//  * when the status is removed.  This function is called when a status index
+//  is
+//  * removed from the system, and it cleans up all associated retention data
+//  for
+//  * that index ID by deleting all rotated files and the current file from
+//  disk,
+//  * and removing the in-memory state from the retention manager.  The caller
+//  * should hold the _statuses_m when calling this function to ensure thread
+//  * safety, and it should also hold the mutex for the specific status state
+//  * while calling this function to avoid concurrent modifications.  If the
+//  * index ID does not exist in the retention manager, this function does
+//  * nothing.
+//  *
+//  * @param index_id The identifier of the status index for which to remove all
+//  * retention data.  The function will look up the retention state for this
+//  * index ID, delete all associated rotated files and the current file from
+//  * disk, clear the in-memory pending batch, and remove the state from the
+//  * retention manager's map.  If the index ID does not exist, the function
+//  will
+//  * simply return without performing any actions.
+//  */
+// void retention_manager::remove_status(uint64_t index_id) {
+//   absl::MutexLock lk(&_data_m);
+//   auto it = _statuses.find(index_id);
+//   if (it == _statuses.end())
+//     return;
+//   ::remove(it->second.file_path().c_str());
+//   _statuses.erase(it);
+// }
 
 /**
  * @brief Scan the retention state maps for metrics and statuses to identify
@@ -374,70 +418,74 @@ void retention_manager::remove_status(uint64_t index_id) {
  * Both locks are shared so this method has negligible contention with the
  * write path.
  */
-bool retention_manager::check_metric_junction(uint64_t metric_id,
-                                              uint64_t earliest_current_time) {
-  if (earliest_current_time == 0)
-    return false;
-  absl::ReaderMutexLock map_lk(&_data_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return false;
-  return it->second.last_ts() + it->second.interval() >= earliest_current_time;
-}
+// bool retention_manager::check_metric_junction(uint64_t metric_id,
+//                                               uint64_t earliest_current_time)
+//                                               {
+//   if (earliest_current_time == 0)
+//     return false;
+//   absl::ReaderMutexLock map_lk(&_data_m);
+//   auto it = _metrics.find(metric_id);
+//   if (it == _metrics.end())
+//     return false;
+//   return it->second.last_ts() + it->second.interval() >=
+//   earliest_current_time;
+// }
 
-/**
- * @brief Check whether the junction condition is met for a status index.
- */
-bool retention_manager::check_status_junction(uint64_t index_id,
-                                              uint64_t earliest_current_time) {
-  if (earliest_current_time == 0)
-    return false;
-  absl::ReaderMutexLock map_lk(&_data_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return false;
-  return it->second.last_ts() + it->second.interval() >= earliest_current_time;
-}
+// /**
+//  * @brief Check whether the junction condition is met for a status index.
+//  */
+// bool retention_manager::check_status_junction(uint64_t index_id,
+//                                               uint64_t earliest_current_time)
+//                                               {
+//   if (earliest_current_time == 0)
+//     return false;
+//   absl::ReaderMutexLock map_lk(&_data_m);
+//   auto it = _statuses.find(index_id);
+//   if (it == _statuses.end())
+//     return false;
+//   return it->second.last_ts() + it->second.interval() >=
+//   earliest_current_time;
+// }
 
-std::vector<uint64_t> retention_manager::metric_ids_with_data() {
-  absl::ReaderMutexLock lk(&_data_m);
-  std::vector<uint64_t> result;
-  result.reserve(_metrics.size());
-  for (const auto& metric : _metrics) {
-    result.push_back(metric.first);
-  }
-  return result;
-}
+// std::vector<uint64_t> retention_manager::metric_ids_with_data() {
+//   absl::ReaderMutexLock lk(&_data_m);
+//   std::vector<uint64_t> result;
+//   result.reserve(_metrics.size());
+//   for (const auto& metric : _metrics) {
+//     result.push_back(metric.first);
+//   }
+//   return result;
+// }
 
-std::vector<uint64_t> retention_manager::status_ids_with_data() {
-  absl::ReaderMutexLock lk(&_data_m);
-  std::vector<uint64_t> result;
-  result.reserve(_statuses.size());
-  for (const auto& status : _statuses) {
-    result.push_back(status.first);
-  }
-  return result;
-}
+// std::vector<uint64_t> retention_manager::status_ids_with_data() {
+//   absl::ReaderMutexLock lk(&_data_m);
+//   std::vector<uint64_t> result;
+//   result.reserve(_statuses.size());
+//   for (const auto& status : _statuses) {
+//     result.push_back(status.first);
+//   }
+//   return result;
+// }
 
-void retention_manager::cleanup_orphans(uint64_t now_seconds) {
-  auto cleanup_map = [&](auto& map, const char* kind) {
-    absl::erase_if(map, [&](auto& kv) {
-      auto& [id, ret] = kv;
-      if (now_seconds - ret.last_activity_time() < _config.orphan_interval)
-        return false;
-      SPDLOG_LOGGER_INFO(_logger,
-                         "retention: cleaning up orphan {} id={} "
-                         "(inactive for {}s)",
-                         kind, id, now_seconds - ret.last_activity_time());
-      ::remove(ret.file_path().c_str());
-      return true;
-    });
-  };
+// void retention_manager::cleanup_orphans(uint64_t now_seconds) {
+//   auto cleanup_map = [&](auto& map, const char* kind) {
+//     absl::erase_if(map, [&](auto& kv) {
+//       auto& [id, ret] = kv;
+//       if (now_seconds - ret.last_activity_time() < _config.orphan_interval)
+//         return false;
+//       SPDLOG_LOGGER_INFO(_logger,
+//                          "retention: cleaning up orphan {} id={} "
+//                          "(inactive for {}s)",
+//                          kind, id, now_seconds - ret.last_activity_time());
+//       ::remove(ret.file_path().c_str());
+//       return true;
+//     });
+//   };
 
-  absl::MutexLock l(&_data_m);
-  cleanup_map(_metrics, "metric");
-  cleanup_map(_statuses, "status");
-}
+//   absl::MutexLock l(&_data_m);
+//   cleanup_map(_metrics, "metric");
+//   cleanup_map(_statuses, "status");
+// }
 
 // ---------------------------------------------------------------------------
 // Step 3.2 / 3.3 helpers
@@ -449,24 +497,25 @@ void retention_manager::cleanup_orphans(uint64_t now_seconds) {
  * Called from the stream write path to read the previous timestamp before
  * appending a new point, enabling gap detection (Step 3.2).
  */
-uint64_t retention_manager::last_metric_time(uint64_t metric_id) {
-  absl::ReaderMutexLock lk(&_data_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return 0;
-  return it->second.last_ts();
-}
+// uint64_t retention_manager::last_metric_time(uint64_t metric_id) {
+//   absl::ReaderMutexLock lk(&_data_m);
+//   auto it = _metrics.find(metric_id);
+//   if (it == _metrics.end())
+//     return 0;
+//   return it->second.last_ts();
+// }
 
-/**
- * @brief Return the @c last_retention_time for a status index (0 if unknown).
- */
-uint64_t retention_manager::last_status_time(uint64_t index_id) {
-  absl::ReaderMutexLock lk(&_data_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return 0;
-  return it->second.last_ts();
-}
+// /**
+//  * @brief Return the @c last_retention_time for a status index (0 if
+//  unknown).
+//  */
+// uint64_t retention_manager::last_status_time(uint64_t index_id) {
+//   absl::ReaderMutexLock lk(&_data_m);
+//   auto it = _statuses.find(index_id);
+//   if (it == _statuses.end())
+//     return 0;
+//   return it->second.last_ts();
+// }
 
 /**
  * @brief Check if a partial merge should be triggered for a metric or a

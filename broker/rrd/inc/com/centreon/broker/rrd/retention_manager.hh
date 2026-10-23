@@ -20,7 +20,10 @@
 #define CCB_RRD_RETENTION_MANAGER_HH
 
 #include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <boost/asio/deadline_timer.hpp>
+#include <memory>
 #include "retention_file.hh"
 
 namespace com::centreon::broker::rrd {
@@ -67,38 +70,53 @@ struct retention_config {
  * return on-disk + in-memory data), replays the points into the RRD backend,
  * then calls metric_merge_done() / status_merge_done() to clear everything.
  */
-class retention_manager {
+class retention_manager
+    : public std::enable_shared_from_this<retention_manager> {
   retention_config _config;
+  std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
+  boost::asio::deadline_timer _minute_timer ABSL_GUARDED_BY(_data_m);
 
   mutable absl::Mutex _data_m;
 
   using data_cont = absl::flat_hash_map<uint64_t, retention_file>;
   data_cont _metrics ABSL_GUARDED_BY(_data_m);
-
   data_cont _statuses ABSL_GUARDED_BY(_data_m);
+
+  using id_to_ts = absl::flat_hash_map<uint64_t, uint64_t>;
+  id_to_ts _earliest_rt_metric ABSL_GUARDED_BY(_data_m);
+  id_to_ts _earliest_rt_status ABSL_GUARDED_BY(_data_m);
 
   bool _check_partial_merge(uint64_t metric_id_or_index_id,
                             const data_cont& state) const;
 
+  retention_manager(const retention_config& config,
+                    const std::shared_ptr<boost::asio::io_context>& io_context,
+                    const std::shared_ptr<spdlog::logger>& logger);
+
+  void _init();
+
+  void _merge_metric(retention_file&& to_merge)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
+  void _merge_status(retention_file&& to_merge)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
+
+  void _check_merge_metric(uint64_t metric_id);
+  void _check_merge_status(uint64_t index_id);
+
+  void _start_minute_timer();
+
+  void _minute_timer_handler();
+
  public:
-  explicit retention_manager(retention_config config,
-                             std::shared_ptr<spdlog::logger> logger);
+  static std::shared_ptr<retention_manager> load(
+      const retention_config& config,
+      const std::shared_ptr<boost::asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger);
 
   bool enabled() const noexcept {
     return !_config.metrics_dir.empty() || !_config.status_dir.empty();
   }
-
-  /**
-   * @brief Initialise the manager: scan dirs for existing buffer files.
-   *
-   * Must be called once before write_metric / write_status.
-   */
-  void init();
-
-  void lock() const { _data_m.Lock(); }
-
-  void unlock() const { _data_m.Unlock(); }
 
   /**
    * @brief Append a metric data point to the in-memory retention batch.
@@ -106,7 +124,7 @@ class retention_manager {
    * @return true  A merge should be triggered now.
    * @return false No merge needed yet.
    */
-  void write_metric(const Metric metric);
+  void write_metric(const Metric& metric);
 
   /**
    * @brief Append a status data point to the in-memory retention batch.
@@ -114,110 +132,10 @@ class retention_manager {
    * @return true  A merge should be triggered now.
    * @return false No merge needed yet.
    */
-  void write_status(const Status status);
+  void write_status(const Status& status);
 
-  /**
-   * @brief Return all buffered (time, value) pairs for a metric.
-   *
-   * Includes both on-disk rotated files and in-memory pending batch.
-   */
-  retention_file::mapped_slot get_metric_merge_points(uint64_t metric_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
-
-  /**
-   * @brief Return all buffered (time, status) pairs for a status index.
-   *
-   * Includes both on-disk rotated files and in-memory pending batch.
-   */
-  retention_file::mapped_slot get_status_merge_points(uint64_t index_id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
-
-  /**
-   * @brief Clear the retention buffer for a metric after a successful merge.
-   */
-  void metric_merge_done(uint64_t metric_id, uint64_t last_ts_merged);
-  void status_merge_done(uint64_t index_id, uint64_t last_ts_merged);
-
-  /**
-   * @brief Remove all retention files for a metric (on remove_graph event).
-   */
-  void remove_metric(uint64_t metric_id);
-  void remove_status(uint64_t index_id);
-
-  /**
-   * @brief Return the last buffered timestamp for a metric/status (0 if none).
-   *
-   * Used by the stream write path to detect gaps between consecutive old-data
-   * points (Step 3.2).
-   */
-  uint64_t last_metric_time(uint64_t metric_id);
-  uint64_t last_status_time(uint64_t index_id);
-
-  /**
-   * @brief Check whether a partial merge should be triggered.
-   *
-   * Returns true when the buffer has accumulated at least @c
-   * partial_merge_interval seconds of data since the previous (partial) merge:
-   *   last_retention_time - last_partial_merge_ts >= partial_merge_interval
-   *
-   * Returns false if the state is not yet initialised (@c last_partial_merge_ts
-   * == 0) to avoid a spurious trigger on the very first write.
-   */
-  inline bool check_metric_partial_merge(uint64_t metric_id) const {
-    absl::ReaderMutexLock lk(&_data_m);
-    return _check_partial_merge(metric_id, _metrics);
-  }
-
-  inline bool check_status_partial_merge(uint64_t index_id) const {
-    absl::ReaderMutexLock lk(&_data_m);
-    return _check_partial_merge(index_id, _statuses);
-  }
-
-  /**
-   * @brief Check whether the junction condition is met for a metric.
-   *
-   * The junction is reached when the last buffered point is within one step of
-   * the first current-data point:
-   *   last_retention_time + step >= earliest_current_time
-   *
-   * Called from the current-data write path after updating
-   * earliest_current_time, so that a merge can be triggered as soon as the
-   * buffer catches up.
-   *
-   * @param metric_id              Metric identifier.
-   * @param earliest_current_time  Earliest current-data timestamp seen for this
-   *                               metric (0 = unknown → returns false).
-   * @return true  Junction reached → merge should be triggered.
-   */
-  bool check_metric_junction(uint64_t metric_id,
-                             uint64_t earliest_current_time);
-
-  /**
-   * @brief Same as check_metric_junction() for a status index.
-   */
-  bool check_status_junction(uint64_t index_id, uint64_t earliest_current_time);
-
-  /**
-   * @brief Return the IDs of all metrics that have at least one buffered point
-   *        (rotated file, current file, or pending batch).
-   *
-   * Used at startup to schedule merges for data recovered by init().
-   */
-  std::vector<uint64_t> metric_ids_with_data();
-
-  /**
-   * @brief Return the IDs of all status indices that have at least one buffered
-   *        point.
-   */
-  std::vector<uint64_t> status_ids_with_data();
-
-  /**
-   * @brief Remove retention buffers for metrics inactive longer than
-   *        orphan_interval seconds.
-   *
-   * @param now_seconds  Current Unix timestamp.
-   */
-  void cleanup_orphans(uint64_t now_seconds);
+  void update_earliest_real_time_metric(uint64_t ts);
+  void update_earliest_real_time_status(uint64_t ts);
 };
 
 }  // namespace com::centreon::broker::rrd

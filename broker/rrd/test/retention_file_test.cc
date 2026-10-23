@@ -70,7 +70,7 @@ Status make_status(uint64_t index_id, uint64_t time, uint32_t state) {
 
 /// Copy the slots of a file in a vector.
 std::vector<retention_file::slot> read_slots(const retention_file& f) {
-  const retention_file::mapped_slot slots = f.get_slots();
+  const retention_file::mapped_sample slots = f.get_slots();
   return std::vector<retention_file::slot>(slots.begin(), slots.end());
 }
 
@@ -221,9 +221,9 @@ TEST_F(RetentionFile, SortSlots) {
   retention_file reopened(_tmp.path / "12_metric.ret");
   auto reopened_slots = read_slots(reopened);
   ASSERT_EQ(reopened_slots.size(), 6u);
-  EXPECT_TRUE(std::is_sorted(
-      reopened_slots.begin(), reopened_slots.end(),
-      [](const auto& l, const auto& r) { return l.ts < r.ts; }));
+  EXPECT_TRUE(
+      std::is_sorted(reopened_slots.begin(), reopened_slots.end(),
+                     [](const auto& l, const auto& r) { return l.ts < r.ts; }));
 }
 
 TEST_F(RetentionFile, SortStatusSlots) {

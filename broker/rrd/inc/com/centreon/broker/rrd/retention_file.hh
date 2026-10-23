@@ -20,21 +20,10 @@
 #define CCB_RRD_RETENTION_FILE_HH
 
 #include "bbdo/storage.pb.h"
-#include "com/centreon/broker/rrd/internal.hh"
 
 namespace com::centreon::broker::rrd {
 
 class retention_file {
- public:
-  struct slot {
-    uint64_t ts;
-    union {
-      double d_value;
-      int64_t i_value;
-    } val;
-  };
-
- private:
   struct header {
     int64_t id;
     bool is_status;
@@ -45,38 +34,46 @@ class retention_file {
     uint64_t last_ts;   // ts of latest slot
   };
 
+  struct sample {
+    uint64_t ts;
+    union {
+      double d_value;
+      int64_t i_value;
+    } val;
+  };
+
   struct file_content : public header {
-    slot data[];  // variable array circular buffer
-                  // len=(rrd_len+interval-1)/interval
+    sample data[];  // variable array circular buffer
+                    // len=(rrd_len+interval-1)/interval
   };
 
   std::filesystem::path _file_path;
   header _header;
-  uint64_t _last_partial_merge_ts = 0;
   time_t _last_activity;
 
   void _create_file();
 
   void _grow_file(int fd);
 
-  void _append(const slot& to_append);
+  void _append(const sample& to_append);
 
  public:
-  class mapped_slot {
+  class mapped_sample {
     file_content* _data;
     size_t _file_size;
 
-    const slot *_begin, *_end;
+    const sample *_begin, *_end;
 
    public:
-    mapped_slot(const std::filesystem::path& path);
-    mapped_slot();
-    mapped_slot(const mapped_slot&) = delete;
-    mapped_slot& operator=(const mapped_slot&) = delete;
-    ~mapped_slot();
+    mapped_sample(const std::filesystem::path& path);
+    mapped_sample(mapped_sample&& src);
+    mapped_sample();
+    mapped_sample(const mapped_sample&) = delete;
+    mapped_sample& operator=(const mapped_sample&) = delete;
+    ~mapped_sample();
 
-    const slot* begin() const { return _begin; }
-    const slot* end() const { return _end; }
+    const sample* begin() const { return _begin; }
+    const sample* end() const { return _end; }
   };
 
   retention_file(const std::filesystem::path& rrd_data_dir,
@@ -97,9 +94,7 @@ class retention_file {
   uint64_t first_ts() const { return _header.first_ts; }
   uint64_t last_ts() const { return _header.last_ts; }
 
-  const mapped_slot sort_and_get_slots();
-  void set_last_partial_merge_ts(uint64_t ts) { _last_partial_merge_ts = ts; }
-  uint64_t last_partial_merge_ts() const { return _last_partial_merge_ts; }
+  const mapped_sample sort_and_get_samples();
   time_t last_activity() const { return _last_activity; }
 };
 

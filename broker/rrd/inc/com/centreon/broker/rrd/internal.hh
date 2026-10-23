@@ -47,13 +47,13 @@ using pb_status =
 
 /* Events sent by the rrd merge thread to the rrd stream (through the
  * multiplexing engine) to signal the end of a retention merge. */
-using pb_end_metric_merge =
-    io::protobuf<EndMetricMerge,
-                 make_type(io::storage, storage::de_pb_end_metric_merge)>;
+using pb_need_metric_merge =
+    io::protobuf<NeedMetricMerge,
+                 make_type(io::storage, storage::de_pb_need_metric_merge)>;
 
-using pb_end_status_merge =
-    io::protobuf<EndStatusMerge,
-                 make_type(io::storage, storage::de_pb_end_status_merge)>;
+using pb_need_status_merge =
+    io::protobuf<NeedStatusMerge,
+                 make_type(io::storage, storage::de_pb_need_status_merge)>;
 
 }  // namespace storage
 }  // namespace com::centreon::broker

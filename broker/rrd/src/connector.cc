@@ -38,8 +38,8 @@ static constexpr multiplexing::muxer_filter _rrd_stream_filter =
          storage::pb_rebuild_message::static_type(),
          storage::remove_graph::static_type(),
          storage::pb_remove_graph_message::static_type(),
-         storage::pb_end_metric_merge::static_type(),
-         storage::pb_end_status_merge::static_type(),
+         storage::pb_need_metric_merge::static_type(),
+         storage::pb_need_status_merge::static_type(),
          make_type(io::extcmd, extcmd::de_pb_bench)});
 
 static constexpr multiplexing::muxer_filter _rrd_forbidden_filter =
@@ -83,8 +83,8 @@ std::shared_ptr<io::stream> connector::open() {
         _cached_port, ret_cfg, _write_metrics, _write_status));
   else
     retval.reset(new stream<lib>(_metrics_path, _status_path, _cache_size,
-                                 _ignore_update_errors, ret_cfg,
-                                 _write_metrics, _write_status));
+                                 _ignore_update_errors, ret_cfg, _write_metrics,
+                                 _write_status));
   return retval;
 }
 

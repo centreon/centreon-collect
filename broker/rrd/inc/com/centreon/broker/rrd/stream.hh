@@ -70,7 +70,7 @@ class stream : public io::stream {
   T _backend;
 
   /* Retention buffer */
-  retention_manager _retention;
+  std::shared_ptr<retention_manager> _retention;
 
   /* Background merge infrastructure */
 
@@ -78,44 +78,8 @@ class stream : public io::stream {
   /// the merge thread never contends on @c _backend's internal state.
   lib _merge_lib;
 
-  /// Executes @c _do_metric/status_merge tasks on a single background thread.
-  asio::io_context _merge_ctx;
-  std::optional<asio::executor_work_guard<asio::io_context::executor_type>>
-      _merge_work;
-  std::thread _merge_thread;
-
-  /**
-   * @brief Merges scheduled and not yet finished, keyed by metric_id /
-   * index_id.
-   *
-   * An entry is inserted by _schedule_metric/status_merge (preventing duplicate
-   * merges) and erased by write() when the matching pb_end_metric/status_merge
-   * event is received. Meanwhile, write() postpones in it the events of this
-   * metric/status, they are replayed at the end of the merge. Only accessed
-   * from the stream thread (the merge thread communicates through the
-   * multiplexing engine), so no mutex.
-   */
-  rebuild_cache _pending_metric_merges;
-  rebuild_cache _pending_status_merges;
-
-  /**
-   * @brief Earliest current-data timestamp seen per metric/status since this
-   *        stream session started.
-   *
-   * Set in write() when a data point is routed to the RRD backend (i.e. its
-   * timestamp is recent enough: t >= now - step).  Used by Step 3 (junction
-   * detection) to determine when the buffered backfill data has caught up with
-   * the live stream, at which point a merge can be triggered.
-   *
-   * Cleared on successful merge (_do_metric/status_merge) and on graph removal.
-   * Protected by @c _ect_m because @c _do_metric/status_merge runs on the
-   * merge thread and erases entries here.
-   */
-  absl::Mutex _ect_m;
-  absl::flat_hash_map<uint64_t, uint64_t> _metric_earliest_current
-      ABSL_GUARDED_BY(_ect_m);
-  absl::flat_hash_map<uint64_t, uint64_t> _status_earliest_current
-      ABSL_GUARDED_BY(_ect_m);
+  absl::flat_hash_map<uint64_t, uint64_t> _metric_latest_current;
+  absl::flat_hash_map<uint64_t, uint64_t> _status_latest_current;
 
   /* Loggers */
   std::shared_ptr<spdlog::logger> _logger;
@@ -127,14 +91,6 @@ class stream : public io::stream {
                            const std::filesystem::path& rrd_path);
   int64_t _do_status_merge(uint64_t index_id,
                            const std::filesystem::path& rrd_path);
-  void _startup_merge();
-
-  /// Schedule a background merge, skipping if one is already queued.
-  void _schedule_metric_merge(uint64_t metric_id,
-                              std::filesystem::path rrd_path)
-      ABSL_LOCKS_EXCLUDED(_merge_pending_m);
-  void _schedule_status_merge(uint64_t index_id, std::filesystem::path rrd_path)
-      ABSL_LOCKS_EXCLUDED(_merge_pending_m);
 
  public:
   stream(std::filesystem::path metrics_path,
@@ -170,19 +126,6 @@ class stream : public io::stream {
 
   void append_metric_to_rrd(const Metric& metric);
   void append_status_to_rrd(const Status& status);
-
-  /**
-   * @brief Block until all currently queued background merge tasks complete.
-   *
-   * Useful in tests to synchronise after a write() call that schedules a
-   * merge, without having to poll or sleep.
-   */
-  void flush_merges() {
-    std::promise<void> done;
-    auto fut = done.get_future();
-    asio::post(_merge_ctx, [&done] { done.set_value(); });
-    fut.wait();
-  }
 };
 
 }  // namespace rrd

@@ -108,7 +108,7 @@ retention_file::retention_file(const std::filesystem::path& file_path)
  *
  * @param to_append The slot to write.
  */
-void retention_file::_append(const slot& to_append) {
+void retention_file::_append(const sample& to_append) {
   int fd = ::open(_file_path.c_str(), O_WRONLY);
   if (fd < 0) {
     throw exceptions::msg_fmt("fail to open {}: {}", _file_path.string(),
@@ -153,11 +153,6 @@ void retention_file::_append(const slot& to_append) {
   }
   ::close(fd);
 
-  // we add previous data of ones stored in rrd file => rebuild it from scratch
-  if (to_append.ts < _last_partial_merge_ts) {
-    _last_partial_merge_ts = 0;
-  }
-
   _last_activity = time(nullptr);
 }
 
@@ -172,7 +167,7 @@ void retention_file::add_metric(const Metric& metric) {
     throw exceptions::msg_fmt("can not write metric in status file {}",
                               _file_path);
   }
-  _append(slot{.ts = metric.time(), .val = {.d_value = metric.value()}});
+  _append(sample{.ts = metric.time(), .val = {.d_value = metric.value()}});
 }
 
 /**
@@ -186,7 +181,7 @@ void retention_file::add_status(const Status& status) {
     throw exceptions::msg_fmt("can not write status in metric file {}",
                               _file_path);
   }
-  _append(slot{.ts = status.time(), .val = {.i_value = status.state()}});
+  _append(sample{.ts = status.time(), .val = {.i_value = status.state()}});
 }
 
 /**
@@ -218,12 +213,23 @@ void retention_file::_create_file() {
  * @return An object that gives access to the slots through begin() and end()
  * and unmaps the file when it is destroyed.
  */
-const retention_file::mapped_slot retention_file::sort_and_get_slots() {
-  return mapped_slot(_file_path);
+const retention_file::mapped_sample retention_file::sort_and_get_samples() {
+  return mapped_sample(_file_path);
 }
 
-retention_file::mapped_slot::mapped_slot()
+retention_file::mapped_sample::mapped_sample()
     : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {}
+
+retention_file::mapped_sample::mapped_sample(mapped_sample&& src)
+    : _data(src._data),
+      _file_size(src._file_size),
+      _begin(src._begin),
+      _end(src._end) {
+  src._data = nullptr;
+  src._file_size = 0;
+  src._begin = nullptr;
+  src._end = nullptr;
+}
 
 /**
  * @brief Map in read only mode the slots of a retention file.
@@ -233,7 +239,7 @@ retention_file::mapped_slot::mapped_slot()
  *
  * @param path Path of the retention file.
  */
-retention_file::mapped_slot::mapped_slot(const std::filesystem::path& path)
+retention_file::mapped_sample::mapped_sample(const std::filesystem::path& path)
     : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {
   int fd = ::open(path.c_str(), O_RDWR);
   if (fd < 0) {
@@ -264,11 +270,11 @@ retention_file::mapped_slot::mapped_slot(const std::filesystem::path& path)
                               strerror(errno));
   }
   _data = static_cast<file_content*>(addr);
-  slot* begin = _data->data;
+  sample* begin = _data->data;
   _begin = begin;
-  slot* end = begin + (_file_size - sizeof(header)) / sizeof(slot);
+  sample* end = begin + (_file_size - sizeof(header)) / sizeof(sample);
   _end = end;
-  std::sort(begin, end, [](const slot& left, const slot& right) {
+  std::sort(begin, end, [](const sample& left, const sample& right) {
     return left.ts < right.ts;
   });
 }
@@ -276,7 +282,7 @@ retention_file::mapped_slot::mapped_slot(const std::filesystem::path& path)
 /**
  * @brief Unmap the file (the file descriptor is closed by the constructor).
  */
-retention_file::mapped_slot::~mapped_slot() {
+retention_file::mapped_sample::~mapped_sample() {
   if (_data) {
     ::munmap(_data, _file_size);
   }
