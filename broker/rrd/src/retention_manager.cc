@@ -20,6 +20,7 @@
 #include <absl/synchronization/mutex.h>
 #include <re2/re2.h>
 #include <boost/asio/io_context.hpp>
+#include <boost/system/detail/error_code.hpp>
 #include <chrono>
 #include <cstdio>
 #include "com/centreon/broker/rrd/retention_file.hh"
@@ -54,7 +55,17 @@ std::shared_ptr<retention_manager> retention_manager::load(
 
 void retention_manager::_start_minute_timer() {
   absl::MutexLock l(&_data_m);
-  _minute_timer.expires_from_now(std::chrono::minutes(1));
+  _minute_timer.expires_after(std::chrono::minutes(1));
+  _minute_timer.async_wait(
+      [me = shared_from_this()](const boost::system::error_code& err) {
+        if (!err) {
+          me->_minute_timer_handler();
+        }
+      });
+}
+
+void retention_manager::_minute_timer_handler() {
+  _start_minute_timer();
 }
 
 /**
@@ -97,10 +108,12 @@ void retention_manager::_init() {
       }
     };
   };
-
-  absl::MutexLock l(&_data_m);
-  scan_dir(_config.metrics_dir);
-  scan_dir(_config.status_dir);
+  {
+    absl::MutexLock l(&_data_m);
+    scan_dir(_config.metrics_dir);
+    scan_dir(_config.status_dir);
+  }
+  _start_minute_timer();
 }
 
 /**
@@ -545,14 +558,39 @@ void retention_manager::write_status(const Status& status) {
  *
  * @return true if a partial merge should be triggered now.
  */
-bool retention_manager::_check_partial_merge(uint64_t metric_id_or_index_id,
-                                             const data_cont& state) const {
-  auto it = state.find(metric_id_or_index_id);
-  if (it == state.end())
-    return false;
-  const retention_file& s = it->second;
-  return (s.last_ts() > s.last_partial_merge_ts()) &&
-         ((s.last_ts() - s.last_partial_merge_ts()) >
-          _config.partial_merge_interval +
-              _config.partial_merge_before_last_sample_delay);
+void retention_manager::_check_merge(uint64_t metric_id_or_index_id,
+                                     bool status) {
+  std::optional<retention_file> to_merge;
+
+  data_cont& retentions = status ? _statuses : _metrics;
+  id_to_ts& earliests = status ? _earliest_rt_status : _earliest_rt_metric;
+  {
+    absl::MutexLock l(&_data_m);
+    auto ret_file = retentions.find(metric_id_or_index_id);
+    if (ret_file == retentions.end()) {
+      return;
+    }
+    if (ret_file->second.last_activity() <
+        time(nullptr) - _config.orphan_interval) {
+      to_merge = std::move(ret_file->second);
+      retentions.erase(ret_file);
+      earliests.erase(metric_id_or_index_id);
+    }
+
+    auto earliest = earliests.find(metric_id_or_index_id);
+    TODO
+  }
+
+  if (to_merge) {
+    TODO
+  }
+
+  // auto it = state.find(metric_id_or_index_id);
+  // if (it == state.end())
+  //   return false;
+  // const retention_file& s = it->second;
+  // return (s.last_ts() > s.last_partial_merge_ts()) &&
+  //        ((s.last_ts() - s.last_partial_merge_ts()) >
+  //         _config.partial_merge_interval +
+  //             _config.partial_merge_before_last_sample_delay);
 }

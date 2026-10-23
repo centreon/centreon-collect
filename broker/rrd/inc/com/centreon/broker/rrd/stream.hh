@@ -92,12 +92,15 @@ class stream : public io::stream {
   int64_t _do_status_merge(uint64_t index_id,
                            const std::filesystem::path& rrd_path);
 
+  uint64_t get_last_metric_latest_current(uint64_t id);
+  uint64_t get_last_status_latest_current(uint64_t id);
+
  public:
   stream(std::filesystem::path metrics_path,
          std::filesystem::path status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
-         retention_config retention_cfg = {},
+         const retention_config& retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
   stream(std::filesystem::path metrics_path,
@@ -105,7 +108,7 @@ class stream : public io::stream {
          uint32_t cache_size,
          bool ignore_update_errors,
          std::string const& local,
-         retention_config retention_cfg = {},
+         const retention_config& retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
   stream(std::filesystem::path metrics_path,
@@ -113,7 +116,7 @@ class stream : public io::stream {
          uint32_t cache_size,
          bool ignore_update_errors,
          unsigned short port,
-         retention_config retention_cfg = {},
+         const retention_config& retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
   stream(const stream&) = delete;

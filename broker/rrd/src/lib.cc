@@ -22,10 +22,10 @@
 #include <rrd.h>
 #include <unistd.h>
 
+#include <absl/container/flat_hash_map.h>
 #include <cctype>
 #include <cerrno>
 #include <cmath>
-#include <absl/container/flat_hash_map.h>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
@@ -273,22 +273,24 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
     result.step = file_step * base_rra->second;
 
   // ---- 2. Fetch data via rrd_fetch_r ----
-  time_t start = static_cast<time_t>(from_ts) - static_cast<time_t>(result.step);
+  time_t start =
+      static_cast<time_t>(from_ts) - static_cast<time_t>(result.step);
   time_t end = static_cast<time_t>(to_ts);
   unsigned long step_out = 0, ds_cnt = 0;
   char** ds_names = nullptr;
   rrd_value_t* data = nullptr;
 
   rrd_clear_error();
-  if (rrd_fetch_r(filename.c_str(), "AVERAGE", &start, &end, &step_out,
-                  &ds_cnt, &ds_names, &data) != 0) {
+  if (rrd_fetch_r(filename.c_str(), "AVERAGE", &start, &end, &step_out, &ds_cnt,
+                  &ds_names, &data) != 0) {
     _logger->warn("RRD: rrd_fetch_r failed for '{}': {}", filename,
                   rrd_get_error());
     return result;
   }
 
   if (step_out > 0 && ds_cnt > 0 && data) {
-    size_t n = static_cast<size_t>((end - start) / static_cast<time_t>(step_out));
+    size_t n =
+        static_cast<size_t>((end - start) / static_cast<time_t>(step_out));
     uint64_t t = static_cast<uint64_t>(start) + step_out;  // first timestamp
     for (size_t i = 0; i < n; ++i, t += step_out) {
       double v = data[i * ds_cnt];  // DS index 0
@@ -306,6 +308,46 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
   }
 
   return result;
+}
+
+/**
+ * @brief Read the last update time of an RRD file, that is the timestamp
+ * given to the last rrd_update accepted on it (live_head->last_up), read
+ * directly from the file with librrd.
+ *
+ * This value is not the time of the last known value: an update with an
+ * unknown value ("U") or coming after a heartbeat timeout also moves it
+ * forward. It is not aligned on the step either: the data between the start of
+ * the current PDP and this time are still in pdp_prep/cdp_prep, not yet in a
+ * row. Any update with a timestamp lower than or equal to it is rejected by
+ * librrd.
+ *
+ * With rrdcached, the file may not contain the last updates yet, so the
+ * returned time may be older than the last update sent: the file must be
+ * flushed before calling this function if an accurate value is needed.
+ *
+ * @param filename The RRD file path.
+ *
+ * @return The last update time, -1 if the file can't be opened or read.
+ */
+time_t lib::last_update(const std::filesystem::path& filename) {
+  unsigned long ds_cnt = 0;
+  char** ds_names = nullptr;
+  char** last_ds = nullptr;
+
+  time_t last_update;
+  if (rrd_lastupdate_r(filename.c_str(), &last_update, &ds_cnt, &ds_names,
+                       &last_ds)) {
+    return -1;
+  }
+  // free memory allocated by rrd
+  for (unsigned long i = 0; i < ds_cnt; i++) {
+    free(ds_names[i]);
+    free(last_ds[i]);
+  }
+  free(ds_names);
+  free(last_ds);
+  return last_update;
 }
 
 /**

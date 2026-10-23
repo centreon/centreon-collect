@@ -75,7 +75,7 @@ class retention_manager
   retention_config _config;
   std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
-  boost::asio::deadline_timer _minute_timer ABSL_GUARDED_BY(_data_m);
+  boost::asio::system_timer _minute_timer ABSL_GUARDED_BY(_data_m);
 
   mutable absl::Mutex _data_m;
 
@@ -87,28 +87,23 @@ class retention_manager
   id_to_ts _earliest_rt_metric ABSL_GUARDED_BY(_data_m);
   id_to_ts _earliest_rt_status ABSL_GUARDED_BY(_data_m);
 
-  bool _check_partial_merge(uint64_t metric_id_or_index_id,
-                            const data_cont& state) const;
-
-  retention_manager(const retention_config& config,
-                    const std::shared_ptr<boost::asio::io_context>& io_context,
-                    const std::shared_ptr<spdlog::logger>& logger);
+  void _check_merge(uint64_t metric_id_or_index_id, bool status);
 
   void _init();
 
-  void _merge_metric(retention_file&& to_merge)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
-  void _merge_status(retention_file&& to_merge)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
+  void _merge_metric(retention_file&& to_merge);
 
-  void _check_merge_metric(uint64_t metric_id);
-  void _check_merge_status(uint64_t index_id);
+  void _merge_status(retention_file&& to_merge);
 
   void _start_minute_timer();
 
   void _minute_timer_handler();
 
  public:
+  retention_manager(const retention_config& config,
+                    const std::shared_ptr<boost::asio::io_context>& io_context,
+                    const std::shared_ptr<spdlog::logger>& logger);
+
   static std::shared_ptr<retention_manager> load(
       const retention_config& config,
       const std::shared_ptr<boost::asio::io_context>& io_context,
@@ -136,6 +131,20 @@ class retention_manager
 
   void update_earliest_real_time_metric(uint64_t ts);
   void update_earliest_real_time_status(uint64_t ts);
+
+  /**
+   * @brief Remove all retention files for a metric (on remove_graph event).
+   */
+  void remove_metric(uint64_t metric_id);
+  void remove_status(uint64_t index_id);
+
+  void check_merge_metric(uint64_t metric_id) {
+    _check_merge(metric_id, false);
+  }
+
+  void check_merge_status(uint64_t index_id) { _check_merge(index_id, true); }
+
+  void stop();
 };
 
 }  // namespace com::centreon::broker::rrd
