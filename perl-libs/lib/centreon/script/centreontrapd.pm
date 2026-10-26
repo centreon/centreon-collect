@@ -1131,12 +1131,12 @@ sub getTrapsInfos {
             
             #### Check if macro $_HOST*$ needed
             $self->{trap_data}->{ref_macro_hosts} = undef;
-            my $has_host_macro = defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable}) &&
-                $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable} == 1 &&
-                defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command}) &&
-                $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command} =~ /\$_HOST.*?\$/;
+            my $has_host_macro = defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable})
+                && $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command_enable} == 1
+                && defined($self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command})
+                && $self->{trap_data}->{ref_oids}->{$trap_id}->{traps_execution_command} =~ /\$_HOST.*\$/;
             $has_host_macro ||= grep {
-                defined($_->{tpe_string}) && $_->{tpe_string} =~ /\$_HOST.*?\$/;
+                defined($_->{tpe_string}) && $_->{tpe_string} =~ /\$_HOST.*\$/;
             } @{$self->{trap_data}->{ref_oids}->{$trap_id}->{traps_preexec}};
             if ($has_host_macro) {
                 ($fstatus, $self->{trap_data}->{ref_macro_hosts}) = centreon::trapd::lib::get_macros_host($self->{cdb}, $host_id);
