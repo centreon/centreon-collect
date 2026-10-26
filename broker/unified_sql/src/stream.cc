@@ -661,6 +661,12 @@ void stream::_load_caches() {
  * set only when Broker does not own them: when it does, its own persisted
  * state is re-injected right after this and knows the type and the depth.
  *
+ * When this output writes both, `resources` is read first and the fields it
+ * lacks are then taken from `hosts`/`services` (see
+ * _restore_runtime_complement_from_hosts_services()). Both are written from
+ * the same status but in separate batches, so after a crash a resource may
+ * get the complement of the previous check; the next check fixes it.
+ *
  * `resources.status` is the real status; `hosts.state`/`services.state` are
  * forced to UNREACHABLE/UNKNOWN while the poller is outdated and the real one
  * sits in `real_state`. The `output` column of `services` holds output and
@@ -700,9 +706,166 @@ void stream::_restore_runtime_in_cache() {
           std::chrono::steady_clock::now() - started_at)
           .count());
 
+  /* What resources does not know is still in hosts/services as long as this
+   * output writes them. When they are replaced by dedicated tables, only this
+   * complement has to read them instead. */
+  if (_store_in_resources && _store_in_hosts_services)
+    _restore_runtime_complement_from_hosts_services();
+
   /* The overrides live only in hosts/services (the resources table has no
    * modified_attributes column), whatever the source of the state above. */
   _restore_overrides_from_hosts_services();
+}
+
+/**
+ * @brief Complete the runtime restored from the `resources` table with the
+ * fields only the hosts and services tables hold: the perfdata, the long
+ * output, the hard state and its date, the last_time_* dates, the check
+ * scheduling and, when Broker does not own them, the notification counters,
+ * the acknowledgement type and the downtime depth. The status, the output and
+ * the other fields `resources` knows are left as it set them.
+ *
+ * Like the main restore, a row older than the cache entry is skipped (see
+ * broker_cache::restore_host_runtime).
+ */
+void stream::_restore_runtime_complement_from_hosts_services() {
+  const auto started_at = std::chrono::steady_clock::now();
+  auto& cache = config::applier::state::instance().cache();
+  /* Same rule as _restore_runtime_from_resources(): what Broker owns is
+   * re-injected from its own persisted state. */
+  const bool engine_notifies =
+      !com::centreon::common::notifications::notification_manager::is_loaded();
+  const bool engine_downtimes =
+      !com::centreon::common::downtimes::downtime_manager::is_loaded();
+  size_t hosts_read = 0;
+  size_t hosts_restored = 0;
+  size_t services_read = 0;
+  size_t services_restored = 0;
+
+  try {
+    std::promise<mysql_result> promise;
+    std::future<mysql_result> future = promise.get_future();
+    _mysql.run_query_and_get_result(
+        "SELECT host_id, last_check, perfdata, latency, execution_time, "
+        "next_check, should_be_scheduled, last_hard_state, "
+        "last_hard_state_change, last_time_up, last_time_down, "
+        "last_time_unreachable, notification_number, no_more_notifications, "
+        "last_notification, next_host_notification, acknowledgement_type, "
+        "scheduled_downtime_depth FROM hosts WHERE checked=1",
+        std::move(promise), 0);
+    mysql_result res{future.get()};
+    while (_mysql.fetch_row(res)) {
+      ++hosts_read;
+      const uint64_t host_id = res.value_as_u64(0);
+      if (cache.restore_host_runtime(
+              host_id, res.value_as_i64(1), [&](Host& h) {
+                h.set_perfdata(res.value_as_str(2));
+                h.set_latency(res.value_as_f64(3));
+                h.set_execution_time(res.value_as_f64(4));
+                h.set_next_check(res.value_as_i64(5));
+                h.set_should_be_scheduled(res.value_as_bool(6));
+                h.set_last_hard_state(
+                    static_cast<Host_State>(res.value_as_i32(7)));
+                h.set_last_hard_state_change(res.value_as_i64(8));
+                h.set_last_time_up(res.value_as_i64(9));
+                h.set_last_time_down(res.value_as_i64(10));
+                h.set_last_time_unreachable(res.value_as_i64(11));
+                if (engine_notifies) {
+                  h.set_notification_number(res.value_as_i32(12));
+                  h.set_no_more_notifications(res.value_as_bool(13));
+                  h.set_last_notification(res.value_as_i64(14));
+                  h.set_next_host_notification(res.value_as_i64(15));
+                  /* resources only says whether there is an acknowledgement. */
+                  if (h.acknowledged()) {
+                    auto type = static_cast<AckType>(res.value_as_i32(16));
+                    if (type != AckType::NONE)
+                      h.set_acknowledgement_type(type);
+                  }
+                }
+                if (engine_downtimes)
+                  h.set_scheduled_downtime_depth(res.value_as_i32(17));
+              }))
+        ++hosts_restored;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger_sql,
+                        "unified_sql: could not read the hosts table to "
+                        "complete the runtime restored into the global cache: "
+                        "{}",
+                        e.what());
+  }
+
+  try {
+    std::promise<mysql_result> promise;
+    std::future<mysql_result> future = promise.get_future();
+    _mysql.run_query_and_get_result(
+        "SELECT host_id, service_id, last_check, output, perfdata, latency, "
+        "execution_time, next_check, should_be_scheduled, last_hard_state, "
+        "last_hard_state_change, last_time_ok, last_time_warning, "
+        "last_time_critical, last_time_unknown, notification_number, "
+        "no_more_notifications, last_notification, next_notification, "
+        "acknowledgement_type, scheduled_downtime_depth FROM services WHERE "
+        "checked=1",
+        std::move(promise), 0);
+    mysql_result res{future.get()};
+    while (_mysql.fetch_row(res)) {
+      ++services_read;
+      const uint64_t host_id = res.value_as_u64(0);
+      const uint64_t service_id = res.value_as_u64(1);
+      if (cache.restore_service_runtime(
+              host_id, service_id, res.value_as_i64(2), [&](Service& s) {
+                /* The column holds output + '\n' + long_output, the output
+                 * itself comes from resources. */
+                std::string output{res.value_as_str(3)};
+                size_t nl = output.find('\n');
+                s.set_long_output(nl == std::string::npos
+                                      ? std::string()
+                                      : output.substr(nl + 1));
+                s.set_perfdata(res.value_as_str(4));
+                s.set_latency(res.value_as_f64(5));
+                s.set_execution_time(res.value_as_f64(6));
+                s.set_next_check(res.value_as_i64(7));
+                s.set_should_be_scheduled(res.value_as_bool(8));
+                s.set_last_hard_state(
+                    static_cast<Service_State>(res.value_as_i32(9)));
+                s.set_last_hard_state_change(res.value_as_i64(10));
+                s.set_last_time_ok(res.value_as_i64(11));
+                s.set_last_time_warning(res.value_as_i64(12));
+                s.set_last_time_critical(res.value_as_i64(13));
+                s.set_last_time_unknown(res.value_as_i64(14));
+                if (engine_notifies) {
+                  s.set_notification_number(res.value_as_i32(15));
+                  s.set_no_more_notifications(res.value_as_bool(16));
+                  s.set_last_notification(res.value_as_i64(17));
+                  s.set_next_notification(res.value_as_i64(18));
+                  if (s.acknowledged()) {
+                    auto type = static_cast<AckType>(res.value_as_i32(19));
+                    if (type != AckType::NONE)
+                      s.set_acknowledgement_type(type);
+                  }
+                }
+                if (engine_downtimes)
+                  s.set_scheduled_downtime_depth(res.value_as_i32(20));
+              }))
+        ++services_restored;
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger_sql,
+                        "unified_sql: could not read the services table to "
+                        "complete the runtime restored into the global cache: "
+                        "{}",
+                        e.what());
+  }
+
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: runtime of {} hosts and {} services completed in the "
+      "global cache from the hosts/services tables ({} host rows and {} "
+      "service rows read) in {} ms",
+      hosts_restored, services_restored, hosts_read, services_read,
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - started_at)
+          .count());
 }
 
 /**

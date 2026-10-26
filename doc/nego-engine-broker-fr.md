@@ -5446,7 +5446,9 @@ servira pour la superposition. Tests : `CBSS_REFERENCE`, `CBSS_REFERENCE_OPT_OUT
 premier `open()` de son stream, avant de se dire prête à la barrière : qui attend le cache (BAM,
 via `on_ready`) y trouve l'état. La source dépend de ce que la sortie écrit : la table
 `resources` si `store_in_resources`, sinon les tables `hosts`/`services`, chemin en voie de
-dépréciation ; jamais les deux. Chaque ligne est posée sur son entrée par
+dépréciation. Quand la sortie écrit les deux (le défaut pour l'instant), la passe `resources` est
+suivie d'un complément lu dans `hosts`/`services`
+(`_restore_runtime_complement_from_hosts_services`), voir plus bas. Chaque ligne est posée sur son entrée par
 `broker_cache::restore_host_runtime` / `restore_service_runtime`, qui reçoivent une fonction
 posant les seuls champs que la source connaît : le cache garde la règle et la mécanique de copie
 sur écriture, unified_sql garde la connaissance des colonnes. La ligne d'une ressource inconnue du
@@ -5470,6 +5472,19 @@ poller est *outdated*, et la colonne `output` des services, qui concatène sorti
 longue sur un saut de ligne, est rescindée. `resources.status`, lui, n'est jamais forcé. Tests : `CBA_KPI_RUNTIME_RESTORED_FROM_RESOURCES` et `CBA_KPI_RUNTIME_RESTORED_FROM_HOSTS_SERVICES`
 (Engine arrêté, fichier de cache BAM supprimé, redémarrage de cbd : la restauration puis
 l'amorçage de BAM rendent la BA CRITICAL sans aucun status, depuis chacune des deux sources).
+
+*Fait le 2026-10-26, le complément.* `store_in_resources` et `store_in_hosts_services` sont tous
+deux actifs pour l'instant ; `hosts`/`services` laisseront plus tard la place à deux tables ne
+contenant que les données encore utilisées qui manquent à `resources`. D'ici là, quand la sortie
+écrit les deux, les champs que `resources` ignore sont pris dans `hosts`/`services` après la passe
+`resources` : perfdata, sortie longue, état hard précédent et sa date, `last_time_*`, latence,
+temps d'exécution, prochain contrôle et, quand Broker ne les possède pas, les compteurs de
+notification, le type d'acquittement (seulement si `resources` dit acquitté) et la profondeur de
+downtime. Le statut, la sortie et les autres champs venus de `resources` ne sont pas touchés. La
+même règle « le plus frais gagne » s'applique. Les deux tables sont écrites depuis le même status
+mais dans des lots séparés, sans transaction : après un crash, une ressource peut recevoir le
+complément du contrôle précédent, ce que son contrôle suivant corrige ; un contrôle plus strict n'a
+pas été jugé utile. À l'arrivée des nouvelles tables, seul ce complément aura à les lire à la place.
 
 *Base injoignable au premier `open()`.* La barrière lâche au timeout, les status des pollers
 commencent à arriver, et la superposition se fait plus tard, à la connexion réussie. Elle ne
