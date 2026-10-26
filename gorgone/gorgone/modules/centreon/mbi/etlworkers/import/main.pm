@@ -25,6 +25,7 @@ use warnings;
 use gorgone::standard::misc;
 use File::Basename;
 use Try::Tiny;
+use gorgone::modules::centreon::mbi::libs::TableUtils;
 
 sub sql {
     my ($etlwk, %options) = @_;
@@ -48,7 +49,7 @@ sub sql {
         next if (!defined($connection));
 
         try {
-            $connection->query({ query => $statement->[1] });
+            gorgone::modules::centreon::mbi::libs::TableUtils::execute_statement($connection, $statement->[1]);
         } catch {
             die $_ if (!$continueOnError);
             $etlwk->{messages}->writeLog('WARNING', $statement->[0] . ' failed: ' . $_);
