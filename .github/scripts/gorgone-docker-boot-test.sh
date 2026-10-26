@@ -108,6 +108,21 @@ if ! docker exec "$CONTAINER_NAME" sh -c "sudo -n /usr/bin/apt-get --version > /
 fi
 summary_step_pass
 
+summary_step_start "Proxy env vars are kept through sudo"
+echo "=== [boot] Checking http_proxy/https_proxy reach apt-get through sudo ==="
+# Debian's sudo resets the environment by default: without env_keep, apt
+# ignores the proxy and dials the repositories directly. proxy.invalid never
+# resolves, so apt mentioning it proves the variables went through sudo.
+apt_output=$(docker exec \
+  -e http_proxy=http://proxy.invalid:3128 -e https_proxy=http://proxy.invalid:3128 \
+  "$CONTAINER_NAME" timeout 60 sudo -n /usr/bin/apt-get update 2>&1 || true)
+if ! grep -q "proxy.invalid" <<< "$apt_output"; then
+  echo "$apt_output"
+  echo "::error::apt-get run through sudo did not use http_proxy/https_proxy: sudoers env_keep is missing"
+  exit 1
+fi
+summary_step_pass
+
 summary_step_start "No crash signature in logs"
 echo "=== [boot] Scanning logs for unambiguous crash signatures ==="
 if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Compilation failed|Can't locate|Segmentation fault|Out of memory"; then
