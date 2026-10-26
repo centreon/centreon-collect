@@ -15,7 +15,7 @@ on:
       - ".github/workflows/pulp-wi-probe.yml"
   workflow_dispatch:
   schedule:
-    - cron: "30 5 * * 1-5" # weekdays, after delivery-tooling's pulp-after-upgrade-test
+    - cron: "30 7 * * 1-5" # weekdays, after delivery-tooling's pulp-after-upgrade-test
 
 concurrency:
   group: ${{ github.workflow }}
