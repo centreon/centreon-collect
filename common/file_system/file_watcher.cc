@@ -25,6 +25,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <cwchar>
+#include "utf8.hh"
 #else
 #include <sys/inotify.h>
 #include <unistd.h>
@@ -40,6 +41,18 @@ namespace {
 // burst of native events. We coalesce them: on_change is called once, this long
 // after the last event of a burst.
 constexpr std::chrono::milliseconds debounce_delay{200};
+
+/**
+ * @brief Path as UTF-8 for the logs. On Windows path::string() converts to the
+ * ANSI code page, so an accented path would be garbled in an UTF-8 log.
+ */
+std::string path_to_log(const std::filesystem::path& path) {
+#ifdef _WIN32
+  return com::centreon::common::wstring_to_utf8(path.native());
+#else
+  return path.string();
+#endif
+}
 }  // namespace
 
 /**
@@ -119,12 +132,12 @@ std::shared_ptr<file_watcher> file_watcher::load(
     }
     if (watcher->_start_native()) {
       SPDLOG_LOGGER_DEBUG(watcher->_logger, "watching file {}",
-                          watcher->_watched_path.string());
+                          path_to_log(watcher->_watched_path));
       watcher->_arm_native();
     } else {
       SPDLOG_LOGGER_ERROR(watcher->_logger,
                           "can't watch file {}: changes won't be notified",
-                          watcher->_watched_path.string());
+                          path_to_log(watcher->_watched_path));
     }
   });
   return watcher;
@@ -176,12 +189,13 @@ void file_watcher::_debounce_handler(const boost::system::error_code& err) {
       return;
     }
   }
-  SPDLOG_LOGGER_DEBUG(_logger, "file {} has changed", _watched_path.string());
+  SPDLOG_LOGGER_DEBUG(_logger, "file {} has changed",
+                      path_to_log(_watched_path));
   try {
     _on_change();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "error while handling change of file {}: {}",
-                        _watched_path.string(), e.what());
+                        path_to_log(_watched_path), e.what());
   }
 }
 
@@ -217,7 +231,7 @@ bool file_watcher::_start_native() noexcept {
     return true;
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "can't start watch on {}: {}",
-                        _parent_path.string(), e.what());
+                        path_to_log(_parent_path), e.what());
     _stop_native();
     return false;
   }
@@ -240,7 +254,7 @@ void file_watcher::_arm_native() {
       nullptr, &_impl->overlapped, nullptr);
   if (!ok) {
     SPDLOG_LOGGER_ERROR(_logger, "ReadDirectoryChangesW failed on {}: {}",
-                        _parent_path.string(), GetLastError());
+                        path_to_log(_parent_path), GetLastError());
     return;
   }
   _impl->event_handle->async_wait(
@@ -343,7 +357,7 @@ bool file_watcher::_start_native() noexcept {
     return true;
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "can't start watch on {}: {}",
-                        _watched_path.string(), e.what());
+                        path_to_log(_watched_path), e.what());
     _stop_native();
     return false;
   }

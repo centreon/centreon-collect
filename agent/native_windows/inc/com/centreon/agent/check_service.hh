@@ -39,6 +39,7 @@ enum e_service_metric : unsigned {
 /**
  * @brief service filter
  * it can filter services by their name and also by their start_auto
+ * names are UTF-8 and name regexes are case insensitive
  */
 class service_filter {
   using string_set = absl::flat_hash_set<std::string>;
@@ -85,7 +86,12 @@ class service_filter {
  */
 class service_enumerator {
  public:
-  using listener = std::function<void(const ENUM_SERVICE_STATUSA&)>;
+  /**
+   * called on each allowed service with its UTF-8 name and display name
+   */
+  using listener = std::function<void(const SERVICE_STATUS& status,
+                                      const std::string& service_name,
+                                      const std::string& display_name)>;
   using constructor = std::function<std::unique_ptr<service_enumerator>()>;
 
  private:
@@ -100,7 +106,7 @@ class service_enumerator {
   SC_HANDLE _sc_manager_handler = nullptr;
   DWORD _resume_handle = 0;
 
-  using serv_array = ENUM_SERVICE_STATUSA[service_array_size];
+  using serv_array = ENUM_SERVICE_STATUSW[service_array_size];
 
   virtual bool _enumerate_services(serv_array& services,
                                    DWORD* services_returned);
@@ -111,7 +117,7 @@ class service_enumerator {
   };
 
   virtual bool _query_service_config(
-      LPCSTR service_name,
+      LPCWSTR service_name,
       unsigned query_flags,
       std::unique_ptr<unsigned char[]>& buffer,
       size_t* buffer_size,
@@ -147,7 +153,9 @@ class w_service_info : public snapshot<e_service_metric::nb_service_metric> {
                  unsigned state_to_critical,
                  const std::shared_ptr<spdlog::logger>& logger);
 
-  void on_service(const ENUM_SERVICE_STATUSA& service_status);
+  void on_service(const SERVICE_STATUS& status,
+                  const std::string& service_name,
+                  const std::string& display_name);
 
   e_status get_status() const { return _status; }
 

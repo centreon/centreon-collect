@@ -483,8 +483,8 @@ void check_sched::_get_task_info(ComPtr<IRegisteredTask> task) {
     SPDLOG_LOGGER_ERROR(_logger, "Failed to get task definition of {}.",
                         data.name);
   }
-  std::string lower_label(data.name);
-  std::ranges::transform(lower_label, lower_label.begin(), ::tolower);
+  // ::tolower is undefined for the bytes of UTF-8 multibyte characters
+  std::string lower_label = absl::AsciiStrToLower(data.name);
 
   // exclude tasks and filter tasks
   if (_exclude_tasks.contains(lower_label)) {
@@ -697,9 +697,8 @@ void check_sched::_process_exclude_task(const std::string_view& param) {
   }
   for (std::string_view label : absl::StrSplit(param, ',')) {
     // make sure to transform the label to lower case
-    std::string lower_label(label);
-    std::ranges::transform(lower_label, lower_label.begin(), ::tolower);
-    _exclude_tasks.insert(std::move(lower_label));
+    _exclude_tasks.insert(
+        absl::AsciiStrToLower(absl::StripAsciiWhitespace(label)));
   }
 }
 

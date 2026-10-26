@@ -547,6 +547,83 @@ TEST_F(scheduler_test, correct_output_examplar) {
 }
 
 /**
+ * @brief this check returns an output, a perfdata label and a unit encoded in
+ * cp1252 as some Windows plugins do
+ */
+class cp1252_check : public check {
+ public:
+  cp1252_check(const std::shared_ptr<asio::io_context>& io_context,
+               const std::shared_ptr<spdlog::logger>& logger,
+               time_point exp,
+               const Service& serv,
+               const engine_to_agent_request_ptr& cnf,
+               check::completion_handler&& handler,
+               const checks_statistics::pointer& stat)
+      : check(io_context, logger, exp, serv, cnf, std::move(handler), stat) {}
+
+  void start_check(const duration& timeout) override {
+    if (!_start_check(timeout)) {
+      return;
+    }
+    asio::post(*_io_context,
+               [me = shared_from_this(), this,
+                check_running_index = _get_running_check_index()]() {
+                 com::centreon::common::perfdata perf;
+                 perf.name("C=FR, S=C\xf4te-d'Or#cert.expires");
+                 perf.unit("\xb5s");
+                 perf.value(12);
+                 me->on_completion(check_running_index, 0, {perf},
+                                   {"Certificat \xe9mis pour C\xf4te-d'Or"});
+               });
+  }
+};
+
+/**
+ * Given a check whose output, perfdata label and unit are not UTF-8
+ * Then the exported protobuf strings are converted to UTF-8
+ */
+TEST_F(scheduler_test, non_utf8_metric_name_and_unit) {
+  std::shared_ptr<MessageFromAgent> exported_request;
+  std::condition_variable export_cond;
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host",
+      create_conf(1, 1, 1, 10, 1),
+      [&](const std::shared_ptr<MessageFromAgent>& req) {
+        exported_request = req;
+        export_cond.notify_all();
+      },
+      [](const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<spdlog::logger>& logger,
+         time_point start_expected, const Service& service,
+         const engine_to_agent_request_ptr& engine_to_agent_request,
+         check::completion_handler&& handler,
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+        return std::make_shared<cp1252_check>(
+            io_context, logger, start_expected, service,
+            engine_to_agent_request, std::move(handler), stat);
+      });
+
+  std::mutex m;
+  std::unique_lock l(m);
+  export_cond.wait(l);
+
+  ASSERT_TRUE(exported_request);
+  ASSERT_GE(exported_request->otel_request().resource_metrics_size(), 1);
+  const auto& scope_metrics =
+      exported_request->otel_request().resource_metrics()[0].scope_metrics()[0];
+  ASSERT_EQ(scope_metrics.metrics_size(), 2);
+  ASSERT_EQ(scope_metrics.metrics()[0].name(), "status");
+  ASSERT_EQ(scope_metrics.metrics()[0].description(),
+            "Certificat émis pour Côte-d'Or");
+  ASSERT_EQ(scope_metrics.metrics()[1].name(),
+            "C=FR, S=Côte-d'Or#cert.expires");
+  ASSERT_EQ(scope_metrics.metrics()[1].unit(), "µs");
+
+  scheduler_closer closer(sched);
+}
+
+/**
  * @brief: this fake check store executed checks and max active checks at a time
  */
 class concurent_check : public check {

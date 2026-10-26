@@ -638,3 +638,25 @@ TEST_F(PerfdataParser, ExtractPerfdataBrackets) {
   ASSERT_NE(it, lst.end());
   ASSERT_EQ(it->name(), "aa a]");
 }
+
+/*
+ * Given a quoted label containing quotes escaped by doubling them, spaces and
+ * equal signs (an X.509 subject)
+ * Then the label is unquoted and unescaped
+ */
+TEST_F(PerfdataParser, QuotedLabelWithEscapedQuote) {
+  auto lst{common::perfdata::parse_perfdata(
+      0, 0, "'C=FR, S=Côte-d''Or#cert.expires'=123s;;;0; 'it''s'=1 plain=2",
+      _logger)};
+  ASSERT_EQ(lst.size(), 3u);
+  auto it = lst.begin();
+  ASSERT_EQ(it->name(), "C=FR, S=Côte-d'Or#cert.expires");
+  ASSERT_EQ(it->value(), 123);
+  ASSERT_EQ(it->unit(), "s");
+  ++it;
+  ASSERT_EQ(it->name(), "it's");
+  ASSERT_EQ(it->value(), 1);
+  ++it;
+  ASSERT_EQ(it->name(), "plain");
+  ASSERT_EQ(it->value(), 2);
+}
