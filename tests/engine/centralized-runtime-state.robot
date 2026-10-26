@@ -147,3 +147,68 @@ CERS2
     Should Be True    ${result}    Engine should apply the snapshot sent after the configuration was rebuilt
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS3
+    [Documentation]    Scenario: after a Broker restart, the runtime restored from the resources table is completed from the hosts and services tables
+    ...    Given Broker and Engine are started in centralized configuration, with passive services, Broker writing both the resources and the hosts/services tables
+    ...    And service_1 of host_1 is CRITICAL HARD
+    ...    When Engine is stopped, its retention.dat is deleted, Broker is stopped and both are started again
+    ...    Then unified_sql restores the runtime from the resources table, then completes it from the hosts/services tables
+    ...    And Engine gets back from the Broker snapshot the last time service_1 was CRITICAL, a date the resources table does not hold
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+    Ctn Broker Config Log    central    sql    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD
+    ${before}    Ctn Get Service Info Grpc    ${1}    ${1}
+
+    # Engine first, so that no status reaches Broker after it restarts: the
+    # database is then the only source of the runtime.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+
+    ${content}    Create List    restored into the global cache from the resources table
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    unified_sql should restore the runtime from the resources table
+    ${content}    Create List    completed in the global cache from the hosts/services tables
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    unified_sql should complete the runtime from the hosts/services tables
+    ${content}    Create List    runtime of 0 hosts and 0 services completed
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one resource should have been completed
+
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    services restored from the Broker snapshot
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+    Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+
+    # last_time_critical is not in the resources table: only the complement
+    # brings it back.
+    ${after}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${after}[lastTimeCritical]    ${before}[lastTimeCritical]    service_1 should get back the last time it was CRITICAL
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
