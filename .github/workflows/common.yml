@@ -126,6 +126,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el9, el10]
 
@@ -159,6 +160,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el9, el10]
 
@@ -200,6 +202,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [trixie]
 
@@ -231,6 +234,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [trixie]
 
@@ -270,6 +274,7 @@ jobs:
 
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el9, el10, trixie]
 
@@ -302,6 +307,7 @@ jobs:
 
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el9, el10, trixie]
     permissions:
