@@ -340,6 +340,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9]
 
@@ -370,6 +371,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9]
 
@@ -408,6 +410,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [bookworm]
 
@@ -438,6 +441,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [bookworm]
 
@@ -477,6 +481,7 @@ jobs:
 
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9, bookworm]
 
@@ -509,6 +514,7 @@ jobs:
 
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9, bookworm]
     permissions:

@@ -580,6 +580,7 @@ jobs:
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: el8
@@ -622,6 +623,7 @@ jobs:
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: el8
@@ -669,6 +671,7 @@ jobs:
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: bookworm
@@ -718,6 +721,7 @@ jobs:
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: bookworm
@@ -891,6 +895,7 @@ jobs:
 
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
 
@@ -938,6 +943,7 @@ jobs:
 
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
     permissions:
