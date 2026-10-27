@@ -167,6 +167,23 @@ sub request {
         return 1;
     }
 
+    # the authentification token used have an inactivity timeout of 2 hours by default
+    # if there is no request in this windows, the token is deleted by php, and Gorgone need to authenticate again.
+    #
+    my $is_token_from_cache = $self->{is_logged};
+    my ($status, $decoded) = $self->_send_request(%options);
+    if ($status != 0 && $self->{is_logged} == 0 && $is_token_from_cache == 1 && !$options{no_replay}) {
+        return $self->_send_request(%options);
+    }
+
+    return 1 if ($status != 0);
+    return (0, $decoded);
+}
+
+# log in if needed and send one request. The token is dropped if the API refuses it.
+sub _send_request {
+    my ($self, %options) = @_;
+
     $self->{is_error} = 0;
     if ($self->{is_logged} == 0) {
         $self->authenticate();
@@ -200,8 +217,8 @@ sub request {
 
     my $decoded = $self->json_decode(content => $content);
 
-    # code 403 means forbidden (token not good maybe)
-    if ($self->{http}->get_code() == 403) {
+    # code 401 means the token is unknown (expired session), 403 means forbidden (token not good maybe)
+    if ($self->{http}->get_code() == 401 || $self->{http}->get_code() == 403) {
         $self->{token} = undef;
         $self->{is_logged} = 0;
         $self->{is_error} = 1;
@@ -306,7 +323,8 @@ sub DESTROY {
     if ($self->{is_logged} == 1) {
         $self->request(
             method => 'GET',
-            endpoint => '/logout'
+            endpoint => '/logout',
+            no_replay => 1
         );
     }
 }
