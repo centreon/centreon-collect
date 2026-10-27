@@ -29,7 +29,7 @@ env:
   # the probed repositories' domain (the rule's domain in configmap-settings.yaml)
   PROBE_DOMAIN: standard
   # also probe the installers rules (centreon-collect only). The dev installers repositories come
-  # from delivery-tooling's create-repos-installers.yml run with stack=dev.
+  # from create-repos-installers.yml run with stack=dev.
   PROBE_INSTALLERS: "true"
 
 jobs:
@@ -140,3 +140,58 @@ jobs:
             echo "::error::$FAILURES probe(s) failed"
             exit 1
           fi
+
+  # scheduled runs only: a MON ticket, announced on Slack like the nightly ones. Same logic as
+  # delivery-tooling's .github/scripts/pulp/report-scheduled-failure.sh (inlined: no cross-repo call).
+  report-failure:
+    needs: [probe]
+    if: always() && github.event_name == 'schedule' && needs.probe.result == 'failure'
+    runs-on: centreon-ubuntu-26.04-slim
+    steps:
+      - name: Open or update the failure ticket
+        env:
+          SUMMARY: "Pulp WI probe failing on dev for ${{ github.repository }}"
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.XRAY_JIRA_TOKEN }}
+        run: |
+          set -euo pipefail
+          JIRA_BASE_URL="${JIRA_BASE_URL:-https://centreon.atlassian.net}"
+          AUTH="$JIRA_USER_EMAIL:$JIRA_API_TOKEN"
+          jira() {
+            local method="$1" path="$2"
+            shift 2
+            curl -sSf --max-time 60 -X "$method" -u "$AUTH" \
+              -H "Accept: application/json" -H "Content-Type: application/json" \
+              "${JIRA_BASE_URL%/}/rest/api/3/$path" "$@"
+          }
+          paragraph() {
+            jq -n --arg text "$1" --arg url "$RUN_URL" '{type: "paragraph", content: [
+              {type: "text", text: ($text + " ")},
+              {type: "text", text: "Run", marks: [{type: "link", attrs: {href: $url}}]}]}'
+          }
+
+          jql=$(jq -rn --arg s "$SUMMARY" \
+            '"project = MON AND labels = Pulp AND statusCategory != Done AND summary ~ \"\\\"" + $s + "\\\"\""')
+          existing=$(jira POST search/jql --data "$(jq -n --arg jql "$jql" '{jql: $jql, fields: ["summary"], maxResults: 20}')" \
+            | jq -r --arg s "$SUMMARY" '[.issues[] | select(.fields.summary == $s) | .key][0] // empty')
+
+          if [[ -n "$existing" ]]; then
+            jira POST "issue/$existing/comment" \
+              --data "$(jq -n --argjson p "$(paragraph "Failed again.")" '{body: {type: "doc", version: 1, content: [$p]}}')" > /dev/null
+            echo "::notice::scheduled failure added to $existing"
+            exit 0
+          fi
+
+          key=$(jira POST issue --data "$(jq -n --arg s "$SUMMARY" \
+            --argjson p "$(paragraph "The scheduled Pulp Workload Identity probe failed on the dev stack.")" '{fields: {
+            project: {key: "MON"},
+            issuetype: {id: "10209"},
+            summary: $s,
+            labels: ["Pipeline", "Pulp"],
+            customfield_10902: {id: "10524"},
+            description: {type: "doc", version: 1, content: [$p]}}}')" | jq -r '.key')
+          # the create call only accepts the default priority
+          jira PUT "issue/$key" --data '{"fields": {"priority": {"id": "2"}}}' > /dev/null
+          echo "::notice::scheduled failure ticket $key"
