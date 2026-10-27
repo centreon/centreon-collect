@@ -113,7 +113,6 @@ unsigned long cached_host_check_horizon(15);
 unsigned long modified_host_process_attributes(MODATTR_NONE);
 unsigned long modified_service_process_attributes(MODATTR_NONE);
 uint64_t next_event_id(1);
-unsigned long next_notification_id(1);
 uint64_t next_problem_id(1);
 
 std::unique_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;

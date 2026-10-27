@@ -23,6 +23,7 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/retention/applier/utils.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
@@ -124,7 +125,8 @@ void applier::program::apply(configuration::State& config,
       next_problem_id = *obj.next_problem_id();
 
     if (obj.next_notification_id().has_value())
-      next_notification_id = *obj.next_notification_id();
+      com::centreon::common::notifications::notification_manager::instance()
+          .set_next_notification_id(*obj.next_notification_id());
   }
 
   if (!config.use_retained_program_state()) {
