@@ -219,6 +219,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: el8
@@ -257,6 +258,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: el8
@@ -300,6 +302,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: bookworm
@@ -334,6 +337,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: bookworm
@@ -374,6 +378,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9, bookworm]
 
@@ -405,6 +410,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
     runs-on: centreon-ubuntu-26.04-small
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9, bookworm]
     permissions:
