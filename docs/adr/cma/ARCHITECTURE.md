@@ -1,184 +1,244 @@
-# Centreon Monitoring Agent — architecture map
+# Centreon Monitoring Agent architecture reference
 
-Entry point to the CMA ADRs. Each block of the architecture names the ADR that governs it. Rules live in the ADRs; this page only places them.
+Reference for writing and reviewing code of the Centreon Monitoring Agent (`agent/`). Each section states the rule, its severity, and the ADR that carries the reasoning (`docs/adr/cma/`). The severity levels are proposed with the ADRs and validated with them by `@centreon/owners-cpp`.
 
-## 1. Context: where the agent sits
+## Zones
 
-```mermaid
-flowchart LR
-  subgraph Host["Monitored host (Linux / Windows)"]
-    CMA["centagent<br/>(agent/)"]
-    OS[("OS APIs<br/>/proc, PDH, Evt*, SCM")]
-    PLG["Plugins<br/>(centreon-plugins)"]
-    LCONF[["Local config<br/>JSON / registry<br/>custom_check.ini"]]
-  end
-  subgraph Poller["Centreon poller"]
-    ENG["centengine<br/>module opentelemetry<br/>centreon_agent/"]
-    BRK["centreon-broker"]
-  end
-  LCONF -->|read at start| CMA
-  CMA -->|native checks| OS
-  CMA -->|check_exec| PLG
-  CMA <-->|"gRPC bidi stream<br/>agent.proto + OTLP"| ENG
-  ENG --> BRK
-```
+| Zone | Path | Strictness |
+|------|------|------------|
+| **Contracts** | `agent/proto/agent.proto`, the OTLP encoding in `agent/src/scheduler.cc`, `engine/modules/opentelemetry/src/centreon_agent/` | Strictest. Any change that an older or newer peer cannot read blocks. Both sides change in the same PR |
+| **Agent** | `agent/src/`, `agent/inc/`, `agent/native_linux/`, `agent/native_windows/` | Strict. Every CMA ADR applies; architectural violations block the merge |
+| **Install and packaging** | `agent/installer/`, `agent/conf/`, `packaging/centreon-monitoring-agent/` | Configuration parity, correctness and security only; no architecture or style findings |
+| **Shared libraries** | `common/grpc/`, `common/process/`, `common/crypto/`, `common/inc/`, `common/engine_conf/` | Correctness, CI and security block for every consumer (agent, Engine, Broker); agent-specific rules do not apply; architectural gaps are non-blocking tickets |
+| **Tests** | `agent/test/`, `tests/broker-engine/cma*.robot`, `tests/resources/Agent.py` | Test rules of CMA-0013 |
 
-| Boundary | Contract | ADR |
-| --- | --- | --- |
-| Agent ↔ Engine, messages | `agent/proto/agent.proto`: `AgentInfo`, `AgentConfiguration`, `ForceCheck` | [CMA-0004](0004-engine-agent-protocol-contract.md) |
-| Agent → Engine, check results | OTLP metrics: `status`, `host.name` / `service.name`, exemplars | [CMA-0005](0005-otlp-metrics-export-contract.md) |
-| Agent ↔ Engine, transport | direct (`Export`) or reversed (`Import`), TLS, tokens | [CMA-0003](0003-grpc-streaming-and-connection-modes.md), [CMA-0009](0009-security.md) |
-| Host admin → agent | JSON file (Linux), registry (Windows), installers, custom checks | [CMA-0010](0010-local-configuration.md) |
-| Agent → packs (CTOR) | native check arguments and perfdata names | [CMA-0008](0008-native-check-conventions.md) |
+**Dependency direction.** The agent depends on `common/` and third-party libraries only. It never includes Engine or Broker code. Engine depends on the agent through `agent.proto` only. **⟶ an agent include of `engine/` or `broker/` blocks.**
 
-## 2. Components
+**Shared code, always ask who else is hit.** A change in `common/` used by the agent is also a change for Engine and Broker. Build and test them, and say so in the PR. **⟶ an untested consumer blocks.**
 
-```mermaid
-flowchart TB
-  MAIN["main.cc / main_win.cc<br/>signals, Windows service, logger"]
-  CONF["config<br/>config.cc | config_win.cc"]
-  BOOT["grpc_ca_bootstrap"]
-  CLI["streaming_client<br/>AgentService.Export"]
-  SRV["streaming_server<br/>ReversedAgentService.Import"]
-  BIR["bireactor&lt;T&gt;<br/>write queue, OnDone registry"]
-  SCH["scheduler<br/>queue, slots, export batching"]
-  BLD["default_check_builder"]
-  CHK["check (base)<br/>timeout, running index, soft/hard"]
-  EXE["check_exec / check_custom"]
-  NAT["native checks<br/>native_linux | native_windows"]
-  DUM["check_dummy"]
-  COM[["common/: grpc, process,<br/>crypto, perfdata, threshold,<br/>timeperiod, file_watcher"]]
+---
 
-  MAIN --> CONF --> BOOT
-  MAIN --> CLI
-  MAIN --> SRV
-  CLI --> BIR
-  SRV --> BIR
-  CLI --> SCH
-  SRV --> SCH
-  SCH --> BLD
-  BLD --> EXE
-  BLD --> NAT
-  BLD --> DUM
-  EXE --> CHK
-  NAT --> CHK
-  DUM --> CHK
-  BIR -.-> COM
-  EXE -.-> COM
-  SCH -.-> COM
-```
+## Blocking criteria (by zone)
+
+This table is the canonical severity reference; the `⟶` annotations below roll up here.
+
+| What blocks | Contracts | Agent | Install / packaging | Shared libs |
+|---|:---:|:---:|:---:|:---:|
+| Runtime bug, crash, lost or duplicated check result, silent failure | ✓ | ✓ | ✓ | ✓ |
+| Security problem, secret exposed in a log, an output or a file | ✓ | ✓ | ✓ | ✓ |
+| CI failure (Linux or Windows build, `ut_agent`, robot suites) | ✓ | ✓ | ✓ | ✓ |
+| Change an old or new peer cannot read (proto, OTLP names, exemplars) | ✓ |  |  |  |
+| Threading violation (blocking the `io_context` thread, state shared across threads without a boundary) |  | ✓ |  | ✓ |
+| Architectural violation (wrong platform tree, check outside the lifecycle, scheduler bypass) |  | ✓ |  |  |
+| Configuration key missing from one of JSON, registry, installers |  | ✓ | ✓ |  |
+| Missing test for a behaviour change | ✓ | ✓ |  |  |
+
+Formatting and naming gaps never block: they are suggestions on changed lines, never a reason to reformat untouched code.
+
+---
+
+## Convention source of truth
+
+The agent code in `centreon-collect` is the reference for agent conventions, and these ADRs are its written form. Engine and Broker are *siblings*, older than the agent: verify a pattern against this document and the surrounding `agent/` code before copying it from them. When a convention isn't covered here, the surrounding `agent/` code wins. A place listed in an ADR's Consequences as "not yet followed" or as a known defect is never a model.
+
+---
+
+## Components
 
 | Component | Files | Role | ADR |
-| --- | --- | --- | --- |
-| Entry points | `src/main.cc`, `src/main_win.cc` | start-up, signals, Windows service, plain-text expiry | [0002](0002-single-threaded-asio-model.md), [0009](0009-security.md), [0011](0011-logging.md) |
-| Local configuration | `src/config.cc`, `src/config_win.cc`, `inc/.../config.hh` | singleton read once; custom checks hot reload | [0010](0010-local-configuration.md) |
-| CA bootstrap | `src/grpc_ca_bootstrap.cc` | fetch and pin the CA by fingerprint | [0009](0009-security.md) |
-| Transport | `bireactor`, `streaming_client`, `streaming_server` | one bidi stream, reconnect, token check | [0003](0003-grpc-streaming-and-connection-modes.md) |
-| Scheduler | `src/scheduler.cc` | rebuild on config, spread, slots, concurrency, timeperiods, OTLP batching | [0006](0006-scheduler.md), [0005](0005-otlp-metrics-export-contract.md) |
-| Check builder | `scheduler::default_check_builder` | decrypt, JSON → native, else exec, errors → dummy | [0007](0007-check-abstraction-and-lifecycle.md) |
-| Check base | `check.hh`, `src/check.cc` | lifecycle, timeout, running index, HARD/SOFT | [0007](0007-check-abstraction-and-lifecycle.md), [0006](0006-scheduler.md) |
-| Plugin execution | `src/check_exec.cc` | process spawn, output/perfdata parsing, in-memory credential encryption | [0007](0007-check-abstraction-and-lifecycle.md), [0009](0009-security.md) |
-| Native checks | `native_linux/`, `native_windows/`, `src/native_check_*`, `src/drive_size.cc`, `src/check_health.cc` | OS measures, thresholds, perfdata | [0008](0008-native-check-conventions.md) |
-| Filters | `src/filter.cc`, `src/filter_rules.cc` | NSClient++-like expressions (boost::parser) | [0008](0008-native-check-conventions.md) |
-| Shared libraries | `common/**` | also used by Engine and Broker | [0001](0001-module-layout-and-build.md) |
+|---|---|---|---|
+| Entry points | `src/main.cc`, `src/main_win.cc` | start-up, signals, Windows service, plain-text expiry | 0002, 0009, 0011 |
+| Local configuration | `src/config.cc`, `src/config_win.cc`, `inc/.../config.hh` | singleton read once, custom checks hot reload | 0010 |
+| CA bootstrap | `src/grpc_ca_bootstrap.cc` | fetch and pin the CA by fingerprint | 0009 |
+| Transport | `bireactor`, `streaming_client`, `streaming_server` | one bidirectional stream, reconnect, token check | 0003 |
+| Scheduler | `src/scheduler.cc` | rebuild on configuration, spreading, slots, concurrency, timeperiods, OTLP batching | 0006, 0005 |
+| Check builder | `scheduler::default_check_builder` | decrypt, JSON → native, else exec, errors → `check_dummy` | 0007 |
+| Check base | `check.hh`, `src/check.cc` | lifecycle, timeout, running index, HARD/SOFT | 0007, 0006 |
+| Plugin execution | `src/check_exec.cc` | process spawn, output and perfdata parsing, credentials kept encrypted | 0007, 0009 |
+| Native checks | `native_linux/`, `native_windows/`, `src/native_check_*`, `src/drive_size.cc`, `src/check_health.cc` | OS measures, thresholds, perfdata | 0008 |
+| Filters | `src/filter.cc`, `src/filter_rules.cc` | NSClient++-like expressions (boost::parser) | 0008 |
 
-## 3. Threads
+Runtime flow: `main` loads the configuration, bootstraps the CA if needed, opens the stream and sends `AgentInfo`. Engine sends `AgentConfiguration`; the gRPC thread posts it to the scheduler, which rebuilds and spreads every check. Each check starts in its slot and completes asynchronously; the scheduler computes HARD/SOFT, stores OTLP data and re-queues the check at its next absolute time. Every `export_period`, or earlier when needed, the request is written to the stream.
 
-```mermaid
-flowchart LR
-  subgraph IO["io_context thread (main)"]
-    S["scheduler"] --- C["checks"] --- T["timers / signals"]
-  end
-  G["gRPC threads<br/>bireactor callbacks"] -->|asio::post| IO
-  W1["drive_size_thread"] -->|asio::post| IO
-  W2["check_files_thread (Win)"] -->|asio::post| IO
-  E["Event Log callback (Win)"] -->|absl::Mutex| C
-  P["child processes"] -->|asio completion| IO
-```
+---
 
-Rule set: [CMA-0002](0002-single-threaded-asio-model.md). Mutexes only on the arrows above.
+## Platform split and build
 
-## 4. Runtime flows
+Code that runs on both platforms lives in `src/` + `inc/com/centreon/agent/` and is **C++17** (Linux host). Platform code lives in `native_linux/` or `native_windows/`; C++20 (`std::format`, `<ranges>`, concepts) only in `native_windows/`. **⟶ a C++20 construct in the core blocks** (it breaks the Linux build). A Windows API (`windows.h`, `Pdh*`, `Evt*`) or a Linux-only API (`/proc`, `localtime_r`) outside a platform tree or an `#ifdef _WIN32` block **⟶ blocks**.
 
-### 4.1 Start-up and connection
+Every source and test file is listed by hand in `agent/CMakeLists.txt` / `agent/test/CMakeLists.txt`; a file missing from the list never builds or never runs. Generated `*.pb.*` files are never committed. New libraries come from the root `vcpkg.json`. The Linux link stays `-static-libgcc -static-libstdc++`.
 
-```mermaid
-sequenceDiagram
-  participant M as main
-  participant CF as config
-  participant B as ca_bootstrap
-  participant ST as streaming_client/server
-  participant E as Engine
-  M->>CF: load (JSON | registry)
-  M->>B: bootstrap if fingerprint and no CA
-  M->>ST: load(grpc_config)
-  ST->>E: open stream (Export) / accept (Import, token check)
-  ST->>E: MessageFromAgent.init (AgentInfo)
-  Note over ST: scheduler created with default_config (no check)
-```
+ADR: CMA-0001.
 
-ADRs: [0010](0010-local-configuration.md), [0009](0009-security.md), [0003](0003-grpc-streaming-and-connection-modes.md), [0004](0004-engine-agent-protocol-contract.md).
+---
 
-### 4.2 Configuration and check execution
+## Threading model
 
-```mermaid
-sequenceDiagram
-  participant E as Engine
-  participant R as bireactor (gRPC thread)
-  participant S as scheduler (io thread)
-  participant K as check
-  E->>R: MessageToAgent.config
-  R->>S: asio::post on_engine_request
-  S->>S: update(): defaults, decrypt key, build all checks, spread
-  loop each slot (≤ max_concurrent_checks)
-    S->>K: start_check(timeout)
-    K-->>S: on_completion(index, status, perfdata, outputs) [async]
-    S->>S: soft/hard, store OTLP, re-queue at next absolute time
-  end
-  E->>R: MessageToAgent.force_check
-  R->>S: asio::post → start now if waiting
-```
+One `io_context` thread runs the scheduler, the checks, the timers and the signal handlers. Other threads (gRPC callbacks, `drive_size_thread`, `check_files_thread`, the Event Log callback) hand over with `asio::post` before touching agent state. **⟶ blocks in Agent and Shared libs.**
 
-ADRs: [0006](0006-scheduler.md), [0007](0007-check-abstraction-and-lifecycle.md), [0002](0002-single-threaded-asio-model.md).
+- No blocking call on the `io_context` thread once `run()` has started: no `sleep_for` / `Sleep()`, no synchronous gRPC call, no `boost::process::wait`, no file-system call that can hang, no `future::get()`.
+- A blocking OS call runs in a worker built like `drive_size_thread`: static worker, queue under `absl::Mutex`, results posted back, `thread_kill()` after `run()`.
+- A mutex appears only at a thread boundary. A mutex in the scheduler or a check with no OS callback or worker is a design smell to challenge.
+- Every async lambda captures `shared_from_this()` (or a locked `weak_ptr`); `this` only next to it. Every handler returns at once on an error code.
+- `spdlog::flush_every` is banned (a forked child can hang on its mutex).
 
-### 4.3 Result export
+ADR: CMA-0002.
 
-```mermaid
-sequenceDiagram
-  participant S as scheduler
-  participant R as bireactor
-  participant E as Engine
-  S->>S: add ResourceMetrics (host.name, service.name, status + exemplars, perfdata)
-  alt same service already in request, or > 2 MiB
-    S->>R: write(request) now
-  end
-  S->>R: every export_period: write(request) if not empty
-  R->>E: StartWrite (one in flight, queue)
-  E->>E: agent_check_result_builder → check result
-```
+---
 
-ADRs: [0005](0005-otlp-metrics-export-contract.md), [0003](0003-grpc-streaming-and-connection-modes.md).
+## Transport
 
-## 5. Cross-cutting rules
+One long-lived bidirectional gRPC stream per Engine, client (`AgentService.Export`) or server (`ReversedAgentService.Import`) depending on `reversed_grpc_streaming`. Both modes stay functionally identical: same first message (`AgentInfo`), same scheduler, same builder. **⟶ a feature added to one mode only blocks, unless the PR says why.**
 
-| Topic | Applies to | ADR |
-| --- | --- | --- |
-| Layout, CMake, C++17 vs C++20, `common/` impact | every file | [CMA-0001](0001-module-layout-and-build.md) |
-| Security (TLS, secrets, tokens, commands) | config, transport, exec, logs | [CMA-0009](0009-security.md) |
-| Logging levels and macros | every log line | [CMA-0011](0011-logging.md) |
-| C++ style | every `.cc` / `.hh` | [CMA-0012](0012-code-style.md) |
-| Tests and definition of done | every PR | [CMA-0013](0013-testing-and-definition-of-done.md) |
+- A reactor is registered with `register_stream()` before gRPC gets it, and released only by the posted `OnDone`. Deleting it from a gRPC callback crashes gRPC. **⟶ blocks.**
+- Writes go through `bireactor::write()` (one in flight); state shared with gRPC threads is under `_protect`; incoming requests are posted to the `io_context`.
+- Channels, servers, TLS and keepalive come from `common::grpc` base classes, never hand-built.
+- A new message kind is a new `oneof` member, never a new RPC.
 
-## 6. Which ADR for which change
+ADR: CMA-0003.
 
-| Change | Read |
-| --- | --- |
-| New native check | 0008 → 0007 → 0002 → 0013 |
-| New field sent by Engine | 0004 → 0006 → Engine side |
-| New data in check results | 0005 → 0004 |
-| New local option | 0010 → 0009 if security-related |
-| Connection / reconnection behaviour | 0003 → 0002 → 0009 |
-| Scheduling, retries, timeperiods | 0006 → 0013 |
-| Build, new file, new dependency | 0001 |
+---
 
-Area guidance for Claude sessions: [`agent/CLAUDE.md`](../../../agent/CLAUDE.md). Design notes (scheduler worked examples, filter grammar tips): [`agent/doc/agent-doc.md`](../../../agent/doc/agent-doc.md).
+## Protocol contract
+
+`agent.proto` evolves by addition only. **⟶ any of the following blocks:**
+
+- a renumbered, retyped or reused field number; a removed field not declared `reserved`;
+- a new field whose zero value does not mean the previous behaviour (`optional` when absent and zero differ);
+- a new capability sent by Engine without being announced in `AgentInfo` (pattern: `encryption_ready`);
+- an `AgentInfo` field filled on one platform only;
+- a proto change without its Engine side, or without a robot case when behaviour changes.
+
+`AgentConfiguration` is a full snapshot; the agent ignores message content it does not understand.
+
+ADR: CMA-0004.
+
+---
+
+## OTLP export contract
+
+Engine parses check results by name. The metric `status`, the attributes `host.name` / `service.name`, the exemplar labels (`status_confirmed`, `current_attempt`, `crit_*`, `warn_*`, `min`, `max`) and the perfdata type keys never change. **⟶ a rename blocks.**
+
+- One `ResourceMetrics` per service per request; a second result flushes the request first.
+- An exemplar is emitted only when its value is set (`NaN` skipped by the `<= max` test).
+- Every string placed in a message goes through `common::check_string_utf8`. **⟶ an unsanitised string blocks** (protobuf rejects invalid UTF-8 and the whole request is lost).
+- The early-flush threshold (2 MiB) stays below the minimum `max_message_length` (4 MiB).
+
+ADR: CMA-0005.
+
+---
+
+## Scheduler
+
+Checks run on absolute time slots, rebuilt from each configuration. **⟶ any loss of these properties blocks:** no drift (next start from absolute time points, never "end + interval"); first starts spread over the smallest interval; one check per slot, collisions moved forward; `max_concurrent_checks` never exceeded; results of an old configuration never stored or re-queued.
+
+- A check is re-queued only on completion or timeperiod deferral, and removed from the queue before it starts.
+- Timeperiods use the `common/` functions shared with Engine, never a local reimplementation.
+- `calcul_status_confirmation` changes only with new `nagios_confirmation_*` / `first_check_*` cases in `check_test.cc`: Engine trusts `status_confirmed` and `current_attempt` as sent.
+
+ADR: CMA-0006.
+
+---
+
+## Check lifecycle
+
+Every check derives from `check` (or `native_check_base<N>` / `native_check_cpu<N>`), is built with `make_shared` or a static `load()`, and validates its arguments in the constructor (an exception becomes a `check_dummy`, CRITICAL). **⟶ blocks in Agent:**
+
+- `start_check` not starting with `if (!_start_check(timeout)) return;`;
+- a result delivered synchronously from `start_check`, or without the running index captured at start;
+- an exception escaping `start_check`;
+- a run-time failure reported with another status than `unknown`.
+
+A new check type is registered in `default_check_builder` (under its platform `#ifdef`) and printed by `--help`.
+
+ADR: CMA-0007.
+
+---
+
+## Native checks
+
+- Arguments: JSON `args` read with `rapidjson_helper`, numbers accepted as numbers or strings, documented defaults, kebab-case names (`warning-<x>`, `critical-<x>`, `filter-<x>`, `<x>-syntax`), NSClient++ spellings kept in NSClient++-compatible checks.
+- Thresholds: `common::threshold` only, reported with `set_pref_details_w/_c`. **⟶ hand-written threshold parsing (`std::stod`, regex) blocks.**
+- Output starts with the status label; CRITICAL > WARNING > OK; UNKNOWN when the indicator cannot be measured.
+- Perfdata: new labels `<object>.<measure>.<unit>`, lower case, ASCII, `#` instance prefix, base units, unscaled values. **⟶ renaming an existing label or argument blocks** (it breaks installed packs); a new label is announced to the pack owners (CTOR).
+- Every native check has `help()`, a section in `agent-doc.md` and a test feeding fabricated measures to `compute()`.
+
+ADR: CMA-0008.
+
+---
+
+## Local configuration
+
+A local key exists in all of: JSON schema and parser (`config.cc`), registry reader (`config_win.cc`), `config.hh` getter, Linux installer, Windows installer and silent-install script, or in none. **⟶ a key on one side only blocks in Agent and Install.**
+
+- Every option has a default that keeps the previous behaviour; `endpoint` stays the only required key.
+- JSON aliases (`ca` / `ca_certificate`, `ca_common_name` / `ca_name`) are permanent; a renamed key keeps the old name as alias.
+- `config::instance()` is read-only after start-up; only custom checks reload, all or nothing.
+
+ADR: CMA-0010.
+
+---
+
+## Logging
+
+Log with `SPDLOG_LOGGER_<LEVEL>(_logger, ...)` and the injected logger; global `SPDLOG_*` only before `g_logger` exists. Level by meaning and frequency: anything emitted per check or per message is DEBUG or TRACE. **⟶ a per-check INFO line is a finding** (it floods hosts running hundreds of checks). Each message names its subject (service, command, peer). Secrets never appear (see Security).
+
+ADR: CMA-0011.
+
+---
+
+## Error handling and code conventions
+
+- Errors are `com::centreon::exceptions::msg_fmt` with a message naming the command or service; catch `const std::exception&`. **⟶ an exception that can reach `io_context::run()` blocks** (it ends the agent).
+- Durations and time points cross agent classes as `std::chrono` types, never raw integers.
+- Names snake_case, `e_` enum types, `_` prefix for private members and methods, `#ifndef CENTREON_AGENT_<NAME>_HH` guards, `com::centreon::agent` namespace, no `using namespace` in headers.
+- Format changed lines with the root `.clang-format` (Chromium); no unrelated reformatting in a functional diff.
+- No commented-out code, no ticket number in comments.
+
+ADR: CMA-0012.
+
+---
+
+## Security
+
+Every PR is potentially a security regression. The agent runs commands sent by a remote poller on customer hosts. The common vectors:
+
+- **Secret exposure.** A decrypted command line, a token, a key, a salt or a private key in a log, a check output or a file. `get_command_line()` is plain text for non-encrypted commands: never log it above TRACE, never put it in an output.
+- **Credential lifetime.** Every `decrypt_args` is followed by `clear_unencrypted_args`, on every path including exceptions.
+- **Transport downgrade.** `insecure` stays an explicit choice; `TLS_SKIP_VERIFY_CA` appears only in `grpc_ca_bootstrap.cc`, and its CA is discarded unless the fingerprint matches. The one-hour plain-text stop is never removed.
+- **Peer authentication.** Tokens are checked before any `server_reactor` or scheduler exists; token values are never logged.
+- **Command injection.** Commands come from the Engine configuration or the local custom checks file only, split by `parse_cmd_line`, never through a shell (`system()`, `popen()`, `cmd.exe /c`, `/bin/sh -c`).
+- **Dependency changes.** A new `vcpkg.json` package or version bump not driven by a security fix warrants a CVE check.
+
+**⟶ security findings block in every zone, a reviewer from `@centreon/owners-security` is required, and the robot case for the failure path ships in the same PR.**
+
+ADR: CMA-0009.
+
+---
+
+## CI-enforced vs review-only
+
+CI enforces: the Linux build and `ut_agent` (`.github/scripts/collect-ut.sh`), the Windows build, `ut_agent` and installer test (`monitoring-agent.yml`), the robot suites, secret and dependency scans (`secu-secret-scan.yml`, `secu-dependency-scan.yml`). Gitleaks also runs in the git hooks when they are enabled locally.
+
+Not enforced by CI, so catch them in review:
+
+- **Formatting.** No `clang-format` check runs.
+- **Windows compilation from a Linux-only change.** A change in `src/` that builds on Linux can break Windows; check the Windows job before merging.
+- **Unregistered test files.** A test missing from `agent/test/CMakeLists.txt` never runs and CI stays green.
+- **Configuration parity.** Nothing checks that JSON, registry and installers agree.
+- **OTLP name stability.** Only `scheduler_test.cc` (`correct_output_examplar`) and the robot suites would notice a renamed exemplar, and only for the cases they cover.
+
+---
+
+## Tests
+
+| Suite | What | When |
+|-------|------|------|
+| Unit (`ut_agent`, gtest) | Scheduler with a fake check builder, check logic, native checks on fabricated measures through `compute()`. Shared `g_io_context` on its own thread, `TZ=:Europe/Paris` on Linux | Every behaviour change |
+| Robot (`tests/broker-engine/cma*.robot`) | Engine + Broker + agent end to end, Jira key in `[Tags]`, Given/When/Then `[Documentation]` | Protocol, OTLP, transport, security, configuration keys |
+| Windows robot (`windows-agent-robot-test.yml`) | Windows agent against a Linux poller | Windows native checks, installer |
+| Installer (`installer/scripts_linux/tests/`, `agent_installer_test.ps1`) | Install and upgrade per distribution | Installer or packaging changes |
+
+A bug fix ships with the case that reproduces it. Tests never assert on the real OS values they measure, and never wait on wall-clock time without tolerance. Tests reach checks and the scheduler through `g_io_context` or the scheduler API, never from the gtest thread while the io thread runs.
+
+ADR: CMA-0013.
