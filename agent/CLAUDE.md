@@ -4,7 +4,7 @@ Runs checks on Linux and Windows hosts for a Centreon poller. Receives its check
 
 ## Read first
 
-The ADRs of this area are in `docs/adr/cma/`; `docs/adr/cma/ARCHITECTURE.md` maps them onto components and flows. Read the ones of the scope you touch before changing code; a change that departs from an ADR updates the ADR in the same PR.
+The architecture reference is imported at the end of this file; the ADRs are in `docs/adr/cma/`. Read the ADRs of the sections you touch before changing code; a change that departs from an ADR updates the ADR in the same PR. Before ending a change, run the `cma-adr-reviewer` subagent on the diff.
 
 | Touching | ADR |
 | --- | --- |
@@ -57,3 +57,7 @@ Robot: `tests/broker-engine/cma.robot`, `cma2.robot` (setup in `tests/README.md`
 ## Layout
 
 `inc/com/centreon/agent/` + `src/` common core · `native_linux/` · `native_windows/` · `proto/` · `test/` (`ut_agent`) · `installer/` · `conf/` · `doc/agent-doc.md` (scheduler and filter design notes).
+
+## Architecture reference
+
+@../docs/adr/cma/ARCHITECTURE.md
