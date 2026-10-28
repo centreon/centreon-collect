@@ -126,9 +126,12 @@ check poller token revocation
     [Teardown]    Run Keywords
     ...    Remove Environment Variable    GORGONE_TOKEN
     ...    AND
+    ...    PUT    http://127.0.0.1:80/set-api-session-expired/false
+    ...    AND
     ...    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
     Set Local Variable    ${revoked_url}    http://127.0.0.1:80/set-poller-config-is-revoked
+    Set Local Variable    ${api_session_expired_url}    http://127.0.0.1:80/set-api-session-expired
     Set Local Variable    ${expired_url}    http://127.0.0.1:80/set-poller-config-is-expired
     Set Local Variable    ${port}    8086
     Set Local Variable    ${timeout}    11
@@ -157,6 +160,20 @@ check poller token revocation
     ${start_date}    Get Current Date
     Sleep    ${sleep}
     # Still connected
+    Check Poller Is Connected    port=${port}    expected_nb=2
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
+    # API session of the central expired (MON-213125): the token check gets a 401,
+    # gorgone logs in again and gets the token, the poller stays connected
+    ${start_date}    Get Current Date    increment=-1s
+    ${response}    PUT    ${api_session_expired_url}/true
+    ${log_relogin_query}    Create List
+    ...    Recv header: HTTP/1.1 401 Unauthorized
+    ...    Send header: POST /centreon/api/latest/login
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_relogin_query}    date=${start_date}    timeout=${timeout}
+    Should Be True    ${logs_central}    gorgone did not log in again after the 401 : ${logs_central}
     Check Poller Is Connected    port=${port}    expected_nb=2
     ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
     Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
