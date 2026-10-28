@@ -31,6 +31,7 @@ $Files = @(
   'agent/CLAUDE.md',
   '.claude/rules/cma-adr.md',
   'docs/adr/README.md',
+  'docs/adr/template.md',
   'docs/adr/cma/README.md',
   'docs/adr/cma/ARCHITECTURE.md'
 )

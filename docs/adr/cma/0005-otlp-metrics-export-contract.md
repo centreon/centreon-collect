@@ -1,56 +1,42 @@
-# CMA-0005 — OTLP metrics export contract
+# CMA-0005: Encode check results as OTLP gauges carrying Centreon semantics in exemplars
 
-- Status: Proposed
-- Owner: @centreon/owners-cpp
-- Scope: `agent/src/scheduler.cc` (`_store_result_in_metrics_and_exemplars`, `_get_scope_metrics`, `_add_metric_to_scope`, `_add_exemplar`, send timer)
+- **Status:** Proposed
+- **Date:** 2026-10-28
 
 ## Context
 
-Check results travel to Engine as OpenTelemetry metrics (`ExportMetricsServiceRequest` inside `MessageFromAgent.otel_request`). Engine rebuilds a Nagios-like check result from them in `engine/modules/opentelemetry/src/centreon_agent/agent_check_result_builder.cc`. The encoding is therefore a contract between the two binaries, as strict as the proto itself. Engine always sets `use_exemplar = true` (`agent_impl.cc`).
+Check results reach Engine as OpenTelemetry metrics in `MessageFromAgent.otel_request`. Engine rebuilds a Nagios-like result from them in `agent_check_result_builder.cc` and parses every element by name, so the encoding is a contract as strict as the proto. Engine always sets `use_exemplar = true`.
 
-Encoding of one check result:
+The current encoding, in `scheduler::_store_result_in_metrics_and_exemplars`:
 
-| OTLP element | Value |
-| --- | --- |
-| `ResourceMetrics.resource.attributes` | `host.name` = supervised host (local config `host`), `service.name` = `service_description` (empty for the host check) |
-| `ScopeMetrics` | one per service in the current request |
-| metric `status` | gauge, `as_int` = 0/1/2/3, `description` = `outputs.front()` (for `check_exec`: short output + `\n` + long output) cut at the first `|`, UTF-8 checked; exemplars `status_confirmed` (int 0/1), `current_attempt` (int) |
-| one metric per perfdata | name = perfdata label, `unit` = perfdata unit, gauge `as_double`, one attribute key among `counter`, `derive`, `absolute`, `auto`, `gauge` |
-| perfdata exemplars | `crit_gt`/`crit_ge`, `crit_lt`/`crit_le`, `warn_gt`/`warn_ge`, `warn_lt`/`warn_le`, `min`, `max`; `_ge`/`_le` when the threshold is inclusive (`@` range) |
-| timestamps | `start_time_unix_nano` = check start, `time_unix_nano` = check end |
+- one `ResourceMetrics` per service and per request, with resource attributes `host.name` (the supervised host) and `service.name` (`service_description`, empty for the host check);
+- a gauge named `status`, `as_int` 0 to 3; its `description` is `outputs.front()` (for `check_exec`: short output, `\n`, long output) cut at the first `|` and passed through `common::check_string_utf8`; exemplars `status_confirmed` and `current_attempt`;
+- one gauge per perfdata, named after the label, with its unit and one attribute key among `counter`, `derive`, `absolute`, `auto`, `gauge`; exemplars `crit_gt`/`crit_ge`, `crit_lt`/`crit_le`, `warn_gt`/`warn_ge`, `warn_lt`/`warn_le`, `min`, `max`, the `_ge`/`_le` form for inclusive `@` ranges;
+- `start_time_unix_nano` = check start, `time_unix_nano` = check end.
 
-Batching: results accumulate in `_current_request` and are sent every `export_period` seconds (absolute time points, no drift). The request is sent early when (a) the same service already has a result in it, or (b) estimated size exceeds 2 MiB after a result is added (estimate = number of `ResourceMetrics` × average `ResourceMetrics` size, measured once when more than 10 are present; no size check before that).
+Results accumulate in one request, sent every `export_period` seconds on absolute time points and only when not empty. The request is sent early when the same service already has a result in it, or when, after a result is added, the estimated size exceeds 2 MiB (number of `ResourceMetrics` × their average size, measured once more than 10 are present).
+
+Alternatives weighed:
+
+- A dedicated protobuf message for check results. It lost: OTLP gives Engine one ingestion path shared with other OpenTelemetry sources, and standard tools can read the gauges.
+- Thresholds and state as metric attributes. It lost: attributes identify a series; exemplars attach per-point values without multiplying series.
 
 ## Decision
 
-1. Metric name `status`, resource attribute keys `host.name` / `service.name`, exemplar labels listed above and perfdata type attribute keys MUST NOT be renamed. Engine parses them by name. A new piece of data is a new exemplar label or a new attribute, added on the Engine side in the same PR.
-2. One `ResourceMetrics` per service per request. A second result for the same service MUST flush the current request first (rule (a)), so Engine never sees two results of the same service in one request.
-3. An exemplar is emitted only when the value is set: an unset value is `NaN` (perfdata default) and is skipped by the `<= numeric_limits<double>::max()` test. That test MUST be kept for any new optional value. A `-inf` low bound (range `~:x`) passes the test and is emitted; Engine handles it.
-4. Outputs put in `description` MUST go through `common::check_string_utf8`: protobuf rejects invalid UTF-8 strings and the whole request would be lost.
-5. The early-flush threshold (2 MiB) MUST stay below the smallest allowed gRPC `max_message_length` (schema minimum 4 MiB, CMA-0010).
-6. The export timer MUST use absolute time points (`_next_send_time_point += export_period`) and send nothing when the request is empty.
-7. `use_exemplar == false` path (`_store_result_in_metrics`) is unused and empty. It MUST NOT be extended; it will be removed.
+Keep the metric name `status`, the attribute keys `host.name` and `service.name`, the exemplar labels and the perfdata type keys unchanged. Add new data as a new exemplar label or attribute, with the Engine side in the same change.
+
+Send at most one result per service in a request: flush the request before adding a second one. Emit an exemplar only when its value is set, keeping the `<= numeric_limits<double>::max()` test that skips `NaN`. Pass every string placed in a message through `check_string_utf8`. Keep the early-flush threshold below the smallest allowed `max_message_length` (4 MiB). Schedule exports on absolute time points.
 
 ## Consequences
 
-- Engine gets one consistent result per service per message, with Nagios semantics (state, soft/hard, attempt, thresholds) carried by exemplars.
-- Third-party OTLP consumers see standard gauges but not the Centreon semantics of exemplars.
+- Engine receives one consistent result per service per message, with state, soft/hard, attempt and thresholds carried by exemplars.
+- Third-party OTLP consumers see standard gauges, not the Centreon meaning of the exemplars.
+- An unset threshold is `NaN` (perfdata default) and is skipped. A `-inf` low bound (range `~:x`) passes the test and is emitted; Engine handles it.
+- Before more than 10 `ResourceMetrics` are present, no size check runs, and the early flush happens once 2 MiB is already passed.
+- Known defect: `_add_metric_to_scope` picks `warn_le`/`warn_lt` with `perf.critical_mode()` instead of `perf.warning_mode()`, mislabelling low warning thresholds when the two modes differ. Fixed in a dedicated change with a test in `scheduler_test.cc`.
+- The `use_exemplar == false` path, `_store_result_in_metrics`, is an empty stub. It is not extended and will be removed.
 
-## Guardrails
+## When to Amend
 
-- A renamed or removed metric name, attribute key or exemplar label without the Engine change.
-- A perfdata pushed into an existing `ResourceMetrics` of another check result.
-- A string placed in an OTLP message without UTF-8 sanitizing.
-- A hard-coded size limit above 4 MiB, or sending without the size check.
-
-## Known deviations
-
-- `_add_metric_to_scope` chooses `warn_le` / `warn_lt` with `perf.critical_mode()` instead of `perf.warning_mode()`. Low warning thresholds in `@` mode are mislabelled when warning and critical modes differ. Fix in a dedicated PR with a unit test in `scheduler_test.cc`.
-- `_store_result_in_metrics` is a commented-out stub (see rule 7).
-
-## References
-
-- `agent/src/scheduler.cc`, `agent/inc/com/centreon/agent/scheduler.hh`
-- `engine/modules/opentelemetry/src/centreon_agent/agent_check_result_builder.cc`
-- `common/inc/com/centreon/common/perfdata.hh`, `common/inc/com/centreon/common/utf8.hh`
-- `agent/test/scheduler_test.cc` (`correct_output_examplar`)
+- Engine consumes results through another path (Broker OTLP module, collector) that cannot read exemplars.
+- The OpenTelemetry specification deprecates exemplars on gauges, or Engine needs several results per service in one request.

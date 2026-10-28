@@ -1,53 +1,42 @@
-# CMA-0003 — gRPC bidirectional streaming and connection modes
+# CMA-0003: Talk to Engine over one bidirectional gRPC stream, in direct or reversed mode
 
-- Status: Proposed
-- Owner: @centreon/owners-cpp
-- Scope: `agent/{inc,src}/bireactor.*`, `streaming_client.*`, `streaming_server.*`
+- **Status:** Proposed
+- **Date:** 2026-10-28
 
 ## Context
 
-The agent and Engine (module `engine/modules/opentelemetry`, folder `centreon_agent/`) exchange messages on one long-lived bidirectional gRPC stream, using the gRPC callback API. Two modes, chosen by `reversed_grpc_streaming` in the local configuration:
+The agent and Engine (`engine/modules/opentelemetry/src/centreon_agent/`) exchange every message on one long-lived bidirectional stream, using the gRPC callback API. The local option `reversed_grpc_streaming` picks the side that connects:
 
-| Mode | Agent role | RPC | Engine side |
-| --- | --- | --- | --- |
-| direct (default) | client, `streaming_client` | `AgentService.Export(stream MessageFromAgent) returns (stream MessageToAgent)` | `agent_service.cc` |
-| reversed | server, `streaming_server` | `ReversedAgentService.Import(stream MessageToAgent) returns (stream MessageFromAgent)` | `agent_reverse_client.cc`, `to_agent_connector.cc` |
+- direct, the default: the agent is the client (`streaming_client`) and calls `AgentService.Export`;
+- reversed: the agent is the server (`streaming_server`) and Engine calls `ReversedAgentService.Import`, when the connection has to be opened from the poller side.
 
-Both reactors derive from one template, `bireactor<grpc reactor>`, explicitly instantiated twice in `bireactor.cc`. It owns a write queue (one `StartWrite` in flight), one pending read, and a static registry `_instances` that keeps each reactor alive until gRPC calls `OnDone`. `OnDone` releases the reactor through `asio::post`, because releasing it inside the gRPC callback can join the current thread and crash gRPC (comment in `bireactor.cc`).
+Both reactors derive from one template, `bireactor<grpc reactor>`, instantiated twice in `bireactor.cc`. It owns a write queue with one `StartWrite` in flight, one pending read, and a static registry `_instances` that keeps a reactor alive until gRPC calls `OnDone`. `OnDone` releases the reactor through `asio::post`, because releasing it inside the gRPC callback can join the current thread and crash gRPC.
+
+The client keeps one scheduler across reconnections and recreates a reactor 10 s after an error (`common::defer`); the channel backoff is bounded by `second_max_reconnect_backoff`. The server checks the token in `Import` (`is_token_valid`), answers a refusal with an `ImmediateFinishReactor`, accepts one Engine stream at a time (a new one shuts the previous `server_reactor` down) and closes the stream when the JWT expires (`_jwt_timer`).
+
+Alternatives weighed:
+
+- Unary RPCs (one call per configuration, one per result batch). They lost: Engine must push configurations and force checks at any time, which needs a channel open from Engine to the agent.
+- Two separate code paths for the two modes. They lost: the modes differ only by who connects; one template keeps queueing, release and error handling identical.
 
 ## Decision
 
-1. Both modes MUST stay functionally identical: same first message, same scheduler, same check builder. A feature added to one side is added to the other in the same PR.
-2. The first message sent on every new stream MUST be `MessageFromAgent.init` (`AgentInfo`, built by `fill_agent_info`). Engine identifies the agent with it.
-3. A scheduler is bound to a stream owner: one per `streaming_client` (kept across reconnections), one per accepted `server_reactor` (recreated on each connection). The scheduler starts with `scheduler::default_config()` (no check) and runs checks only after the first `AgentConfiguration` is received.
-4. A reactor MUST be registered with `register_stream()` before `StartCall` / before being returned to gRPC, and MUST only be released by `OnDone` through `asio::post`. Deleting a reactor or resetting the last `shared_ptr` from a gRPC callback is forbidden.
-5. Reactor state shared with gRPC threads (write queue, pending read, `_alive`) MUST be accessed under `_protect`. Members used only from the io thread (`server_reactor::_sched`, `_jwt_timer`) need no lock and MUST stay io-thread only. `on_incomming_request` MUST NOT call the scheduler directly: it posts to the `io_context` (CMA-0002).
-6. On a read or write failure the reactor calls `on_error()` then `shutdown()`. The client recreates a reactor 10 s later with `common::defer`; the channel backoff is bounded by `second_max_reconnect_backoff`. The server waits for Engine to reconnect.
-7. The server accepts one Engine stream at a time: a new `Import` shuts down the previous `server_reactor`. Tokens are checked in `Import` (`is_token_valid`) before any `server_reactor` or scheduler is created; a refusal returns an `ImmediateFinishReactor`; a JWT expiry closes the stream through `_jwt_timer`.
-8. Writes MUST go through `bireactor::write()` (queue). Calling `StartWrite` elsewhere is forbidden.
-9. Base classes `common::grpc::grpc_client_base` / `grpc_server_base` own channel and server creation, TLS and keepalive. The agent MUST NOT create its own `grpc::Channel` or `ServerBuilder` (exception: the CA bootstrap probe, CMA-0009).
+Keep both modes functionally identical: same first message, same scheduler, same check builder. Add a feature to both sides in the same change.
+
+Send `MessageFromAgent.init` (`AgentInfo`, from `fill_agent_info`) as the first message of every stream. Start each scheduler with `scheduler::default_config()` and run checks only once the first `AgentConfiguration` arrives.
+
+Register every reactor with `register_stream()` before `StartCall` or before handing it to gRPC, and release it only in the posted `OnDone` lambda. Write through `bireactor::write()` only. Access the state shared with gRPC threads (write queue, pending read, `_alive`) under `_protect`, and post incoming requests to the `io_context` instead of calling the scheduler. Leave channel and server creation, TLS and keepalive to `common::grpc::grpc_client_base` and `grpc_server_base`. End a stream through `shutdown()`.
 
 ## Consequences
 
-- Only one write in flight: a large export delays the next one. The scheduler bounds message size (CMA-0005).
-- `_instances` is never freed on purpose (threads end in an unknown order). Leak checkers report it; it is expected.
-- `shutdown()` on the client calls `RemoveHold()` and `TryCancel()`; on the server it calls `Finish(CANCELLED)`. Any new terminal path MUST reuse `shutdown()`.
+- With one write in flight, a large export delays the next one; the scheduler bounds message size (CMA-0005).
+- `_instances` is never freed, on purpose, because threads end in an unknown order. Leak checkers report it.
+- `server_reactor::_sched` and `_jwt_timer` are used from the `io_context` thread only, so they need no lock.
+- A new message kind is a new member of the existing `oneof` (CMA-0004), never a new RPC on these services.
+- The only channel created outside the base classes is the CA bootstrap probe (CMA-0009).
+- The virtual method `on_incomming_request` is misspelled. It is renamed in a dedicated change, never inside a feature.
 
-## Guardrails
+## When to Amend
 
-- A new RPC or a unary call added to the streaming services instead of a new `oneof` member (CMA-0004).
-- A reactor created without `register_stream`, or `delete this` / `_instances->erase` outside the posted `OnDone` lambda.
-- Scheduler or check method called from `OnReadDone` without `asio::post`.
-- A change in `streaming_client` without the equivalent in `streaming_server` (or the reverse), unless the PR explains why only one mode is concerned.
-- Blocking wait on a gRPC completion.
-
-## Known deviations
-
-- Method name `on_incomming_request` is misspelled; it is part of the virtual interface. Keep the spelling until a dedicated rename PR.
-
-## References
-
-- `agent/inc/com/centreon/agent/bireactor.hh`, `agent/src/bireactor.cc`
-- `agent/src/streaming_client.cc`, `agent/src/streaming_server.cc`
-- `common/grpc/` (`grpc_client_base`, `grpc_server_base`, `grpc_config`)
-- `engine/modules/opentelemetry/src/centreon_agent/`
+- Engine needs several concurrent streams to one agent, or one agent serves several Engines.
+- A gRPC release fixes the `OnDone` deadlock, so the posted release becomes unnecessary.
