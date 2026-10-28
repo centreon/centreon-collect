@@ -27,7 +27,11 @@ $MarkEnd = '# <<< cma-adr local kit <<<'
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 $Files = @(
-  'CLAUDE.local.md',
+  'CLAUDE.md',
+  '.claude/settings.json',
+  '.claude/hooks/cma-adr-context.sh',
+  '.claude/hooks/cma-adr-stop.sh',
+  '.claude/agents/cma-adr-reviewer.md',
   'agent/CLAUDE.md',
   '.claude/rules/cma-adr.md',
   'docs/adr/README.md',
@@ -97,7 +101,7 @@ if ($Uninstall) {
   foreach ($f in $Files) {
     if ((Test-Path $f) -and -not (Test-Tracked $f)) { Remove-Item $f; "removed $f" }
   }
-  foreach ($d in @('docs/adr/cma', 'docs/adr', 'docs', '.claude/rules', '.claude')) {
+  foreach ($d in @('docs/adr/cma', 'docs/adr', 'docs', '.claude/rules', '.claude/hooks', '.claude/agents', '.claude')) {
     if ((Test-Path $d) -and -not (Get-ChildItem $d -Force)) { Remove-Item $d -Force }
   }
   Remove-Block

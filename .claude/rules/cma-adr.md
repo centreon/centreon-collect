@@ -12,7 +12,7 @@ paths:
 
 This file belongs to the Centreon Monitoring Agent (CMA) scope or to a library it shares.
 
-- Before the first edit in this scope, read `docs/adr/cma/ARCHITECTURE.md`, then every ADR that its section 6 table lists for the change at hand. Name the ADRs you read in your plan.
+- Before the first edit in this scope, read `docs/adr/cma/ARCHITECTURE.md`, then every section that the change touches and the ADR each section names. Name the ADRs you read in your plan.
 - Apply the Decision of each of those ADRs. Before you call the work done, check the diff against every sentence of those Decisions and report the result line by line.
 - Do not copy a place the Consequences list as an exception, a known defect or "not yet followed".
 - If the change matches a "When to Amend" condition of an ADR, say so before writing code.
