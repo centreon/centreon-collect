@@ -1506,7 +1506,9 @@ jobs:
   create-jira-nightly-ticket:
     runs-on: ubuntu-24.04
     needs: [get-environment, deliver-rpm, deliver-deb]
+    # Disabled unless the NIGHTLY_JIRA_TICKETS_ENABLED organization variable is set to 'true'
     if: |
+      vars.NIGHTLY_JIRA_TICKETS_ENABLED == 'true' &&
       needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
       startsWith(github.ref_name, 'dev') &&
       (failure() || cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) &&
