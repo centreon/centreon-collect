@@ -13,39 +13,15 @@ One decision per file. Each module of the repository has its own folder and its 
 
 ## Rules
 
-- Path: `docs/adr/<module>/NNNN-<slug>.md`. `NNNN` is never reused, even after a supersede.
-- Sections, in this order: Status, Context, Decision, Consequences, Guardrails, References.
-- `Decision` uses MUST / MUST NOT / SHOULD (RFC 2119). A line that review would not reject is not a decision.
-- `Guardrails` lists what review rejects in a Claude-produced PR, one line each, verifiable.
-- `References` cites files, never line numbers (they drift).
-- Status values: `Proposed`, `Accepted`, `Superseded by <id>`, `Deprecated`.
-- An ADR is changed by a PR, reviewed by the module owner in `CODEOWNERS`. The git log is the history: no dates in the body.
-- Known deviations between the code and an ADR are listed in the ADR under `Known deviations`. Code that copies a listed deviation is rejected.
+The format is the one of the centreon (web) repository, `centreon/doc/php/adr/template.md`, copied in [`template.md`](template.md).
 
-## Template
-
-```markdown
-# CMA-NNNN — <title>
-
-- Status: Proposed
-- Owner: @centreon/owners-cpp
-- Scope: <paths>
-
-## Context
-<forces, constraints, facts from the code>
-
-## Decision
-1. <MUST / MUST NOT rule>
-
-## Consequences
-<what this costs, what it enables>
-
-## Guardrails
-- <what review rejects>
-
-## Known deviations
-- <file: deviation> (optional)
-
-## References
-- <files>
-```
+- Path: `docs/adr/<module>/NNNN-<slug>.md`, numbered per module. An ID (`CMA-NNNN`) is never reused, even after a supersede.
+- Title: `<PREFIX>-NNNN: <decision stated as an imperative>`.
+- Header: `Status` (`Proposed`, `Accepted`, `Superseded by <ID>`) and `Date` (`YYYY-MM-DD`).
+- Sections, in this order:
+  - `Context`: the problem, the current practice with the files involved, then the alternatives weighed and why each lost.
+  - `Decision`: the rule, in imperative sentences.
+  - `Consequences`: what changes, what it costs, the exceptions, and the places where the code does not follow the rule yet. Code that copies such a place is rejected.
+  - `When to Amend`: the facts that would reopen the decision.
+- Files are cited by path, never by line number (lines drift).
+- An ADR changes through a pull request reviewed by the module owner in `CODEOWNERS`. The git log is the history.

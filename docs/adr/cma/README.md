@@ -6,19 +6,19 @@ Retro-documented from the code at commit `a78cca3`. Status `Proposed` until the 
 
 | ID | Title | Read before changing |
 | --- | --- | --- |
-| [CMA-0001](0001-module-layout-and-build.md) | Module layout, build and platform split | `CMakeLists.txt`, any new file, `native_*` |
-| [CMA-0002](0002-single-threaded-asio-model.md) | Single-threaded ASIO execution model | anything async, any thread, any callback |
-| [CMA-0003](0003-grpc-streaming-and-connection-modes.md) | gRPC bidirectional streaming and connection modes | `bireactor`, `streaming_client`, `streaming_server` |
-| [CMA-0004](0004-engine-agent-protocol-contract.md) | Engine ↔ agent protocol contract | `proto/agent.proto`, `agent_info` |
-| [CMA-0005](0005-otlp-metrics-export-contract.md) | OTLP metrics export contract | `scheduler` result storage, metric names, exemplars |
-| [CMA-0006](0006-scheduler.md) | Scheduler: spreading, slots, soft/hard state, timeperiods | `scheduler`, `check::calcul_status_confirmation`, `time_step` |
-| [CMA-0007](0007-check-abstraction-and-lifecycle.md) | Check abstraction and lifecycle | `check`, `check_exec`, `default_check_builder` |
-| [CMA-0008](0008-native-check-conventions.md) | Native check conventions | any `check_*` native class, `filter` |
-| [CMA-0009](0009-security.md) | Security: transport, credentials, CA bootstrap, tokens | `config`, `grpc_ca_bootstrap`, `check_exec`, logs |
-| [CMA-0010](0010-local-configuration.md) | Local configuration: JSON, registry, installers, custom checks | `config.cc`, `config_win.cc`, `installer/`, `conf/` |
-| [CMA-0011](0011-logging.md) | Logging | any log line |
-| [CMA-0012](0012-code-style.md) | C++ code style | every `.cc` / `.hh` |
-| [CMA-0013](0013-testing-and-definition-of-done.md) | Testing strategy and definition of done | every PR |
+| [CMA-0001](0001-module-layout-and-build.md) | Split the agent into a portable core and one native tree per platform | `CMakeLists.txt`, any new file, `native_*` |
+| [CMA-0002](0002-single-threaded-asio-model.md) | Run all agent logic on a single `io_context` thread | anything async, any thread, any callback |
+| [CMA-0003](0003-grpc-streaming-and-connection-modes.md) | Talk to Engine over one bidirectional gRPC stream, in direct or reversed mode | `bireactor`, `streaming_client`, `streaming_server` |
+| [CMA-0004](0004-engine-agent-protocol-contract.md) | Evolve `agent.proto` by addition only | `proto/agent.proto`, `agent_info` |
+| [CMA-0005](0005-otlp-metrics-export-contract.md) | Encode check results as OTLP gauges carrying Centreon semantics in exemplars | `scheduler` result storage, metric names, exemplars |
+| [CMA-0006](0006-scheduler.md) | Schedule checks on absolute time slots, rebuilt from each configuration | `scheduler`, `check::calcul_status_confirmation`, `time_step` |
+| [CMA-0007](0007-check-abstraction-and-lifecycle.md) | Derive every check from `check` and complete it asynchronously | `check`, `check_exec`, `default_check_builder` |
+| [CMA-0008](0008-native-check-conventions.md) | Write native checks with shared argument, threshold and perfdata conventions | any `check_*` native class, `filter` |
+| [CMA-0009](0009-security.md) | Keep secrets encrypted until process start, and never trust an unverified peer | `config`, `grpc_ca_bootstrap`, `check_exec`, logs |
+| [CMA-0010](0010-local-configuration.md) | Keep local configuration keys identical across the JSON file, the registry and the installers | `config.cc`, `config_win.cc`, `installer/`, `conf/` |
+| [CMA-0011](0011-logging.md) | Log through the injected spdlog logger, with a level chosen by frequency | any log line |
+| [CMA-0012](0012-code-style.md) | Follow the collect C++ conventions for names, headers and errors | every `.cc` / `.hh` |
+| [CMA-0013](0013-testing-and-definition-of-done.md) | Ship every behaviour change with a test, and contract changes with a robot case | every PR |
 
 ## Dependency map
 
