@@ -201,8 +201,8 @@ sub request {
         return 1;
     }
 
-    # the authentification token used have an inactivity timeout of 2 hours by default
-    # if there is no request in this windows, the token is deleted by php, and Gorgone need to authenticate again.
+    # the authentication token used has an inactivity timeout of 2 hours by default
+    # if there is no request in this window, the token is deleted by php, and Gorgone need to authenticate again.
     #
     my $is_token_from_cache = $self->{is_logged};
     my ($status, $decoded) = $self->_send_request(%options);
