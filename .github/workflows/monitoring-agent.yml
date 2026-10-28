@@ -260,6 +260,7 @@ jobs:
             agent\installer\centreon-monitoring-agent.exe
             build_windows\agent\Release\centagent.exe
             build_windows\agent\Release\centagent.pdb
+          retention-days: 1
 
   unit-test-linux:
     needs: [get-environment]
