@@ -48,7 +48,7 @@
       "responses": [
         {
           "uuid": "fe2868c7-3ace-400f-a871-774d93cd3850",
-          "body": "{\n  \"contact\": {\n    \"id\": 4,\n    \"name\": \"centreon-gorgone\",\n    \"alias\": \"centreon-gorgone\",\n    \"email\": \"gorgone@localhost\",\n    \"is_admin\": true\n  },\n  \"security\": {\n    \"token\": \"Pg2cfT4JecKcuWu43WVH9z0V+4hNcXStIXp2Ahs4SaKJWLRQg+pksf+vtsacgPTB\"\n  }\n}",
+          "body": "{{setGlobalVar 'api_session_expired' 'false'}}\n{\n  \"contact\": {\n    \"id\": 4,\n    \"name\": \"centreon-gorgone\",\n    \"alias\": \"centreon-gorgone\",\n    \"email\": \"gorgone@localhost\",\n    \"is_admin\": true\n  },\n  \"security\": {\n    \"token\": \"Pg2cfT4JecKcuWu43WVH9z0V+4hNcXStIXp2Ahs4SaKJWLRQg+pksf+vtsacgPTB\"\n  }\n}",
           "latency": 0,
           "statusCode": 200,
           "label": "",
@@ -235,6 +235,33 @@
       "method": "get",
       "endpoint": "centreon/api/latest/administration/tokens/:tokenName",
       "responses": [
+        {
+          "uuid": "88ba240b-95be-4a85-86c0-0455a158b561",
+          "body": "{\n  \"code\": 401,\n  \"message\": \"Invalid credentials.\"\n}",
+          "latency": 0,
+          "statusCode": 401,
+          "label": "api session expired",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "global_var",
+              "modifier": "api_session_expired",
+              "value": "true",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
         {
           "uuid": "63de4aa2-3cc2-4939-8043-cd4ad5d49c95",
           "body": "{\n  \"name\": \"poller-ok-expdate\",\n  \"creation_date\": \"{{faker 'date.past'}}\",\n  \"expiration_date\": \"{{faker 'date.future'}}\",\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
@@ -559,6 +586,37 @@
       "responseMode": null,
       "streamingMode": null,
       "streamingInterval": 0
+    },
+    {
+      "uuid": "6b8e5efa-b499-4f36-bc8f-0fd91a765b81",
+      "type": "http",
+      "documentation": "simulate the purge of gorgone API session (outdated-token-removal.php): administration/tokens answers 401 until the next login",
+      "method": "put",
+      "endpoint": "set-api-session-expired/:expired",
+      "responses": [
+        {
+          "uuid": "b4b8797a-272c-4355-9990-04f15d862dba",
+          "body": "{{setGlobalVar 'api_session_expired' (urlParam 'expired')}}\n{\n  \"api_session_expired\": \"{{getGlobalVar 'api_session_expired'}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
     }
   ],
   "rootChildren": [
@@ -597,6 +655,10 @@
     {
       "type": "route",
       "uuid": "adaab563-b466-418a-a5e9-5c9842e67273"
+    },
+    {
+      "type": "route",
+      "uuid": "6b8e5efa-b499-4f36-bc8f-0fd91a765b81"
     }
   ],
   "proxyMode": false,
