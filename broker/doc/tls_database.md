@@ -52,6 +52,12 @@ If you only want to verify the server's identity without client certificate auth
   }
 }
 ```
+
+With `db_ssl_enabled` set to `true`, the broker never falls back to an unencrypted connection, even when `db_ssl_verify_cert` is `false`:
+- Over TCP, the broker reads the server greeting first. If the server does not support TLS, the connection is refused before any credential is sent: `TLS is enabled but the database server <host>:<port> does not support it, connection refused before sending credentials.`
+- Over the unix socket (`db_host` set to `localhost`), the connection is refused right after it is established: `TLS is enabled but the database server does not support it, unencrypted connection refused.`
+
+Without certificate verification, the connection is encrypted but the server identity is not checked, so it does not protect against an attacker who can intercept the traffic. Use `db_ssl_verify_cert` set to `true` with `db_ssl_ca` for that.
 ### MariaDB/MySQL Server Configuration
 
 Configure your MariaDB/MySQL server to support SSL connections:

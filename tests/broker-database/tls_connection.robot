@@ -51,6 +51,70 @@ BDBTSSLC1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    msg=No SQL queries executed - TLS connection may have failed
 
+BDBTSSLC2
+    [Documentation]    Scenario: TLS without certificate verification on a database without TLS
+    ...    Given a database server that does not support TLS
+    ...    And a broker unified_sql output with db_ssl_enabled=true and db_ssl_verify_cert=false
+    ...    When the broker connects to it over TCP
+    ...    Then it reads the server greeting and refuses the connection before sending any credential
+    [Tags]    broker    database    tls    MON-191981
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${have_ssl}    Query    SHOW VARIABLES LIKE 'have_ssl'
+    Disconnect From Database
+    Skip If    'YES' in str($have_ssl)    Test requires a database server without TLS
+
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_ssl_enabled    true
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_ssl_verify_cert    false
+
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+
+    ${content}    Create List    does not support it, connection refused before sending credentials
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg=The connection was not refused before authentication
+
+    ${content}    Create List    unified sql: stream class instanciation
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+    Should Not Be True    ${result}    msg=Database connection was established without TLS
+
+BDBTSSLC3
+    [Documentation]    Scenario: TLS without certificate verification on a database without TLS, over the unix socket
+    ...    Given a database server that does not support TLS
+    ...    And a broker unified_sql output on localhost with db_ssl_enabled=true and db_ssl_verify_cert=false
+    ...    When the broker connects to it through the unix socket
+    ...    Then it refuses the unencrypted connection instead of silently using it
+    [Tags]    broker    database    tls    MON-191981
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${have_ssl}    Query    SHOW VARIABLES LIKE 'have_ssl'
+    Disconnect From Database
+    Skip If    'YES' in str($have_ssl)    Test requires a database server without TLS
+
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    localhost
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_ssl_enabled    true
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_ssl_verify_cert    false
+
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+
+    ${content}    Create List    TLS is enabled but the database server does not support it, unencrypted connection refused
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg=The unencrypted connection was not refused
+
+    ${content}    Create List    unified sql: stream class instanciation
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+    Should Not Be True    ${result}    msg=Database connection was established without TLS
+
 BDBTEPWD1
     [Documentation]    Given a broker configured with unified_sql and an AES256-encrypted db_password
     ...    When broker starts with a valid engine-context.json containing the matching app_secret and salt

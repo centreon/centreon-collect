@@ -153,6 +153,8 @@ class mysql_connection {
       database::mysql_task* task);
 
   void _prepare_connection();
+  bool _check_tls_before_connect();
+  bool _check_tls_after_connect();
   void _clear_connection();
   void _update_stats() noexcept;
   void _send_exceptions_to_task_futures(
