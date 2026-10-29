@@ -72,7 +72,7 @@ safe-outputs:
     report-as-issue: false
   create-pull-request:
     title-prefix: "[nightly fix] "
-    labels: [ci]
+    labels: [area/ci]
     draft: true
     max: 1
     # develop first; a dev-* branch only when the faulty code no longer exists on develop.
@@ -85,7 +85,7 @@ safe-outputs:
     github-token: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
   add-comment:
     target: "*"
-    required-labels: [ci]
+    required-labels: [area/ci]
     required-title-prefix: "[nightly fix] "
     max: 1
   jobs:
