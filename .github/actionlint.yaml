@@ -4,4 +4,6 @@ paths:
     ignore:
       - 'unknown permission scope "copilot-requests"'
       - 'unexpected key "queue" for "concurrency" section'
-      - 'property "(workflow_ref|admission-[a-z-]+)" is not defined'
+      - 'property "(workflow_ref|admission-[a-z-]+|check_run_id)" is not defined'
+      # GitHub-hosted runner label unknown to actionlint 1.7.7.
+      - 'label "ubuntu-slim" is unknown'
