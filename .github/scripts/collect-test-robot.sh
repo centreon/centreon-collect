@@ -58,9 +58,17 @@ fi
 echo "########################## Install centreon collect ###########################"
 echo "Installation..."
 if [ "$distrib" = "ALMALINUX" ]; then
-  dnf clean all
   rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
-  dnf install -y ./*.rpm
+  # retry on transient mirror errors (SSL errors, broken repomd.xml)
+  for attempt in 1 2 3 4 5; do
+    dnf clean all
+    dnf install -y --setopt=retries=5 --setopt=timeout=60 ./*.rpm && break
+    if [ "$attempt" -eq 5 ]; then
+      echo "dnf install failed after $attempt attempts" >&2
+      exit 1
+    fi
+    sleep $((attempt * 15))
+  done
 else
   apt-get update
   apt-get install -y ./*.deb
