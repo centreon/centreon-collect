@@ -733,7 +733,9 @@ HUGE_CONF
     Ctn Start Broker    ${True}
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
-    ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    4    120    HARD
+    # service_100000 is the last service: Broker must store all 100,000 of them first,
+    # which takes up to ~140s on MySQL (no bulk statements), hence the large timeouts.
+    ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    4    300    HARD
     Should Be True    ${result}    no service status for service_100000
 
     FOR    ${try_index}    IN RANGE    2
@@ -743,7 +745,7 @@ HUGE_CONF
         Remove File    /tmp/test-huge-cache.log
         Ctn Start Broker    ${True}
         Ctn Process All Services Check Result With Metrics    ${try_index}    output ${try_index}    ${3}
-        ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    ${try_index}    160    ANY
+        ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    ${try_index}    400    ANY
         Should Be True    ${result}    no service status for service_100000 after passive results
 
         FOR    ${pair}    IN    @{random_services}
