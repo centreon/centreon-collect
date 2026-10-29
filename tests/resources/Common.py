@@ -1450,6 +1450,41 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
     return False
 
 
+def ctn_check_any_service_output_with_timeout(output: str, min_last_check: int, timeout: int):
+    """
+    ctn_check_any_service_output_with_timeout
+
+    check that at least one service has been checked with the given output
+
+    Args:
+        output: expected output (substring)
+        min_last_check: time point after last_check will be accepted
+        timeout: time to wait in seconds
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT count(*) AS nb FROM services WHERE output LIKE %s AND last_check >= %s",
+                    (f"%{output}%", min_last_check))
+                result = cursor.fetchone()
+                if result and int(result['nb']) > 0:
+                    logger.console(f"{result['nb']} service(s) with output \"{output}\"")
+                    return True
+        time.sleep(1)
+    return False
+
+
 def ctn_check_service_output_resource_status_with_timeout_rt(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_service_output_resource_status_with_timeout

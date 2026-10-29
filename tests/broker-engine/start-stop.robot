@@ -677,7 +677,9 @@ BESSCTO
       Ctn Start Broker    ${True}
       Ctn Start Engine
       Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
+      # service_check_timeout is 10s: wait for the first timed out check instead of a fixed 60s.
+      ${result}    Ctn Check Any Service Output With Timeout    (Process Timeout)    ${start}    60
+      Should Be True    ${result}    No service check timed out.
       Ctn Stop Engine
       Ctn Kindly Stop Broker    ${True}
     END
@@ -700,7 +702,9 @@ BESSCTOWC
       Ctn Start Broker    ${True}
       Ctn Start Engine
       Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
+      # service_check_timeout is 10s: wait for the first timed out check instead of a fixed 60s.
+      ${result}    Ctn Check Any Service Output With Timeout    (Process Timeout)    ${start}    60
+      Should Be True    ${result}    No service check timed out.
       Ctn Stop Engine
       Ctn Kindly Stop Broker    ${True}
     END
