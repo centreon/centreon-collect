@@ -33,7 +33,13 @@ for arg in "$@"; do
                 echo "ERROR: $arg is still the package-default config (no SQL/storage output) - mount a real broker config" >&2
                 exit 1
             fi
-            /var/lib/centreon-broker/log-tail.sh "$arg" &
+            # BROKER_LOG_STDOUT=true: cbd logs straight to stdout (symlink
+            # created before it starts), no tail. Otherwise tail its file.
+            if [ "${BROKER_LOG_STDOUT:-false}" = "true" ]; then
+                /var/lib/centreon-broker/log-tail.sh --link-stdout "$arg"
+            else
+                /var/lib/centreon-broker/log-tail.sh "$arg" &
+            fi
             break
             ;;
     esac

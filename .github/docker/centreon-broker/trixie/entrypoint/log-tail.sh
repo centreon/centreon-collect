@@ -5,7 +5,16 @@
 # /var/log/centreon-broker/<broker_name>.log) since it isn't fixed.
 #
 # Usage: log-tail.sh <path-to-config.json>, run in the background.
+#        log-tail.sh --link-stdout <path-to-config.json>, run in the
+#        foreground before cbd starts: replaces the log file with a symlink
+#        to /dev/stdout, so cbd writes straight to the container's stdout
+#        (its log directory must stay writable: /dev itself is refused).
 
+MODE=tail
+if [ "$1" = "--link-stdout" ]; then
+    MODE=link
+    shift
+fi
 CONFIG="$1"
 DEFAULT_DIR="/var/log/centreon-broker"
 
@@ -39,6 +48,25 @@ except Exception:
 [ -n "$LOG_FILE" ] && [ "$LOG_FILE" != ".log" ] || exit 0
 
 LOG_PATH="$LOG_DIR/$LOG_FILE"
+
+if [ "$MODE" = "link" ]; then
+    if ln -sfn /dev/stdout "$LOG_PATH"; then
+        echo "Broker log $LOG_PATH -> /dev/stdout"
+        exit 0
+    fi
+    # Not linkable (e.g. a log directory cbd itself would refuse): keep the
+    # file and tail it as without BROKER_LOG_STDOUT.
+    echo "WARNING: could not link $LOG_PATH to /dev/stdout, tailing it instead" >&2
+    "$0" "$CONFIG" &
+    exit 0
+fi
+
+# Already the container's stdout (symlink, /dev/stdout, /proc/<pid>/fd/1):
+# tailing it would read the container's own output.
+[ -L "$LOG_PATH" ] && exit 0
+case "$LOG_PATH" in
+    /dev/std*|/proc/*/fd/*) exit 0 ;;
+esac
 
 # Wait for cbd to create the file rather than racing it.
 i=0
