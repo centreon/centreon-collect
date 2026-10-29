@@ -82,7 +82,6 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
     Should Be True    ${result}    resources table not updated
 
-
 BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
     [Documentation]    Given an agent host checked by centagent over a non encrypted connection,
     ...    Engine use credentials encryption, but send no encrypted commands
