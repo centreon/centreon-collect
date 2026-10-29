@@ -158,6 +158,40 @@ sub authenticate {
     $self->{is_logged} = 1;
 }
 
+=head3 $self->request(method => $method, endpoint => $endpoint, get_param => $getParamRef, query_form_post => $body, no_replay => $bool)
+
+Send a request to the Centreon API v2, after logging in if no token is cached.
+
+If the API refuses a cached token (401 or 403, e.g. the session expired and was purged),
+log in again and replay the request once.
+
+Parameters:
+
+=over 4
+
+=item * method: HTTP method ('GET', 'POST', 'PUT', 'PATCH', 'DELETE'). Required.
+
+=item * endpoint: path of the endpoint, appended to the configured base_url (ex '/platform/versions'). Required.
+
+=item * get_param: array ref of query parameters as 'name=value' strings, not url-encoded (ex ['key=value']).
+They are added after the default 'page=1' and 'limit=10000', which they cannot override:
+a parameter given twice is sent twice. Optional.
+
+=item * query_form_post: request body, already encoded as a json string. Optional.
+
+=item * no_replay: if true, do not log in again and replay the request when the token is refused.
+Optional, default false.
+
+=back
+
+Output : (Int, HashRef)
+
+(0, $decoded) on success, $decoded being the json response already decoded.
+
+1 on failure (configuration missing, login failed, http error or response not decodable),
+the reason is available with $self->error().
+
+=cut
 sub request {
     my ($self, %options) = @_;
 
@@ -166,6 +200,23 @@ sub request {
         $self->{error} = 'configuration missing';
         return 1;
     }
+
+    # the authentication token used has an inactivity timeout of 2 hours by default
+    # if there is no request in this window, the token is deleted by php, and Gorgone need to authenticate again.
+    #
+    my $is_token_from_cache = $self->{is_logged};
+    my ($status, $decoded) = $self->_send_request(%options);
+    if ($status != 0 && $self->{is_logged} == 0 && $is_token_from_cache == 1 && !$options{no_replay}) {
+        return $self->_send_request(%options);
+    }
+
+    return 1 if ($status != 0);
+    return (0, $decoded);
+}
+
+# log in if needed and send one request. The token is dropped if the API refuses it.
+sub _send_request {
+    my ($self, %options) = @_;
 
     $self->{is_error} = 0;
     if ($self->{is_logged} == 0) {
@@ -200,8 +251,8 @@ sub request {
 
     my $decoded = $self->json_decode(content => $content);
 
-    # code 403 means forbidden (token not good maybe)
-    if ($self->{http}->get_code() == 403) {
+    # code 401 means the token is unknown (expired session), 403 means forbidden (token not good maybe)
+    if ($self->{http}->get_code() == 401 || $self->{http}->get_code() == 403) {
         $self->{token} = undef;
         $self->{is_logged} = 0;
         $self->{is_error} = 1;
@@ -306,7 +357,8 @@ sub DESTROY {
     if ($self->{is_logged} == 1) {
         $self->request(
             method => 'GET',
-            endpoint => '/logout'
+            endpoint => '/logout',
+            no_replay => 1
         );
     }
 }
