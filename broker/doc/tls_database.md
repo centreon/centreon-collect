@@ -14,6 +14,8 @@ The following parameters can be added to any database output configuration (unif
 | `db_tls_version` | string | No | `TLSv1.3` | TLS protocol version(s) to use (e.g., "TLSv1.2", "TLSv1.3", "TLSv1.2,TLSv1.3") |
 | `db_ssl_verify_cert` | boolean | No | `true` | Enable certificate verification (identity check) |
 
+A boolean can be given as a JSON boolean (`true`) or as a string (`"true"`, `"yes"`, `"1"`, `"false"`, `"no"`, `"0"`).
+
 ### Minimal TLS Configuration (Server Authentication Only)
 
 If you only want to verify the server's identity without client certificate authentication:
