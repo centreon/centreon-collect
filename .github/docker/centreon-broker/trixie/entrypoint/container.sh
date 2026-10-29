@@ -33,7 +33,7 @@ for arg in "$@"; do
                 echo "ERROR: $arg is still the package-default config (no SQL/storage output) - mount a real broker config" >&2
                 exit 1
             fi
-            /var/lib/centreon-broker/log-tail.sh "$arg" &
+            /usr/local/lib/centreon-broker/log-tail.sh "$arg" &
             break
             ;;
     esac
