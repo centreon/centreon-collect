@@ -284,6 +284,8 @@ jobs:
         shell: bash
 
       - name: Run unit tests
+        # Each binary is aborted after 20 minutes (collect-ut.sh): this only bounds the step.
+        timeout-minutes: 30
         run: |
           # Each binary runs with its own /tmp (collect-ut.sh): they can run at the same time.
           pids=()
