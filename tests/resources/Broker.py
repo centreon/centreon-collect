@@ -922,7 +922,7 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
     tls_config = {}
     if DB_SSL_ENABLED and DB_SSL_ENABLED.lower() in ['true', 'yes', '1']:
         tls_config["db_ssl_enabled"] = "true"
-        tls_config["db_ssl_verify"] = "true"
+        tls_config["db_ssl_verify_cert"] = "true"
         if DB_SSL_CA:
             tls_config["db_ssl_ca"] = DB_SSL_CA
         if DB_SSL_CERT:
