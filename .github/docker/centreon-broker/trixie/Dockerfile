@@ -152,9 +152,7 @@ COPY --from=extractor --chown=centreon-broker:centreon-broker --chmod=664 \
 RUN chmod 0775 /etc/centreon-broker /etc/centreon-engine
 
 # Copy entrypoint scripts (from source repo, not from .deb packages).
-# Root-owned and outside /var/lib/centreon-broker (the broker user's home),
-# so that directory can be persisted on a volume without freezing the
-# entrypoint at its first-install version.
+# Root-owned, outside /var/lib/centreon-broker (the broker user's home).
 COPY --chmod=755 \
      ./.github/docker/centreon-broker/trixie/entrypoint /usr/local/lib/centreon-broker
 
