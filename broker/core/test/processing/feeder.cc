@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/processing/feeder.hh"
 #include <gtest/gtest.h>
+#include <thread>
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -61,7 +62,13 @@ class TestFeeder : public ::testing::Test {
 
   void TearDown() override {
     _feeder->stop();
+    // The timer handlers pending on the pool threads also own the feeder: wait
+    // for its destruction so that the next test does not reuse its muxer.
+    std::weak_ptr<feeder> alive = _feeder;
     _feeder.reset();
+    for (int i = 0; i < 500 && !alive.expired(); ++i)
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(alive.expired());
     multiplexing::engine::unload();
     config::applier::state::unload();
     io::events::unload();
