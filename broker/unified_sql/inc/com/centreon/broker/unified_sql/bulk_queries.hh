@@ -69,6 +69,7 @@ class bulk_queries {
   void push_query(const std::string& query);
   void push_query(std::string&& query);
   bool ready();
+  void force_ready();
   size_t size() const;
   std::time_t next_time() const;
 };
