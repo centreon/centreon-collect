@@ -115,6 +115,33 @@ BDBTSSLC3
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
     Should Not Be True    ${result}    msg=Database connection was established without TLS
 
+BDBTSSLC4
+    [Documentation]    Scenario: TLS options given as JSON booleans, as Centreon Web generates them
+    ...    Given a broker unified_sql output with db_ssl_enabled=true and db_ssl_verify_cert=false as JSON booleans
+    ...    When the broker starts
+    ...    Then it reads both options and configures the database connection with TLS
+    [Tags]    broker    database    tls    MON-211443
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
+    Ctn Broker Config Output Set Json    central    central-broker-unified-sql    db_ssl_enabled    true
+    Ctn Broker Config Output Set Json    central    central-broker-unified-sql    db_ssl_verify_cert    false
+
+    ${start}    Get Current Date
+    Ctn Start Broker    only_central=${True}
+
+    ${content}    Create List    SSL/TLS enabled for database connection    SSL certificate verification: disabled
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg=The JSON boolean TLS options were ignored
+
+    ${content}    Create List    mysql_connection: configuring SSL/TLS connection (verify=false)
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg=The database connection was not configured with TLS
+
 BDBTEPWD1
     [Documentation]    Given a broker configured with unified_sql and an AES256-encrypted db_password
     ...    When broker starts with a valid engine-context.json containing the matching app_secret and salt
