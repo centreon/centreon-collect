@@ -477,8 +477,15 @@ Ctn Delete OTLP Host Macro
 
 Ctn Change OTLP Host Macro
     [Documentation]    When Engine 0 receives CHANGE_CUSTOM_HOST_VAR for a host macro
+    ...    Then the keyword returns once Engine's main loop has applied it: the command is
+    ...    buffered, whereas the next PROCESS_SERVICE_CHECK_RESULT is executed at once
     [Arguments]    ${host}    ${name}    ${value}
+    ${start}    Get Current Date
     Ctn Change Custom Host Var Command    ${host}    ${name}    ${value}
+    # The trailing ';' keeps OTEL_SERVICE_NAME from matching OTEL_SERVICE_NAMESPACE.
+    ${content}    Create List    EXTERNAL COMMAND: CHANGE_CUSTOM_HOST_VAR;${host};${name};
+    ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config0/centengine.log    ${start}    ${content}    30
+    Should Be True    ${result}    Engine 0 should apply CHANGE_CUSTOM_HOST_VAR ${host} ${name}.
     Ctn Log OTLP Step    runtime    Engine 0: CHANGE_CUSTOM_HOST_VAR ${host} ${name}='${value}'
 
 Ctn Move OTLP Host
