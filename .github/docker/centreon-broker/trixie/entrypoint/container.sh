@@ -29,6 +29,14 @@ DEFAULT_SUM=$(cat /var/lib/centreon-broker/.default-config.sha256 2>/dev/null ||
 for arg in "$@"; do
     case "$arg" in
         *.json)
+            # Wait for the central's first export instead of starting cbd
+            # without a config (crash loop) or racing its delivery.
+            waited=0
+            while [ ! -s "$arg" ]; do
+                [ $((waited % 60)) -eq 0 ] && echo "Waiting for the broker config $arg (delivered by the central's export)..."
+                sleep 2
+                waited=$((waited + 2))
+            done
             if [ -n "$DEFAULT_SUM" ] && [ "$(sha256sum "$arg" 2>/dev/null | cut -d' ' -f1)" = "$DEFAULT_SUM" ]; then
                 echo "ERROR: $arg is still the package-default config (no SQL/storage output) - mount a real broker config" >&2
                 exit 1
