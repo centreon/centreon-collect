@@ -2443,3 +2443,90 @@ TEST_F(BamBA, DtAddResentOnEngineRestartPb) {
   EXPECT_EQ(events.size(), events_before)
       << "the re-sent DOWNTIME_ADD split the kpi_event";
 }
+
+/* After a Broker restart, the kpi gets its downtime state back from the
+ * configuration (set_downtimed()) but not the ids of its downtimes. When the
+ * poller restarts, Engine re-sends each running downtime as DOWNTIME_ADD then
+ * starts it again: the kpi, and the BA inheriting from it, must stay in
+ * downtime all along. */
+TEST_F(BamBA, DtAddResentAfterBrokerRestartPb) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_impact>(1, 1, 1, true, _logger)};
+  test_ba->set_level_critical(0);
+  test_ba->set_level_warning(50);
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 1, 1, "service 1", _logger);
+  kpi->set_impact_critical(100);
+  kpi->set_state_hard(bam::state_critical);
+  kpi->set_state_soft(kpi->get_state_hard());
+  /* Restored by the kpi applier after the Broker restart. */
+  kpi->set_downtimed(true);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+
+  time_t now(time(nullptr));
+
+  auto ss{std::make_shared<neb::service_status>()};
+  ss->host_id = 1;
+  ss->service_id = 1;
+  ss->last_check = now;
+  ss->last_hard_state = 2;
+  kpi->service_update(ss, _visitor.get());
+  ASSERT_TRUE(test_ba->in_downtime()) << "precondition: BA must be in downtime";
+
+  size_t events_before = _visitor->queue().size();
+
+  /* 1. Engine re-announces the running downtime as DOWNTIME_ADD. */
+  auto readd{std::make_shared<neb::pb_downtime>()};
+  auto& r = readd->mut_obj();
+  r.set_id(42);
+  r.set_host_id(1);
+  r.set_service_id(1);
+  r.set_started(false);
+  r.set_actual_start_time(-1);
+  r.set_actual_end_time(-1);
+  r.set_deletion_time(-1);
+  r.set_cancelled(false);
+  kpi->service_update(readd, _visitor.get());
+
+  EXPECT_TRUE(kpi->in_downtime())
+      << "a DOWNTIME_ADD reset the downtime state restored at Broker restart";
+  EXPECT_TRUE(test_ba->in_downtime())
+      << "BA left downtime on a DOWNTIME_ADD after a Broker restart";
+  EXPECT_EQ(_visitor->queue().size(), events_before)
+      << "the re-sent DOWNTIME_ADD emitted events";
+
+  /* 2. Engine starts the downtime again. */
+  auto start{std::make_shared<neb::pb_downtime>()};
+  auto& s = start->mut_obj();
+  s.set_id(42);
+  s.set_host_id(1);
+  s.set_service_id(1);
+  s.set_started(true);
+  s.set_actual_start_time(now + 1);
+  s.set_actual_end_time(-1);
+  s.set_deletion_time(-1);
+  s.set_cancelled(false);
+  kpi->service_update(start, _visitor.get());
+
+  EXPECT_TRUE(kpi->in_downtime());
+  EXPECT_TRUE(test_ba->in_downtime());
+
+  /* 3. The downtime is now tracked by its id: its end is taken into account. */
+  auto ended{std::make_shared<neb::pb_downtime>()};
+  auto& e = ended->mut_obj();
+  e.set_id(42);
+  e.set_host_id(1);
+  e.set_service_id(1);
+  e.set_started(true);
+  e.set_actual_start_time(now + 1);
+  e.set_actual_end_time(now + 10);
+  e.set_deletion_time(now + 10);
+  e.set_cancelled(false);
+  kpi->service_update(ended, _visitor.get());
+
+  EXPECT_FALSE(kpi->in_downtime());
+  EXPECT_FALSE(test_ba->in_downtime());
+}

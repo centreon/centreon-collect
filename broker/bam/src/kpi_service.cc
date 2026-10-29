@@ -433,6 +433,14 @@ void kpi_service::service_update(const std::shared_ptr<neb::downtime>& dt,
                    dt->internal_id);
     return;
   }
+  /* A downtime not started yet (DOWNTIME_ADD, also re-sent for running
+   * downtimes when Engine restarts) changes nothing: it must not reset the
+   * downtime state restored after a Broker restart. */
+  if (!ends_downtime && !downtimed) {
+    _logger->trace("Downtime {} not started yet, nothing to do for the kpi",
+                   dt->internal_id);
+    return;
+  }
 
   _logger->info(
       "kpi_service:service_update on downtime {}: was started {} ; actual end "
@@ -511,6 +519,14 @@ void kpi_service::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                        !time_is_undefined(downtime.deletion_time());
   if (!ends_downtime && _downtime_ids.contains(downtime.id())) {
     _logger->trace("Downtime {} already handled in this kpi service",
+                   downtime.id());
+    return;
+  }
+  /* A downtime not started yet (DOWNTIME_ADD, also re-sent for running
+   * downtimes when Engine restarts) changes nothing: it must not reset the
+   * downtime state restored after a Broker restart. */
+  if (!ends_downtime && !downtimed) {
+    _logger->trace("Downtime {} not started yet, nothing to do for the kpi",
                    downtime.id());
     return;
   }
