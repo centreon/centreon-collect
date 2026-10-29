@@ -241,6 +241,8 @@ jobs:
               r"runner has received a shutdown signal",
               r"Error response from daemon:.*(\b5\d\d\b|Service Unavailable|timeout|TLS handshake)",
               r"toomanyrequests",
+              # A distribution mirror serving broken repository metadata to dnf.
+              r"Failed to download metadata for repo",
           )]
           # Infrastructure outside test jobs only: in robot or unit tests they usually mean a component
           # under test crashed or stopped answering.
