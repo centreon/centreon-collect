@@ -58,8 +58,7 @@ checkout:
 # Claude Code with the organization ANTHROPIC_API_KEY secret.
 engine:
   id: claude
-  model: claude-opus-5-5
-  fallback-models: [claude-sonnet-5-5]
+  model: claude-sonnet-5-5
 
 tools:
   github:
@@ -364,7 +363,7 @@ concurrency:
   job-discriminator: ${{ inputs.run_id || github.event.workflow_run.id || github.run_id }}
 
 timeout-minutes: 20
-# Per-run cap (1 AIC = 0.01 USD); observed runs use 57-93.
+# Per-run cap (1 AIC = 0.01 USD); the run stops when it is reached.
 max-ai-credits: 300
 ---
 
@@ -450,6 +449,17 @@ the failing job: a job that deletes it too early is a high-confidence cause.
    that plausibly affect the failing job.
 2. Check whether the checked-out branch tip already fixes the failure (a commit
    merged after the nightly). If so, finish with a no-op that links that commit.
+
+### 5. Publish an interim diagnosis
+
+The run has a hard credit cap and is cut without warning when it is reached;
+only the outputs already published survive. Before you start any fix, call
+`noop` once with the diagnosis so far: for each failed job or group of jobs,
+its classification (infrastructure, flaky, code or test, dependency or
+toolchain, workflow configuration), the evidence in one line, the probable
+root cause and your confidence, then what you are going to fix next. Then go
+on: this interim `noop` does not end the investigation, and you still finish
+with a pull request or a final `noop`.
 
 ## Fixing
 
