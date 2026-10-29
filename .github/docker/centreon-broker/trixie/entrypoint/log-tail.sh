@@ -5,7 +5,15 @@
 # /var/log/centreon-broker/<broker_name>.log) since it isn't fixed.
 #
 # Usage: log-tail.sh <path-to-config.json>, run in the background.
+#        log-tail.sh --link-stdout <path-to-config.json>, run in the
+#        foreground before cbd starts: symlinks the log to /dev/stdout
+#        instead of tailing it.
 
+MODE=tail
+if [ "$1" = "--link-stdout" ]; then
+    MODE=link
+    shift
+fi
 CONFIG="$1"
 DEFAULT_DIR="/var/log/centreon-broker"
 
@@ -39,6 +47,39 @@ except Exception:
 [ -n "$LOG_FILE" ] && [ "$LOG_FILE" != ".log" ] || exit 0
 
 LOG_PATH="$LOG_DIR/$LOG_FILE"
+
+if [ "$MODE" = "link" ]; then
+    # log.max_size > 0: cbd rotates (renames) the log, moving the symlink
+    # aside. Sinks are only built at start, so this check is enough.
+    MAX_SIZE=$(python3 -c "
+import json
+try:
+    with open('$CONFIG') as f:
+        c = json.load(f)
+    print(int(c.get('centreonBroker', {}).get('log', {}).get('max_size') or 0))
+except Exception:
+    print(0)
+" 2>/dev/null)
+    if [ "${MAX_SIZE:-0}" != "0" ]; then
+        echo "WARNING: broker log rotation is on (log max_size=$MAX_SIZE), $LOG_PATH stays a file, tailing it instead of linking it to /dev/stdout" >&2
+    elif ln -sfn /dev/stdout "$LOG_PATH"; then
+        echo "Broker log $LOG_PATH -> /dev/stdout"
+        exit 0
+    else
+        # Not linkable: fall back to tailing.
+        echo "WARNING: could not link $LOG_PATH to /dev/stdout, tailing it instead" >&2
+    fi
+    # Drop a link left by an earlier start of this container before tailing.
+    [ -L "$LOG_PATH" ] && rm -f "$LOG_PATH"
+    "$0" "$CONFIG" &
+    exit 0
+fi
+
+# Already stdout: avoid tailing our own output.
+[ -L "$LOG_PATH" ] && exit 0
+case "$LOG_PATH" in
+    /dev/std*|/proc/*/fd/*) exit 0 ;;
+esac
 
 # Wait for cbd to create the file rather than racing it.
 i=0
