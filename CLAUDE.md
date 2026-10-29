@@ -1,16 +1,17 @@
 # centreon-collect
 
-Monitoring collection stack of Centreon: Engine (`engine/`), Broker (`broker/`), Centreon Monitoring Agent (`agent/`), Gorgone (`gorgone/`), connectors (`connectors/`), shared C++ libraries (`common/`). Robot integration tests in `tests/`.
+The architecture file below is the entry point. It links the architecture and conventions file of each component, and the testing rules.
 
-## Where the rules are
+@.claude/architecture/global.md
 
-- Architecture Decision Records: `docs/adr/` (index `docs/adr/README.md`), one folder per module. A module with ADRs also has an architecture reference (`docs/adr/<module>/ARCHITECTURE.md`) and an area `CLAUDE.md`.
-- Centreon Monitoring Agent: `agent/CLAUDE.md`, which imports `docs/adr/cma/ARCHITECTURE.md`. Hooks in `.claude/settings.json` inject the Decision of the governing ADRs before each edit in that scope and ask for a review before the turn ends. Reviewer subagent: `cma-adr-reviewer`.
-- Modules without ADRs: follow the surrounding code. CMA rules do not apply outside the CMA scope.
+@.claude/conventions/global.md
+
+Component files load on demand: `agent/CLAUDE.md` and `.claude/rules/*.md` (path-scoped) point to them when a matching file is read, and a `PreToolUse` hook (`.claude/hooks/component-context.sh`) names the governing files on the first edit of each component in a session.
 
 ## Working agreements for Claude-produced work
 
-- Before changing code in a module that has ADRs, name in the plan the ADRs that govern the change. If the change has to depart from one, stop and ask before writing code.
-- Before declaring a change in the CMA scope done, run the `cma-adr-reviewer` subagent on the diff and fix what it reports as blocking.
-- When a review remark or a correction states a convention that no ADR covers, propose the ADR sentence that would have prevented it.
-- One change per PR, opened as a draft. No construct the author cannot explain in review.
+- Before changing code, read the global conventions, the architecture and conventions files of the component you touch, and the testing rules. Name them in the plan.
+- If the change has to depart from one of these files, stop and ask before writing code.
+- A component without its own files follows the global conventions and the code around the change. Rules written for one component never apply to another.
+- When a review remark or a correction states a convention that no file covers, propose the sentence to add to the matching architecture or conventions file.
+- One change per pull request, opened as a draft. No construct the author cannot explain in review.
