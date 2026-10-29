@@ -6,9 +6,8 @@
 #
 # Usage: log-tail.sh <path-to-config.json>, run in the background.
 #        log-tail.sh --link-stdout <path-to-config.json>, run in the
-#        foreground before cbd starts: replaces the log file with a symlink
-#        to /dev/stdout, so cbd writes straight to the container's stdout
-#        (its log directory must stay writable: /dev itself is refused).
+#        foreground before cbd starts: symlinks the log to /dev/stdout
+#        instead of tailing it.
 
 MODE=tail
 if [ "$1" = "--link-stdout" ]; then
@@ -54,15 +53,13 @@ if [ "$MODE" = "link" ]; then
         echo "Broker log $LOG_PATH -> /dev/stdout"
         exit 0
     fi
-    # Not linkable (e.g. a log directory cbd itself would refuse): keep the
-    # file and tail it as without BROKER_LOG_STDOUT.
+    # Not linkable: fall back to tailing.
     echo "WARNING: could not link $LOG_PATH to /dev/stdout, tailing it instead" >&2
     "$0" "$CONFIG" &
     exit 0
 fi
 
-# Already the container's stdout (symlink, /dev/stdout, /proc/<pid>/fd/1):
-# tailing it would read the container's own output.
+# Already stdout: avoid tailing our own output.
 [ -L "$LOG_PATH" ] && exit 0
 case "$LOG_PATH" in
     /dev/std*|/proc/*/fd/*) exit 0 ;;
