@@ -1,6 +1,5 @@
 ---
 paths:
-  - "bbdo/**"
   - "engine/src/broker.cc"
   - "engine/inc/com/centreon/engine/broker.hh"
   - "resources/centreon*.sql"

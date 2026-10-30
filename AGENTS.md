@@ -17,8 +17,8 @@ Collection side of Centreon: monitoring agent (CMA), Engine, Broker, shared libr
 - Find the components the change touches, read the files above for each, and name them in the plan with the sections that govern the change. A plan without them is rejected.
 - If the change has to depart from one of these files, stop and ask before writing code. Never work around a rule.
 - A component without its own files follows the global conventions and the code around the change. Rules written for one component never apply to another.
-- Do not edit `AGENTS.md`, `CLAUDE.md`, `ARCHITECTURE.md`, `docs/` or `.claude/` during a code task. When a review remark or a correction states a rule that no file covers, propose the sentence for the matching file; it goes in its own pull request.
-- A change that alters the architecture described (flow, contract, component) updates the matching section in the same pull request.
+- During a code task, update the architecture description your change makes wrong (flow, contract, component), in the same pull request. Never change a rule (convention, review criterion, test rule, agent wiring): propose it in its own pull request. This holds for a rule that a review remark or a correction states and that no file covers: propose the sentence for the matching file.
+- Every edit of `AGENTS.md`, `CLAUDE.md` files, `ARCHITECTURE.md`, `docs/` and `.claude/` asks for confirmation (`.claude/settings.json`). Start Claude Code from the repository root so that these rules match.
 - One change per pull request, opened as a draft, targeting `develop`. No construct the author cannot explain in review.
 
 ## Skills, subagents and scripts
