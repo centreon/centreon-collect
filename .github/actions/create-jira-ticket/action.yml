@@ -186,16 +186,18 @@ runs:
 
             console.log(data);
 
-            if (["get-environment", "package", "deliver-sources", "deliver-rpm", "deliver-deb"].includes(failed_job)) {
+            // failed_job is the first word of the job display name ("unit test el9 amd64" -> "unit")
+            if (["get-environment", "package", "dockerize", "docker", "deliver", "deliver-sources", "deliver-rpm", "deliver-deb", "promote", "promote-pulp"].includes(failed_job)) {
               ticket_squad_id = 10524
               ticket_board_id = 184
               squad_name = "DEVSECOPS"
-            } else if (["unit-test", "robot-test"].includes(failed_job)) {
+            } else if (["unit", "unit-test", "robot-test"].includes(failed_job)) {
               ticket_squad_id=10255
               ticket_board_id=118
               squad_name = "COLLECT"
             } else {
-              core.setFailed(`Not finding any squad association with job ${failed_job}.`);
+              // an unmapped job must not fail the whole step
+              core.warning(`Not finding any squad association with job ${failed_job}.`);
               continue;
             }
 
