@@ -75,6 +75,7 @@ class bulk_bind {
   std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn);
   void apply_to_stmt(int32_t conn);
   bool ready(int32_t conn);
+  void force_ready();
   std::size_t size(int32_t conn = -1) const;
   std::time_t next_time() const;
   std::size_t connections_count() const;
