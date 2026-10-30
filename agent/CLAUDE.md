@@ -1,6 +1,6 @@
 # agent/ — Centreon Monitoring Agent (CMA, binary `centagent`)
 
-Engine counterpart: `engine/modules/opentelemetry/src/centreon_agent/`. Testing rules: `.claude/ci/testing.md` § Centreon Monitoring Agent.
+Engine counterpart: `engine/modules/opentelemetry/src/centreon_agent/`. Testing rules: `docs/testing.md` § Centreon Monitoring Agent.
 
 ## Commands
 
@@ -18,8 +18,8 @@ Robot: `tests/broker-engine/cma.robot`, `cma2.robot` (setup in `tests/README.md`
 
 ## Architecture
 
-@../.claude/architecture/cma.md
+@../docs/architecture/cma.md
 
 ## Conventions
 
-@../.claude/conventions/cma.md
+@../docs/conventions/cma.md

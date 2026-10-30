@@ -23,13 +23,13 @@ root_n="${root//\\//}"
 rel="${file#"$root_n"/}"
 case "$rel" in /*|[A-Za-z]:/*) exit 0 ;; esac  # outside the repository
 
-arch=".claude/architecture"
-conv=".claude/conventions"
-testing=".claude/ci/testing.md"
+arch="docs/architecture"
+conv="docs/conventions"
+testing="docs/testing.md"
 
 # Component of the file. Order matters: CMA paths outside agent/ come first.
 case "$rel" in
-  .claude/*|CLAUDE.md|*/CLAUDE.md|CLAUDE.local.md) exit 0 ;;
+  .claude/*|CLAUDE.md|*/CLAUDE.md|CLAUDE.local.md|AGENTS.md|ARCHITECTURE.md|docs/*) exit 0 ;;
   agent/*|engine/modules/opentelemetry/*centreon_agent*|tests/*cma*.robot|tests/resources/Agent.py|packaging/centreon-monitoring-agent*)
     component="cma" ;;
   common/*|clib/*) component="shared" ;;
@@ -54,7 +54,7 @@ marker="$marker_dir/${session}-${component}-${is_test}-${is_contract}"
 [ -e "$marker" ] && exit 0
 : > "$marker" 2>/dev/null
 
-files="$arch/global.md, $conv/global.md"
+files="ARCHITECTURE.md, $conv/global.md"
 note=""
 case "$component" in
   cma) files="$files, $arch/cma.md, $conv/cma.md" ;;
@@ -66,7 +66,7 @@ esac
 [ "$is_test" = 1 ] && files="$files, $testing"
 [ "$is_contract" = 1 ] && note="$note This is a contract between components (see the architecture): it evolves by addition only, and both sides change in the same pull request."
 
-msg="Repository context for $rel (component: $component). Files that govern this path: $files. The working agreements of CLAUDE.md require these files to be read before the edit, and a change that departs from them to be raised with the user first.$note"
+msg="Repository context for $rel (component: $component). Files that govern this path: $files. The working agreements of AGENTS.md require these files to be read before the edit, and a change that departs from them to be raised with the user first.$note"
 msg="${msg//\\/\\\\}"; msg="${msg//\"/\\\"}"
 printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"%s"}}\n' "$msg"
 exit 0

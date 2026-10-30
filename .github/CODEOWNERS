@@ -35,3 +35,10 @@ gorgone/tests/robot/tests     @centreon/owners-robot-e2e
 **/dependency-analysis.yml           @centreon/owners-security
 **/gitleaks-analysis.yml             @centreon/owners-security
 **/secu-*.yml                        @centreon/owners-security
+# Architecture, conventions, testing rules and coding-agent wiring
+AGENTS.md                     @centreon/owners-cpp
+CLAUDE.md                     @centreon/owners-cpp
+**/CLAUDE.md                  @centreon/owners-cpp
+ARCHITECTURE.md               @centreon/owners-cpp
+docs/**                       @centreon/owners-cpp
+.claude/**                    @centreon/owners-cpp

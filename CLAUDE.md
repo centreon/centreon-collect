@@ -1,17 +1,11 @@
-# centreon-collect
+@AGENTS.md
 
-The architecture file below is the entry point. It links the architecture and conventions file of each component, and the testing rules.
+## Claude Code
 
-@.claude/architecture/global.md
+Only this file and `AGENTS.md` load at session start. The other files load on demand:
 
-@.claude/conventions/global.md
+- `agent/CLAUDE.md` imports the CMA architecture and conventions when a file under `agent/` is read.
+- `.claude/rules/cma.md` and `.claude/rules/testing.md` (path-scoped) point to the CMA and testing files when a matching file is read or edited, including CMA paths outside `agent/`.
+- The `PreToolUse` hook `.claude/hooks/component-context.sh` names the governing files on the first edit of each component in a session. It never blocks.
 
-Component files load on demand: `agent/CLAUDE.md` and `.claude/rules/*.md` (path-scoped) point to them when a matching file is read, and a `PreToolUse` hook (`.claude/hooks/component-context.sh`) names the governing files on the first edit of each component in a session.
-
-## Working agreements for Claude-produced work
-
-- Before changing code, read the global conventions, the architecture and conventions files of the component you touch, and the testing rules. Name them in the plan.
-- If the change has to depart from one of these files, stop and ask before writing code.
-- A component without its own files follows the global conventions and the code around the change. Rules written for one component never apply to another.
-- When a review remark or a correction states a convention that no file covers, propose the sentence to add to the matching architecture or conventions file.
-- One change per pull request, opened as a draft. No construct the author cannot explain in review.
+The built-in Explore and Plan subagents may not load `CLAUDE.md` or the rules: name the files to read in their prompt.

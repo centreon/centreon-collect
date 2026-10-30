@@ -1,6 +1,6 @@
 # Centreon Monitoring Agent architecture
 
-Component file of [`global.md`](global.md). Conventions: [`../conventions/global.md`](../conventions/global.md), then [`../conventions/cma.md`](../conventions/cma.md). Tests: [`../ci/testing.md`](../ci/testing.md#centreon-monitoring-agent).
+Component file of [`ARCHITECTURE.md`](../../ARCHITECTURE.md). Conventions: [`../conventions/global.md`](../conventions/global.md), then [`../conventions/cma.md`](../conventions/cma.md). Tests: [`../testing.md`](../testing.md#centreon-monitoring-agent).
 
 The Centreon Monitoring Agent (CMA, binary `centagent`) runs checks on Linux and Windows hosts for a Centreon poller. It receives its check list from Engine over gRPC, schedules the checks itself, and sends results as OpenTelemetry (OTLP) metrics. Design notes with worked examples (scheduler, filters): `agent/doc/agent-doc.md`.
 
@@ -12,7 +12,7 @@ The Centreon Monitoring Agent (CMA, binary `centagent`) runs checks on Linux and
 | Agent | `agent/src/`, `agent/inc/com/centreon/agent/`, `agent/native_linux/`, `agent/native_windows/` | All CMA rules apply |
 | Install and packaging | `agent/installer/`, `agent/conf/`, `packaging/centreon-monitoring-agent/` | Configuration parity and security |
 | Shared libraries | `common/grpc/`, `common/process/`, `common/crypto/`, `common/inc/`, `common/engine_conf/` | Also used by Engine and Broker: global rules only, CMA rules do not apply |
-| Tests | `agent/test/`, `tests/broker-engine/cma*.robot`, `tests/resources/Agent.py` | See [`../ci/testing.md`](../ci/testing.md#centreon-monitoring-agent) |
+| Tests | `agent/test/`, `tests/broker-engine/cma*.robot`, `tests/resources/Agent.py` | See [`../testing.md`](../testing.md#centreon-monitoring-agent) |
 
 The agent depends on `common/` and third-party libraries only, never on `engine/` or `broker/`. Engine depends on the agent through `agent.proto` only.
 
