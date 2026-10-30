@@ -2,6 +2,8 @@
 
 One file per structuring decision: `docs/adr/NNNN-<slug>.md`, numbered continuously in this repository, written in English. The existing design is described in [`ARCHITECTURE.md`](../../ARCHITECTURE.md) and the component files, not here.
 
+With Claude Code, `/create-adr` drafts the record from this file and opens its pull request.
+
 ## When to write one
 
 At least one of these is true:
