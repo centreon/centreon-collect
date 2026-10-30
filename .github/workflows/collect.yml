@@ -1480,7 +1480,8 @@ jobs:
 
   clear-branch-cache:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-rpm, deliver-deb]
+    # The Pulp delivery jobs restore the package caches too: clear them only once they are done.
+    needs: [get-environment, deliver-rpm, deliver-deb, deliver-rpm-pulp, deliver-deb-pulp]
     env:
       GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     if: |
