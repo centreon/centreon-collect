@@ -151,9 +151,10 @@ COPY --from=extractor --chown=centreon-broker:centreon-broker --chmod=664 \
 # catch it if it recurs.
 RUN chmod 0775 /etc/centreon-broker /etc/centreon-engine
 
-# Copy entrypoint scripts (from source repo, not from .deb packages)
-COPY --chmod=755 --chown=centreon-broker:centreon-broker \
-     ./.github/docker/centreon-broker/trixie/entrypoint /var/lib/centreon-broker
+# Copy entrypoint scripts (from source repo, not from .deb packages).
+# Root-owned, outside /var/lib/centreon-broker (the broker user's home).
+COPY --chmod=755 \
+     ./.github/docker/centreon-broker/trixie/entrypoint /usr/local/lib/centreon-broker
 
 # Fingerprint of the package-default config (no SQL/storage output - cbd
 # would run but persist nothing). container.sh refuses to start if the
@@ -231,7 +232,7 @@ USER centreon-broker
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
     CMD test -f /tmp/docker.ready || exit 1
 
-ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
+ENTRYPOINT ["/usr/local/lib/centreon-broker/container.sh"]
 
 # Runs cbd under the reload/restart shim by default (POST /reload, POST
 # /restart, GET /health on :8080). Override CMD with
@@ -239,4 +240,4 @@ ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
 # Note: cbd's `-c`/`--check` validates and exits, it is not a config-path flag.
 # A real config must be mounted over central-broker.json - container.sh
 # refuses to start on the untouched package default.
-CMD ["/opt/centreon/venv/bin/python3", "/var/lib/centreon-broker/api_control.py", "/etc/centreon-broker/central-broker.json"]
+CMD ["/opt/centreon/venv/bin/python3", "/usr/local/lib/centreon-broker/api_control.py", "/etc/centreon-broker/central-broker.json"]
