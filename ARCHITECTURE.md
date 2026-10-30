@@ -1,28 +1,19 @@
 # centreon-collect architecture
 
-Entry point for anyone, human or Claude, who changes code in this repository. Read this file first, then the architecture file of the component you touch, then the conventions it links.
+Entry point for anyone, human or agent, who changes code in this repository. Read this file first, then the architecture file of the component you touch, then the conventions it links. Rules for coding agents: [`AGENTS.md`](AGENTS.md).
 
 | Topic | File |
 |---|---|
 | Architecture of a component | [Components](#components) below |
-| Development conventions, all components | [`../conventions/global.md`](../conventions/global.md) |
+| Development conventions, all components | [`docs/conventions/global.md`](docs/conventions/global.md) |
 | Development conventions of a component | [Components](#components) below |
-| Automated tests and CI | [`../ci/testing.md`](../ci/testing.md) |
+| Automated tests and CI | [`docs/testing.md`](docs/testing.md) |
+| What blocks a merge | [Review criteria](#review-criteria) below |
+| Architecture decisions | [`docs/adr/`](docs/adr/README.md) |
 
-Decisions taken from now on are recorded as Architecture Decision Records and linked from the section they change. The existing design is described here and in the component files, not in ADRs.
+Decisions taken from now on are recorded as Architecture Decision Records in [`docs/adr/`](docs/adr/README.md) and linked from the section they change. The existing design is described here and in the component files, not in ADRs.
 
-## Using these files from a skill, an agent or a script
-
-These files are the single source of the repository's rules. Anything that drives Claude on this repository (skill, custom subagent, prompt, CI job) follows this contract:
-
-- **Reference, never copy.** A skill or agent links these files by path and never restates their rules: a copy drifts the day the file changes. Content specific to the skill (its steps, its output format) stays in the skill.
-- **Resolve the component first.** From the files the task touches, find the components in [Components](#components), then read: this file, [`../conventions/global.md`](../conventions/global.md), the component's architecture and conventions files when they exist, and [`../ci/testing.md`](../ci/testing.md) when tests or CI are involved.
-- **Cite what was read.** The plan names the files read and the sections that govern the change.
-- **Stop on a departure.** A change that has to depart from these files is raised with the user before code is written; the skill never works around a rule.
-- **Subagents get the paths.** A subagent does not see the conversation that started it. Custom subagents load `CLAUDE.md` and the path-scoped rules, but the built-in Explore and Plan agents do not: their prompt names the files to read.
-- **Feed corrections back.** A convention stated in a review or a correction that no file covers is proposed as a sentence for the matching file, in its own pull request.
-
-What loads automatically: `CLAUDE.md` imports this file and the global conventions at session start. `agent/CLAUDE.md` imports the CMA files when a file under `agent/` is read. `.claude/rules/cma.md` and `.claude/rules/testing.md` point to the CMA and testing files when a matching file is read or edited. The `PreToolUse` hook `.claude/hooks/component-context.sh` names the governing files on the first edit of each component in a session. When a component gets its own files, add it to the [Components](#components) table, to the hook's mapping, and, if its paths are outside its folder, to a rule in `.claude/rules/`.
+When a component gets its own files, add it to the [Components](#components) table, to the mapping of `.claude/hooks/component-context.sh`, and, if its paths are outside its folder, to a rule in `.claude/rules/`.
 
 ## What the repository ships
 
@@ -44,7 +35,7 @@ centreon-collect is the collection side of Centreon: everything that runs on a p
 
 | Component | Path | Language | Role | Architecture | Conventions |
 |---|---|---|---|---|---|
-| Centreon Monitoring Agent (CMA) | `agent/` | C++ | Runs checks on Linux and Windows hosts, receives its configuration from Engine, sends results as OTLP | [`cma.md`](cma.md) | [`../conventions/cma.md`](../conventions/cma.md) |
+| Centreon Monitoring Agent (CMA) | `agent/` | C++ | Runs checks on Linux and Windows hosts, receives its configuration from Engine, sends results as OTLP | [`docs/architecture/cma.md`](docs/architecture/cma.md) | [`docs/conventions/cma.md`](docs/conventions/cma.md) |
 | Engine | `engine/` | C++ | Scheduler, Nagios fork: runs checks, computes states, notifications. Modules in `engine/modules/` (`opentelemetry`, `external_commands`) | to write | to write |
 | Broker | `broker/` | C++ | Event transmitter (`cbd`) and Engine module (`cbmod`, `broker/neb`): SQL, RRD, BAM, Lua, TSDB and OTLP outputs | to write | to write |
 | Shared libraries | `common/`, `clib/` | C++ | gRPC, process, crypto, logging, perfdata, thresholds, timeperiods, configuration protobufs; used by several binaries | to write | to write |
@@ -53,7 +44,7 @@ centreon-collect is the collection side of Centreon: everything that runs on a p
 | Gorgone | `gorgone/` | Perl | Configuration deployment and remote actions between central and pollers | to write | to write |
 | CCC | `ccc/` | C++ | gRPC command-line client for Engine and Broker | to write | to write |
 | Packaging | `packaging/`, `selinux/` | nfpm YAML, SELinux | RPM and DEB packages per component | — | — |
-| Robot tests | `tests/` | Robot Framework, Python | End-to-end tests of Engine, Broker, connectors and CMA | — | [`../ci/testing.md`](../ci/testing.md) |
+| Robot tests | `tests/` | Robot Framework, Python | End-to-end tests of Engine, Broker, connectors and CMA | — | [`docs/testing.md`](docs/testing.md) |
 
 A component marked "to write" follows the global conventions and the code around the change. Rules written for one component never apply to another.
 
@@ -64,9 +55,50 @@ A component marked "to write" follows the global conventions and the code around
 - **Dependency direction.** A component depends on `common/`, `clib/`, `bbdo/` and third-party libraries. It never includes the sources of a sibling component (`agent/` never includes `engine/` or `broker/`; Engine reaches the agent through `agent.proto` only).
 - **Third-party libraries** come from the root `vcpkg.json`, with ports and triplets in `overlays/` and `custom-triplets/`. Adding one is a decision to discuss before writing code.
 
+## Review criteria
+
+### Zones
+
+| Zone | Paths | Rules that apply |
+|---|---|---|
+| Documented component | CMA: the Agent and Contracts zones of [`docs/architecture/cma.md`](docs/architecture/cma.md#scope) | Global and component files, in full |
+| Component without files | `engine/`, `broker/`, `bbdo/`, `connectors/`, `gorgone/`, `ccc/` | Global files; the code around the change is the reference |
+| Shared code | `common/`, `clib/` | Global files only, never the rules of one component; unit tests of every consumer |
+| Known deviations | Tables "Known deviations" of the conventions files | Never a model; fixed only in a dedicated pull request |
+
+Where no file answers, the code around the change is the reference. In a documented component, its own code wins over an older sibling (the CMA file names which siblings not to copy).
+
+### Blocking criteria
+
+| Finding | Documented component | Component without files | Shared code |
+|---|---|---|---|
+| Bug or regression | Blocks | Blocks | Blocks |
+| Security: secret in a log or an output, TLS or token weakened, command run through a shell | Blocks | Blocks | Blocks |
+| CI red: build, unit tests, Robot tests, secret scan | Blocks | Blocks | Blocks |
+| Contract changed other than by addition, or one side only | Blocks | Blocks | Blocks |
+| Test required by [`docs/testing.md`](docs/testing.md) missing | Blocks | Blocks | Blocks |
+| Global convention not followed in new code | Blocks | Blocks | Blocks |
+| Component convention not followed, or a known deviation copied | Blocks | — | — |
+| Change listed under "needs the owner's agreement" made without it | Blocks | — | Blocks (`common/` change seen from the CMA) |
+| Global convention not followed in existing code the change touches | To challenge | To challenge | To challenge |
+| Formatting of the changed lines | To challenge | To challenge | To challenge |
+
+"Blocks": the pull request is not merged until it is fixed. "To challenge": the reviewer raises it; the author fixes it or explains why not.
+
+### Checked by tools
+
+| Check | Where | Notes |
+|---|---|---|
+| Build with the standard of each host, warnings `-Wall -Wextra` | `collect.yml`, `monitoring-agent.yml` | Windows code (`agent/native_windows/`) builds only on the Windows runner |
+| Unit and Robot tests | Same workflows, `robot-test.yml`, `windows-agent-robot-test.yml` | |
+| Secrets and dependencies | `secu-secret-scan.yml`, `secu-dependency-scan.yml`, `.githooks/` (gitleaks) | |
+| Formatting | Local only: `clang-format`, `robottidy`, autopep8 | No CI job: check it before pushing |
+
+A rule a tool checks is not repeated in a prompt or a skill.
+
 ## Build
 
-One CMake project at the root (`CMakeLists.txt`, then `CMakeListsLinux.txt` or `CMakeListsWindows.txt`), dependencies through vcpkg. The C++ standard depends on the build host: see [`../conventions/global.md`](../conventions/global.md#language-version-and-compilers). Only the CMA and the shared code it uses build on Windows.
+One CMake project at the root (`CMakeLists.txt`, then `CMakeListsLinux.txt` or `CMakeListsWindows.txt`), dependencies through vcpkg. The C++ standard depends on the build host: see [`docs/conventions/global.md`](docs/conventions/global.md#language-version-and-compilers). Only the CMA and the shared code it uses build on Windows.
 
 ```bash
 # Linux, from the repository root (vcpkg setup: README.md § Compilation)
@@ -85,4 +117,4 @@ cmake --build build
 | `.github/workflows/gorgone.yml`, `robot-test-gorgone.yml` | Gorgone |
 | `.github/workflows/secu-secret-scan.yml`, `secu-dependency-scan.yml` | Secrets and dependency scans |
 
-Build matrices (distributions, architectures, databases) are computed in `.github/workflows/get-environment.yml`. How to write the tests these workflows run: [`../ci/testing.md`](../ci/testing.md).
+Build matrices (distributions, architectures, databases) are computed in `.github/workflows/get-environment.yml`. How to write the tests these workflows run: [`docs/testing.md`](docs/testing.md).

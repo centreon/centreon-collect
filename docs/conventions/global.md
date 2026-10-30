@@ -1,8 +1,8 @@
 # centreon-collect development conventions
 
-Conventions shared by every component. A component file (linked from [`../architecture/global.md`](../architecture/global.md#components)) adds to these rules and wins where it is more specific. Where neither file says anything, the code around the change is the reference.
+Conventions shared by every component. A component file (linked from [`ARCHITECTURE.md`](../../ARCHITECTURE.md#components)) adds to these rules and wins where it is more specific. Where neither file says anything, the code around the change is the reference.
 
-Tests: [`../ci/testing.md`](../ci/testing.md).
+Tests: [`../testing.md`](../testing.md).
 
 ## Language version and compilers
 
@@ -65,6 +65,6 @@ Types imposed by a third-party API (gRPC reactors, protobuf messages) keep the A
 
 - One change per pull request, opened as a draft, targeting `develop`. A refactoring, a rename or a typo fix found on the way is a separate pull request.
 - Commit and pull request titles follow Conventional Commits with the component as scope: `fix(engine): ...`, `feat(cma): ...`, `chore(ci): ...`.
-- A behaviour change ships with its tests ([`../ci/testing.md`](../ci/testing.md)).
+- A behaviour change ships with its tests ([`../testing.md`](../testing.md)).
 - A change to a contract between components (see the architecture) changes both sides in the same pull request.
 - A construct the author cannot explain in review is not merged.

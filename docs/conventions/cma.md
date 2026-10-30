@@ -1,6 +1,6 @@
 # Centreon Monitoring Agent development conventions
 
-Component file of [`global.md`](global.md), which applies first. Architecture: [`../architecture/cma.md`](../architecture/cma.md). Tests: [`../ci/testing.md`](../ci/testing.md#centreon-monitoring-agent).
+Component file of [`global.md`](global.md), which applies first. Architecture: [`../architecture/cma.md`](../architecture/cma.md). Tests: [`../testing.md`](../testing.md#centreon-monitoring-agent).
 
 These rules apply to the Agent and Contracts zones of the architecture file. In `common/`, only the global conventions apply.
 

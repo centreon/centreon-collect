@@ -1,6 +1,6 @@
 # Automated tests in centreon-collect
 
-How to write the automated tests that CI runs, for every component. Architecture and CI workflows: [`../architecture/global.md`](../architecture/global.md). Code conventions: [`../conventions/global.md`](../conventions/global.md).
+How to write the automated tests that CI runs, for every component. Architecture and CI workflows: [`ARCHITECTURE.md`](../ARCHITECTURE.md). Code conventions: [`conventions/global.md`](conventions/global.md).
 
 ## What a change ships with
 
@@ -44,7 +44,7 @@ Prefer the unit level: it runs in minutes and pinpoints the failure. Robot tests
 ### Running locally
 
 ```bash
-cmake -B build ... -DWITH_TESTING=On -S .      # see ../architecture/global.md § Build
+cmake -B build ... -DWITH_TESTING=On -S .      # see ARCHITECTURE.md § Build
 cmake --build build --target ut_<component>
 build/tests/ut_<component> --gtest_filter='<suite>.*'
 ```
@@ -116,7 +116,7 @@ robot -t BEOTEL_CENTREON_AGENT_CHECK_HOST broker-engine/cma.robot   # one case
 
 ## Centreon Monitoring Agent
 
-Architecture: [`../architecture/cma.md`](../architecture/cma.md). Conventions: [`../conventions/cma.md`](../conventions/cma.md).
+Architecture: [`architecture/cma.md`](architecture/cma.md). Conventions: [`conventions/cma.md`](conventions/cma.md).
 
 ### `ut_agent`
 
