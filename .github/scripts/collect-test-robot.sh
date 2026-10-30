@@ -62,11 +62,14 @@ if [ "$distrib" = "ALMALINUX" ]; then
   # retry on transient mirror errors (SSL errors, broken repomd.xml)
   for attempt in 1 2 3 4 5; do
     dnf clean all
-    dnf install -y --setopt=retries=5 --setopt=timeout=60 ./*.rpm && break
+    if dnf install -y --setopt=retries=5 --setopt=timeout=60 ./*.rpm; then
+      break
+    fi
     if [ "$attempt" -eq 5 ]; then
       echo "dnf install failed after $attempt attempts" >&2
       exit 1
     fi
+    echo "dnf install failed (attempt $attempt), retrying in $((attempt * 15))s" >&2
     sleep $((attempt * 15))
   done
 else
