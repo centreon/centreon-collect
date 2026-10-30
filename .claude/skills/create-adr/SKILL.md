@@ -52,7 +52,7 @@ Change nothing else. Show the ADR to the user and apply their corrections before
 ## 5. Open the pull request
 
 - Commit and pull request title: `docs(<component>): add ADR-NNNN <decision>`. Use the component scope of the conventions (`cma`, `engine`, `broker`...), or `docs(adr)` when several components are concerned.
-- A draft pull request targeting `develop`, one ADR per pull request. Fill in `.github/pull_request_template.md`:
+- A draft pull request targeting `develop`, one ADR per pull request. Fill in `.github/PULL_REQUEST_TEMPLATE.md`:
   - Description: the decision, why it needed an ADR, the files linked;
   - `Fixes` the Jira key;
   - type "Updating documentation";

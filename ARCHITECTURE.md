@@ -13,7 +13,7 @@ Entry point for anyone, human or agent, who changes code in this repository. Rea
 
 Decisions taken from now on are recorded as Architecture Decision Records in [`docs/adr/`](docs/adr/README.md) and linked from the section they change. The existing design is described here and in the component files, not in ADRs.
 
-When a component gets its own files, add it to the [Components](#components) table, to the mapping of `.claude/hooks/component-context.sh`, and, if its paths are outside its folder, to a rule in `.claude/rules/`.
+When a component gets its own files, add it to the [Components](#components) table, to the mapping of `.claude/hooks/component-context.sh`, a `CLAUDE.md` in its folder that imports them, and, for its paths outside that folder, a folder `CLAUDE.md` or a rule in `.claude/rules/`.
 
 ## What the repository ships
 

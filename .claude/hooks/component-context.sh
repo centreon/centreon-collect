@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # PreToolUse hook (Edit|Write|MultiEdit|NotebookEdit).
-# Maps the edited file to its component and, on the first edit of that component
-# in the session, reminds the model which architecture, conventions and testing
-# files govern it (paths only, not their content). Later edits stay silent.
-# Never blocks: any failure exits 0 with no output.
+# Maps the edited file to its component. The first edit of each component in a
+# session is refused (exit 2) and stderr lists the architecture, conventions and
+# testing files that govern it, so that they are read before anything is written.
+# The per-session marker lets the retry and later edits through.
+# A failure of the script itself never blocks: it exits 0 with no output.
 set -u
 
 input="$(cat 2>/dev/null)" || exit 0
@@ -73,7 +74,5 @@ esac
 [ "$is_test" = 1 ] && files="$files, $testing"
 [ "$is_contract" = 1 ] && note="$note This is a contract between components (see the architecture): it evolves by addition only, and both sides change in the same pull request."
 
-msg="Repository context for $rel (component: $component). Files that govern this path: $files. The working agreements of AGENTS.md require these files to be read before the edit, and a change that departs from them to be raised with the user first.$note"
-msg="${msg//\\/\\\\}"; msg="${msg//\"/\\\"}"
-printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"%s"}}\n' "$msg"
-exit 0
+printf '%s\n' "First edit of component $component in this session ($rel): refused once. Read these files first: $files. Name them in the plan, raise any departure from them with the user, then retry the edit; it will pass.$note" >&2
+exit 2
