@@ -36,10 +36,10 @@ centreon-collect is the collection side of Centreon: everything that runs on a p
 | Component | Path | Language | Role | Architecture | Conventions |
 |---|---|---|---|---|---|
 | Centreon Monitoring Agent (CMA) | `agent/` | C++ | Runs checks on Linux and Windows hosts, receives its configuration from Engine, sends results as OTLP | [`docs/architecture/cma.md`](docs/architecture/cma.md) | [`docs/conventions/cma.md`](docs/conventions/cma.md) |
-| Engine | `engine/` | C++ | Scheduler, Nagios fork: runs checks, computes states, notifications. Modules in `engine/modules/` (`opentelemetry`, `external_commands`) | to write | to write |
-| Broker | `broker/` | C++ | Event transmitter (`cbd`) and Engine module (`cbmod`, `broker/neb`): SQL, RRD, BAM, Lua, TSDB and OTLP outputs | to write | to write |
+| Engine | `engine/`, `common/engine_conf/` | C++ | Scheduler, Nagios fork: runs checks, computes states, notifications. Modules in `engine/modules/` (`opentelemetry`, `external_commands`) | [`docs/architecture/engine.md`](docs/architecture/engine.md) | [`docs/conventions/engine.md`](docs/conventions/engine.md) |
+| Broker | `broker/` | C++ | Event transmitter (`cbd`) and Engine module (`cbmod`, `broker/neb`): SQL, RRD, BAM, Lua, TSDB and OTLP outputs | [`docs/architecture/broker.md`](docs/architecture/broker.md) | [`docs/conventions/broker.md`](docs/conventions/broker.md) |
 | Shared libraries | `common/`, `clib/` | C++ | gRPC, process, crypto, logging, perfdata, thresholds, timeperiods, configuration protobufs; used by several binaries | to write | to write |
-| BBDO protocol | `bbdo/` | protobuf | Messages between Engine (`cbmod`) and Broker | to write | to write |
+| BBDO protocol | `bbdo/` | protobuf | Messages between Engine (`cbmod`) and Broker | [Broker § Contracts](docs/architecture/broker.md#contracts) | [Broker § BBDO events](docs/conventions/broker.md#bbdo-events) |
 | Connectors | `connectors/` | C++ | Long-running Perl and SSH check executors driven by Engine | to write | to write |
 | Gorgone | `gorgone/` | Perl | Configuration deployment and remote actions between central and pollers | to write | to write |
 | CCC | `ccc/` | C++ | gRPC command-line client for Engine and Broker | to write | to write |
@@ -52,7 +52,7 @@ A component marked "to write" follows the global conventions and the code around
 
 - **Contracts between components.** `bbdo/*.proto` (Engine → Broker), `agent/proto/agent.proto` and the OTLP encoding (CMA ↔ Engine), `engine/enginerpc` and `broker/core/src/broker.proto` (gRPC APIs used by `ccc` and by the tests). Each side is released independently, so a contract evolves by addition and both sides change in the same pull request.
 - **Shared code.** A change in `common/` or `clib/` is a change for every binary that links it. Build and run the unit tests of all of them (`ut_common`, `ut_engine`, `ut_broker`, `ut_agent`, `ut_clib`, `ut_connector`), and say in the pull request which ones were run.
-- **Dependency direction.** A component depends on `common/`, `clib/`, `bbdo/` and third-party libraries. It never includes the sources of a sibling component (`agent/` never includes `engine/` or `broker/`; Engine reaches the agent through `agent.proto` only).
+- **Dependency direction.** A component depends on `common/`, `clib/`, `bbdo/` and third-party libraries. It never includes the sources of a sibling component (`agent/` never includes `engine/` or `broker/`; Engine reaches the agent through `agent.proto` only). Existing exception: Engine and Broker include each other's headers and Engine links `cbmod` (see the Known limits of both files); do not add a new cross-include.
 - **Third-party libraries** come from the root `vcpkg.json`, with ports and triplets in `overlays/` and `custom-triplets/`. Adding one is a decision to discuss before writing code.
 
 ## Review criteria
@@ -61,9 +61,9 @@ A component marked "to write" follows the global conventions and the code around
 
 | Zone | Paths | Rules that apply |
 |---|---|---|
-| Documented component | CMA: the Agent and Contracts zones of [`docs/architecture/cma.md`](docs/architecture/cma.md#scope) | Global and component files, in full |
-| Component without files | `engine/`, `broker/`, `bbdo/`, `connectors/`, `gorgone/`, `ccc/` | Global files; the code around the change is the reference |
-| Shared code | `common/`, `clib/` | Global files only, never the rules of one component; unit tests of every consumer |
+| Documented component | CMA, Engine, Broker: the zones of the Scope table of their architecture file, outside shared code | Global and component files, in full |
+| Component without files | `connectors/`, `gorgone/`, `ccc/` | Global files; the code around the change is the reference |
+| Shared code | `common/` (except `common/engine_conf/`, Engine), `clib/` | Global files only, never the rules of one component; unit tests of every consumer |
 | Known deviations | Tables "Known deviations" of the conventions files | Never a model; fixed only in a dedicated pull request |
 
 Where no file answers, the code around the change is the reference. In a documented component, its own code wins over an older sibling (the CMA file names which siblings not to copy).
