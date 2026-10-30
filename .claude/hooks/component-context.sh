@@ -32,10 +32,13 @@ case "$rel" in
   .claude/*|CLAUDE.md|*/CLAUDE.md|CLAUDE.local.md|AGENTS.md|ARCHITECTURE.md|docs/*) exit 0 ;;
   agent/*|engine/modules/opentelemetry/*centreon_agent*|tests/*cma*.robot|tests/resources/Agent.py|packaging/centreon-monitoring-agent*)
     component="cma" ;;
+  engine/src/broker.cc|broker/neb/*|bbdo/*|tests/broker-engine/*)
+    component="engine-broker" ;;
+  common/engine_conf/*|engine/*|tests/engine/*|tests/resources/Engine.py|packaging/centreon-collect/centreon-engine*|selinux/centreon-engine/*)
+    component="engine" ;;
   common/*|clib/*) component="shared" ;;
-  engine/*) component="engine" ;;
-  broker/*) component="broker" ;;
-  bbdo/*) component="bbdo" ;;
+  broker/*|tests/broker/*|tests/bam/*|tests/resources/Broker.py|packaging/centreon-collect/centreon-broker*|selinux/centreon-broker/*)
+    component="broker" ;;
   connectors/*) component="connectors" ;;
   gorgone/*) component="gorgone" ;;
   ccc/*) component="ccc" ;;
@@ -46,7 +49,7 @@ esac
 is_test=0
 case "$rel" in tests/*|*/test/*|*/tests/*) is_test=1 ;; esac
 is_contract=0
-case "$rel" in *agent.proto|engine/modules/opentelemetry/*centreon_agent*|bbdo/*.proto) is_contract=1 ;; esac
+case "$rel" in *agent.proto|engine/modules/opentelemetry/*centreon_agent*|bbdo/*|engine/src/broker.cc|broker/neb/*|engine/enginerpc/*.proto|broker/core/src/broker.proto|common/engine_conf/*.proto) is_contract=1 ;; esac
 
 marker_dir="${TMPDIR:-${TEMP:-/tmp}}/claude-collect-context"
 mkdir -p "$marker_dir" 2>/dev/null || exit 0
@@ -58,6 +61,10 @@ files="ARCHITECTURE.md, $conv/global.md"
 note=""
 case "$component" in
   cma) files="$files, $arch/cma.md, $conv/cma.md" ;;
+  engine) files="$files, $arch/engine.md, $conv/engine.md" ;;
+  broker) files="$files, $arch/broker.md, $conv/broker.md" ;;
+  engine-broker) files="$files, $arch/engine.md, $conv/engine.md, $arch/broker.md, $conv/broker.md"
+    note=" This path is on the Engine-Broker boundary (BBDO events, cbmod): both component files apply." ;;
   shared) note=" This code is shared by Engine, Broker and the CMA: component rules (CMA included) do not apply; build and run the unit tests of every consumer." ;;
   tests) ;;
   repo) note=" This file belongs to no component: global rules only." ;;
