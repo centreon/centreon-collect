@@ -85,38 +85,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Install Inno Setup (ISCC) and expose its path
-      # To remove later when innosetup version will be stable on runners
-      - name: Install Inno Setup
-        shell: powershell
-        run: |
-          $version = "6.6.1"
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          # the Chocolatey community feed is regularly unavailable
-          for ($attempt = 1; $attempt -le 3; $attempt++) {
-            choco install innosetup --allow-downgrade -y --no-progress --version $version
-            if ($LASTEXITCODE -eq 0) { break }
-            if ($attempt -lt 3) {
-              Write-Host "choco install failed (attempt $attempt), retrying"
-              Start-Sleep -Seconds (30 * $attempt)
-            }
-          }
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "choco install failed, falling back to the vendor installer"
-            $ProgressPreference = "SilentlyContinue"
-            $installer = "$env:RUNNER_TEMP\innosetup-$version.exe"
-            Invoke-WebRequest -UseBasicParsing -OutFile $installer -Uri "https://github.com/jrsoftware/issrc/releases/download/is-6_6_1/innosetup-$version.exe"
-            # sha256 of the immutable GitHub release asset
-            if ((Get-FileHash -Algorithm SHA256 $installer).Hash -ne "D243CE440C02705530699554FB9612B9B2BD7A2A90629CDB7F41E66F5FAEB91F") {
-              throw "Checksum mismatch for $installer"
-            }
-            $process = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS" -Wait -PassThru
-            if ($process.ExitCode -ne 0) { throw "Inno Setup installer exited with code $($process.ExitCode)" }
-          }
-          if (-not (Test-Path $iscc)) { throw "$iscc not found" }
-          # the choco exit code would otherwise fail the step after a successful fallback
-          exit 0
-
       - name: compile Agent
         run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off -compile_installer On
         shell: powershell
