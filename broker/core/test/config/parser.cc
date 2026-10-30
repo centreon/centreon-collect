@@ -19,6 +19,7 @@
 #include "com/centreon/broker/config/parser.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -1255,6 +1256,83 @@ TEST(parser, boolean2) {
 
   // Check global params
   ASSERT_FALSE(s.log_conf().log_pid());
+}
+
+/**
+ * @brief Given an output whose db_ssl_enabled, db_ssl_verify_cert and
+ * db_port are JSON booleans and numbers instead of strings, when the
+ * configuration is parsed, then the endpoint parameters contain them as strings
+ * and the database configuration uses TLS. Arrays (lua_parameter) are still
+ * left out of the parameters.
+ */
+TEST(parser, endpointJsonScalars) {
+  std::string config_file(misc::temp_path());
+
+  FILE* file_stream(fopen(config_file.c_str(), "w"));
+  if (!file_stream)
+    throw msg_fmt("could not open '{}'", config_file);
+  std::string data{
+      "{\n"
+      "    \"centreonBroker\": {\n"
+      "        \"broker_id\": 1,\n"
+      "        \"broker_name\": \"central-broker-master\",\n"
+      "        \"poller_id\": 1,\n"
+      "        \"poller_name\": \"Central\",\n"
+      "        \"module_directory\": \"/etc\",\n"
+      "        \"cache_directory\": \"/tmp\",\n"
+      "        \"output\": [\n"
+      "            {\n"
+      "                \"type\": \"unified_sql\",\n"
+      "                \"name\": \"central-broker-master-unified-sql\",\n"
+      "                \"db_type\": \"mysql\",\n"
+      "                \"db_host\": \"127.0.0.1\",\n"
+      "                \"db_port\": 3306,\n"
+      "                \"db_user\": \"centreon\",\n"
+      "                \"db_password\": \"centreon\",\n"
+      "                \"db_name\": \"centreon_storage\",\n"
+      "                \"db_ssl_enabled\": true,\n"
+      "                \"db_ssl_verify_cert\": false\n"
+      "            },\n"
+      "            {\n"
+      "                \"type\": \"lua\",\n"
+      "                \"name\": \"test-lua\",\n"
+      "                \"path\": \"/usr/share/centreon-broker/lua/test.lua\",\n"
+      "                \"lua_parameter\": [\n"
+      "                    {\n"
+      "                        \"type\": \"string\",\n"
+      "                        \"name\": \"param\",\n"
+      "                        \"value\": \"value\"\n"
+      "                    }\n"
+      "                ]\n"
+      "            }\n"
+      "        ]\n"
+      "    }\n"
+      "}"};
+
+  if (fwrite(data.c_str(), data.size(), 1, file_stream) != 1)
+    throw msg_fmt("could not write content of '{}'", config_file);
+  fclose(file_stream);
+
+  config::parser p;
+  config::state s{p.parse(config_file, false)};
+  ::remove(config_file.c_str());
+
+  ASSERT_EQ(s.endpoints().size(), 2u);
+  auto it = s.endpoints().begin();
+  const config::endpoint& sql_ep = *it++;
+  const config::endpoint& lua_ep = *it;
+  ASSERT_EQ(sql_ep.name, "central-broker-master-unified-sql");
+  ASSERT_EQ(lua_ep.name, "test-lua");
+
+  ASSERT_EQ(sql_ep.params.at("db_ssl_enabled"), "true");
+  ASSERT_EQ(sql_ep.params.at("db_ssl_verify_cert"), "false");
+  ASSERT_EQ(sql_ep.params.at("db_port"), "3306");
+  ASSERT_EQ(lua_ep.params.count("lua_parameter"), 0u);
+
+  database_config dbcfg(sql_ep, {});
+  ASSERT_TRUE(dbcfg.get_ssl_enabled());
+  ASSERT_FALSE(dbcfg.get_ssl_verify_cert());
+  ASSERT_EQ(dbcfg.get_port(), 3306u);
 }
 
 // uid present -> poller_id() returns the 64-bit value.
