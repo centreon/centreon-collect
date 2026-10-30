@@ -35,9 +35,9 @@ for arg in "$@"; do
             fi
             # BROKER_LOG_STDOUT=true: symlink to stdout instead of tailing.
             if [ "${BROKER_LOG_STDOUT:-false}" = "true" ]; then
-                /var/lib/centreon-broker/log-tail.sh --link-stdout "$arg"
+                /usr/local/lib/centreon-broker/log-tail.sh --link-stdout "$arg"
             else
-                /var/lib/centreon-broker/log-tail.sh "$arg" &
+                /usr/local/lib/centreon-broker/log-tail.sh "$arg" &
             fi
             break
             ;;
