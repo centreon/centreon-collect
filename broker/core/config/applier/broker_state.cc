@@ -286,12 +286,7 @@ void broker_state::_configure_cache_directories(
  * _process_engine_state re-injects them after the merge.
  */
 void broker_state::_on_barrier_released() {
-  if (_notification_mode == notification_mode_broker) {
-    cache().reinject_pending_downtimes();
-    cache().reinject_pending_notification_states();
-    cache().reinject_pending_acknowledgements();
-    cache().reinject_pending_notification_overrides();
-  }
+  cache().reinject_pending();
   /* After the re-injections: whoever waits for the cache (BAM seeds its KPI
    * states from it) must find the downtime depths and acknowledgement flags
    * already restored on the entries. */

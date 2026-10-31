@@ -217,6 +217,8 @@ message AdaptiveServiceStatus {
   optional AckType acknowledgement_type = 6;
   optional int32 notification_number = 7;
   optional bool flapping = 8;
+  /* Sent after each notification, see ServiceStatus. */
+  optional uint64 current_notification_id = 9;
 }
 
 /**
@@ -281,6 +283,16 @@ message ServiceStatus {
   /* In case of metaservice and ba, they also have an internal id. We keep it
    * here. */
   uint64 internal_id = 32;
+
+  /* Ids of the macros $SERVICEEVENTID$, $LASTSERVICEEVENTID$,
+   * $SERVICEPROBLEMID$, $LASTSERVICEPROBLEMID$ and $SERVICENOTIFICATIONID$.
+   * Kept by Broker so that a restarted Engine gets them back in centralized
+   * mode. Optional: a poller too old to fill them must not reset them. */
+  optional uint64 current_event_id = 33;
+  optional uint64 last_event_id = 34;
+  optional uint64 current_problem_id = 35;
+  optional uint64 last_problem_id = 36;
+  optional uint64 current_notification_id = 37;
 }
 
 /**
@@ -476,6 +488,16 @@ message HostStatus {
 
   AckType acknowledgement_type = 27;
   int32 scheduled_downtime_depth = 28;
+
+  /* Ids of the macros $HOSTEVENTID$, $LASTHOSTEVENTID$, $HOSTPROBLEMID$,
+   * $LASTHOSTPROBLEMID$ and $HOSTNOTIFICATIONID$. Kept by Broker so that a
+   * restarted Engine gets them back in centralized mode. Optional: a poller too
+   * old to fill them must not reset them. */
+  optional uint64 current_event_id = 29;
+  optional uint64 last_event_id = 30;
+  optional uint64 current_problem_id = 31;
+  optional uint64 last_problem_id = 32;
+  optional uint64 current_notification_id = 33;
 }
 
 /**
@@ -489,6 +511,8 @@ message AdaptiveHostStatus {
   optional AckType acknowledgement_type = 3;
   optional int32 notification_number = 4;
   optional bool flapping = 5;
+  /* Sent after each notification, see HostStatus. */
+  optional uint64 current_notification_id = 6;
 }
 /**
  * @brief Message used to send adaptive host configuration. When only one
@@ -1050,6 +1074,20 @@ message BrokerCache {
     bool enabled = 2;
   }
   repeated PollerNotificationOverride poller_notification_overrides = 14;
+
+  /* The event, problem and notification ids of the resources (see
+   * HostStatus), in both modes. Only the resources with an id are saved. Hosts
+   * carry service_id 0. */
+  message ResourceIds {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+    uint64 current_event_id = 3;
+    uint64 last_event_id = 4;
+    uint64 current_problem_id = 5;
+    uint64 last_problem_id = 6;
+    uint64 current_notification_id = 7;
+  }
+  repeated ResourceIds resource_ids = 15;
 }
 
 /* Ignore */

@@ -38,6 +38,7 @@ enum status_attribute {
   STATUS_NOTIFICATION_NUMBER = 1 << 1,
   STATUS_ACKNOWLEDGEMENT = 1 << 2,
   STATUS_FLAPPING = 1 << 3,
+  STATUS_NOTIFICATION_ID = 1 << 4,
   STATUS_ALL = ~0u,
 };
 

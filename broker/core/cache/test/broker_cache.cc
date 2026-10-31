@@ -1584,6 +1584,150 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
 }
 
 /**
+ * @brief The event, problem and notification ids: a full status sets them, an
+ * adaptive status after a notification moves the notification id, a status
+ * that does not carry them (older poller, BAM) keeps them, as do a
+ * configuration rebuilding the entry and a database row restoring it; the
+ * snapshot hands them to Engine; a removed resource loses them; the id
+ * Broker attributes in notification_mode=broker is kept the same way.
+ */
+TEST_F(BrokerCacheTest, ResourceIds) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  auto* sv = st.mutable_services()->Add();
+  sv->set_host_id(1);
+  sv->set_service_id(10);
+  sv->set_host_name("host_1");
+  sv->set_service_description("service_10");
+  _cache->merge(st);
+
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_checked(true);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_last_check(1000);
+  hs->mut_obj().set_current_event_id(5);
+  hs->mut_obj().set_last_event_id(4);
+  hs->mut_obj().set_current_problem_id(3);
+  hs->mut_obj().set_last_problem_id(0);
+  hs->mut_obj().set_current_notification_id(7);
+  _cache->publish(hs);
+  auto ss = std::make_shared<neb::pb_service_status>();
+  ss->mut_obj().set_host_id(1);
+  ss->mut_obj().set_service_id(10);
+  ss->mut_obj().set_checked(true);
+  ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+  ss->mut_obj().set_last_check(2000);
+  ss->mut_obj().set_current_event_id(15);
+  ss->mut_obj().set_last_event_id(14);
+  ss->mut_obj().set_current_problem_id(13);
+  ss->mut_obj().set_last_problem_id(12);
+  ss->mut_obj().set_current_notification_id(17);
+  _cache->publish(ss);
+
+  /* After the notification. */
+  auto ahs = std::make_shared<neb::pb_adaptive_host_status>();
+  ahs->mut_obj().set_host_id(1);
+  ahs->mut_obj().set_current_notification_id(8);
+  _cache->publish(ahs);
+  auto ass = std::make_shared<neb::pb_adaptive_service_status>();
+  ass->mut_obj().set_host_id(1);
+  ass->mut_obj().set_service_id(10);
+  ass->mut_obj().set_current_notification_id(18);
+  _cache->publish(ass);
+
+  /* Statuses without the ids. */
+  auto hs_old = std::make_shared<neb::pb_host_status>();
+  hs_old->mut_obj().set_host_id(1);
+  hs_old->mut_obj().set_checked(true);
+  hs_old->mut_obj().set_state(HostStatus_State_DOWN);
+  hs_old->mut_obj().set_last_check(1100);
+  _cache->publish(hs_old);
+  auto ss_old = std::make_shared<neb::pb_service_status>();
+  ss_old->mut_obj().set_host_id(1);
+  ss_old->mut_obj().set_service_id(10);
+  ss_old->mut_obj().set_checked(true);
+  ss_old->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+  ss_old->mut_obj().set_last_check(2100);
+  _cache->publish(ss_old);
+
+  /* A configuration rebuilding the entries, then database rows restoring
+   * them. */
+  _cache->merge(st);
+  EXPECT_TRUE(_cache->restore_host_runtime(1, 3000, [](Host& h) {
+    h.set_checked(true);
+    h.set_last_check(3000);
+  }));
+  EXPECT_TRUE(_cache->restore_service_runtime(1, 10, 3000, [](Service& s) {
+    s.set_checked(true);
+    s.set_last_check(3000);
+  }));
+
+  auto check = [](const auto& m, uint64_t current_event, uint64_t last_event,
+                  uint64_t current_problem, uint64_t last_problem,
+                  uint64_t notification) {
+    EXPECT_EQ(m.current_event_id(), current_event);
+    EXPECT_EQ(m.last_event_id(), last_event);
+    EXPECT_EQ(m.current_problem_id(), current_problem);
+    EXPECT_EQ(m.last_problem_id(), last_problem);
+    EXPECT_EQ(m.current_notification_id(), notification);
+  };
+  cfg::RuntimeState out;
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.hosts_size(), 1);
+  check(out.hosts(0), 5, 4, 3, 0, 8);
+  ASSERT_EQ(out.services_size(), 1);
+  check(out.services(0), 15, 14, 13, 12, 18);
+
+  /* A recovery resets the current problem id: 0 is a value, not an absence. */
+  auto recovery = std::make_shared<neb::pb_service_status>();
+  recovery->mut_obj().CopyFrom(ss->obj());
+  recovery->mut_obj().set_state(ServiceStatus_State_OK);
+  recovery->mut_obj().set_last_check(4000);
+  recovery->mut_obj().set_current_event_id(16);
+  recovery->mut_obj().set_last_event_id(15);
+  recovery->mut_obj().set_current_problem_id(0);
+  recovery->mut_obj().set_last_problem_id(13);
+  recovery->mut_obj().set_current_notification_id(18);
+  _cache->publish(recovery);
+  out.Clear();
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.services_size(), 1);
+  check(out.services(0), 16, 15, 0, 13, 18);
+
+  /* A removed service takes its ids away: added back, it has none. */
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  auto* removed = diff.mutable_services()->mutable_removed()->Add();
+  removed->set_host_id(1);
+  removed->set_service_id(10);
+  _cache->apply(diff);
+  _cache->merge(st);
+  auto back = std::make_shared<neb::pb_service_status>();
+  back->mut_obj().set_host_id(1);
+  back->mut_obj().set_service_id(10);
+  back->mut_obj().set_checked(true);
+  back->mut_obj().set_last_check(5000);
+  _cache->publish(back);
+  out.Clear();
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.services_size(), 1);
+  check(out.services(0), 0, 0, 0, 0, 0);
+
+  /* notification_mode=broker: the id Broker's notification_manager attributes
+   * goes into the snapshot too. */
+  _cache->set_current_notification_id(1, 10, 30);
+  out.Clear();
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.services_size(), 1);
+  check(out.services(0), 0, 0, 0, 0, 30);
+}
+
+/**
  * @brief The reference output restores the overrides of a row of the
  * hosts/services tables onto a cache entry: the mask and the attributes it
  * protects only, never over an entry already carrying a mask.

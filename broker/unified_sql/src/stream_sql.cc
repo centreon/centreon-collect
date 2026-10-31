@@ -4687,17 +4687,9 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   }
   database_configurator cfg(this, _logger_sql);
   cfg.process_state(state->obj());
-  /* The cache knows this poller's hosts/services: re-inject any active
-   * downtimes that were persisted across a Broker restart and were waiting for
-   * their resource to be known (centralized mode). */
-  cache.reinject_pending_downtimes();
-  /* Same for the persisted notification runtime states (number, timings,
-   * notified contacts), so the notification chain resumes after a restart. */
-  cache.reinject_pending_notification_states();
-  /* And the acknowledgement flags of the persisted acknowledgements. */
-  cache.reinject_pending_acknowledgements();
-  /* And the notification switches toggled through the Broker API. */
-  cache.reinject_pending_notification_overrides();
+  /* The cache knows this poller's hosts/services: re-inject the state that
+   * was persisted across a Broker restart and was waiting for them. */
+  cache.reinject_pending();
   /* The poller whose configuration was just rebuilt is owed its runtime
    * snapshot: nothing could be sent to it at its connection. */
   if (merged)

@@ -164,6 +164,10 @@ notifications::delivery_result engine_notification_callbacks::deliver(
       n, to_notify, type, notification_id, notification_number, escalated,
       author, message, options);
 
+  /* The id was just attributed: Broker keeps it so that a restarted Engine
+   * gets it back in centralized mode. */
+  n->update_status(notifications::STATUS_NOTIFICATION_ID);
+
   return result;
 }
 

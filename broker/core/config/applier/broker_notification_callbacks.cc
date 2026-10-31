@@ -325,6 +325,11 @@ notifications::delivery_result broker_notification_callbacks::deliver(
         interval_length;
   }
 
+  /* The cache keeps the id for the runtime snapshot: a restarted Engine gets it
+   * back for its macros. Done whether or not a contact is notified, the id is
+   * attributed anyway. */
+  cache.set_current_notification_id(host_id, service_id, notification_id);
+
   /* Mirror the (already incremented) notification number to the DB for the GUI.
    * The manager bumps the number before calling deliver(), and the increment
    * path does not go through on_notification_number_changed (that fires only on

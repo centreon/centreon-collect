@@ -752,6 +752,14 @@ class broker_cache {
   std::vector<BrokerCache::NotificationState> _pending_notification_states
       ABSL_GUARDED_BY(_mutex);
 
+  /* The event, problem and notification ids of the resources, keyed by
+   * (host_id, service_id), service_id 0 for a host. Only the resources with
+   * an id are there. Kept apart from the entries: a configuration rebuilding
+   * an entry or a database row restoring it leaves them alone, and the cache
+   * file holds them in both modes. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, BrokerCache::ResourceIds>
+      _resource_ids ABSL_GUARDED_BY(_mutex);
+
   /* INT32_MAX/2: base of the partition reserved for Broker-originated downtime
    * comment internal_ids, disjoint from Engine's per-poller ids (which start at
    * 1). The comments.internal_id column is a signed int(11), so this stays
@@ -879,6 +887,15 @@ class broker_cache {
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
   void _save_cache() ABSL_LOCKS_EXCLUDED(_mutex);
   void _resolve_timeperiods() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  template <typename Status>
+  void _update_resource_ids(uint64_t host_id,
+                            uint64_t service_id,
+                            const Status& status)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _reinject_pending_downtimes() ABSL_LOCKS_EXCLUDED(_mutex);
+  void _reinject_pending_notification_states() ABSL_LOCKS_EXCLUDED(_mutex);
+  void _reinject_pending_acknowledgements() ABSL_LOCKS_EXCLUDED(_mutex);
+  void _reinject_pending_notification_overrides() ABSL_LOCKS_EXCLUDED(_mutex);
 
  public:
   broker_cache(std::shared_ptr<spdlog::logger> logger);
@@ -960,11 +977,13 @@ class broker_cache {
   uint64_t next_downtime_comment_id() noexcept {
     return _next_downtime_comment_id.fetch_add(1, std::memory_order_relaxed);
   }
-  void reinject_pending_downtimes() ABSL_LOCKS_EXCLUDED(_mutex);
   void set_notification_states(
       std::vector<BrokerCache::NotificationState> states)
       ABSL_LOCKS_EXCLUDED(_mutex);
-  void reinject_pending_notification_states() ABSL_LOCKS_EXCLUDED(_mutex);
+  void reinject_pending() ABSL_LOCKS_EXCLUDED(_mutex);
+  void set_current_notification_id(uint64_t host_id,
+                                   uint64_t service_id,
+                                   uint64_t id) ABSL_LOCKS_EXCLUDED(_mutex);
   void apply(const com::centreon::engine::configuration::DiffState& diff)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_instance(const std::shared_ptr<neb::pb_instance>& instance)
@@ -1178,7 +1197,6 @@ class broker_cache {
       uint64_t service_id,
       AckType type,
       std::optional<uint16_t> state = std::nullopt) ABSL_LOCKS_EXCLUDED(_mutex);
-  void reinject_pending_acknowledgements() ABSL_LOCKS_EXCLUDED(_mutex);
 
   /* notification_mode=broker: notifications-enabled switch and notification
    * timeperiod of a resource (service_id 0 for a host). Return false when the
@@ -1189,7 +1207,6 @@ class broker_cache {
                                uint64_t service_id,
                                const std::string& period)
       ABSL_LOCKS_EXCLUDED(_mutex);
-  void reinject_pending_notification_overrides() ABSL_LOCKS_EXCLUDED(_mutex);
 
   /* notification_mode=broker: notifications-enabled switch and notification
    * timeperiod of a contact, for its host or its service notifications. Return
