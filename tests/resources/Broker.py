@@ -4370,6 +4370,27 @@ def ctn_clear_broker_cache():
         os.remove(f)
 
 
+def ctn_get_broker_cache_file_format(name: str = "central-broker-master"):
+    """
+    Tell how a Broker cache file is written, from its header.
+
+    Args:
+        name: The Broker name, the cache file is <name>.cache.
+
+    Returns:
+        'zstd' if the file starts with the compressed cache header, 'plain' if it
+        is a plain BrokerCache message, 'missing' if there is no such file.
+    """
+    path = f"{VAR_ROOT}/lib/centreon-broker/{name}.cache"
+    if not os.path.exists(path):
+        return 'missing'
+    with open(path, "rb") as f:
+        header = f.read(6)
+    if header == b"\0CBC\x01\x01":
+        return 'zstd'
+    return 'plain'
+
+
 def ctn_broker_schedule_host_downtime(hostname: str, duration: int,
                                       port: int = 51001) -> int:
     """
