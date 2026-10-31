@@ -2657,7 +2657,7 @@ fichier au premier démarrage.
 
 | Fichier | Écrit par | Contenu | Après un crash |
 |---|---|---|---|
-| `<cache_dir>.cache` | `~broker_cache` (`_save_cache`, appelé depuis `~state`) | message protobuf `BrokerCache` (`bbdo/neb.proto`), détaillé ci-dessous | version du dernier arrêt propre ; les downtimes démarrés, acks et états de notification sont donc périmés |
+| `<cache_dir>.cache` | `~broker_cache` (`_save_cache`, appelé depuis `~state`) | message protobuf `BrokerCache` (`bbdo/neb.proto`), compressé en zstd par défaut, détaillé ci-dessous | version du dernier arrêt propre ; les downtimes démarrés, acks et états de notification sont donc périmés |
 | `<pollers_config_dir>/topology.cache` | `~broker_state` (`save_topology_cache`) | paires `poller_id → remote_id`, voir [Persistance de la topologie](#persistance-de-la-topologie) | absent ou périmé, non bloquant : simple indice |
 | `<cache_dir>.cache.centreon-bam-monitoring` | `~monitoring_stream` (`_write_cache`) | états des BA/KPI, voir [Le démarrage, dans les deux régimes](#le-démarrage-dans-les-deux-régimes) | version du dernier arrêt propre |
 
@@ -2699,6 +2699,41 @@ et services : une configuration qui reconstruit une entrée ou une ligne de base
 qui la restaure ne touche pas aux identifiants, et relus, ils n'ont pas besoin
 de réinjection. Une ressource retirée de la configuration emporte ses
 identifiants.
+
+### Compression du `.cache`
+
+Le fichier est compressé en zstd (niveau 1), sauf si le paramètre
+`cache_compression` de la section `centreonBroker` vaut `false`. Il vaut `true`
+par défaut, PHP n'a donc pas besoin de le générer. Le paramètre est porté par
+`config::applier::state`, la classe qui possède le cache : il vaut donc aussi
+bien pour cbd que pour cbmod.
+
+Un fichier compressé commence par un en-tête de 6 octets : le magique `\0CBC`,
+une version de format (1) et un algorithme (1 = zstd), suivis d'une trame zstd
+munie d'une somme de contrôle. Un message protobuf sérialisé ne commence jamais
+par un octet nul (le numéro de champ 0 n'existe pas) : l'en-tête ne peut donc
+pas être pris pour le début d'un fichier brut.
+
+`_load_cache()` lit l'en-tête, **quelle que soit la valeur du paramètre** :
+
+* l'en-tête est là : le contenu est décompressé, puis parsé ;
+* il n'y est pas : le fichier est parsé comme un `BrokerCache` brut, tel que
+  l'écrivent les versions précédentes ou `cache_compression: false` ;
+* version ou algorithme inconnu, fichier tronqué ou corrompu : une erreur est
+  journalisée et le cache démarre vide, comme pour un fichier impossible à
+  parser.
+
+Le paramètre ne décide que de l'écriture par `_save_cache()`. Une version
+antérieure à celle-ci ne sait pas lire un fichier compressé : elle journalise
+une erreur et démarre avec un cache vide. Pour revenir à une telle version sans
+perdre le cache, il faut passer auparavant `cache_compression` à `false` et
+redémarrer Broker une fois.
+
+Sur le fichier de cache d'une plateforme legacy (849 ko), zstd 1 donne 57 ko en
+0,6 ms (0,2 ms pour décompresser), là où zlib 6 donne 75 ko en 5 ms. En
+configuration centralisée, le fichier ne porte que l'état propre à Broker et
+reste petit. La bibliothèque est celle du système (`libzstd`), comme `libcrypto`
+ou `libz`.
 
 ### Réinjection au démarrage
 
