@@ -169,6 +169,7 @@ overrides:
       - libssl1.1 | libssl3
       - libmariadb3
       - zlib1g
+      - libzstd1
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev

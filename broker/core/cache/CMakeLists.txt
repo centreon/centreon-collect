@@ -28,6 +28,9 @@ add_library(broker_cache STATIC
 )
 
 target_precompile_headers(broker_cache PRIVATE ../precomp_inc/precomp.hh)
+# The cache file is compressed with the zstd library of the system, like
+# libcrypto or libz.
+target_link_libraries(broker_cache PRIVATE PkgConfig::LIBZSTD)
 set_target_properties(broker_cache PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")

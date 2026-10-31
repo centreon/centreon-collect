@@ -17,6 +17,7 @@
  *
  */
 #include "broker/core/cache/broker_cache.hh"
+#include <absl/strings/match.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "broker/core/config/applier/broker_state.hh"
@@ -1854,4 +1855,99 @@ TEST_F(BrokerCacheTest, AdaptiveOverrideSurvivesRebuild) {
   EXPECT_TRUE(_cache->host(1u)->obj().active_checks());
   EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(),
             static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+}
+
+/**
+ * @brief The cache file is compressed by default, written plain with
+ * cache_compression disabled, and read back in both cases whatever the setting
+ * is: the header of the file tells. A file with an unknown header or a
+ * truncated one is rejected, and the cache starts empty.
+ */
+TEST_F(BrokerCacheTest, CacheFileCompression) {
+  auto& st = config::applier::state::instance();
+  const std::filesystem::path base =
+      std::filesystem::temp_directory_path() /
+      fmt::format("ut_broker_cache_compression_{}", ::getpid());
+  const std::string file = base.string() + ".cache";
+  std::filesystem::remove(file);
+  st.set_cache_dir(base);
+
+  auto read_file = [&file] {
+    std::ifstream ifs{file, std::ios::binary};
+    return std::string{std::istreambuf_iterator<char>{ifs},
+                       std::istreambuf_iterator<char>{}};
+  };
+  auto write_file = [&file](const std::string& content) {
+    std::ofstream ofs{file, std::ios::binary | std::ios::trunc};
+    ofs.write(content.data(), content.size());
+  };
+  const std::string magic{"\0CBC", 4};
+
+  /* The downtime comment id counter is persisted in both modes: it tells
+   * whether the file has been read back. */
+  _cache = std::make_unique<broker_cache>(_logger);
+  uint64_t next = _cache->next_downtime_comment_id() + 1;
+
+  /* Compressed by default. */
+  _cache.reset();
+  std::string compressed = read_file();
+  ASSERT_GE(compressed.size(), 6u);
+  EXPECT_EQ(compressed.substr(0, 4), magic);
+  EXPECT_EQ(compressed[4], 1);
+  EXPECT_EQ(compressed[5], 1);
+  _cache = std::make_unique<broker_cache>(_logger);
+  EXPECT_EQ(_cache->next_downtime_comment_id(), next++);
+
+  /* Plain with cache_compression disabled, as the previous versions. */
+  st.set_cache_compression(false);
+  _cache.reset();
+  EXPECT_FALSE(absl::StartsWith(read_file(), magic));
+  _cache = std::make_unique<broker_cache>(_logger);
+  EXPECT_EQ(_cache->next_downtime_comment_id(), next++);
+
+  /* A plain file is read with compression enabled... */
+  st.set_cache_compression(true);
+  _cache.reset();
+  st.set_cache_compression(false);
+  /* ...and a compressed one with compression disabled. */
+  _cache = std::make_unique<broker_cache>(_logger);
+  EXPECT_EQ(_cache->next_downtime_comment_id(), next++);
+  st.set_cache_compression(true);
+  _cache.reset();
+  compressed = read_file();
+  ASSERT_TRUE(absl::StartsWith(compressed, magic));
+
+  /* Unknown format version. */
+  std::string wrong = compressed;
+  wrong[4] = 2;
+  write_file(wrong);
+  _cache = std::make_unique<broker_cache>(_logger);
+  EXPECT_EQ(_cache->next_downtime_comment_id(), broker_cache::comment_id_base);
+  _cache.reset();
+
+  /* Unknown compression algorithm. */
+  wrong = compressed;
+  wrong[5] = 2;
+  write_file(wrong);
+  _cache = std::make_unique<broker_cache>(_logger);
+  EXPECT_EQ(_cache->next_downtime_comment_id(), broker_cache::comment_id_base);
+  _cache.reset();
+
+  /* Truncated file. */
+  write_file(compressed.substr(0, compressed.size() / 2));
+  _cache = std::make_unique<broker_cache>(_logger);
+  EXPECT_EQ(_cache->next_downtime_comment_id(), broker_cache::comment_id_base);
+  _cache.reset();
+
+  /* Corrupted content: the zstd checksum rejects it. */
+  wrong = compressed;
+  wrong[wrong.size() - 6] ^= 0x55;
+  write_file(wrong);
+  _cache = std::make_unique<broker_cache>(_logger);
+  EXPECT_EQ(_cache->next_downtime_comment_id(), broker_cache::comment_id_base);
+  _cache.reset();
+
+  std::filesystem::remove(file);
+  st.set_cache_dir("");
+  _cache = std::make_unique<broker_cache>(_logger);
 }

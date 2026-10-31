@@ -67,6 +67,7 @@ apt-get install -y \
     librrd-dev \
     libssh2-1-dev \
     libssl-dev \
+    libzstd-dev \
     locales \
     ninja-build \
     openssl \

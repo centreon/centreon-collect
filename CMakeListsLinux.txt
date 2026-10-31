@@ -102,6 +102,9 @@ add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
 include(FindPkgConfig)
 pkg_check_modules(MARIADB REQUIRED libmariadb)
 pkg_check_modules(LIBSSH2 REQUIRED libssh2)
+# The Broker cache file is compressed with zstd: ZSTD_compress2() and the
+# advanced parameters need 1.4.0.
+pkg_check_modules(LIBZSTD REQUIRED IMPORTED_TARGET libzstd>=1.4.0)
 
 set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
 set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIRS})

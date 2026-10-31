@@ -59,6 +59,7 @@ state::state(const state& other)
       _listen_address{other._listen_address},
       _broker_name(other._broker_name),
       _cache_directory(other._cache_directory),
+      _cache_compression(other._cache_compression),
       _command_file(other._command_file),
       _command_protocol(other._command_protocol),
       _endpoints(other._endpoints),
@@ -88,6 +89,7 @@ state& state::operator=(state const& other) {
     _listen_address = other._listen_address;
     _broker_name = other._broker_name;
     _cache_directory = other._cache_directory;
+    _cache_compression = other._cache_compression;
     _command_file = other._command_file;
     _command_protocol = other._command_protocol;
     _endpoints = other._endpoints;
@@ -114,6 +116,7 @@ void state::clear() {
   _listen_address.resize(0);
   _broker_name.clear();
   _cache_directory.clear();
+  _cache_compression = true;
   _command_file.clear();
   _command_protocol = "json";
   _endpoints.clear();
@@ -220,6 +223,24 @@ void state::cache_directory(std::string const& dir) {
  */
 std::string const& state::cache_directory() const noexcept {
   return _cache_directory;
+}
+
+/**
+ * @brief Set whether the cache file is compressed when it is saved.
+ *
+ * @param compression true to compress it.
+ */
+void state::set_cache_compression(bool compression) noexcept {
+  _cache_compression = compression;
+}
+
+/**
+ * @brief Tell whether the cache file is compressed when it is saved.
+ *
+ * @return true if it is compressed (the default).
+ */
+bool state::cache_compression() const noexcept {
+  return _cache_compression;
 }
 
 /**

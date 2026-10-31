@@ -298,7 +298,11 @@ state parser::parse(std::string const& file) {
                      &state::priority_age_threshold, &json::is_number,
                      &json::get<uint32_t>))
           ;
-        else if (it.key() == "event_queues_total_size") {
+        else if (it.key() == "cache_compression") {
+          auto cc = check_and_read<bool>(json_document["centreonBroker"],
+                                         "cache_compression");
+          retval.set_cache_compression(cc.value());
+        } else if (it.key() == "event_queues_total_size") {
           auto eqts = check_and_read<uint64_t>(json_document["centreonBroker"],
                                                "event_queues_total_size");
           retval.event_queues_total_size(eqts.value());

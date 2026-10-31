@@ -44,6 +44,8 @@ class state {
  private:
   const common::PeerType _peer_type;
   std::string _cache_dir;
+  /* Whether the cache file is compressed (zstd) when it is saved. */
+  bool _cache_compression = true;
   uint32_t _poller_id;
   uint32_t _rpc_port;
   bbdo::bbdo_version _bbdo_version;
@@ -129,6 +131,7 @@ class state {
   state(const state&) = delete;
   state& operator=(const state&) = delete;
   void set_cache_dir(const std::filesystem::path& cache_dir);
+  void set_cache_compression(bool compression) noexcept;
   virtual void apply(const config::state& s, bool run_mux = true);
   virtual void add_peer(uint64_t poller_id,
                         const std::string& poller_name,
@@ -158,6 +161,7 @@ class state {
                            const std::string& poller_name,
                            const std::string& broker_name) = 0;
   const std::string& cache_dir() const noexcept;
+  bool cache_compression() const noexcept;
   uint32_t rpc_port() const noexcept;
   bbdo::bbdo_version get_bbdo_version() const noexcept;
   uint32_t poller_id() const noexcept;

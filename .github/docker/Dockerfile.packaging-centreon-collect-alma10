@@ -53,6 +53,7 @@ dnf install --best -y \
     libcurl-devel \
     libgcrypt-devel \
     libssh2-devel \
+    libzstd-devel \
     mariadb \
     mariadb-connector-c-devel \
     ninja-build \
