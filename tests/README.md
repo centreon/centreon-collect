@@ -111,7 +111,7 @@ them. Each section is introduced by its number of tests.
 - [Centralized/configuration](#centralizedconfiguration) (97 tests)
 - [Connector perl](#connector-perl) (4 tests)
 - [Connector ssh](#connector-ssh) (8 tests)
-- [Engine](#engine) (153 tests)
+- [Engine](#engine) (157 tests)
 - [Severities](#severities) (31 tests)
 - [Vault](#vault) (22 tests)
 
@@ -3305,7 +3305,7 @@ This chapter contains 8 tests.
 
 ### Engine
 
-This chapter contains 153 tests.
+This chapter contains 157 tests.
 
 1. **CEBSN5**:
      * **GIVEN** a centralized Engine configuration where contactgroup_1 is empty and inherits from a full template
@@ -3538,283 +3538,313 @@ This chapter contains 153 tests.
      * **WHEN** Engine is stopped, its retention.dat is deleted, Broker is stopped and both are started again
      * **THEN** unified_sql restores the runtime from the resources table, then completes it from the hosts/services tables
      * **AND** Engine gets back from the Broker snapshot the last time service_1 was CRITICAL, a date the resources table does not hold
-47. **CESGI0**:
+47. **CERS4**:
+     * **SCENARIO:** an Engine restarted without retention.dat gets its event and problem ids back from Broker
+     * **GIVEN** Broker and Engine are started in centralized configuration, with passive services
+     * **AND** service_1 of host_1 is CRITICAL HARD, with an event id and a problem id
+     * **WHEN** Engine is stopped, its retention.dat is deleted and Engine is started again
+     * **THEN** service_1 gets back its event and problem ids from the Broker snapshot
+     * **AND** the recovery of service_1 closes that same problem
+     * **AND** a new problem on service_1 gets a new problem id, the counter having been moved past the restored ids
+48. **CERS5**:
+     * **SCENARIO:** the event and problem ids survive a restart of both Broker and Engine
+     * **GIVEN** Broker and Engine are started in centralized configuration, with passive services
+     * **AND** service_1 of host_1 is CRITICAL HARD, with an event id and a problem id
+     * **WHEN** Engine and Broker are stopped, retention.dat is deleted and both are started again
+     * **THEN** Broker reads the ids of service_1 back from its cache file
+     * **AND** Engine gets them from the Broker snapshot
+49. **CERS6**:
+     * **SCENARIO:** an Engine restarted without retention.dat gets its notification id back from Broker
+     * **GIVEN** Broker and Engine are started in centralized configuration, notifications handled by Engine
+     * **AND** service_1 of host_1 is CRITICAL HARD and notified
+     * **AND** a custom notification is then sent for service_1, giving it a new notification id without any state change
+     * **WHEN** Engine is stopped, its retention.dat is deleted and Engine is started again
+     * **THEN** service_1 gets back the id of the custom notification from the Broker snapshot
+     * **AND** a new custom notification gets a greater id, the generator having been moved past the restored one
+50. **CERS7**:
+     * **SCENARIO:** in notification_mode=broker, Engine keeps the notification id Broker attributed and gets it back after a restart
+     * **GIVEN** Broker and Engine are started in centralized configuration, notifications decided by Broker
+     * **WHEN** service_1 of host_1 becomes CRITICAL HARD and Broker dispatches its notification to the poller
+     * **THEN** Engine keeps the notification id Broker attributed on service_1, for the macros read later
+     * **WHEN** Engine is stopped, its retention.dat is deleted and Engine is started again
+     * **THEN** service_1 gets that notification id back from the Broker snapshot
+51. **CESGI0**:
      * **GIVEN** a servicegroup with no fields inheriting from a full template
      * **WHEN** Engine starts with centralized configuration
      * **THEN** the servicegroup alias, notes, notes_url, action_url and members are inherited from the template
-48. **CESGI1**:
+52. **CESGI1**:
      * **GIVEN** a full servicegroup inheriting from a full template
      * **WHEN** Engine starts with centralized configuration
      * **THEN** the servicegroup's own fields take precedence over the template's fields
-49. **CESGI2**:
+53. **CESGI2**:
      * **GIVEN** a servicegroup with no fields inheriting from a full template
      * **WHEN** Broker notifies Engine of the new centralized configuration
      * **THEN** the servicegroup alias, notes, notes_url, action_url and members are inherited from the template
-50. **CESGI3**:
+54. **CESGI3**:
      * **GIVEN** a full servicegroup inheriting from a full template
      * **WHEN** Broker notifies Engine of the new centralized configuration
      * **THEN** the servicegroup's own fields take precedence over the template's fields
-51. **CESI0**:
+55. **CESI0**:
      * **GIVEN** Engine is configured with centralized configuration
      * **AND** a service template with full settings is defined
      * **AND** service_1 has no direct settings and inherits from the template
      * **WHEN** Broker and Engine are started
      * **THEN** service_1 inherits all settings from the service template on engine start
-52. **CESI1**:
+56. **CESI1**:
      * **GIVEN** Engine is configured with centralized configuration
      * **AND** both service_1 and a service template have full settings
      * **AND** service_1 inherits from the template
      * **WHEN** Broker and Engine are started
      * **THEN** service_1 own values take precedence over template values on engine start
-53. **CESI2**:
+57. **CESI2**:
      * **GIVEN** Engine is configured with centralized configuration and started
      * **AND** a service template with full settings is defined after start
      * **AND** service_1 has no direct settings and inherits from the template
      * **WHEN** Broker notifies Engine of new centralized configuration
      * **THEN** service_1 inherits all settings from the service template on engine reload
-54. **CESI3**:
+58. **CESI3**:
      * **GIVEN** Engine is configured with centralized configuration and started
      * **AND** both service_1 and a service template have full settings defined after start
      * **AND** service_1 inherits from the template
      * **WHEN** Broker notifies Engine of new centralized configuration
      * **THEN** service_1 own values take precedence over template values on engine reload
-55. **CESS1**:
+59. **CESS1**:
      * **GIVEN** one Engine instance is configured with a module broker
      * **WHEN** the Engine is started and stopped 5 times with no delay
      * **THEN** no coredump is produced
-56. **CESS2**:
+60. **CESS2**:
      * **GIVEN** one Engine instance is configured with a module broker
      * **WHEN** the Engine is started and stopped 5 times with 300ms delay
      * **THEN** no coredump is produced
-57. **CESS3**:
+61. **CESS3**:
      * **GIVEN** three Engine instances are configured with a module broker
      * **WHEN** the Engine is started and stopped 5 times with no delay
      * **THEN** no coredump is produced
-58. **CESS4**:
+62. **CESS4**:
      * **GIVEN** three Engine instances are configured with a module broker
      * **WHEN** the Engine is started and stopped 5 times with 300ms delay
      * **THEN** no coredump is produced
-59. **CESSCTO**:
+63. **CESSCTO**:
      * **GIVEN** the Engine is configured without the Perl connector
      * **WHEN** the Engine executes its service commands
      * **THEN** the commands take too long and reach the timeout
      * **AND** the Engine starts and stops as a result
-60. **CESSCTOWC**:
+64. **CESSCTOWC**:
      * **GIVEN** the Engine is configured with some commands using the Perl connector
      * **WHEN** the Engine executes its service commands
      * **THEN** the commands take too long and reach the timeout
      * **AND** the Engine starts and stops as a result
-61. **CESSOCWNV**:
+65. **CESSOCWNV**:
      * **GIVEN** the Engine is configured with a valid old configuration concerning cbmod
      * **WHEN** the Engine is started
      * **THEN** the Engine starts correctly
      * **AND** the Engine stops correctly
-62. **CESS_STATS**:
+66. **CESS_STATS**:
      * **GIVEN** the Engine is started with centralized configuration
      * **WHEN** we read the Engine's stats file
      * **THEN** the Engine must not crash
-63. **CEVOCWNV**:
+67. **CEVOCWNV**:
      * **GIVEN** the Engine is configured with a valid old configuration concerning cbmod
      * **WHEN** the Engine is started to check the configuration
      * **THEN** the Engine reads it as expected
-64. **CEXT_CONF1**:
+68. **CEXT_CONF1**:
      * **GIVEN** Engine is configured with a module broker
      * **WHEN** Engine starts with an extended JSON configuration overriding log levels
      * **THEN** the log levels from the extended conf are applied at startup
-65. **CEXT_CONF2**:
+69. **CEXT_CONF2**:
      * **GIVEN** Engine is configured with a module broker and an empty extended JSON conf
      * **WHEN** the extended conf is updated with new log levels and Engine is reloaded
      * **THEN** the new log levels from the updated extended conf are applied after reload
-66. **CE_FD_LIMIT**:
+70. **CE_FD_LIMIT**:
      * **GIVEN** the Engine is configured with a low file descriptor limit
      * **WHEN** the Engine is started
      * **THEN** the Engine should not crash
      * **AND** the file descriptor limit should be set correctly
-67. **CE_HOST_DOWN_DISABLE_SERVICE_CHECKS**:
+71. **CE_HOST_DOWN_DISABLE_SERVICE_CHECKS**:
      * **GIVEN** Engine is configured with centralized configuration and host_down_disable_service_checks enabled
      * **WHEN** a host goes DOWN
      * **THEN** all its services are switched to UNKNOWN hard state
      * **AND WHEN** the host recovers all services return to OK hard state
-68. **CE_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS**:
+72. **CE_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS**:
      * **GIVEN** Engine is configured with centralized configuration and host_down_disable_service_checks enabled
      * **WHEN** a parent host goes DOWN causing a child host to become UNREACHABLE
      * **THEN** all services on the unreachable host are switched to UNKNOWN hard state
-69. **CVERIF**:
+73. **CVERIF**:
      * **GIVEN** centengine is configured normally
      * **WHEN** centengine is started in verification mode
      * **THEN** it does not log in its file
-70. **CVERIFY_CONF**:
+74. **CVERIFY_CONF**:
      * **GIVEN** Engine and broker are configured with module
      * **AND** the engine configuration includes deprecated options
      * **WHEN** Engine starts
      * **THEN** a warning message for 'auto_reschedule_checks' is logged
      * **AND** a warning message for 'auto_rescheduling_interval' is logged
      * **AND** a warning message for 'auto_rescheduling_window' is logged
-71. **EBSN5**: Verify contactgroup inheritance : contactgroup(empty) inherit from template (full) , on Start Engine
-72. **EBSN6**: Verify contactgroup inheritance : contactgroup(full) inherit from template (full) , on Start Engine
-73. **EBSN7**: Verify contactgroup inheritance : contactgroup(empty) inherit from template (full) , on Reload Engine
-74. **EBSN8**: Verify contactgroup inheritance : contactgroup(full) inherit from template (full) , on Reload Engine
-75. **ECEMPTYNAME**:
+75. **EBSN5**: Verify contactgroup inheritance : contactgroup(empty) inherit from template (full) , on Start Engine
+76. **EBSN6**: Verify contactgroup inheritance : contactgroup(full) inherit from template (full) , on Start Engine
+77. **EBSN7**: Verify contactgroup inheritance : contactgroup(empty) inherit from template (full) , on Reload Engine
+78. **EBSN8**: Verify contactgroup inheritance : contactgroup(full) inherit from template (full) , on Reload Engine
+79. **ECEMPTYNAME**:
      * **SCENARIO:** a contact with no name is rejected
      * **GIVEN** an engine configuration with a contact that has no contact_name
      * **WHEN** centengine verifies the configuration (-v)
      * **THEN** the configuration is reported invalid (non-zero return code and "Contact has no name")
-76. **ECGEMPTYNAME**:
+80. **ECGEMPTYNAME**:
      * **SCENARIO:** a contact group with no name is rejected
      * **GIVEN** an engine configuration with a contact group that has no contactgroup_name
      * **WHEN** centengine verifies the configuration (-v)
      * **THEN** the configuration is reported invalid (non-zero return code and "Contactgroup has no name")
-77. **ECGNCM**:
+81. **ECGNCM**:
      * **SCENARIO:** a contact group with a non-existing member is rejected
      * **GIVEN** an engine configuration with a contact group referencing an undefined contact
      * **WHEN** centengine verifies the configuration (-v)
      * **THEN** the configuration is reported invalid (non-zero return code and the missing contact is named)
-78. **ECGRELOAD**:
+82. **ECGRELOAD**:
      * **SCENARIO:** centengine refuses a reload adding a contact group with an undefined member
      * **GIVEN** centengine is started and ready with a valid configuration
      * **WHEN** a contact group referencing an undefined contact is added and a reload is triggered
      * **THEN** the reload is rejected (it logs the error) and centengine keeps running with the previous configuration
-79. **ECGRSTART**:
+83. **ECGRSTART**:
      * **SCENARIO:** centengine refuses to start with a contact group referencing an undefined contact
      * **GIVEN** an engine configuration with a contact group whose member does not exist
      * **WHEN** centengine is started on that configuration
      * **THEN** it refuses to start: it exits with a failure code instead of running
-80. **ECI0**: Verify contact inheritance : contact(empty) inherit from template (full), on Start Engine
-81. **ECI1**: Verify contact inheritance : contact(full) inherit from template (full) , on Start Engine
-82. **ECI2**: Verify contact inheritance : contact(empty) inherit from template (full) , on Reload Engine
-83. **ECI3**: Verify contact inheritance : contact(full) inherit from template (full) , on Reload Engine
-84. **ECMI0**: Verify command inheritance : command(empty) inherit from template (full) , on Start Engine
-85. **ECMI1**: Verify command inheritance : command(full) inherit from template (full) , on Start Engine
-86. **ECMI2**: Verify command inheritance : command(empty) inherit from template (full) , on Reload Engine
-87. **ECMI3**: Verify command inheritance : command(full) inherit from template (full) , on reload Engine
-88. **ECNHNC**:
+84. **ECI0**: Verify contact inheritance : contact(empty) inherit from template (full), on Start Engine
+85. **ECI1**: Verify contact inheritance : contact(full) inherit from template (full) , on Start Engine
+86. **ECI2**: Verify contact inheritance : contact(empty) inherit from template (full) , on Reload Engine
+87. **ECI3**: Verify contact inheritance : contact(full) inherit from template (full) , on Reload Engine
+88. **ECMI0**: Verify command inheritance : command(empty) inherit from template (full) , on Start Engine
+89. **ECMI1**: Verify command inheritance : command(full) inherit from template (full) , on Start Engine
+90. **ECMI2**: Verify command inheritance : command(empty) inherit from template (full) , on Reload Engine
+91. **ECMI3**: Verify command inheritance : command(full) inherit from template (full) , on reload Engine
+92. **ECNHNC**:
      * **SCENARIO:** a contact without host notification commands is rejected
      * **GIVEN** an engine configuration where contact U1 has no host_notification_commands
      * **WHEN** centengine verifies the configuration (-v)
      * **THEN** the configuration is reported invalid (non-zero return code and at least one error)
-89. **ECOI0**: Verify connector inheritance : connector(empty) inherit from template (full) , on Start Engine
-90. **ECOI1**: Verify connector inheritance : connector(full) inherit from template (full) , on Start Engine
-91. **ECOI2**: Verify connector inheritance : connector(empty) inherit from template (full) , on Reload Engine
-92. **ECOI3**: Verify connector inheritance : connector(full) inherit from template (full) , on Reload Engine
-93. **ECRELOAD**:
+93. **ECOI0**: Verify connector inheritance : connector(empty) inherit from template (full) , on Start Engine
+94. **ECOI1**: Verify connector inheritance : connector(full) inherit from template (full) , on Start Engine
+95. **ECOI2**: Verify connector inheritance : connector(empty) inherit from template (full) , on Reload Engine
+96. **ECOI3**: Verify connector inheritance : connector(full) inherit from template (full) , on Reload Engine
+97. **ECRELOAD**:
      * **SCENARIO:** centengine refuses a reload of an invalid centengine.cfg and keeps running
      * **GIVEN** centengine is started and ready with a valid configuration
      * **WHEN** centengine.cfg is made invalid (contact U1 without host_notification_commands) and a reload is triggered
      * **THEN** the reload is rejected (it logs the error) and centengine keeps running with the previous configuration
-94. **ECRSTART**:
+98. **ECRSTART**:
      * **SCENARIO:** centengine refuses to start with an invalid centengine.cfg
      * **GIVEN** an engine configuration where contact U1 has no host_notification_commands
      * **WHEN** centengine is started on that configuration
      * **THEN** it refuses to start: it exits with a failure code instead of running
-95. **EESI0**: Verify service escalation : create service escalation for every service in a service group
-96. **EESI1**: Verify service escalation  inheritance : escalation(empty) inherit from template (full) , on Start Engine
-97. **EESI2**: Verify service escalation  inheritance : escalation(full) inherit from template (full) , on Start Engine
-98. **EESI3**: Verify service escalation  inheritance : escalation(empty) inherit from template (full) , on Reload Engine
-99. **EESI4**: Verify service escalation  inheritance : escalation(full) inherit from template (full) , on Reload Engine
-100. **EESI5**: Verfiy host escalation : create host escalation for every host in the hostgroup
-101. **EESI6**: Verify host escalation inheritance : escalation(empty) inherit from template (full) , on Start Engine   
-102. **EESI7**: Verify host escalation inheritance : escalation(full) inherit from template (full) , on Start Engine    
-103. **EESI8**: Verify host escalation inheritance : escalation(empty) inherit from template (full) , on Reload Engine   
-104. **EESI9**: Verify host escalation inheritance : escalation(full) inherit from template (full) , on Reload Engine    
-105. **EFHC1**: Engine is configured with hosts and we force check one 5 times with bbdo2
-106. **EFHC2**: Engine is configured with hosts and we force check on one 5 times on bbdo2
-107. **EFHCU1**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
-108. **EFHCU2**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
-109. **EHGI0**: Verify hostgroup inheritance : hostgroup(empty) inherit from template (full) , on Start Engine
-110. **EHGI1**: Verify hostgroup inheritance : hostgroup(full) inherit from template (full) , on Start Engine
-111. **EHGI2**: Verify hostgroup inheritance : hostgroup(empty) inherit from template (full) , on Reload Engine
-112. **EHGI3**: Verify hostgroup inheritance : hostgroup(full) inherit from template (full) , on Reload Engine
-113. **EHGNCM**:
+99. **EESI0**: Verify service escalation : create service escalation for every service in a service group
+100. **EESI1**: Verify service escalation  inheritance : escalation(empty) inherit from template (full) , on Start Engine
+101. **EESI2**: Verify service escalation  inheritance : escalation(full) inherit from template (full) , on Start Engine
+102. **EESI3**: Verify service escalation  inheritance : escalation(empty) inherit from template (full) , on Reload Engine
+103. **EESI4**: Verify service escalation  inheritance : escalation(full) inherit from template (full) , on Reload Engine
+104. **EESI5**: Verfiy host escalation : create host escalation for every host in the hostgroup
+105. **EESI6**: Verify host escalation inheritance : escalation(empty) inherit from template (full) , on Start Engine   
+106. **EESI7**: Verify host escalation inheritance : escalation(full) inherit from template (full) , on Start Engine    
+107. **EESI8**: Verify host escalation inheritance : escalation(empty) inherit from template (full) , on Reload Engine   
+108. **EESI9**: Verify host escalation inheritance : escalation(full) inherit from template (full) , on Reload Engine    
+109. **EFHC1**: Engine is configured with hosts and we force check one 5 times with bbdo2
+110. **EFHC2**: Engine is configured with hosts and we force check on one 5 times on bbdo2
+111. **EFHCU1**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
+112. **EFHCU2**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
+113. **EHGI0**: Verify hostgroup inheritance : hostgroup(empty) inherit from template (full) , on Start Engine
+114. **EHGI1**: Verify hostgroup inheritance : hostgroup(full) inherit from template (full) , on Start Engine
+115. **EHGI2**: Verify hostgroup inheritance : hostgroup(empty) inherit from template (full) , on Reload Engine
+116. **EHGI3**: Verify hostgroup inheritance : hostgroup(full) inherit from template (full) , on Reload Engine
+117. **EHGNCM**:
      * **SCENARIO:** a host group with a non-existing member is rejected
      * **GIVEN** an engine configuration with a host group referencing an undefined host
      * **WHEN** centengine verifies the configuration (-v)
      * **THEN** the configuration is reported invalid (non-zero return code and the missing host is named)
-114. **EHGRELOAD**:
+118. **EHGRELOAD**:
      * **SCENARIO:** centengine refuses a reload adding a host group with an undefined member
      * **GIVEN** centengine is started and ready with a valid configuration
      * **WHEN** a host group referencing an undefined host is added and a reload is triggered
      * **THEN** the reload is rejected (it logs the error) and centengine keeps running with the previous configuration
-115. **EHGRSTART**:
+119. **EHGRSTART**:
      * **SCENARIO:** centengine refuses to start with a host group referencing an undefined host
      * **GIVEN** an engine configuration with a host group whose member does not exist
      * **WHEN** centengine is started on that configuration
      * **THEN** it refuses to start: it exits with a failure code instead of running
-116. **EHI0**: Verify inheritance host : host(empty) inherit from template (full) , on Start Engine
-117. **EHI1**: Verify inheritance host : host(full) inherit from template (full) , on Start engine
-118. **EHI2**: Verify inheritance host : host(empty) inherit from template (full) , on Reload engine
-119. **EHI3**: Verify inheritance host : host(full) inherit from template (full) , on engine Reload
-120. **EMACROS**: macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
-121. **EMACROS_NOTIF**: macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
-122. **EMACROS_SEMICOLON**: Macros with a semicolon are used even if they contain a semicolon.
-123. **EMTI0**: Verify multiple inheritance host
-124. **ENGINE_MANY_CHECKS**:
+120. **EHI0**: Verify inheritance host : host(empty) inherit from template (full) , on Start Engine
+121. **EHI1**: Verify inheritance host : host(full) inherit from template (full) , on Start engine
+122. **EHI2**: Verify inheritance host : host(empty) inherit from template (full) , on Reload engine
+123. **EHI3**: Verify inheritance host : host(full) inherit from template (full) , on engine Reload
+124. **EMACROS**: macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
+125. **EMACROS_NOTIF**: macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
+126. **EMACROS_SEMICOLON**: Macros with a semicolon are used even if they contain a semicolon.
+127. **EMTI0**: Verify multiple inheritance host
+128. **ENGINE_MANY_CHECKS**:
      * **GIVEN** a engine with many services and a unique check on each service with it's own env variables
      We expect correct check result in logs and we checks returned args and service macros
-125. **EPC1**: Check with perl connector
-126. **ERL**: Engine is started and writes logs in centengine.log. Then we remove the log file. The file disappears but Engine is still writing into it. Engine is reloaded and the centengine.log should appear again.
-127. **ESGI0**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Start Engine
-128. **ESGI1**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Start Engine
-129. **ESGI2**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Reload Engine
-130. **ESGI3**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Reload Engine
-131. **ESGNCM**:
+129. **EPC1**: Check with perl connector
+130. **ERL**: Engine is started and writes logs in centengine.log. Then we remove the log file. The file disappears but Engine is still writing into it. Engine is reloaded and the centengine.log should appear again.
+131. **ESGI0**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Start Engine
+132. **ESGI1**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Start Engine
+133. **ESGI2**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Reload Engine
+134. **ESGI3**: Verify servicegroup inheritance : servicegroup(empty) inherit from template (full) , on Reload Engine
+135. **ESGNCM**:
      * **SCENARIO:** a service group with a non-existing member is rejected
      * **GIVEN** an engine configuration with a service group referencing an undefined service
      * **WHEN** centengine verifies the configuration (-v)
      * **THEN** the configuration is reported invalid (non-zero return code and the missing service is named)
-132. **ESGRELOAD**:
+136. **ESGRELOAD**:
      * **SCENARIO:** centengine refuses a reload adding a service group with an undefined member
      * **GIVEN** centengine is started and ready with a valid configuration
      * **WHEN** a service group referencing an undefined service is added and a reload is triggered
      * **THEN** the reload is rejected (it logs the error) and centengine keeps running with the previous configuration
-133. **ESGRSTART**:
+137. **ESGRSTART**:
      * **SCENARIO:** centengine refuses to start with a service group referencing an undefined service
      * **GIVEN** an engine configuration with a service group whose member does not exist
      * **WHEN** centengine is started on that configuration
      * **THEN** it refuses to start: it exits with a failure code instead of running
-134. **ESI0**: Verify inheritance service : Service(empty) inherit from template (full) , on Start Engine
-135. **ESI1**: Verify inheritance service : Service(full) inherit from template (full) , on Start Engine
-136. **ESI2**: Verify inheritance service : Service(empty) inherit from template (full) , on Reload Engine
-137. **ESI3**: Verify inheritance service : Service(full) inherit from template (full) , on Reload Engine
-138. **ESS1**: Start-Stop (0s between start/stop) 5 times one instance of engine and no coredump
-139. **ESS2**: Start-Stop (300ms between start/stop) 5 times one instance of engine and no coredump
-140. **ESS3**: Start-Stop (0s between start/stop) 5 times three instances of engine and no coredump
-141. **ESS4**: Start-Stop (300ms between start/stop) 5 times three instances of engine and no coredump
-142. **ESSCTO**:
+138. **ESI0**: Verify inheritance service : Service(empty) inherit from template (full) , on Start Engine
+139. **ESI1**: Verify inheritance service : Service(full) inherit from template (full) , on Start Engine
+140. **ESI2**: Verify inheritance service : Service(empty) inherit from template (full) , on Reload Engine
+141. **ESI3**: Verify inheritance service : Service(full) inherit from template (full) , on Reload Engine
+142. **ESS1**: Start-Stop (0s between start/stop) 5 times one instance of engine and no coredump
+143. **ESS2**: Start-Stop (300ms between start/stop) 5 times one instance of engine and no coredump
+144. **ESS3**: Start-Stop (0s between start/stop) 5 times three instances of engine and no coredump
+145. **ESS4**: Start-Stop (300ms between start/stop) 5 times three instances of engine and no coredump
+146. **ESSCTO**:
      * **SCENARIO:** Engine services timeout due to missing Perl connector
      * **GIVEN** the Engine is configured as usual without the Perl connector
      * **WHEN** the Engine executes its service commands
      * **THEN** the commands take too long and reach the timeout
      * **AND** the Engine starts and stops four times as a result
-143. **ESSCTOWC**:
+147. **ESSCTOWC**:
      * **SCENARIO:** Engine services timeout due to missing Perl connector
      * **GIVEN** the Engine is configured as usual with some command using the Perl connector
      * **WHEN** the Engine executes its service commands
      * **THEN** the commands take too long and reach the timeout
      * **AND** the Engine starts and stops four times as a result
-144. **ESSOCWNV**:
+148. **ESSOCWNV**:
      * **SCENARIO:** Engine is started with a valid old configuration (concerning cbmod)
      * **GIVEN** the Engine is configured with a valid old configuration
      * **WHEN** the Engine is started
      * **THEN** the Engine starts correctly
      * **AND** the Engine stops correctly
-145. **ESS_STATS**:
+149. **ESS_STATS**:
      * **SCENARIO:** Reading the stats file after Engine has started
      * **GIVEN** the Engine is started
      * **WHEN** we read the Engine's stats file
      * **THEN** Engine must not crash
-146. **EVOCWNV**:
+150. **EVOCWNV**:
      * **SCENARIO:** The new Engine checks the old configuration (concerning cbmod)
      * **GIVEN** the Engine is configured with a valid old configuration
      * **WHEN** the Engine is started to check the configuration
      * **THEN** the Engine reads it as expected
-147. **EXT_CONF1**: Engine configuration is overidden by json conf
-148. **EXT_CONF2**: Engine configuration is overidden by json conf after reload
-149. **E_FD_LIMIT**: Engine here is started with a low file descriptor limit. The engine should not crash and limit should be set.
-150. **E_HOST_DOWN_DISABLE_SERVICE_CHECKS**: host_down_disable_service_checks is set to 1, host down switch all services to UNKNOWN
-151. **E_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS**: host_down_disable_service_checks is set to 1, host unreachable switch all services to UNKNOWN
-152. **VERIF**:
+151. **EXT_CONF1**: Engine configuration is overidden by json conf
+152. **EXT_CONF2**: Engine configuration is overidden by json conf after reload
+153. **E_FD_LIMIT**: Engine here is started with a low file descriptor limit. The engine should not crash and limit should be set.
+154. **E_HOST_DOWN_DISABLE_SERVICE_CHECKS**: host_down_disable_service_checks is set to 1, host down switch all services to UNKNOWN
+155. **E_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS**: host_down_disable_service_checks is set to 1, host unreachable switch all services to UNKNOWN
+156. **VERIF**:
      * **WHEN** centengine is started in verification mode, it does not log in its file.
-153. **VERIFY_CONF**: Scenario Verify deprecated engine configuration options are logged as warnings Given the engine and broker are configured with module 1 And the engine configuration is set with deprecated options When the engine is started Then a warning message for 'auto_reschedule_checks' should be logged And a warning message for 'auto_rescheduling_interval' should be logged And a warning message for 'auto_rescheduling_window' should be logged And the engine should be stopped
+157. **VERIFY_CONF**: Scenario Verify deprecated engine configuration options are logged as warnings Given the engine and broker are configured with module 1 And the engine configuration is set with deprecated options When the engine is started Then a warning message for 'auto_reschedule_checks' should be logged And a warning message for 'auto_rescheduling_interval' should be logged And a warning message for 'auto_rescheduling_window' should be logged And the engine should be stopped
 
 ### Severities
 
@@ -4160,4 +4190,4 @@ This chapter contains 22 tests.
      * **THEN** broker logs an error about the bad base64 encoding
 
 
-953 tests currently implemented.
+957 tests currently implemented.
