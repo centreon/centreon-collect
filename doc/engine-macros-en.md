@@ -262,6 +262,90 @@ notification, host output in a service notification, on-demand macro) finds
 `$HOSTOUTPUT$` and `$SERVICEOUTPUT$` filled, but `$LONGHOSTOUTPUT$` and
 `$LONGSERVICEOUTPUT$` **empty** until that first check.
 
+### Event and problem identifiers
+
+`$HOSTEVENTID$`, `$LASTHOSTEVENTID$`, `$SERVICEEVENTID$`,
+`$LASTSERVICEEVENTID$`, `$HOSTPROBLEMID$`, `$LASTHOSTPROBLEMID$`,
+`$SERVICEPROBLEMID$` and `$LASTSERVICEPROBLEMID$` read four identifiers held
+by each host and service. These macros are their only use: no Engine logic
+and nothing in Broker or the database depend on them (the Engine RPC and
+`status.dat` only expose them).
+
+- An **event** is a state change, soft or hard. On each one,
+  `last_event_id` takes the old `current_event_id` and `current_event_id`
+  takes `next_event_id++`.
+- A **problem** runs from leaving OK/UP to coming back to it, whatever the
+  changes in between (WARNING ↔ CRITICAL). On leaving OK/UP,
+  `current_problem_id` takes `next_problem_id++`; on coming back,
+  `last_problem_id` takes `current_problem_id` and `current_problem_id`
+  goes back to 0. A notification script uses `$SERVICEPROBLEMID$` to tell a
+  new problem from an ongoing one, and `$LASTSERVICEPROBLEMID$` on recovery
+  to know which problem is over.
+
+All of them start at 0. A first result equal to the initial state (OK by
+default) is not a state change and leaves them at 0. Example on a single
+service, no other resource changing state meanwhile:
+
+| Result | `current_event_id` | `last_event_id` | `current_problem_id` | `last_problem_id` |
+|---|---|---|---|---|
+| start | 0 | 0 | 0 | 0 |
+| OK | 0 | 0 | 0 | 0 |
+| CRITICAL | **1** | 0 | **1** | 0 |
+| WARNING | **2** | 1 | 1 | 0 |
+| OK | **3** | 2 | **0** | **1** |
+| CRITICAL | **4** | 3 | **2** | 1 |
+
+`next_event_id` and `next_problem_id` are counters **global to the poller**
+(`globals.cc`), shared by all its hosts and services, starting at 1: the
+identifiers of one resource increase, with gaps. They are unique per
+poller, not across the platform.
+
+Outside centralized configuration, `retention.dat` saves both counters (the
+`program` section) and the four identifiers of each resource, and reads them
+back at startup. The notification identifier (`$HOSTNOTIFICATIONID$`,
+`$SERVICENOTIFICATIONID$`) follows the same path: its counter is the one of
+the `notification_manager`, saved as `next_notification_id`, and a restored
+`current_notification_id` keeps it ahead.
+
+In centralized configuration, `retention.dat` is not read: Broker keeps the
+five identifiers of each resource.
+
+- **Engine → Broker.** The full status (`HostStatus`, `ServiceStatus`), sent
+  at each state change, carries the five identifiers. The notification
+  identifier also changes at each notification, without a state change: after
+  each notification executed, Engine sends an adaptive status
+  (`AdaptiveHostStatus`, `AdaptiveServiceStatus`) carrying only it. These
+  fields are `optional`: a status that does not fill them (older poller, BBDO2
+  conversion, BAM virtual service) leaves the cached values untouched. On the
+  other hand, 0 is a value that is sent: `current_problem_id` goes back to 0
+  on recovery.
+- **In the Broker cache.** The identifiers are kept in a table of their own
+  (`_resource_ids`), not in the host and service entries: a configuration
+  rebuilding an entry or a database row restoring it (the database has no
+  column for them) does not touch them. Only the resources that have one are
+  there; a resource removed from the configuration takes its own away.
+- **Persistence.** The table is saved in the cache file
+  (`BrokerCache.resource_ids`) and read back as is when Broker restarts, in
+  both modes.
+- **Broker → Engine.** The `RuntimeState` snapshot carries them
+  (`HostRuntime`, `ServiceRuntime`). Engine applies them, then moves
+  `next_event_id` and `next_problem_id` past the restored identifiers. The
+  notification identifier, once applied, also moves the counter of the Engine
+  `notification_manager` forward.
+- **In `notification_mode=broker`**, the Broker `notification_manager` gives
+  the notification identifiers. It sends each one to the poller in
+  `NotificationExecute.notification_id`: the notification in progress uses it
+  for its macros, and Engine keeps it on the resource, so that
+  `$HOSTNOTIFICATIONID$` read later, for instance in the notification of one
+  of its services, finds it. Broker also stores that identifier in its
+  `_resource_ids` table (`set_current_notification_id()`), and the snapshot
+  gives it back to a restarted Engine. The one Engine sends in its statuses is
+  ignored in that mode.
+
+The counters are therefore re-seeded at the highest restored identifier, not
+at their value before the restart: an identifier given then lost (for
+instance on a resource removed from the configuration) may be given again.
+
 ## 5. Code layout
 
 The `engine/macros/` module has its own `CMakeLists.txt`.

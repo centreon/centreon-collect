@@ -268,6 +268,92 @@ notification d'un service, macro à la demande) trouve `$HOSTOUTPUT$` et
 `$SERVICEOUTPUT$` renseignées, mais `$LONGHOSTOUTPUT$` et
 `$LONGSERVICEOUTPUT$` **vides** jusqu'à ce premier check.
 
+### Identifiants d'événement et de problème
+
+`$HOSTEVENTID$`, `$LASTHOSTEVENTID$`, `$SERVICEEVENTID$`,
+`$LASTSERVICEEVENTID$`, `$HOSTPROBLEMID$`, `$LASTHOSTPROBLEMID$`,
+`$SERVICEPROBLEMID$` et `$LASTSERVICEPROBLEMID$` lisent quatre identifiants
+portés par chaque hôte et chaque service. Ces macros sont leur seul usage :
+aucune logique d'Engine, rien dans Broker ni en base n'en dépend (le RPC
+Engine et `status.dat` ne font que les exposer).
+
+- Un **événement** est un changement d'état, soft ou hard. À chacun,
+  `last_event_id` reçoit l'ancien `current_event_id` et `current_event_id`
+  reçoit `next_event_id++`.
+- Un **problème** va de la sortie d'OK/UP au retour à OK/UP, quels que soient
+  les changements entre les deux (WARNING ↔ CRITICAL). À la sortie d'OK/UP,
+  `current_problem_id` reçoit `next_problem_id++` ; au retour,
+  `last_problem_id` reçoit `current_problem_id` et `current_problem_id`
+  revient à 0. Un script de notification se sert de `$SERVICEPROBLEMID$` pour
+  distinguer un nouveau problème d'un problème en cours, et de
+  `$LASTSERVICEPROBLEMID$` au rétablissement pour savoir quel problème est
+  clos.
+
+Tous démarrent à 0. Un premier résultat égal à l'état initial (OK par
+défaut) n'est pas un changement d'état et les laisse à 0. Exemple sur un seul
+service, sans qu'aucune autre ressource change d'état entre-temps :
+
+| Résultat | `current_event_id` | `last_event_id` | `current_problem_id` | `last_problem_id` |
+|---|---|---|---|---|
+| départ | 0 | 0 | 0 | 0 |
+| OK | 0 | 0 | 0 | 0 |
+| CRITICAL | **1** | 0 | **1** | 0 |
+| WARNING | **2** | 1 | 1 | 0 |
+| OK | **3** | 2 | **0** | **1** |
+| CRITICAL | **4** | 3 | **2** | 1 |
+
+`next_event_id` et `next_problem_id` sont des compteurs **globaux au poller**
+(`globals.cc`), partagés par tous ses hôtes et services, qui démarrent à 1 :
+les identifiants d'une ressource sont croissants, avec des trous. Ils sont
+uniques par poller, pas sur la plateforme.
+
+Hors configuration centralisée, `retention.dat` sauvegarde les deux compteurs
+(section `program`) et les quatre identifiants de chaque ressource, et les
+relit au démarrage. L'identifiant de notification (`$HOSTNOTIFICATIONID$`,
+`$SERVICENOTIFICATIONID$`) suit le même chemin : son compteur est celui du
+`notification_manager`, sauvegardé sous `next_notification_id`, et un
+`current_notification_id` restauré le maintient en avance.
+
+En configuration centralisée, `retention.dat` n'est pas lu : c'est Broker
+qui garde les cinq identifiants de chaque ressource.
+
+- **Engine → Broker.** Le statut complet (`HostStatus`, `ServiceStatus`), qui
+  part à chaque changement d'état, porte les cinq identifiants. L'identifiant
+  de notification change aussi à chaque notification, sans changement d'état :
+  après chaque notification exécutée, Engine envoie un statut adaptatif
+  (`AdaptiveHostStatus`, `AdaptiveServiceStatus`) qui ne porte que lui. Ces
+  champs sont `optional` : un statut qui ne les remplit pas (poller plus
+  ancien, conversion BBDO2, service virtuel de BAM) laisse les valeurs du
+  cache intactes. En revanche, 0 est une valeur transmise :
+  `current_problem_id` revient à 0 au rétablissement.
+- **Dans le cache de Broker.** Les identifiants sont rangés dans une table à
+  part (`_resource_ids`), pas dans les entrées hôtes et services : une
+  configuration qui reconstruit une entrée ou une ligne de la base qui la
+  restaure (la base n'a pas de colonne pour eux) ne les touche pas. Seules les
+  ressources qui en ont un y figurent ; une ressource retirée de la
+  configuration emporte les siens.
+- **Persistance.** La table est sauvegardée dans le fichier de cache
+  (`BrokerCache.resource_ids`) et relue telle quelle au redémarrage de Broker,
+  dans les deux modes.
+- **Broker → Engine.** Le snapshot `RuntimeState` les transporte
+  (`HostRuntime`, `ServiceRuntime`). Engine les applique, puis porte
+  `next_event_id` et `next_problem_id` au-delà des identifiants restaurés.
+  L'application de l'identifiant de notification fait aussi avancer le
+  compteur du `notification_manager` d'Engine.
+- **En `notification_mode=broker`**, c'est le `notification_manager` de
+  Broker qui attribue les identifiants de notification. Il transmet chacun au
+  poller dans `NotificationExecute.notification_id` : la notification en cours
+  l'utilise pour ses macros, et Engine le garde sur la ressource, si bien que
+  `$HOSTNOTIFICATIONID$` lu plus tard, par exemple dans la notification d'un
+  de ses services, le retrouve. Broker range aussi cet identifiant dans sa
+  table `_resource_ids` (`set_current_notification_id()`), et le snapshot le
+  rend à un Engine redémarré. Celui qu'Engine envoie dans ses statuts est
+  ignoré dans ce mode.
+
+Les compteurs sont donc réamorcés au plus grand identifiant restauré, pas à
+leur valeur d'avant le redémarrage : un identifiant attribué puis perdu (par
+exemple sur une ressource disparue de la configuration) peut être redonné.
+
 ## 5. Organisation du code
 
 Le module `engine/macros/` a son propre `CMakeLists.txt`.
