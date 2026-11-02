@@ -361,39 +361,46 @@ An example of `pollers_config_directory`:
 
 ## Overview: who handles what, depending on configuration
 
-Two responsibilities can live either on the **Engine** side or on the **Broker** side, and each is
-driven by its own parameter — the two choices are **independent**:
+Two settings decide everything. The first one chooses who owns the `Engine` configuration: `Engine` itself (legacy) or `Broker` (centralized configuration). The second one, `notification_mode` in the `Broker` configuration, chooses who owns the notification decision and everything around it: downtimes, acknowledgements, comments and notification toggles. Downtimes are thus not a separate setting: they follow `notification_mode`, as acknowledgements and notifications do.
 
-| Responsibility | Parameter(s) | Where it lives |
-|---|---|---|
-| **Engine configuration** | `bbdo_version` (≥ 3) + `Engine` started with `-p /var/lib/centreon-engine` | Both → **`Broker`** owns the `Engine` configuration (centralized: it diffs it and sends `DiffState` to `Engine`). Otherwise → **`Engine`** reads its own `centengine.cfg` (legacy). |
-| **Broker role** (only in BBDO ≥ 3) | `Broker`'s `cache_config_directory`, `pollers_config_directory` | Either one set → **central** (owns the `.prot` configs; without `pollers_config_directory`, they live in the `pollers-configuration/` subdirectory of its cache directory). Neither → **relay** (forwards config requests upstream). |
-| **Downtimes** | Broker's `notification_mode` | `broker` → **Broker** manages downtimes (loads `downtime_manager`; BAM inherited downtimes are scheduled in Broker; Broker is the sole writer of `scheduled_downtime_depth`). Anything else / absent (default `engine`) → **Engine** manages downtimes (BAM sends `SCHEDULE_SVC_DOWNTIME` to Engine). |
+Three combinations are supported, numbered ①, ② and ③ in the chart and the table below. The fourth one, `notification_mode = broker` in legacy, is accepted by the code but does not work: contacts and escalations only reach the `Broker` cache through the centralized configuration, and `Broker` would have nobody to notify.
 
 ```mermaid
 flowchart TD
     classDef engine fill:#e2725b,color:#fff;
     classDef broker fill:#4a90d9,color:#fff;
+    classDef ko fill:#999,color:#fff,stroke-dasharray: 5 5;
 
-    subgraph CONF["Engine configuration — who owns it"]
-        direction TB
-        Q1{"BBDO ≥ 3.0<br/>AND Engine started with -p ?"}
-        Q1 -- "no (legacy)" --> ENGCONF["Engine reads & owns its centengine.cfg"]:::engine
-        Q1 -- "yes (centralized)" --> Q2{"Broker Engine connects to:<br/>cache_config_directory or<br/>pollers_config_directory set ?"}
-        Q2 -- "yes" --> CENTRAL["Broker = CENTRAL<br/>owns .prot configs, computes the diff,<br/>sends DiffState to Engine"]:::broker
-        Q2 -- "no" --> RELAY["Broker = RELAY<br/>forwards config requests upstream"]:::broker
-    end
-
-    subgraph DT["Downtimes — who manages them"]
-        direction TB
-        Q3{"Broker notification_mode ?"}
-        Q3 -- "broker" --> DTBROKER["Broker manages downtimes<br/>downtime_manager loaded · BAM inherited downtimes<br/>scheduled in Broker · Broker sole writer of depth"]:::broker
-        Q3 -- "engine / absent (default)" --> DTENGINE["Engine manages downtimes<br/>BAM sends SCHEDULE_SVC_DOWNTIME to Engine"]:::engine
-    end
+    Q1{"Engine started with -p<br/>AND BBDO ≥ 3?"}
+    Q1 -- "no" --> QL{"Broker<br/>notification_mode?"}
+    QL -- "engine (default)" --> C1["① Legacy<br/>Engine reads centengine.cfg and handles everything<br/>state kept in retention.dat"]:::engine
+    QL -- "broker" --> KO["Not supported<br/>no contact in the Broker cache"]:::ko
+    Q1 -- "yes" --> Q2{"Broker Engine connects to:<br/>cache_config_directory set?"}
+    Q2 -- "no" --> RELAY["Relay Broker<br/>forwards configuration requests<br/>to the central Broker"]:::broker
+    RELAY --> Q3
+    Q2 -- "yes" --> Q3{"Central Broker<br/>notification_mode?"}
+    Q3 -- "engine (default)" --> C2["② Centralized, notifications by Engine<br/>Broker owns the configuration<br/>Engine decides and owns downtimes and acks"]:::engine
+    Q3 -- "broker" --> C3["③ Centralized, notifications by Broker<br/>Broker owns the configuration,<br/>the decision, downtimes and acks"]:::broker
 ```
 
-> The two axes are orthogonal: e.g. one can run centralized configuration (Broker-owned) while
-> downtimes are still managed by Engine, or the opposite.
+| | ① Legacy | ② Centralized, `notification_mode = engine` | ③ Centralized, `notification_mode = broker` |
+|---|---|---|---|
+| **`Engine` command line** | `centengine -b central-module.json centengine.cfg` | `centengine -b central-module.json -p /var/lib/centreon-engine [centengine.cfg]`; the `centengine.cfg` is only used at the first startup | as ② |
+| **`Broker` configuration** | nothing new, BBDO 2 or 3 | `bbdo_version` 3 and `cache_config_directory`; `pollers_config_directory` optional | as ②, plus `notification_mode: broker` |
+| **`Engine` configuration** | `Engine`, from `centengine.cfg` | `Broker`, from `<N>.prot`, sent as a `DiffState`; `Engine` keeps a copy in `state.prot` | as ② |
+| **Notification decision** | `Engine` | `Engine` | `Broker` decides; the poller executes (`pb_notification_execute`) |
+| **Downtimes, acknowledgements** | `Engine` | `Engine` | `Broker` |
+| **Comments** | created by `Engine`, stored in the database by `Broker` | as ① | created and stored by `Broker` |
+| **BAM inherited downtimes** | BAM sends `SCHEDULE_SVC_DOWNTIME` to `Engine` | as ① | scheduled directly in `Broker` |
+| **Check state on restart** | `retention.dat` | `RuntimeState` sent by `Broker` at connection; `retention.dat` is only read once, at the switch from legacy, then renamed | as ② |
+| **Downtimes on restart** | `retention.dat` | `downtimes.prot`, written by `Engine` next to `state.prot` | `Broker` `.cache` |
+| **External commands** | `Engine` command pipe, or `Broker` `ExecuteExternalCommand` in BBDO 3, which routes them to the poller | as ① | through `Broker`: it executes those it owns (downtimes, acknowledgements, comments, notifications) and routes the others |
+
+A few details:
+
+* `Broker` becomes central as soon as `cache_config_directory` is set; without `pollers_config_directory`, it stores the `<N>.prot` files in the `pollers-configuration/` subdirectory of its cache directory. With neither, it is a relay (see [Remote Servers and centralized configuration](#remote-servers-and-centralized-configuration)).
+* `Engine` learns the notification mode during the negotiation: the `Broker` it connects to fills `broker_handles_notifications` in its `Welcome`. Behind a relay, the relay is the one announcing it: it must carry the same `notification_mode` value as the central.
+* Switching from ① to ② is done poller by poller, by adding `-p` to `Engine` (see [Engine startup parameters](#engine-startup-parameters)). Moving from ② to ③ is done at once for all the pollers of the central, since `notification_mode` is a `Broker` parameter (see [Solution: the notification\_mode parameter](#solution-the-notification_mode-parameter)).
 
 ## The negotiation
 
@@ -5325,6 +5332,13 @@ that no read is attempted any more.
 * the file is no longer written: `retention::dump::save` returns right away, the periodic save event is not scheduled any more, and the `SAVE_STATE_INFORMATION` external command is ignored with a warning, like `READ_STATE_INFORMATION`.
 
 On the first centralized start, there is no `state.prot` yet: `Engine` parses the `centengine.cfg` the packaged service gives it, so the objects exist when the retention is applied, then the `RuntimeState` of `Broker` is applied over it, the database being fresher. The centralized criterion is the presence of the `proto-conf` directory, the same as for reading `state.prot`. This one-shot read solves the migration only: the downtimes held by `Engine` are still not restored at the following restarts. `CERS8` covers the switch, and `CERS1` checks that a stop no longer writes the file.
+
+*Revised on 2026-11-02: the `Engine` downtimes in a separate file.* Without `retention.dat`, a centralized `Engine` in `notification_mode=engine` lost all its downtimes at each restart: it owns them, and the `Broker` snapshot does not send them back. So it saves them in `downtimes.prot`, next to `state.prot` in the `proto-conf` directory: an `EngineDowntimes` message (`bbdo/neb.proto`), a list of `Downtime`, serialized in binary and not compressed, one to two hundred bytes per downtime.
+
+* It is written at the same moments as `retention.dat` in legacy mode, and under the same `retain_state_information` condition: at shutdown, on the periodic retention event and on `SAVE_STATE_INFORMATION`. `retention::dump::save` switches to `retention::downtimes_file::save` in centralized mode; the periodic event is therefore scheduled again, and `SAVE_STATE_INFORMATION` is no longer ignored. The file is written to a temporary file then renamed. The downtimes BAM puts on the virtual services of its BAs are skipped, as in `retention.dat`. In `notification_mode=broker`, `Engine` owns no downtime and the file is empty.
+* It is read at startup, once the configuration is applied and before `initialize_downtime_data()`, at the same moment as the `retention.dat` downtimes in legacy mode. The downtimes are recreated by their ids, as the retention applier does; a downtime whose resource no longer exists is skipped, and so is a downtime already known, which a `retention.dat` read at the switch would have brought. The depth is not saved: it is rebuilt when the recreated downtimes start, without double counting since the snapshot no longer carries it. `Engine` logs "Startup: N downtime(s) restored from '…'".
+
+The file is local to the poller: it will not help the Poller HA, which will require `Broker` to own the downtimes. `CERS9` checks that a downtime survives two restarts with a depth of 1, then that it is no longer restored once deleted; `CERS8` checks that after the switch the downtime coming from `retention.dat` goes into `downtimes.prot`; `CERS1` checks that a stop writes `downtimes.prot` and not `retention.dat`.
 
 ### What stays out of the snapshot
 

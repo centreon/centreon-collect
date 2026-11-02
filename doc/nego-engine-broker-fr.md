@@ -363,39 +363,46 @@ Un exemple de répertoire `pollers_config_directory` :
 
 ## Vue d'ensemble : qui gère quoi, selon la configuration
 
-Deux responsabilités peuvent vivre soit côté **Engine**, soit côté **Broker**, et chacune est
-pilotée par son propre paramètre — les deux choix sont **indépendants** :
+Deux réglages décident de tout. Le premier choisit qui possède la configuration d'`Engine` : `Engine` lui-même (legacy) ou `Broker` (configuration centralisée). Le second, `notification_mode` dans la configuration de `Broker`, choisit qui possède la décision de notification et tout ce qui l'entoure : les downtimes, les acquittements, les commentaires et les bascules de notification. Les downtimes ne sont donc pas un réglage à part : ils suivent `notification_mode`, comme les acquittements et les notifications.
 
-| Responsabilité | Paramètre(s) | Où ça vit |
-|---|---|---|
-| **Configuration Engine** | `bbdo_version` (≥ 3) + `Engine` démarré avec `-p /var/lib/centreon-engine` | Les deux → **`Broker`** possède la configuration `Engine` (centralisée : il en calcule le diff et envoie un `DiffState` à `Engine`). Sinon → **`Engine`** lit son propre `centengine.cfg` (legacy). |
-| **Rôle de Broker** (uniquement en BBDO ≥ 3) | `cache_config_directory`, `pollers_config_directory` (`Broker`) | L'un des deux positionné → **central** (possède les `.prot` ; sans `pollers_config_directory`, ils sont dans le sous-répertoire `pollers-configuration/` de son répertoire de cache). Aucun → **relais** (transmet les demandes de config en amont). |
-| **Downtimes** | `notification_mode` (Broker) | `broker` → **Broker** gère les downtimes (charge le `downtime_manager` ; les inherited downtimes BAM sont programmés dans Broker ; Broker est seul écrivain de `scheduled_downtime_depth`). Toute autre valeur / absent (défaut `engine`) → **Engine** gère les downtimes (BAM envoie `SCHEDULE_SVC_DOWNTIME` à Engine). |
+Trois combinaisons sont supportées, numérotées ①, ② et ③ dans le graphique et le tableau qui suivent. La quatrième, `notification_mode = broker` en legacy, est acceptée par le code mais ne fonctionne pas : les contacts et les escalades n'arrivent dans le cache de `Broker` que par la configuration centralisée, et `Broker` n'aurait personne à notifier.
 
 ```mermaid
 flowchart TD
     classDef engine fill:#e2725b,color:#fff;
     classDef broker fill:#4a90d9,color:#fff;
+    classDef ko fill:#999,color:#fff,stroke-dasharray: 5 5;
 
-    subgraph CONF["Configuration Engine — qui la possède"]
-        direction TB
-        Q1{"BBDO ≥ 3.0<br/>ET Engine démarré avec -p ?"}
-        Q1 -- "non (legacy)" --> ENGCONF["Engine lit et possède son centengine.cfg"]:::engine
-        Q1 -- "oui (centralisé)" --> Q2{"Broker auquel Engine se connecte :<br/>cache_config_directory ou<br/>pollers_config_directory positionné ?"}
-        Q2 -- "oui" --> CENTRAL["Broker = CENTRAL<br/>possède les .prot, calcule le diff,<br/>envoie DiffState à Engine"]:::broker
-        Q2 -- "non" --> RELAY["Broker = RELAIS<br/>transmet les demandes de config en amont"]:::broker
-    end
-
-    subgraph DT["Downtimes — qui les gère"]
-        direction TB
-        Q3{"notification_mode (Broker) ?"}
-        Q3 -- "broker" --> DTBROKER["Broker gère les downtimes<br/>downtime_manager chargé · inherited downtimes BAM<br/>programmés dans Broker · Broker seul écrivain de la profondeur"]:::broker
-        Q3 -- "engine / absent (défaut)" --> DTENGINE["Engine gère les downtimes<br/>BAM envoie SCHEDULE_SVC_DOWNTIME à Engine"]:::engine
-    end
+    Q1{"Engine démarré avec -p<br/>ET BBDO ≥ 3 ?"}
+    Q1 -- "non" --> QL{"notification_mode<br/>du Broker ?"}
+    QL -- "engine (défaut)" --> C1["① Legacy<br/>Engine lit centengine.cfg et gère tout<br/>état conservé dans retention.dat"]:::engine
+    QL -- "broker" --> KO["Non supporté<br/>aucun contact dans le cache de Broker"]:::ko
+    Q1 -- "oui" --> Q2{"Broker auquel Engine se connecte :<br/>cache_config_directory positionné ?"}
+    Q2 -- "non" --> RELAY["Broker relais<br/>transmet les demandes de configuration<br/>au Broker central"]:::broker
+    RELAY --> Q3
+    Q2 -- "oui" --> Q3{"notification_mode<br/>du Broker central ?"}
+    Q3 -- "engine (défaut)" --> C2["② Centralisée, notifications par Engine<br/>Broker possède la configuration<br/>Engine décide et possède downtimes et acks"]:::engine
+    Q3 -- "broker" --> C3["③ Centralisée, notifications par Broker<br/>Broker possède la configuration,<br/>la décision, les downtimes et les acks"]:::broker
 ```
 
-> Les deux axes sont orthogonaux : on peut par exemple être en configuration centralisée (possédée par
-> Broker) tout en laissant les downtimes gérés par Engine, ou l'inverse.
+| | ① Legacy | ② Centralisée, `notification_mode = engine` | ③ Centralisée, `notification_mode = broker` |
+|---|---|---|---|
+| **Ligne de commande d'`Engine`** | `centengine -b central-module.json centengine.cfg` | `centengine -b central-module.json -p /var/lib/centreon-engine [centengine.cfg]` ; le `centengine.cfg` ne sert qu'au premier démarrage | comme ② |
+| **Configuration de `Broker`** | rien de nouveau, BBDO 2 ou 3 | `bbdo_version` 3 et `cache_config_directory` ; `pollers_config_directory` facultatif | comme ②, plus `notification_mode: broker` |
+| **Configuration d'`Engine`** | `Engine`, depuis `centengine.cfg` | `Broker`, depuis `<N>.prot`, envoyée par `DiffState` ; `Engine` en garde une copie dans `state.prot` | comme ② |
+| **Décision de notification** | `Engine` | `Engine` | `Broker` décide ; le poller exécute (`pb_notification_execute`) |
+| **Downtimes, acquittements** | `Engine` | `Engine` | `Broker` |
+| **Commentaires** | créés par `Engine`, stockés en base par `Broker` | comme ① | créés et stockés par `Broker` |
+| **Downtimes BAM hérités** | BAM envoie `SCHEDULE_SVC_DOWNTIME` à `Engine` | comme ① | programmés directement dans `Broker` |
+| **État de check au redémarrage** | `retention.dat` | `RuntimeState` envoyé par `Broker` à la connexion ; `retention.dat` n'est lu qu'une fois, à la bascule depuis le legacy, puis renommé | comme ② |
+| **Downtimes au redémarrage** | `retention.dat` | `downtimes.prot`, écrit par `Engine` à côté de `state.prot` | `.cache` de `Broker` |
+| **Commandes externes** | tube d'`Engine`, ou `ExecuteExternalCommand` de `Broker` en BBDO 3, qui les route vers le poller | comme ① | par `Broker` : il exécute lui-même celles qu'il possède (downtimes, acquittements, commentaires, notifications) et route les autres |
+
+Quelques précisions :
+
+* `Broker` passe en central dès que `cache_config_directory` est positionné ; sans `pollers_config_directory`, il range les `<N>.prot` dans le sous-répertoire `pollers-configuration/` de son répertoire de cache. Sans aucun des deux, il est relais (voir [Remote Servers et configuration centralisée](#remote-servers-et-configuration-centralisée)).
+* `Engine` apprend le mode de notification à la négociation : le `Broker` auquel il se connecte renseigne `broker_handles_notifications` dans son `Welcome`. Derrière un relais, c'est donc le relais qui l'annonce : il doit porter la même valeur de `notification_mode` que le central.
+* La bascule de ① vers ② se fait poller par poller, en ajoutant `-p` à `Engine` (voir [Paramètres de démarrage d'Engine](#paramètres-de-démarrage-dengine)). Le passage de ② à ③ se fait d'un coup pour tous les pollers du central, puisque `notification_mode` est un paramètre de `Broker` (voir [Solution : le paramètre notification\_mode](#solution--le-paramètre-notification_mode)).
 
 ## La négociation
 
@@ -5641,6 +5648,13 @@ le message apparaît et que plus aucune tentative de lecture n'est faite.
 * le fichier n'est plus écrit : `retention::dump::save` retourne aussitôt, l'événement de sauvegarde périodique n'est plus programmé, et la commande externe `SAVE_STATE_INFORMATION` est ignorée avec un avertissement, comme `READ_STATE_INFORMATION`.
 
 Au premier démarrage centralisé, il n'y a pas encore de `state.prot` : `Engine` parse le `centengine.cfg` que lui passe le service packagé, les objets existent donc quand la rétention est appliquée, puis le `RuntimeState` de `Broker` est appliqué par-dessus, la base étant plus fraîche. Le critère du mode centralisé est la présence du répertoire `proto-conf`, le même que pour la lecture de `state.prot`. Cette lecture unique ne règle que la migration : les downtimes détenus par `Engine` ne sont toujours pas restaurés aux redémarrages suivants. `CERS8` couvre la bascule, et `CERS1` vérifie qu'un arrêt n'écrit plus le fichier.
+
+*Révisé le 2026-11-02 : les downtimes d'`Engine` dans un fichier à part.* Sans `retention.dat`, un `Engine` centralisé en `notification_mode=engine` perdait tous ses downtimes à chaque redémarrage : il les possède, et le snapshot de `Broker` ne les lui renvoie pas. Il les sauvegarde donc dans `downtimes.prot`, à côté de `state.prot` dans le répertoire `proto-conf` : un message `EngineDowntimes` (`bbdo/neb.proto`), liste de `Downtime`, sérialisé en binaire et non compressé, de cent à deux cents octets par downtime.
+
+* L'écriture se fait aux mêmes moments que celle de `retention.dat` en legacy, et sous la même condition `retain_state_information` : à l'arrêt, sur l'événement périodique de rétention et sur `SAVE_STATE_INFORMATION`. C'est `retention::dump::save` qui aiguille vers `retention::downtimes_file::save` en centralisé ; l'événement périodique est donc de nouveau programmé, et `SAVE_STATE_INFORMATION` n'est plus ignorée. Le fichier est écrit dans un temporaire puis renommé. Les downtimes que BAM pose sur les services virtuels de ses BA sont écartés, comme dans `retention.dat`. En `notification_mode=broker`, `Engine` ne possède aucun downtime et le fichier est vide.
+* La lecture se fait au démarrage, une fois la configuration appliquée et avant `initialize_downtime_data()`, au même moment que les downtimes de `retention.dat` en legacy. Les downtimes sont recréés par leurs identifiants comme le fait l'applier de rétention ; un downtime dont la ressource n'existe plus est écarté, ainsi qu'un downtime déjà connu, qu'un `retention.dat` lu à la bascule aurait apporté. La profondeur n'est pas sauvegardée : elle se reconstruit quand les downtimes recréés démarrent, sans double comptage puisque le snapshot ne la porte plus. `Engine` logue « Startup: N downtime(s) restored from '…' ».
+
+Le fichier est local au poller : il ne servira pas au Poller HA, qui demandera que `Broker` possède les downtimes. `CERS9` vérifie qu'un downtime survit à deux redémarrages avec une profondeur de 1, puis qu'il n'est plus restauré une fois supprimé ; `CERS8` vérifie qu'après la bascule le downtime venu de `retention.dat` passe dans `downtimes.prot` ; `CERS1` vérifie qu'un arrêt écrit `downtimes.prot` et pas `retention.dat`.
 
 ### Ce qui reste hors du snapshot
 
