@@ -24,6 +24,8 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/clear_host.hh"
 #include "com/centreon/engine/macros/clear_hostgroup.hh"
+#include "com/centreon/engine/macros/clear_service.hh"
+#include "com/centreon/engine/macros/clear_servicegroup.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/macros/grab.hh"
 #include "com/centreon/engine/macros/misc.hh"
@@ -476,6 +478,11 @@ int grab_host_macros_r(nagios_macros* mac, host* hst) {
   // Clear host-related macros.
   clear_host_macros_r(mac);
   clear_hostgroup_macros_r(mac);
+
+  // A service left by a previous use of the macros does not belong to this
+  // host context (service callers grab their service after their host).
+  clear_service_macros_r(mac);
+  clear_servicegroup_macros_r(mac);
 
   // Save pointer to host.
   mac->host_ptr = hst;
