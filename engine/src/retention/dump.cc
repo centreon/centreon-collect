@@ -26,6 +26,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/retention/downtimes_file.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_manager.hh"
 
@@ -480,12 +481,15 @@ std::ostream& dump::program(std::ostream& os) {
  *  @return True on success, otherwise false.
  */
 bool dump::save(std::string const& path) {
+  if (!pb_indexed_config.state().retain_state_information())
+    return true;
+
   /* In centralized configuration, Broker holds the runtime state and the
    * retention file is no longer written: it is only read once, when a poller
-   * switches from the legacy configuration (see main.cc). */
-  if (!pb_indexed_config.state().retain_state_information() ||
-      !proto_conf.empty())
-    return true;
+   * switches from the legacy configuration (see main.cc). Only the downtimes
+   * Engine owns are saved, Broker does not send them back. */
+  if (!proto_conf.empty())
+    return downtimes_file::save(proto_conf / "downtimes.prot");
 
   bool ret = false;
   try {

@@ -337,16 +337,15 @@ void applier::scheduler::_apply_misc_event() {
   }
 
   /* Remove and add a retention data save event if needed. In centralized
-   * configuration, the retention file is never written, so there is no
-   * event. */
-  const bool retain_state =
-      _pb_config->retain_state_information() && proto_conf.empty();
-  if ((!_evt_retention_save && retain_state) ||
-      (_evt_retention_save && !retain_state) ||
+   * configuration, the event saves the downtimes file instead of retention.dat
+   * (see retention::dump::save()). */
+  if ((!_evt_retention_save && _pb_config->retain_state_information()) ||
+      (_evt_retention_save && !_pb_config->retain_state_information()) ||
       (_old_retention_update_interval !=
        _pb_config->retention_update_interval())) {
     _remove_misc_event(_evt_retention_save);
-    if (retain_state && _pb_config->retention_update_interval() > 0) {
+    if (_pb_config->retain_state_information() &&
+        _pb_config->retention_update_interval() > 0) {
       unsigned long interval(_pb_config->retention_update_interval() * 60);
       _evt_retention_save = _create_misc_event(
           timed_event::EVENT_RETENTION_SAVE, now + interval, interval);

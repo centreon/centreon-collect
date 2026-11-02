@@ -56,6 +56,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
+#include "com/centreon/engine/retention/downtimes_file.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
 #include "com/centreon/engine/retention/state.hh"
@@ -141,7 +142,8 @@ void flush_startup_phases() {
  *
  * In centralized configuration, the runtime state of the resources comes from
  * Broker in the DiffState it sends at connection (RuntimeState), and Engine no
- * longer writes the retention file. A file still there is then the one left by
+ * longer writes the retention file; the downtimes it owns, that Broker does not
+ * send back, are saved apart (see retention::downtimes_file). A file still there is then the one left by
  * the legacy configuration of a poller that just switched to centralized: it is
  * read once, so that what Broker cannot know yet (downtimes owned by Engine,
  * notification state of Engine, anomalydetection sensitivities...) survives the
@@ -598,6 +600,13 @@ int main(int argc, char* argv[]) {
 
           // Initialize status data.
           initialize_status_data();
+
+          /* In centralized configuration, the downtimes Engine owns are not
+           * in retention.dat any more: they come from the downtimes file,
+           * recreated here as the retention ones are, before the downtime
+           * data is initialized. */
+          if (!proto_conf.empty())
+            retention::downtimes_file::restore(proto_conf / "downtimes.prot");
 
           // Initialize scheduled downtime data.
           downtimes::downtime_manager::instance().initialize_downtime_data();

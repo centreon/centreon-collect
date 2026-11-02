@@ -616,6 +616,16 @@ message Downtime {
   uint64 comment_id = 19;
 }
 
+/* Not a BBDO event: the downtimes an Engine in centralized configuration owns
+ * (notification_mode=engine). Engine no longer writes retention.dat in that
+ * configuration and the runtime state Broker sends back does not carry them,
+ * so Engine saves them in <proto_conf>/downtimes.prot and reads them at its
+ * next start. */
+/* Ignore */
+message EngineDowntimes {
+  repeated Downtime downtimes = 1;
+}
+
 /* io::neb, neb::de_pb_custom_variable, 13 */
 message CustomVariable {
   enum VarType {
