@@ -258,7 +258,10 @@ Ctn Stop Processes
     Ctn Broker Config Reset
 
 Ctn Start Engine
-    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False    ${with_extended_conf}=False    ${no_module_check}=False
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False    ${with_extended_conf}=False    ${no_module_check}=False    ${with_legacy_cfg}=False
+    # with_legacy_cfg: in newGeneration, also give centengine its centengine.cfg, as
+    # the packaged service does. Without state.prot (first centralized start, e.g. a
+    # poller switching from the legacy configuration), Engine then starts on it.
     ${count}    Ctn Get Engines Count
     # Safety: centengine loads the cbmod (broker module) from central-module*.json.
     # If a test forgets "Ctn Config Broker module", centengine would silently use a
@@ -276,6 +279,10 @@ Ctn Start Engine
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
+        @{legacy_cfg}    Create List
+        IF    ${with_legacy_cfg}
+            @{legacy_cfg}    Create List    ${conf}
+        END
         ${log}    Catenate    SEPARATOR=    ${ENGINE_LOG}    /config    ${idx}
         ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
         Create Directory    ${log}
@@ -300,9 +307,9 @@ Ctn Start Engine
         END
         IF    ${newGeneration}
 	    IF    ${with_extended_conf}
-                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    --extended-config\=/tmp/centengine_extend.json    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    --extended-config\=/tmp/centengine_extend.json    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    @{legacy_cfg}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
 	    ELSE
-                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    @{legacy_cfg}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
 	    END
         ELSE
 	    IF    ${with_extended_conf}
