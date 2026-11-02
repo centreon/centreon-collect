@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/broker/neb/cbmod.hh"
+#include "com/centreon/broker/neb/cbmod_config.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -426,5 +427,19 @@ void cbmod::set_diff_state_applied(const std::string& config_version) {
  */
 bool cbmod::centralized_conf() const {
   return _centralized_conf;
+}
+
+/**
+ * @brief Read the BBDO version set in a cbmod configuration file, without
+ * creating cbmod. Engine needs it before cbmod is created, to refuse -p with
+ * BBDO 2.
+ *
+ * @param config_file The cbmod configuration file (-b).
+ *
+ * @return The BBDO version, the default one if the file does not set it.
+ */
+bbdo::bbdo_version cbmod_config_bbdo_version(const std::string& config_file) {
+  config::parser p;
+  return p.parse(config_file).get_bbdo_version();
 }
 }  // namespace com::centreon::broker::neb

@@ -36,6 +36,7 @@ namespace po = boost::program_options;
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 
+#include "com/centreon/broker/neb/cbmod_config.hh"
 #include "com/centreon/common/deferred_dlclose.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
@@ -191,6 +192,32 @@ void read_retention_file(const std::string& path, retention::state& state) {
           "and renamed to '{}'",
           path, migrated);
   }
+}
+
+/**
+ * @brief Make sure the cbmod configuration allows the centralized
+ * configuration asked by -p.
+ *
+ * With BBDO 2, the negotiation goes through a version_response and not a
+ * Welcome: Broker never sends a DiffState nor the runtime state. Engine would
+ * however behave as centralized on -p alone: it would read state.prot instead
+ * of its centengine.cfg, rename retention.dat after reading it once and only
+ * save its downtimes, losing everything else at each restart. So it refuses to
+ * start, before touching the retention file or state.prot.
+ *
+ * @param broker_config The cbmod configuration file (-b).
+ *
+ * @throw engine_error if the BBDO version of cbmod is lower than 3.
+ */
+void check_bbdo_version_for_proto_conf(const std::string& broker_config) {
+  uint16_t major =
+      com::centreon::broker::neb::cbmod_config_bbdo_version(broker_config)
+          .major_v;
+  if (major < 3)
+    throw engine_error() << fmt::format(
+        "Cannot start: -p (centralized configuration) requires BBDO 3 or "
+        "higher, but '{}' sets BBDO {}",
+        broker_config, major);
 }
 
 }  // namespace
@@ -545,6 +572,8 @@ int main(int argc, char* argv[]) {
                       << std::endl;
             exit(EXIT_FAILURE);
           }
+          if (!proto_conf.empty())
+            check_bbdo_version_for_proto_conf(broker_config);
           if (!port)
             port = generate_port();
 
