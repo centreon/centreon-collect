@@ -1054,6 +1054,15 @@ void processing::_wrapper_read_state_information() {
 }
 
 void processing::_wrapper_save_state_information() {
+  /* The retention file is no longer written in centralized configuration:
+   * Broker holds the runtime state. */
+  if (!proto_conf.empty()) {
+    SPDLOG_LOGGER_WARN(runtime_logger,
+                       "SAVE_STATE_INFORMATION ignored: in centralized "
+                       "configuration the runtime state is held by Broker, "
+                       "retention.dat is not written");
+    return;
+  }
   retention::dump::save(pb_indexed_config.state().state_retention_file());
 }
 

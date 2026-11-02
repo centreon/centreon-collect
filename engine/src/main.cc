@@ -133,6 +133,64 @@ void flush_startup_phases() {
   pending_startup_phases.clear();
 }
 
+/**
+ * @brief Read the retention file at startup.
+ *
+ * In legacy configuration, the file is read as it always was, a missing file
+ * being reported as an error.
+ *
+ * In centralized configuration, the runtime state of the resources comes from
+ * Broker in the DiffState it sends at connection (RuntimeState), and Engine no
+ * longer writes the retention file. A file still there is then the one left by
+ * the legacy configuration of a poller that just switched to centralized: it is
+ * read once, so that what Broker cannot know yet (downtimes owned by Engine,
+ * notification state of Engine, anomalydetection sensitivities...) survives the
+ * switch, and renamed with the ".migrated" suffix, so that it is never read
+ * again. The RuntimeState received later is applied over it, Broker being
+ * fresher. The file is renamed even if its parsing failed, a corrupted file
+ * would otherwise be read again at each startup; it is kept for diagnosis.
+ *
+ * At this stage, config_logger only writes to the standard output.
+ *
+ * @param path The retention file.
+ * @param state The retention state to fill.
+ */
+void read_retention_file(const std::string& path, retention::state& state) {
+  const bool centralized = !proto_conf.empty();
+  if (centralized) {
+    std::error_code ec;
+    if (path.empty() || !std::filesystem::exists(path, ec)) {
+      config_logger->info(
+          "Startup: centralized configuration, no retention file to read: "
+          "the runtime state comes from Broker");
+      return;
+    }
+  }
+
+  retention::parser p;
+  try {
+    p.parse(path, state);
+  } catch (const std::exception& e) {
+    config_logger->error("{}", e.what());
+  }
+
+  if (centralized) {
+    std::string migrated = fmt::format("{}.migrated", path);
+    std::error_code ec;
+    std::filesystem::rename(path, migrated, ec);
+    if (ec)
+      config_logger->error(
+          "Startup: centralized configuration, cannot rename the retention "
+          "file '{}' to '{}': {}",
+          path, migrated, ec.message());
+    else
+      config_logger->info(
+          "Startup: centralized configuration, retention file '{}' read once "
+          "and renamed to '{}'",
+          path, migrated);
+  }
+}
+
 }  // namespace
 
 /**
@@ -498,21 +556,8 @@ int main(int argc, char* argv[]) {
           phase_begin = log_startup_phase("rpc-server", phase_begin,
                                           startup_clock::now());
 
-          /* Parse retention in legacy configuration only. In centralized
-           * configuration the runtime state of the resources comes from Broker
-           * in the DiffState it sends at connection (RuntimeState). */
           retention::state state;
-          if (proto_conf.empty()) {
-            retention::parser p;
-            try {
-              p.parse(new_conf->state_retention_file(), state);
-            } catch (const std::exception& e) {
-              config_logger->error("{}", e.what());
-            }
-          } else
-            config_logger->info(
-                "Startup: centralized configuration, retention.dat is not "
-                "read: the runtime state comes from Broker");
+          read_retention_file(new_conf->state_retention_file(), state);
           phase_begin =
               log_startup_phase("retention", phase_begin, startup_clock::now());
 
