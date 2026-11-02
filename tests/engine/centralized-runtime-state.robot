@@ -14,7 +14,7 @@ CERS1
     [Documentation]    Scenario: an Engine restarted without retention.dat gets its resources state back from Broker
     ...    Given Broker and Engine are started in centralized configuration, with passive services
     ...    And service_1 of host_1 is CRITICAL HARD
-    ...    When Engine is stopped, without writing any retention.dat, and started again
+    ...    When Engine is stopped, without writing any retention.dat but only its downtimes file, and started again
     ...    Then Broker, finding the poller up to date, sends it its runtime state alone
     ...    And Engine restores the state of its hosts and services from that snapshot
     ...    And service_1 gets back its check output, but not its long output
@@ -56,6 +56,8 @@ CERS1
     Ctn Stop Engine
     File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
     ...    Engine should not write retention.dat in centralized configuration
+    File Should Exist    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot
+    ...    Engine should save the downtimes it owns apart, in downtimes.prot
     ${restart}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True
     Ctn Wait For Engine To Be Ready    ${restart}    ${1}
@@ -478,8 +480,8 @@ CERS8
     ...    When the poller switches to the centralized configuration and Engine starts with its centengine.cfg, as the packaged service does
     ...    Then Engine reads retention.dat once and renames it retention.dat.migrated
     ...    And service_1 is still in downtime, which only retention.dat could tell
-    ...    And Engine ignores SAVE_STATE_INFORMATION and writes no retention.dat, even when stopped
-    ...    And at its next start, Engine has no retention file to read
+    ...    And SAVE_STATE_INFORMATION, as stopping Engine, saves the downtime in downtimes.prot but writes no retention.dat
+    ...    And at its next start, Engine has no retention file to read but gets the downtime of service_1 back from downtimes.prot
     [Tags]    engine    broker    centralized    retention    MON-187019
     Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    central
@@ -543,24 +545,94 @@ CERS8
     Should Be True    ${result}    Broker should receive the acknowledgement of the first diff state
     Service 1 Downtime Depth Should Be    ${1}
 
-    # In centralized configuration, Engine never writes retention.dat.
-    ${now}    Ctn Get Round Current Date
+    # In centralized configuration, Engine never writes retention.dat: only
+    # the downtimes it owns are saved, in downtimes.prot.
+    File Should Not Exist    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot
     Ctn Send External Command    SAVE_STATE_INFORMATION
-    ${content}    Create List    SAVE_STATE_INFORMATION ignored
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${now}    ${content}    30
-    Should Be True    ${result}    Engine should ignore SAVE_STATE_INFORMATION in centralized configuration
+    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot    30s
     File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
     Ctn Stop Engine
     File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
     ...    Engine should not write retention.dat when stopped in centralized configuration
 
-    # The renamed file is never read again.
+    # The renamed file is never read again, the downtime comes from
+    # downtimes.prot.
     ${restart}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True    with_legacy_cfg=True
     Ctn Wait For Engine To Be Ready    ${restart}    ${1}
     ${content}    Create List    no retention file to read: the runtime state comes from Broker
     ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    30
     Should Be True    ${result}    Engine should not read retention.dat.migrated again
+    ${content}    Create List    Startup: 1 downtime(s) restored from
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    30
+    Should Be True    ${result}    Engine should restore the downtime from downtimes.prot
+    Wait Until Keyword Succeeds    30s    2s    Service 1 Downtime Depth Should Be    ${1}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS9
+    [Documentation]    Scenario: in centralized configuration, the downtimes Engine owns survive its restarts
+    ...    Given Broker and Engine are started in centralized configuration, notification_mode being engine
+    ...    And service_1 of host_1 is in a fixed downtime held by Engine
+    ...    When Engine is stopped and started again, twice
+    ...    Then each time Engine restores the downtime from downtimes.prot
+    ...    And the downtime depth of service_1 is still 1, the depth being rebuilt and not counted twice
+    ...    And once the downtime is deleted, a restart restores no downtime anymore
+    [Tags]    engine    broker    centralized    retention    downtime    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    Ctn Clear Db    downtimes
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Fixed, so that it starts at once (a flexible one waits for a problem).
+    ${now}    Evaluate    int(time.time())    modules=time
+    ${end}    Evaluate    ${now} + 3600
+    Ctn Send External Command    SCHEDULE_SVC_DOWNTIME;host_1;service_1;${now};${end};1;0;3600;admin;fixed downtime
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${1}
+
+    FOR    ${i}    IN RANGE    2
+        Ctn Stop Engine
+        File Should Exist    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot
+        ...    Engine should save its downtimes in downtimes.prot when stopped
+        ${restart}    Ctn Get Round Current Date
+        Ctn Start Engine    newGeneration=True
+        Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+        ${content}    Create List    Startup: 1 downtime(s) restored from
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    30
+        Should Be True    ${result}    Engine should restore the downtime from downtimes.prot
+        # The snapshot Broker sends must not change the depth.
+        ${content}    Create List    services restored from the Broker snapshot
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+        Should Be True    ${result}    Engine should apply the Broker snapshot
+        Wait Until Keyword Succeeds    30s    2s    Service 1 Downtime Depth Should Be    ${1}
+    END
+
+    # Once deleted, the downtime is not restored anymore.
+    Ctn Delete Service Downtime Full    ${0}    host_1    service_1
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${0}
+    Ctn Stop Engine
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    Startup: 0 downtime(s) restored from
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    30
+    Should Be True    ${result}    Engine should restore no downtime once it is deleted
+    Service 1 Downtime Depth Should Be    ${0}
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 

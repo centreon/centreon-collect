@@ -696,6 +696,9 @@ def ctn_clear_retention():
     getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
     getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
+    # The retention of the downtimes an Engine owns in centralized
+    # configuration.
+    getoutput(f"find {VAR_ROOT} -name 'downtimes.prot' -delete")
 
 
 def ctn_clear_cache():
@@ -3315,10 +3318,10 @@ def ctn_clear_prot_files(broker_only: bool = False):
     """
     Remove .prot files in /tmp directory.
     If broker_only is True, only remove broker prot files (i.e. files named
-    <ID>.prot), leaving Engine's state.prot files untouched.
+    <ID>.prot), leaving Engine's state.prot and downtimes.prot files untouched.
     """
     for file in Path('/tmp').rglob('*.prot'):
-        if broker_only and file.name == 'state.prot':
+        if broker_only and file.name in ('state.prot', 'downtimes.prot'):
             continue
         file.unlink()
 
