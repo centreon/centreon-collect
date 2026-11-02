@@ -4,10 +4,16 @@ Négociation entre Engine et Broker
 <!-- TOC -->
 * [Négociation entre Engine et Broker](#négociation-entre-engine-et-broker)
 * [Introduction](#introduction)
+  * [D'où l'on part](#doù-lon-part)
+  * [Ce qui existe aujourd'hui](#ce-qui-existe-aujourdhui)
+  * [Où l'on va](#où-lon-va)
+  * [Plan du document](#plan-du-document)
 * [Nouvelle négociation](#nouvelle-négociation)
   * [`cbmod` devient une librairie](#cbmod-devient-une-librairie)
-  * [Nouveaux paramètres pour Engine/cbmod](#nouveaux-paramètres-pour-enginecbmod)
-  * [Nouveaux paramètres pour Broker](#nouveaux-paramètres-pour-broker)
+  * [Paramètres de démarrage d'Engine](#paramètres-de-démarrage-dengine)
+  * [Paramètres de Broker](#paramètres-de-broker)
+    * [Le répertoire de cache PHP](#le-répertoire-de-cache-php)
+    * [Le répertoire des configurations des pollers](#le-répertoire-des-configurations-des-pollers)
   * [Vue d'ensemble : qui gère quoi, selon la configuration](#vue-densemble--qui-gère-quoi-selon-la-configuration)
   * [La négociation](#la-négociation)
     * [Nouvelle fonctionnalité de Broker](#nouvelle-fonctionnalité-de-broker)
@@ -39,7 +45,7 @@ Négociation entre Engine et Broker
     * [Portée et feuille de route](#portée-et-feuille-de-route)
     * [Ordre de portage recommandé](#ordre-de-portage-recommandé)
     * [Analyse : porter les checks de `resolve()` sur le `State`](#analyse--porter-les-checks-de-resolve-sur-le-state)
-    * [Ce qu'`expand()` couvre déjà (et ce qui reste à porter)](#ce-quexpand-couvre-déjà-et-ce-qui-reste-à-porter)
+    * [Ce qu'`expand()` couvre et ce que `resolve()` complète](#ce-quexpand-couvre-et-ce-que-resolve-complète)
     * [Passer d'un throw précoce à une accumulation](#passer-dun-throw-précoce-à-une-accumulation)
   * [Calcul de la différence](#calcul-de-la-différence)
   * [Écriture de la configuration en base de données](#écriture-de-la-configuration-en-base-de-données)
@@ -153,6 +159,9 @@ Négociation entre Engine et Broker
       * [Champ timestamp : heure d'insertion, pas heure de collecte](#champ-timestamp--heure-dinsertion-pas-heure-de-collecte)
       * [Perte de connexion : `nack_events()`](#perte-de-connexion--nack_events)
   * [BAM : lecture de l'état des downtimes depuis le cache Broker](#bam--lecture-de-létat-des-downtimes-depuis-le-cache-broker)
+    * [Ce que suit le cache](#ce-que-suit-le-cache)
+    * [Ce que fait BAM aujourd'hui](#ce-que-fait-bam-aujourdhui)
+    * [Ce qui reste](#ce-qui-reste)
   * [Implémentation de notification\_mode = broker sur zones mono-poller](#implémentation-de-notification_mode--broker-sur-zones-mono-poller)
     * [Endpoints gRPC BrokerRpc](#endpoints-grpc-brokerrpc)
     * [Inherited downtimes via BrokerRpc](#inherited-downtimes-via-brokerrpc)
@@ -210,131 +219,124 @@ Négociation entre Engine et Broker
 
 # Introduction
 
-Actuellement, deux bases de données tournent sur le central. La base de
-configuration et la base temps réel. La première permet au php de
-générer la configuration d’engine. Une fois cette configuration créée,
-elle est transmise aux pollers par gorgone.
+Ce document décrit comment `Engine` et `Broker` coopèrent en BBDO 3 depuis l'arrivée de la **configuration centralisée**, et comment cette base prépare le **Poller HA**.
 
-Chaque poller lit sa configuration et commence par l’envoyer à Broker,
-qui au fil de l’eau prépare la base temps réel pour accepter par la
-suite la supervision.
+## D'où l'on part
 
-Nous aimerions arrêter ces aller-retours entre `Engine` et Broker.
-L’idée serait plutôt qu’`Engine` se connecte à Broker, qu’il dise la
-configuration qu’il connaît et que si besoin `Broker` lui transmette une
-mise à jour.
+À l'origine, PHP générait la configuration de chaque poller à partir de la base de configuration, et Gorgone la déposait sur le poller. À chaque démarrage, `Engine` lisait son `centengine.cfg` puis renvoyait toute sa configuration à `Broker`, qui s'en servait pour préparer la base temps réel. `Engine` était aussi le seul à détenir l'état d'exécution : état des checks, downtimes, commentaires, acquittements, notifications. Cet état était sauvegardé dans un `retention.dat` propre à chaque poller. Une ressource était donc liée à son poller, et le central ne savait rien qu'on ne lui ait d'abord envoyé.
+
+## Ce qui existe aujourd'hui
+
+Deux régimes coexistent. Le choix se fait par poller (voir [Vue d'ensemble : qui gère quoi](#vue-densemble--qui-gère-quoi-selon-la-configuration)) :
+
+* **legacy** : rien ne change par rapport à la situation historique ;
+* **centralisé** (BBDO ≥ 3, `cache_config_directory`, `Engine` lancé avec `-p`). `Broker` possède la configuration des pollers :
+  * PHP écrit la configuration de chaque poller dans un répertoire et l'annonce par un fichier `.lck` ;
+  * `Broker` la lit, la valide, y compris les dépendances entre pollers, et la conserve sous forme sérialisée dans `<ID>.prot` ;
+  * il calcule la différence et l'envoie à `Engine` sous forme de `DiffState` ;
+  * `Engine` l'applique et en garde une copie dans `state.prot`.
+
+  Si des pollers sont rattachés à un remote server, le `Broker` de ce dernier sert de relais et transmet ces échanges vers le central.
+
+`Broker` est ainsi devenu le dépositaire de l'état. Son cache global (`broker_cache`), persisté sur disque, connaît toutes les ressources de tous les pollers. À la connexion d'`Engine`, `Broker` lui renvoie son état d'exécution (`RuntimeState`), qui remplace `retention.dat`. Avec `notification_mode = broker`, `Broker` possède en plus les downtimes, les acquittements, les commentaires et la décision de notification. Les commandes externes peuvent passer par `Broker`, qui les route vers le bon poller. BAM tourne dans `Broker` et se recharge quand la configuration change.
+
+## Où l'on va
+
+Tous ces travaux sont les prérequis du Poller HA. Le premier jalon est une redondance actif/passif à placement statique. `Broker` reste un point de défaillance unique pour ce jalon, c'est un choix assumé. L'architecture cible est décrite dans [Architecture cible — vers la HA des pollers](./ha-target-architecture-fr.md).
+
+## Plan du document
+
+| Chapitre | Contenu |
+|---|---|
+| [Nouvelle négociation](#nouvelle-négociation) | `cbmod` en librairie, paramètres, échange `Welcome` |
+| [Lecture de la configuration Engine](#lecture-de-la-configuration-engine) | envoi des diffs, validation, `CheckPollerConfig`, écriture en base |
+| [Cache centralisé Broker](#cache-centralisé-broker) | alimentation, persistance, mode legacy |
+| [Rétention et stream RRD](#rétention-et-stream-rrd) | reprise d'une longue rétention sans bloquer le temps réel |
+| [Remote Servers](#remote-servers-et-configuration-centralisée) | relais, topologie, migration d'un poller entre remotes |
+| [Downtimes et acquittements](#gestion-centralisée-des-downtimes-et-acquittements) | `notification_mode`, notification décidée par `Broker` |
+| [BAM dans Broker](#bam-dans-broker) | fonctionnement actuel dans les deux régimes |
+| [Travaux préparatoires](#travaux-préparatoires-avant-le-poller-ha) | les cinq prérequis au HA, dont l'élimination de `retention.dat` |
+| [Poller HA](#poller-ha) | zones, affectation, distribution, rééquilibrage |
 
 # Nouvelle négociation
 
-Nous ne pouvons pas casser tout le comportement actuel, les changements doivent être
-faits *étape par étape*.
-
-L’étape ici est de faire évoluer la négociation entre les deux
-programmes.
-
-`Engine` parle réseau car il est lié à `cbmod`. `Cbmod` n’a pas accès
-directement au code d’`Engine`, il ne connaît que ce qu’il lui transmet.
-Ceci est problématique parce que, par exemple, `cbmod` ne connaît pas le
-répertoire de configuration d’`Engine`.
+Ce chapitre décrit la négociation qui ouvre chaque connexion entre `Engine` et `Broker`, et ce qu'il a fallu changer côté `Engine` pour la rendre possible.
 
 ## `cbmod` devient une librairie
 
-Les soucis rencontrés sur `cbmod` peuvent être réduits en le
-transformant en librairie. Cela permettrait à `Engine` de l’utiliser
-directement et de lui transmettre les informations nécessaires beaucoup
-plus facilement.
+`cbmod` est la partie de `Broker` qui tourne dans le processus `Engine` : c'est lui qui ouvre la connexion vers `Broker`, mène la négociation et transforme les événements d'`Engine` en messages BBDO.
 
-Un des impacts à cela est que le paramètre passé à `cbmod` est
-maintenant directement passé à `Engine` avec l’option `-b` suivie du
-fichier de paramétrage `Broker`. On peut aussi fournir cette information
-directement dans le fichier de configuration `Engine` avec la clé
-`broker_module_cfg_file`. Enfin, suite à des soucis avec le traitement
-des anciennes versions d’`Engine`, il est toujours possible de garder
-l’ancien format de déclaration de module pour `cbmod`. Un message de
-dépréciation est écrit dans les logs, mais ça fonctionne.
+**Avant.** `cbmod` était un module NEB comme les autres, chargé par `dlopen` à partir d'une ligne `broker_module=/usr/lib64/nagios/cbmod.so /etc/centreon-broker/central-module.json` de `centengine.cfg`. `Engine` et lui ne communiquaient que par les callbacks NEB : `Engine` publiait des structures `nebstruct_*`, et `cbmod` ne savait rien d'`Engine` au-delà de ce qu'elles contenaient. Il ignorait par exemple le répertoire de configuration d'`Engine`. Le canal était aussi pensé à sens unique, d'`Engine` vers `cbmod`.
 
-## Nouveaux paramètres pour Engine/cbmod
+**Ce qui nous a motivés.** La configuration centralisée a besoin des deux sens. Pour négocier, `cbmod` doit connaître le répertoire de configuration d'`Engine` et la version de la configuration appliquée. En retour, `Engine` doit récupérer les `DiffState` envoyés par `Broker` pour les appliquer dans sa boucle principale. Faire passer tout cela par les callbacks NEB aurait demandé un nouveau type d'événement à chaque besoin.
 
-Actuellement, depuis la modification de `cbmod`, `Engine` démarre avec
-essentiellement deux paramètres, de la façon suivante :
+**Aujourd'hui.** `cbmod` est une librairie partagée (`cbmod.so`) liée directement à `centengine`. `Engine` crée lui-même l'objet `cbmod` au démarrage, une fois sa configuration appliquée, en lui passant le fichier de paramétrage `Broker`, le répertoire `proto-conf` et la version de sa configuration. Ensuite, les deux s'appellent directement : `Engine` transmet ses événements par `cbmod::write()`, et sa boucle principale vient chercher auprès de `cbmod` ce que `Broker` lui a envoyé (`diff_state()`, notifications à exécuter, commandes externes). Cette voie de retour sert aujourd'hui à la configuration centralisée, aux notifications décidées par `Broker` et aux commandes externes passées par `Broker`.
 
-`centengine -b /etc/centreon-broker/central-module.json /etc/centreon-engine/centengine.cfg`
+Le fichier de paramétrage `Broker` se donne à `Engine` par l'option `-b`, ou par la clé `broker_module_cfg_file` de `centengine.cfg`. L'ancienne déclaration `broker_module=…/cbmod.so <fichier>` reste acceptée pour ne pas casser les configurations existantes : `Engine` en extrait le fichier de paramétrage (si `broker_module_cfg_file` est vide), refuse de charger le module et écrit un avertissement de dépréciation dans ses logs.
 
-Nous allons remplacer progressivement l’utilisation du répertoire
-`/etc/centreon-engine` par `/var/lib/centreon-engine` pour
-qu’`Engine` en soit maître puisque ce répertoire est son `HOME`. C’est
-lui qui écrira le fichier de configuration et qui le lira aussi. Ce
-fichier n’est pas forcément présent, s’il l’est `Engine` peut démarrer
-avec mais s’il ne l’est pas il va récupérer sa configuration et donc son
-contenu au moment de la négociation avec `Broker`. Enfin, on ne précise
-pas le nom du fichier, c’est `Engine` qui le détermine. Le seul point
-important est le répertoire de travail.
+## Paramètres de démarrage d'Engine
 
-Au final, si nous voulons garder deux manières de fonctionner pour
-`Engine`, nous avons les deux cas suivants :
+**Avant.** `Engine` démarrait avec un seul argument, son fichier de configuration : `centengine /etc/centreon-engine/centengine.cfg`. Le fichier de paramétrage de `cbmod` était indiqué dans ce `centengine.cfg`, sur la ligne `broker_module`.
 
--   Avec `-p /var/lib/centreon-engine` : nous sommes dans la nouvelle
-    génération où `Engine` récupère sa configuration lors de la
-    négociation avec `Broker`;
+**Aujourd'hui.** La ligne de commande est la suivante :
 
--   Avec `/etc/centreon-engine/centengine.cfg` : nous sommes dans
-    l’ancienne génération où `Engine` lit sa configuration dans un
-    fichier `cfg`.
+`centengine -b /etc/centreon-broker/central-module.json [-p /var/lib/centreon-engine] [/etc/centreon-engine/centengine.cfg]`
 
-Les deux situations ne sont pas incompatibles, on peut imaginer
-qu’`Engine` lit sa configuration dans un fichier `cfg` et qu’il la
-mette à jour lors de la négociation avec `Broker`. Ça peut être utile
-pendant la transition *ancienne génération* → *nouvelle génération*.
+* `-b` donne le fichier de paramétrage `Broker` de `cbmod` (voir la section précédente) ;
+* `-p` donne le répertoire de travail de la configuration centralisée, en pratique `/var/lib/centreon-engine`, le `HOME` d'`Engine`. `Engine` en est le seul maître : il y écrit `state.prot`, la copie sérialisée de la configuration qu'il vient d'appliquer, à chaque application, complète ou différentielle. Le nom du fichier est fixé par `Engine`, seul le répertoire se paramètre ;
+* le dernier argument est le `centengine.cfg` historique. Il est facultatif avec `-p`.
 
-Pour résumer, on a le comportement suivant :
+Les options `-c` (configuration étendue) et `-l` (fichier de log) sont indépendantes de ce mécanisme.
+
+`-p` active la configuration centralisée, à condition que `cbmod` parle BBDO 3 ou plus (voir [Vue d'ensemble : qui gère quoi](#vue-densemble--qui-gère-quoi-selon-la-configuration)). Sans `-p`, `Engine` fonctionne comme avant : il lit son `centengine.cfg` et ne reçoit aucune configuration de `Broker`.
+
+Au démarrage avec `-p`, `Engine` choisit sa configuration initiale ainsi :
+
+1. si `state.prot` existe, il le lit. C'est la dernière configuration reçue de `Broker`, déjà validée par lui : elle n'est pas revérifiée ;
+2. sinon, il parse le `centengine.cfg` passé en argument. C'est le premier démarrage d'un poller qui passe en configuration centralisée : il démarre sur sa configuration historique, puis `Broker` lui envoie la différence lors de la négociation. C'est aussi à ce moment qu'il lit une dernière fois son `retention.dat` (voir [Prérequis 5 : élimination de `retention.dat`](#prérequis-5--élimination-de-retentiondat)) ;
+3. s'il n'a ni l'un ni l'autre, `Engine` démarre sans aucun objet et attend que `Broker` lui envoie sa configuration.
+
+Dans les trois cas, la négociation qui suit met `Engine` à jour : `Broker` compare la version annoncée par `Engine` à la sienne et lui envoie un `DiffState` si elles diffèrent.
 
 ```mermaid
-stateDiagram-v2
-    State1: L'argument -p a été spécifié
-    State2: Le fichier centengine.cfg est spécifié
-    Conclusion1: Configuration centralisée activée
-    NotConclusion1: Configuration centralisée désactivée
-    Conclusion2: La configuration de démarrage est lue directement dans centengine.cfg
-    NotConclusion2: Pas de lecture de centengine.cfg
-    state if_state <<choice>>
-    [*] --> State1
-    State1 --> if_state
-    if_state --> Conclusion1: True
-    if_state --> NotConclusion1: False
-    state if_state2 <<choice>>
-    Conclusion1 --> State2
-    NotConclusion1 --> State2
-    State2 --> if_state2
-    if_state2 --> Conclusion2: True
-    if_state2 --> NotConclusion2: False
-    Conclusion2 --> [*]
-    NotConclusion2 --> [*]
+flowchart TD
+    A{"-p fourni ?"} -- non --> L["Legacy : lecture de centengine.cfg,<br/>aucune configuration reçue de Broker"]
+    A -- oui --> B{"state.prot présent<br/>dans le répertoire -p ?"}
+    B -- oui --> S["Lecture de state.prot"]
+    B -- non --> C{"centengine.cfg fourni ?"}
+    C -- oui --> P["Parse de centengine.cfg<br/>(premier démarrage centralisé)"]
+    C -- non --> E["Démarrage sans objet"]
+    S --> N["Négociation avec Broker :<br/>DiffState si les versions diffèrent"]
+    P --> N
+    E --> N
 ```
 
-## Nouveaux paramètres pour Broker
+## Paramètres de Broker
 
-> Pour le volet PHP de ces paramètres — lesquels les formulaires de configuration web
-> doivent exposer, et comment les commandes externes passent à gRPC — voir
-> [Évolutions PHP](./php-evolutions-fr.md).
+> Pour le volet PHP de ces paramètres — lesquels les formulaires de configuration web doivent exposer, et comment les commandes externes passent à gRPC — voir [Évolutions PHP](./php-evolutions-fr.md).
 
-`Broker` a deux nouveaux paramètres que l’on retrouve dans son fichier
-de configuration qui sont :
+La configuration centralisée repose sur deux paramètres du fichier de configuration de `Broker` :
 
--   `cache_config_directory` - le répertoire de cache php, c’est-à-dire
-    le répertoire dans lequel la configuration envoyée par le php est
-    écrite.
+* `cache_config_directory` : le répertoire de cache PHP, c'est-à-dire le répertoire dans lequel PHP écrit la configuration des pollers ;
+* `pollers_config_directory` : le répertoire dans lequel `Broker` maintient les configurations des pollers.
 
--   `pollers_config_directory` - le répertoire des configurations poller
-    qu’il va désormais maintenir.
+En BBDO 3, `Broker` passe en configuration centralisée dès que `cache_config_directory` est fourni. `pollers_config_directory` est alors facultatif : sans lui, `Broker` utilise le sous-répertoire `pollers-configuration/` de son répertoire de cache. Si aucun des deux n'est fourni, `Broker` est un relais : il transmet les demandes de configuration de ses pollers en amont (voir [Remote Servers et configuration centralisée](#remote-servers-et-configuration-centralisée)).
 
-Le premier répertoire contient des sous-répertoires dont les noms sont
-des entiers représentant l’ID du poller. Chacun de ces répertoires
-contient la configuration de l’`Engine` installé dessus. Au même niveau
-que chacun de ces répertoires, on trouve aussi un fichier vide nommé
-avec l’ID du poller dont l’extension est `.lck` , qui est mis à jour
-seulement une fois le répertoire concerné mis à jour.
+### Le répertoire de cache PHP
 
-Un exemple de répertoire pour `cache_config_directory` :
+Il contient un sous-répertoire par poller, dont le nom est l'ID du poller. Chacun contient la configuration de l'`Engine` installé sur ce poller, sous la forme de fichiers `.cfg`. `Broker` la parse, la valide et la conserve dans le second répertoire.
+
+PHP annonce une nouvelle configuration à `Broker` de deux façons possibles.
+
+**Un fichier `<N>.lck` par poller.** C'est le premier fonctionnement introduit : dès que PHP a fini de mettre à jour le répertoire du poller `<N>`, il touche le fichier vide `<N>.lck` associé, placé au même niveau que les répertoires. `Broker` surveille ce fichier et, dès qu'il est notifié, prend en considération la nouvelle configuration écrite dans le répertoire.
+
+**Un fichier `pollers.lck` pour tout l'export.** C'est le fonctionnement qui devrait être choisi par défaut, beaucoup plus judicieux quand l'utilisateur pousse les configurations de plusieurs pollers. PHP écrit les répertoires `<N>` des pollers, puis, une fois terminé, écrit un fichier `pollers.lck` contenant la liste des IDs des pollers poussés, un par ligne. `Broker` surveille ce fichier : il est notifié et prend en considération toutes les nouvelles configurations en une fois.
+
+L'intérêt de `pollers.lck` par rapport à plusieurs fichiers `<N>.lck` concerne les déplacements d'objets d'un poller à l'autre. Avec `pollers.lck`, `Broker` est informé de tous les changements en une seule fois, tandis qu'avec plusieurs `<N>.lck`, il peut momentanément considérer un déplacement de ressource comme une suppression, voire comme un ajout en double. Pour éviter ce genre de souci, des systèmes de timer ont été introduits, qui compliquent inutilement le code de `Broker`.
+
+Il n'existe qu'un seul `pollers.lck` pour toute la plateforme : `Broker` le lit au début de son cycle de traitement et le supprime à la fin. PHP doit donc attendre sa disparition avant d'en écrire un nouveau, sinon la suppression qui clôt le cycle en cours emporte la nouvelle annonce.
+
+Un exemple de répertoire `cache_config_directory`, avec les deux formes d'annonce :
 
 * cache:
   * 1
@@ -347,20 +349,13 @@ Un exemple de répertoire pour `cache_config_directory` :
     * services.cfg
     * etc...
   * 2.lck
+  * pollers.lck
 
-Le principe est le suivant, dès que le php termine de mettre à jour un
-répertoire pour un poller, il touche le fichier `lck` associé. Ce dernier est
-écouté par `Broker` et dès qu’il est notifié il prend en considération
-la nouvelle configuration écrite dans le répertoire.
+### Le répertoire des configurations des pollers
 
-Pour le second répertoire, `Broker` l’utilise pour gérer l’ensemble des
-configurations des pollers. Ce répertoire contient déjà toutes les
-configurations des pollers sous la forme Protobuf sérialisée.
+`Broker` y conserve la configuration de chaque poller, sérialisée en Protobuf dans `<N>.prot`. C'est à partir de ces fichiers qu'il calcule les différences à envoyer aux `Engine`.
 
-À partir du moment où le répertoire de cache php est fourni,
-`Broker` considère qu’il est en nouvelle génération.
-
-Un exemple de répertoire `pollers_config_directory`:
+Un exemple de répertoire `pollers_config_directory` :
 
 * pollers-configuration:
   * 1.prot
@@ -373,8 +368,8 @@ pilotée par son propre paramètre — les deux choix sont **indépendants** :
 
 | Responsabilité | Paramètre(s) | Où ça vit |
 |---|---|---|
-| **Configuration Engine** | `bbdo_version` (≥ 3) + `cache_config_directory` (Broker) + Engine démarré avec `-p /var/lib/centreon-engine` | Si tout est positionné → **Broker** possède la configuration Engine (centralisée : il en calcule le diff et envoie un `DiffState` à Engine). Sinon → **Engine** lit son propre `centengine.cfg` (legacy). |
-| **Rôle de Broker** (uniquement en centralisé) | `pollers_config_directory` (Broker) | Positionné → **central** (possède les `.prot`). Vide → **relais** (transmet les demandes de config en amont). |
+| **Configuration Engine** | `bbdo_version` (≥ 3) + `Engine` démarré avec `-p /var/lib/centreon-engine` | Les deux → **`Broker`** possède la configuration `Engine` (centralisée : il en calcule le diff et envoie un `DiffState` à `Engine`). Sinon → **`Engine`** lit son propre `centengine.cfg` (legacy). |
+| **Rôle de Broker** (uniquement en BBDO ≥ 3) | `cache_config_directory`, `pollers_config_directory` (`Broker`) | L'un des deux positionné → **central** (possède les `.prot` ; sans `pollers_config_directory`, ils sont dans le sous-répertoire `pollers-configuration/` de son répertoire de cache). Aucun → **relais** (transmet les demandes de config en amont). |
 | **Downtimes** | `notification_mode` (Broker) | `broker` → **Broker** gère les downtimes (charge le `downtime_manager` ; les inherited downtimes BAM sont programmés dans Broker ; Broker est seul écrivain de `scheduled_downtime_depth`). Toute autre valeur / absent (défaut `engine`) → **Engine** gère les downtimes (BAM envoie `SCHEDULE_SVC_DOWNTIME` à Engine). |
 
 ```mermaid
@@ -384,9 +379,9 @@ flowchart TD
 
     subgraph CONF["Configuration Engine — qui la possède"]
         direction TB
-        Q1{"BBDO ≥ 3.0<br/>ET cache_config_directory (Broker) positionné<br/>ET Engine démarré avec -p ?"}
+        Q1{"BBDO ≥ 3.0<br/>ET Engine démarré avec -p ?"}
         Q1 -- "non (legacy)" --> ENGCONF["Engine lit et possède son centengine.cfg"]:::engine
-        Q1 -- "oui (centralisé)" --> Q2{"pollers_config_directory (Broker) positionné ?"}
+        Q1 -- "oui (centralisé)" --> Q2{"Broker auquel Engine se connecte :<br/>cache_config_directory ou<br/>pollers_config_directory positionné ?"}
         Q2 -- "oui" --> CENTRAL["Broker = CENTRAL<br/>possède les .prot, calcule le diff,<br/>envoie DiffState à Engine"]:::broker
         Q2 -- "non" --> RELAY["Broker = RELAIS<br/>transmet les demandes de config en amont"]:::broker
     end
@@ -399,7 +394,7 @@ flowchart TD
     end
 ```
 
-> Les deux axes sont orthogonaux : on peut p.ex. être en configuration centralisée (possédée par
+> Les deux axes sont orthogonaux : on peut par exemple être en configuration centralisée (possédée par
 > Broker) tout en laissant les downtimes gérés par Engine, ou l'inverse.
 
 ## La négociation
@@ -410,9 +405,10 @@ fonctionnent qu’avec BBDO3.
 Le message `Welcome` se voit ajouter quelques paramètres :
 
 -   `broker_name`,
--   `extended_negociation`
+-   `extended_negotiation`
 -   `peer_type`
 -   `timezone`
+-   `broker_handles_notifications`
 
 Si `cbmod` est configuré avec les nouveaux paramètres, alors il remplit
 ces nouveaux champs.
@@ -438,6 +434,11 @@ Le message `Welcome` est maintenant défini comme suit :
        * when a host/service carries no explicit timezone. Empty for non-Engine
        * peers. */
       string timezone = 9;
+      /* Sent by Broker to Engine at negotiation: true when Broker owns the
+       * notification decision (notification_mode=broker). Engine then stops
+       * deciding notifications on its own (notifier::notify becomes a no-op) and
+       * only executes what Broker dispatches via pb_notification_execute. */
+      bool broker_handles_notifications = 10;
     }
 ```
 
@@ -470,18 +471,15 @@ host/service ne porte pas de directive `timezone` explicite : dans ce cas
 `Broker`, qui peut vivre dans un autre fuseau, doit donc utiliser celui du
 poller plutôt que le sien.
 
+Dans l'autre sens, `broker_handles_notifications` n'est renseigné que par `Broker`, à destination d'`Engine` : il vaut vrai quand `Broker` a la main sur la décision de notification (`notification_mode=broker`). `Engine` cesse alors de décider seul et n'exécute plus que les notifications que `Broker` lui envoie (voir [Coupure de la décision côté Engine](#coupure-de-la-décision-côté-engine)).
+
 Jusqu'à présent, quand le code était exécuté dans `cbmod` ou dans `Broker`, on
 n’avait pas la visibilité sur le programme en cours d’exécution, on ne
 savait pas si on était dans un `Broker` ou dans un `Engine`. Avec cette
 évolution, on peut le savoir. C’est important puisqu’on veut que
 `Broker` envoie la configuration à `Engine`.
 
-Dans le stream bbdo, `Broker` stocke des informations sur son
-interlocuteur, on avait déjà le `poller_name` et le
-`poller_id`. On complète ces informations avec le `broker_name`, le
-`peer_type`, le booléen `extended_negociation` et la chaîne `config_version` qui
-pour le moment contient le hash de la configuration `Engine`. Dans un
-futur proche, cette information évoluera probablement.
+À la négociation, `Broker` enregistre son interlocuteur dans le `peer_registry` de `broker_state`. Pour un `Engine`, il y garde le `poller_id`, le `poller_name`, le booléen `extended_negotiation`, et deux versions de configuration : `engine_conf`, celle qu'applique le poller, reçue dans son `Welcome`, et `available_conf`, celle que `Broker` a prête pour lui. Une version est un hash SHA-256 du répertoire de configuration écrit par PHP, calculé par `Broker` à la lecture de l'annonce `.lck` et placé dans le champ `config_version` de l'état envoyé à `Engine`, qui le renvoie ensuite dans `Welcome.engine_conf`.
 
 Et dans le `configuration::applier::state` on a aussi ces informations
 pour notre instance.
@@ -591,14 +589,13 @@ L’envoi de cette différence est géré dans le stream `bbdo`.
 `Engine` est connu par son interlocuteur. Il sait aussi s’il supporte la
 nouvelle négociation. Et il répond par un message similaire.
 
-Sachant que `Broker` écoute le répertoire de cache php, lorsqu’il aura
-une nouvelle configuration disponible, il pourra l’envoyer.
+Comme `Broker` surveille les annonces `.lck` de PHP, il envoie une nouvelle configuration dès qu'elle est disponible, et une configuration déjà prête dès que le poller se connecte.
 
 Un point important, `Broker` ne regarde pas la version de configuration
 `Engine` disponible pendant la négociation. C’est quelque chose qui se
 fait en tâche de fond. Par contre, il stocke dans ses informations sur
 le peer `Engine` sa version de conf. Par conséquent, à l'arrivée d'une
-nouvelle version, il pourra vérifier si les deux sont bien différentes.
+nouvelle version, il vérifie si les deux sont bien différentes.
 
 ```mermaid
 sequenceDiagram
@@ -615,7 +612,7 @@ sequenceDiagram
     BS ->> BS: stockage de la version de conf de l'Engine<br/>en question et récupération par broker de<br/>la version disponible (si présente).
     note right of BS: Broker connaît l'ancienne version et<br/>la nouvelle version d'Engine.
     BS -->> E: bbdo::PbWelcome
-    note right of BS: Broker n'envoie pas la version de configuration<br/>en réponse. C'est inutile.<br/>Ce sera fait plus tard en surveillant le répertoire de cache.
+    note right of BS: Broker n'envoie pas la version de configuration<br/>en réponse. C'est inutile.<br/>La configuration part ensuite : celle déjà prête,<br/>ou la prochaine annoncée par un .lck.
     end
 ```
 
@@ -1585,7 +1582,7 @@ parcourt chaque type en accumulant `(w, e)` dans `error_cnt`.
 > restent sur la feuille de route
 > ci-dessus.
 
-### Ce qu'`expand()` couvre déjà (et ce qui reste à porter)
+### Ce qu'`expand()` couvre et ce que `resolve()` complète
 
 `expand()` et `resolve()` sont **complémentaires**, avec très peu de
 recouvrement.
@@ -1600,12 +1597,7 @@ tout est référencé par nom concret** (`host_name`, `(host_name,
 service_description)`) → le validateur porté utilise exactement les mêmes lookups
 par nom que `resolve()`.
 
-Ce qu'`expand()` ne fait **pas**, et qui reste donc à porter depuis `resolve()` :
-les références *feuilles* (commandes, timeperiods, contacts, contactgroups d'un
-notifier, membres déclarés côté définition d'un groupe, hosts/services
-d'escalations/dépendances/parents), et les contrôles purs (circularité, « host
-sans service », cohérence recovery, interval, champs requis, caractères
-illégaux).
+Ce qu'`expand()` ne fait **pas** est vérifié par la phase `resolve` d'`engine_conf` (`state_helper::resolve` et les `resolve()` des `*_helper`), portée depuis les `resolve()` des objets d'`Engine` : les références *feuilles* (commandes, timeperiods, contacts, contactgroups d'un notifier, membres déclarés côté définition d'un groupe, hosts/services d'escalations/dépendances/parents), et les contrôles purs (circularité, « host sans service », cohérence recovery, interval, champs requis, caractères illégaux).
 
 ### Passer d'un throw précoce à une accumulation
 
@@ -1937,7 +1929,7 @@ Le différentiel avec Hostgroups, Servicegroups implémentés comme les autres d
 
 Le souci est lorsqu'on rassemble les modifications sur ces objets pour l'écriture en base et plus tard pour le cache global de broker.
 
-L'objet `neb::service` est plus complet que la configuration d'un `configuration::service`. Du coup, lors de l'initialisation avec un neb::service, on a aussi l'état du service, pending si rien n'est donné au départ. Dans le cas d'un configuration::service, on trouve NULL dans la colonne status de la table `resources` ; ce qui provoque des cas de tests qui peuvent échouer pour le moment et qu'il va falloir réparer.
+L'objet `neb::service` est plus complet que la configuration d'un `configuration::service`. Du coup, lors de l'initialisation avec un neb::service, on a aussi l'état du service, pending si rien n'est donné au départ. Dans le cas d'un `configuration::service`, il n'y a pas d'état : `unified_sql` crée donc la ligne de `resources` avec `status=4` (PENDING), `status_ordered=1` et `status_confirmed=1`, et une nouvelle configuration ne l'écrase pas (`COALESCE(status, 4)`), l'état réel arrivant avec le premier check.
 
 ## Objets transverses
 
@@ -3524,13 +3516,13 @@ La topologie (quel poller est derrière quel remote) est encodée directement da
 
 Le central n'a qu'une vue partielle : pour une chaîne `N → R2 → R1 → central`, il voit uniquement `via_remote=R1`. R2 lui est opaque.
 
-Il n'y a pas de table `remote_relay` séparée dans `broker_cache` : l'information est dérivée de `_engine_peers`. `broker_cache` reste responsable de la **persistance** de la topologie via `topology.cache` (voir section suivante), qui stocke les paires `(poller_id, remote_id)` pour reconstituer les hints au redémarrage.
+Il n'y a pas de table `remote_relay` séparée : l'information est dérivée de `_engine_peers`, dans le `peer_registry`. `broker_state` assure la **persistance** de la topologie via `topology.cache` (voir section suivante), qui stocke les paires `(poller_id, remote_id)` pour reconstituer les hints au redémarrage.
 
 ## Persistance de la topologie
 
-`broker_cache` est aujourd'hui purement en mémoire. En configuration centralisée, la partie topologie doit être persistée pour survivre à un redémarrage du central.
+En configuration centralisée, la topologie est persistée pour survivre à un redémarrage du central, dans un fichier distinct du `.cache`.
 
-À l'arrêt propre, le central écrit un fichier `topology.cache` (protobuf). Au démarrage, il le recharge comme **hint** : la topologie est considérée valide jusqu'à preuve du contraire. Les `ConfigRequest` entrants au fur et à mesure des reconnexions des remotes corrigent ou confirment chaque entrée.
+À l'arrêt propre, le central écrit un fichier `topology.cache` (protobuf) dans le répertoire des configurations des pollers (`broker_state::save_topology_cache()`). Au démarrage, il le recharge comme **hint** : la topologie est considérée valide jusqu'à preuve du contraire. Les `ConfigRequest` entrants au fur et à mesure des reconnexions des remotes corrigent ou confirment chaque entrée.
 
 En cas de crash (pas d'arrêt propre), `topology.cache` est absent ou périmé. Ce n'est pas bloquant : le central démarre sans topologie et la reconstruit à mesure que les remotes se reconnectent. Les diffs PHP produits pendant cette fenêtre sont mis en attente.
 
@@ -4920,7 +4912,7 @@ bloque le service de notification (T7) — voir
 |--------|---------------------------------------------------|
 | **T0** | Extraction des timeperiods en bibliothèque gérable par Broker (prérequis) |
 | **T1** | File neb à triple priorité                        |
-| **T2** | Suivi de l'état des downtimes dans `global_cache` |
+| **T2** | Suivi de l'état des downtimes dans `broker_cache` (cache fait, lecture par BAM à faire, voir [BAM : lecture de l'état des downtimes depuis le cache Broker](#bam--lecture-de-létat-des-downtimes-depuis-le-cache-broker)) |
 | **T3** | Endpoints BrokerRpc : downtimes et acquittements  |
 | **T4** | Endpoints BrokerRpc : règles d'escalade           |
 | **T5** | Inherited downtimes via BrokerRpc (BAM)           |
@@ -4946,7 +4938,7 @@ gantt
     T6 · pb_notification_execute (poller)  :t6, 2026-05-10, 4d
 
     section Cache et BAM
-    T2 · global_cache état downtimes      :t2, after t1 t3, 4d
+    T2 · broker_cache état downtimes      :t2, after t1 t3, 4d
     T5 · Inherited downtimes BrokerRpc    :t5, after t3, 3d
 
     section Service notification
@@ -4980,7 +4972,7 @@ Ce prérequis a deux volets :
 1. **Le code d'évaluation des timeperiods doit être une bibliothèque indépendante d'Engine.**
    Le calcul (`get_next_valid_time`, `check_time_against_period`, gestion des dateranges et des
    exclusions) vivait dans `engine/`, couplé à ses globals. Il a été extrait dans une
-   bibliothèque autonome (`engine/src/timeperiods/`, cible `timeperiods`) : le registre des
+   bibliothèque autonome (`common/timeperiods/`, cible `timeperiods`) : le registre des
    timeperiods est porté par un `timeperiod_manager` (un par process), et tout couplage à
    Engine a été coupé — le logger et les caractères interdits dans les noms sont **injectés au
    `load()`** plutôt que lus dans les globals d'Engine. Broker peut donc linker cette
@@ -5285,56 +5277,39 @@ le **coût incompressible** de `read()`, indépendant du conteneur ou de l'API d
 
 ## BAM : lecture de l'état des downtimes depuis le cache Broker
 
-Le cache mémoire (`global_cache`) ne suit pas encore l'état des downtimes actifs. Il faut
-l'étendre pour le faire. Les downtimes arrivent dans Broker par deux chemins distincts, et les
-deux doivent alimenter le même cache :
+Ce chantier correspond au ticket T2 du plan ci-dessus. Le cache s'appelait alors `global_cache` ; il est devenu `broker_cache`. L'objectif était double : que le cache de `Broker` suive l'état de downtime de chaque ressource, et que BAM le lise là plutôt que de tenir son propre état, qui peut se désynchroniser au redémarrage. La première moitié est faite, la seconde reste à faire.
 
-**Chemin 1 — via Engine (file neb prioritaire)**
+### Ce que suit le cache
 
-Un downtime est envoyé à Engine via le pipe de commandes externes. Engine le crée en interne
-et émet un événement BBDO `pb_downtime` que Broker intercepte :
+`broker_cache` tient `scheduled_downtime_depth` pour chaque hôte et chaque service, dans les deux modes de notification :
 
-```
-commande externe → Engine → pb_downtime → Broker → global_cache.update_downtime(...)
-                            (neb prioritaire)     → centreon_storage.downtimes (existant)
-```
-
-Ce chemin est sûr dans tous les modes :
-- En `notification_mode = engine` : Engine supprime les notifications localement dès que le
-  downtime est créé, sans attendre que Broker reçoive l'événement.
-- En `notification_mode = broker` : `pb_downtime` transite par la file neb prioritaire et arrive
-  chez Broker avant tout résultat de check accumulé, quelle que soit la profondeur du backlog.
-
-**Chemin 2 — via BrokerRpc (downtimes créés côté PHP/API, ou Engine déconnecté)**
-
-Un downtime est envoyé directement à Broker via gRPC. Broker le crée en base et met à jour
-le cache de façon atomique, sans passer par Engine et sans file de rétention :
+- en `notification_mode=engine`, la profondeur est reprise des statuts d'`Engine` (`HostStatus`, `ServiceStatus` et leurs versions adaptatives) ;
+- en `notification_mode=broker`, le `downtime_manager` de `Broker` possède les downtimes, et ses callbacks font évoluer la profondeur dans le cache (`add_downtime()` / `remove_downtime()`) avant de la publier dans un statut adaptatif. Les statuts d'`Engine` n'écrasent alors plus cette valeur. Les downtimes démarrés sont sauvegardés avec le cache à l'arrêt, puis réinjectés au démarrage ; la profondeur est recalculée en les comptant par ressource, de façon idempotente (voir [Cycle de vie de broker_state, du cache et du downtime_manager](#cycle-de-vie-de-broker_state-du-cache-et-du-downtime_manager)).
 
 ```
-BrokerRpc::ScheduleHostDowntime → Broker → global_cache.update_downtime(...)   ← immédiat
-                                         → centreon_storage.downtimes
+mode engine : commande externe → Engine → statut (depth) → Broker → broker_cache
+                                        → pb_downtime    → Broker → centreon_storage.downtimes, BAM
+mode broker : BrokerRpc / commande externe → downtime_manager → broker_cache.add_downtime()
+                                                              → pb_downtime → centreon_storage.downtimes, BAM
 ```
 
-Le downtime est effectif immédiatement quel que soit l'état de connexion ou la profondeur de
-file d'Engine.
+Dans les deux cas, un `pb_downtime` est aussi publié : c'est lui que BAM écoute.
 
-Le cache reçoit des mises à jour des deux chemins (chemin 1 pour les événements legacy qui
-transitent toujours, chemin 2 pour les downtimes créés directement). Une fois le cache étendu,
-BAM peut l'interroger directement :
+### Ce que fait BAM aujourd'hui
 
-```
-# actuel
-BAM maintient sa propre map de downtimes, mise à jour depuis les événements pb_downtime
-→ risque de désync avec Engine au redémarrage
+BAM n'utilise pas la profondeur du cache :
 
-# après extension du cache
-BAM interroge global_cache.is_in_downtime(host_id, service_id) à la demande
-→ source de vérité unique, cohérente quel que soit le chemin qui a créé le downtime
-```
+- un `kpi_service` sait qu'il est en downtime uniquement par les `pb_downtime` qu'il reçoit, dont il range les identifiants dans `_downtime_ids` ; il ignore `scheduled_downtime_depth` dans les statuts ;
+- au démarrage, une fois le cache prêt, `service_book::seed_from_cache()` ne reprend du cache que l'état de check ; le cache propre à BAM (`ServicesBookState`) porte l'état et l'acquittement, pas le downtime ;
+- en `notification_mode=engine`, l'arrêt d'un poller remet à zéro l'état de downtime de ses KPI, qui se reconstruit avec les `pb_downtime` qu'`Engine` renvoie à son redémarrage. En mode broker, cette remise à zéro n'a pas lieu, les downtimes vivant dans `Broker`.
 
-Cette amélioration est **indépendante du mode** : elle s'applique en mode legacy, en mode
-configuration centralisée et en mode HA. Elle n'élimine pas le problème d'injection des
-inherited downtimes (voir ci-dessous), mais supprime la désynchronisation côté lecture.
+### Ce qui reste
+
+Faire dériver l'état de downtime d'un KPI de `scheduled_downtime_depth > 0`, lu dans les statuts et, au démarrage, dans le cache. Aucune nouvelle fonction n'est nécessaire côté cache : `service(host_id, service_id)` suffit.
+
+Une question est à trancher avant : BAM date ses événements BI avec `actual_start_time` et `actual_end_time` du downtime. La profondeur seule ne donne pas ces heures ; il faudrait se contenter de l'heure du statut, ou garder les `pb_downtime` pour la datation et ne prendre au cache que l'état.
+
+Ce changement est indépendant du mode et ne règle pas l'injection des inherited downtimes (voir ci-dessous).
 
 ## Implémentation de notification_mode = broker sur zones mono-poller
 
@@ -5413,10 +5388,7 @@ l'infrastructure de notification et de downtime est solide.
 
 ## Prérequis 5 : élimination de `retention.dat`
 
-Dernier des cinq prérequis au Poller HA. Le `retention.dat` local d'un poller ne survit pas au
-changement de poller d'une ressource : le poller cible n'a pas le fichier. Il faut donc que l'état
-runtime des ressources soit détenu par Broker et redescende au poller qui en a besoin. Design
-discuté et arrêté le 2026-09-30 ; rien n'est implémenté à ce jour.
+Dernier des cinq prérequis au Poller HA. Le `retention.dat` local d'un poller ne survit pas au changement de poller d'une ressource : le poller cible n'a pas le fichier. Il faut donc que l'état runtime des ressources soit détenu par `Broker` et redescende au poller qui en a besoin. Design discuté et arrêté le 2026-09-30, implémenté du 2026-10-01 au 2026-10-07 ; la lecture unique de `retention.dat` lors du passage d'un poller en centralisé a été ajoutée le 2026-11-01.
 
 ### État des lieux
 
@@ -5652,7 +5624,7 @@ restent hors périmètre.
 
 **Étape 4 — Engine.** En configuration centralisée, Engine cesse de lire `retention.dat` dès
 qu'un snapshot arrive, et continue de l'écrire en filet jusqu'à validation. Le scheduling et
-les flags du bloc program ne sont pas repris. Le sort des compteurs `next_*_id` reste à décider.
+les flags du bloc program ne sont pas repris. Le sort des compteurs `next_*_id` reste à décider (tranché depuis : `Broker` garde les identifiants de chaque ressource et le snapshot les renvoie, voir [Identifiants d'événement et de problème](engine-macros-fr.md#identifiants-dévénement-et-de-problème)).
 Le legacy et BBDO2 sont inchangés.
 
 *Fait le 2026-10-05.* Au démarrage, `main.cc` ne parse `retention.dat` que si Engine n'a pas de
@@ -5663,6 +5635,13 @@ un avertissement dans ce mode, elle poserait un état périmé sur un état plus
 du fichier, toutes les 60 minutes et à l'arrêt, est conservée telle quelle. `CERS1` vérifie que
 le message apparaît et que plus aucune tentative de lecture n'est faite.
 
+*Révisé le 2026-11-01 : lu une dernière fois, puis plus écrit.* Le cas d'un poller qui passe de la configuration legacy à la configuration centralisée avait été oublié : son `retention.dat` porte encore ce que `Broker` ne peut pas connaître, surtout les downtimes détenus par `Engine` quand `notification_mode` n'est pas `broker`, l'état de notification d'`Engine` et les sensibilités des anomalydetection. En configuration centralisée, donc :
+
+* un `retention.dat` présent au démarrage est lu, puis renommé `retention.dat.migrated`, même si son parsing a échoué (un fichier corrompu serait sinon relu à chaque démarrage ; il est gardé pour le diagnostic). `Engine` logue « retention file '…' read once and renamed to '…' », ou « no retention file to read: the runtime state comes from `Broker` » s'il n'y en a pas, sur sa sortie standard puisque le fichier de log n'est pas encore ouvert ;
+* le fichier n'est plus écrit : `retention::dump::save` retourne aussitôt, l'événement de sauvegarde périodique n'est plus programmé, et la commande externe `SAVE_STATE_INFORMATION` est ignorée avec un avertissement, comme `READ_STATE_INFORMATION`.
+
+Au premier démarrage centralisé, il n'y a pas encore de `state.prot` : `Engine` parse le `centengine.cfg` que lui passe le service packagé, les objets existent donc quand la rétention est appliquée, puis le `RuntimeState` de `Broker` est appliqué par-dessus, la base étant plus fraîche. Le critère du mode centralisé est la présence du répertoire `proto-conf`, le même que pour la lecture de `state.prot`. Cette lecture unique ne règle que la migration : les downtimes détenus par `Engine` ne sont toujours pas restaurés aux redémarrages suivants. `CERS8` couvre la bascule, et `CERS1` vérifie qu'un arrêt n'écrit plus le fichier.
+
 ### Ce qui reste hors du snapshot
 
 Acquittements, downtimes démarrés et chaînes de notification restent dans le `.cache` : leur
@@ -5672,9 +5651,7 @@ prérequis.
 
 ### Tests concernés
 
-`SDER`, les six `ANO_*`/`CANO_*_SENSITIVITY_*`, `BECMT_RETENTION` et `BECMT_RETENTION_ACK`
-dépendent du contenu de `retention.dat`. Les 98 fichiers qui appellent `Ctn Clear Retention` ne
-font que du nettoyage.
+`SDER`, les trois `ANO_*_SENSITIVITY_*`, `BECMT_RETENTION` et `BECMT_RETENTION_ACK` dépendent du contenu de `retention.dat`. Les trois `CANO_*_SENSITIVITY_*` vérifiaient que le fichier était écrit en configuration centralisée ; ils ont été supprimés le 2026-11-01, quand il a cessé de l'être. Les 98 fichiers qui appellent `Ctn Clear Retention` ne font que du nettoyage.
 
 # Poller HA
 
