@@ -19,6 +19,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <openssl/crypto.h>
 #include <openssl/pem.h>
 #include <pwd.h>
 #include <unistd.h>
@@ -149,6 +150,11 @@ static void gen_cma_key() {
  *  @return EXIT_SUCCESS on success.
  */
 int main(int argc, char* argv[]) {
+  // Keep OpenSSL's global state alive at exit: gRPC threads may still run their
+  // OpenSSL thread-local cleanup when the atexit handlers run (double free).
+  // It must be the first OpenSSL initialization of the process.
+  OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr);
+
   // Get global macros.
   nagios_macros* mac(get_global_macros());
 
