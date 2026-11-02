@@ -133,7 +133,9 @@ void applier::state::apply(configuration::State& new_cfg,
   try {
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
-    if (!proto_conf.empty()) {
+    /* A configuration that is only verified (--verify-config) must not replace
+     * the state.prot of the Engine that runs with it. */
+    if (!proto_conf.empty() && !verify_config) {
       std::ofstream f(proto_conf / "state.prot", std::ios::binary);
       pb_indexed_config.serialize_to_ostream(&f);
       f.close();

@@ -395,6 +395,9 @@ int main(int argc, char* argv[]) {
                                             startup_clock::now());
             if (broker_config.empty())
               broker_config = pb_cfg->broker_module_cfg_file();
+            /* Same check as on a real startup: -p with BBDO 2 is refused. */
+            if (!proto_conf.empty() && !broker_config.empty())
+              check_bbdo_version_for_proto_conf(broker_config);
             state_hlp.expand(err);
             phase_begin =
                 log_startup_phase("expand", phase_begin, startup_clock::now());
