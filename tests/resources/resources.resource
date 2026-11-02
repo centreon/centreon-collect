@@ -505,6 +505,28 @@ Ctn Wait For Engine To Be Ready
         ...    ${ENGINE_LOG}/config${i}/centengine.log
         ...    ${start}    ${content}    60
         ...    verbose=False
+        # The CI artifacts are short-lived: print why Engine is not ready.
+        IF    not ${result}
+            TRY
+                ${running}    Is Process Running    e${i}
+                Log To Console    Engine e${i} is not ready, still running: ${running}
+                IF    not ${running}
+                    ${process_result}    Wait For Process    e${i}    timeout=1s
+                    Log To Console    Engine e${i} exited with rc=${process_result.rc}
+                END
+            EXCEPT    AS    ${error}
+                Log To Console    Engine e${i} is not ready, no process status: ${error}
+            END
+            FOR    ${output}    IN    centengine-stderr.log    centengine-stdout.log
+                ${output_path}    Set Variable    ${ENGINE_LOG}/config${i}/${output}
+                ${exists}    Run Keyword And Return Status    File Should Exist    ${output_path}
+                IF    ${exists}
+                    ${output_content}    Get File    ${output_path}    encoding_errors=ignore
+                    ${output_tail}    Evaluate    $output_content[-3000:]
+                    Log To Console    Last 3000 characters of ${output_path}:\n${output_tail}
+                END
+            END
+        END
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
