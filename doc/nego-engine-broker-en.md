@@ -3973,11 +3973,7 @@ B without its active downtimes, risking false alerts during a maintenance window
 **In legacy mode**, Engine continues to manage downtimes, acknowledgements, and notifications
 exactly as it always has. No change.
 
-**In centralized configuration mode** (BBDO3), the `notification_mode` parameter in
-Broker's configuration controls who manages notifications, downtimes, and acknowledgements.
-Broker activates or deactivates its downtime management accordingly; PHP adapts by sending
-commands either to Broker (via `BrokerRpc`) or to Engine (via the command pipe). Engine is
-never informed of this setting.
+**In centralized configuration mode** (BBDO3), the `notification_mode` parameter in `Broker`'s configuration controls who manages notifications, downtimes, and acknowledgements. `Broker` activates or deactivates its downtime management accordingly; PHP adapts by sending commands either to `Broker` (via `BrokerRpc`) or to `Engine` (via the command pipe). `Engine` does not read this setting: it learns during the negotiation, through the `broker_handles_notifications` field of the `Welcome`, that `Broker` is in charge, and then stops deciding on its own (see [Turning off the decision on Engine](#turning-off-the-decision-on-engine)).
 
 - `notification_mode = engine` **(default)**: Engine manages everything exactly as in legacy
   mode. PHP continues to send downtime and acknowledgement commands to Engine via the command
