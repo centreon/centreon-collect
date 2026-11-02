@@ -402,22 +402,22 @@ GRAPHITE_BROKER_RESTART_TEST
         ${status_received}    Set Variable    ${False}
         ${metric_received}    Set Variable    ${False}
 
+        # receive() returns raw TCP chunks: a line can be split across two of them and the
+        # lines of service_315 come first, so the checks run on the accumulated data.
+        ${received}    Set Variable    ${EMPTY}
         FOR    ${j}    IN RANGE    4
-            ${received}    CallMethod    ${tcp_server}    receive    ${30}
-            Log To Console    iteration ${i} received:${received}
+            ${chunk}    CallMethod    ${tcp_server}    receive    ${30}
+            Log To Console    iteration ${i} received:${chunk}
+            ${received}    Catenate    SEPARATOR=    ${received}    ${chunk}
 
-            IF    'status' in $received and 'service_314' in $received
-                Should Match Regexp    ${received}    centreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received on iteration ${i}
-                ${status_received}    Set Variable    ${True}
-            END
-            IF    'metric' in $received and 'service_314' in $received
-                Should Match Regexp    ${received}    centreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received on iteration ${i}
-                ${metric_received}    Set Variable    ${True}
-            END
+            ${status_received}    Run Keyword And Return Status    Should Match Regexp    ${received}    centreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+
+            ${metric_received}    Run Keyword And Return Status    Should Match Regexp    ${received}    centreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+
             IF    ${metric_received} and ${status_received}
                 BREAK
             END
         END
+        Should Be True    ${status_received}    incorrect or missing status for service_314 on iteration ${i}: ${received}
+        Should Be True    ${metric_received}    incorrect or missing metric for service_314 on iteration ${i}: ${received}
 
         #let time to save conf cache
         Sleep    10s
