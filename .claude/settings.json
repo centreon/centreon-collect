@@ -33,6 +33,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/component-context.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
