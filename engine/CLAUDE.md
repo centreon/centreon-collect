@@ -9,7 +9,7 @@ Configuration model: `common/engine_conf/`. Broker bridge: `engine/src/broker.cc
 cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux \
       -DVCPKG_OVERLAY_PORTS=overlays -DWITH_TESTING=On -DONLY_ROBOT_CMA=OFF -S .
 cmake --build build --target centengine externalcmd opentelemetry ut_engine bin_connector_test_run
-cd build && tests/ut_engine --gtest_filter='<suite>.*'   # from build/: tests use tests/bin_connector_test_run
+(cd build && tests/ut_engine --gtest_filter='<suite>.*') # from build/: tests use tests/bin_connector_test_run
 .github/scripts/collect-ut.sh engine                     # what CI runs, from the repo root
 clang-format -i <changed files>                          # root .clang-format, Chromium
 ```

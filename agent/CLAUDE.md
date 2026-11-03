@@ -9,8 +9,8 @@ Engine counterpart: `engine/modules/opentelemetry/src/centreon_agent/`. Testing 
 cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux \
       -DVCPKG_OVERLAY_PORTS=overlays -DWITH_TESTING=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF -S .
 cmake --build build --target centagent ut_agent
-build/tests/ut_agent                              # all unit tests
-build/tests/ut_agent --gtest_filter='scheduler_test.*'
+(cd build && tests/ut_agent)                      # all unit tests; from build/: tests use tests/echo_multilines.sh
+(cd build && tests/ut_agent --gtest_filter='scheduler_test.*')
 clang-format -i <changed files>                   # root .clang-format, Chromium
 ```
 

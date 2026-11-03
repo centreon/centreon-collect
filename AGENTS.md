@@ -34,7 +34,7 @@ Collection side of Centreon: monitoring agent (CMA), Engine, Broker, shared libr
 cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux \
       -DVCPKG_OVERLAY_PORTS=overlays -DWITH_TESTING=On -S .
 cmake --build build --target ut_<component>
-build/tests/ut_<component> --gtest_filter='<suite>.*'
+(cd build && tests/ut_<component> --gtest_filter='<suite>.*')   # from build/, as CI: some tests use relative paths
 clang-format -i <changed files>     # not checked by CI
 ```
 

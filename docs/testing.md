@@ -46,7 +46,7 @@ Prefer the unit level: it runs in minutes and pinpoints the failure. Robot tests
 ```bash
 cmake -B build ... -DWITH_TESTING=On -S .      # see ARCHITECTURE.md § Build
 cmake --build build --target ut_<component>
-build/tests/ut_<component> --gtest_filter='<suite>.*'
+(cd build && tests/ut_<component> --gtest_filter='<suite>.*')   # from build/, as CI: some tests use relative paths
 ```
 
 ## Robot tests
