@@ -19,6 +19,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <openssl/crypto.h>
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
@@ -105,6 +106,11 @@ std::shared_ptr<asio::io_context> g_io_context(
  *  @return EXIT_SUCCESS on success.
  */
 int main(int argc, char* argv[]) {
+  // Keep OpenSSL's global state alive at exit: gRPC threads may still run their
+  // OpenSSL thread-local cleanup when the atexit handlers run (double free).
+  // It must be the first OpenSSL initialization of the process.
+  OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr);
+
   // Get global macros.
   nagios_macros* mac(get_global_macros());
 
