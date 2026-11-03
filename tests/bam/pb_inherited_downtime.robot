@@ -123,7 +123,13 @@ BEBAMIDTU2
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
     Should Be True    ${result}    The BA ba_1 is not in downtime as it should
 
+    # unified_sql writes downtimes after up to 10s and drops the pending ones when
+    # it stops: wait for both of them in the database before each restart.
+    ${result}    Ctn Number Of Downtimes Is    2    30
+    Should Be True    ${result}    We should only have only two downtimes
+
     FOR    ${i}    IN RANGE    2
+        Sleep    5
         # Engine is restarted
         Ctn Stop Engine
         ${start}    Get Current Date
@@ -135,11 +141,17 @@ BEBAMIDTU2
         ...    ${result}
         ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
+        ${result}    Ctn Number Of Downtimes Is    2    30
+        Should Be True    ${result}    We should only have only two downtimes
+
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
         Ctn Kindly Stop Broker
         Log To Console    Broker is started
         Ctn Start Broker
+
+        ${result}    Ctn Number Of Downtimes Is    2    30
+        Should Be True    ${result}    We should only have only two downtimes
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
