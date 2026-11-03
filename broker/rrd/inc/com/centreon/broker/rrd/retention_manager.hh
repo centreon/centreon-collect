@@ -29,8 +29,8 @@ namespace com::centreon::broker::rrd {
  * All fields are read from the RRD endpoint JSON configuration block.
  */
 struct retention_config {
-  std::filesystem::path metrics_dir;  ///< Directory for metric .prot files
-  std::filesystem::path status_dir;   ///< Directory for status .prot files
+  std::filesystem::path metrics_dir;  ///< Directory of metric .rrd/.ret files
+  std::filesystem::path status_dir;   ///< Directory of status .rrd/.ret files
   uint32_t orphan_interval = 3600;    ///< Max inactivity seconds before merge
   uint32_t merge_samples_threshold =
       60 * 24 / 5;  ///< when a retention file has more than
@@ -43,27 +43,25 @@ struct retention_config {
 
 /**
  * @class retention_manager
- * @brief Manages in-memory + on-disk retention buffers for RRD metrics and
- *        statuses.
+ * @brief Manages the retention files of the RRD metrics and statuses.
  *
- * Data flow:
- *   write_metric/status()  →  add point to in-memory protobuf batch
- *   combined points_size() >= max_pending_points  →  serialise batch to rotated
- * file ~retention_manager()  →  serialise remaining batch to {id}.prot
+ * A metric or status point older than the last update of its rrd file can't
+ * be written by rrd_update, the stream gives it to write_metric() or
+ * write_status() which append it to the retention file of the metric or status
+ * (retention_file), created on the first point.
  *
  * On-disk layout (co-located with .rrd files):
- *   {metrics_dir}/{id}.prot         (graceful-shutdown flush)
- *   {metrics_dir}/{id}.{ts}.prot    (rotated, immutable)
- *   {status_dir}/{id}.prot
- *   {status_dir}/{id}.{ts}.prot
+ *   {metrics_dir}/{metric_id}.ret
+ *   {status_dir}/{index_id}.ret
+ * Existing files are reloaded by load().
  *
- * File format: each file is exactly one serialised MetricRetentionBatch or
- * StatusRetentionBatch protobuf message.
- *
- * A merge is triggered when the rotated-file count reaches max_files.  The
- * stream calls get_metric_merge_points() / get_status_merge_points() (which
- * return on-disk + in-memory data), replays the points into the RRD backend,
- * then calls metric_merge_done() / status_merge_done() to clear everything.
+ * After each write, the stream calls start_merge() which, if no merge is
+ * running, chooses a file to merge:
+ *   - the least recently fed one if it has not been fed for orphan_interval
+ *   - else the biggest one if it has more than merge_samples_threshold
+ *     samples.
+ * The merge runs on _io_context, then the retention file is removed and a
+ * pb_end_metric_merge or pb_end_status_merge is published.
  */
 class retention_manager
     : public std::enable_shared_from_this<retention_manager> {
@@ -147,18 +145,12 @@ class retention_manager
   }
 
   /**
-   * @brief Append a metric data point to the in-memory retention batch.
-   *
-   * @return true  A merge should be triggered now.
-   * @return false No merge needed yet.
+   * @brief Append a metric point to the retention file of the metric.
    */
   void write_metric(const Metric& metric);
 
   /**
-   * @brief Append a status data point to the in-memory retention batch.
-   *
-   * @return true  A merge should be triggered now.
-   * @return false No merge needed yet.
+   * @brief Append a status point to the retention file of the status.
    */
   void write_status(const Status& status);
 
@@ -166,14 +158,26 @@ class retention_manager
   // void update_earliest_real_time_status(uint64_t ts);
 
   /**
-   * @brief Remove all retention files for a metric (on remove_graph event).
+   * @brief Remove the retention file of a metric or a status (on rebuild or
+   * remove_graph event).
    */
   void remove_metric(uint64_t metric_id);
   void remove_status(uint64_t index_id);
 
+  /**
+   * @brief Stop the merge of a metric or a status if it is running, its rrd
+   * file is left untouched.
+   */
   void abort_metric_merge(uint64_t metric_id);
   void abort_status_merge(uint64_t index_id);
 
+  /**
+   * @brief Start the merge of a retention file if one is due and no merge is
+   * running.
+   *
+   * @return the id of the metric or status being merged and true if it is a
+   * status, nothing if no merge has been started.
+   */
   std::optional<
       std::pair<uint64_t /* index_id or metric_id*/, bool /*is status*/>>
   start_merge(lib& rrd_lib);

@@ -29,11 +29,12 @@ using namespace com::centreon::broker::rrd;
 /**
  * @brief Create a new retention file for a metric and write its first point.
  *
- * The file is named <metric_id>_metric.ret and created in rrd_data_dir. Its
- * header (value type, rrd_len, interval) is initialized from first_metric.
+ * The file is named <metric_id>.ret and created in rrd_data_dir. Its header
+ * (value type, rrd_len, interval) is initialized from first_metric.
  *
  * @param rrd_data_dir Directory where the file is created.
  * @param first_metric First metric point, also written in the file.
+ * @throw msg_fmt if the file already exists or can't be written.
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
                                const Metric& first_metric)
@@ -55,11 +56,12 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
 /**
  * @brief Create a new retention file for a status and write its first point.
  *
- * The file is named <index_id>_status.ret and created in rrd_data_dir. Status
- * RRD files are always GAUGE.
+ * The file is named <index_id>.ret and created in rrd_data_dir. Status RRD
+ * files are always GAUGE.
  *
  * @param rrd_data_dir Directory where the file is created.
  * @param first_status First status point, also written in the file.
+ * @throw msg_fmt if the file already exists or can't be written.
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
                                const Status& first_status)
@@ -79,12 +81,13 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
 /**
  * @brief Open an existing retention file and load its header.
  *
- * If the header can't be read, the file is removed and an exception is thrown.
+ * The number of samples is deduced from the file size. If the header can't be
+ * read, the file is removed and an exception is thrown.
  *
  * @param file_path Path of the retention file.
  */
 retention_file::retention_file(const std::filesystem::path& file_path)
-    : _file_path(file_path), _last_activity(time(nullptr)) {
+    : _file_path(file_path), _last_activity(time(nullptr)), _nb_samples(0) {
   int fd = ::open(_file_path.c_str(), O_RDWR);
   if (fd < 0) {
     throw exceptions::msg_fmt("fail to open {}: {}", _file_path.string(),
@@ -101,7 +104,7 @@ retention_file::retention_file(const std::filesystem::path& file_path)
   }
   std::error_code err;
   size_t file_size = std::filesystem::file_size(_file_path, err);
-  if (err) {
+  if (!err) {
     _nb_samples = (file_size - sizeof(header)) / sizeof(sample);
   }
 }
@@ -230,6 +233,15 @@ void retention_file::_create_file() {
   }
 }
 
+/**
+ * @brief Sort the samples of the file by timestamp (the sort is written in the
+ * file) and write them in a new rrd file.
+ *
+ * Status samples equal to UNDEF_STATUS are written as unknown values.
+ *
+ * @param dst_path The rrd file to create, overwritten if it exists.
+ * @param rrd_lib The lib used to create the rrd file.
+ */
 void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
                                   lib& rrd_lib) {
   int fd = ::open(_file_path.c_str(), O_RDWR);
@@ -260,13 +272,13 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
       throw exceptions::msg_fmt("fail to map file {}: {}", _file_path.string(),
                                 strerror(errno));
     }
+    absl::Cleanup unmapper = [addr, file_size]() { ::munmap(addr, file_size); };
     file_content* data = static_cast<file_content*>(addr);
     sample* begin = data->data;
     sample* end = begin + (file_size - sizeof(header)) / sizeof(sample);
     std::sort(begin, end, [](const sample& left, const sample& right) {
       return left.ts < right.ts;
     });
-    ::munmap(data, file_size);
     if (_header.is_status) {
       for (; begin != end; ++begin) {
         if (begin->val.i_value == UNDEF_STATUS) {
@@ -277,22 +289,55 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
         }
       }
     } else {
+      // same format as stream::append_metric_to_rrd(), librrd only accepts
+      // integers for COUNTER, DERIVE and ABSOLUTE
       for (; begin != end; ++begin) {
-        samples.emplace_back(
-            fmt::format("{}:{}", begin->ts, begin->val.d_value));
+        switch (_header.value_type) {
+          case Metric_ValueType_COUNTER:
+          case Metric_ValueType_ABSOLUTE:
+            samples.emplace_back(fmt::format(
+                "{}:{}", begin->ts, static_cast<uint64_t>(begin->val.d_value)));
+            break;
+          case Metric_ValueType_DERIVE:
+            samples.emplace_back(fmt::format(
+                "{}:{}", begin->ts, static_cast<int64_t>(begin->val.d_value)));
+            break;
+          default:
+            samples.emplace_back(
+                fmt::format("{}:{:f}", begin->ts, begin->val.d_value));
+            break;
+        }
       }
     }
   }
-  rrd_lib.merge_create_temp(dst_path, _header.rrd_len, _header.first_ts,
+  // creator sets the last update of the file to from - 1: the file starts one
+  // interval before the first sample so that its row is fully known
+  rrd_lib.merge_create_temp(dst_path, _header.rrd_len,
+                            _header.first_ts - _header.interval + 1,
                             _header.interval, _header.value_type, samples);
 }
 
+/**
+ * @brief Merge the samples of this file into the rrd file @p rrd_path.
+ *
+ * The samples are written in a temporary rrd file (<rrd_path>.to_merge), then
+ * a new rrd file (<rrd_path>.tmp) is created from the data of @p rrd_path and
+ * of this temporary file and is renamed to @p rrd_path. If @p rrd_path doesn't
+ * exist, it is created from the samples only. Temporary files are always
+ * removed. The retention file itself is not modified.
+ *
+ * abort_merge() can be called from another thread, the merge then stops at the
+ * next step and @p rrd_path is left untouched.
+ *
+ * @param rrd_path The rrd file to update.
+ * @param rrd_lib The lib used to create the rrd files.
+ */
 void retention_file::merge(const std::filesystem::path& rrd_path,
                            lib& rrd_lib) {
-  time_t first_ts = rrd_lib.first_timestamp(rrd_path);
-
-  if (first_ts <= 0 || (uint64_t)first_ts > _header.first_ts) {
-    first_ts = _header.first_ts;
+  // the merged file must accept data after the last one of both files
+  time_t last_ts = rrd_lib.last_update(rrd_path);
+  if (last_ts <= 0 || (uint64_t)last_ts < _header.last_ts) {
+    last_ts = _header.last_ts;
   }
   std::filesystem::path to_merge_path = rrd_path;
   to_merge_path += ".to_merge";
@@ -307,8 +352,10 @@ void retention_file::merge(const std::filesystem::path& rrd_path,
     _to_rrd_file(to_merge_path, rrd_lib);
   }
   if (!_abort_merge) {
-    rrd_lib.merge_files(tmp_merge_path, to_merge_path, _header.rrd_len,
-                        first_ts, _header.interval, _header.value_type);
+    // creator sets the last update of the file to from - 1
+    rrd_lib.merge_files(tmp_merge_path, rrd_path, to_merge_path,
+                        _header.rrd_len, last_ts + 1, _header.interval,
+                        _header.value_type);
   }
   if (!_abort_merge) {
     ::rename(tmp_merge_path.c_str(), rrd_path.c_str());

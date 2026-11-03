@@ -354,72 +354,6 @@ time_t lib::last_update(const std::filesystem::path& filename) {
 }
 
 /**
- * @brief Compute the oldest timestamp covered by an RRD file, that is the
- * minimum over all RRAs of the value rrd_first() would return, but with a
- * single rrd_info_r() call instead of opening the file once per RRA.
- *
- * For each RRA, the last row is aligned on step * pdp_per_row and the first
- * row is rows - 1 rows before it.
- *
- * This is the start of the window covered by the file, not the time of the
- * first known value: rows never written contain NaN.
- *
- * @param filename The RRD file path.
- *
- * @return The first timestamp, -1 if the file can't be opened or read.
- */
-time_t lib::first_timestamp(const std::filesystem::path& filename) {
-  rrd_info_t* info = rrd_info_r(const_cast<char*>(filename.c_str()));
-  if (!info)
-    return -1;
-
-  time_t last_update = 0;
-  unsigned long step = 0;
-  absl::flat_hash_map<int, unsigned long> rra_pdp_per_row;
-  absl::flat_hash_map<int, unsigned long> rra_rows;
-
-  for (rrd_info_t* it = info; it; it = it->next) {
-    if (it->type != RD_I_CNT)
-      continue;
-    std::string_view key{it->key};
-
-    if (key == "step") {
-      step = it->value.u_cnt;
-    } else if (key == "last_update") {
-      last_update = static_cast<time_t>(it->value.u_cnt);
-    } else {
-      // %n checks that the whole key matched (see fetch_existing()).
-      int rra_idx = -1;
-      int end = 0;
-      if (std::sscanf(it->key, "rra[%d].pdp_per_row%n", &rra_idx, &end) == 1 &&
-          end > 0 && it->key[end] == '\0') {
-        rra_pdp_per_row[rra_idx] = it->value.u_cnt;
-      } else if (std::sscanf(it->key, "rra[%d].rows%n", &rra_idx, &end) == 1 &&
-                 end > 0 && it->key[end] == '\0') {
-        rra_rows[rra_idx] = it->value.u_cnt;
-      }
-    }
-  }
-  rrd_info_free(info);
-
-  if (step == 0)
-    return -1;
-
-  time_t first = -1;
-  for (auto& [idx, pdp] : rra_pdp_per_row) {
-    auto rows_it = rra_rows.find(idx);
-    if (pdp == 0 || rows_it == rra_rows.end() || rows_it->second == 0)
-      continue;
-    time_t rra_step = static_cast<time_t>(step * pdp);
-    time_t rra_first = last_update - last_update % rra_step -
-                       static_cast<time_t>(rows_it->second - 1) * rra_step;
-    if (first == -1 || rra_first < first)
-      first = rra_first;
-  }
-  return first;
-}
-
-/**
  * @brief Create a new RRD file at @p tmp_path via librrd and write @p batch
  *        into it.  Bypasses rrdcached entirely (safe during merge).
  */
@@ -435,15 +369,36 @@ void lib::merge_create_temp(const std::filesystem::path& tmp_path,
   lib::update(batch);
 }
 
+/**
+ * @brief Create @p merged_path from the data of @p rrd_path and
+ * @p to_merge_file (rrd_create --source), the rrd files are not modified.
+ *
+ * If @p rrd_path doesn't exist, only @p to_merge_file is used. When both
+ * files have a value for the same row, the one of @p rrd_path is kept: it
+ * comes from real-time data.
+ *
+ * @param merged_path The file to create, overwritten if it exists.
+ * @param rrd_path The current rrd file.
+ * @param to_merge_file The rrd file built from the retention data.
+ * @param rrd_len Duration in seconds that the RRD file should retain.
+ * @param from Last update time of the created file, data after it can't be
+ * added to it.
+ * @param step Interval in seconds of the data.
+ * @param value_type Type of the metric.
+ */
 void lib::merge_files(const std::filesystem::path& merged_path,
-                      std::filesystem::path& to_merge_file,
+                      const std::filesystem::path& rrd_path,
+                      const std::filesystem::path& to_merge_file,
                       uint32_t rrd_len,
                       time_t from,
                       uint32_t step,
                       short value_type) {
-  std::string_view first_file = merged_path.c_str();
-  std::string_view second_file = to_merge_file.c_str();
+  std::vector<std::string_view> sources;
+  std::error_code err;
+  if (std::filesystem::exists(rrd_path, err))
+    sources.emplace_back(rrd_path.c_str());
+  sources.emplace_back(to_merge_file.c_str());
 
-  _creator.create(merged_path, rrd_len, from, step, value_type, false,
-                  {first_file, second_file});
+  _creator.create(merged_path, rrd_len, from, step, value_type,
+                  /*without_cache=*/true, sources);
 }

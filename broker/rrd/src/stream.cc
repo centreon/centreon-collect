@@ -306,6 +306,13 @@ void stream<T>::update() {
   // }
 }
 
+/**
+ * @brief Write a metric point in its rrd file, the file is created if it
+ * doesn't exist.
+ *
+ * @param m The metric point, its time must be newer than the last update of
+ * the rrd file.
+ */
 template <typename T>
 void stream<T>::append_metric_to_rrd(const Metric& m) {
   // Metric path.
@@ -354,6 +361,13 @@ void stream<T>::append_metric_to_rrd(const Metric& m) {
   _backend.update(m.time(), v);
 }
 
+/**
+ * @brief Write a status point in its rrd file (OK=100, WARNING=75,
+ * CRITICAL=0, other=unknown), the file is created if it doesn't exist.
+ *
+ * @param s The status point, its time must be newer than the last update of
+ * the rrd file.
+ */
 template <typename T>
 void stream<T>::append_status_to_rrd(const Status& s) {
   auto status_path = _status_path / fmt::format("{}.rrd", s.index_id());
@@ -390,6 +404,12 @@ void stream<T>::append_status_to_rrd(const Status& s) {
 /**
  *  Write an event.
  *
+ *  A metric or status newer than the last update of its rrd file is written in
+ *  it, an older one is written in the retention (if enabled) and will be
+ *  merged later into the rrd file. Events of a metric or status being rebuilt
+ *  or merged are postponed until the end of the rebuild or merge
+ *  (pb_end_metric_merge / pb_end_status_merge).
+ *
  *  @param[in] d Data to write.
  *
  *  @return Number of events acknowledged.
@@ -405,7 +425,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
     case storage::metric::static_type():
       return write(neb::bbdo2_to_bbdo3(d));
     case storage::pb_metric::static_type():
-      if (!_write_metrics) {
+      if (_write_metrics) {
         // Debug message.
         std::shared_ptr<storage::pb_metric> e(
             std::static_pointer_cast<storage::pb_metric>(d));
@@ -436,6 +456,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         uint64_t last_update = get_last_metric_latest_current(m.metric_id());
         if (last_update < m.time()) {
           append_metric_to_rrd(m);
+          _metric_latest_current[m.metric_id()] = m.time();
         } else {  // we receive an old metric => retention if enabled
           if (_retention->enabled()) {
             _retention->write_metric(m);
@@ -483,9 +504,10 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           break;
         }
 
-        uint64_t last_update = get_last_metric_latest_current(s.index_id());
+        uint64_t last_update = get_last_status_latest_current(s.index_id());
         if (last_update < s.time()) {
           append_status_to_rrd(s);
+          _status_latest_current[s.index_id()] = s.time();
         } else {  // we receive an old metric => retention if enabled
           if (_retention->enabled()) {
             _retention->write_status(s);
@@ -662,6 +684,8 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
       if (to_play_search != _pending_metric_merges.end()) {
         auto to_play = std::move(to_play_search->second);
         _pending_metric_merges.erase(to_play_search);
+        // the rrd file has been replaced by the merge
+        _metric_latest_current.erase(end_merge.metric_id());
         _write_postponed(to_play, end_merge.metric_id(), false);
       }
     } break;
@@ -672,6 +696,8 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
       if (to_play_search != _pending_status_merges.end()) {
         auto to_play = std::move(to_play_search->second);
         _pending_status_merges.erase(to_play_search);
+        // the rrd file has been replaced by the merge
+        _status_latest_current.erase(end_merge.index_id());
         _write_postponed(to_play, end_merge.index_id(), true);
       }
     } break;
@@ -1236,6 +1262,19 @@ void stream<T>::_write_postponed(rebuild_entry& entry,
   }
 }
 
+/**
+ * @brief Get the time of the last real-time data written in the rrd file of a
+ * metric. Data at this time or older can't be written by rrd_update, they go
+ * to the retention.
+ *
+ * The value is read once from the rrd file and then kept in
+ * _metric_latest_current, which is updated on each write in the rrd file and
+ * cleared when the file is replaced (merge, rebuild, removal).
+ *
+ * @param id The metric identifier.
+ *
+ * @return The last update time, 0 if the rrd file doesn't exist.
+ */
 template <typename T>
 uint64_t stream<T>::get_last_metric_latest_current(uint64_t id) {
   auto last_recorded = _metric_latest_current.find(id);
@@ -1249,12 +1288,22 @@ uint64_t stream<T>::get_last_metric_latest_current(uint64_t id) {
   _backend.pre_merge_flush(rrd_path);
 
   time_t last_update = lib::last_update(rrd_path);
-  if (last_update > 0) {
-    _metric_latest_current.emplace(id, last_update);
+  if (last_update <= 0) {
+    // no rrd file yet
+    return 0;
   }
+  _metric_latest_current.emplace(id, last_update);
   return last_update;
 }
 
+/**
+ * @brief Same as get_last_metric_latest_current() for the rrd file of a
+ * status, the value is kept in _status_latest_current.
+ *
+ * @param id The index identifier.
+ *
+ * @return The last update time, 0 if the rrd file doesn't exist.
+ */
 template <typename T>
 uint64_t stream<T>::get_last_status_latest_current(uint64_t id) {
   auto last_recorded = _status_latest_current.find(id);
@@ -1268,16 +1317,10 @@ uint64_t stream<T>::get_last_status_latest_current(uint64_t id) {
   _backend.pre_merge_flush(rrd_path);
 
   time_t last_update = lib::last_update(rrd_path);
-  if (last_update > 0) {
-    _status_latest_current.emplace(id, last_update);
+  if (last_update <= 0) {
+    // no rrd file yet
+    return 0;
   }
+  _status_latest_current.emplace(id, last_update);
   return last_update;
 }
-
-// Explicit instantiations — required for the destructor which is defined in
-// this translation unit (not inlined in the header) and must be available to
-// the test binary that links against the shared library.
-// template stream<lib>::~stream() noexcept;
-// template stream<
-//     cached<asio::local::stream_protocol::socket>>::~stream() noexcept;
-// template stream<cached<asio::ip::tcp::socket>>::~stream() noexcept;
