@@ -25,6 +25,23 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
+/**
+ * Reads from socket until data contains token, then drops data up to the end
+ * of token. The client sends its commands in separate writes that a single
+ * read may receive together.
+ */
+template <typename Socket>
+static void read_until_token(Socket& socket,
+                             std::string& data,
+                             const std::string& token) {
+  while (data.find(token) == std::string::npos) {
+    char buf[128];
+    size_t n = socket.read_some(asio::buffer(buf, sizeof(buf)));
+    data.append(buf, n);
+  }
+  data.erase(0, data.find(token) + token.size());
+}
+
 TEST(RRDCached, LibExisting) {
   rrd::cached<asio::local::stream_protocol::socket> cached{"/tmp", 42};
   std::remove("/tmp/test_rrd");
@@ -62,22 +79,15 @@ TEST(RRDCached, BatchLocal) {
     init_done = true;
     acceptor.accept(socket);
     std::cout << "connected" << std::endl;
-    std::string buf;
-    buf.resize(128);
+    std::string data;
 
-    socket.read_some(asio::buffer(buf, 128));
-    if (buf.find("BATCH\n") != std::string::npos)
-      batch_done = true;
+    read_until_token(socket, data, "BATCH\n");
+    batch_done = true;
+    read_until_token(socket, data, ".\n");
+    socket.write_some(asio::buffer("dassda\n", 7));
 
-    socket.read_some(asio::buffer(buf, 128));
-    if (buf.find(".\n") != std::string::npos)
-      socket.write_some(asio::buffer("dassda\n", 7));
-
-    buf.clear();
-    buf.resize(128);
-    while (buf.find(".\n") == std::string::npos)
-      socket.read_some(asio::buffer(buf, 128));
-
+    read_until_token(socket, data, "BATCH\n");
+    read_until_token(socket, data, ".\n");
     socket.write_some(asio::buffer("2\nTOTO\nTUTU\n", 12));
   }};
 
@@ -127,22 +137,15 @@ TEST(RRDCached, BatchRemote) {
     init_done = true;
     acceptor.accept(socket);
     std::cout << "connected" << std::endl;
-    std::string buf;
-    buf.resize(128);
+    std::string data;
 
-    socket.read_some(asio::buffer(buf, 128));
-    if (buf.find("BATCH\n") != std::string::npos)
-      batch_done = true;
+    read_until_token(socket, data, "BATCH\n");
+    batch_done = true;
+    read_until_token(socket, data, ".\n");
+    socket.write_some(asio::buffer("dassda\n", 7));
 
-    socket.read_some(asio::buffer(buf, 128));
-    if (buf.find(".\n") != std::string::npos)
-      socket.write_some(asio::buffer("dassda\n", 7));
-
-    buf.clear();
-    buf.resize(128);
-    while (buf.find(".\n") == std::string::npos)
-      socket.read_some(asio::buffer(buf, 128));
-
+    read_until_token(socket, data, "BATCH\n");
+    read_until_token(socket, data, ".\n");
     socket.write_some(asio::buffer("2\nTOTO\nTUTU\n", 12));
   }};
 
