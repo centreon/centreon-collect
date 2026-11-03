@@ -720,7 +720,7 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - if: steps.artifactory.outputs.available == 'true'
-        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+        uses: jfrog/setup-jfrog-cli@6ed45ef1a24199bd4c94d3fd55a7e8cb7e45985d # v5.3.2
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -921,7 +921,7 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - if: steps.artifactory.outputs.available == 'true'
-        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+        uses: jfrog/setup-jfrog-cli@6ed45ef1a24199bd4c94d3fd55a7e8cb7e45985d # v5.3.2
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
