@@ -2058,46 +2058,46 @@ void broker_cache::_fill_anomaly_detection(
 /* An overridden attribute follows the last toggle, not the configuration: it
  * is carried over only when its ModifiedAttribute bit is set, so that an
  * export of the configuration takes the lead back on the others. */
-#define keep_if(bit, field)                                                \
-  if (src.modified_attributes() & bit)                                     \
+#define keep_if(bit, field)            \
+  if (src.modified_attributes() & bit) \
   dst->set_##field(src.field())
-#define keep_common_overrides()                                            \
-  keep(modified_attributes);                                               \
-  keep_if(MOD_NOTIFICATIONS_ENABLED, notify);                              \
-  keep_if(MOD_ACTIVE_CHECKS_ENABLED, active_checks);                       \
-  keep_if(MOD_PASSIVE_CHECKS_ENABLED, passive_checks);                     \
-  keep_if(MOD_EVENT_HANDLER_ENABLED, event_handler_enabled);               \
-  keep_if(MOD_FLAP_DETECTION_ENABLED, flap_detection);                     \
-  keep_if(MOD_NORMAL_CHECK_INTERVAL, check_interval);                      \
-  keep_if(MOD_RETRY_CHECK_INTERVAL, retry_interval);                       \
-  keep_if(MOD_MAX_CHECK_ATTEMPTS, max_check_attempts);                     \
-  keep_if(MOD_FRESHNESS_CHECKS_ENABLED, check_freshness);                  \
-  keep_if(MOD_CHECK_TIMEPERIOD, check_period);                             \
+#define keep_common_overrides()                              \
+  keep(modified_attributes);                                 \
+  keep_if(MOD_NOTIFICATIONS_ENABLED, notify);                \
+  keep_if(MOD_ACTIVE_CHECKS_ENABLED, active_checks);         \
+  keep_if(MOD_PASSIVE_CHECKS_ENABLED, passive_checks);       \
+  keep_if(MOD_EVENT_HANDLER_ENABLED, event_handler_enabled); \
+  keep_if(MOD_FLAP_DETECTION_ENABLED, flap_detection);       \
+  keep_if(MOD_NORMAL_CHECK_INTERVAL, check_interval);        \
+  keep_if(MOD_RETRY_CHECK_INTERVAL, retry_interval);         \
+  keep_if(MOD_MAX_CHECK_ATTEMPTS, max_check_attempts);       \
+  keep_if(MOD_FRESHNESS_CHECKS_ENABLED, check_freshness);    \
+  keep_if(MOD_CHECK_TIMEPERIOD, check_period);               \
   keep_if(MOD_NOTIFICATION_TIMEPERIOD, notification_period)
-#define keep_common_runtime()                                              \
-  keep(checked);                                                           \
-  keep(check_type);                                                        \
-  keep(state);                                                             \
-  keep(state_type);                                                        \
-  keep(last_state_change);                                                 \
-  keep(last_hard_state);                                                   \
-  keep(last_hard_state_change);                                            \
-  keep(output);                                                            \
-  keep(perfdata);                                                          \
-  keep(flapping);                                                          \
-  keep(percent_state_change);                                              \
-  keep(latency);                                                           \
-  keep(execution_time);                                                    \
-  keep(last_check);                                                        \
-  keep(next_check);                                                        \
-  keep(should_be_scheduled);                                               \
-  keep(check_attempt);                                                     \
-  keep(notification_number);                                               \
-  keep(no_more_notifications);                                             \
-  keep(last_notification);                                                 \
-  keep(acknowledged);                                                      \
-  keep(acknowledgement_type);                                              \
-  keep(scheduled_downtime_depth);                                          \
+#define keep_common_runtime()     \
+  keep(checked);                  \
+  keep(check_type);               \
+  keep(state);                    \
+  keep(state_type);               \
+  keep(last_state_change);        \
+  keep(last_hard_state);          \
+  keep(last_hard_state_change);   \
+  keep(output);                   \
+  keep(perfdata);                 \
+  keep(flapping);                 \
+  keep(percent_state_change);     \
+  keep(latency);                  \
+  keep(execution_time);           \
+  keep(last_check);               \
+  keep(next_check);               \
+  keep(should_be_scheduled);      \
+  keep(check_attempt);            \
+  keep(notification_number);      \
+  keep(no_more_notifications);    \
+  keep(last_notification);        \
+  keep(acknowledged);             \
+  keep(acknowledgement_type);     \
+  keep(scheduled_downtime_depth); \
   keep(last_update)
 
 /**
@@ -2235,8 +2235,8 @@ void broker_cache::fill_runtime_state(
     uint64_t poller_id,
     com::centreon::engine::configuration::RuntimeState* out) const {
   namespace cfg = com::centreon::engine::configuration;
-  const bool broker_owns_notifications = com::centreon::common::notifications::
-      notification_manager::is_loaded();
+  const bool broker_owns_notifications =
+      com::centreon::common::notifications::notification_manager::is_loaded();
   absl::ReaderMutexLock l{&_mutex};
   auto& by_poller = _hosts.get<by_instance>();
   auto& svc_index = _services.get<by_id>();
@@ -2391,10 +2391,9 @@ bool broker_cache::restore_service_overrides(
  *
  * @return true if the setter ran.
  */
-bool broker_cache::restore_host_runtime(
-    uint64_t host_id,
-    time_t last_check,
-    const std::function<void(Host&)>& set) {
+bool broker_cache::restore_host_runtime(uint64_t host_id,
+                                        time_t last_check,
+                                        const std::function<void(Host&)>& set) {
   if (!section_enabled(CACHE_HOSTS) || last_check == 0)
     return false;
   absl::WriterMutexLock l{&_mutex};
@@ -4937,13 +4936,14 @@ broker_cache::escalation_result broker_cache::notification_escalation(
   escalation_result retval;
   const absl::TimeZone tz = common::timeperiods::string_to_timezone(timezone);
 
-  auto in_period = [&](const std::string& period) {
-    if (period.empty())
-      return true;
-    auto tp = _timeperiods.find(period);
-    return tp == _timeperiods.end() ||
-           tp->second->check_time_against_period(now, tz);
-  };
+  auto in_period = [&](const std::string& period)
+                       ABSL_SHARED_LOCKS_REQUIRED(_mutex) {
+                         if (period.empty())
+                           return true;
+                         auto tp = _timeperiods.find(period);
+                         return tp == _timeperiods.end() ||
+                                tp->second->check_time_against_period(now, tz);
+                       };
 
   /* Materialize the resource escalations as value snapshots and let the shared
    * library evaluate their viability and aggregate them. */

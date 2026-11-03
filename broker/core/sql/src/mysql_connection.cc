@@ -188,7 +188,7 @@ void mysql_connection::_update_stats() noexcept {
  */
 bool mysql_connection::_try_to_reconnect() {
   clear_error();
-  std::lock_guard<std::mutex> lck(_start_m);
+  absl::MutexLock lck(&_start_m);
 
   _clear_connection();
   SPDLOG_LOGGER_INFO(
@@ -845,7 +845,7 @@ std::string mysql_connection::_get_stack(
 }
 
 void mysql_connection::_run() {
-  std::unique_lock<std::mutex> lck(_start_m);
+  absl::ReleasableMutexLock lck(&_start_m);
   _conn = mysql_init(nullptr);
   if (!_conn) {
     SPDLOG_LOGGER_ERROR(
@@ -853,7 +853,6 @@ void mysql_connection::_run() {
         ::mysql_error(_conn));
     set_error_message(::mysql_error(_conn));
     _state = finished;
-    _start_condition.notify_all();
     return;
   } else {
     _set_connection_options();
@@ -868,7 +867,6 @@ void mysql_connection::_run() {
           "Waiting before attempt to connect again: {}",
           ::mysql_error(_conn)));
       _state = finished;
-      _start_condition.notify_all();
       _clear_connection();
       return;
     }
@@ -878,18 +876,16 @@ void mysql_connection::_run() {
   if (config::applier::mode == config::applier::finished) {
     SPDLOG_LOGGER_DEBUG(_logger, "Connection over.");
     _state = finished;
-    _start_condition.notify_all();
-    lck.unlock();
+    lck.Release();
   } else {
     _prepare_connection();
 
     _state = running;
-    _start_condition.notify_all();
 
     _connected = true;
     _switch_point = std::time(nullptr);
     _update_stats();
-    lck.unlock();
+    lck.Release();
 
     bool reconnect_failed_logged = false;
     std::list<std::unique_ptr<database::mysql_task>> tasks_list;
@@ -901,7 +897,7 @@ void mysql_connection::_run() {
         _tasks_list.swap(tasks_list);
 
         // no request to execute and want to exit => exit
-        if (tasks_list.empty() && _state != running) {
+        if (tasks_list.empty() && is_finished()) {
           break;
         }
       }
@@ -935,12 +931,11 @@ void mysql_connection::_run() {
   }
   _clear_connection();
   {
-    /* Under _start_m: stop() tests _state holding it, so a change made
-     * without it could fall between that test and the wait, and the
-     * notification would be lost -- stop() then waits forever. */
-    std::lock_guard<std::mutex> lck(_start_m);
+    /* Under _start_m: stop() waits on _state with a condition re-evaluated
+     * only when _start_m is released. Changed without it, stop() would not see
+     * the change and would wait forever. */
+    absl::MutexLock state_lck(&_start_m);
     _state = finished;
-    _start_condition.notify_all();
   }
   mysql_thread_end();
   _logger->trace("mysql connection main loop finished.");
@@ -1084,9 +1079,8 @@ void mysql_connection::_process_while_empty_task(
   if (_tasks_list.empty()) {
     /* Same reason as at the end of _run(): _start_m must be held. Taking it
      * while holding _tasks_m is safe, nothing takes them the other way. */
-    std::lock_guard<std::mutex> lck(_start_m);
+    absl::MutexLock lck(&_start_m);
     _state = finished;
-    _start_condition.notify_all();
   } else {
     tasks_list.swap(_tasks_list);
     lock.unlock();
@@ -1131,12 +1125,15 @@ mysql_connection::mysql_connection(
       _category(db_cfg.get_category()),
       _logger{logger},
       _center{std::move(center)} {
-  std::unique_lock<std::mutex> lck(_start_m);
+  absl::MutexLock lck(&_start_m);
   SPDLOG_LOGGER_INFO(_logger,
                      "mysql_connection: starting connection {:p} to {}",
                      static_cast<const void*>(this), db_cfg);
   _thread = std::make_unique<std::thread>(&mysql_connection::_run, this);
-  _start_condition.wait(lck, [this] { return _state != not_started; });
+  auto started = [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_start_m) {
+    return _state != not_started;
+  };
+  _start_m.Await(absl::Condition(&started));
   if (_state == finished) {
     _thread->join();
     SPDLOG_LOGGER_ERROR(
@@ -1245,10 +1242,10 @@ void mysql_connection::_finish() {
  */
 void mysql_connection::stop() {
   _finish();
-  {
-    std::unique_lock<std::mutex> lock(_start_m);
-    _start_condition.wait(lock, [this] { return _state == finished; });
-  }
+  auto over = [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_start_m) {
+    return _state == finished;
+  };
+  absl::MutexLock lck(&_start_m, absl::Condition(&over));
 }
 
 bool mysql_connection::fetch_row(mysql_result& result) {
@@ -1278,6 +1275,7 @@ bool mysql_connection::is_finish_asked() const {
 }
 
 bool mysql_connection::is_finished() const {
+  absl::ReaderMutexLock lck(&_start_m);
   return _state == finished;
 }
 

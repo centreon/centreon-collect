@@ -207,11 +207,21 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
   std::shared_ptr<agent::MessageToAgent> new_conf =
       std::make_shared<agent::MessageToAgent>();
+  /* Both are written by other threads (calc_and_send_config_if_needed() and
+   * on_request()): read them once, under the lock. */
+  agent_config::pointer conf;
+  bool agent_can_receive_encrypted_credentials;
+  {
+    absl::MutexLock l(&_protect);
+    conf = _conf;
+    agent_can_receive_encrypted_credentials =
+        _agent_can_receive_encrypted_credentials;
+  }
   {
     agent::AgentConfiguration* cnf = new_conf->mutable_config();
-    cnf->set_check_timeout(_conf->get_check_timeout());
-    cnf->set_export_period(_conf->get_export_period());
-    cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
+    cnf->set_check_timeout(conf->get_check_timeout());
+    cnf->set_export_period(conf->get_export_period());
+    cnf->set_max_concurrent_checks(conf->get_max_concurrent_checks());
     cnf->set_use_exemplar(true);
     bool crypt_credentials = false;
     if (!_is_crypted) {
@@ -219,7 +229,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
                          "As connection is not encrypted, Engine will send no "
                          "encrypted credentials to agent {}",
                          *new_conf);
-    } else if (!_agent_can_receive_encrypted_credentials) {
+    } else if (!agent_can_receive_encrypted_credentials) {
       SPDLOG_LOGGER_INFO(
           _logger,
           "Agent is not credentials encrypted ready, Engine will send no "
@@ -296,7 +306,8 @@ void agent_impl<bireactor_class>::on_request(
       _agent_can_receive_encrypted_credentials =
           _agent_info->init().encryption_ready();
     }
-    _stats->add_agent(_agent_info->init(), _reversed, this);
+    /* request is what _agent_info was just set to, and needs no lock. */
+    _stats->add_agent(request->init(), _reversed, this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());
     calc_and_send_config_if_needed(agent_conf);
   }
