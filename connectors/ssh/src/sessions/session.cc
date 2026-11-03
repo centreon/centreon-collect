@@ -17,7 +17,6 @@
  */
 
 #include <pwd.h>
-#include <libssh2.h>
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -70,9 +69,9 @@ session::session(credentials const& creds, const shared_io_context& io_context)
     throw msg_fmt("SSH session creation failed (out of memory ?)");
 #if LIBSSH2_VERSION_NUM >= 0x010b01
   libssh2_session_callback_set2(_session, LIBSSH2_CALLBACK_RECV,
-                               (libssh2_cb_generic*)g_socket_recv);
+                                (libssh2_cb_generic*)g_socket_recv);
   libssh2_session_callback_set2(_session, LIBSSH2_CALLBACK_SEND,
-                               (libssh2_cb_generic*)g_socket_send);
+                                (libssh2_cb_generic*)g_socket_send);
 #else
   libssh2_session_callback_set(_session, LIBSSH2_CALLBACK_RECV,
                                (void*)g_socket_recv);
@@ -324,7 +323,7 @@ ssize_t session::g_socket_recv(libssh2_socket_t sockfd,
   return session_obj->socket_recv(sockfd, buffer, length);
 }
 
-ssize_t session::socket_recv(libssh2_socket_t sockfd,
+ssize_t session::socket_recv([[maybe_unused]] libssh2_socket_t sockfd,
                              void* buffer,
                              size_t length) {
   if (!_socket.is_open()) {
@@ -370,7 +369,7 @@ ssize_t session::g_socket_send(libssh2_socket_t sockfd,
   return session_obj->socket_send(sockfd, buffer, length);
 }
 
-ssize_t session::socket_send(libssh2_socket_t sockfd,
+ssize_t session::socket_send([[maybe_unused]] libssh2_socket_t sockfd,
                              const void* buffer,
                              size_t length) {
   if (!_socket.is_open()) {

@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/lua/broker_utils.hh"
 
-#include <fmt/format.h>
 #include <sys/stat.h>
 #include "broker/core/config/applier/state.hh"
 #include "common/crypto/base64.hh"
@@ -29,7 +28,6 @@
 #include <iomanip>
 #include <sstream>
 
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
@@ -39,8 +37,6 @@
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/utf8.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
@@ -612,32 +608,6 @@ static int l_broker_json_decode(lua_State* L) {
   broker_json_decode(L, it);
   return 1;
 }
-
-/**
- * @brief This function is useful for debug purposes. It shows the stack
- * of the Lua state machine.
- *
- * @param L The Lua state machine
- */
-static auto l_stacktrace = [](lua_State* L) -> void {
-  int n = lua_gettop(L);  // number of arguments
-  for (int i = 1; i <= n; i++) {
-    int t = lua_type(L, i);
-    switch (t) {
-      case LUA_TSTRING:
-        printf("%d: '%s'\n", i, lua_tostring(L, i));
-        break;
-      case LUA_TBOOLEAN:
-        printf("%d: %s\n", i, lua_toboolean(L, i) ? "true" : "false");
-        break;
-      case LUA_TNUMBER:
-        printf("%d: %g\n", i, lua_tonumber(L, i));
-        break;
-      default:
-        printf("%d: %s\n", i, lua_typename(L, t));
-    }
-  }
-};
 
 /**
  *  The Lua parse_perfdata function

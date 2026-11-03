@@ -233,9 +233,10 @@ void state::_enable_multiplexing(bool run_mux) {
     _barrier_armed = true;
     /* Some outputs may already have registered before we armed: their failover
      * thread started during endpoint::apply(). */
-    release_now = std::all_of(
-        _barrier_expected.begin(), _barrier_expected.end(),
-        [this](const std::string& n) { return _barrier_ready.contains(n); });
+    auto is_ready = [this](const std::string& n) ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+                        _barrier_m) { return _barrier_ready.contains(n); };
+    release_now = std::all_of(_barrier_expected.begin(),
+                              _barrier_expected.end(), is_ready);
     if (!release_now) {
       _barrier_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
@@ -265,10 +266,11 @@ void state::notify_output_ready(const std::string& endpoint_name) {
     if (_barrier_released)
       return;
     _barrier_ready.insert(endpoint_name);
+    auto is_ready = [this](const std::string& n) ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+                        _barrier_m) { return _barrier_ready.contains(n); };
     if (_barrier_armed)
-      release = std::all_of(
-          _barrier_expected.begin(), _barrier_expected.end(),
-          [this](const std::string& n) { return _barrier_ready.contains(n); });
+      release = std::all_of(_barrier_expected.begin(), _barrier_expected.end(),
+                            is_ready);
   }
   if (release)
     _maybe_release_barrier(false);

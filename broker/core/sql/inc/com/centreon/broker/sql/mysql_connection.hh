@@ -19,6 +19,8 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
+#include <absl/synchronization/mutex.h>
+
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/sql/mysql_error.hh"
@@ -74,9 +76,10 @@ class mysql_connection {
   std::unordered_map<uint32_t, MYSQL_STMT*> _stmt;
   std::unordered_map<uint32_t, std::string> _stmt_query;
 
-  // Mutex and condition working on start.
-  std::mutex _start_m;
-  std::condition_variable _start_condition;
+  /* Mutex working on start and stop. Waiters wait on _state with
+   * absl::Condition, re-evaluated each time the mutex is released: _state must
+   * then never change without it, or a waiter is not woken up. */
+  mutable absl::Mutex _start_m;
 
   const std::string _host;
   const std::string _socket;
@@ -89,7 +92,7 @@ class mysql_connection {
   const uint32_t _read_timeout;
   const uint32_t _write_timeout;
   time_t _last_commit;
-  std::atomic<connection_state> _state;
+  connection_state _state ABSL_GUARDED_BY(_start_m);
 
   /**
    * Stats variables:
