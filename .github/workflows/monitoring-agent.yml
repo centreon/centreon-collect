@@ -489,50 +489,6 @@ jobs:
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
-  deliver-rpm:
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      inputs.publish_cma_version == '' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    needs: [get-environment, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-26.04-small
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distrib: el8
-            arch: amd64
-          - distrib: el9
-            arch: amd64
-          - distrib: el10
-            arch: amd64
-
-    name: deliver ${{ matrix.distrib }}
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Publish RPM packages
-        uses: ./.github/actions/rpm-delivery
-        with:
-          module_name: monitoring-agent
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
-          centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
-
   deliver-rpm-pulp:
     # the one delivery job not gated on a trigger_* output, so the publish-only dispatch
     # condition has to be spelled out here or its cache restore fails the run
@@ -584,57 +540,6 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
-
-  deliver-deb:
-    if: |
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: centreon-ubuntu-26.04-small
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distrib: bookworm
-            arch: amd64
-          - distrib: bookworm
-            arch: arm64
-          - distrib: trixie
-            arch: amd64
-          - distrib: trixie
-            arch: arm64
-          - distrib: jammy
-            arch: amd64
-          - distrib: jammy
-            arch: arm64
-          - distrib: noble
-            arch: amd64
-          - distrib: noble
-            arch: arm64
-
-    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Publish DEB packages
-        uses: ./.github/actions/deb-delivery
-        with:
-          module_name: monitoring-agent
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb-pulp:
     if: |
@@ -693,69 +598,6 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
-  deliver-windows:
-    if: |
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: .github/actions/check-artifactory
-
-      # bash is git bash on windows runners
-      - name: Check Artifactory availability
-        id: artifactory
-        uses: ./.github/actions/check-artifactory
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
-      - if: steps.artifactory.outputs.available == 'true'
-        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
-        env:
-          JF_URL: https://centreon.jfrog.io
-          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
-      # path and enableCrossOsArchive must match the save byte for byte: both feed the cache version
-      - name: Restore cache monitoring agent
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: agent/installer/centreon-monitoring-agent.exe
-          key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
-          enableCrossOsArchive: true
-          fail-on-cache-miss: true
-
-      - name: Deliver
-        if: steps.artifactory.outputs.available == 'true'
-        env:
-          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
-          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
-          STABILITY: ${{ needs.get-environment.outputs.stability }}
-        run: |
-          Write-Host "[DEBUG] deliver to testing - Major version: $env:CMA_MAJOR_VERSION"
-          Write-Host "[DEBUG] deliver to testing - Minor version: $env:CMA_MINOR_VERSION"
-
-          $VERSION = "$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
-          $STABILITY = "$env:STABILITY"
-
-          $TARGET_PATH = "installers/monitoring-agent/$env:CMA_MAJOR_VERSION/$STABILITY/windows/"
-
-          $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
-
-          Copy-Item -Path "agent\installer\centreon-monitoring-agent.exe" -Destination "${VERSION_EXE}"
-          Write-Host "[DEBUG] deliver testing to - Target path: ${TARGET_PATH}"
-          jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-        shell: powershell
-
   # Blocking, like every other Pulp job since #3705. Delivery also fails closed when the major is
   # not provisioned — run create-repos-installers.yml in centreon/delivery-tooling for every new
   # major, including the cloud ones the nightly builds.
@@ -794,7 +636,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # same name artifactory publishes, so both stores stay comparable
+          # the versioned name promote-windows-pulp and the github release asset look up
           VERSION_EXE="centreon-monitoring-agent-${CMA_MAJOR_VERSION}.${CMA_MINOR_VERSION}.exe"
           mv agent/installer/centreon-monitoring-agent.exe "agent/installer/$VERSION_EXE"
           echo "VERSION_EXE=$VERSION_EXE" >> "$GITHUB_ENV"
@@ -811,54 +653,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-  promote-linux:
-    needs: [get-environment, deliver-rpm, deliver-deb]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    runs-on: centreon-ubuntu-26.04-small
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el8, el9, el10, bookworm, trixie, jammy, noble]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Promote ${{ matrix.distrib }} to stable
-        id: promote
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: monitoring-agent
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
-      - name: Parse distrib name
-        id: parse-distrib
-        uses: ./.github/actions/parse-distrib
-        with:
-          distrib: ${{ matrix.distrib }}
-
-      # without artifactory nothing is promoted locally: deliver-github-assets-from-pulp takes over
-      - name: Deliver monitoring agent to github release
-        if: ${{ needs.get-environment.outputs.is_cloud == 'false' && steps.promote.outputs.artifactory_available == 'true' }}
-        uses: ./.github/actions/deliver-github-asset
-        with:
-          file_pattern: /tmp/promoted-packages/centreon-monitoring-agent${{ steps.parse-distrib.outputs.package_version_separator }}${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
-          github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
 
   promote-linux-pulp:
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
@@ -897,72 +691,6 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
-  promote-windows:
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    needs: [get-environment, deliver-windows]
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # bash is git bash on windows runners
-      - name: Check Artifactory availability
-        id: artifactory
-        uses: ./.github/actions/check-artifactory
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
-      - if: steps.artifactory.outputs.available == 'true'
-        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
-        env:
-          JF_URL: https://centreon.jfrog.io
-          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
-      - name: Promote testing to stable
-        if: steps.artifactory.outputs.available == 'true'
-        env:
-          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
-          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
-          STABILITY: ${{ needs.get-environment.outputs.stability }}
-          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
-        run: |
-          Write-Host "[DEBUG] promote to stable - Major version: $env:CMA_MAJOR_VERSION"
-          Write-Host "[DEBUG] promote to stable - Minor version: $env:CMA_MINOR_VERSION"
-
-          $VERSION= "$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
-          $MODULE_NAME= "monitoring-agent-$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
-          $STABILITY= "$env:STABILITY"
-
-          $SRC_PATH = "installers/monitoring-agent/$env:MAJOR_VERSION/testing/windows/"
-          $TARGET_PATH = "installers/monitoring-agent/$env:MAJOR_VERSION/$STABILITY/windows/"
-
-          $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
-
-          Write-Host "[DEBUG] promote to stable from: ${SRC_PATH}${VERSION_EXE}"
-
-          jf rt download "${SRC_PATH}${VERSION_EXE}" --flat --fail-no-op
-
-          Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
-
-          jf rt upload $VERSION_EXE "${TARGET_PATH}"
-        shell: powershell
-
-      # without artifactory nothing is downloaded locally: deliver-github-assets-from-pulp takes over
-      - name: Deliver monitoring agent to github release
-        if: ${{ needs.get-environment.outputs.is_cloud == 'false' && steps.artifactory.outputs.available == 'true' }}
-        uses: ./.github/actions/deliver-github-asset
-        with:
-          file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe
-          github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
-
   # Blocking, like its delivery counterpart. Needs no installer file: the relative path carries
   # no stability, so promotion is a content add of the unit already in the testing repository.
   promote-windows-pulp:
@@ -995,13 +723,12 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
-  # Completes the github release assets from the Pulp stable repositories, after both Pulp
-  # promotions: fills in what the artifactory based local mode could not deliver. Strict, so a
-  # distrib missing from Pulp fails here instead of dropping its row from the download site.
-  # A single job, as parallel uploads of the same asset would conflict; already present assets
-  # are skipped.
+  # Delivers the github release assets from the Pulp stable repositories, after both Pulp
+  # promotions. Strict, so a distrib missing from Pulp fails here instead of dropping its row
+  # from the download site. A single job, as parallel uploads of the same asset would conflict;
+  # already present assets are skipped.
   deliver-github-assets-from-pulp:
-    needs: [get-environment, promote-linux, promote-windows, promote-linux-pulp, promote-windows-pulp]
+    needs: [get-environment, promote-linux-pulp, promote-windows-pulp]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.is_cloud == 'false' &&
@@ -1022,16 +749,15 @@ jobs:
       - name: Deliver monitoring agent to github release from Pulp
         uses: ./.github/actions/deliver-github-asset
         with:
-          mode: action
           strict: "true"
           version: ${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
 
-  # One job, after both promotions: every asset is on the github release by then, so this reads
-  # them back rather than reconstructing names, and a single writer needs no branch merging
+  # One job, after the github release assets: every asset is on the release by then, so this
+  # reads them back rather than reconstructing names, and a single writer needs no branch merging
   # between the 8 promote jobs. Re-runnable on its own.
   publish-cma-download-site:
-    needs: [get-environment, promote-linux, promote-windows, deliver-github-assets-from-pulp]
+    needs: [get-environment, deliver-github-assets-from-pulp]
     # Two ways in: the component tag, and an explicit dispatch naming a version. The dispatch is
     # the retry path -- re-running a failed job replays the same commit, so it cannot pick up a
     # fix, and re-tagging a released component is not an option.
@@ -1114,11 +840,11 @@ jobs:
     needs:
       [
         get-environment,
-        deliver-rpm,
-        deliver-deb,
-        deliver-windows,
-        promote-linux,
-        promote-windows,
+        deliver-rpm-pulp,
+        deliver-deb-pulp,
+        deliver-windows-pulp,
+        promote-linux-pulp,
+        promote-windows-pulp,
       ]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
