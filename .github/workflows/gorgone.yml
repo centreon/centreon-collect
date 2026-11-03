@@ -168,7 +168,7 @@ jobs:
 
       - name: Upload logs as artifacts if tests failed
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: centreon-collect-perl-unit-tests-${{ matrix.operating_system }}
           path: ./lastlog.jsonl
@@ -660,7 +660,7 @@ jobs:
 
       - name: Upload summary fragment
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-summary-fragment-boot-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
           path: /tmp/summary-fragment.md
@@ -669,7 +669,7 @@ jobs:
 
       - name: Upload debug artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: centreon-gorgone-boot-test-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
           path: /tmp/gorgone-boot-test.log
@@ -714,7 +714,7 @@ jobs:
 
       - name: Upload summary fragment
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-summary-fragment-wiring-${{ matrix.operating_system }}
           path: /tmp/summary-fragment.md
@@ -871,7 +871,7 @@ jobs:
         shell: bash
 
       - name: Upload CVE report artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cve-report-centreon-gorgone-${{ matrix.operating_system }}
           path: cve-report-*.json
@@ -894,7 +894,7 @@ jobs:
           output: sbom-centreon-gorgone-${{ matrix.operating_system }}-spdx.json
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom-centreon-gorgone-${{ matrix.operating_system }}
           path: sbom-*.json

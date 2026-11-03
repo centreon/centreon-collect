@@ -310,7 +310,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: unit-test-${{ matrix.operating_system }}-${{ matrix.arch }}-reports
           path: "build/ut_*"
@@ -697,7 +697,7 @@ jobs:
 
       - name: Upload summary fragment
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-summary-fragment-boot-${{ matrix.distrib }}-${{ steps.platform-name.outputs.dashed }}
           path: /tmp/summary-fragment.md
@@ -706,7 +706,7 @@ jobs:
 
       - name: Upload debug artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: centreon-engine-boot-test-${{ matrix.distrib }}-${{ steps.platform-name.outputs.dashed }}
           path: /tmp/centreon-engine-boot-test.log
@@ -751,7 +751,7 @@ jobs:
 
       - name: Upload summary fragment
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-summary-fragment-wiring-${{ matrix.distrib }}
           path: /tmp/summary-fragment.md
@@ -760,7 +760,7 @@ jobs:
 
       - name: Upload debug artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: centreon-engine-config-wiring-test-${{ matrix.distrib }}
           path: /tmp/centreon-engine-config-wiring-test.log
@@ -907,7 +907,7 @@ jobs:
         shell: bash
 
       - name: Upload CVE report artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cve-report-${{ matrix.image }}-${{ matrix.distrib }}
           path: cve-report-*.json
@@ -930,7 +930,7 @@ jobs:
           output: sbom-${{ matrix.image }}-${{ matrix.distrib }}-spdx.json
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom-${{ matrix.image }}-${{ matrix.distrib }}
           path: sbom-*.json
