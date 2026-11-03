@@ -227,6 +227,9 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM hosts
 
     Ctn Clear Retention
+    # The RRD check made when Broker stops reads the whole log: without this,
+    # it would see the errors left by a previous test that ran in BBDO 2.
+    Ctn Clear Logs
 
     Ctn Start Broker
     Ctn Start Engine
@@ -263,6 +266,9 @@ BE_DEFAULT_NOTIFICATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM hosts
 
     Ctn Clear Retention
+    # The RRD check made when Broker stops reads the whole log: without this,
+    # it would see the errors left by a previous test that ran in BBDO 2.
+    Ctn Clear Logs
 
     Ctn Start Broker
     Ctn Start Engine
