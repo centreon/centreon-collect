@@ -111,6 +111,20 @@ std::shared_ptr<spdlog::logger> test_logger() {
 
 using merge_id = std::optional<std::pair<uint64_t, bool>>;
 
+/**
+ * @brief Stands for the rrdcached client given to start_merge(), it records
+ * the files flushed before a merge.
+ */
+class flush_recorder : public lib {
+ public:
+  std::vector<fs::path> flushed;
+
+  flush_recorder() : lib("", 0) {}
+  void pre_merge_flush(const fs::path& filename) override {
+    flushed.push_back(filename);
+  }
+};
+
 }  // namespace
 
 /**
@@ -184,7 +198,7 @@ TEST_F(RetentionManager, DisabledWhenDirsEmpty) {
   // writes must not crash and do nothing
   rm->write_metric(make_metric(1, 1000, 1.0));
   rm->write_status(make_status(1, 1000, 0));
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 }
 
 TEST_F(RetentionManager, StatusDisabledWhenStatusDirEmpty) {
@@ -194,7 +208,7 @@ TEST_F(RetentionManager, StatusDisabledWhenStatusDirEmpty) {
   EXPECT_TRUE(rm->enabled());
 
   rm->write_status(make_status(3, 1000, 0));
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 
   rm->write_metric(make_metric(3, 1000, 1.0));
   EXPECT_TRUE(fs::exists(_tmp.metric_file(3)));
@@ -239,7 +253,7 @@ TEST_F(RetentionManager, RemoveMetricAndStatus) {
   rm->remove_status(404);
 
   // nothing left to merge
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 
   // a new point creates a new file
   rm->write_metric(make_metric(20, base + interval, 6.0));
@@ -250,10 +264,10 @@ TEST_F(RetentionManager, NoMergeBelowThresholds) {
   auto rm = _load(make_config(_tmp, 3));
   const uint64_t base = base_time();
 
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
   for (int i = 0; i < 3; ++i)
     rm->write_metric(make_metric(11, base + i * interval, i));
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 }
 
 /**
@@ -267,7 +281,7 @@ TEST_F(RetentionManager, MergeOnSamplesThreshold) {
   for (int i = 0; i < 4; ++i)
     rm->write_metric(make_metric(11, base + i * interval, i));
 
-  merge_id merging = rm->start_merge(_lib);
+  merge_id merging = rm->start_merge(_lib, nullptr);
   ASSERT_TRUE(merging);
   EXPECT_EQ(merging->first, 11u);
   EXPECT_FALSE(merging->second);
@@ -293,7 +307,7 @@ TEST_F(RetentionManager, MergeOnSamplesThreshold) {
             11u);
 
   // nothing left to merge
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 }
 
 TEST_F(RetentionManager, MergeStatus) {
@@ -303,7 +317,7 @@ TEST_F(RetentionManager, MergeStatus) {
   rm->write_status(make_status(9, base, 0));
   rm->write_status(make_status(9, base + interval, 2));
 
-  merge_id merging = rm->start_merge(_lib);
+  merge_id merging = rm->start_merge(_lib, nullptr);
   ASSERT_TRUE(merging);
   EXPECT_EQ(merging->first, 9u);
   EXPECT_TRUE(merging->second);
@@ -339,23 +353,23 @@ TEST_F(RetentionManager, OneMergeAtATimeBiggestFirst) {
   for (int i = 0; i < 5; ++i)
     rm->write_metric(make_metric(2, base + i * interval, i));
 
-  merge_id merging = rm->start_merge(_lib);
+  merge_id merging = rm->start_merge(_lib, nullptr);
   ASSERT_TRUE(merging);
   EXPECT_EQ(merging->first, 2u);
 
   // a merge is running
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 
   _run_merges();
   ASSERT_TRUE(_wait_end_merge());
 
-  merging = rm->start_merge(_lib);
+  merging = rm->start_merge(_lib, nullptr);
   ASSERT_TRUE(merging);
   EXPECT_EQ(merging->first, 1u);
   _run_merges();
   ASSERT_TRUE(_wait_end_merge());
 
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 }
 
 /**
@@ -368,7 +382,7 @@ TEST_F(RetentionManager, MergeOrphan) {
   // last_activity + orphan_interval must be in the past
   std::this_thread::sleep_for(std::chrono::milliseconds(1100));
 
-  merge_id merging = rm->start_merge(_lib);
+  merge_id merging = rm->start_merge(_lib, nullptr);
   ASSERT_TRUE(merging);
   EXPECT_EQ(merging->first, 5u);
   _run_merges();
@@ -386,7 +400,7 @@ TEST_F(RetentionManager, AbortMerge) {
 
   rm->write_metric(make_metric(6, base, 1.0));
   rm->write_metric(make_metric(6, base + interval, 2.0));
-  ASSERT_TRUE(rm->start_merge(_lib));
+  ASSERT_TRUE(rm->start_merge(_lib, nullptr));
 
   // another id or a status with the same id: nothing is aborted
   rm->abort_metric_merge(7);
@@ -400,9 +414,11 @@ TEST_F(RetentionManager, AbortMerge) {
 }
 
 /**
- * A merge failure doesn't block the next merges.
+ * A merge failure doesn't block the next merges and doesn't lose the retention
+ * data: the retention file is kept, it is fed by the next points and merged
+ * again later.
  */
-TEST_F(RetentionManager, MergeErrorDoesNotBlock) {
+TEST_F(RetentionManager, MergeErrorKeepsRetentionFile) {
   auto rm = _load(make_config(_tmp, 1));
   const uint64_t base = base_time();
 
@@ -413,16 +429,72 @@ TEST_F(RetentionManager, MergeErrorDoesNotBlock) {
     std::ofstream out(_tmp.metric_file(8, "rrd"));
     out << "not an rrd file";
   }
-  ASSERT_TRUE(rm->start_merge(_lib));
+  ASSERT_TRUE(rm->start_merge(_lib, nullptr));
   _run_merges();
-  EXPECT_FALSE(fs::exists(_tmp.metric_file(8)));
   EXPECT_TRUE(_wait_end_merge());
+  ASSERT_TRUE(fs::exists(_tmp.metric_file(8)));
+  EXPECT_EQ(retention_file(_tmp.metric_file(8)).nb_samples(), 2u);
+  EXPECT_FALSE(fs::exists(_tmp.metric_file(8, "rrd.to_merge")));
+  EXPECT_FALSE(fs::exists(_tmp.metric_file(8, "rrd.tmp")));
 
-  rm->write_metric(make_metric(9, base, 1.0));
-  rm->write_metric(make_metric(9, base + interval, 2.0));
-  merge_id merging = rm->start_merge(_lib);
+  // another file can be merged, the biggest one first
+  for (int i = 0; i < 3; ++i)
+    rm->write_metric(make_metric(9, base + i * interval, i));
+  merge_id merging = rm->start_merge(_lib, nullptr);
   ASSERT_TRUE(merging);
   EXPECT_EQ(merging->first, 9u);
+  _run_merges();
+  ASSERT_TRUE(_wait_end_merge());
+  EXPECT_FALSE(fs::exists(_tmp.metric_file(9)));
+
+  // the kept file is still fed
+  rm->write_metric(make_metric(8, base + 2 * interval, 3.0));
+  EXPECT_EQ(retention_file(_tmp.metric_file(8)).nb_samples(), 3u);
+
+  // once the rrd file is fixed, the retention file is merged
+  fs::remove(_tmp.metric_file(8, "rrd"));
+  merging = rm->start_merge(_lib, nullptr);
+  ASSERT_TRUE(merging);
+  EXPECT_EQ(merging->first, 8u);
+  _run_merges();
+  ASSERT_TRUE(_wait_end_merge());
+  EXPECT_FALSE(fs::exists(_tmp.metric_file(8)));
+  rrd_existing_data data = _lib->fetch_existing(_tmp.metric_file(8, "rrd"),
+                                                base, base + 2 * interval);
+  ASSERT_EQ(data.points.size(), 3u);
+  for (int i = 0; i < 3; ++i)
+    EXPECT_DOUBLE_EQ(data.points[i].second, 1.0 + i);
+}
+
+/**
+ * With rrdcached, the rrd file is flushed before its merge is posted, so that
+ * the merge reads all the real-time data.
+ */
+TEST_F(RetentionManager, MergeFlushesCachedClient) {
+  auto rm = _load(make_config(_tmp, 1));
+  const uint64_t base = base_time();
+  flush_recorder cached_client;
+
+  rm->write_metric(make_metric(12, base, 1.0));
+  rm->write_metric(make_metric(12, base + interval, 2.0));
+  ASSERT_TRUE(rm->start_merge(_lib, &cached_client));
+  // flushed by start_merge(), before the merge runs
+  EXPECT_EQ(cached_client.flushed,
+            std::vector<fs::path>{_tmp.metric_file(12, "rrd")});
+  _run_merges();
+  ASSERT_TRUE(_wait_end_merge());
+
+  rm->write_status(make_status(12, base, 0));
+  rm->write_status(make_status(12, base + interval, 0));
+  ASSERT_TRUE(rm->start_merge(_lib, &cached_client));
+  ASSERT_EQ(cached_client.flushed.size(), 2u);
+  EXPECT_EQ(cached_client.flushed[1], _tmp.status_file(12, "rrd"));
+  _run_merges();
+  ASSERT_TRUE(_wait_end_merge());
+
+  // no merge, no flush
+  EXPECT_FALSE(rm->start_merge(_lib, &cached_client));
+  EXPECT_EQ(cached_client.flushed.size(), 2u);
 }
 
 /**
@@ -454,7 +526,7 @@ TEST_F(RetentionManager, LoadReloadsFiles) {
   // both reloaded files have more than 3 samples
   std::set<std::pair<uint64_t, bool>> merged;
   for (int i = 0; i < 2; ++i) {
-    merge_id merging = rm->start_merge(_lib);
+    merge_id merging = rm->start_merge(_lib, nullptr);
     ASSERT_TRUE(merging);
     merged.insert(*merging);
     _run_merges();
@@ -462,7 +534,7 @@ TEST_F(RetentionManager, LoadReloadsFiles) {
   }
   EXPECT_EQ(merged,
             (std::set<std::pair<uint64_t, bool>>{{30, false}, {31, true}}));
-  EXPECT_FALSE(rm->start_merge(_lib));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 }
 
 TEST_F(RetentionManager, ReloadedFileIsAppended) {

@@ -193,21 +193,23 @@ void lib::update(const std::deque<std::string>& pts) {
 }
 
 /**
- * @brief Read RRD file metadata and fetch all known data-points in
- *        [@p from_ts, @p to_ts] using librrd directly.
+ * @brief Read the metadata of an RRD file (interval, rrd_len and value_type)
+ * with rrd_info_r(), without fetching its data.
  *
- * Uses rrd_info_r() to determine step, rrd_len and value_type, then
- * rrd_fetch_r() to retrieve the actual data.  NaN values (unknown) are
- * omitted from the returned vector.
+ * The returned step is the interval of the file, that is the step of the file
+ * multiplied by the pdp_per_row of its base RRA, as creator creates files with
+ * a step of 1s. The returned points are always empty.
+ *
+ * Only the static part of the header is read, so with rrdcached no flush is
+ * needed.
+ *
+ * @param filename The RRD file to read.
  *
  * @return rrd_existing_data with step == 0 on any error.
  */
-rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
-                                      uint64_t from_ts,
-                                      uint64_t to_ts) {
+rrd_existing_data lib::info(const std::filesystem::path& filename) {
   rrd_existing_data result;
 
-  // ---- 1. Parse file metadata via rrd_info_r ----
   rrd_info_t* info = rrd_info_r(const_cast<char*>(filename.c_str()));
   if (!info) {
     _logger->error("RRD: rrd_info_r failed for '{}': {}", filename,
@@ -275,7 +277,26 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
   if (base_rra != rra_pdp_per_row.end() && base_rra->second > 0)
     result.step = file_step * base_rra->second;
 
-  // ---- 2. Fetch data via rrd_fetch_r ----
+  return result;
+}
+
+/**
+ * @brief Read RRD file metadata and fetch all known data-points in
+ *        [@p from_ts, @p to_ts] using librrd directly.
+ *
+ * Uses info() to determine step, rrd_len and value_type, then
+ * rrd_fetch_r() to retrieve the actual data.  NaN values (unknown) are
+ * omitted from the returned vector.
+ *
+ * @return rrd_existing_data with step == 0 on any error.
+ */
+rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
+                                      uint64_t from_ts,
+                                      uint64_t to_ts) {
+  rrd_existing_data result = info(filename);
+  if (result.step == 0)
+    return result;
+
   time_t start =
       static_cast<time_t>(from_ts) - static_cast<time_t>(result.step);
   time_t end = static_cast<time_t>(to_ts);

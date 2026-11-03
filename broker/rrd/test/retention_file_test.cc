@@ -90,9 +90,10 @@ std::map<uint64_t, double> fetch(const fs::path& rrd_path,
 
 /// Create an rrd file as the stream does and write values in it.
 void write_rrd(const fs::path& rrd_path,
-               const std::vector<std::pair<uint64_t, double>>& values) {
+               const std::vector<std::pair<uint64_t, double>>& values,
+               uint32_t step = interval) {
   lib l("", 0);
-  l.open(rrd_path, rrd_len, values.front().first - 1, interval);
+  l.open(rrd_path, rrd_len, values.front().first - 1, step);
   for (auto& [ts, value] : values)
     l.update(ts, fmt::format("{:f}", value));
 }
@@ -383,4 +384,79 @@ TEST_F(RetentionFile, AbortMergeLeavesRrdUntouched) {
   EXPECT_EQ(file_content(rrd_path), before);
   EXPECT_FALSE(fs::exists(_tmp.path / "12.rrd.to_merge"));
   EXPECT_FALSE(fs::exists(_tmp.path / "12.rrd.tmp"));
+}
+
+/**
+ * A metric without check interval (passive service): the stream uses an
+ * interval of 60s, the merge must do the same and keep the first sample.
+ */
+TEST_F(RetentionFile, MergeIntervalZeroIntoMissingRrd) {
+  const uint64_t base = base_time();
+  const fs::path rrd_path = _tmp.path / "12.rrd";
+
+  Metric first = make_metric(12, base, 1.0);
+  first.set_interval(0);
+  retention_file f(_tmp.path, first);
+  for (int i = 1; i < 4; ++i) {
+    Metric m = make_metric(12, base + i * 60, 1.0 + i);
+    m.set_interval(0);
+    f.add_metric(m);
+  }
+
+  lib l("", 0);
+  f.merge(rrd_path, l);
+
+  rrd_existing_data info = l.info(rrd_path);
+  EXPECT_EQ(info.step, 60u);
+  auto values = fetch(rrd_path, base, base + 3 * 60);
+  ASSERT_EQ(values.size(), 4u);
+  for (int i = 0; i < 4; ++i)
+    EXPECT_DOUBLE_EQ(values[base + i * 60], 1.0 + i);
+}
+
+/**
+ * The check interval of the service has changed since the creation of the rrd
+ * file: the merge keeps the interval and the retention of the rrd file.
+ */
+TEST_F(RetentionFile, MergeKeepsRrdInterval) {
+  constexpr uint32_t rrd_step = 300;
+  const uint64_t base =
+      (static_cast<uint64_t>(time(nullptr)) / rrd_step) * rrd_step - 4 * 3600;
+  const fs::path rrd_path = _tmp.path / "12.rrd";
+
+  std::vector<std::pair<uint64_t, double>> rt;
+  for (int i = 10; i <= 12; ++i)
+    rt.emplace_back(base + i * rrd_step, 100.0 + i);
+  write_rrd(rrd_path, rt, rrd_step);
+
+  lib l("", 0);
+  const rrd_existing_data before = l.info(rrd_path);
+  ASSERT_EQ(before.step, rrd_step);
+  ASSERT_EQ(before.rrd_len, rrd_len);
+
+  // the retention header says 60s and a smaller retention
+  Metric first = make_metric(12, base, 0.0);
+  first.set_rrd_len(3600);
+  retention_file f(_tmp.path, first);
+  ASSERT_EQ(f.interval(), interval);
+  for (int i = 1; i < 5; ++i) {
+    Metric m = make_metric(12, base + i * rrd_step, i);
+    m.set_rrd_len(3600);
+    f.add_metric(m);
+  }
+
+  f.merge(rrd_path, l);
+
+  const rrd_existing_data after = l.info(rrd_path);
+  EXPECT_EQ(after.step, rrd_step);
+  EXPECT_EQ(after.rrd_len, rrd_len);
+  auto values = fetch(rrd_path, base, base + 12 * rrd_step);
+  for (int i = 0; i < 5; ++i) {
+    ASSERT_TRUE(values.count(base + i * rrd_step)) << "retention " << i;
+    EXPECT_DOUBLE_EQ(values[base + i * rrd_step], i);
+  }
+  for (int i = 11; i <= 12; ++i) {
+    ASSERT_TRUE(values.count(base + i * rrd_step)) << "real-time " << i;
+    EXPECT_DOUBLE_EQ(values[base + i * rrd_step], 100.0 + i);
+  }
 }

@@ -55,6 +55,8 @@ class lib : public backend {
 
   static time_t last_update(const std::filesystem::path& filename);
 
+  rrd_existing_data info(const std::filesystem::path& filename);
+
   rrd_existing_data fetch_existing(const std::filesystem::path& filename,
                                    uint64_t from_ts,
                                    uint64_t to_ts) override;

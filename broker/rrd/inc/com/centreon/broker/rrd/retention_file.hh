@@ -58,7 +58,12 @@ class retention_file {
 
   void _append(const sample& to_append);
 
-  void _to_rrd_file(const std::filesystem::path& dst_path, lib& rrd_lib);
+  rrd_existing_data _get_rrd_params(const std::filesystem::path& rrd_path,
+                                    lib& rrd_lib) const;
+
+  void _to_rrd_file(const std::filesystem::path& dst_path,
+                    lib& rrd_lib,
+                    const rrd_existing_data& rrd_params);
 
  public:
   // class mapped_sample {

@@ -463,7 +463,8 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           }
         }
         if (_retention->enabled()) {
-          auto merging = _retention->start_merge(_merge_lib);
+          auto merging = _retention->start_merge(
+              _merge_lib, std::is_same_v<T, lib> ? nullptr : &_backend);
           if (merging) {
             if (merging->second)
               _pending_status_merges.emplace(merging->first, rebuild_entry());
@@ -514,7 +515,8 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           }
         }
         if (_retention->enabled()) {
-          auto merging = _retention->start_merge(_merge_lib);
+          auto merging = _retention->start_merge(
+              _merge_lib, std::is_same_v<T, lib> ? nullptr : &_backend);
           if (merging) {
             if (merging->second)
               _pending_status_merges.emplace(merging->first, rebuild_entry());
@@ -680,6 +682,11 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
     case storage::pb_end_metric_merge::static_type(): {
       const EndMetricMerge& end_merge =
           std::static_pointer_cast<storage::pb_end_metric_merge>(d)->obj();
+      if constexpr (!std::is_same_v<T, lib>) {
+        auto rrd_path =
+            _metrics_path / fmt::format("{}.rrd", end_merge.metric_id());
+        _backend.post_merge_forget(rrd_path);
+      }
       auto to_play_search = _pending_metric_merges.find(end_merge.metric_id());
       if (to_play_search != _pending_metric_merges.end()) {
         auto to_play = std::move(to_play_search->second);
@@ -692,6 +699,11 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
     case storage::pb_end_status_merge::static_type(): {
       const EndStatusMerge& end_merge =
           std::static_pointer_cast<storage::pb_end_status_merge>(d)->obj();
+      if constexpr (!std::is_same_v<T, lib>) {
+        auto rrd_path =
+            _status_path / fmt::format("{}.rrd", end_merge.index_id());
+        _backend.post_merge_forget(rrd_path);
+      }
       auto to_play_search = _pending_status_merges.find(end_merge.index_id());
       if (to_play_search != _pending_status_merges.end()) {
         auto to_play = std::move(to_play_search->second);
@@ -707,344 +719,6 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
 
   return 1;
 }
-
-/**
- * @brief Merge the metric retention buffer into the RRD file.
- *
- * Reads all buffered (time, value) pairs and replays them into the backend.
- * Points that are already in the RRD are silently rejected by librrd/rrdcached.
- * On success, clears the buffer.
- *
- * @param metric_id  The metric identifier.
- * @param rrd_path   Absolute path to the metric's .rrd file.
- */
-/**
- * @brief Trigger merges for all metrics and statuses whose retention data was
- *        recovered from disk by retention_manager::init().
- *
- * Called once from each stream constructor after _retention.init() so that
- * buffered data from a previous broker run is replayed into the RRD files
- * immediately, without waiting for new data to arrive.  If an RRD file does
- * not yet exist the merge is silently deferred (the buffer is preserved on
- * disk until the file is created by an incoming current-data write).
- */
-// template <typename T>
-// void stream<T>::_startup_merge() {
-//   if (!_retention.enabled())
-//     return;
-
-//   if (_write_metrics) {
-//     for (uint64_t id : _retention.metric_ids_with_data()) {
-//       auto path = _metrics_path / fmt::format("{}.rrd", id);
-//       SPDLOG_LOGGER_INFO(_logger,
-//                          "RRD: startup merge for recovered metric {} ('{}')",
-//                          id, path.string());
-//       _schedule_metric_merge(id, std::move(path));
-//     }
-//   }
-
-//   if (_write_status) {
-//     for (uint64_t id : _retention.status_ids_with_data()) {
-//       auto path = _status_path / fmt::format("{}.rrd", id);
-//       SPDLOG_LOGGER_INFO(_logger,
-//                          "RRD: startup merge for recovered status {} ('{}')",
-//                          id, path.string());
-//       _schedule_status_merge(id, std::move(path));
-//     }
-//   }
-// }
-
-/**
- * @brief Merge the metric retention buffer into the RRD file.
- *
- * Runs on the merge thread. Buffered (backfill) points are merged with the
- * points already in the RRD file and written to a temporary file which then
- * replaces the RRD file.
- *
- * @param metric_id  The metric identifier.
- * @param rrd_path   Absolute path to the metric .rrd file.
- *
- * @return The most recent timestamp written in the RRD file, 0 if nothing was
- * merged (empty buffer, missing file, error) or if the metric is not a GAUGE
- * (buffer points are then just appended with an rrd update).
- */
-// template <typename T>
-// int64_t stream<T>::_do_metric_merge(uint64_t metric_id,
-//                                     const std::filesystem::path& rrd_path) {
-//   // 1. Collect buffered points.
-//   auto buf_pts = _retention.get_metric_merge_points(metric_id);
-//   if (buf_pts.empty()) {
-//     _retention.metric_merge_done(metric_id);
-//     return 0;
-//   }
-
-//   SPDLOG_LOGGER_INFO(_logger,
-//                      "RRD: merging {} buffered points for metric {} into
-//                      '{}'", buf_pts.size(), metric_id, rrd_path);
-
-//   // 2. File must exist (created by a current-data write).
-//   if (!std::filesystem::exists(rrd_path)) {
-//     SPDLOG_LOGGER_DEBUG(
-//         _logger,
-//         "RRD: metric {} file '{}' not found — deferring merge until RRD
-//         exists", metric_id, rrd_path);
-//     return 0;  // Keep buffer; will retry when current data creates the file.
-//   }
-
-//   // 3. For rrdcached: flush pending writes to disk before reading.
-//   //    _backend.pre_merge_flush is thread-safe (socket mutex inside
-//   cached<T>). _backend.pre_merge_flush(rrd_path);
-
-//   // 4. Read file metadata and existing data-points using the dedicated merge
-//   //    lib (avoids contending on _backend's internal _filename state).
-//   const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
-//   auto existing =
-//       _merge_lib.fetch_existing(rrd_path, buf_pts.front().first, now);
-
-//   if (existing.step == 0) {
-//     SPDLOG_LOGGER_WARN(
-//         _logger,
-//         "RRD: could not read metadata for metric {} from '{}' — skipping",
-//         metric_id, rrd_path);
-//     _retention.metric_merge_done(metric_id);
-//     return 0;
-//   }
-
-//   // 5. For non-GAUGE types, rrd_fetch returns rates (not raw values) so a
-//   //    full reconstruction would produce wrong data.  Fall back to a direct
-//   //    librrd update; some points may be silently dropped but the file is
-//   not
-//   //    corrupted.  We also call post_merge_forget to keep rrdcached
-//   consistent. if (existing.value_type != 0) {
-//     SPDLOG_LOGGER_DEBUG(
-//         _logger,
-//         "RRD: metric {} is non-GAUGE (value_type={}), using direct update "
-//         "(points older than last_update may be discarded by librrd)",
-//         metric_id, existing.value_type);  // value_type is int, no change
-//     try {
-//       _merge_lib.open(rrd_path);
-//     } catch (const exceptions::open&) {
-//       _retention.metric_merge_done(metric_id);
-//       return 0;
-//     }
-//     std::deque<std::string> batch;
-//     for (const auto& [t, v] : buf_pts)
-//       batch.emplace_back(fmt::format("{}:{:f}", t, v));
-//     _merge_lib.update(batch);
-//     _backend.post_merge_forget(rrd_path);
-//     _retention.metric_merge_done(metric_id);
-//     {
-//       absl::MutexLock lk(&_ect_m);
-//       _metric_earliest_current.erase(metric_id);
-//     }
-//     return 0;
-//   }
-
-//   int64_t last_metric_merged_time = 0;
-
-//   // 6. GAUGE: merge-sort buffer + existing data (buffer wins on collision).
-//   absl::btree_map<uint64_t, double> merged;
-//   for (const auto& [t, v] : existing.points)
-//     merged[t] = v;
-//   for (const auto& [t, v] : buf_pts)
-//     merged[t] = v;  // buffer overwrites existing for the same timestamp
-
-//   if (!merged.empty()) {
-//     last_metric_merged_time = merged.rbegin()->first;
-//   }
-
-//   // 7. Build the sorted update batch.
-//   std::deque<std::string> batch;
-//   for (const auto& [t, v] : merged)
-//     batch.emplace_back(fmt::format("{}:{:f}", t, v));
-
-//   // 8. Create temp file and write all merged points via _merge_lib (librrd
-//   //    directly, bypasses rrdcached socket — safe from the merge thread).
-//   auto tmp_path = rrd_path;
-//   tmp_path += ".tmp";
-//   const time_t from =
-//       static_cast<time_t>(merged.begin()->first) - existing.step;
-//   _merge_lib.merge_create_temp(tmp_path, existing.rrd_len, from,
-//   existing.step,
-//                                existing.value_type, batch);
-
-//   // 9. Atomic rename: replace the live file with the merged one.
-//   std::error_code ec;
-//   std::filesystem::rename(tmp_path, rrd_path, ec);
-//   if (ec) {
-//     SPDLOG_LOGGER_ERROR(
-//         _logger, "RRD: rename '{}' → '{}' failed: {} — removing tmp file",
-//         tmp_path, rrd_path, ec.message());
-//     std::filesystem::remove(tmp_path, ec);
-//     _retention.metric_merge_done(metric_id);
-//     return 0;
-//   }
-
-//   // 10. For rrdcached: invalidate its stale queue for this path.
-//   _backend.post_merge_forget(rrd_path);
-
-//   // 11. Cleanup.
-//   _retention.metric_merge_done(metric_id);
-//   {
-//     absl::MutexLock lk(&_ect_m);
-//     _metric_earliest_current.erase(metric_id);
-//   }
-//   SPDLOG_LOGGER_INFO(_logger,
-//                      "RRD: retention merge for metric {} done ({} points)",
-//                      metric_id, merged.size());
-//   return last_metric_merged_time;
-// }
-
-/**
- * @brief Merge the status retention buffer into the RRD file.
- *
- * Runs on the merge thread, same algorithm as _do_metric_merge.
- *
- * @param index_id   The status index identifier.
- * @param rrd_path   Absolute path to the status .rrd file.
- *
- * @return The most recent timestamp written in the RRD file, 0 if nothing was
- * merged.
- */
-// template <typename T>
-// int64_t stream<T>::_do_status_merge(uint64_t index_id,
-//                                     const std::filesystem::path& rrd_path) {
-//   // RRD status strings (static storage, safe for string_view).
-//   static constexpr std::string_view kOk{"100"};
-//   static constexpr std::string_view kWarn{"75"};
-//   static constexpr std::string_view kCrit{"0"};
-//   static constexpr std::string_view kUnknown{"U"};
-
-//   // State (0=OK/UP, 1=WARN/DOWN, 2=CRIT, else UNKNOWN/PENDING) → RRD string.
-//   static constexpr auto state_to_str = [](uint32_t state) -> std::string_view
-//   {
-//     switch (state) {
-//       case 0:
-//         return kOk;
-//       case 1:
-//         return kWarn;
-//       case 2:
-//         return kCrit;
-//       default:
-//         return kUnknown;
-//     }
-//   };
-
-//   // double percentage from rrd_fetch → RRD string ("U" if out of range).
-//   static constexpr auto pct_to_str = [](double v) -> std::string_view {
-//     int iv = static_cast<int>(std::round(v));
-//     if (iv == 100)
-//       return kOk;
-//     if (iv == 75)
-//       return kWarn;
-//     if (iv == 0)
-//       return kCrit;
-//     return kUnknown;
-//   };
-
-//   // 1. Collect buffered points.
-//   auto buf_pts = _retention.get_status_merge_points(index_id);
-//   if (buf_pts.empty()) {
-//     _retention.status_merge_done(index_id);
-//     return 0;
-//   }
-
-//   SPDLOG_LOGGER_INFO(_logger,
-//                      "RRD: merging {} buffered points for status {} into
-//                      '{}'", buf_pts.size(), index_id, rrd_path);
-
-//   // 2. File must exist.
-//   if (!std::filesystem::exists(rrd_path)) {
-//     SPDLOG_LOGGER_DEBUG(
-//         _logger,
-//         "RRD: status {} file '{}' not found — deferring merge until RRD
-//         exists", index_id, rrd_path);
-//     return 0;  // Keep buffer; will retry when current data creates the file.
-//   }
-
-//   // 3. For rrdcached: flush before read (thread-safe via socket mutex in
-//   // cached<T>).
-//   _backend.pre_merge_flush(rrd_path);
-
-//   // 4. Read metadata and existing data-points via _merge_lib (no _backend
-//   state
-//   // used).
-//   const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
-//   auto existing =
-//       _merge_lib.fetch_existing(rrd_path, buf_pts.front().first, now);
-
-//   if (existing.step == 0) {
-//     SPDLOG_LOGGER_WARN(
-//         _logger,
-//         "RRD: could not read metadata for status {} from '{}' — skipping",
-//         index_id, rrd_path);
-//     _retention.status_merge_done(index_id);
-//     return 0;
-//   }
-
-//   int64_t last_status_merged_time = 0;
-
-//   // 5. Status RRDs are always GAUGE (percentage "0"/"75"/"100").
-//   //    Merge-sort as string_view on static constants; empty = unknown →
-//   skip. absl::btree_map<uint64_t, std::string_view> merged; for (const auto&
-//   [t, v] : existing.points) {
-//     auto sv = pct_to_str(v);
-//     if (!sv.empty())
-//       merged[t] = sv;
-//   }
-//   for (const auto& [t, state] : buf_pts) {
-//     auto sv = state_to_str(state);
-//     if (!sv.empty())
-//       merged[t] = sv;  // buffer overwrites existing
-//   }
-
-//   if (!merged.empty()) {
-//     last_status_merged_time = merged.rbegin()->first;
-//   }
-//   // 6. Build sorted batch.
-//   std::deque<std::string> batch;
-//   for (const auto& [t, sv] : merged)
-//     batch.emplace_back(fmt::format("{}:{}", t, sv));
-
-//   if (batch.empty()) {
-//     _retention.status_merge_done(index_id);
-//     return 0;
-//   }
-
-//   // 7. Create temp file and write merged data via _merge_lib (librrd
-//   directly). auto tmp_path = rrd_path; tmp_path += ".tmp"; const time_t from
-//   =
-//       static_cast<time_t>(merged.begin()->first) - existing.step;
-//   _merge_lib.merge_create_temp(tmp_path, existing.rrd_len, from,
-//   existing.step,
-//                                /*value_type=*/0, batch);
-
-//   // 8. Atomic rename.
-//   std::error_code ec;
-//   std::filesystem::rename(tmp_path, rrd_path, ec);
-//   if (ec) {
-//     SPDLOG_LOGGER_ERROR(
-//         _logger, "RRD: rename '{}' → '{}' failed: {} — removing tmp file",
-//         tmp_path, rrd_path, ec.message());
-//     std::filesystem::remove(tmp_path, ec);
-//     _retention.status_merge_done(index_id);
-//     return 0;
-//   }
-
-//   // 9. For rrdcached: invalidate stale queue.
-//   _backend.post_merge_forget(rrd_path);
-
-//   // 10. Cleanup.
-//   _retention.status_merge_done(index_id);
-//   {
-//     absl::MutexLock lk(&_ect_m);
-//     _status_earliest_current.erase(index_id);
-//   }
-//   SPDLOG_LOGGER_INFO(_logger,
-//                      "RRD: retention merge for status {} done ({} points)",
-//                      index_id, merged.size());
-//   return last_status_merged_time;
-// }
 
 /**
  * @brief Internal function called to read the protobuf RebuildMessage

@@ -17,6 +17,7 @@
  */
 
 #include <absl/cleanup/cleanup.h>
+#include <sys/mman.h>
 
 #include "com/centreon/broker/rrd/retention_file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -231,6 +232,47 @@ void retention_file::_create_file() {
 }
 
 /**
+ * @brief Get the parameters (interval, rrd_len and value_type) of the rrd file
+ * built by a merge.
+ *
+ * The merge must not change the rrd file layout, so if @p rrd_path exists, its
+ * parameters are used: the check interval or the retention of the service may
+ * have changed since its creation. Otherwise, the parameters of the header are
+ * used, with an interval of 60s if it is 0 as in stream.
+ *
+ * @param rrd_path The rrd file to merge into.
+ * @param rrd_lib The lib used to read the rrd file.
+ *
+ * @return The parameters, the interval being in the step field.
+ */
+rrd_existing_data retention_file::_get_rrd_params(
+    const std::filesystem::path& rrd_path,
+    lib& rrd_lib) const {
+  std::error_code ec;
+  if (std::filesystem::exists(rrd_path, ec)) {
+    rrd_existing_data params = rrd_lib.info(rrd_path);
+    if (params.step) {
+      if (params.step != _header.interval ||
+          params.rrd_len != _header.rrd_len ||
+          params.value_type != _header.value_type)
+        SPDLOG_LOGGER_INFO(
+            log_v2::instance().get(log_v2::RRD),
+            "{}: rrd file {} has interval {}, rrd_len {} and value_type {} "
+            "instead of {}, {} and {}, rrd file ones are kept",
+            _file_path.string(), rrd_path.string(), params.step,
+            params.rrd_len, params.value_type, _header.interval,
+            _header.rrd_len, static_cast<int>(_header.value_type));
+      return params;
+    }
+  }
+  rrd_existing_data params;
+  params.step = _header.interval ? _header.interval : 60;
+  params.rrd_len = _header.rrd_len;
+  params.value_type = _header.value_type;
+  return params;
+}
+
+/**
  * @brief Sort the samples of the file by timestamp (the sort is written in the
  * file) and write them in a new rrd file.
  *
@@ -238,9 +280,12 @@ void retention_file::_create_file() {
  *
  * @param dst_path The rrd file to create, overwritten if it exists.
  * @param rrd_lib The lib used to create the rrd file.
+ * @param rrd_params Interval (step field), rrd_len and value_type of the rrd
+ * file to create, given by _get_rrd_params().
  */
 void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
-                                  lib& rrd_lib) {
+                                  lib& rrd_lib,
+                                  const rrd_existing_data& rrd_params) {
   int fd = ::open(_file_path.c_str(), O_RDWR);
   if (fd < 0) {
     throw exceptions::msg_fmt("fail to open {}: {}", _file_path.string(),
@@ -289,7 +334,7 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
       // same format as stream::append_metric_to_rrd(), librrd only accepts
       // integers for COUNTER, DERIVE and ABSOLUTE
       for (; begin != end; ++begin) {
-        switch (_header.value_type) {
+        switch (rrd_params.value_type) {
           case Metric_ValueType_COUNTER:
           case Metric_ValueType_ABSOLUTE:
             samples.emplace_back(fmt::format(
@@ -309,9 +354,9 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
   }
   // creator sets the last update of the file to from - 1: the file starts one
   // interval before the first sample so that its row is fully known
-  rrd_lib.merge_create_temp(dst_path, _header.rrd_len,
-                            _header.first_ts - _header.interval + 1,
-                            _header.interval, _header.value_type, samples);
+  rrd_lib.merge_create_temp(dst_path, rrd_params.rrd_len,
+                            _header.first_ts - rrd_params.step + 1,
+                            rrd_params.step, rrd_params.value_type, samples);
 }
 
 /**
@@ -322,6 +367,9 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
  * of this temporary file and is renamed to @p rrd_path. If @p rrd_path doesn't
  * exist, it is created from the samples only. Temporary files are always
  * removed. The retention file itself is not modified.
+ *
+ * The interval, rrd_len and value_type of @p rrd_path are kept, see
+ * _get_rrd_params().
  *
  * abort_merge() can be called from another thread, the merge then stops at the
  * next step and @p rrd_path is left untouched.
@@ -336,6 +384,7 @@ void retention_file::merge(const std::filesystem::path& rrd_path,
   if (last_ts <= 0 || (uint64_t)last_ts < _header.last_ts) {
     last_ts = _header.last_ts;
   }
+  const rrd_existing_data rrd_params = _get_rrd_params(rrd_path, rrd_lib);
   std::filesystem::path to_merge_path = rrd_path;
   to_merge_path += ".to_merge";
   std::filesystem::path tmp_merge_path = rrd_path;
@@ -346,13 +395,13 @@ void retention_file::merge(const std::filesystem::path& rrd_path,
   };
   if (!_abort_merge) {
     // first, we create rrd file to merge in dst file
-    _to_rrd_file(to_merge_path, rrd_lib);
+    _to_rrd_file(to_merge_path, rrd_lib, rrd_params);
   }
   if (!_abort_merge) {
     // creator sets the last update of the file to from - 1
     rrd_lib.merge_files(tmp_merge_path, rrd_path, to_merge_path,
-                        _header.rrd_len, last_ts + 1, _header.interval,
-                        _header.value_type);
+                        rrd_params.rrd_len, last_ts + 1, rrd_params.step,
+                        rrd_params.value_type);
   }
   if (!_abort_merge) {
     if (::rename(tmp_merge_path.c_str(), rrd_path.c_str())) {
