@@ -17,6 +17,7 @@
  */
 
 #include <getopt.h>
+#include <openssl/crypto.h>
 
 #include <cerrno>
 #include <chrono>
@@ -160,6 +161,11 @@ static void term_handler(int signum) {
  *  @return 0 on normal termination, any other value on failure.
  */
 int main(int argc, char* argv[]) {
+  // Keep OpenSSL's global state alive at exit: gRPC threads may still run their
+  // OpenSSL thread-local cleanup when the atexit handlers run (double free).
+  // It must be the first OpenSSL initialization of the process.
+  OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr);
+
   absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
   absl::EnableMutexInvariantDebugging(true);
   // Initialization.
