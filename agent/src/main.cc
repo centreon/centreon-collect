@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <openssl/crypto.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -78,6 +79,11 @@ static void signal_handler(const boost::system::error_code& error,
 }
 
 int main(int argc, char* argv[]) {
+  // Keep OpenSSL's global state alive at exit: gRPC threads may still run their
+  // OpenSSL thread-local cleanup when the atexit handlers run (double free).
+  // It must be the first OpenSSL initialization of the process.
+  OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr);
+
   if (argc < 2) {
     SPDLOG_ERROR(
         "No config file passed in param.\nUsage: {} <path to json config file>",
