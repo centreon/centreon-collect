@@ -14,7 +14,7 @@ Centreon Broker moves monitoring events. On each poller, `cbmod` runs inside Eng
 | Database outputs | `broker/unified_sql/` (`20-unified_sql`); `broker/sql/` (`80-sql`) and `broker/storage/` (`20-storage`) for BBDO 2 only | Write `centreon_storage` |
 | Other outputs | `broker/rrd/` (`70-rrd`), `broker/bam/` (`20-bam`, types `bam` and `bam_bi`), `broker/lua/` (`70-lua`), `broker/graphite/`, `broker/influxdb/`, `broker/victoria_metrics/` (on the static `broker/http_tsdb/`), `broker/otlp/` (`70-otlp`), `broker/event_script/` (`80-event_script`), `broker/stats/` (`15-stats`) | One shared library each |
 | Optional | `broker/simu/` (`WITH_MODULE_SIMU`, on in CI), `broker/generator/` (`90-generator`, off), `broker/tls2/` (`60-tls2`, OpenSSL, off) | Not in packages unless enabled |
-| Watchdog | `broker/watchdog/` (`cbwd`) | Forks the `cbd` instances of `watchdog.json`, restarts them, forwards `SIGHUP` |
+| Watchdog | `broker/watchdog/` (`cbwd`) | Forks the `cbd` instances of `watchdog.json`, restarts them, forwards `SIGHUP` to those with `reload` set |
 | Contracts | `bbdo/*.proto`, `bbdo/events.hh`, legacy event mappings (`broker/neb/src/*.cc`, `bbdo/bam/`, `bbdo/storage/`, `bbdo/bbdo/`); `broker/core/src/broker.proto` | Read by peers of other versions, by retention files, by Lua scripts, by `ccc` and the Robot tests |
 | Shared libraries | `common/log_v2`, `common/src/pool.cc`, `common/grpc`, `common/crypto`, `common/vault`, `common/http`, `common/engine_conf` | Also used by Engine and the CMA: global rules only |
 | Tests | `broker/**/test/`, `broker/test/` (`ut_broker`), `tests/broker/`, `tests/broker-engine/`, `tests/bam/`, `tests/resources/Broker.py` | See [`../testing.md`](../testing.md) |
@@ -41,7 +41,7 @@ broker/
 - Modules are shared libraries named `<NN>-<name>.so` in `module_directory`. The configuration parser maps each endpoint `type` to a file (`config::parser::_parse_endpoint`), and `config::applier::modules::load_file` `dlopen`s it with `RTLD_GLOBAL`, then loads the files named by its `broker_module_parents()` first (for example `10-neb.so`, and `60-tls.so` for TCP).
 - A module exports `broker_module_version`, `broker_module_init(const void*)`, `broker_module_deinit()` and optionally `broker_module_parents()` and `broker_module_update` (`modules/handle.hh`). Init registers its events (`io::events`) and its protocol factory (`io::protocols`); deinit unregisters them.
 - Every source is listed by hand in the module's `CMakeLists.txt`; test sources are appended to `TESTS_SOURCES` and compiled into `ut_broker`. Generated files: `broker.pb.*`, `table_max_size.hh` (from `resources/centreon*.sql` by `core/sql/src/table_max_size.py`), `grpc_stream.proto` and its bridge (`broker/grpc/generate_proto.py`).
-- `ONLY_ROBOT_CMA` builds only the modules the CMA Robot tests need and no `ut_broker`.
+- `ONLY_ROBOT_CMA` replaces the `add_broker_module` list with the modules the CMA Robot tests need and builds no `ut_broker`; Lua and Simu keep their own options.
 
 ## Components and runtime flow
 
@@ -73,7 +73,7 @@ centengine                                         cbd (central)
 5. An input is an `acceptor` (one thread) that creates a `feeder` per connection. A feeder polls the stream with `read(d, 0)` on a pool timer and publishes what it reads; events from the engine reach it through `muxer::data_handler::on_events`.
 6. On the central, `unified_sql::stream::write` dispatches by category and element (`neb_processing_table` indexed by element id).
 
-At stop, events still in the engine go to `<cache_dir>.unprocessed`, and each muxer's memory to `<cache_dir>.memory.<endpoint>`; both are read back at start. `cache_dir` is `<cache_directory>/<broker_name>`.
+At stop, the engine first flushes its queue to the muxers; events published after that go to `<cache_dir>.unprocessed`, and each muxer's memory to `<cache_dir>.memory.<endpoint>`; both are read back at start. `cache_dir` is `<cache_directory>/<broker_name>`.
 
 ### Event types
 
@@ -113,7 +113,7 @@ The Engine side (`engine/src/broker.cc`, `broker/neb/`) and the consumers change
 ## Configuration
 
 - One JSON file per process, object `centreonBroker`: identity (`broker_id`, `broker_name`, `poller_id`, `poller_name`), `module_directory`, `cache_directory`, `pool_size`, `event_queue_max_size`, `event_queues_total_size`, `bbdo_version`, `log`, `grpc`, `input` and `output` arrays, `stats`. Other keys go to `config::state::params()`.
-- An endpoint has `name` (required, characters checked), `type`, `filters` (`category`, `event`), `failover`, `buffering_timeout`, `retry_interval`, `read_timeout`, `cache`. Its other string values land in `config::endpoint::params`; the raw JSON stays in `config::endpoint::cfg`.
+- An endpoint has `name` (required, characters checked), `type`, `filters` (`category`, `event`), `failover`, `buffering_timeout`, `retry_interval`, `read_timeout`, `cache`. Its string values (these keys included) land in `config::endpoint::params`; the raw JSON stays in `config::endpoint::cfg`.
 - The applier builds the stack: the factory with `osi_from == 1` that recognises the endpoint, then one layer per level up to 7 (`config::applier::endpoint::_create_endpoint`). Each factory may fill defaults (`set_default_values`) and declares mandatory and forbidden filters for its stream.
 - Reload of `cbd` on `SIGHUP`: parse again, apply logs, apply the new state; on failure, re-apply the previous one. Unchanged endpoints are kept and `update()`d (`_diff_endpoints`), others are stopped and rebuilt. `modules::apply` only loads modules, it never unloads one. On an Engine reload, `cbmod::reload` only sends an `InstanceConfiguration` event; the Broker configuration of `cbmod` is read once.
 - Credentials: `db_password` may be `encrypt::<aes256>` (keys from `/etc/centreon-engine/engine-context.json`) or a vault reference (`common::vault`); Lua parameters may be `encrypt::`.
@@ -131,7 +131,7 @@ The Engine side (`engine/src/broker.cc`, `broker/neb/`) and the consumers change
 
 ## Security
 
-- TCP transport: TLS through `60-tls` (GnuTLS), keys `tls`, `public_cert`, `private_key`, `ca_certificate`, `tls_hostname`, negotiated as a BBDO extension. gRPC transport: `encryption`, `certificate`/`public_cert`, `private_key`, `ca_certificate`, `ca_name`, and an `authorization` token (also accepted by TCP).
+- TCP transport: TLS through `60-tls` (GnuTLS), keys `tls`, `public_cert`, `private_key`, `ca_certificate`, `tls_hostname`, negotiated as a BBDO extension. gRPC transport: `encryption`, `public_cert` (`bbdo_server`/`bbdo_client` endpoints also accept `certificate`), `private_key`, `ca_certificate`, `ca_name`, and an `authorization` token (gRPC only: the TCP factory rejects it).
 - MariaDB TLS: `db_ssl_enabled`, `db_ssl_ca`, `db_ssl_cert`, `db_ssl_key`, `db_ssl_verify_cert`, `db_tls_version` (`broker/doc/tls_database.md`).
 - The gRPC API has no authentication and listens on `localhost` by default; it offers `Aes256Encrypt`/`Aes256Decrypt` with caller-provided keys.
 - SQL: values reach the database through bound statements; formatted queries escape strings with `misc::string::escape` and truncate them to the column size.

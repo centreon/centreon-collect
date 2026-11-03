@@ -14,7 +14,7 @@ The Centreon Monitoring Agent (CMA, binary `centagent`) runs checks on Linux and
 | Shared libraries | `common/grpc/`, `common/process/`, `common/crypto/`, `common/inc/`, `common/engine_conf/` | Also used by Engine and Broker: global rules only, CMA rules do not apply |
 | Tests | `agent/test/`, `tests/broker-engine/cma*.robot`, `tests/resources/Agent.py` | See [`../testing.md`](../testing.md#centreon-monitoring-agent) |
 
-The agent depends on `common/` and third-party libraries only, never on `engine/` or `broker/`. Engine depends on the agent through `agent.proto` only.
+The agent depends on `common/`, the OTLP protobuf classes of `pb_open_telemetry_lib` (built from `bbdo/`) and third-party libraries, never on `engine/` or `broker/`. Engine depends on the agent through `agent.proto` only.
 
 The agent code is the reference for agent conventions. Engine and Broker are older siblings: check a pattern against this file and the surrounding `agent/` code before copying it from them.
 
@@ -33,8 +33,8 @@ agent/
 └─ doc/agent-doc.md                  design notes
 ```
 
-- The agent ships as RPM and DEB (`packaging/centreon-monitoring-agent*.yaml`) and as a Windows installer, from one code base. The Linux binary links `libstdc++` and `libgcc` statically (`-static-libgcc -static-libstdc++`), so that one package runs on every supported distribution.
-- Platform code lives in `native_linux/` or `native_windows/`, with the same header name when both platforms implement a check (`check_cpu.hh`). `#ifdef _WIN32` in the core is limited to registering platform checks or reading an OS value in a few lines. A path tells a reviewer which platform a change can break; the Linux CI never compiles `native_windows/`.
+- The agent ships as RPM and DEB (`packaging/centreon-monitoring-agent/*.yaml`) and as a Windows installer, from one code base. The Linux binary links `libstdc++` and `libgcc` statically (`-static-libgcc -static-libstdc++`), so that one package runs on every supported distribution.
+- Platform code lives in `native_linux/` or `native_windows/`, with the same header name when both platforms implement a check (`check_cpu.hh`). `#ifdef _WIN32` in the core is limited to registering platform checks or reading an OS value in a few lines, except in `src/grpc_ca_bootstrap.cc`, which holds the Windows registry and certificate-store code. A path tells a reviewer which platform a change can break; the Linux CI never compiles `native_windows/`.
 - Every source file is listed by hand in `agent/CMakeLists.txt`: `SRC_COMMON` (both platforms; it also receives `${NATIVE_SRC}/agent_info.cc` and `check_cpu.cc` of the current platform), `SRC_LINUX` (`config.cc`), `SRC_WINDOWS` (`config_win.cc`, `filter.cc`, Windows checks). Test files are listed in `agent/test/CMakeLists.txt`. No glob: a stray file never enters a build silently.
 - Template bases (`native_check_base.cc`, `native_check_cpu_base.cc`, `filter_rules.cc`) are not listed: they are `#include`d by the `.cc` that instantiates them. `grep '#include ".*\.cc"'` lists them.
 - Generated protobuf and gRPC files are produced into `src/` by the build.
@@ -61,7 +61,7 @@ main.cc / main_win.cc
    └─ streaming_client (AgentService.Export)        ┐ one of the two
    └─ streaming_server (ReversedAgentService.Import)┘
          └─ bireactor<grpc reactor>   (gRPC threads → asio::post)
-         └─ scheduler                 (io_context thread only)
+         └─ scheduler                 (io_context thread, see Threading model)
                └─ default_check_builder
                      ├─ check_exec / check_custom  → common/process
                      ├─ native checks (native_linux | native_windows)
@@ -77,11 +77,12 @@ One `asio::io_context` (`g_io_context`) runs on the main thread: scheduler, chec
 | Other thread | Boundary |
 |---|---|
 | gRPC callbacks (`bireactor::OnReadDone`, `OnWriteDone`, `OnDone`) | Post incoming requests and the reactor release to the `io_context` |
+| Reversed mode: `streaming_server::Import`, `server_reactor::on_error` (gRPC threads) | `Import` creates the `server_reactor`, its scheduler (`scheduler::load` arms the first timers) and the JWT timer on the gRPC thread; `on_error`, called from `OnReadDone` / `OnWriteDone`, runs `shutdown()`, which stops the scheduler on that thread under `_protect` |
 | `drive_size_thread` (`src/drive_size.cc`), `check_files_thread` (Windows) | Run blocking file-system calls, post results back |
 | Windows Event Log subscription callback | Fills `event_container` under `absl::Mutex` |
 | Child processes | Complete through asio (`common/process`) |
 
-A thread pool or a thread per check was rejected: the load is bounded by `max_concurrent_checks`, not by CPU, and every check and timer would need locking. Before `run()` starts, start-up code may block with a bounded timeout (the CA bootstrap does: `WaitForConnected` 5 s, unary `GetCACertificate`). A blocking call on the io thread after that delays every check and the export.
+A thread pool or a thread per check was rejected: the load is bounded by `max_concurrent_checks`, not by CPU, and every check and timer would need locking. Before `run()` starts, start-up code may block (the CA bootstrap waits up to 5 s in `WaitForConnected`, then makes the unary `GetCACertificate` call, which sets no deadline). A blocking call on the io thread after that delays every check and the export.
 
 Unit tests run the same `io_context` on a dedicated thread (`agent/test/test_main.cc`).
 
@@ -94,7 +95,7 @@ One long-lived bidirectional gRPC stream per Engine, with the callback API. `rev
 
 Both modes are functionally identical (same first message, same scheduler, same builder); they differ only by who connects. Both reactors derive from `bireactor<grpc reactor>`, instantiated twice in `bireactor.cc`: one write in flight, one pending read, and a static registry `_instances` that keeps a reactor alive until gRPC calls `OnDone`. `OnDone` releases the reactor through `asio::post`, because releasing it inside the gRPC callback can join the current thread and crash gRPC. `_instances` is never freed, on purpose; leak checkers report it.
 
-The client keeps one scheduler across reconnections and recreates a reactor 10 s after an error; the channel backoff is bounded by `second_max_reconnect_backoff`. The server checks the token in `Import`, answers a refusal with an `ImmediateFinishReactor`, accepts one Engine stream at a time and closes it when the JWT expires. Channels, servers, TLS and keepalive come from `common::grpc::grpc_client_base` / `grpc_server_base`; the only channel built outside them is the CA bootstrap probe.
+The client keeps one scheduler across reconnections and recreates a reactor 10 s after an error; the channel backoff is bounded by `second_max_reconnect_backoff`. The server checks the token in `Import`, answers a refusal with an `ImmediateFinishReactor`, keeps one Engine stream at a time (a new `Import` shuts the previous one down) and closes it when the JWT expires. Channels, servers, TLS and keepalive come from `common::grpc::grpc_client_base` / `grpc_server_base`, the CA bootstrap probe included (`bootstrap_grpc_client`).
 
 ## Protocol contract (`agent.proto`)
 
@@ -113,7 +114,7 @@ The contract evolves by addition; the rules are in [`../conventions/cma.md`](../
 Engine rebuilds a Nagios-like result from the OTLP metrics (`agent_check_result_builder.cc`) and parses every element by name, with `use_exemplar = true`. The encoding (`scheduler::_store_result_in_metrics_and_exemplars`):
 
 - one `ResourceMetrics` per service and per request, attributes `host.name` and `service.name` (empty for the host check);
-- gauge `status`, `as_int` 0–3, `description` = first output line up to `|`, exemplars `status_confirmed` and `current_attempt`;
+- gauge `status`, `as_int` 0–3, `description` = the first element of the check outputs, cut at the first `|` and passed through `common::check_string_utf8` (for `check_exec`: the short output, then `\n` and the long output), exemplars `status_confirmed` and `current_attempt`;
 - one gauge per perfdata, named after its label, with its unit and one attribute among `counter`, `derive`, `absolute`, `auto`, `gauge`; exemplars `crit_gt`/`crit_ge`, `crit_lt`/`crit_le`, `warn_gt`/`warn_ge`, `warn_lt`/`warn_le`, `min`, `max` (`_ge`/`_le` for inclusive `@` ranges);
 - `start_time_unix_nano` = check start, `time_unix_nano` = check end.
 
@@ -152,7 +153,7 @@ The remote configuration (what to check, how often) comes from Engine and is nev
 
 | Place | Platform |
 |---|---|
-| `src/config.cc`: `/etc/centreon-monitoring-agent/centagent.json`, validated by `config::config_schema` (template `conf/centagent.json.in`) | Linux |
+| `src/config.cc`: the JSON file given as first argument (`/etc/centreon-monitoring-agent/centagent.json` in `scripts/centagent.service`), validated by `config::config_schema` (template `conf/centagent.json.in`) | Linux |
 | `src/config_win.cc`: `HKLM\SOFTWARE\Centreon\<service name>` (default `CentreonMonitoringAgent`, `--service-name` for other instances) | Windows |
 | `installer/scripts_linux/install_cma.sh` | Linux |
 | `installer/installer.iss.in`, `installer/install_cma.ps1`, `conf/centagent.reg` | Windows |
@@ -163,15 +164,15 @@ Windows uses the registry because its installer, silent installs and multi-insta
 
 ## Logging
 
-One spdlog logger, `g_logger` (`log.hh`, named `centreon-monitoring-agent`), created in `main` from the local configuration: stdout, file or rotating file. gRPC logs go to the same logger. Logs flush immediately from WARN, otherwise on an asio timer (`init_log_flush_timer`). On Linux `SIGUSR1` / `SIGUSR2` lower and raise the verbosity at run time. Objects receive the logger in their constructor and keep it as `_logger`. One logger is enough because one host runs one agent and support reads one file.
+One spdlog logger, `g_logger` (`log.hh`, named `centreon-monitoring-agent`), created in `main` from the local configuration: stdout, file or rotating file, and on Windows the Event Log (`win_eventlog_sink`, the default `log_type` there). gRPC logs go to the same logger. Logs flush immediately from WARN, otherwise on an asio timer (`init_log_flush_timer`). On Linux `SIGUSR1` / `SIGUSR2` lower and raise the verbosity at run time. Objects receive the logger in their constructor and keep it as `_logger`. One logger is enough because one host runs one agent and support reads one file.
 
 ## Security model
 
 The agent runs as a service on customer hosts (user `centreon-monitoring-agent` on Linux, a Windows service), runs commands sent by a remote poller and receives credentials inside command lines.
 
-- **Transport.** `encryption` is `full` (TLS, server verified), `insecure` (TLS, no verification) or `no` (plain text). In plain text the agent logs a warning and stops after one hour (`main.cc`, `main_win.cc`); plain text is for demos.
+- **Transport.** `encryption` is `full` (TLS, server verified), `insecure` (same TLS credentials and CA check as `full`; only the expected server name is replaced by `ca_name` when set) or `no` (plain text). In plain text the agent logs a warning and stops after one hour (`main.cc`, `main_win.cc`); plain text is for demos.
 - **Peer authentication.** Direct mode: the agent sends `token`. Reversed mode: `token` is the trusted set checked in `streaming_server::Import`.
-- **CA distribution.** With `fingerprint` and no CA, `ca_bootstrap_workflow` (direct mode) probes full TLS; on failure it fetches the CA over `TLS_SKIP_VERIFY_CA`, keeps it only if its SHA-256 fingerprint matches, persists it (Linux: file owned by the agent account plus JSON; Windows: Local Machine store, or file plus registry) and logs the change at CRITICAL with `[SECURITY]`.
+- **CA distribution.** With `fingerprint` set, `ca_bootstrap_workflow` (direct mode) probes full TLS with the current settings; on failure it fetches the CA over `TLS_SKIP_VERIFY_CA`, keeps it only if its SHA-256 fingerprint matches, persists it (Linux: file owned by the agent account plus JSON; Windows: Local Machine store, or file plus registry) and logs the change at CRITICAL with `[SECURITY]`.
 - **Credentials.** With `key` and `salt`, command lines start with `encrypt::` (AES-256, `common/crypto/aes256`). The agent decrypts at build time, re-encrypts the arguments in `process_args`, decrypts them just before `start_process` and clears the plain text right after.
 - **Local commands.** Custom checks come from a file owned by the host administrator; Engine only names them. Command lines are split by `common::process::parse_cmd_line` and run without a shell.
 

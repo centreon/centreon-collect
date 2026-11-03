@@ -54,13 +54,13 @@ engine/
 
 - Every source is listed by hand: core files in `engine/CMakeLists.txt` or the `src/<dir>/CMakeLists.txt` of their directory (`PARENT_SCOPE` lists), tests in `ut_sources` of `engine/tests/CMakeLists.txt`. A file not listed is not built.
 - `WITH_DEBUG_CONFIG` adds pointer consistency checks after each apply (`applier::state::_check_*`); developers only.
-- `engine.proto` is generated into the build tree; `agent.proto` and the OTLP protos are generated into `modules/opentelemetry/src/`.
+- `engine.proto` is generated into the build tree; `agent.proto` (into `centreon_agent/`) and the OTLP `metrics_service` gRPC stub are generated into `modules/opentelemetry/src/`; the OTLP message classes come from `pb_open_telemetry_lib` (`bbdo/`).
 
 ## Components and runtime flow
 
 | Component | Files | Role |
 |---|---|---|
-| Entry point | `src/main.cc` | Options (`-v`, `-s`, `-c` extended JSON, `-k` CMA CA), parse, start enginerpc, load modules, apply, create `cbm`, run the loop, save retention on exit |
+| Entry point | `src/main.cc` | Options (`-v`, `-s`, `-c` extended JSON, `-k` CMA CA), parse, start enginerpc, read retention, apply logging, register modules, apply (the first apply loads the modules), create `cbm`, run the loop, save retention on exit |
 | Main loop | `events/loop.cc`, `events/timed_event.cc` | Two time-ordered lists (`high`, `low`) of `timed_event`; reload; drains `command_manager` |
 | Scheduling | `configuration/applier/scheduler.cc`, `host.cc`, `service.cc` | Initial spreading (inter-check delay, interleave), recurring events (reaper, retention save, status save, orphan, freshness, expirations) |
 | Check execution | `checkable.cc`, `service::run_async_check`, `host::run_async_check`, `commands/` | Macros, whitelist, then `command::run`: `raw_v2` (process through `common::process` on `g_io_context`), `forward` to a `connector` (Perl/SSH) or to an `otel_connector` |
@@ -90,7 +90,7 @@ main.cc
 
 ## Threading model
 
-The Nagios core is single-threaded: objects (`host::hosts`, `service::services`, timeperiods, commands, downtimes, comments) and `pb_config` are touched from the main loop. Each loop iteration holds `applier::state::lock()`.
+The Nagios core is single-threaded: objects (`host::hosts`, `service::services`, timeperiods, commands, downtimes, comments) and `pb_config` are touched from the main loop, except by the thread-safe external commands (table below), which read `host::hosts` and `service::services` from the FIFO worker. Each loop iteration holds `applier::state::lock()`.
 
 | Thread | Work | Boundary with the loop |
 |---|---|---|
@@ -101,7 +101,7 @@ The Nagios core is single-threaded: objects (`host::hosts`, `service::services`,
 | External command worker (`modules/external_commands/src/utils.cc`) | Reads the FIFO | Pushes to `external_command_buffer`, processed on the loop by `check_for_external_commands()`; commands flagged `thread_safe` (`PROCESS_SERVICE_CHECK_RESULT`, `PROCESS_HOST_CHECK_RESULT`) are executed on the worker itself |
 | Reload (`std::async` in `loop::_dispatching`) | `apply_conf`: parse, diff, apply | Apply section under `_apply_lock` |
 
-`command_manager::execute()` runs from the idle branches of the loop and, when the loop stays busy, at least every 5 s (`is_execution_overdue`).
+`command_manager::execute()` runs from the idle branches of the loop and, after a low-priority event, when its last run is more than 5 s old (`is_execution_overdue`); high-priority events never trigger it.
 
 ## Contracts
 
@@ -115,20 +115,20 @@ The Nagios core is single-threaded: objects (`host::hosts`, `service::services`,
 | Retention file | `retention/dump.cc`, `retention/*.cc` setters | The next Engine, possibly of another version; unknown keys are ignored |
 | CMA and OTLP | `engine/modules/opentelemetry/**/centreon_agent/` | See [`cma.md`](cma.md) |
 
-`event_broker_options` (bit mask in `broker.hh`) filters which `broker_*()` send anything; `cbm` is null during `-v`/`-s` runs and before the loop starts, and every `broker_*()` checks it.
+`event_broker_options` (bit mask in `broker.hh`) filters which `broker_*()` send anything (`broker_bench` and the `broker_agent_*` functions ignore it). `cbm` is null during `-s` runs and until `main` creates it after the first apply; most `broker_*()` check it, but `broker_bench`, `broker_agent_stats` and `broker_agent_unknown_host` do not.
 
 ## Configuration
 
 - **Read.** `configuration::parser::parse` (`common/engine_conf/parser.cc`) reads `centengine.cfg`, its `cfg_file`/`cfg_dir` and `resource_file`s into one `configuration::State` protobuf. Keys are mapped by protobuf reflection: key name = field name, aliases in the helper's correspondence table, special parsing in `hook()`, defaults in `_init()`, object checks in `check_validity()`. Templates are resolved in the parser. An unknown global key is logged at ERROR and ignored.
 - **Extend.** `-c file.json` (repeatable) merges a JSON `State` over the parsed one at start and on each reload (`extended_conf::update_state`).
-- **Apply.** `applier::state::apply`: expand objects, compute a `pb_difference` per object type, then under `_apply_lock` apply logging, globals (copied field by field into `pb_config`, mirrored into legacy globals by `applier::globals`), macros, then each type through its applier (`modify_object`, `remove_object`, `add_object`, `resolve_object`), retention (first load), scheduler, credentials key (`/etc/centreon-engine/engine-context.json`), whitelist. On failure after the first load, the saved configuration is re-applied.
+- **Apply.** `applier::state::apply`: expand objects, compute a `pb_difference` per object type, then under `_apply_lock` apply the legacy globals (`applier::globals`), macros, then each type through its applier (`modify_object`, `remove_object`, `add_object`, `resolve_object`), retention (first load), scheduler, credentials key (`/etc/centreon-engine/engine-context.json`), then copy the globals field by field into `pb_config` (`state::_apply`, which also warns about keys that cannot change on reload) and reload the whitelist. Logging is applied by `main` before the first apply, and after the apply on each reload. On failure after the first load, the saved configuration is re-applied.
 - **Reload.** `SIGHUP` or a restart command sets `sighup`; the loop re-parses `cfg_main` and applies the difference. Broker modules, module directory, command file, external command buffer size and `use_timezone` cannot change on reload (warning). After a reload `cbm->reload()` and `neb_reload_all_modules()` run.
 - **Verify.** `centengine -v` parses and applies with a default `cbmod`, prints counts and exits with the error count.
 
 ## Logging
 
 - spdlog loggers from `common/log_v2` (`log_v2::load("centengine")`), held in globals set by `init_loggers()`: `checks_logger`, `commands_logger`, `config_logger`, `downtimes_logger`, `eventbroker_logger`, `events_logger`, `external_command_logger`, `functions_logger`, `macros_logger`, `neb_logger`, `notifications_logger`, `process_logger`, `runtime_logger`, `otl_logger`. Levels per logger come from `log_level_<name>` in `centengine.cfg`; output from `log_v2_logger` (`file` or syslog) and `log_file`.
-- With `log_v2_enabled` (default), a `broker_sink_mt` at INFO is attached to every Engine logger: INFO and above also go to Broker as log entries (the Centreon event log).
+- With `log_v2_enabled` (default), a `broker_sink_mt` at INFO is attached to every Engine logger except `neb`: INFO and above also go to Broker as log entries (the Centreon event log).
 - The legacy `engine_logger(type, verbosity) <<` stream (`logging/logger.hh`, clib `logging::engine`) is still called next to most spdlog calls; it only writes when `log_legacy_enabled` is set (default off).
 
 ## Security model
