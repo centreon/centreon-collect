@@ -238,7 +238,7 @@ class broker_state : public state {
                               const std::string& engine_conf);
   void set_broker_knows_poller_conf(uint64_t poller_id, bool known);
   bool try_close_conf_round();
-  void set_poller_conf_sent(uint32_t poller_id);
+  bool set_poller_conf_sent(uint32_t poller_id, std::string_view version);
   void set_poller_conf_acknowledged(uint64_t poller_id);
   void apply(const com::centreon::broker::config::state& s,
              bool run_mux = true) override;

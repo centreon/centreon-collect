@@ -106,7 +106,7 @@ class BrokerStateRound : public ::testing::Test {
 
   /** @brief Play out a delivery: sent, then acknowledged by the poller. */
   void deliver_and_acknowledge(uint64_t poller_id, const std::string& version) {
-    _state->set_poller_conf_sent(poller_id);
+    _state->set_poller_conf_sent(poller_id, version);
     _state->set_poller_engine_conf(poller_id, version);
     _state->set_poller_conf_acknowledged(poller_id);
   }
@@ -169,4 +169,46 @@ TEST_F(BrokerStateRound, OverWhenTheOnlyServedPeerAcknowledged) {
   deliver_and_acknowledge(1, "v1");
 
   EXPECT_TRUE(_state->try_close_conf_round());
+}
+
+/**
+ * Scenario: the configuration sent is overtaken by a newer one.
+ * Given a connected poller whose prepared configuration is v2
+ * When the stream reports it sent v1, read from the diff file just before v2
+ * replaced it
+ * Then the poller is not marked as served, and v2 is still owed to it
+ * And once v2 is sent, the poller is marked as served.
+ */
+TEST_F(BrokerStateRound, SentVersionMustBeTheLatestToCount) {
+  leave_prepared_conf(1, "v2");
+  connect(1);
+  ASSERT_TRUE(_state->poller_needs_update(1));
+
+  EXPECT_FALSE(_state->set_poller_conf_sent(1, "v1"));
+  EXPECT_TRUE(_state->poller_needs_update(1));
+
+  EXPECT_TRUE(_state->set_poller_conf_sent(1, "v2"));
+  EXPECT_FALSE(_state->poller_needs_update(1));
+}
+
+/**
+ * Scenario: a diff file is written whole or not at all.
+ * Given a connected poller with a prepared configuration
+ * When its diff file is written
+ * Then diff-<N>.prot can be parsed and names the prepared version
+ * And no temporary file is left in the directory.
+ */
+TEST_F(BrokerStateRound, DiffFileIsWrittenWholeWithoutLeftover) {
+  leave_prepared_conf(1, "v1");
+  connect(1);
+
+  com::centreon::engine::configuration::DiffState diff;
+  std::ifstream f(_dir / "diff-1.prot", std::ios::binary);
+  ASSERT_TRUE(f);
+  ASSERT_TRUE(diff.ParseFromIstream(&f));
+  EXPECT_EQ(diff.state().config_version(), "v1");
+
+  for (const auto& entry : std::filesystem::directory_iterator(_dir))
+    EXPECT_EQ(entry.path().filename().string().find(".tmp"), std::string::npos)
+        << entry.path();
 }

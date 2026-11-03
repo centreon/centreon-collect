@@ -4144,7 +4144,7 @@ TEST_F(LuaTest, BrokerBbdoVersion) {
       "end");
   auto binding{std::make_unique<luabinding>(filename, conf)};
   std::string lst(ReadFile("/tmp/event_log"));
-  ASSERT_NE(lst.find("BBDO version: 2.0.0"), std::string::npos);
+  ASSERT_NE(lst.find("BBDO version: 3.1.0"), std::string::npos);
   std::filesystem::remove(filename);
   std::filesystem::remove("/tmp/event_log");
 }
