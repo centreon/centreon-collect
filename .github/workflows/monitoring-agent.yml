@@ -263,7 +263,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled'))
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages-centreon-monitoring-agent-windows
           path: |
@@ -396,7 +396,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: unit-test-${{ matrix.operating_system }}-reports
           path: "build/ut_*"
@@ -720,7 +720,7 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - if: steps.artifactory.outputs.available == 'true'
-        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+        uses: jfrog/setup-jfrog-cli@6ed45ef1a24199bd4c94d3fd55a7e8cb7e45985d # v5.3.2
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -921,7 +921,7 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - if: steps.artifactory.outputs.available == 'true'
-        uses: jfrog/setup-jfrog-cli@68c0efdc951dd2359bbbfa15c48bc67b3ae8e4d6 # v5.2.0
+        uses: jfrog/setup-jfrog-cli@6ed45ef1a24199bd4c94d3fd55a7e8cb7e45985d # v5.3.2
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -1066,7 +1066,7 @@ jobs:
       # the target repo's own validator runs before anything is pushed; it needs pnpm >= 11,
       # provisioned the way WebApp-download's own workflows do it (not corepack)
       - name: Setup node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
