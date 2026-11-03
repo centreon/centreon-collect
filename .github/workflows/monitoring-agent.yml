@@ -1133,12 +1133,12 @@ jobs:
     if: |
       always() &&
       startsWith(github.ref, 'refs/tags/testing-') &&
-      needs.get-environment.outputs.stability == 'testing'
+      needs.get-environment.outputs.stability == 'testing' &&
+      inputs.publish_cma_version == ''
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
-      actions: read
     steps:
       - name: Flag a cancelled run
         id: run_cancelled
