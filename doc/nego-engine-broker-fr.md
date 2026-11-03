@@ -2288,7 +2288,7 @@ classDiagram
         +broker_knows_poller_conf(uint64_t poller_id)
         +set_broker_knows_poller_conf(uint64_t poller_id, bool known)
         +poller_needs_update(uint64_t poller_id)
-        +set_poller_conf_sent(uint64_t poller_id)
+        +set_poller_conf_sent(uint64_t poller_id, string_view version) bool
         +set_poller_conf_acknowledged(uint64_t poller_id)
         +try_close_conf_round()
         +lock_engine_peer(uint64_t poller_id) locked_engine_peer
@@ -2321,7 +2321,7 @@ classDiagram
         +connected_peers()
         +connected_pollers()
         +poller_needs_update(uint64_t poller_id)
-        +set_poller_conf_sent(uint32_t poller_id)
+        +set_poller_conf_sent(uint32_t poller_id, string_view version) bool
         +set_poller_conf_acknowledged(uint64_t poller_id)
         +set_poller_engine_conf()
         +apply(state& s, bool run_mux = true)
