@@ -122,7 +122,7 @@ class RetentionManager : public ::testing::Test {
   tmp_dir _tmp;
   std::shared_ptr<asio::io_context> _io_context;
   std::shared_ptr<multiplexing::muxer> _mux;
-  lib _lib{"", 0};
+  std::shared_ptr<lib> _lib = std::make_shared<lib>("", 0);
 
  public:
   void SetUp() override {
@@ -277,7 +277,7 @@ TEST_F(RetentionManager, MergeOnSamplesThreshold) {
   EXPECT_FALSE(fs::exists(_tmp.metric_file(11)));
   ASSERT_TRUE(fs::exists(_tmp.metric_file(11, "rrd")));
   rrd_existing_data data =
-      _lib.fetch_existing(_tmp.metric_file(11, "rrd"), base, base + 180);
+      _lib->fetch_existing(_tmp.metric_file(11, "rrd"), base, base + 180);
   ASSERT_EQ(data.points.size(), 4u);
   for (int i = 0; i < 4; ++i) {
     EXPECT_EQ(data.points[i].first, base + i * interval);
@@ -287,10 +287,10 @@ TEST_F(RetentionManager, MergeOnSamplesThreshold) {
   auto end = _wait_end_merge();
   ASSERT_TRUE(end);
   ASSERT_EQ(end->type(), storage::pb_end_metric_merge::static_type());
-  EXPECT_EQ(
-      std::static_pointer_cast<storage::pb_end_metric_merge>(end)->obj()
-          .metric_id(),
-      11u);
+  EXPECT_EQ(std::static_pointer_cast<storage::pb_end_metric_merge>(end)
+                ->obj()
+                .metric_id(),
+            11u);
 
   // nothing left to merge
   EXPECT_FALSE(rm->start_merge(_lib));
@@ -312,7 +312,7 @@ TEST_F(RetentionManager, MergeStatus) {
 
   EXPECT_FALSE(fs::exists(_tmp.status_file(9)));
   rrd_existing_data data =
-      _lib.fetch_existing(_tmp.status_file(9, "rrd"), base, base + interval);
+      _lib->fetch_existing(_tmp.status_file(9, "rrd"), base, base + interval);
   ASSERT_EQ(data.points.size(), 2u);
   EXPECT_DOUBLE_EQ(data.points[0].second, 100.0);
   EXPECT_DOUBLE_EQ(data.points[1].second, 0.0);
@@ -320,10 +320,10 @@ TEST_F(RetentionManager, MergeStatus) {
   auto end = _wait_end_merge();
   ASSERT_TRUE(end);
   ASSERT_EQ(end->type(), storage::pb_end_status_merge::static_type());
-  EXPECT_EQ(
-      std::static_pointer_cast<storage::pb_end_status_merge>(end)->obj()
-          .index_id(),
-      9u);
+  EXPECT_EQ(std::static_pointer_cast<storage::pb_end_status_merge>(end)
+                ->obj()
+                .index_id(),
+            9u);
 }
 
 /**
@@ -460,8 +460,8 @@ TEST_F(RetentionManager, LoadReloadsFiles) {
     _run_merges();
     ASSERT_TRUE(_wait_end_merge());
   }
-  EXPECT_EQ(merged, (std::set<std::pair<uint64_t, bool>>{{30, false},
-                                                          {31, true}}));
+  EXPECT_EQ(merged,
+            (std::set<std::pair<uint64_t, bool>>{{30, false}, {31, true}}));
   EXPECT_FALSE(rm->start_merge(_lib));
 }
 

@@ -96,7 +96,7 @@ stream<lib>::stream(std::filesystem::path metrics_path,
       _retention(retention_manager::load(retention_cfg,
                                          common::pool::io_context_ptr(),
                                          log_v2::instance().get(log_v2::RRD))),
-      _merge_lib("", 0),
+      _merge_lib(std::make_shared<lib>("", 0)),
       _logger{log_v2::instance().get(log_v2::RRD)} {}
 
 /**
@@ -132,7 +132,7 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
       _retention(retention_manager::load(retention_cfg,
                                          common::pool::io_context_ptr(),
                                          log_v2::instance().get(log_v2::RRD))),
-      _merge_lib("", 0),
+      _merge_lib(std::make_shared<lib>("", 0)),
       _logger{log_v2::instance().get(log_v2::RRD)} {}
 
 /**
@@ -168,7 +168,7 @@ stream<cached<asio::ip::tcp::socket>>::stream(
       _retention(retention_manager::load(retention_cfg,
                                          common::pool::io_context_ptr(),
                                          log_v2::instance().get(log_v2::RRD))),
-      _merge_lib("", 0),
+      _merge_lib(std::make_shared<lib>("", 0)),
       _logger{log_v2::instance().get(log_v2::RRD)} {}
 }  // namespace com::centreon::broker::rrd
 

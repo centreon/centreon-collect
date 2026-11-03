@@ -103,6 +103,8 @@ class retention_file {
 
   void abort_merge() { _abort_merge = true; }
   size_t nb_samples() const { return _nb_samples; }
+
+  void set_last_activity_to_now() { _last_activity = time(nullptr); }
 };
 
 }  // namespace com::centreon::broker::rrd

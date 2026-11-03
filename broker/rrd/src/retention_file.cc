@@ -17,9 +17,6 @@
  */
 
 #include <absl/cleanup/cleanup.h>
-#include <sys/mman.h>
-#include <filesystem>
-#include <system_error>
 
 #include "com/centreon/broker/rrd/retention_file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -358,7 +355,11 @@ void retention_file::merge(const std::filesystem::path& rrd_path,
                         _header.value_type);
   }
   if (!_abort_merge) {
-    ::rename(tmp_merge_path.c_str(), rrd_path.c_str());
+    if (::rename(tmp_merge_path.c_str(), rrd_path.c_str())) {
+      throw exceptions::msg_fmt("fail to rename {} to {}: {}",
+                                tmp_merge_path.string(), rrd_path.string(),
+                                strerror(errno));
+    }
   }
 }
 

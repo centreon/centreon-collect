@@ -19,6 +19,7 @@
 #ifndef CCB_RRD_RETENTION_MANAGER_HH
 #define CCB_RRD_RETENTION_MANAGER_HH
 
+#include "com/centreon/broker/rrd/backend.hh"
 #include "retention_file.hh"
 
 namespace com::centreon::broker::rrd {
@@ -125,8 +126,9 @@ class retention_manager
 
   void _init();
 
-  void _merge(const std::shared_ptr<retention_file>& to_merge, lib& rrd_lib)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
+  void _merge(const std::shared_ptr<retention_file>& to_merge,
+              const std::shared_ptr<lib>& rrd_lib,
+              backend* cached_client) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
 
   void _do_merge(const std::shared_ptr<retention_file>& to_merge, lib& rrd_lib);
 
@@ -180,7 +182,7 @@ class retention_manager
    */
   std::optional<
       std::pair<uint64_t /* index_id or metric_id*/, bool /*is status*/>>
-  start_merge(lib& rrd_lib);
+  start_merge(const std::shared_ptr<lib>& rrd_lib, backend* cached_client);
 };
 
 }  // namespace com::centreon::broker::rrd

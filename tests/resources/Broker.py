@@ -37,7 +37,6 @@ import os.path
 import grpc
 import broker_pb2
 import broker_pb2_grpc
-import rrd_retention_pb2
 from google.protobuf import empty_pb2
 from google.protobuf.json_format import MessageToJson, MessageToDict
 from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS

@@ -76,7 +76,7 @@ class stream : public io::stream {
 
   /// Dedicated lib backend for merge file I/O.  Uses its own @c _filename so
   /// the merge thread never contends on @c _backend's internal state.
-  lib _merge_lib;
+  std::shared_ptr<lib> _merge_lib;
 
   /**
    * @brief Merges scheduled and not yet finished, keyed by metric_id /

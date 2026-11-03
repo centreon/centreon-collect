@@ -19,12 +19,7 @@
 #ifndef CCB_RRD_CACHED_HH
 #define CCB_RRD_CACHED_HH
 
-#include <absl/base/thread_annotations.h>
-#include <absl/synchronization/mutex.h>
-#include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <fmt/std.h>
-
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/broker/rrd/lib.hh"

@@ -17,11 +17,7 @@
  */
 
 #include "com/centreon/broker/rrd/retention_manager.hh"
-#include <absl/synchronization/mutex.h>
-#include <fmt/base.h>
 #include <re2/re2.h>
-#include <memory>
-#include <utility>
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/rrd/internal.hh"
 #include "com/centreon/broker/rrd/retention_file.hh"
@@ -135,13 +131,20 @@ void retention_manager::write_metric(const Metric& metric) {
         _retentions.emplace(
             std::make_shared<retention_file>(_config.metrics_dir, metric));
       } else {
-        id_index.modify(exist,
-                        [&metric](std::shared_ptr<retention_file>& to_update) {
-                          to_update->add_metric(metric);
-                        });
+        id_index.modify(
+            exist, [&metric, this](std::shared_ptr<retention_file>& to_update) {
+              try {
+                to_update->add_metric(metric);
+              } catch (const std::exception& e) {
+                SPDLOG_LOGGER_ERROR(_logger,
+                                    "fail to add metric {} to retention: {}",
+                                    metric.metric_id(), e);
+              }
+            });
       }
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(_logger, "fail to add metric to retention: {}", e);
+      SPDLOG_LOGGER_ERROR(_logger, "fail to add metric {} to retention: {}",
+                          metric.metric_id(), e);
       return;
     }
   }
@@ -167,13 +170,20 @@ void retention_manager::write_status(const Status& status) {
         _retentions.emplace(
             std::make_shared<retention_file>(_config.status_dir, status));
       } else {
-        id_index.modify(exist,
-                        [&status](std::shared_ptr<retention_file>& to_update) {
-                          to_update->add_status(status);
-                        });
+        id_index.modify(
+            exist, [&status, this](std::shared_ptr<retention_file>& to_update) {
+              try {
+                to_update->add_status(status);
+              } catch (const std::exception& e) {
+                SPDLOG_LOGGER_ERROR(_logger,
+                                    "fail to add status {} to retention: {}",
+                                    status.index_id(), e);
+              }
+            });
       }
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(_logger, "fail to add status to retention: {}", e);
+      SPDLOG_LOGGER_ERROR(_logger, "fail to add status {} to retention: {}",
+                          status.index_id(), e);
       return;
     }
   }
@@ -224,11 +234,18 @@ void retention_manager::remove_status(uint64_t index_id) {
  * merge.
  */
 void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
-                               lib& rrd_lib) {
+                               const std::shared_ptr<lib>& rrd_lib,
+                               backend* cached_client) {
+  if (cached_client) {
+    auto final_path =
+        to_merge->is_status() ? _config.status_dir : _config.metrics_dir;
+    final_path /= fmt::format("{}.rrd", to_merge->id());
+    cached_client->pre_merge_flush(final_path);
+  }
   _merging = to_merge;
   boost::asio::post(*_io_context,
-                    [me = shared_from_this(), to_merge = _merging, &rrd_lib]() {
-                      me->_do_merge(to_merge, rrd_lib);
+                    [me = shared_from_this(), to_merge = _merging, rrd_lib]() {
+                      me->_do_merge(to_merge, *rrd_lib);
                     });
 }
 
@@ -252,11 +269,15 @@ void retention_manager::_do_merge(
   final_path /= fmt::format("{}.rrd", to_merge->id());
   try {
     to_merge->merge(final_path, rrd_lib);
+    ::remove(to_merge->file_path().c_str());
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to merge {} into {}: {}",
                         to_merge->file_path(), final_path, e.what());
+    // in order to not log error on next metric received, we mark it
+    to_merge->set_last_activity_to_now();
+    absl::MutexLock l(&_data_m);
+    _retentions.emplace(to_merge);
   }
-  ::remove(to_merge->file_path().c_str());
 
   {
     absl::MutexLock l(&_data_m);
@@ -318,7 +339,8 @@ void retention_manager::abort_status_merge(uint64_t index_id) {
  */
 std::optional<
     std::pair<uint64_t /* index_id or metric_id*/, bool /*is status*/>>
-retention_manager::start_merge(lib& rrd_lib) {
+retention_manager::start_merge(const std::shared_ptr<lib>& rrd_lib,
+                               backend* cached_client) {
   absl::MutexLock l(&_data_m);
   if (_merging || _retentions.empty()) {
     return {};
@@ -330,7 +352,7 @@ retention_manager::start_merge(lib& rrd_lib) {
     auto first = last_interval_index.begin();
     auto oldest = *first;
     if (oldest->last_activity() + _config.orphan_interval < now) {
-      _merge(oldest, rrd_lib);
+      _merge(oldest, rrd_lib, cached_client);
       last_interval_index.erase(first);
       return std::make_pair(oldest->id(), oldest->is_status());
     }
@@ -340,7 +362,7 @@ retention_manager::start_merge(lib& rrd_lib) {
     auto last = std::prev(nb_samples_index.end());
     auto biggest = *last;
     if (biggest->nb_samples() > _config.merge_samples_threshold) {
-      _merge(biggest, rrd_lib);
+      _merge(biggest, rrd_lib, cached_client);
       nb_samples_index.erase(last);
       return std::make_pair(biggest->id(), biggest->is_status());
     }
@@ -352,7 +374,7 @@ retention_manager::start_merge(lib& rrd_lib) {
     if (oldest->last_activity() +
             oldest->interval() * _config.proportional_activity_threshold <
         (uint64_t)now) {
-      _merge(oldest, rrd_lib);
+      _merge(oldest, rrd_lib, cached_client);
       prop_activity_index.erase(first);
       return std::make_pair(oldest->id(), oldest->is_status());
     }
