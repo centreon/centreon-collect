@@ -163,26 +163,28 @@ io::endpoint* factory::new_endpoint(
 
   // Retention buffer point-count threshold per batch (default 144 = 12h at
   // 1 pt/5min).
-  uint32_t retention_max_pending_points = 144;
+  uint32_t retention_merge_samples_threshold = 24 * 60 / 5;
   {
-    auto it = cfg.params.find("retention_buffer_max_pending_points");
+    auto it = cfg.params.find("retention_merge_samples_threshold");
     if (it != cfg.params.end() &&
-        !absl::SimpleAtoi(it->second, &retention_max_pending_points)) {
+        !absl::SimpleAtoi(it->second, &retention_merge_samples_threshold)) {
       logger->error(
-          "factory: cannot parse 'retention_buffer_max_pending_points' for "
+          "factory: cannot parse 'retention_merge_samples_threshold' for "
           "endpoint '{}', using default (144)",
           cfg.name);
     }
   }
 
   // Retention buffer max number of rotated files (default 5).
-  uint32_t retention_max_files = 5;
+  uint32_t retention_proportional_activity_threshold = 3;
   {
-    auto it = cfg.params.find("retention_buffer_max_files");
+    auto it = cfg.params.find("retention_proportional_activity_threshold");
     if (it != cfg.params.end() &&
-        !absl::SimpleAtoi(it->second, &retention_max_files)) {
+        !absl::SimpleAtoi(it->second,
+                          &retention_proportional_activity_threshold)) {
       logger->error(
-          "factory: cannot parse 'retention_buffer_max_files' for "
+          "factory: cannot parse 'retention_proportional_activity_threshold' "
+          "for "
           "endpoint '{}', using default (5)",
           cfg.name);
     }
@@ -215,8 +217,10 @@ io::endpoint* factory::new_endpoint(
   endp->set_write_metrics(write_metrics);
   endp->set_write_status(write_status);
   endp->set_ignore_update_errors(ignore_update_errors);
-  endp->set_retention_max_pending_points(retention_max_pending_points);
-  endp->set_retention_max_files(retention_max_files);
+  endp->set_retention_merge_samples_threshold(
+      retention_merge_samples_threshold);
+  endp->set_retention_proportional_activity_threshold(
+      retention_proportional_activity_threshold);
   endp->set_retention_orphan_interval(retention_orphan_interval);
   is_acceptor = false;
   return endp.release();

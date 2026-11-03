@@ -54,6 +54,7 @@ class lib : public backend {
   void update(const std::deque<std::string>& pts) override;
 
   static time_t last_update(const std::filesystem::path& filename);
+  static time_t first_timestamp(const std::filesystem::path& filename);
 
   rrd_existing_data fetch_existing(const std::filesystem::path& filename,
                                    uint64_t from_ts,
@@ -65,6 +66,13 @@ class lib : public backend {
                          uint32_t step,
                          short value_type,
                          const std::deque<std::string>& batch) override;
+
+  void merge_files(const std::filesystem::path& merged_path,
+                   std::filesystem::path& to_merge_file,
+                   uint32_t rrd_len,
+                   time_t from,
+                   uint32_t step,
+                   short value_type);
 
  private:
   creator _creator;

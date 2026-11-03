@@ -19,11 +19,6 @@
 #ifndef CCB_RRD_RETENTION_MANAGER_HH
 #define CCB_RRD_RETENTION_MANAGER_HH
 
-#include <absl/container/btree_set.h>
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
-#include <boost/asio/deadline_timer.hpp>
-#include <memory>
 #include "retention_file.hh"
 
 namespace com::centreon::broker::rrd {
@@ -36,14 +31,14 @@ namespace com::centreon::broker::rrd {
 struct retention_config {
   std::filesystem::path metrics_dir;  ///< Directory for metric .prot files
   std::filesystem::path status_dir;   ///< Directory for status .prot files
-  uint32_t orphan_interval = 3600;    ///< Inactivity seconds before cleanup
-  /// Time window (seconds) that must elapse between two successive partial
-  /// merges for the same metric/status (Step 3.3).  Default: 1 day.
-  uint64_t partial_merge_interval = 86400;
-  // In order to avoid to rebuild all rrd file
-  // between successive partial rebuilds due to not ordered samples, we rebuild
-  // until last_ts - partial_merge_before_last_sample_delay
-  uint64_t partial_merge_before_last_sample_delay = 3600;
+  uint32_t orphan_interval = 3600;    ///< Max inactivity seconds before merge
+  uint32_t merge_samples_threshold =
+      60 * 24 / 5;  ///< when a retention file has more than
+  ///< merge_sample_threshold samples => merge
+
+  // if a retention_file had not been fed during interval *
+  // proportional_delay_threshold, we merge
+  uint32_t proportional_activity_threshold = 3;
 };
 
 /**
@@ -75,29 +70,67 @@ class retention_manager
   retention_config _config;
   std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
-  boost::asio::system_timer _minute_timer ABSL_GUARDED_BY(_data_m);
 
   mutable absl::Mutex _data_m;
 
-  using data_cont = absl::flat_hash_map<uint64_t, retention_file>;
-  data_cont _metrics ABSL_GUARDED_BY(_data_m);
-  data_cont _statuses ABSL_GUARDED_BY(_data_m);
+  struct retention_id_extractor {
+    using result_type =
+        std::pair<uint64_t /*index_id or metric_id*/, bool /*is_status*/>;
+    result_type operator()(const std::shared_ptr<retention_file>& ret) const {
+      return std::make_pair(ret->id(), ret->is_status());
+    }
+  };
+
+  struct last_activity_extractor {
+    using result_type = time_t;
+    result_type operator()(const std::shared_ptr<retention_file>& ret) const {
+      return ret->last_activity();
+    }
+  };
+
+  struct nb_samples_extractor {
+    using result_type = size_t;
+    result_type operator()(const std::shared_ptr<retention_file>& ret) const {
+      return ret->nb_samples();
+    }
+  };
+
+  class proportional_activity_extractor {
+    unsigned _threshold;
+
+   public:
+    using result_type = time_t;
+    proportional_activity_extractor(unsigned theshold) : _threshold(theshold) {}
+
+    time_t operator()(const std::shared_ptr<retention_file>& ret) const {
+      return ret->last_activity() + ret->interval() * _threshold;
+    }
+  };
+
+  using retention_cont = boost::multi_index::multi_index_container<
+      std::shared_ptr<retention_file>,
+      boost::multi_index::indexed_by<
+          boost::multi_index::ordered_unique<retention_id_extractor>,
+          boost::multi_index::ordered_non_unique<last_activity_extractor>,
+          boost::multi_index::ordered_non_unique<nb_samples_extractor>,
+          boost::multi_index::ordered_non_unique<
+              proportional_activity_extractor>>>;
+
+  retention_cont _retentions ABSL_GUARDED_BY(_data_m);
+  std::shared_ptr<retention_file> _merging ABSL_GUARDED_BY(_data_m);
 
   using id_to_ts = absl::flat_hash_map<uint64_t, uint64_t>;
   id_to_ts _earliest_rt_metric ABSL_GUARDED_BY(_data_m);
   id_to_ts _earliest_rt_status ABSL_GUARDED_BY(_data_m);
 
-  void _check_merge(uint64_t metric_id_or_index_id, bool status);
+  // void _check_merge(uint64_t metric_id_or_index_id, bool status);
 
   void _init();
 
-  void _merge_metric(retention_file&& to_merge);
+  void _merge(const std::shared_ptr<retention_file>& to_merge, lib& rrd_lib)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
 
-  void _merge_status(retention_file&& to_merge);
-
-  void _start_minute_timer();
-
-  void _minute_timer_handler();
+  void _do_merge(const std::shared_ptr<retention_file>& to_merge, lib& rrd_lib);
 
  public:
   retention_manager(const retention_config& config,
@@ -129,8 +162,8 @@ class retention_manager
    */
   void write_status(const Status& status);
 
-  void update_earliest_real_time_metric(uint64_t ts);
-  void update_earliest_real_time_status(uint64_t ts);
+  // void update_earliest_real_time_metric(uint64_t ts);
+  // void update_earliest_real_time_status(uint64_t ts);
 
   /**
    * @brief Remove all retention files for a metric (on remove_graph event).
@@ -138,13 +171,12 @@ class retention_manager
   void remove_metric(uint64_t metric_id);
   void remove_status(uint64_t index_id);
 
-  void check_merge_metric(uint64_t metric_id) {
-    _check_merge(metric_id, false);
-  }
+  void abort_metric_merge(uint64_t metric_id);
+  void abort_status_merge(uint64_t index_id);
 
-  void check_merge_status(uint64_t index_id) { _check_merge(index_id, true); }
-
-  void stop();
+  std::optional<
+      std::pair<uint64_t /* index_id or metric_id*/, bool /*is status*/>>
+  start_merge(lib& rrd_lib);
 };
 
 }  // namespace com::centreon::broker::rrd

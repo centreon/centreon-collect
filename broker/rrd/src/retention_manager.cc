@@ -18,11 +18,12 @@
 
 #include "com/centreon/broker/rrd/retention_manager.hh"
 #include <absl/synchronization/mutex.h>
+#include <fmt/base.h>
 #include <re2/re2.h>
-#include <boost/asio/io_context.hpp>
-#include <boost/system/detail/error_code.hpp>
-#include <chrono>
-#include <cstdio>
+#include <memory>
+#include <utility>
+#include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/rrd/internal.hh"
 #include "com/centreon/broker/rrd/retention_file.hh"
 
 using namespace com::centreon::broker::rrd;
@@ -41,7 +42,14 @@ retention_manager::retention_manager(
     : _config(config),
       _io_context(io_context),
       _logger(logger),
-      _minute_timer(*io_context) {}
+      _retentions(
+          boost::make_tuple(retention_cont::nth_index<0>::type::ctor_args(),
+                            retention_cont::nth_index<1>::type::ctor_args(),
+                            retention_cont::nth_index<2>::type::ctor_args(),
+                            retention_cont::nth_index<3>::type::ctor_args(
+                                proportional_activity_extractor(
+                                    config.proportional_activity_threshold),
+                                std::less<time_t>()))) {}
 
 std::shared_ptr<retention_manager> retention_manager::load(
     const retention_config& config,
@@ -51,21 +59,6 @@ std::shared_ptr<retention_manager> retention_manager::load(
       std::make_shared<retention_manager>(config, io_context, logger);
   instance->_init();
   return instance;
-}
-
-void retention_manager::_start_minute_timer() {
-  absl::MutexLock l(&_data_m);
-  _minute_timer.expires_after(std::chrono::minutes(1));
-  _minute_timer.async_wait(
-      [me = shared_from_this()](const boost::system::error_code& err) {
-        if (!err) {
-          me->_minute_timer_handler();
-        }
-      });
-}
-
-void retention_manager::_minute_timer_handler() {
-  _start_minute_timer();
 }
 
 /**
@@ -99,11 +92,7 @@ void retention_manager::_init() {
         continue;
 
       try {
-        retention_file from_disk(entry.path());
-        if (from_disk.is_status()) {
-          _statuses.emplace(from_disk.id(), std::move(from_disk));
-        } else
-          _metrics.emplace(from_disk.id(), std::move(from_disk));
+        _retentions.emplace(std::make_shared<retention_file>(entry.path()));
       } catch (const std::exception& e) {
       }
     };
@@ -113,7 +102,6 @@ void retention_manager::_init() {
     scan_dir(_config.metrics_dir);
     scan_dir(_config.status_dir);
   }
-  _start_minute_timer();
 }
 
 /**
@@ -144,20 +132,23 @@ void retention_manager::write_metric(const Metric& metric) {
     return;
   {
     absl::MutexLock l(&_data_m);
-    auto exist = _metrics.find(metric.metric_id());
+    auto& id_index = _retentions.get<0>();
+    auto exist = id_index.find(std::make_pair(metric.metric_id(), false));
     try {
-      if (exist == _metrics.end()) {
-        _metrics.emplace(metric.metric_id(),
-                         retention_file(_config.metrics_dir, metric));
+      if (exist == id_index.end()) {
+        _retentions.emplace(
+            std::make_shared<retention_file>(_config.metrics_dir, metric));
       } else {
-        exist->second.add_metric(metric);
+        id_index.modify(exist,
+                        [&metric](std::shared_ptr<retention_file>& to_update) {
+                          to_update->add_metric(metric);
+                        });
       }
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(_logger, "fail to add metric to retention: {}", e);
       return;
     }
   }
-  _check_merge_metric(metric.metric_id());
 }
 
 /**
@@ -189,20 +180,104 @@ void retention_manager::write_status(const Status& status) {
     return;
   {
     absl::MutexLock l(&_data_m);
-    auto exist = _metrics.find(status.index_id());
+    auto& id_index = _retentions.get<0>();
+    auto exist = id_index.find(std::make_pair(status.index_id(), true));
     try {
-      if (exist == _metrics.end()) {
-        _metrics.emplace(status.index_id(),
-                         retention_file(_config.status_dir, status));
+      if (exist == id_index.end()) {
+        _retentions.emplace(
+            std::make_shared<retention_file>(_config.status_dir, status));
       } else {
-        exist->second.add_status(status);
+        id_index.modify(exist,
+                        [&status](std::shared_ptr<retention_file>& to_update) {
+                          to_update->add_status(status);
+                        });
       }
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(_logger, "fail to add status to retention: {}", e);
       return;
     }
   }
-  _check_merge_status(status.index_id());
+}
+
+void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
+                               lib& rrd_lib) {
+  _merging = to_merge;
+  boost::asio::post(*_io_context,
+                    [me = shared_from_this(), to_merge = _merging, &rrd_lib]() {
+                      me->_do_merge(to_merge, rrd_lib);
+                    });
+}
+
+void retention_manager::_do_merge(
+    const std::shared_ptr<retention_file>& to_merge,
+    lib& rrd_lib) {
+  auto final_path =
+      to_merge->is_status() ? _config.status_dir : _config.metrics_dir;
+  final_path /= fmt::format("{}.rrd", to_merge->id());
+  to_merge->merge(final_path, rrd_lib);
+
+  {
+    absl::MutexLock l(&_data_m);
+    _merging.reset();
+  }
+  multiplexing::publisher publish;
+  if (to_merge->is_status()) {
+    std::shared_ptr<storage::pb_end_status_merge> to_dispatch =
+        std::make_unique<storage::pb_end_status_merge>();
+    to_dispatch->mut_obj().set_index_id(to_merge->id());
+    publish.write(to_dispatch);
+  } else {
+    std::shared_ptr<storage::pb_end_metric_merge> to_dispatch =
+        std::make_unique<storage::pb_end_metric_merge>();
+    to_dispatch->mut_obj().set_metric_id(to_merge->id());
+    publish.write(to_dispatch);
+  }
+  ::remove(to_merge->file_path().c_str());
+}
+
+void retention_manager::abort_metric_merge(uint64_t metric_id) {
+  absl::MutexLock l(&_data_m);
+  if (_merging && !_merging->is_status() && _merging->id() == metric_id) {
+    _merging->abort_merge();
+  }
+}
+
+void retention_manager::abort_status_merge(uint64_t index_id) {
+  absl::MutexLock l(&_data_m);
+  if (_merging && _merging->is_status() && _merging->id() == index_id) {
+    _merging->abort_merge();
+  }
+}
+
+std::optional<
+    std::pair<uint64_t /* index_id or metric_id*/, bool /*is status*/>>
+retention_manager::start_merge(lib& rrd_lib) {
+  absl::MutexLock l(&_data_m);
+  if (_merging || _retentions.empty()) {
+    return {};
+  }
+
+  {
+    auto& last_interval_index = _retentions.get<1>();
+    auto first = last_interval_index.begin();
+    auto oldest = *first;
+    if (oldest->last_activity() + _config.orphan_interval < time(nullptr)) {
+      _merge(oldest, rrd_lib);
+      last_interval_index.erase(first);
+      return std::make_pair(oldest->id(), oldest->is_status());
+    }
+  }
+  {
+    auto& nb_samples_index = _retentions.get<2>();
+    auto last = std::prev(nb_samples_index.end());
+    auto biggest = *last;
+    if (biggest->nb_samples() > _config.merge_samples_threshold) {
+      _merge(biggest, rrd_lib);
+      nb_samples_index.erase(last);
+      return std::make_pair(biggest->id(), biggest->is_status());
+    }
+  }
+  return {};
 }
 
 // ---------------------------------------------------------------------------
@@ -558,7 +633,7 @@ void retention_manager::write_status(const Status& status) {
  *
  * @return true if a partial merge should be triggered now.
  */
-void retention_manager::_check_merge(uint64_t metric_id_or_index_id,
+/*void retention_manager::_check_merge(uint64_t metric_id_or_index_id,
                                      bool status) {
   std::optional<retention_file> to_merge;
 
@@ -593,4 +668,4 @@ void retention_manager::_check_merge(uint64_t metric_id_or_index_id,
   //        ((s.last_ts() - s.last_partial_merge_ts()) >
   //         _config.partial_merge_interval +
   //             _config.partial_merge_before_last_sample_delay);
-}
+}*/

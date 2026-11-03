@@ -18,6 +18,7 @@
 
 #include <absl/strings/str_join.h>
 #include <fmt/format.h>
+#include <memory>
 
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
@@ -32,6 +33,7 @@
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/pool.hh"
+#include "storage.pb.h"
 
 namespace asio = boost::asio;
 
@@ -116,7 +118,7 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
     std::filesystem::path status_path,
     uint32_t cache_size,
     bool ignore_update_errors,
-    std::string const& local,
+    std::string const&,
     const retention_config& retention_cfg,
     bool write_metrics,
     bool write_status)
@@ -152,7 +154,7 @@ stream<cached<asio::ip::tcp::socket>>::stream(
     std::filesystem::path status_path,
     uint32_t cache_size,
     bool ignore_update_errors,
-    unsigned short port,
+    unsigned short,
     const retention_config& retention_cfg,
     bool write_metrics,
     bool write_status)
@@ -169,14 +171,6 @@ stream<cached<asio::ip::tcp::socket>>::stream(
       _merge_lib("", 0),
       _logger{log_v2::instance().get(log_v2::RRD)} {}
 }  // namespace com::centreon::broker::rrd
-
-/**
- * @brief Destructor: wait for background merge thread to finish.
- */
-template <typename T>
-stream<T>::~stream() noexcept {
-  _retention->stop();
-}
 
 /**
  * @brief Schedule a metric merge on the background thread.
@@ -429,12 +423,31 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.postponed.push_back(d);
           break;
         }
+        it = _pending_metric_merges.find(m.metric_id());
+        if (it != _pending_metric_merges.end()) {
+          // merge running => will be replay later
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "RRD: merge of metric {} running, data at {} "
+                              "postponed",
+                              m.metric_id(), m.time());
+          it->second.postponed.push_back(d);
+          break;
+        }
         uint64_t last_update = get_last_metric_latest_current(m.metric_id());
         if (last_update < m.time()) {
           append_metric_to_rrd(m);
         } else {  // we receive an old metric => retention if enabled
           if (_retention->enabled()) {
             _retention->write_metric(m);
+          }
+        }
+        if (_retention->enabled()) {
+          auto merging = _retention->start_merge(_merge_lib);
+          if (merging) {
+            if (merging->second)
+              _pending_status_merges.emplace(merging->first, rebuild_entry());
+            else
+              _pending_metric_merges.emplace(merging->first, rebuild_entry());
           }
         }
       }
@@ -459,6 +472,16 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.postponed.push_back(d);
           break;
         }
+        it = _pending_status_merges.find(s.index_id());
+        if (it != _pending_status_merges.end()) {
+          // merge running => will be replay later
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "RRD: merge of status {} running, data at {} "
+                              "postponed",
+                              s.index_id(), s.time());
+          it->second.postponed.push_back(d);
+          break;
+        }
 
         uint64_t last_update = get_last_metric_latest_current(s.index_id());
         if (last_update < s.time()) {
@@ -466,6 +489,15 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         } else {  // we receive an old metric => retention if enabled
           if (_retention->enabled()) {
             _retention->write_status(s);
+          }
+        }
+        if (_retention->enabled()) {
+          auto merging = _retention->start_merge(_merge_lib);
+          if (merging) {
+            if (merging->second)
+              _pending_status_merges.emplace(merging->first, rebuild_entry());
+            else
+              _pending_metric_merges.emplace(merging->first, rebuild_entry());
           }
         }
       }
@@ -497,6 +529,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
             /* Clear stale retention data so the rebuild starts fresh. */
             if (_retention->enabled()) {
               _retention->remove_metric(m.first);
+              _retention->abort_metric_merge(m.first);
             }
             _metric_latest_current.erase(m.first);
 
@@ -508,6 +541,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
               _backend.remove(_status_path / fmt::format("{}.rrd", m.second));
               if (_retention->enabled()) {
                 _retention->remove_status(m.second);
+                _retention->abort_status_merge(m.second);
               }
               _status_latest_current.erase(m.second);
             }
@@ -532,6 +566,12 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
               fmt::join(values_of_map(e->obj().metric_to_index_id()), ","));
           // Rebuild is ending.
           for (auto& m : e->obj().metric_to_index_id()) {
+            _retention->remove_metric(m.first);
+            _retention->abort_metric_merge(m.first);
+            _retention->remove_status(m.second);
+            _retention->abort_status_merge(m.second);
+            _pending_metric_merges.erase(m.first);
+            _pending_status_merges.erase(m.second);
             auto it = _metrics_rebuild.find(m.first);
             if (it != _metrics_rebuild.end()) {
               rebuild_entry entry = std::move(it->second);
@@ -563,8 +603,10 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
-        if (_retention->enabled())
+        if (_retention->enabled()) {
           _retention->remove_metric(m);
+          _retention->abort_metric_merge(m);
+        }
         _metric_latest_current.erase(m);
       }
       for (auto& i : e->obj().index_ids()) {
@@ -572,8 +614,10 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
-        if (_retention->enabled())
+        if (_retention->enabled()) {
           _retention->remove_status(i);
+          _retention->abort_status_merge(i);
+        }
         _status_latest_current.erase(i);
       }
     } break;
@@ -598,20 +642,38 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
       // Remove file and retention buffer.
       _backend.remove(path);
       if (e->is_index) {
-        if (_retention->enabled())
+        if (_retention->enabled()) {
           _retention->remove_status(e->id);
+          _retention->abort_status_merge(e->id);
+        }
         _status_latest_current.erase(e->id);
       } else {
-        if (_retention->enabled())
+        if (_retention->enabled()) {
           _retention->remove_metric(e->id);
+          _retention->abort_metric_merge(e->id);
+        }
         _metric_latest_current.erase(e->id);
       }
     } break;
-    case storage::pb_need_metric_merge::static_type(): {
-      TODO
+    case storage::pb_end_metric_merge::static_type(): {
+      const EndMetricMerge& end_merge =
+          std::static_pointer_cast<storage::pb_end_metric_merge>(d)->obj();
+      auto to_play_search = _pending_metric_merges.find(end_merge.metric_id());
+      if (to_play_search != _pending_metric_merges.end()) {
+        auto to_play = std::move(to_play_search->second);
+        _pending_metric_merges.erase(to_play_search);
+        _write_postponed(to_play, end_merge.metric_id(), false);
+      }
     } break;
-    case storage::pb_need_status_merge::static_type(): {
-      TODO
+    case storage::pb_end_status_merge::static_type(): {
+      const EndStatusMerge& end_merge =
+          std::static_pointer_cast<storage::pb_end_status_merge>(d)->obj();
+      auto to_play_search = _pending_status_merges.find(end_merge.index_id());
+      if (to_play_search != _pending_status_merges.end()) {
+        auto to_play = std::move(to_play_search->second);
+        _pending_status_merges.erase(to_play_search);
+        _write_postponed(to_play, end_merge.index_id(), true);
+      }
     } break;
     default:
       _logger->warn("RRD: unknown BBDO message received of type {}", d->type());
@@ -1215,7 +1277,7 @@ uint64_t stream<T>::get_last_status_latest_current(uint64_t id) {
 // Explicit instantiations — required for the destructor which is defined in
 // this translation unit (not inlined in the header) and must be available to
 // the test binary that links against the shared library.
-template stream<lib>::~stream() noexcept;
-template stream<
-    cached<asio::local::stream_protocol::socket>>::~stream() noexcept;
-template stream<cached<asio::ip::tcp::socket>>::~stream() noexcept;
+// template stream<lib>::~stream() noexcept;
+// template stream<
+//     cached<asio::local::stream_protocol::socket>>::~stream() noexcept;
+// template stream<cached<asio::ip::tcp::socket>>::~stream() noexcept;

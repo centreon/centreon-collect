@@ -20,6 +20,7 @@
 #define CCB_RRD_RETENTION_FILE_HH
 
 #include "bbdo/storage.pb.h"
+#include "com/centreon/broker/rrd/lib.hh"
 
 namespace com::centreon::broker::rrd {
 
@@ -50,31 +51,33 @@ class retention_file {
   std::filesystem::path _file_path;
   header _header;
   time_t _last_activity;
+  size_t _nb_samples;
+  std::atomic_bool _abort_merge = false;
 
   void _create_file();
 
-  void _grow_file(int fd);
-
   void _append(const sample& to_append);
 
+  void _to_rrd_file(const std::filesystem::path& dst_path, lib& rrd_lib);
+
  public:
-  class mapped_sample {
-    file_content* _data;
-    size_t _file_size;
+  // class mapped_sample {
+  //   file_content* _data;
+  //   size_t _file_size;
 
-    const sample *_begin, *_end;
+  //   const sample *_begin, *_end;
 
-   public:
-    mapped_sample(const std::filesystem::path& path);
-    mapped_sample(mapped_sample&& src);
-    mapped_sample();
-    mapped_sample(const mapped_sample&) = delete;
-    mapped_sample& operator=(const mapped_sample&) = delete;
-    ~mapped_sample();
+  //  public:
+  //   mapped_sample(const std::filesystem::path& path);
+  //   mapped_sample(mapped_sample&& src);
+  //   mapped_sample();
+  //   mapped_sample(const mapped_sample&) = delete;
+  //   mapped_sample& operator=(const mapped_sample&) = delete;
+  //   ~mapped_sample();
 
-    const sample* begin() const { return _begin; }
-    const sample* end() const { return _end; }
-  };
+  //   const sample* begin() const { return _begin; }
+  //   const sample* end() const { return _end; }
+  // };
 
   retention_file(const std::filesystem::path& rrd_data_dir,
                  const Metric& first_metric);
@@ -94,8 +97,12 @@ class retention_file {
   uint64_t first_ts() const { return _header.first_ts; }
   uint64_t last_ts() const { return _header.last_ts; }
 
-  const mapped_sample sort_and_get_samples();
+  // const mapped_sample sort_and_get_samples();
   time_t last_activity() const { return _last_activity; }
+  void merge(const std::filesystem::path& rrd_path, lib& rrd_lib);
+
+  void abort_merge() { _abort_merge = true; }
+  size_t nb_samples() const { return _nb_samples; }
 };
 
 }  // namespace com::centreon::broker::rrd

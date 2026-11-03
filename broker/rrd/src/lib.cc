@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/rrd/lib.hh"
 
+#include <absl/cleanup/cleanup.h>
 #include <fcntl.h>
 #include <rrd.h>
 #include <unistd.h>
@@ -26,6 +27,8 @@
 #include <cctype>
 #include <cerrno>
 #include <cmath>
+#include <cstdio>
+#include <string_view>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
@@ -111,7 +114,7 @@ void lib::open(const std::filesystem::path& filename,
   _filename = filename;
   // creator::create still uses std::string (not yet migrated).
   _creator.create(filename.string(), length, from, step, value_type,
-                  without_cache);
+                  without_cache, {});
 }
 
 /**
@@ -351,6 +354,72 @@ time_t lib::last_update(const std::filesystem::path& filename) {
 }
 
 /**
+ * @brief Compute the oldest timestamp covered by an RRD file, that is the
+ * minimum over all RRAs of the value rrd_first() would return, but with a
+ * single rrd_info_r() call instead of opening the file once per RRA.
+ *
+ * For each RRA, the last row is aligned on step * pdp_per_row and the first
+ * row is rows - 1 rows before it.
+ *
+ * This is the start of the window covered by the file, not the time of the
+ * first known value: rows never written contain NaN.
+ *
+ * @param filename The RRD file path.
+ *
+ * @return The first timestamp, -1 if the file can't be opened or read.
+ */
+time_t lib::first_timestamp(const std::filesystem::path& filename) {
+  rrd_info_t* info = rrd_info_r(const_cast<char*>(filename.c_str()));
+  if (!info)
+    return -1;
+
+  time_t last_update = 0;
+  unsigned long step = 0;
+  absl::flat_hash_map<int, unsigned long> rra_pdp_per_row;
+  absl::flat_hash_map<int, unsigned long> rra_rows;
+
+  for (rrd_info_t* it = info; it; it = it->next) {
+    if (it->type != RD_I_CNT)
+      continue;
+    std::string_view key{it->key};
+
+    if (key == "step") {
+      step = it->value.u_cnt;
+    } else if (key == "last_update") {
+      last_update = static_cast<time_t>(it->value.u_cnt);
+    } else {
+      // %n checks that the whole key matched (see fetch_existing()).
+      int rra_idx = -1;
+      int end = 0;
+      if (std::sscanf(it->key, "rra[%d].pdp_per_row%n", &rra_idx, &end) == 1 &&
+          end > 0 && it->key[end] == '\0') {
+        rra_pdp_per_row[rra_idx] = it->value.u_cnt;
+      } else if (std::sscanf(it->key, "rra[%d].rows%n", &rra_idx, &end) == 1 &&
+                 end > 0 && it->key[end] == '\0') {
+        rra_rows[rra_idx] = it->value.u_cnt;
+      }
+    }
+  }
+  rrd_info_free(info);
+
+  if (step == 0)
+    return -1;
+
+  time_t first = -1;
+  for (auto& [idx, pdp] : rra_pdp_per_row) {
+    auto rows_it = rra_rows.find(idx);
+    if (pdp == 0 || rows_it == rra_rows.end() || rows_it->second == 0)
+      continue;
+    time_t rra_step = static_cast<time_t>(step * pdp);
+    time_t rra_first = last_update - last_update % rra_step -
+                       static_cast<time_t>(rows_it->second - 1) * rra_step;
+    if (first == -1 || rra_first < first)
+      first = rra_first;
+  }
+  return first;
+}
+
+/**
  * @brief Create a new RRD file at @p tmp_path via librrd and write @p batch
  *        into it.  Bypasses rrdcached entirely (safe during merge).
  */
@@ -364,4 +433,17 @@ void lib::merge_create_temp(const std::filesystem::path& tmp_path,
   lib::open(tmp_path, rrd_len, from, step, value_type, /*without_cache=*/true);
   // Write all merged points using librrd directly.
   lib::update(batch);
+}
+
+void lib::merge_files(const std::filesystem::path& merged_path,
+                      std::filesystem::path& to_merge_file,
+                      uint32_t rrd_len,
+                      time_t from,
+                      uint32_t step,
+                      short value_type) {
+  std::string_view first_file = merged_path.c_str();
+  std::string_view second_file = to_merge_file.c_str();
+
+  _creator.create(merged_path, rrd_len, from, step, value_type, false,
+                  {first_file, second_file});
 }

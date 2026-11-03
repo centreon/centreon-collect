@@ -78,6 +78,20 @@ class stream : public io::stream {
   /// the merge thread never contends on @c _backend's internal state.
   lib _merge_lib;
 
+  /**
+   * @brief Merges scheduled and not yet finished, keyed by metric_id /
+   * index_id.
+   *
+   * An entry is inserted by _schedule_metric/status_merge (preventing duplicate
+   * merges) and erased by write() when the matching pb_end_metric/status_merge
+   * event is received. Meanwhile, write() postpones in it the events of this
+   * metric/status, they are replayed at the end of the merge. Only accessed
+   * from the stream thread (the merge thread communicates through the
+   * multiplexing engine), so no mutex.
+   */
+  rebuild_cache _pending_metric_merges;
+  rebuild_cache _pending_status_merges;
+
   absl::flat_hash_map<uint64_t, uint64_t> _metric_latest_current;
   absl::flat_hash_map<uint64_t, uint64_t> _status_latest_current;
 
@@ -121,7 +135,6 @@ class stream : public io::stream {
          bool write_status = true);
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;
-  ~stream() noexcept;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override;
   uint32_t write(std::shared_ptr<io::data> const& d) override;

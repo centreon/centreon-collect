@@ -18,6 +18,8 @@
 
 #include <absl/cleanup/cleanup.h>
 #include <sys/mman.h>
+#include <filesystem>
+#include <system_error>
 
 #include "com/centreon/broker/rrd/retention_file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -35,7 +37,7 @@ using namespace com::centreon::broker::rrd;
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
                                const Metric& first_metric)
-    : _last_activity(time(nullptr)) {
+    : _last_activity(time(nullptr)), _nb_samples(0) {
   _file_path = rrd_data_dir / fmt::format("{}.ret", first_metric.metric_id());
 
   _header.id = first_metric.metric_id();
@@ -61,7 +63,7 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
                                const Status& first_status)
-    : _last_activity(time(nullptr)) {
+    : _last_activity(time(nullptr)), _nb_samples(0) {
   _file_path = rrd_data_dir / fmt::format("{}.ret", first_status.index_id());
   _header.id = first_status.index_id();
   _header.is_status = true;
@@ -96,6 +98,11 @@ retention_file::retention_file(const std::filesystem::path& file_path)
     ::remove(_file_path.c_str());
     throw exceptions::msg_fmt("fail to read header from file {}: {}",
                               _file_path.string(), strerror(save_errno));
+  }
+  std::error_code err;
+  size_t file_size = std::filesystem::file_size(_file_path, err);
+  if (err) {
+    _nb_samples = (file_size - sizeof(header)) / sizeof(sample);
   }
 }
 
@@ -152,7 +159,7 @@ void retention_file::_append(const sample& to_append) {
     update_header();
   }
   ::close(fd);
-
+  ++_nb_samples;
   _last_activity = time(nullptr);
 }
 
@@ -170,6 +177,8 @@ void retention_file::add_metric(const Metric& metric) {
   _append(sample{.ts = metric.time(), .val = {.d_value = metric.value()}});
 }
 
+constexpr int64_t UNDEF_STATUS = 0xFFFF;
+
 /**
  * @brief Append a status point (time, state) to the file.
  *
@@ -181,7 +190,21 @@ void retention_file::add_status(const Status& status) {
     throw exceptions::msg_fmt("can not write status in metric file {}",
                               _file_path);
   }
-  _append(sample{.ts = status.time(), .val = {.i_value = status.state()}});
+
+  switch (status.state()) {
+    case 0:
+      _append(sample{.ts = status.time(), .val = {.i_value = 100}});
+      break;
+    case 1:
+      _append(sample{.ts = status.time(), .val = {.i_value = 75}});
+      break;
+    case 2:
+      _append(sample{.ts = status.time(), .val = {.i_value = 0}});
+      break;
+    default:
+      _append(sample{.ts = status.time(), .val = {.i_value = UNDEF_STATUS}});
+      break;
+  }
 }
 
 /**
@@ -207,43 +230,11 @@ void retention_file::_create_file() {
   }
 }
 
-/**
- * @brief Map the slots of the file in read only mode.
- *
- * @return An object that gives access to the slots through begin() and end()
- * and unmaps the file when it is destroyed.
- */
-const retention_file::mapped_sample retention_file::sort_and_get_samples() {
-  return mapped_sample(_file_path);
-}
-
-retention_file::mapped_sample::mapped_sample()
-    : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {}
-
-retention_file::mapped_sample::mapped_sample(mapped_sample&& src)
-    : _data(src._data),
-      _file_size(src._file_size),
-      _begin(src._begin),
-      _end(src._end) {
-  src._data = nullptr;
-  src._file_size = 0;
-  src._begin = nullptr;
-  src._end = nullptr;
-}
-
-/**
- * @brief Map in read only mode the slots of a retention file.
- *
- * If the file contains no slot, nothing is mapped and begin() == end() ==
- * nullptr.
- *
- * @param path Path of the retention file.
- */
-retention_file::mapped_sample::mapped_sample(const std::filesystem::path& path)
-    : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {
-  int fd = ::open(path.c_str(), O_RDWR);
+void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
+                                  lib& rrd_lib) {
+  int fd = ::open(_file_path.c_str(), O_RDWR);
   if (fd < 0) {
-    throw exceptions::msg_fmt("fail to open {}: {}", path.string(),
+    throw exceptions::msg_fmt("fail to open {}: {}", _file_path.string(),
                               strerror(errno));
   }
 
@@ -251,39 +242,159 @@ retention_file::mapped_sample::mapped_sample(const std::filesystem::path& path)
 
   struct stat file_stat;
   if (::fstat(fd, &file_stat)) {
-    throw exceptions::msg_fmt("fail to get size of file {}: {}", path.string(),
-                              strerror(errno));
+    throw exceptions::msg_fmt("fail to get size of file {}: {}",
+                              _file_path.string(), strerror(errno));
   }
-  _file_size = file_stat.st_size;
-  if (_file_size < sizeof(header)) {
-    throw exceptions::msg_fmt("file {} is too small: {} bytes", path.string(),
-                              _file_size);
+  size_t file_size = file_stat.st_size;
+  if (file_size < sizeof(header)) {
+    throw exceptions::msg_fmt("file {} is too small: {} bytes",
+                              _file_path.string(), file_size);
   }
-  // no slot => nothing to map
-  if (_file_size == sizeof(header))
-    return;
 
-  void* addr =
-      ::mmap(nullptr, _file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (addr == MAP_FAILED) {
-    throw exceptions::msg_fmt("fail to map file {}: {}", path.string(),
-                              strerror(errno));
+  std::deque<std::string> samples;
+
+  if (file_size > sizeof(header)) {
+    void* addr =
+        ::mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (addr == MAP_FAILED) {
+      throw exceptions::msg_fmt("fail to map file {}: {}", _file_path.string(),
+                                strerror(errno));
+    }
+    file_content* data = static_cast<file_content*>(addr);
+    sample* begin = data->data;
+    sample* end = begin + (file_size - sizeof(header)) / sizeof(sample);
+    std::sort(begin, end, [](const sample& left, const sample& right) {
+      return left.ts < right.ts;
+    });
+    ::munmap(data, file_size);
+    if (_header.is_status) {
+      for (; begin != end; ++begin) {
+        if (begin->val.i_value == UNDEF_STATUS) {
+          samples.emplace_back(fmt::format("{}:U", begin->ts));
+        } else {
+          samples.emplace_back(
+              fmt::format("{}:{}", begin->ts, begin->val.i_value));
+        }
+      }
+    } else {
+      for (; begin != end; ++begin) {
+        samples.emplace_back(
+            fmt::format("{}:{}", begin->ts, begin->val.d_value));
+      }
+    }
   }
-  _data = static_cast<file_content*>(addr);
-  sample* begin = _data->data;
-  _begin = begin;
-  sample* end = begin + (_file_size - sizeof(header)) / sizeof(sample);
-  _end = end;
-  std::sort(begin, end, [](const sample& left, const sample& right) {
-    return left.ts < right.ts;
-  });
+  rrd_lib.merge_create_temp(dst_path, _header.rrd_len, _header.first_ts,
+                            _header.interval, _header.value_type, samples);
+}
+
+void retention_file::merge(const std::filesystem::path& rrd_path,
+                           lib& rrd_lib) {
+  time_t first_ts = rrd_lib.first_timestamp(rrd_path);
+
+  if (first_ts <= 0 || (uint64_t)first_ts > _header.first_ts) {
+    first_ts = _header.first_ts;
+  }
+  std::filesystem::path to_merge_path = rrd_path;
+  to_merge_path += ".to_merge";
+  std::filesystem::path tmp_merge_path = rrd_path;
+  tmp_merge_path += ".tmp";
+  absl::Cleanup closer = [&to_merge_path, &tmp_merge_path]() {
+    ::remove(to_merge_path.c_str());
+    ::remove(tmp_merge_path.c_str());
+  };
+  if (!_abort_merge) {
+    // first, we create rrd file to merge in dst file
+    _to_rrd_file(to_merge_path, rrd_lib);
+  }
+  if (!_abort_merge) {
+    rrd_lib.merge_files(tmp_merge_path, to_merge_path, _header.rrd_len,
+                        first_ts, _header.interval, _header.value_type);
+  }
+  if (!_abort_merge) {
+    ::rename(tmp_merge_path.c_str(), rrd_path.c_str());
+  }
 }
 
 /**
- * @brief Unmap the file (the file descriptor is closed by the constructor).
+ * @brief Map the slots of the file in read only mode.
+ *
+ * @return An object that gives access to the slots through begin() and end()
+ * and unmaps the file when it is destroyed.
  */
-retention_file::mapped_sample::~mapped_sample() {
-  if (_data) {
-    ::munmap(_data, _file_size);
-  }
-}
+// const retention_file::mapped_sample retention_file::sort_and_get_samples() {
+//   return mapped_sample(_file_path);
+// }
+
+// retention_file::mapped_sample::mapped_sample()
+//     : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {}
+
+// retention_file::mapped_sample::mapped_sample(mapped_sample&& src)
+//     : _data(src._data),
+//       _file_size(src._file_size),
+//       _begin(src._begin),
+//       _end(src._end) {
+//   src._data = nullptr;
+//   src._file_size = 0;
+//   src._begin = nullptr;
+//   src._end = nullptr;
+// }
+
+// /**
+//  * @brief Map in read only mode the slots of a retention file.
+//  *
+//  * If the file contains no slot, nothing is mapped and begin() == end() ==
+//  * nullptr.
+//  *
+//  * @param path Path of the retention file.
+//  */
+// retention_file::mapped_sample::mapped_sample(const std::filesystem::path&
+// path)
+//     : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {
+//   int fd = ::open(path.c_str(), O_RDWR);
+//   if (fd < 0) {
+//     throw exceptions::msg_fmt("fail to open {}: {}", path.string(),
+//                               strerror(errno));
+//   }
+
+//   absl::Cleanup closer = [fd]() { ::close(fd); };
+
+//   struct stat file_stat;
+//   if (::fstat(fd, &file_stat)) {
+//     throw exceptions::msg_fmt("fail to get size of file {}: {}",
+//     path.string(),
+//                               strerror(errno));
+//   }
+//   _file_size = file_stat.st_size;
+//   if (_file_size < sizeof(header)) {
+//     throw exceptions::msg_fmt("file {} is too small: {} bytes",
+//     path.string(),
+//                               _file_size);
+//   }
+//   // no slot => nothing to map
+//   if (_file_size == sizeof(header))
+//     return;
+
+//   void* addr =
+//       ::mmap(nullptr, _file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+//   if (addr == MAP_FAILED) {
+//     throw exceptions::msg_fmt("fail to map file {}: {}", path.string(),
+//                               strerror(errno));
+//   }
+//   _data = static_cast<file_content*>(addr);
+//   sample* begin = _data->data;
+//   _begin = begin;
+//   sample* end = begin + (_file_size - sizeof(header)) / sizeof(sample);
+//   _end = end;
+//   std::sort(begin, end, [](const sample& left, const sample& right) {
+//     return left.ts < right.ts;
+//   });
+// }
+
+// /**
+//  * @brief Unmap the file (the file descriptor is closed by the constructor).
+//  */
+// retention_file::mapped_sample::~mapped_sample() {
+//   if (_data) {
+//     ::munmap(_data, _file_size);
+//   }
+// }

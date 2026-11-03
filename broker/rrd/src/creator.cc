@@ -92,7 +92,8 @@ void creator::create(std::string const& filename,
                      time_t from,
                      uint32_t step,
                      short value_type,
-                     bool without_cache) {
+                     bool without_cache,
+                     const std::vector<std::string_view>& sources) {
   // Fill template informations.
   if (!step)
     step = 5 * 60;  // Default to every 5 minutes.
@@ -123,7 +124,7 @@ void creator::create(std::string const& filename,
       info.from = from;
 
       // Create new template.
-      _open(tmpl_filename, length, from, step, value_type);
+      _open(tmpl_filename, length, from, step, value_type, {});
 
       // Get template file size.
       struct stat s;
@@ -156,9 +157,9 @@ void creator::create(std::string const& filename,
     }
     // No more space in the cache, just create rrd file.
     else
-      _open(filename, length, from - 1, step, value_type);
+      _open(filename, length, from - 1, step, value_type, sources);
   } else
-    _open(filename, length, from - 1, step, value_type);
+    _open(filename, length, from - 1, step, value_type, sources);
 }
 
 /**
@@ -214,7 +215,8 @@ void creator::_open(std::string const& filename,
                     uint32_t length,
                     time_t from,
                     uint32_t step,
-                    short value_type) {
+                    short value_type,
+                    const std::vector<std::string_view>& sources) {
   /* Find step of RRD file if already existing. */
   /* XXX : why is it here ?
   rrd_info_t* rrdinfo(rrd_info_r(_filename));
@@ -277,7 +279,16 @@ void creator::_open(std::string const& filename,
 
   // Create RRD file.
   rrd_clear_error();
-  if (rrd_create_r(filename.c_str(), 1, from, argc, argv))
+  std::vector<const char*> srcs;
+  if (!sources.empty()) {
+    for (const std::string_view src : sources) {
+      srcs.push_back(src.data());
+    }
+    srcs.push_back(nullptr);
+  }
+
+  if (rrd_create_r2(filename.c_str(), 1, from, 0,
+                    srcs.empty() ? nullptr : srcs.data(), nullptr, argc, argv))
     throw exceptions::open("RRD: could not create file '{}: {}", filename,
                            rrd_get_error());
 
