@@ -82,6 +82,17 @@ bool bulk_bind::ready(int32_t conn) {
 }
 
 /**
+ * @brief Force the bind to be ready in term of time. If there is nothing to
+ * write, the bind won't be ready.
+ */
+void bulk_bind::force_ready() {
+  std::lock_guard<std::mutex> lck(_queue_m);
+  for (auto& t : _next_time) {
+    t = 0;
+  }
+}
+
+/**
  * @brief Size of the queue
  *
  * @param conn The connection to determine the bind whose size we want. If conn
