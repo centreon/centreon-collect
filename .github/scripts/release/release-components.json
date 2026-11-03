@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "components": {
+    "centreon-collect": {
+      "workflow": "collect.yml",
+      "bundle_component": "centreon-collect",
+      "paths": [
+        ".version.centreon-collect",
+        "bbdo",
+        "broker",
+        "ccc",
+        "clib",
+        "connectors",
+        "custom-triplets",
+        "engine",
+        "grpc",
+        "packaging/centreon-collect",
+        "overlays",
+        "selinux/centreon-broker",
+        "selinux/centreon-engine",
+        "cmake.sh",
+        "cmake-vcpkg.sh",
+        "CMakeLists.txt",
+        "CMakeListsLinux.txt",
+        "vcpkg.json"
+      ]
+    },
+    "centreon-common": {
+      "workflow": "common.yml",
+      "bundle_component": "centreon-common",
+      "paths": [
+        "packaging/centreon-common",
+        ".version.centreon-common"
+      ]
+    },
+    "centreon-gorgone": {
+      "workflow": "gorgone.yml",
+      "bundle_component": "centreon-gorgone",
+      "paths": [
+        "gorgone",
+        ".version.centreon-gorgone",
+        "packaging/centreon-gorgone"
+      ]
+    },
+    "centreon-monitoring-agent": {
+      "workflow": "monitoring-agent.yml",
+      "bundle_component": "centreon-monitoring-agent",
+      "paths": [
+        "agent",
+        ".version.centreon-monitoring-agent"
+      ]
+    }
+  },
+  "full_extras": [
+    {
+      "workflow": "docker-packaging.yml",
+      "bundle_component": null
+    },
+    {
+      "workflow": "docker-collect-testing.yml",
+      "bundle_component": null
+    },
+    {
+      "workflow": "docker-gorgone-testing.yml",
+      "bundle_component": null
+    },
+    {
+      "workflow": "libzmq.yml",
+      "bundle_component": "libzmq"
+    },
+    {
+      "workflow": "lua-curl.yml",
+      "bundle_component": "lua-curl"
+    }
+  ]
+}
