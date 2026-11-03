@@ -58,10 +58,11 @@ echo "########################## Install centreon collect ######################
 echo "Installation..."
 if [ "$distrib" = "ALMALINUX" ]; then
   rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
-  # retry on transient mirror errors (SSL errors, broken repomd.xml)
+  # retry on transient mirror errors (SSL errors, broken repomd.xml);
+  # skip an unreadable system repository: the packages under test are local files
   for attempt in 1 2 3 4 5; do
     dnf clean all
-    if dnf install -y --setopt=retries=5 --setopt=timeout=60 ./*.rpm; then
+    if dnf install -y --setopt=retries=5 --setopt=timeout=60 --setopt=skip_if_unavailable=True ./*.rpm; then
       break
     fi
     if [ "$attempt" -eq 5 ]; then
