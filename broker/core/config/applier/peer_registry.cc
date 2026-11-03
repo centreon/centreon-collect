@@ -506,22 +506,50 @@ void peer_registry::set_broker_knows_poller_conf(uint64_t poller_id,
 
 /**
  * @brief Record that the prepared configuration has been handed over to this
- * poller. This opens a round for it: the acknowledgement it owed for the
- * previous one no longer counts.
+ * poller, if the configuration sent is still the one prepared for it. This
+ * opens a round for it: the acknowledgement it owed for the previous one no
+ * longer counts.
+ *
+ * What is sent is decided without the registry lock (the diff file is read, or
+ * the relay is found up to date, before this call). A newer configuration can
+ * therefore be prepared in between: marking it as sent would claim the poller
+ * received a version it never saw, and nothing would send it any more. Left
+ * unmarked, it is still owed and the next read of the stream sends it.
+ *
+ * With no configuration prepared at all, there is nothing to mark either.
  *
  * @param poller_id The poller ID.
+ * @param version The version of the configuration actually sent.
+ *
+ * @return true if the poller is now marked as served.
  */
-void peer_registry::set_poller_conf_sent(uint64_t poller_id) {
+bool peer_registry::set_poller_conf_sent(uint64_t poller_id,
+                                         std::string_view version) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end()) {
-    found->second.available_conf_sent = true;
-    found->second.conf_acknowledged = false;
-    _logger->debug("New configuration sent to poller {}", poller_id);
-  } else {
+  if (found == _engine_peers.end()) {
     _logger->info("Unable to send configuration to poller {}: it doesn't exist",
                   poller_id);
+    return false;
   }
+  if (found->second.available_conf.empty()) {
+    _logger->debug(
+        "Configuration '{}' sent to poller {}, which has none prepared: "
+        "nothing to mark",
+        version, poller_id);
+    return false;
+  }
+  if (found->second.available_conf != version) {
+    _logger->info(
+        "Configuration '{}' sent to poller {} is no longer the latest one "
+        "('{}'): the latest stays owed",
+        version, poller_id, found->second.available_conf);
+    return false;
+  }
+  found->second.available_conf_sent = true;
+  found->second.conf_acknowledged = false;
+  _logger->debug("New configuration sent to poller {}", poller_id);
+  return true;
 }
 
 /**

@@ -26,6 +26,25 @@ using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::broker::bbdo {
 
+namespace {
+/**
+ * @brief The configuration version a DiffState brings the poller to.
+ *
+ * A difference carries it in config_version, a whole configuration in its
+ * embedded state.
+ *
+ * @param diff The DiffState.
+ *
+ * @return The version, empty if the DiffState names none.
+ */
+const std::string& diff_version(
+    const com::centreon::engine::configuration::DiffState& diff) {
+  if (diff.has_config_version())
+    return diff.config_version();
+  return diff.state().config_version();
+}
+}  // namespace
+
 uint32_t broker_stream::stop() {
   uint32_t retval = stream::stop();
   if (poller_id() && !broker_name().empty() && !poller_name().empty())
@@ -33,13 +52,6 @@ uint32_t broker_stream::stop() {
   return retval;
 }
 
-/**
- * @brief Send the DiffState for a given poller to the stream. The DiffState is
- * read from the file system, where it was stored by the configuration applier
- * when the Engine requested an update.
- *
- * @param poller_id The ID of the poller for which to send the DiffState.
- */
 /**
  * @brief Add the runtime snapshot of the poller's resources to a DiffState
  * about to be sent to it: what replaces retention.dat at the poller's startup
@@ -62,25 +74,44 @@ void broker_stream::_add_runtime_state(
                      diff.runtime_state().services_size(), diff.poller_id());
 }
 
+/**
+ * @brief Send the DiffState for a given poller to the stream. The DiffState is
+ * read from the file system, where it was stored by the configuration applier
+ * when the Engine requested an update.
+ *
+ * A file that cannot be parsed is not sent: Engine would refuse it and close
+ * the connection, and the poller would never apply its configuration. It stays
+ * owed, and the next read of the stream tries again.
+ *
+ * @param poller_id The ID of the poller for which to send the DiffState.
+ */
 void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   auto pb_conf = std::make_shared<pb_diff_state>();
   auto& obj = pb_conf->mut_obj();
   std::filesystem::path diff_name(_state.pollers_config_dir() /
                                   fmt::format("diff-{}.prot", poller_id));
-  std::ifstream f(diff_name);
-  if (f) {
-    obj.ParseFromIstream(&f);
-    f.close();
-    _add_runtime_state(obj);
-    SPDLOG_LOGGER_INFO(_logger,
-                       "BBDO: sending DiffState to poller {} (unknown={})",
-                       poller_id, obj.unknown());
-    _write(pb_conf);
-    _state.set_poller_conf_sent(static_cast<uint32_t>(poller_id));
-  } else {
+  std::ifstream f(diff_name, std::ios::binary);
+  if (!f) {
     _logger->error("BBDO: failed to open diff file '{}' for poller {}",
                    diff_name.string(), poller_id);
+    return;
   }
+  if (!obj.ParseFromIstream(&f)) {
+    _logger->error(
+        "BBDO: cannot parse diff file '{}' for poller {}: not sent, it stays "
+        "owed",
+        diff_name.string(), poller_id);
+    return;
+  }
+  f.close();
+  /* Read before _add_runtime_state(), which only adds the snapshot. */
+  const std::string version = diff_version(obj);
+  _add_runtime_state(obj);
+  SPDLOG_LOGGER_INFO(_logger,
+                     "BBDO: sending DiffState to poller {} (unknown={})",
+                     poller_id, obj.unknown());
+  _write(pb_conf);
+  _state.set_poller_conf_sent(static_cast<uint32_t>(poller_id), version);
 }
 
 /**
@@ -250,12 +281,17 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
             if (absl::SimpleAtoi(poller_id_view, &poller_id)) {
               std::filesystem::path diff_name(_state.pollers_config_dir() /
                                               entry.path());
-              std::ifstream f(diff_name);
+              std::ifstream f(diff_name, std::ios::binary);
               com::centreon::engine::configuration::DiffState diff;
               if (f) {
-                diff.ParseFromIstream(&f);
+                if (diff.ParseFromIstream(&f))
+                  global_diff.add_diff_state(diff, _logger);
+                else
+                  _logger->error(
+                      "BBDO: cannot parse diff file '{}': not merged into the "
+                      "global diff",
+                      diff_name.string());
                 f.close();
-                global_diff.add_diff_state(diff, _logger);
                 _logger->debug("BBDO: Removing diff file '{}'",
                                diff_name.string());
                 std::filesystem::remove(diff_name);
@@ -341,7 +377,8 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           diff_state->mut_obj().set_poller_id(static_cast<uint32_t>(engine_id));
           _add_runtime_state(diff_state->mut_obj());
           _write(diff_state);
-          _state.set_poller_conf_sent(static_cast<uint32_t>(engine_id));
+          _state.set_poller_conf_sent(static_cast<uint32_t>(engine_id),
+                                      version);
           break;
         }
       }

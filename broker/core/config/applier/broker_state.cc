@@ -19,6 +19,7 @@
 #include "broker/core/config/applier/broker_state.hh"
 
 #include <algorithm>
+#include <atomic>
 #include <future>
 
 #include <boost/asio/bind_executor.hpp>
@@ -456,6 +457,56 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
     return 0;
   uint64_t retval = 0;
   return absl::SimpleAtoi(p.stem().string(), &retval) ? retval : 0;
+}
+
+/**
+ * @brief Write a diff file so that nobody can ever read it half written.
+ *
+ * A `diff-<id>.prot` is read by the stream that sends it, by the cache at the
+ * acknowledgement and by the merge of the global diff, while a new preparation
+ * may rewrite it. Written in place, a reader can get a truncated file whose
+ * strings are garbage: Engine then refuses the DiffState and never applies the
+ * configuration. So the content goes to a temporary file, renamed over the
+ * diff once complete: a reader opens either the old file or the new one, whole.
+ * Renaming also protects against a cbd killed during the write (crash,
+ * kill -9, power loss): what stays on disk is the previous diff or the new
+ * one, never a truncated file that the next global diff merge would read.
+ *
+ * The temporary name does not end with `.prot`, so no scan of the directory
+ * takes it for a configuration or a diff. It is unique, as two writers of the
+ * same diff are not always serialized by the same lock.
+ *
+ * @param path The diff file to write.
+ * @param diff The diff to store.
+ * @param ec Cleared on success, set to the reason of the failure otherwise; the
+ * diff file is then left as it was.
+ */
+void write_diff_file(const std::filesystem::path& path,
+                     const engine::configuration::DiffState& diff,
+                     std::error_code& ec) {
+  static std::atomic<uint64_t> counter{0};
+  std::filesystem::path tmp(path);
+  tmp += fmt::format(".tmp{}", counter++);
+  ec.clear();
+  {
+    std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
+    if (!f) {
+      ec.assign(errno, std::generic_category());
+      return;
+    }
+    /* Serialization says nothing more precise than a failed stream. */
+    if (!diff.SerializeToOstream(&f))
+      ec = std::make_error_code(std::errc::io_error);
+    f.close();
+    if (!ec && !f)
+      ec = std::make_error_code(std::errc::io_error);
+  }
+  if (!ec)
+    std::filesystem::rename(tmp, path, ec);
+  if (ec) {
+    std::error_code ignored;
+    std::filesystem::remove(tmp, ignored);
+  }
 }
 }  // namespace
 
@@ -1913,11 +1964,9 @@ bool broker_state::_prepare_diff_for_poller(
   diff_state->set_poller_id(static_cast<uint32_t>(poller_id));
   std::filesystem::path diff_prot_conf =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
-  std::ofstream df(diff_prot_conf);
-  if (df) {
-    diff_state->SerializeToOstream(&df);
-    df.close();
-
+  std::error_code ec;
+  write_diff_file(diff_prot_conf, *diff_state, ec);
+  if (!ec) {
     /* The new configuration to send to the poller is
      * new-<poller-ID>.prot. Once sent to it, this file must be renamed
      * into <poller-ID>.prot and the diff file can be removed.
@@ -1936,7 +1985,7 @@ bool broker_state::_prepare_diff_for_poller(
     return true;
   }
   _logger->error("Cannot write the diff Engine protobuf configuration '{}': {}",
-                 diff_prot_conf.string(), strerror(errno));
+                 diff_prot_conf.string(), ec.message());
   return false;
 }
 
@@ -1976,13 +2025,18 @@ void broker_state::set_poller_conf_acknowledged(uint64_t poller_id) {
 }
 
 /**
- * @brief Called from Broker side when the new configuration has been sent
- * to the poller engine peer.
+ * @brief Called from Broker side when a configuration has been sent to the
+ * poller: marks it as sent only if it is still the one prepared for it (see
+ * peer_registry::set_poller_conf_sent()).
  *
- * @param poller_id
+ * @param poller_id The poller ID.
+ * @param version The version of the configuration sent.
+ *
+ * @return true if the poller is now marked as served.
  */
-void broker_state::set_poller_conf_sent(uint32_t poller_id) {
-  _peers.set_poller_conf_sent(poller_id);
+bool broker_state::set_poller_conf_sent(uint32_t poller_id,
+                                        std::string_view version) {
+  return _peers.set_poller_conf_sent(poller_id, version);
 }
 
 const std::filesystem::path& broker_state::cache_config_dir() const noexcept {
@@ -2245,14 +2299,13 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       const std::string version = state->config_version();
       engine::configuration::DiffState diff;
       diff.set_allocated_state(state.release());
-      std::ofstream df(diff_file);
-      if (!df) {
+      std::error_code ec;
+      write_diff_file(diff_file, diff, ec);
+      if (ec) {
         _logger->error("Cannot write diff-{}.prot for relay poller {}: {}",
-                       engine_id, engine_id, strerror(errno));
+                       engine_id, engine_id, ec.message());
         return relay_config_response::unknown;
       }
-      diff.SerializeToOstream(&df);
-      df.close();
       {
         auto peer = _peers.lock_engine_peer(engine_id);
         /* Same rule as in _prepare_diff_for_poller: arming the "not sent yet"

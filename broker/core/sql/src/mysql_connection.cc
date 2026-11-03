@@ -934,8 +934,14 @@ void mysql_connection::_run() {
     }
   }
   _clear_connection();
-  _state = finished;
-  _start_condition.notify_all();
+  {
+    /* Under _start_m: stop() tests _state holding it, so a change made
+     * without it could fall between that test and the wait, and the
+     * notification would be lost -- stop() then waits forever. */
+    std::lock_guard<std::mutex> lck(_start_m);
+    _state = finished;
+    _start_condition.notify_all();
+  }
   mysql_thread_end();
   _logger->trace("mysql connection main loop finished.");
 }
@@ -1076,6 +1082,9 @@ void mysql_connection::_process_while_empty_task(
   }
 
   if (_tasks_list.empty()) {
+    /* Same reason as at the end of _run(): _start_m must be held. Taking it
+     * while holding _tasks_m is safe, nothing takes them the other way. */
+    std::lock_guard<std::mutex> lck(_start_m);
     _state = finished;
     _start_condition.notify_all();
   } else {
