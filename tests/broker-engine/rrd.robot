@@ -548,13 +548,14 @@ BERRDREC1
     [Documentation]    RRD retention startup merge — metric.
     ...
     ...    Given Engine and Broker are started and at least one metric .rrd file is created
-    ...    When Broker is stopped and a 2-point MetricRetentionBatch .prot file is planted
+    ...    When Broker is stopped and a 2-point .ret retention file is planted
     ...    ...    for that metric (timestamps: now-24h and now-12h)
     ...    And Broker is restarted
-    ...    Then the RRD stream logs a startup merge message for that metric
-    ...    And the merge completes ("merging 2 buffered points")
-    ...    And the .prot file is deleted
+    ...    Then the RRD stream logs that it recovered the retention of that metric
+    ...    And the merge completes ("merging 2 retention points" then "merge ... done")
+    ...    And the .ret file is deleted
     [Tags]    rrd    retention    startup_merge    bbdo3
+    Remove Files    ${VarRoot}/lib/centreon/metrics/*.ret    ${VarRoot}/lib/centreon/status/*.ret
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -584,42 +585,46 @@ BERRDREC1
     # Stop Broker (Engine keeps running but will disconnect).
     Ctn Kindly Stop Broker
 
-    # Plant a 2-point MetricRetentionBatch .prot file dated 24 h and 12 h in the past.
+    # Plant a 2-point .ret file dated 24 h and 12 h in the past.
     ${now}    Evaluate    int(time.time())    modules=time
     ${t0}    Evaluate    ${now} - 86400
     ${t1}    Evaluate    ${now} - 43200
     Ctn Create Metric Retention File    ${metric_id}    ${t0}:1.0    ${t1}:2.0
 
-    # Restart Broker.  When central reconnects to the RRD broker, the RRD stream is
-    # constructed → _startup_merge() scans the directory → finds the .prot file.
+    # Restart Broker.  The RRD stream loads the retention_manager that scans the
+    # directory and finds the .ret file, its merge is started by the next data
+    # received once the file has not been fed for 3 intervals.
     ${start}    Get Current Date
     Ctn Start Broker
 
-    # Step 1: startup merge must be logged at INFO level.
-    ${content}    Create List    RRD: startup merge for recovered metric ${metric_id}
+    # Step 1: the recovered retention must be logged at INFO level.
+    ${content}    Create List    RRD: recovered retention of metric ${metric_id} with 2 points
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
-    Should Be True    ${result}    Startup merge not logged for metric ${metric_id}
+    Should Be True    ${result}    Retention of metric ${metric_id} not recovered
 
     # Step 2: the merge itself must complete.
-    ${content}    Create List    RRD: merging 2 buffered points for metric ${metric_id}
+    ${content}    Create List
+    ...    RRD: merging 2 retention points for metric ${metric_id}
+    ...    RRD: merge of metric ${metric_id} into
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
     Should Be True    ${result}    Merge did not complete for metric ${metric_id}
 
-    # Step 3: the .prot file must be deleted after the merge.
-    File Should Not Exist    ${VarRoot}/lib/centreon/metrics/${metric_id}.prot
+    # Step 3: the .ret file must be deleted after the merge.
+    File Should Not Exist    ${VarRoot}/lib/centreon/metrics/${metric_id}.ret
 
 BERRDREC2
     [Documentation]    RRD retention startup merge — status.
     ...
     ...    Given Engine and Broker are started and a forced service check has created
     ...    ...    a status .rrd file for service_1 (host_id=1, service_id=1)
-    ...    When Broker is stopped and a 2-point StatusRetentionBatch .prot file is planted
+    ...    When Broker is stopped and a 2-point .ret retention file is planted
     ...    ...    for that index
     ...    And Broker is restarted
-    ...    Then the RRD stream logs a startup merge message for that index
-    ...    And the merge completes
-    ...    And the .prot file is deleted
+    ...    Then the RRD stream logs that it recovered the retention of that index
+    ...    And the merge completes when a new status is received
+    ...    And the .ret file is deleted
     [Tags]    rrd    retention    startup_merge    bbdo3    status
+    Remove Files    ${VarRoot}/lib/centreon/metrics/*.ret    ${VarRoot}/lib/centreon/status/*.ret
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -647,7 +652,7 @@ BERRDREC2
     # Stop Broker.
     Ctn Kindly Stop Broker
 
-    # Plant a 2-point StatusRetentionBatch .prot file (OK then CRITICAL, dated in the past).
+    # Plant a 2-point .ret file (OK then CRITICAL, dated in the past).
     ${now}    Evaluate    int(time.time())    modules=time
     ${t0}    Evaluate    ${now} - 86400
     ${t1}    Evaluate    ${now} - 43200
@@ -657,18 +662,23 @@ BERRDREC2
     ${start}    Get Current Date
     Ctn Start Broker
 
-    # Step 1: startup merge logged.
-    ${content}    Create List    RRD: startup merge for recovered status ${index}
+    # Step 1: recovered retention logged.
+    ${content}    Create List    RRD: recovered retention of status ${index} with 2 points
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
-    Should Be True    ${result}    Startup merge not logged for status index ${index}
+    Should Be True    ${result}    Retention of status index ${index} not recovered
 
-    # Step 2: merge completes.
-    ${content}    Create List    RRD: merging 2 buffered points for status ${index}
+    # Step 2: the merge is started by a status received once the file has not
+    # been fed for 3 intervals (1s in the planted file).
+    Sleep    5s
+    Ctn Process Service Result Hard    host_1    service_1    0    output ok for service_1
+    ${content}    Create List
+    ...    RRD: merging 2 retention points for status ${index}
+    ...    RRD: merge of status ${index} into
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
     Should Be True    ${result}    Status merge did not complete for index ${index}
 
-    # Step 3: .prot file deleted.
-    File Should Not Exist    ${VarRoot}/lib/centreon/status/${index}.prot
+    # Step 3: .ret file deleted.
+    File Should Not Exist    ${VarRoot}/lib/centreon/status/${index}.ret
 
 BERRDREC3
     [Documentation]    RRD retention merge with metrics and statuses received during the merge.
@@ -685,6 +695,7 @@ BERRDREC3
     ...    Then each RRD file contains the planted points, the phase B and the phase C data
     ...    ...    without any missing value
     [Tags]    rrd    retention    merge    bbdo3    MON-206113
+    Remove Files    ${VarRoot}/lib/centreon/metrics/*.ret    ${VarRoot}/lib/centreon/status/*.ret
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -759,16 +770,22 @@ BERRDREC3
     END
     ${b_end}    Evaluate    int(time.time())    modules=time
 
-    # Phase C: back to OK.
+    # Phase C: back to OK. Merges are only started when data are received, one
+    # at a time, so results are sent until all the retention files are merged.
     ${c_start}    Evaluate    int(time.time())    modules=time
-    FOR    ${i}    IN RANGE    24
+    ${ret_files}    Evaluate
+    ...    [f"${VarRoot}/lib/centreon/metrics/{i}.ret" for i in $metric_ids] + [f"${VarRoot}/lib/centreon/status/{i}.ret" for i in $index_ids]
+    FOR    ${i}    IN RANGE    120
         Ctn Process Services Check Result With Value    host_1    1    ${nb_svc}    0    4.0    ${nb_metrics}
         Sleep    5s
+        ${nb_ret_files}    Evaluate    len([f for f in $ret_files if os.path.exists(f)])    modules=os
+        IF    ${i} >= 23 and ${nb_ret_files} == 0    BREAK
     END
+    Should Be Equal As Integers    ${nb_ret_files}    0    ${nb_ret_files} retention files not merged
     ${c_end}    Evaluate    int(time.time())    modules=time
 
     # Merges ran and data were received while they were running.
-    ${content}    Create List    RRD: startup merge for recovered metric    RRD: startup merge for recovered status
+    ${content}    Create List    RRD: recovered retention of metric    RRD: recovered retention of status
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${restart}    ${content}    10
     Should Be True    ${result}    No startup merge after the RRD broker restart
     ${result}    ${line}    Ctn Find Regex In Log With Timeout

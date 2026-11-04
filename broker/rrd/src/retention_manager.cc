@@ -151,8 +151,15 @@ void retention_manager::_init() {
         continue;
 
       try {
-        _retentions.emplace(std::make_shared<retention_file>(entry.path()));
+        auto recovered = std::make_shared<retention_file>(entry.path());
+        SPDLOG_LOGGER_INFO(_logger,
+                           "RRD: recovered retention of {} {} with {} points",
+                           recovered->is_status() ? "status" : "metric",
+                           recovered->id(), recovered->nb_samples());
+        _retentions.emplace(std::move(recovered));
       } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(_logger, "RRD: fail to recover retention {}: {}",
+                            entry.path().string(), e.what());
       }
     };
   };
@@ -288,10 +295,14 @@ void retention_manager::remove_status(uint64_t index_id) {
 void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
                                const std::shared_ptr<lib>& rrd_lib,
                                backend* cached_client) {
+  auto final_path =
+      to_merge->is_status() ? _config.status_dir : _config.metrics_dir;
+  final_path /= fmt::format("{}.rrd", to_merge->id());
+  SPDLOG_LOGGER_INFO(_logger, "RRD: merging {} retention points for {} {} into {}",
+                     to_merge->nb_samples(),
+                     to_merge->is_status() ? "status" : "metric",
+                     to_merge->id(), final_path.string());
   if (cached_client) {
-    auto final_path =
-        to_merge->is_status() ? _config.status_dir : _config.metrics_dir;
-    final_path /= fmt::format("{}.rrd", to_merge->id());
     cached_client->pre_merge_flush(final_path);
   }
   _merging = to_merge;
@@ -322,6 +333,9 @@ void retention_manager::_do_merge(
   try {
     to_merge->merge(final_path, rrd_lib);
     ::remove(to_merge->file_path().c_str());
+    SPDLOG_LOGGER_INFO(_logger, "RRD: merge of {} {} into {} done",
+                       to_merge->is_status() ? "status" : "metric",
+                       to_merge->id(), final_path.string());
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to merge {} into {}: {}",
                         to_merge->file_path(), final_path, e.what());
