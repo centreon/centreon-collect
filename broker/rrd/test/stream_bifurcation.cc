@@ -33,6 +33,8 @@
 #include <unistd.h>
 
 #include <filesystem>
+#include <mutex>
+#include <thread>
 
 #include "bbdo/storage.pb.h"
 #include "broker/core/config/applier/broker_state.hh"
@@ -174,6 +176,71 @@ std::map<uint64_t, double> fetch(const fs::path& rrd_path,
   return {data.points.begin(), data.points.end()};
 }
 
+/**
+ * @brief Minimal rrdcached listening on a unix socket: it accepts one client,
+ * records the commands received and answers "0 ok" to each of them.
+ */
+class fake_rrdcached {
+  boost::asio::io_context _io;
+  boost::asio::local::stream_protocol::acceptor _acceptor;
+  std::thread _thread;
+  mutable std::mutex _m;
+  std::vector<std::string> _commands;
+
+ public:
+  fake_rrdcached(const fs::path& socket_path)
+      : _acceptor(_io, [&socket_path]() {
+          fs::remove(socket_path);
+          return boost::asio::local::stream_protocol::endpoint(
+              socket_path.string());
+        }()) {
+    _thread = std::thread([this] {
+      boost::system::error_code ec;
+      boost::asio::local::stream_protocol::socket client(_io);
+      _acceptor.accept(client, ec);
+      boost::asio::streambuf buf;
+      while (!ec) {
+        boost::asio::read_until(client, buf, '\n', ec);
+        if (ec)
+          break;
+        std::istream is(&buf);
+        std::string line;
+        std::getline(is, line);
+        {
+          std::lock_guard<std::mutex> l(_m);
+          _commands.push_back(line);
+        }
+        boost::asio::write(client, boost::asio::buffer("0 ok\n", 5), ec);
+      }
+    });
+  }
+
+  /// The client must be closed before, otherwise the destructor waits for it.
+  ~fake_rrdcached() {
+    // wakes up accept() if no client has connected
+    ::shutdown(_acceptor.native_handle(), SHUT_RDWR);
+    _thread.join();
+  }
+
+  std::vector<std::string> commands() const {
+    std::lock_guard<std::mutex> l(_m);
+    return _commands;
+  }
+};
+
+/// Index of the first command starting with prefix from the index start, -1
+/// if not found.
+int find_command(const std::vector<std::string>& commands,
+                 const std::string& prefix,
+                 int start = 0) {
+  if (start < 0)
+    return -1;
+  for (size_t i = start; i < commands.size(); ++i)
+    if (commands[i].rfind(prefix, 0) == 0)
+      return static_cast<int>(i);
+  return -1;
+}
+
 }  // namespace
 
 /**
@@ -202,16 +269,18 @@ class StreamBifurcation : public ::testing::Test {
                                        multiplexing::engine::instance_ptr(),
                                        filter, filter, false);
     multiplexing::engine::instance_ptr()->start();
+    retention_manager::reset();
   }
 
   void TearDown() override {
+    retention_manager::reset();
     _mux->unsubscribe();
     _mux.reset();
     config::applier::deinit();
   }
 
   /// Wait for the end of the running merge and give it to the stream.
-  void _end_merge(stream<lib>& s) {
+  void _end_merge(io::stream& s) {
     std::shared_ptr<io::data> d;
     time_t limit = time(nullptr) + 10;
     while (!d && time(nullptr) < limit)
@@ -419,6 +488,8 @@ TEST_F(StreamBifurcation, RestartReloadsRetention) {
   }
   ASSERT_EQ(nb_samples(_tmp.metric_file(5001, "ret")), 2u);
 
+  // restart
+  retention_manager::reset();
   stream<lib> s(_tmp.metrics, _tmp.status, 16,
                 /*ignore_update_errors=*/true, make_cfg(_tmp, 1));
   // any write starts the merge
@@ -493,4 +564,64 @@ TEST_F(StreamBifurcation, RemoveGraphRemovesRetention) {
   s.write(make_metric(7001, base, 2));
   EXPECT_TRUE(fs::exists(_tmp.metric_file(7001)));
   EXPECT_FALSE(fs::exists(_tmp.metric_file(7001, "ret")));
+}
+
+/**
+ * With rrdcached, the rrd file is flushed before its merge so that the merge
+ * reads the real-time data, and rrdcached forgets it after the rename since
+ * the file has been replaced.
+ */
+TEST_F(StreamBifurcation, CachedMergeFlushesAndForgets) {
+  const fs::path socket_path = _tmp.metrics.parent_path() / "rrdcached.sock";
+  const uint64_t base = base_time();
+  const fs::path metric_rrd = _tmp.metric_file(4100);
+  const fs::path status_rrd = _tmp.status_file(4101);
+  std::vector<std::string> commands;
+  {
+    fake_rrdcached server(socket_path);
+    {
+      stream<cached<boost::asio::local::stream_protocol::socket>> s(
+          _tmp.metrics, _tmp.status, 16, /*ignore_update_errors=*/true,
+          socket_path.string(), make_cfg(_tmp, 1));
+
+      // real-time data, then old data that starts the merge
+      s.write(make_metric(4100, base + 10 * interval, 110));
+      s.write(make_metric(4100, base, 0));
+      s.write(make_metric(4100, base + interval, 1));
+      EXPECT_NE(find_command(server.commands(),
+                             fmt::format("FLUSH {}", metric_rrd.string())),
+                -1);
+      EXPECT_EQ(find_command(server.commands(),
+                             fmt::format("FORGET {}", metric_rrd.string())),
+                -1);
+      _end_merge(s);
+
+      s.write(make_status(4101, base + 10 * interval, 0));
+      s.write(make_status(4101, base, 2));
+      s.write(make_status(4101, base + interval, 1));
+      _end_merge(s);
+    }
+    commands = server.commands();
+  }
+
+  for (const fs::path& rrd : {metric_rrd, status_rrd}) {
+    // the real-time point, then the flush before the merge, then the forget
+    int update =
+        find_command(commands, fmt::format("UPDATE {} ", rrd.string()));
+    int flush =
+        find_command(commands, fmt::format("FLUSH {}", rrd.string()), update);
+    int forget =
+        find_command(commands, fmt::format("FORGET {}", rrd.string()), flush);
+    EXPECT_NE(update, -1) << rrd;
+    EXPECT_NE(flush, -1) << rrd;
+    EXPECT_NE(forget, -1) << rrd;
+  }
+
+  // the retention data have been merged
+  auto values = fetch(metric_rrd, base, base + interval);
+  ASSERT_EQ(values.size(), 2u);
+  EXPECT_DOUBLE_EQ(values[base], 0);
+  EXPECT_DOUBLE_EQ(values[base + interval], 1);
+  EXPECT_FALSE(fs::exists(_tmp.metric_file(4100, "ret")));
+  EXPECT_FALSE(fs::exists(_tmp.status_file(4101, "ret")));
 }

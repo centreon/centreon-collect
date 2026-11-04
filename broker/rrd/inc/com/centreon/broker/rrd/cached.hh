@@ -20,6 +20,7 @@
 #define CCB_RRD_CACHED_HH
 
 #include <fmt/ranges.h>
+#include <fmt/std.h>
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/broker/rrd/lib.hh"

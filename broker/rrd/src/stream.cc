@@ -118,7 +118,7 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
     std::filesystem::path status_path,
     uint32_t cache_size,
     bool ignore_update_errors,
-    std::string const&,
+    std::string const& local,
     const retention_config& retention_cfg,
     bool write_metrics,
     bool write_status)
@@ -133,7 +133,9 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
                                          common::pool::io_context_ptr(),
                                          log_v2::instance().get(log_v2::RRD))),
       _merge_lib(std::make_shared<lib>("", 0)),
-      _logger{log_v2::instance().get(log_v2::RRD)} {}
+      _logger{log_v2::instance().get(log_v2::RRD)} {
+  _backend.connect_local(local);
+}
 
 /**
  *  Network socket constructor.
@@ -154,7 +156,7 @@ stream<cached<asio::ip::tcp::socket>>::stream(
     std::filesystem::path status_path,
     uint32_t cache_size,
     bool ignore_update_errors,
-    unsigned short,
+    unsigned short port,
     const retention_config& retention_cfg,
     bool write_metrics,
     bool write_status)
@@ -169,7 +171,9 @@ stream<cached<asio::ip::tcp::socket>>::stream(
                                          common::pool::io_context_ptr(),
                                          log_v2::instance().get(log_v2::RRD))),
       _merge_lib(std::make_shared<lib>("", 0)),
-      _logger{log_v2::instance().get(log_v2::RRD)} {}
+      _logger{log_v2::instance().get(log_v2::RRD)} {
+  _backend.connect_remote("localhost", port);
+}
 }  // namespace com::centreon::broker::rrd
 
 /**

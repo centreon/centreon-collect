@@ -48,24 +48,76 @@ retention_manager::retention_manager(
                                     config.proportional_activity_threshold),
                                 std::less<time_t>()))) {}
 
+static absl::Mutex _instance_m;
+static std::shared_ptr<retention_manager> _instance
+    ABSL_GUARDED_BY(_instance_m);
+
 /**
- * @brief Create a retention_manager and reload the retention files found in
- * the metrics and status directories.
+ * @brief Get the retention_manager shared by all the rrd streams.
+ *
+ * On the first call, the retention_manager is created and the retention files
+ * found in the metrics and status directories are reloaded. It is then kept
+ * for the lifetime of the process, so that a stream opened again (reload,
+ * reconnection) doesn't reload the files still used or merged by the previous
+ * one.
+ *
+ * On the next calls, only the merge thresholds of @p config are applied (see
+ * _update_config()), the directories, @p io_context and @p logger of the first
+ * call are kept.
  *
  * @param config Retention configuration (directories, merge thresholds).
- * @param io_context io_context on which merges are run.
- * @param logger Logger for retention-related messages (must not be null).
+ * @param io_context io_context on which merges are run, used on the first
+ * call only.
+ * @param logger Logger for retention-related messages (must not be null), used
+ * on the first call only.
  *
- * @return The new retention_manager.
+ * @return The shared retention_manager.
  */
 std::shared_ptr<retention_manager> retention_manager::load(
     const retention_config& config,
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger) {
-  std::shared_ptr<retention_manager> instance =
-      std::make_shared<retention_manager>(config, io_context, logger);
-  instance->_init();
-  return instance;
+  absl::MutexLock l(&_instance_m);
+  if (!_instance) {
+    _instance = std::make_shared<retention_manager>(config, io_context, logger);
+    _instance->_init();
+  } else {
+    _instance->_update_config(config);
+  }
+  return _instance;
+}
+
+/**
+ * @brief Forget the shared retention_manager, the next load() creates a new
+ * one and reloads the retention files. Used by the unit tests to start each
+ * test with a new configuration or to simulate a restart.
+ *
+ * The streams and merges still using the previous retention_manager keep it
+ * alive until they release it.
+ */
+void retention_manager::reset() {
+  absl::MutexLock l(&_instance_m);
+  _instance.reset();
+}
+
+/**
+ * @brief Apply the merge thresholds of a new configuration, called by load()
+ * each time a stream is opened.
+ *
+ * Only merge_samples_threshold, proportional_activity_threshold and
+ * orphan_interval are updated: the directories can't change since the
+ * retention files already loaded or created are in them, so they can be read
+ * without lock. The thresholds are read by start_merge() under _data_m, that
+ * may run on the thread of another stream.
+ *
+ * @param config The new retention configuration.
+ */
+void retention_manager::_update_config(const retention_config& config) {
+  absl::MutexLock l(&_data_m);
+  _config.merge_samples_threshold = config.merge_samples_threshold;
+  _config.proportional_activity_threshold =
+      config.proportional_activity_threshold;
+  _config.orphan_interval = config.orphan_interval;
 }
 
 /**

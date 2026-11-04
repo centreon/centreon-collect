@@ -66,6 +66,8 @@ struct retention_config {
  */
 class retention_manager
     : public std::enable_shared_from_this<retention_manager> {
+  /// The directories never change, the thresholds are updated by
+  /// _update_config() and read under _data_m.
   retention_config _config;
   std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
@@ -122,9 +124,9 @@ class retention_manager
   id_to_ts _earliest_rt_metric ABSL_GUARDED_BY(_data_m);
   id_to_ts _earliest_rt_status ABSL_GUARDED_BY(_data_m);
 
-  // void _check_merge(uint64_t metric_id_or_index_id, bool status);
-
   void _init();
+
+  void _update_config(const retention_config& config);
 
   void _merge(const std::shared_ptr<retention_file>& to_merge,
               const std::shared_ptr<lib>& rrd_lib,
@@ -142,6 +144,8 @@ class retention_manager
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger);
 
+  static void reset();
+
   bool enabled() const noexcept {
     return !_config.metrics_dir.empty() || !_config.status_dir.empty();
   }
@@ -155,9 +159,6 @@ class retention_manager
    * @brief Append a status point to the retention file of the status.
    */
   void write_status(const Status& status);
-
-  // void update_earliest_real_time_metric(uint64_t ts);
-  // void update_earliest_real_time_status(uint64_t ts);
 
   /**
    * @brief Remove the retention file of a metric or a status (on rebuild or

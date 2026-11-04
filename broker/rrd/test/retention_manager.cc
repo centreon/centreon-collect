@@ -155,9 +155,11 @@ class RetentionManager : public ::testing::Test {
                                        filter, filter, false);
     multiplexing::engine::instance_ptr()->start();
     _io_context = std::make_shared<asio::io_context>();
+    retention_manager::reset();
   }
 
   void TearDown() override {
+    retention_manager::reset();
     _mux->unsubscribe();
     _mux.reset();
     config::applier::deinit();
@@ -510,6 +512,8 @@ TEST_F(RetentionManager, LoadReloadsFiles) {
       rm->write_status(make_status(31, base + i * interval, 0));
     }
   }
+  // restart
+  retention_manager::reset();
   {
     std::ofstream out(_tmp.metrics / "foo.ret");
     out << "ignored";
@@ -543,7 +547,39 @@ TEST_F(RetentionManager, ReloadedFileIsAppended) {
     auto rm = _load(make_config(_tmp));
     rm->write_metric(make_metric(34, base, 1.0));
   }
+  // restart
+  retention_manager::reset();
   auto rm = _load(make_config(_tmp));
   rm->write_metric(make_metric(34, base + interval, 2.0));
   EXPECT_EQ(retention_file(_tmp.metric_file(34)).nb_samples(), 2u);
+}
+
+/**
+ * load() returns the same retention_manager until reset(): only the merge
+ * thresholds of the next configurations are applied, the directories of the
+ * first one are kept.
+ */
+TEST_F(RetentionManager, LoadSharesInstanceUntilReset) {
+  const uint64_t base = base_time();
+  auto rm = _load(make_config(_tmp, 1000));
+  for (int i = 0; i < 3; ++i)
+    rm->write_metric(make_metric(40, base + i * interval, i));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
+
+  // a stream opened again, with a lower threshold and no status directory
+  retention_config cfg = make_config(_tmp, 2);
+  cfg.status_dir.clear();
+  auto rm2 = _load(cfg);
+  EXPECT_EQ(rm2, rm);
+  rm2->write_status(make_status(41, base, 0));
+  EXPECT_TRUE(fs::exists(_tmp.status_file(41)));
+  merge_id merging = rm2->start_merge(_lib, nullptr);
+  ASSERT_TRUE(merging);
+  EXPECT_EQ(merging->first, 40u);
+  _run_merges();
+  ASSERT_TRUE(_wait_end_merge());
+
+  retention_manager::reset();
+  auto rm3 = _load(make_config(_tmp));
+  EXPECT_NE(rm3, rm);
 }
