@@ -187,6 +187,11 @@ overrides:
       - perl(Net::Curl::Easy)
       - perl(HTTP::Daemon::SSL)
       - perl(NetAddr::IP)
+      # perl(Protocol::HTTP2::Client) deliberately NOT required here: no RPM
+      # provides it on AlmaLinux/EL (dnf: "nothing provides"). engine_grpc/
+      # broker_grpc (action module) stay opt-in and no-op without it
+      # (mymodule_load() logs and returns, doesn't crash) - only the Docker
+      # trixie image (deb below) ships it and turns those features on.
       - perl(Hash::Merge)
       - perl(Clone)
       - perl(Sys::Syslog)
@@ -229,6 +234,7 @@ overrides:
       - libauthen-simple-perl
       - libauthen-simple-net-perl
       - libnet-curl-perl
+      - libprotocol-http2-perl # engine_grpc (action module): native gRPC reload/restart signal to centengine
       - libssh-session-perl
       - libssh-4
       - libev-perl
