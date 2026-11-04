@@ -42,3 +42,6 @@ CLAUDE.md                     @centreon/owners-cpp
 ARCHITECTURE.md               @centreon/owners-cpp
 docs/**                       @centreon/owners-cpp
 .claude/**                    @centreon/owners-cpp
+gorgone/**/CLAUDE.md          @centreon/owners-perl
+perl-libs/**/CLAUDE.md        @centreon/owners-perl
+docs/*/gorgone.md             @centreon/owners-perl
