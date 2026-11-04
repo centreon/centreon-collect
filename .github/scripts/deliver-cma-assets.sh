@@ -1,26 +1,17 @@
 #!/usr/bin/env bash
-# Delivers CMA assets to a GitHub release.
+# Delivers CMA assets to a GitHub release, fetched from the Pulp stable repositories
+# (fallback: re-process existing release assets).
 #
 # The assets are published to the download site by the release YAML committed to
 # centreon/WebApp-download, not from here.
 #
-# Modes
-#   local  (default): deliver local files matching --file-pattern
-#   action:           fetch from the Pulp stable repositories (fallback: re-process existing release assets)
-#
-# Usage (local):
+# Usage (also to re-run a failed delivery):
 #   ./deliver-cma-assets.sh \
-#     --github-release centreon-monitoring-agent-27.08.3 \
-#     --file-pattern "/tmp/packages/centreon-monitoring-agent-27.08*.rpm"
-#
-# Usage (action — re-run a failed delivery):
-#   ./deliver-cma-assets.sh \
-#     --mode action \
 #     --github-release centreon-monitoring-agent-27.08.3 \
 #     --version 27.08.3 \
-#     [--distrib el8,el9,el10,windows]
+#     [--distrib el8,el9,el10,windows] [--strict]
 #
-# Action mode reads the public indexes Pulp serves (rpm repodata, deb Packages), so it needs
+# It reads the public indexes Pulp serves (rpm repodata, deb Packages), so it needs
 # no Pulp credential. DELIVER_PACKAGES_URL overrides the content host (default
 # https://packages.centreon.com).
 #
@@ -30,8 +21,8 @@
 # Flags:
 #   --dry-run        Log what would happen without executing uploads
 #   --force-reupload Re-upload to GitHub release even if the asset is already there
-#   --strict         Action mode: fail when a distrib or the windows installer is missing from
-#                    Pulp stable, instead of only warning
+#   --strict         Fail when a distrib or the windows installer is missing from Pulp stable,
+#                    instead of only warning
 
 set -euo pipefail
 
@@ -53,8 +44,6 @@ log_error()  { echo -e "  ${RED}✗${RESET}  $*" >&2; }
 log_file()   { echo -e "\n  ${BOLD}$*${RESET}"; }
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-MODE="${DELIVER_MODE:-local}"
-FILE_PATTERN="${DELIVER_FILE_PATTERN:-}"
 GITHUB_RELEASE="${DELIVER_GITHUB_RELEASE:-}"
 VERSION="${DELIVER_VERSION:-}"
 DISTRIBS="${DELIVER_DISTRIB:-}"
@@ -69,8 +58,6 @@ fetch_failed=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --mode)              MODE="$2";               shift 2 ;;
-    --file-pattern)      FILE_PATTERN="$2";       shift 2 ;;
     --github-release)    GITHUB_RELEASE="$2";     shift 2 ;;
     --version)           VERSION="$2";            shift 2 ;;
     --distrib)           DISTRIBS="$2";           shift 2 ;;
@@ -89,6 +76,8 @@ REPO_NAME="${REPO##*/}"
 # ─── Validation ───────────────────────────────────────────────────────────────
 [[ -z "$GITHUB_RELEASE" ]] && { log_error "--github-release is required"; exit 1; }
 [[ -z "$GITHUB_TOKEN"   ]] && { log_error "GITHUB_TOKEN or --github-token is required"; exit 1; }
+[[ -z "$VERSION"        ]] && { log_error "--version is required"; exit 1; }
+MAJOR="${VERSION%.*}"
 
 # ─── GitHub API ───────────────────────────────────────────────────────────────
 gh_api() {
@@ -136,8 +125,8 @@ upload_asset() {
 # ─── Pulp ─────────────────────────────────────────────────────────────────────
 # Stable CMA content under the Pulp domain paths: rpm and deb in the "standard"
 # domain, the windows installer in the "default" installers family. Only the
-# packages local mode delivers are matched (no debuginfo/selinux), so a re-run
-# uploads exactly what a normal run would. Content redirects to signed CDN urls.
+# agent packages themselves are matched (no debuginfo/selinux). Content redirects
+# to signed CDN urls.
 pulp_get() {
   curl --fail --silent --show-error --location --max-time 300 --retry 3 --retry-delay 5 "$@"
 }
@@ -183,7 +172,7 @@ fetch_to_tmp() {
 fetch_rpm() {
   local distrib="$1" base primary primary_xml href found=0
   base="${PACKAGES_URL}/standard/rpm/${MAJOR}/${distrib}/stable/x86_64"
-  # no stable repository for this major/distrib: nothing to fetch, like an empty search
+  # no stable repository for this major/distrib: nothing to fetch
   if [[ "$(http_status "${base}/repodata/repomd.xml")" == "404" ]]; then
     report_missing "No ${distrib} stable repository for ${MAJOR}"
     return 0
@@ -248,7 +237,6 @@ fetch_installer() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 echo -e "\n${BOLD}${BLUE}CMA Asset Delivery${RESET}"
-echo -e "  Mode    : ${CYAN}${MODE}${RESET}"
 echo -e "  Release : ${CYAN}${GITHUB_RELEASE}${RESET}"
 echo -e "  Repo    : ${DIM}${REPO}${RESET}"
 [[ "$DRY_RUN" == "true" ]] && echo -e "  ${YELLOW}DRY RUN — no uploads or registrations will be performed${RESET}"
@@ -273,47 +261,30 @@ log_info "${existing_count} asset(s) already on release"
 log_header "Collecting files"
 declare -a FILES=()
 
-if [[ "$MODE" == "local" ]]; then
-  [[ -z "$FILE_PATTERN" ]] && { log_error "--file-pattern is required in local mode"; exit 1; }
-  while IFS= read -r -d '' f; do
-    FILES+=("$f")
-  done < <(find "$(dirname "$FILE_PATTERN")" -maxdepth 1 \
-    -name "$(basename "$FILE_PATTERN")" -print0 2>/dev/null || true)
-  [[ ${#FILES[@]} -eq 0 ]] && { log_warn "No files matched: ${FILE_PATTERN}"; exit 0; }
-  log_info "${#FILES[@]} file(s) matched ${FILE_PATTERN}"
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
 
-elif [[ "$MODE" == "action" ]]; then
-  [[ -z "$VERSION" ]] && { log_error "--version is required in action mode"; exit 1; }
-  MAJOR="${VERSION%.*}"
+# Pulp has no cross-repository search: walk the stable repositories the CMA is
+# delivered to (monitoring-agent.yml matrix)
+log_info "Searching Pulp (${PACKAGES_URL}) for CMA ${VERSION} in stable repositories…"
+for d in el8 el9 el10; do fetch_rpm "$d"; done
+for d in bookworm trixie; do fetch_deb apt-stable "$d"; done
+for d in jammy noble; do fetch_deb ubuntu-stable "$d"; done
+fetch_installer
+log_info "${pulp_found} item(s) found on Pulp"
 
-  TMP_DIR=$(mktemp -d)
-  trap 'rm -rf "$TMP_DIR"' EXIT
-
-  # Pulp has no cross-repository search like the former AQL: walk the stable
-  # repositories the CMA is delivered to (monitoring-agent.yml matrix)
-  log_info "Searching Pulp (${PACKAGES_URL}) for CMA ${VERSION} in stable repositories…"
-  for d in el8 el9 el10; do fetch_rpm "$d"; done
-  for d in bookworm trixie; do fetch_deb apt-stable "$d"; done
-  for d in jammy noble; do fetch_deb ubuntu-stable "$d"; done
-  fetch_installer
-  log_info "${pulp_found} item(s) found on Pulp"
-
-  if [[ "$pulp_found" -eq 0 && "$fetch_failed" -eq 0 ]]; then
-    log_info "No Pulp results — re-downloading ${existing_count} existing release asset(s)"
-    while IFS=$'\t' read -r asset_name download_url; do
-      [[ -z "$asset_name" ]] && continue
-      log_info "Downloading: ${asset_name}"
-      curl --fail --silent \
-        -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-        "$download_url" -o "${TMP_DIR}/${asset_name}"
-      FILES+=("${TMP_DIR}/${asset_name}")
-    done < <(echo "$release_json" | jq -r '.assets[] | [.name, .browser_download_url] | @tsv' 2>/dev/null || true)
-  fi
-  log_info "${#FILES[@]} file(s) ready to process"
-
-else
-  log_error "Unknown mode: ${MODE} (expected local or action)"; exit 1
+if [[ "$pulp_found" -eq 0 && "$fetch_failed" -eq 0 ]]; then
+  log_info "No Pulp results: re-downloading ${existing_count} existing release asset(s)"
+  while IFS=$'\t' read -r asset_name download_url; do
+    [[ -z "$asset_name" ]] && continue
+    log_info "Downloading: ${asset_name}"
+    curl --fail --silent \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      "$download_url" -o "${TMP_DIR}/${asset_name}"
+    FILES+=("${TMP_DIR}/${asset_name}")
+  done < <(echo "$release_json" | jq -r '.assets[] | [.name, .browser_download_url] | @tsv' 2>/dev/null || true)
 fi
+log_info "${#FILES[@]} file(s) ready to process"
 
 # 4. Process each file
 log_header "Processing assets"
