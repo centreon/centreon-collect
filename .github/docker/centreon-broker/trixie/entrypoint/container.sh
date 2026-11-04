@@ -5,8 +5,6 @@ set -e
 
 rm -f /tmp/docker.ready
 
-export PATH="/opt/centreon/venv/bin:$PATH"
-
 # Private engine-context.json for db_password decryption, optional.
 if [ -n "$APP_SECRET" ] && [ -n "$SALT" ]; then
     was_tracing=0
