@@ -24,6 +24,14 @@
 
 namespace com::centreon::broker::rrd {
 
+/**
+ * @class retention_file
+ * @brief File of the metric or status points older than the last update of
+ * their rrd file, merged later into it.
+ *
+ * The file contains a header followed by the samples in their arrival order.
+ * It is only appended to, the samples are sorted at the merge.
+ */
 class retention_file {
   struct header {
     int64_t id;
@@ -42,16 +50,18 @@ class retention_file {
   };
 
   struct file_content : public header {
-    sample data[];  // variable array circular buffer
-                    // len=(rrd_len+interval-1)/interval
+    sample data[];  // samples in arrival order, their number is deduced from
+                    // the file size
   };
 
   std::filesystem::path _file_path;
   header _header;
   time_t _last_activity;
   size_t _nb_samples;
-  uint64_t _first_ts;  // ts of oldest slot
-  uint64_t _last_ts;   // ts of latest slot
+  uint64_t _first_ts;  // ts of oldest sample
+  uint64_t _last_ts;   // ts of latest sample
+  // the file can't be merged before this time (set after a failed merge)
+  time_t _no_merge_before = 0;
 
   std::atomic_bool _abort_merge = false;
 
@@ -85,14 +95,16 @@ class retention_file {
   uint64_t first_ts() const { return _first_ts; }
   uint64_t last_ts() const { return _last_ts; }
 
-  // const mapped_sample sort_and_get_samples();
   time_t last_activity() const { return _last_activity; }
   void merge(const std::filesystem::path& rrd_path, lib& rrd_lib);
 
   void abort_merge() { _abort_merge = true; }
   size_t nb_samples() const { return _nb_samples; }
 
-  void set_last_activity_to_now() { _last_activity = time(nullptr); }
+  time_t no_merge_before() const { return _no_merge_before; }
+  void set_no_merge_before(time_t new_barrier) {
+    _no_merge_before = new_barrier;
+  }
 };
 
 }  // namespace com::centreon::broker::rrd

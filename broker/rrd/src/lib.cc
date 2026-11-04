@@ -377,6 +377,13 @@ time_t lib::last_update(const std::filesystem::path& filename) {
 /**
  * @brief Create a new RRD file at @p tmp_path via librrd and write @p batch
  *        into it.  Bypasses rrdcached entirely (safe during merge).
+ *
+ * @param tmp_path The file to create, overwritten if it exists.
+ * @param rrd_len Duration in seconds that the RRD file should retain.
+ * @param from Timestamp of the first record, the batch must be after it.
+ * @param step Interval in seconds of the data.
+ * @param value_type Type of the metric.
+ * @param batch Sorted "timestamp:value" strings given to rrd_update.
  */
 void lib::merge_create_temp(const std::filesystem::path& tmp_path,
                             uint32_t rrd_len,

@@ -23,6 +23,7 @@
 #include "com/centreon/broker/rrd/retention_file.hh"
 
 using namespace com::centreon::broker::rrd;
+using namespace com::centreon::broker;
 namespace fs = std::filesystem;
 
 /**
@@ -104,11 +105,11 @@ void retention_manager::reset() {
  * @brief Apply the merge thresholds of a new configuration, called by load()
  * each time a stream is opened.
  *
- * Only merge_samples_threshold, proportional_activity_threshold and
- * orphan_interval are updated: the directories can't change since the
- * retention files already loaded or created are in them, so they can be read
- * without lock. The thresholds are read by start_merge() under _data_m, that
- * may run on the thread of another stream.
+ * Only merge_samples_threshold, proportional_activity_threshold,
+ * orphan_interval and merge_retry_delay are updated: the directories can't
+ * change since the retention files already loaded or created are in them, so
+ * they can be read without lock. The thresholds are read by start_merge() under
+ * _data_m, that may run on the thread of another stream.
  *
  * @param config The new retention configuration.
  */
@@ -118,6 +119,7 @@ void retention_manager::_update_config(const retention_config& config) {
   _config.proportional_activity_threshold =
       config.proportional_activity_threshold;
   _config.orphan_interval = config.orphan_interval;
+  _config.merge_retry_delay = config.merge_retry_delay;
 }
 
 /**
@@ -126,7 +128,8 @@ void retention_manager::_update_config(const retention_config& config) {
  *
  * Called once by load(). Both directories are created if they do not yet
  * exist. Files whose names do not match the expected pattern are ignored,
- * files whose header can't be read are removed.
+ * files that don't contain a header and at least one sample are removed (see
+ * retention_file).
  */
 void retention_manager::_init() {
   auto scan_dir = [&](const fs::path& dir) {
@@ -288,9 +291,14 @@ void retention_manager::remove_status(uint64_t index_id) {
  * @brief Mark a retention file as being merged and post its merge on
  * _io_context. The caller must remove it from _retentions.
  *
+ * With rrdcached, the rrd file is flushed first so that the merge reads all
+ * its data.
+ *
  * @param to_merge The retention file to merge.
  * @param rrd_lib The lib used to create the rrd files, it must outlive the
  * merge.
+ * @param cached_client The rrdcached backend of the stream, nullptr if rrd
+ * files are written directly.
  */
 void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
                                const std::shared_ptr<lib>& rrd_lib,
@@ -298,10 +306,10 @@ void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
   auto final_path =
       to_merge->is_status() ? _config.status_dir : _config.metrics_dir;
   final_path /= fmt::format("{}.rrd", to_merge->id());
-  SPDLOG_LOGGER_INFO(_logger, "RRD: merging {} retention points for {} {} into {}",
-                     to_merge->nb_samples(),
-                     to_merge->is_status() ? "status" : "metric",
-                     to_merge->id(), final_path.string());
+  SPDLOG_LOGGER_INFO(
+      _logger, "RRD: merging {} retention points for {} {} into {}",
+      to_merge->nb_samples(), to_merge->is_status() ? "status" : "metric",
+      to_merge->id(), final_path.string());
   if (cached_client) {
     cached_client->pre_merge_flush(final_path);
   }
@@ -315,11 +323,13 @@ void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
 /**
  * @brief Merge a retention file into its rrd file (runs on _io_context).
  *
- * Whatever the result of the merge, the retention file is removed, the
- * manager is ready for another merge and a pb_end_metric_merge or
- * pb_end_status_merge is published so that the stream replays the events it
- * has postponed. The retention file is removed before the publication so that
- * a replayed event can create a new one.
+ * On success, the retention file is removed before the publication of the end
+ * of the merge, so that a replayed event can create a new one. On failure, it
+ * is kept in _retentions and can't be merged again before merge_retry_delay.
+ *
+ * In both cases a pb_end_metric_merge or pb_end_status_merge is published:
+ * the stream then calls clear_merging(), so that another merge can start, and
+ * replays the events kept during the merge.
  *
  * @param to_merge The retention file to merge.
  * @param rrd_lib The lib used to create the rrd files.
@@ -340,15 +350,11 @@ void retention_manager::_do_merge(
     SPDLOG_LOGGER_ERROR(_logger, "fail to merge {} into {}: {}",
                         to_merge->file_path(), final_path, e.what());
     // in order to not log error on next metric received, we mark it
-    to_merge->set_last_activity_to_now();
     absl::MutexLock l(&_data_m);
+    to_merge->set_no_merge_before(time(nullptr) + _config.merge_retry_delay);
     _retentions.emplace(to_merge);
   }
 
-  {
-    absl::MutexLock l(&_data_m);
-    _merging.reset();
-  }
   multiplexing::publisher publish;
   if (to_merge->is_status()) {
     std::shared_ptr<storage::pb_end_status_merge> to_dispatch =
@@ -360,6 +366,22 @@ void retention_manager::_do_merge(
         std::make_unique<storage::pb_end_metric_merge>();
     to_dispatch->mut_obj().set_metric_id(to_merge->id());
     publish.write(to_dispatch);
+  }
+}
+
+/**
+ * @brief Mark the merge of a metric or a status as finished, so that
+ * start_merge() can start another one. Called by the stream when it receives
+ * the pb_end_metric_merge or pb_end_status_merge event. Nothing is done if
+ * this metric or status is not the one being merged.
+ *
+ * @param id The metric_id or the index_id.
+ * @param is_status true if id is an index_id.
+ */
+void retention_manager::clear_merging(uint64_t id, bool is_status) {
+  absl::MutexLock l(&_data_m);
+  if (_merging && _merging->id() == id && _merging->is_status() == is_status) {
+    _merging.reset();
   }
 }
 
@@ -391,14 +413,24 @@ void retention_manager::abort_status_merge(uint64_t index_id) {
 /**
  * @brief Start the merge of a retention file if no merge is running.
  *
- * The file chosen is the least recently fed one if it has not been fed for
- * orphan_interval seconds, else the one with the most samples if it has more
- * than merge_samples_threshold samples. It is removed from _retentions and
- * merged on _io_context, the next points of this metric or status will go to
- * a new retention file.
+ * The file chosen is, in this order:
+ *   - the least recently fed one if it has not been fed for orphan_interval
+ *     seconds,
+ *   - else the one with the most samples if it has more than
+ *     merge_samples_threshold samples,
+ *   - else the one not fed for the longest time compared to its interval, if
+ *     it has not been fed for interval * proportional_activity_threshold.
+ * For each criterion, files whose merge failed less than merge_retry_delay ago
+ * are skipped.
+ *
+ * The file is removed from _retentions and merged on _io_context, the next
+ * points of this metric or status will go to a new retention file. The merge
+ * stays running until clear_merging() is called.
  *
  * @param rrd_lib The lib used to create the rrd files, it must outlive the
  * merge.
+ * @param cached_client The rrdcached backend of the stream, nullptr if rrd
+ * files are written directly.
  *
  * @return the id of the metric or status being merged and true if it is a
  * status, nothing if no merge has been started.
@@ -415,35 +447,128 @@ retention_manager::start_merge(const std::shared_ptr<lib>& rrd_lib,
   time_t now = time(nullptr);
   {
     auto& last_interval_index = _retentions.get<1>();
-    auto first = last_interval_index.begin();
-    auto oldest = *first;
-    if (oldest->last_activity() + _config.orphan_interval < now) {
-      _merge(oldest, rrd_lib, cached_client);
-      last_interval_index.erase(first);
-      return std::make_pair(oldest->id(), oldest->is_status());
+    time_t threshold = now - _config.orphan_interval;
+    for (auto to_merge_it = last_interval_index.begin();
+         to_merge_it != last_interval_index.end(); ++to_merge_it) {
+      auto to_merge = *to_merge_it;
+      if (to_merge->last_activity() > threshold) {
+        break;
+      }
+      if (to_merge->no_merge_before() < time(nullptr)) {
+        _merge(to_merge, rrd_lib, cached_client);
+        last_interval_index.erase(to_merge_it);
+        return std::make_pair(to_merge->id(), to_merge->is_status());
+      }
     }
   }
   {
     auto& nb_samples_index = _retentions.get<2>();
-    auto last = std::prev(nb_samples_index.end());
-    auto biggest = *last;
-    if (biggest->nb_samples() > _config.merge_samples_threshold) {
-      _merge(biggest, rrd_lib, cached_client);
-      nb_samples_index.erase(last);
-      return std::make_pair(biggest->id(), biggest->is_status());
+    for (auto to_merge_it = nb_samples_index.begin();
+         to_merge_it != nb_samples_index.end(); ++to_merge_it) {
+      auto to_merge = *to_merge_it;
+      if (to_merge->nb_samples() <= _config.merge_samples_threshold) {
+        break;
+      }
+      if (to_merge->no_merge_before() < time(nullptr)) {
+        _merge(to_merge, rrd_lib, cached_client);
+        nb_samples_index.erase(to_merge_it);
+        return std::make_pair(to_merge->id(), to_merge->is_status());
+      }
     }
   }
   {
     auto& prop_activity_index = _retentions.get<3>();
-    auto first = prop_activity_index.begin();
-    auto oldest = *first;
-    if (oldest->last_activity() +
-            oldest->interval() * _config.proportional_activity_threshold <
-        (uint64_t)now) {
-      _merge(oldest, rrd_lib, cached_client);
-      prop_activity_index.erase(first);
-      return std::make_pair(oldest->id(), oldest->is_status());
+    for (auto to_merge_it = prop_activity_index.begin();
+         to_merge_it != prop_activity_index.end(); ++to_merge_it) {
+      auto to_merge = *to_merge_it;
+      if (to_merge->last_activity() +
+              to_merge->interval() * _config.proportional_activity_threshold >=
+          (uint64_t)now) {
+        break;
+      }
+      if (to_merge->no_merge_before() < time(nullptr)) {
+        _merge(to_merge, rrd_lib, cached_client);
+        prop_activity_index.erase(to_merge_it);
+        return std::make_pair(to_merge->id(), to_merge->is_status());
+      }
     }
   }
   return {};
+}
+
+/**
+ * @brief Keep a metric event if its metric is being merged, it will be
+ * replayed by the stream at the end of the merge (see get_pending_metric()).
+ *
+ * @param metric A pb_metric event.
+ *
+ * @return true if the event has been kept, false if this metric is not being
+ * merged and the event must be written now.
+ */
+bool retention_manager::write_pending_metric(
+    const std::shared_ptr<io::data>& metric) {
+  absl::MutexLock l(&_data_m);
+  uint64_t metric_id =
+      std::static_pointer_cast<storage::pb_metric>(metric)->obj().metric_id();
+  if (_merging && !_merging->is_status() && _merging->id() == metric_id) {
+    _pending_metrics[metric_id].emplace_back(metric);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * @brief Same as write_pending_metric() for a status.
+ *
+ * @param status A pb_status event.
+ *
+ * @return true if the event has been kept, false if this status is not being
+ * merged and the event must be written now.
+ */
+bool retention_manager::write_pending_status(
+    const std::shared_ptr<io::data>& status) {
+  absl::MutexLock l(&_data_m);
+  auto index_id =
+      std::static_pointer_cast<storage::pb_status>(status)->obj().index_id();
+
+  if (_merging && _merging->is_status() && _merging->id() == index_id) {
+    _pending_statuses[index_id].emplace_back(status);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * @brief Get and forget the events kept by write_pending_metric() during the
+ * merge of a metric, in their arrival order.
+ *
+ * @param metric_id The metric identifier.
+ *
+ * @return The events to replay, empty if there is none.
+ */
+std::list<std::shared_ptr<io::data>> retention_manager::get_pending_metric(
+    uint64_t metric_id) {
+  absl::MutexLock l(&_data_m);
+  auto exist = _pending_metrics.find(metric_id);
+  if (exist == _pending_metrics.end()) {
+    return {};
+  }
+  return std::move(_pending_metrics.extract(exist).mapped());
+}
+
+/**
+ * @brief Same as get_pending_metric() for a status.
+ *
+ * @param index_id The index identifier.
+ *
+ * @return The events to replay, empty if there is none.
+ */
+std::list<std::shared_ptr<io::data>> retention_manager::get_pending_status(
+    uint64_t index_id) {
+  absl::MutexLock l(&_data_m);
+  auto exist = _pending_statuses.find(index_id);
+  if (exist == _pending_statuses.end()) {
+    return {};
+  }
+  return std::move(_pending_statuses.extract(exist).mapped());
 }

@@ -45,8 +45,8 @@ using pb_metric =
 using pb_status =
     io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
 
-/* Events sent by the rrd merge thread to the rrd stream (through the
- * multiplexing engine) to signal the end of a retention merge. */
+/* Events published by the retention_manager at the end of a retention merge,
+ * received by the rrd stream through the multiplexing engine. */
 using pb_end_metric_merge =
     io::protobuf<EndMetricMerge,
                  make_type(io::storage, storage::de_pb_end_metric_merge)>;

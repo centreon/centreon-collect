@@ -161,8 +161,8 @@ io::endpoint* factory::new_endpoint(
       ignore_update_errors = true;
   }
 
-  // Retention buffer point-count threshold per batch (default 144 = 12h at
-  // 1 pt/5min).
+  // Number of samples above which a retention file is merged (default 288 =
+  // 24h at 1 pt/5min).
   uint32_t retention_merge_samples_threshold = 24 * 60 / 5;
   {
     auto it = cfg.params.find("retention_merge_samples_threshold");
@@ -170,12 +170,13 @@ io::endpoint* factory::new_endpoint(
         !absl::SimpleAtoi(it->second, &retention_merge_samples_threshold)) {
       logger->error(
           "factory: cannot parse 'retention_merge_samples_threshold' for "
-          "endpoint '{}', using default (144)",
+          "endpoint '{}', using default (288)",
           cfg.name);
     }
   }
 
-  // Retention buffer max number of rotated files (default 5).
+  // A retention file not fed during interval * this threshold is merged
+  // (default 3).
   uint32_t retention_proportional_activity_threshold = 3;
   {
     auto it = cfg.params.find("retention_proportional_activity_threshold");
@@ -184,8 +185,7 @@ io::endpoint* factory::new_endpoint(
                           &retention_proportional_activity_threshold)) {
       logger->error(
           "factory: cannot parse 'retention_proportional_activity_threshold' "
-          "for "
-          "endpoint '{}', using default (5)",
+          "for endpoint '{}', using default (3)",
           cfg.name);
     }
   }
@@ -199,6 +199,19 @@ io::endpoint* factory::new_endpoint(
       logger->error(
           "factory: cannot parse 'retention_buffer_orphan_interval' for "
           "endpoint '{}', using default (3600)",
+          cfg.name);
+    }
+  }
+
+  // Delay before retrying a failed merge (seconds, default 120).
+  uint32_t retention_merge_retry_delay = 120;
+  {
+    auto it = cfg.params.find("retention_merge_retry_delay");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_merge_retry_delay)) {
+      logger->error(
+          "factory: cannot parse 'retention_merge_retry_delay' for "
+          "endpoint '{}', using default (120)",
           cfg.name);
     }
   }
@@ -222,6 +235,7 @@ io::endpoint* factory::new_endpoint(
   endp->set_retention_proportional_activity_threshold(
       retention_proportional_activity_threshold);
   endp->set_retention_orphan_interval(retention_orphan_interval);
+  endp->set_retention_merge_retry_delay(retention_merge_retry_delay);
   is_acceptor = false;
   return endp.release();
 }

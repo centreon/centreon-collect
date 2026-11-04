@@ -57,7 +57,8 @@ connector::connector()
       _write_status(true),
       _retention_merge_samples_threshold(60 * 24 / 5),
       _retention_proportional_activity_threshold(3),
-      _retention_orphan_interval(3600) {}
+      _retention_orphan_interval(3600),
+      _retention_merge_retry_delay(120) {}
 
 /**
  *  Connect.
@@ -72,6 +73,7 @@ std::shared_ptr<io::stream> connector::open() {
   ret_cfg.proportional_activity_threshold =
       _retention_proportional_activity_threshold;
   ret_cfg.orphan_interval = _retention_orphan_interval;
+  ret_cfg.merge_retry_delay = _retention_merge_retry_delay;
 
   std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
@@ -191,6 +193,16 @@ void connector::set_retention_proportional_activity_threshold(
  */
 void connector::set_retention_orphan_interval(uint32_t seconds) noexcept {
   _retention_orphan_interval = seconds;
+}
+
+/**
+ *  Set the delay before a retention file whose merge failed can be merged
+ *  again.
+ *
+ *  @param[in] seconds  Delay in seconds (default 120).
+ */
+void connector::set_retention_merge_retry_delay(uint32_t seconds) noexcept {
+  _retention_merge_retry_delay = seconds;
 }
 
 /**************************************

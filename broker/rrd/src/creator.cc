@@ -86,6 +86,8 @@ void creator::clear() {
  *  @param[in] value_type Type of the metric.
  *  @param[in] without_cache  We force the creation of the file (needed by the
  * rebuild).
+ *  @param[in] sources    RRD files whose data are copied in the new file
+ *                        (rrd_create --source), only used without template.
  */
 void creator::create(std::string const& filename,
                      uint32_t length,
@@ -210,6 +212,9 @@ void creator::_duplicate(std::string const& filename, fd_info const& in_fd) {
  *  @param[in] from       Timestamp of the first record.
  *  @param[in] step       Time interval between each record.
  *  @param[in] value_type Type of the metric.
+ *  @param[in] sources    RRD files whose data are copied in the new file
+ *                        (rrd_create --source), the first ones have the
+ *                        priority when several files have a value for a row.
  */
 void creator::_open(std::string const& filename,
                     uint32_t length,

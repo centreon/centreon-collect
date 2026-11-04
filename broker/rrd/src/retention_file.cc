@@ -28,7 +28,8 @@ using namespace com::centreon::broker::rrd;
  * @brief Create a new retention file for a metric and write its first point.
  *
  * The file is named <metric_id>.ret and created in rrd_data_dir. Its header
- * (value type, rrd_len, interval) is initialized from first_metric.
+ * (value type, rrd_len, interval) is initialized from first_metric, an
+ * interval of 0 is replaced by 60s as in stream.
  *
  * @param rrd_data_dir Directory where the file is created.
  * @param first_metric First metric point, also written in the file.
@@ -46,7 +47,7 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
   _header.is_status = false;
   _header.value_type = first_metric.value_type();
   _header.rrd_len = first_metric.rrd_len();
-  _header.interval = first_metric.interval();
+  _header.interval = first_metric.interval() ? first_metric.interval() : 60;
 
   _create_file();
   add_metric(first_metric);
@@ -56,7 +57,7 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
  * @brief Create a new retention file for a status and write its first point.
  *
  * The file is named <index_id>.ret and created in rrd_data_dir. Status RRD
- * files are always GAUGE.
+ * files are always GAUGE, an interval of 0 is replaced by 60s as in stream.
  *
  * @param rrd_data_dir Directory where the file is created.
  * @param first_status First status point, also written in the file.
@@ -73,7 +74,7 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
   _header.is_status = true;
   _header.value_type = Metric::ValueType::Metric_ValueType_GAUGE;
   _header.rrd_len = first_status.rrd_len();
-  _header.interval = first_status.interval();
+  _header.interval = first_status.interval() ? first_status.interval() : 60;
   _create_file();
   add_status(first_status);
 }
@@ -81,11 +82,13 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
 /**
  * @brief Open an existing retention file and load its header.
  *
- * The number of samples is deduced from the file size, first_ts and last_ts
- * are computed from the samples. If the header can't be read, the file is
- * removed and an exception is thrown.
+ * The number of samples is deduced from the file size (an incomplete last
+ * sample is ignored), first_ts and last_ts are computed from the samples. A
+ * file that doesn't contain at least the header and one sample is removed and
+ * an exception is thrown.
  *
  * @param file_path Path of the retention file.
+ * @throw msg_fmt if the file can't be opened, read or is too small.
  */
 retention_file::retention_file(const std::filesystem::path& file_path)
     : _file_path(file_path),
@@ -106,7 +109,7 @@ retention_file::retention_file(const std::filesystem::path& file_path)
                               _file_path.string(), strerror(errno));
   }
   size_t file_size = file_stat.st_size;
-  if (file_size < sizeof(header)) {
+  if (file_size < (sizeof(header) + sizeof(sample))) {
     ::remove(_file_path.c_str());
     throw exceptions::msg_fmt("file {} is too small: {} bytes",
                               _file_path.string(), file_size);
@@ -133,13 +136,16 @@ retention_file::retention_file(const std::filesystem::path& file_path)
 }
 
 /**
- * @brief Append a slot at the end of the file.
+ * @brief Append a sample at the end of the file.
  *
- * Slots are not sorted: they are written in their arrival order. If the slot
- * timestamp extends the [first_ts, last_ts] range, the header is updated and
- * rewritten at the beginning of the file.
+ * Samples are not sorted: they are written in their arrival order. The
+ * position is computed from the file size rounded down to a whole number of
+ * samples, so that an incomplete sample left by a previous failed write is
+ * overwritten. The header is never rewritten, first_ts and last_ts are only
+ * kept in memory.
  *
- * @param to_append The slot to write.
+ * @param to_append The sample to write.
+ * @throw msg_fmt if the file can't be opened or written.
  */
 void retention_file::_append(const sample& to_append) {
   int fd = ::open(_file_path.c_str(), O_WRONLY);
@@ -194,7 +200,10 @@ constexpr int64_t UNDEF_STATUS = 0xFFFF;
 /**
  * @brief Append a status point (time, state) to the file.
  *
- * @param status The status point, its state is stored as an integer.
+ * The state is stored as its rrd value: OK=100, WARNING=75, CRITICAL=0, any
+ * other state is stored as UNDEF_STATUS and written as unknown in the rrd file.
+ *
+ * @param status The status point.
  * @throw msg_fmt if this file is a metric file.
  */
 void retention_file::add_status(const Status& status) {
@@ -220,11 +229,12 @@ void retention_file::add_status(const Status& status) {
 }
 
 /**
- * @brief Create the file (or open it if it exists) and write _header at its
- * beginning.
+ * @brief Create the file and write _header at its beginning.
  *
- * If the header can't be written, the file is removed and an exception is
- * thrown.
+ * The file must not exist (O_EXCL). If the header can't be written, the file
+ * is removed and an exception is thrown.
+ *
+ * @throw msg_fmt if the file already exists or can't be written.
  */
 void retention_file::_create_file() {
   int fd = ::open(_file_path.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
@@ -287,7 +297,10 @@ rrd_existing_data retention_file::_get_rrd_params(
  * @brief Sort the samples of the file by timestamp (the sort is written in
  * the file) and write them in a new rrd file.
  *
- * Status samples equal to UNDEF_STATUS are written as unknown values.
+ * Only one sample is written for a given timestamp, the others are ignored:
+ * rrd_update stops at the first timestamp not newer than the previous one, so
+ * a duplicate would lose all the following samples. Status samples equal to
+ * UNDEF_STATUS are written as unknown values.
  *
  * @param dst_path The rrd file to create, overwritten if it exists.
  * @param rrd_lib The lib used to create the rrd file.
@@ -332,8 +345,13 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
     std::sort(begin, end, [](const sample& left, const sample& right) {
       return left.ts < right.ts;
     });
+    uint64_t last_ts = 0;
     if (_header.is_status) {
       for (; begin != end; ++begin) {
+        if (begin->ts == last_ts) {  // no duplicate
+          continue;
+        }
+        last_ts = begin->ts;
         if (begin->val.i_value == UNDEF_STATUS) {
           samples.emplace_back(fmt::format("{}:U", begin->ts));
         } else {
@@ -345,6 +363,10 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
       // same format as stream::append_metric_to_rrd(), librrd only accepts
       // integers for COUNTER, DERIVE and ABSOLUTE
       for (; begin != end; ++begin) {
+        if (begin->ts == last_ts) {  // no duplicate
+          continue;
+        }
+        last_ts = begin->ts;
         switch (rrd_params.value_type) {
           case Metric_ValueType_COUNTER:
           case Metric_ValueType_ABSOLUTE:

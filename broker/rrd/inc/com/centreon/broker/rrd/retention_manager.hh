@@ -19,6 +19,8 @@
 #ifndef CCB_RRD_RETENTION_MANAGER_HH
 #define CCB_RRD_RETENTION_MANAGER_HH
 
+#include <absl/container/flat_hash_map.h>
+#include <com/centreon/broker/io/data.hh>
 #include "com/centreon/broker/rrd/backend.hh"
 #include "retention_file.hh"
 
@@ -40,6 +42,8 @@ struct retention_config {
   // if a retention_file had not been fed during interval *
   // proportional_delay_threshold, we merge
   uint32_t proportional_activity_threshold = 3;
+
+  uint32_t merge_retry_delay = 120;  ///< Seconds before retrying a failed merge
 };
 
 /**
@@ -56,13 +60,21 @@ struct retention_config {
  *   {status_dir}/{index_id}.ret
  * Existing files are reloaded by load().
  *
- * After each write, the stream calls start_merge() which, if no merge is
- * running, chooses a file to merge:
+ * After each metric or status received, the stream calls start_merge()
+ * which, if no merge is running, chooses a file to merge, in this order:
  *   - the least recently fed one if it has not been fed for orphan_interval
  *   - else the biggest one if it has more than merge_samples_threshold
- *     samples.
- * The merge runs on _io_context, then the retention file is removed and a
- * pb_end_metric_merge or pb_end_status_merge is published.
+ *     samples
+ *   - else the one not fed for the longest time compared to its interval, if
+ *     it has not been fed for interval * proportional_activity_threshold.
+ * A file whose merge failed is skipped during merge_retry_delay.
+ *
+ * Only one merge runs at a time, on _io_context. Meanwhile, the stream gives
+ * the events of the metric or status being merged to write_pending_metric()
+ * or write_pending_status(). At the end of the merge, the retention file is
+ * removed (kept on failure) and a pb_end_metric_merge or pb_end_status_merge
+ * is published. The stream then calls clear_merging() and replays the events
+ * returned by get_pending_metric() or get_pending_status().
  */
 class retention_manager
     : public std::enable_shared_from_this<retention_manager> {
@@ -113,16 +125,19 @@ class retention_manager
       boost::multi_index::indexed_by<
           boost::multi_index::ordered_unique<retention_id_extractor>,
           boost::multi_index::ordered_non_unique<last_activity_extractor>,
-          boost::multi_index::ordered_non_unique<nb_samples_extractor>,
+          boost::multi_index::ordered_non_unique<nb_samples_extractor,
+                                                 std::greater<time_t>>,
           boost::multi_index::ordered_non_unique<
               proportional_activity_extractor>>>;
 
   retention_cont _retentions ABSL_GUARDED_BY(_data_m);
   std::shared_ptr<retention_file> _merging ABSL_GUARDED_BY(_data_m);
 
-  using id_to_ts = absl::flat_hash_map<uint64_t, uint64_t>;
-  id_to_ts _earliest_rt_metric ABSL_GUARDED_BY(_data_m);
-  id_to_ts _earliest_rt_status ABSL_GUARDED_BY(_data_m);
+  using pending_cont =
+      absl::flat_hash_map<uint64_t, std::list<std::shared_ptr<io::data>>>;
+
+  pending_cont _pending_metrics ABSL_GUARDED_BY(_data_m);
+  pending_cont _pending_statuses ABSL_GUARDED_BY(_data_m);
 
   void _init();
 
@@ -161,6 +176,20 @@ class retention_manager
   void write_status(const Status& status);
 
   /**
+   * @brief Keep an event of a metric or status being merged, to replay it at
+   * the end of the merge.
+   */
+  bool write_pending_metric(const std::shared_ptr<io::data>& metric);
+  bool write_pending_status(const std::shared_ptr<io::data>& status);
+
+  /**
+   * @brief Get and forget the events kept during the merge of a metric or a
+   * status.
+   */
+  std::list<std::shared_ptr<io::data>> get_pending_metric(uint64_t metric_id);
+  std::list<std::shared_ptr<io::data>> get_pending_status(uint64_t index_id);
+
+  /**
    * @brief Remove the retention file of a metric or a status (on rebuild or
    * remove_graph event).
    */
@@ -173,6 +202,12 @@ class retention_manager
    */
   void abort_metric_merge(uint64_t metric_id);
   void abort_status_merge(uint64_t index_id);
+
+  /**
+   * @brief Mark the merge of a metric or a status as finished, so that another
+   * merge can start.
+   */
+  void clear_merging(uint64_t id, bool is_status);
 
   /**
    * @brief Start the merge of a retention file if one is due and no merge is

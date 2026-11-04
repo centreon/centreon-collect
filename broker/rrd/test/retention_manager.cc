@@ -135,6 +135,7 @@ class RetentionManager : public ::testing::Test {
  protected:
   tmp_dir _tmp;
   std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<retention_manager> _rm;
   std::shared_ptr<multiplexing::muxer> _mux;
   std::shared_ptr<lib> _lib = std::make_shared<lib>("", 0);
 
@@ -159,6 +160,7 @@ class RetentionManager : public ::testing::Test {
   }
 
   void TearDown() override {
+    _rm.reset();
     retention_manager::reset();
     _mux->unsubscribe();
     _mux.reset();
@@ -166,7 +168,8 @@ class RetentionManager : public ::testing::Test {
   }
 
   std::shared_ptr<retention_manager> _load(const retention_config& cfg) {
-    return retention_manager::load(cfg, _io_context, test_logger());
+    _rm = retention_manager::load(cfg, _io_context, test_logger());
+    return _rm;
   }
 
   /// Run the merges posted on _io_context.
@@ -175,14 +178,30 @@ class RetentionManager : public ::testing::Test {
     _io_context->run();
   }
 
-  /// Wait for the next end of merge event, nullptr after 10s.
+  /// Wait for the next end of merge event, nullptr after 10s. As the stream
+  /// does, the merge is then cleared so that another one can start.
   std::shared_ptr<io::data> _wait_end_merge() {
     std::shared_ptr<io::data> d;
     time_t limit = time(nullptr) + 10;
     while (!d && time(nullptr) < limit)
       _mux->read(d, time(nullptr) + 1);
-    if (d)
+    if (d) {
       _mux->ack_events(1);
+      if (_rm) {
+        if (d->type() == storage::pb_end_metric_merge::static_type())
+          _rm->clear_merging(
+              std::static_pointer_cast<storage::pb_end_metric_merge>(d)
+                  ->obj()
+                  .metric_id(),
+              false);
+        else if (d->type() == storage::pb_end_status_merge::static_type())
+          _rm->clear_merging(
+              std::static_pointer_cast<storage::pb_end_status_merge>(d)
+                  ->obj()
+                  .index_id(),
+              true);
+      }
+    }
     return d;
   }
 };
@@ -418,10 +437,12 @@ TEST_F(RetentionManager, AbortMerge) {
 /**
  * A merge failure doesn't block the next merges and doesn't lose the retention
  * data: the retention file is kept, it is fed by the next points and merged
- * again later.
+ * again once merge_retry_delay is elapsed.
  */
 TEST_F(RetentionManager, MergeErrorKeepsRetentionFile) {
-  auto rm = _load(make_config(_tmp, 1));
+  retention_config cfg = make_config(_tmp, 1);
+  cfg.merge_retry_delay = 2;
+  auto rm = _load(cfg);
   const uint64_t base = base_time();
 
   rm->write_metric(make_metric(8, base, 1.0));
@@ -439,6 +460,9 @@ TEST_F(RetentionManager, MergeErrorKeepsRetentionFile) {
   EXPECT_FALSE(fs::exists(_tmp.metric_file(8, "rrd.to_merge")));
   EXPECT_FALSE(fs::exists(_tmp.metric_file(8, "rrd.tmp")));
 
+  // the failed file is not merged again before merge_retry_delay
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
+
   // another file can be merged, the biggest one first
   for (int i = 0; i < 3; ++i)
     rm->write_metric(make_metric(9, base + i * interval, i));
@@ -453,8 +477,10 @@ TEST_F(RetentionManager, MergeErrorKeepsRetentionFile) {
   rm->write_metric(make_metric(8, base + 2 * interval, 3.0));
   EXPECT_EQ(retention_file(_tmp.metric_file(8)).nb_samples(), 3u);
 
-  // once the rrd file is fixed, the retention file is merged
+  // once the rrd file is fixed and merge_retry_delay elapsed, the retention
+  // file is merged
   fs::remove(_tmp.metric_file(8, "rrd"));
+  std::this_thread::sleep_for(std::chrono::seconds(3));
   merging = rm->start_merge(_lib, nullptr);
   ASSERT_TRUE(merging);
   EXPECT_EQ(merging->first, 8u);
@@ -466,6 +492,30 @@ TEST_F(RetentionManager, MergeErrorKeepsRetentionFile) {
   ASSERT_EQ(data.points.size(), 3u);
   for (int i = 0; i < 3; ++i)
     EXPECT_DOUBLE_EQ(data.points[i].second, 1.0 + i);
+}
+
+/**
+ * With the default merge_retry_delay (120s), a failed merge is not retried
+ * right after the failure.
+ */
+TEST_F(RetentionManager, MergeErrorDefaultRetryDelay) {
+  auto rm = _load(make_config(_tmp, 1));
+  const uint64_t base = base_time();
+
+  rm->write_metric(make_metric(8, base, 1.0));
+  rm->write_metric(make_metric(8, base + interval, 2.0));
+  {
+    std::ofstream out(_tmp.metric_file(8, "rrd"));
+    out << "not an rrd file";
+  }
+  ASSERT_TRUE(rm->start_merge(_lib, nullptr));
+  _run_merges();
+  EXPECT_TRUE(_wait_end_merge());
+  ASSERT_TRUE(fs::exists(_tmp.metric_file(8)));
+
+  fs::remove(_tmp.metric_file(8, "rrd"));
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+  EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 }
 
 /**

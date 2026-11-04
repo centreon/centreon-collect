@@ -110,7 +110,8 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_pb_status),
                        "pb_status", &storage::pb_status::operations);
 
-      // End of retention merge, sent by the rrd merge thread to the rrd stream.
+      // End of retention merge, published by the retention_manager to the rrd
+      // stream.
       e.register_event(make_type(io::storage, storage::de_pb_end_metric_merge),
                        "pb_end_metric_merge",
                        &storage::pb_end_metric_merge::operations);

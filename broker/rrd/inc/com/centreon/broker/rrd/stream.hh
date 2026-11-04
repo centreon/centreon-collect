@@ -19,10 +19,6 @@
 #ifndef CCB_RRD_STREAM_HH
 #define CCB_RRD_STREAM_HH
 
-#include <future>
-#include <optional>
-#include <thread>
-
 #include <absl/container/flat_hash_set.h>
 
 #include "bbdo/rebuild_message.pb.h"
@@ -78,20 +74,6 @@ class stream : public io::stream {
   /// the merge thread never contends on @c _backend's internal state.
   std::shared_ptr<lib> _merge_lib;
 
-  /**
-   * @brief Merges scheduled and not yet finished, keyed by metric_id /
-   * index_id.
-   *
-   * An entry is inserted by _schedule_metric/status_merge (preventing duplicate
-   * merges) and erased by write() when the matching pb_end_metric/status_merge
-   * event is received. Meanwhile, write() postpones in it the events of this
-   * metric/status, they are replayed at the end of the merge. Only accessed
-   * from the stream thread (the merge thread communicates through the
-   * multiplexing engine), so no mutex.
-   */
-  rebuild_cache _pending_metric_merges;
-  rebuild_cache _pending_status_merges;
-
   absl::flat_hash_map<uint64_t, uint64_t> _metric_latest_current;
   absl::flat_hash_map<uint64_t, uint64_t> _status_latest_current;
 
@@ -100,11 +82,6 @@ class stream : public io::stream {
 
   void _rebuild_data(const RebuildMessage& rm);
   void _write_postponed(rebuild_entry& entry, uint64_t id, bool is_status);
-  /// Merge retention buffer into the RRD file, return the last time merged.
-  int64_t _do_metric_merge(uint64_t metric_id,
-                           const std::filesystem::path& rrd_path);
-  int64_t _do_status_merge(uint64_t index_id,
-                           const std::filesystem::path& rrd_path);
 
   uint64_t get_last_metric_latest_current(uint64_t id);
   uint64_t get_last_status_latest_current(uint64_t id);
