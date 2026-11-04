@@ -19,6 +19,7 @@ on:
       - ".version.centreon-gorgone"
       - "gorgone/**"
       - "perl-libs/**"
+      - ".github/docker/centreon-gorgone/**"
   push:
     branches:
       - develop
@@ -32,6 +33,7 @@ on:
       - ".version.centreon-gorgone"
       - "gorgone/**"
       - "perl-libs/**"
+      - ".github/docker/centreon-gorgone/**"
     tags:
       - "centreon-gorgone-*"
 
