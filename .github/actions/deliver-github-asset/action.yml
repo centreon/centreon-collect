@@ -1,24 +1,17 @@
 name: "deliver-github-asset"
-description: "Deliver CMA asset to GitHub release"
+description: "Deliver CMA assets from the Pulp stable repositories to a GitHub release"
 inputs:
-  file_pattern:
-    description: "Glob pattern matching local asset files (required in local mode)"
-    required: false
   github_release:
     description: "Target GitHub release tag (e.g. centreon-monitoring-agent-27.08.3)"
     required: true
-  mode:
-    description: "Delivery mode: local (default) or action (fetches from Pulp)"
-    required: false
-    default: "local"
   version:
-    description: "CMA version to fetch from Pulp — e.g. 27.08.3 (required in action mode)"
-    required: false
+    description: "CMA version to fetch from Pulp (e.g. 27.08.3)"
+    required: true
   distrib:
-    description: "Comma-separated distros to fetch in action mode (default: all)"
+    description: "Comma-separated distros to fetch (default: all)"
     required: false
   strict:
-    description: "Action mode: fail when a distrib or the windows installer is missing from Pulp stable"
+    description: "Fail when a distrib or the windows installer is missing from Pulp stable"
     required: false
     default: "false"
   dry_run:
@@ -33,8 +26,6 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
-        DELIVER_MODE: ${{ inputs.mode }}
-        DELIVER_FILE_PATTERN: ${{ inputs.file_pattern }}
         DELIVER_GITHUB_RELEASE: ${{ inputs.github_release }}
         DELIVER_VERSION: ${{ inputs.version }}
         DELIVER_DISTRIB: ${{ inputs.distrib }}

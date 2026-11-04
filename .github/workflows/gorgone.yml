@@ -329,37 +329,6 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.major_version }}
           minor_version: ${{ needs.get-environment.outputs.minor_version }}
 
-  deliver-rpm:
-    runs-on: ubuntu-24.04
-    needs: [get-environment, robot-test]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el8, el9]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Delivery
-        uses: ./.github/actions/rpm-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
   deliver-rpm-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, robot-test]
@@ -398,37 +367,6 @@ jobs:
           pulp_url: ${{ vars.PULP_API_URL }}
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
-
-  deliver-deb:
-    runs-on: ubuntu-24.04
-    needs: [get-environment, robot-test]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [bookworm]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Delivery
-        uses: ./.github/actions/deb-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb-pulp:
     runs-on: centreon-ubuntu-26.04-small
@@ -469,39 +407,6 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
-  promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el8, el9, bookworm]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Promote ${{ matrix.distrib }} to stable
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
   promote-pulp:
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
     if: |
@@ -540,7 +445,7 @@ jobs:
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp, promote-pulp]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&
