@@ -36,7 +36,10 @@ using namespace com::centreon::broker::rrd;
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
                                const Metric& first_metric)
-    : _last_activity(time(nullptr)), _nb_samples(0) {
+    : _last_activity(time(nullptr)),
+      _nb_samples(0),
+      _first_ts(std::numeric_limits<uint64_t>::max()),
+      _last_ts(0) {
   _file_path = rrd_data_dir / fmt::format("{}.ret", first_metric.metric_id());
 
   _header.id = first_metric.metric_id();
@@ -44,8 +47,6 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
   _header.value_type = first_metric.value_type();
   _header.rrd_len = first_metric.rrd_len();
   _header.interval = first_metric.interval();
-  _header.first_ts = std::numeric_limits<uint64_t>::max();
-  _header.last_ts = 0;
 
   _create_file();
   add_metric(first_metric);
@@ -63,15 +64,16 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
  */
 retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
                                const Status& first_status)
-    : _last_activity(time(nullptr)), _nb_samples(0) {
+    : _last_activity(time(nullptr)),
+      _nb_samples(0),
+      _first_ts(std::numeric_limits<uint64_t>::max()),
+      _last_ts(0) {
   _file_path = rrd_data_dir / fmt::format("{}.ret", first_status.index_id());
   _header.id = first_status.index_id();
   _header.is_status = true;
   _header.value_type = Metric::ValueType::Metric_ValueType_GAUGE;
   _header.rrd_len = first_status.rrd_len();
   _header.interval = first_status.interval();
-  _header.first_ts = std::numeric_limits<uint64_t>::max();
-  _header.last_ts = 0;
   _create_file();
   add_status(first_status);
 }
@@ -79,31 +81,54 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
 /**
  * @brief Open an existing retention file and load its header.
  *
- * The number of samples is deduced from the file size. If the header can't be
- * read, the file is removed and an exception is thrown.
+ * The number of samples is deduced from the file size, first_ts and last_ts
+ * are computed from the samples. If the header can't be read, the file is
+ * removed and an exception is thrown.
  *
  * @param file_path Path of the retention file.
  */
 retention_file::retention_file(const std::filesystem::path& file_path)
-    : _file_path(file_path), _last_activity(time(nullptr)), _nb_samples(0) {
-  int fd = ::open(_file_path.c_str(), O_RDWR);
+    : _file_path(file_path),
+      _last_activity(time(nullptr)),
+      _nb_samples(0),
+      _first_ts(std::numeric_limits<uint64_t>::max()),
+      _last_ts(0) {
+  int fd = ::open(_file_path.c_str(), O_RDONLY);
   if (fd < 0) {
     throw exceptions::msg_fmt("fail to open {}: {}", _file_path.string(),
                               strerror(errno));
   }
   absl::Cleanup closer = [fd]() { ::close(fd); };
 
-  int nb_read = ::read(fd, &_header, sizeof(header));
-  if (nb_read != sizeof(header)) {
-    int save_errno = errno;
-    ::remove(_file_path.c_str());
-    throw exceptions::msg_fmt("fail to read header from file {}: {}",
-                              _file_path.string(), strerror(save_errno));
+  struct stat file_stat;
+  if (::fstat(fd, &file_stat)) {
+    throw exceptions::msg_fmt("fail to get size of file {}: {}",
+                              _file_path.string(), strerror(errno));
   }
-  std::error_code err;
-  size_t file_size = std::filesystem::file_size(_file_path, err);
-  if (!err) {
-    _nb_samples = (file_size - sizeof(header)) / sizeof(sample);
+  size_t file_size = file_stat.st_size;
+  if (file_size < sizeof(header)) {
+    ::remove(_file_path.c_str());
+    throw exceptions::msg_fmt("file {} is too small: {} bytes",
+                              _file_path.string(), file_size);
+  }
+
+  void* addr = ::mmap(nullptr, file_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (addr == MAP_FAILED) {
+    throw exceptions::msg_fmt("fail to map file {}: {}", _file_path.string(),
+                              strerror(errno));
+  }
+  absl::Cleanup unmapper = [addr, file_size]() { ::munmap(addr, file_size); };
+  const file_content* data = static_cast<const file_content*>(addr);
+  memcpy(&_header, data, sizeof(header));
+  _nb_samples = (file_size - sizeof(header)) / sizeof(sample);
+  const sample* end = data->data + _nb_samples;
+  for (const sample* begin = data->data; begin < end; ++begin) {
+    if (begin->ts < _first_ts) {
+      _first_ts = begin->ts;
+    }
+    if (begin->ts > _last_ts) {
+      _last_ts = begin->ts;
+    }
   }
 }
 
@@ -123,44 +148,30 @@ void retention_file::_append(const sample& to_append) {
                               strerror(errno));
   }
 
-  off_t pos = lseek(fd, 0, SEEK_END);
-  if (pos == (off_t)-1) {
-    int save_errno = errno;
-    ::close(fd);
+  absl::Cleanup closer = [fd] { ::close(fd); };
+  // clean file by rounding pos
+  struct stat stat_file;
+  if (fstat(fd, &stat_file)) {
+    throw exceptions::msg_fmt("fail to get size of  {}: {}",
+                              _file_path.string(), strerror(errno));
+  }
+
+  _nb_samples = (stat_file.st_size - sizeof(_header)) / sizeof(sample);
+
+  if (pwrite(fd, &to_append, sizeof(sample),
+             sizeof(header) + _nb_samples * sizeof(sample)) != sizeof(sample)) {
     throw exceptions::msg_fmt("fail to write metric at the end of file {}: {}",
-                              _file_path.string(), strerror(save_errno));
+                              _file_path.string(), strerror(errno));
   }
 
-  int nb_write = ::write(fd, &to_append, sizeof(to_append));
-  if (nb_write != sizeof(to_append)) {
-    int save_errno = errno;
-    ::close(fd);
-    throw exceptions::msg_fmt("fail to write metric to file {}: {}",
-                              _file_path.string(), strerror(save_errno));
-  }
-
-  auto update_header = [&, this]() {
-    lseek(fd, 0, SEEK_SET);
-    nb_write = ::write(fd, &_header, sizeof(header));
-    if (nb_write != sizeof(header)) {
-      int save_errno = errno;
-      ::close(fd);
-      throw exceptions::msg_fmt("fail to udpate header to file {}: {}",
-                                _file_path.string(), strerror(save_errno));
-    }
-  };
-
-  if (to_append.ts < _header.first_ts || _header.last_ts < to_append.ts) {
-    if (_header.first_ts > to_append.ts) {
-      _header.first_ts = to_append.ts;
-    }
-    if (_header.last_ts < to_append.ts) {
-      _header.last_ts = to_append.ts;
-    }
-    update_header();
-  }
-  ::close(fd);
   ++_nb_samples;
+  if (to_append.ts < _first_ts) {
+    _first_ts = to_append.ts;
+  }
+  if (to_append.ts > _last_ts) {
+    _last_ts = to_append.ts;
+  }
+
   _last_activity = time(nullptr);
 }
 
@@ -232,13 +243,13 @@ void retention_file::_create_file() {
 }
 
 /**
- * @brief Get the parameters (interval, rrd_len and value_type) of the rrd file
- * built by a merge.
+ * @brief Get the parameters (interval, rrd_len and value_type) of the rrd
+ * file built by a merge.
  *
- * The merge must not change the rrd file layout, so if @p rrd_path exists, its
- * parameters are used: the check interval or the retention of the service may
- * have changed since its creation. Otherwise, the parameters of the header are
- * used, with an interval of 60s if it is 0 as in stream.
+ * The merge must not change the rrd file layout, so if @p rrd_path exists,
+ * its parameters are used: the check interval or the retention of the service
+ * may have changed since its creation. Otherwise, the parameters of the
+ * header are used, with an interval of 60s if it is 0 as in stream.
  *
  * @param rrd_path The rrd file to merge into.
  * @param rrd_lib The lib used to read the rrd file.
@@ -259,9 +270,9 @@ rrd_existing_data retention_file::_get_rrd_params(
             log_v2::instance().get(log_v2::RRD),
             "{}: rrd file {} has interval {}, rrd_len {} and value_type {} "
             "instead of {}, {} and {}, rrd file ones are kept",
-            _file_path.string(), rrd_path.string(), params.step,
-            params.rrd_len, params.value_type, _header.interval,
-            _header.rrd_len, static_cast<int>(_header.value_type));
+            _file_path.string(), rrd_path.string(), params.step, params.rrd_len,
+            params.value_type, _header.interval, _header.rrd_len,
+            static_cast<int>(_header.value_type));
       return params;
     }
   }
@@ -273,8 +284,8 @@ rrd_existing_data retention_file::_get_rrd_params(
 }
 
 /**
- * @brief Sort the samples of the file by timestamp (the sort is written in the
- * file) and write them in a new rrd file.
+ * @brief Sort the samples of the file by timestamp (the sort is written in
+ * the file) and write them in a new rrd file.
  *
  * Status samples equal to UNDEF_STATUS are written as unknown values.
  *
@@ -355,8 +366,8 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
   // creator sets the last update of the file to from - 1: the file starts one
   // interval before the first sample so that its row is fully known
   rrd_lib.merge_create_temp(dst_path, rrd_params.rrd_len,
-                            _header.first_ts - rrd_params.step + 1,
-                            rrd_params.step, rrd_params.value_type, samples);
+                            _first_ts - rrd_params.step + 1, rrd_params.step,
+                            rrd_params.value_type, samples);
 }
 
 /**
@@ -364,15 +375,15 @@ void retention_file::_to_rrd_file(const std::filesystem::path& dst_path,
  *
  * The samples are written in a temporary rrd file (<rrd_path>.to_merge), then
  * a new rrd file (<rrd_path>.tmp) is created from the data of @p rrd_path and
- * of this temporary file and is renamed to @p rrd_path. If @p rrd_path doesn't
- * exist, it is created from the samples only. Temporary files are always
- * removed. The retention file itself is not modified.
+ * of this temporary file and is renamed to @p rrd_path. If @p rrd_path
+ * doesn't exist, it is created from the samples only. Temporary files are
+ * always removed. The retention file itself is not modified.
  *
  * The interval, rrd_len and value_type of @p rrd_path are kept, see
  * _get_rrd_params().
  *
- * abort_merge() can be called from another thread, the merge then stops at the
- * next step and @p rrd_path is left untouched.
+ * abort_merge() can be called from another thread, the merge then stops at
+ * the next step and @p rrd_path is left untouched.
  *
  * @param rrd_path The rrd file to update.
  * @param rrd_lib The lib used to create the rrd files.
@@ -381,8 +392,8 @@ void retention_file::merge(const std::filesystem::path& rrd_path,
                            lib& rrd_lib) {
   // the merged file must accept data after the last one of both files
   time_t last_ts = rrd_lib.last_update(rrd_path);
-  if (last_ts <= 0 || (uint64_t)last_ts < _header.last_ts) {
-    last_ts = _header.last_ts;
+  if (last_ts <= 0 || (uint64_t)last_ts < _last_ts) {
+    last_ts = _last_ts;
   }
   const rrd_existing_data rrd_params = _get_rrd_params(rrd_path, rrd_lib);
   std::filesystem::path to_merge_path = rrd_path;
@@ -411,87 +422,3 @@ void retention_file::merge(const std::filesystem::path& rrd_path,
     }
   }
 }
-
-/**
- * @brief Map the slots of the file in read only mode.
- *
- * @return An object that gives access to the slots through begin() and end()
- * and unmaps the file when it is destroyed.
- */
-// const retention_file::mapped_sample retention_file::sort_and_get_samples() {
-//   return mapped_sample(_file_path);
-// }
-
-// retention_file::mapped_sample::mapped_sample()
-//     : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {}
-
-// retention_file::mapped_sample::mapped_sample(mapped_sample&& src)
-//     : _data(src._data),
-//       _file_size(src._file_size),
-//       _begin(src._begin),
-//       _end(src._end) {
-//   src._data = nullptr;
-//   src._file_size = 0;
-//   src._begin = nullptr;
-//   src._end = nullptr;
-// }
-
-// /**
-//  * @brief Map in read only mode the slots of a retention file.
-//  *
-//  * If the file contains no slot, nothing is mapped and begin() == end() ==
-//  * nullptr.
-//  *
-//  * @param path Path of the retention file.
-//  */
-// retention_file::mapped_sample::mapped_sample(const std::filesystem::path&
-// path)
-//     : _data(nullptr), _file_size(0), _begin(nullptr), _end(nullptr) {
-//   int fd = ::open(path.c_str(), O_RDWR);
-//   if (fd < 0) {
-//     throw exceptions::msg_fmt("fail to open {}: {}", path.string(),
-//                               strerror(errno));
-//   }
-
-//   absl::Cleanup closer = [fd]() { ::close(fd); };
-
-//   struct stat file_stat;
-//   if (::fstat(fd, &file_stat)) {
-//     throw exceptions::msg_fmt("fail to get size of file {}: {}",
-//     path.string(),
-//                               strerror(errno));
-//   }
-//   _file_size = file_stat.st_size;
-//   if (_file_size < sizeof(header)) {
-//     throw exceptions::msg_fmt("file {} is too small: {} bytes",
-//     path.string(),
-//                               _file_size);
-//   }
-//   // no slot => nothing to map
-//   if (_file_size == sizeof(header))
-//     return;
-
-//   void* addr =
-//       ::mmap(nullptr, _file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-//   if (addr == MAP_FAILED) {
-//     throw exceptions::msg_fmt("fail to map file {}: {}", path.string(),
-//                               strerror(errno));
-//   }
-//   _data = static_cast<file_content*>(addr);
-//   sample* begin = _data->data;
-//   _begin = begin;
-//   sample* end = begin + (_file_size - sizeof(header)) / sizeof(sample);
-//   _end = end;
-//   std::sort(begin, end, [](const sample& left, const sample& right) {
-//     return left.ts < right.ts;
-//   });
-// }
-
-// /**
-//  * @brief Unmap the file (the file descriptor is closed by the constructor).
-//  */
-// retention_file::mapped_sample::~mapped_sample() {
-//   if (_data) {
-//     ::munmap(_data, _file_size);
-//   }
-// }

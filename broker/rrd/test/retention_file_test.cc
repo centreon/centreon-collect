@@ -46,7 +46,7 @@ struct tmp_dir {
   }
   ~tmp_dir() {
     std::error_code ec;
-    fs::remove_all(path, ec);
+    // fs::remove_all(path, ec);
   }
 };
 
@@ -373,7 +373,8 @@ TEST_F(RetentionFile, AbortMergeLeavesRrdUntouched) {
   const uint64_t base = base_time();
   const fs::path rrd_path = _tmp.path / "12.rrd";
 
-  write_rrd(rrd_path, {{base + 10 * interval, 1.0}, {base + 11 * interval, 2.0}});
+  write_rrd(rrd_path,
+            {{base + 10 * interval, 1.0}, {base + 11 * interval, 2.0}});
   const std::string before = file_content(rrd_path);
 
   retention_file f(_tmp.path, make_metric(12, base, 3.0));

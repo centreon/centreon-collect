@@ -31,8 +31,6 @@ class retention_file {
     Metric::ValueType value_type;
     uint64_t rrd_len;   // in second
     uint64_t interval;  // in second
-    uint64_t first_ts;  // ts of oldest slot
-    uint64_t last_ts;   // ts of latest slot
   };
 
   struct sample {
@@ -52,6 +50,9 @@ class retention_file {
   header _header;
   time_t _last_activity;
   size_t _nb_samples;
+  uint64_t _first_ts;  // ts of oldest slot
+  uint64_t _last_ts;   // ts of latest slot
+
   std::atomic_bool _abort_merge = false;
 
   void _create_file();
@@ -66,24 +67,6 @@ class retention_file {
                     const rrd_existing_data& rrd_params);
 
  public:
-  // class mapped_sample {
-  //   file_content* _data;
-  //   size_t _file_size;
-
-  //   const sample *_begin, *_end;
-
-  //  public:
-  //   mapped_sample(const std::filesystem::path& path);
-  //   mapped_sample(mapped_sample&& src);
-  //   mapped_sample();
-  //   mapped_sample(const mapped_sample&) = delete;
-  //   mapped_sample& operator=(const mapped_sample&) = delete;
-  //   ~mapped_sample();
-
-  //   const sample* begin() const { return _begin; }
-  //   const sample* end() const { return _end; }
-  // };
-
   retention_file(const std::filesystem::path& rrd_data_dir,
                  const Metric& first_metric);
   retention_file(const std::filesystem::path& rrd_data_dir,
@@ -99,8 +82,8 @@ class retention_file {
   bool is_status() const { return _header.is_status; }
   uint64_t rrd_len() const { return _header.rrd_len; }
   uint64_t interval() const { return _header.interval; }
-  uint64_t first_ts() const { return _header.first_ts; }
-  uint64_t last_ts() const { return _header.last_ts; }
+  uint64_t first_ts() const { return _first_ts; }
+  uint64_t last_ts() const { return _last_ts; }
 
   // const mapped_sample sort_and_get_samples();
   time_t last_activity() const { return _last_activity; }

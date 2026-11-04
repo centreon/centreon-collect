@@ -1603,9 +1603,9 @@ def ctn_get_indexes_to_delete(count: int):
 
 
 # Layout of broker/rrd retention_file: header {int64 id; bool is_status;
-# ValueType value_type; uint64 rrd_len, interval, first_ts, last_ts} followed
+# ValueType value_type; uint64 rrd_len, interval} followed
 # by samples {uint64 ts; double value | int64 status}.
-RETENTION_HEADER = struct.Struct("<q?3xiQQQQ")
+RETENTION_HEADER = struct.Struct("<q?3xiQQ")
 RETENTION_METRIC_SAMPLE = struct.Struct("<Qd")
 RETENTION_STATUS_SAMPLE = struct.Struct("<Qq")
 # rrd values of the states OK, WARNING, CRITICAL, others are unknown.
@@ -1629,10 +1629,8 @@ def _ctn_retention_file_content(id: int, is_status: bool, samples: list, interva
     Returns:
         The bytes to write in the file.
     """
-    first_ts = min((t for t, _ in samples), default=0xFFFFFFFFFFFFFFFF)
-    last_ts = max((t for t, _ in samples), default=0)
     data = bytearray(RETENTION_HEADER.pack(int(id), is_status, 0, int(rrd_len),
-                                           int(interval), first_ts, last_ts))
+                                           int(interval)))
     for t, v in samples:
         if is_status:
             data += RETENTION_STATUS_SAMPLE.pack(
