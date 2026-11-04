@@ -447,44 +447,6 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.major_version }}
           minor_version: ${{ needs.get-environment.outputs.minor_version }}
 
-  deliver-rpm:
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    needs: [get-environment, robot-test]
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distrib: el8
-            arch: amd64
-          - distrib: el9
-            arch: amd64
-
-    name: deliver-rpm ${{ matrix.distrib }} ${{ matrix.arch }}
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Publish RPM packages
-        uses: ./.github/actions/rpm-delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
   deliver-rpm-pulp:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -529,42 +491,6 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
-  deliver-deb:
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    needs: [get-environment, robot-test]
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distrib: bookworm
-            arch: amd64
-
-    name: deliver-deb ${{ matrix.distrib }} ${{ matrix.arch }}
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Publish DEB packages
-        uses: ./.github/actions/deb-delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
   deliver-deb-pulp:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -607,39 +533,6 @@ jobs:
           pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
-  promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el8, el9, bookworm]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Promote ${{ matrix.distrib }} to stable
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
   promote-pulp:
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
     if: |
@@ -678,7 +571,7 @@ jobs:
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp, promote-pulp]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&
@@ -688,8 +581,8 @@ jobs:
 
   clear-branch-cache:
     runs-on: ubuntu-24.04
-    # The Pulp delivery jobs restore the package caches too: clear them only once they are done.
-    needs: [get-environment, deliver-rpm, deliver-deb, deliver-rpm-pulp, deliver-deb-pulp]
+    # The delivery jobs restore the package caches: clear them only once they are done.
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
     env:
       GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     if: |
@@ -715,7 +608,7 @@ jobs:
 
   create-jira-nightly-ticket:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-rpm, deliver-deb]
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
     # Disabled unless the NIGHTLY_JIRA_TICKETS_ENABLED organization variable is set to 'true'
     if: |
       vars.NIGHTLY_JIRA_TICKETS_ENABLED == 'true' &&
