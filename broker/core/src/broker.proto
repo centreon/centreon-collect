@@ -97,10 +97,29 @@ service Broker {
   rpc Aes256Decrypt(AesMessage) returns (GenericString) {}
 
   rpc GetPeers(google.protobuf.Empty) returns (PeerList) {}
+
+  /**
+   * @brief Reload (RELOAD, same effect as SIGHUP) or stop (SHUTDOWN, same
+   * effect as SIGTERM) cbd without going through an external process
+   * manager.
+   *
+   * @param BrokerSignalProcess the signal to send.
+   *
+   * @return An Empty object.
+   */
+  rpc SignalProcess(BrokerSignalProcess) returns (google.protobuf.Empty) {}
 }
 
 message PeerList {
   repeated Peer peers = 1;
+}
+
+message BrokerSignalProcess {
+  enum Process {
+    RELOAD = 0;
+    SHUTDOWN = 1;
+  }
+  Process process = 1;
 }
 
 message Peer {
