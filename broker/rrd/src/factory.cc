@@ -86,6 +86,7 @@ io::endpoint* factory::new_endpoint(
   std::string path{find_param(cfg, "path", false)};
 
   // Network connection.
+  std::string host{find_param(cfg, "host", false, "localhost")};
   uint32_t port = 0;
   if (!absl::SimpleAtoi(find_param(cfg, "port", false, "0"), &port)) {
     throw msg_fmt("RRD: bad port defined for endpoint '{}'", cfg.name);
@@ -169,7 +170,7 @@ io::endpoint* factory::new_endpoint(
   if (!path.empty())
     endp->set_cached_local(path);
   else if (port)
-    endp->set_cached_net(port);
+    endp->set_cached_net(host, port);
   endp->set_cache_size(cache_size);
   endp->set_write_metrics(write_metrics);
   endp->set_write_status(write_status);
