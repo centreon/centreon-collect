@@ -24,9 +24,9 @@ INSTALLER_OS="${INSTALLER_OS:-windows}"
 
 RELEASE_TYPE="${RELEASE_TYPE:-}"
 
-# same segments as the rpm/deb repositories (see pulp-repository-properties/properties.sh), and
-# deliberately unlike the flat artifactory installers layout: there a release and a hotfix of one
-# major share ".../testing/windows/" and --sync-deletes makes the second delivery erase the first.
+# same segments as the rpm/deb repositories (see pulp-repository-properties/properties.sh): a
+# release and a hotfix of one major land in separate testing repositories, so neither delivery
+# erases the other when superseded builds are removed below.
 case "$STABILITY" in
   unstable)
     STABILITY_SEGMENT="unstable"
@@ -119,8 +119,8 @@ fi
 
 [[ -n "$CONTENT_HREF" ]] || { echo "::error::could not resolve the delivered content href"; exit 1; }
 
-# The artifactory side keeps a single build in testing (jf rt upload --sync-deletes) and the
-# file plugin has no --retain-package-versions, so superseded builds are removed explicitly.
+# A delivery repository keeps a single build of the installer and the file plugin has no
+# --retain-package-versions, so superseded builds are removed explicitly.
 echo "[INFO] removing superseded installers from $REPOSITORY_NAME"
 SUPERSEDED=$(
   content_curl -fsSL "$PULP_URL$REPOSITORY_HREF" 2>/dev/null | jq -r '.latest_version_href // empty'
