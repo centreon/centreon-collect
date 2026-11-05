@@ -378,7 +378,10 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           _metric_latest_current[m.metric_id()] = m.time();
         } else {             // we receive an old metric => retention if enabled
           if (!last_update)  // now we need the last update of the rrd file
-            get_last_metric_latest_current(m.metric_id(), true);
+            last_update = get_last_metric_latest_current(m.metric_id(), true);
+          if (last_update == m.time()) {  // no duplicate
+            break;
+          }
           if (_retention->enabled()) {
             _retention->write_metric(m);
           }
@@ -441,7 +444,10 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           _status_latest_current[s.index_id()] = s.time();
         } else {             // we receive an old status => retention if enabled
           if (!last_update)  // now we need the last update of the rrd file
-            get_last_status_latest_current(s.index_id(), true);
+            last_update = get_last_status_latest_current(s.index_id(), true);
+          if (last_update == s.time()) {  // ignore duplicate
+            break;
+          }
           if (_retention->enabled()) {
             _retention->write_status(s);
           }

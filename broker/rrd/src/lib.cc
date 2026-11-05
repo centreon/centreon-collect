@@ -191,7 +191,7 @@ bool lib::try_update(time_t t, std::string const& value) {
   return true;
 }
 
-void lib::update(const std::deque<std::string>& pts) {
+bool lib::update(const std::deque<std::string>& pts) {
   std::vector<const char*> argv;
   argv.reserve(pts.size() + 1);
   for (const std::string& pt : pts) {
@@ -208,7 +208,9 @@ void lib::update(const std::deque<std::string>& pts) {
     else
       _logger->error("RRD: ignored update error in file '{}': {}", _filename,
                      msg);
+    return false;
   }
+  return true;
 }
 
 /**
@@ -413,7 +415,9 @@ void lib::merge_create_temp(const std::filesystem::path& tmp_path,
   // Create (or overwrite) the temp file.
   lib::open(tmp_path, rrd_len, from, step, value_type, /*without_cache=*/true);
   // Write all merged points using librrd directly.
-  lib::update(batch);
+  if (!lib::update(batch)) {
+    throw exceptions::update("fail to batch update");
+  }
 }
 
 /**

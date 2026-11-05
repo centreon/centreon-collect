@@ -19,7 +19,6 @@
 #ifndef CCB_RRD_CACHED_HH
 #define CCB_RRD_CACHED_HH
 
-
 #include <fmt/ranges.h>
 #include <fmt/std.h>
 
@@ -324,7 +323,7 @@ class cached : public backend {
     return true;
   }
 
-  void update(const std::deque<std::string>& pts) override {
+  bool update(const std::deque<std::string>& pts) override {
     absl::MutexLock l(&_protect);
     _logger->debug("RRD: updating file '{}' with {} values", _filename,
                    pts.size());
@@ -335,12 +334,14 @@ class cached : public backend {
       _send_to_cached(cmd);
       _logger->trace("RRD: flushing file '{}'", _filename);
       _send_to_cached(fmt::format("FLUSH {}\n", _filename));
+      return true;
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
       else
         _logger->error("RRD: ignored update error in file '{}': {}", _filename,
                        e.what() + 5);
+      return false;
     }
   }
 

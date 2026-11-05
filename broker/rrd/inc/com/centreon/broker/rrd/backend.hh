@@ -73,7 +73,7 @@ class backend {
                     bool without_cache = false) = 0;
   virtual void remove(const std::filesystem::path& filename) = 0;
   virtual void update(time_t t, std::string const& value) = 0;
-  virtual void update(const std::deque<std::string>& pts) = 0;
+  virtual bool update(const std::deque<std::string>& pts) = 0;
 
   /**
    * @brief Same as update(t, value), except that a value whose time is not
