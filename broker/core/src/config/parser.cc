@@ -254,11 +254,14 @@ state parser::parse(std::string const& file, bool neb_module) {
             throw msg_fmt(
                 "config parser: cannot parse key 'uid': value must be a "
                 "64-bit integer");
-        } else if (it.key() == "poller_id" && !uid_set) {
+        } else if (it.key() == "poller_id") {
           const json& v = it.value();
-          if (v.is_number())
-            retval.poller_id(static_cast<uint64_t>(v.get<int64_t>()));
-          else
+          if (v.is_number()) {
+            uint64_t id = static_cast<uint64_t>(v.get<int64_t>());
+            retval.config_poller_id(id);
+            if (!uid_set)
+              retval.poller_id(id);
+          } else
             throw msg_fmt(
                 "config parser: cannot parse key 'poller_id': value must be "
                 "an integer");
