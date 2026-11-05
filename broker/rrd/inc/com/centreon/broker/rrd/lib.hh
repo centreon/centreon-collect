@@ -51,18 +51,31 @@ class lib : public backend {
             bool without_cache = false) override;
   void remove(const std::filesystem::path& filename) override;
   void update(time_t t, std::string const& value) override;
-  void update(const std::deque<std::string>& pts) override;
+  bool try_update(time_t t, std::string const& value) override;
+  bool update(const std::deque<std::string>& pts) override;
+
+  static time_t last_update(const std::filesystem::path& filename);
+
+  rrd_existing_data info(const std::filesystem::path& filename);
 
   rrd_existing_data fetch_existing(const std::filesystem::path& filename,
                                    uint64_t from_ts,
-                                   uint64_t to_ts) override;
+                                   uint64_t to_ts);
 
   void merge_create_temp(const std::filesystem::path& tmp_path,
                          uint32_t rrd_len,
                          time_t from,
                          uint32_t step,
                          short value_type,
-                         const std::deque<std::string>& batch) override;
+                         const std::deque<std::string>& batch);
+
+  void merge_files(const std::filesystem::path& merged_path,
+                   const std::filesystem::path& rrd_path,
+                   const std::filesystem::path& to_merge_file,
+                   uint32_t rrd_len,
+                   time_t from,
+                   uint32_t step,
+                   short value_type);
 
  private:
   creator _creator;

@@ -18,14 +18,17 @@
 
 #include "com/centreon/broker/rrd/lib.hh"
 
+#include <absl/cleanup/cleanup.h>
 #include <fcntl.h>
 #include <rrd.h>
 #include <unistd.h>
 
+#include <absl/container/flat_hash_map.h>
 #include <cctype>
 #include <cerrno>
 #include <cmath>
-#include <absl/container/flat_hash_map.h>
+#include <cstdio>
+#include <string_view>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
@@ -111,7 +114,7 @@ void lib::open(const std::filesystem::path& filename,
   _filename = filename;
   // creator::create still uses std::string (not yet migrated).
   _creator.create(filename.string(), length, from, step, value_type,
-                  without_cache);
+                  without_cache, {});
 }
 
 /**
@@ -122,7 +125,8 @@ void lib::open(const std::filesystem::path& filename,
 void lib::remove(const std::filesystem::path& filename) {
   if (::remove(filename.c_str())) {
     char const* msg(strerror(errno));
-    _logger->error("RRD: could not remove file '{}': {}", filename, msg);
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: could not remove file '{}': {}",
+                        filename, msg);
   } else
     SPDLOG_LOGGER_INFO(_logger, "remove file {}", filename);
 }
@@ -130,15 +134,36 @@ void lib::remove(const std::filesystem::path& filename) {
 /**
  *  Update the RRD file with new value.
  *
+ *  A value whose time is not after the last update of the file is ignored
+ *  with an error log, see try_update().
+ *
  *  @param[in] t     Timestamp of value.
  *  @param[in] value Associated value.
  */
 void lib::update(time_t t, std::string const& value) {
+  if (!try_update(t, value))
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: ignored update error in file '{}': {}",
+                        _filename, rrd_get_error());
+}
+
+/**
+ * @brief Update the RRD file with a new value, a value too old for the file
+ * is not written and only logged at debug level.
+ *
+ * @param t Timestamp of value.
+ * @param value Associated value, an empty value is ignored with an error log.
+ *
+ * @return false if t is not after the last update of the file, true
+ * otherwise.
+ * @throw exceptions::update on any other librrd error.
+ */
+bool lib::try_update(time_t t, std::string const& value) {
   // Build argument string.
   if (value == "") {
-    _logger->error("RRD: ignored update non-float value '{}' in file '{}'",
-                   value, _filename);
-    return;
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "RRD: ignored update non-float value '{}' in file '{}'",
+                        value, _filename);
+    return true;
   }
 
   std::string arg(fmt::format("{}:{}", t, value));
@@ -156,59 +181,64 @@ void lib::update(time_t t, std::string const& value) {
   if (rrd_update_r(_filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1,
                    argv)) {
     char const* msg(rrd_get_error());
-    if (!strstr(msg, "illegal attempt to update using time"))
-      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
-                     msg);
-
-    else
-      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
-                     msg);
+    if (!strstr(msg, "illegal attempt to update using time")) {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "RRD: failed to update value in file '{}': {}",
+                          _filename, msg);
+      throw exceptions::update(msg);
+    }
+    SPDLOG_LOGGER_DEBUG(_logger, "RRD: value too old for file '{}': {}",
+                        _filename, msg);
+    return false;
   }
+  return true;
 }
 
-void lib::update(const std::deque<std::string>& pts) {
-  const char* argv[pts.size() + 1];
-  argv[pts.size()] = nullptr;
-  auto it = pts.begin();
-  for (uint32_t i = 0; i < pts.size(); i++) {
-    _logger->trace("insertion of {} in rrd file", *it);
-    argv[i] = it->data();
-    ++it;
+bool lib::update(const std::deque<std::string>& pts) {
+  std::vector<const char*> argv;
+  argv.reserve(pts.size() + 1);
+  for (const std::string& pt : pts) {
+    argv.push_back(pt.data());
   }
+  argv.push_back(nullptr);
   rrd_clear_error();
-  if (rrd_update_r(_filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1,
-                   argv)) {
+  if (rrd_update_r(_filename.c_str(), nullptr, argv.size() - 1, argv.data())) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
-      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
-                     msg);
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "RRD: failed to update value in file '{}': {}",
+                          _filename, msg);
 
     else
-      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
-                     msg);
+      SPDLOG_LOGGER_ERROR(_logger, "RRD: ignored update error in file '{}': {}",
+                          _filename, msg);
+    return false;
   }
+  return true;
 }
 
 /**
- * @brief Read RRD file metadata and fetch all known data-points in
- *        [@p from_ts, @p to_ts] using librrd directly.
+ * @brief Read the metadata of an RRD file (interval, rrd_len and value_type)
+ * with rrd_info_r(), without fetching its data.
  *
- * Uses rrd_info_r() to determine step, rrd_len and value_type, then
- * rrd_fetch_r() to retrieve the actual data.  NaN values (unknown) are
- * omitted from the returned vector.
+ * The returned step is the interval of the file, that is the step of the file
+ * multiplied by the pdp_per_row of its base RRA, as creator creates files with
+ * a step of 1s. The returned points are always empty.
+ *
+ * Only the static part of the header is read, so with rrdcached no flush is
+ * needed.
+ *
+ * @param filename The RRD file to read.
  *
  * @return rrd_existing_data with step == 0 on any error.
  */
-rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
-                                      uint64_t from_ts,
-                                      uint64_t to_ts) {
+rrd_existing_data lib::info(const std::filesystem::path& filename) {
   rrd_existing_data result;
 
-  // ---- 1. Parse file metadata via rrd_info_r ----
   rrd_info_t* info = rrd_info_r(const_cast<char*>(filename.c_str()));
   if (!info) {
-    _logger->error("RRD: rrd_info_r failed for '{}': {}", filename,
-                   rrd_get_error());
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: rrd_info_r failed for '{}': {}",
+                        filename, rrd_get_error());
     return result;
   }
 
@@ -231,12 +261,17 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
         result.value_type = 3;
       // else GAUGE = 0 (default)
     } else {
+      // sscanf returns 1 as soon as %d is read, even if the end of the key
+      // differs (rra[0].cur_row...), so %n checks that the whole key matched.
       int rra_idx = -1;
-      if (std::sscanf(it->key, "rra[%d].pdp_per_row", &rra_idx) == 1 &&
-          it->type == RD_I_CNT) {
+      int end = 0;
+      if (it->type == RD_I_CNT &&
+          std::sscanf(it->key, "rra[%d].pdp_per_row%n", &rra_idx, &end) == 1 &&
+          end > 0 && it->key[end] == '\0') {
         rra_pdp_per_row[rra_idx] = static_cast<uint32_t>(it->value.u_cnt);
-      } else if (std::sscanf(it->key, "rra[%d].rows", &rra_idx) == 1 &&
-                 it->type == RD_I_CNT) {
+      } else if (it->type == RD_I_CNT &&
+                 std::sscanf(it->key, "rra[%d].rows%n", &rra_idx, &end) == 1 &&
+                 end > 0 && it->key[end] == '\0') {
         rra_rows[rra_idx] = static_cast<uint32_t>(it->value.u_cnt);
       }
     }
@@ -244,36 +279,68 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
   rrd_info_free(info);
 
   if (result.step == 0) {
-    _logger->error("RRD: could not read step from '{}'", filename);
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: could not read step from '{}'",
+                        filename);
     return result;
   }
 
-  // Compute max retention across all RRAs.
+  // Compute max retention across all RRAs. creator adds one row to each RRA
+  // (length / step + 1), it is removed so that a recreated file keeps the same
+  // size.
+  const uint32_t file_step = result.step;
   for (auto& [idx, pdp] : rra_pdp_per_row) {
     auto rows_it = rra_rows.find(idx);
-    if (rows_it != rra_rows.end()) {
-      uint32_t retention = result.step * pdp * rows_it->second;
+    if (rows_it != rra_rows.end() && rows_it->second > 1) {
+      uint32_t retention = file_step * pdp * (rows_it->second - 1);
       result.rrd_len = std::max(result.rrd_len, retention);
     }
   }
 
-  // ---- 2. Fetch data via rrd_fetch_r ----
-  time_t start = static_cast<time_t>(from_ts) - static_cast<time_t>(result.step);
+  // Files are created by creator with a step of 1s, the interval being the
+  // pdp_per_row of the base RRA (rra[0]). The interval is what is needed to
+  // recreate the file and to read its data.
+  auto base_rra = rra_pdp_per_row.find(0);
+  if (base_rra != rra_pdp_per_row.end() && base_rra->second > 0)
+    result.step = file_step * base_rra->second;
+
+  return result;
+}
+
+/**
+ * @brief Read RRD file metadata and fetch all known data-points in
+ *        [@p from_ts, @p to_ts] using librrd directly.
+ *
+ * Uses info() to determine step, rrd_len and value_type, then
+ * rrd_fetch_r() to retrieve the actual data.  NaN values (unknown) are
+ * omitted from the returned vector.
+ *
+ * @return rrd_existing_data with step == 0 on any error.
+ */
+rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
+                                      uint64_t from_ts,
+                                      uint64_t to_ts) {
+  rrd_existing_data result = info(filename);
+  if (result.step == 0)
+    return result;
+
+  time_t start =
+      static_cast<time_t>(from_ts) - static_cast<time_t>(result.step);
   time_t end = static_cast<time_t>(to_ts);
   unsigned long step_out = 0, ds_cnt = 0;
   char** ds_names = nullptr;
   rrd_value_t* data = nullptr;
 
   rrd_clear_error();
-  if (rrd_fetch_r(filename.c_str(), "AVERAGE", &start, &end, &step_out,
-                  &ds_cnt, &ds_names, &data) != 0) {
+  if (rrd_fetch_r(filename.c_str(), "AVERAGE", &start, &end, &step_out, &ds_cnt,
+                  &ds_names, &data) != 0) {
     _logger->warn("RRD: rrd_fetch_r failed for '{}': {}", filename,
                   rrd_get_error());
     return result;
   }
 
   if (step_out > 0 && ds_cnt > 0 && data) {
-    size_t n = static_cast<size_t>((end - start) / static_cast<time_t>(step_out));
+    size_t n =
+        static_cast<size_t>((end - start) / static_cast<time_t>(step_out));
     uint64_t t = static_cast<uint64_t>(start) + step_out;  // first timestamp
     for (size_t i = 0; i < n; ++i, t += step_out) {
       double v = data[i * ds_cnt];  // DS index 0
@@ -294,8 +361,55 @@ rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
 }
 
 /**
+ * @brief Read the last update time of an RRD file, that is the timestamp
+ * given to the last rrd_update accepted on it (live_head->last_up), read
+ * directly from the file with librrd.
+ *
+ * This value is not the time of the last known value: an update with an
+ * unknown value ("U") or coming after a heartbeat timeout also moves it
+ * forward. It is not aligned on the step either: the data between the start of
+ * the current PDP and this time are still in pdp_prep/cdp_prep, not yet in a
+ * row. Any update with a timestamp lower than or equal to it is rejected by
+ * librrd.
+ *
+ * With rrdcached, the file may not contain the last updates yet, so the
+ * returned time may be older than the last update sent: the file must be
+ * flushed before calling this function if an accurate value is needed.
+ *
+ * @param filename The RRD file path.
+ *
+ * @return The last update time, -1 if the file can't be opened or read.
+ */
+time_t lib::last_update(const std::filesystem::path& filename) {
+  unsigned long ds_cnt = 0;
+  char** ds_names = nullptr;
+  char** last_ds = nullptr;
+
+  time_t last_update;
+  if (rrd_lastupdate_r(filename.c_str(), &last_update, &ds_cnt, &ds_names,
+                       &last_ds)) {
+    return -1;
+  }
+  // free memory allocated by rrd
+  for (unsigned long i = 0; i < ds_cnt; i++) {
+    free(ds_names[i]);
+    free(last_ds[i]);
+  }
+  free(ds_names);
+  free(last_ds);
+  return last_update;
+}
+
+/**
  * @brief Create a new RRD file at @p tmp_path via librrd and write @p batch
  *        into it.  Bypasses rrdcached entirely (safe during merge).
+ *
+ * @param tmp_path The file to create, overwritten if it exists.
+ * @param rrd_len Duration in seconds that the RRD file should retain.
+ * @param from Timestamp of the first record, the batch must be after it.
+ * @param step Interval in seconds of the data.
+ * @param value_type Type of the metric.
+ * @param batch Sorted "timestamp:value" strings given to rrd_update.
  */
 void lib::merge_create_temp(const std::filesystem::path& tmp_path,
                             uint32_t rrd_len,
@@ -306,5 +420,41 @@ void lib::merge_create_temp(const std::filesystem::path& tmp_path,
   // Create (or overwrite) the temp file.
   lib::open(tmp_path, rrd_len, from, step, value_type, /*without_cache=*/true);
   // Write all merged points using librrd directly.
-  lib::update(batch);
+  if (!lib::update(batch)) {
+    throw exceptions::update("fail to batch update");
+  }
+}
+
+/**
+ * @brief Create @p merged_path from the data of @p rrd_path and
+ * @p to_merge_file (rrd_create --source), the rrd files are not modified.
+ *
+ * If @p rrd_path doesn't exist, only @p to_merge_file is used. When both
+ * files have a value for the same row, the one of @p rrd_path is kept: it
+ * comes from real-time data.
+ *
+ * @param merged_path The file to create, overwritten if it exists.
+ * @param rrd_path The current rrd file.
+ * @param to_merge_file The rrd file built from the retention data.
+ * @param rrd_len Duration in seconds that the RRD file should retain.
+ * @param from Last update time of the created file, data after it can't be
+ * added to it.
+ * @param step Interval in seconds of the data.
+ * @param value_type Type of the metric.
+ */
+void lib::merge_files(const std::filesystem::path& merged_path,
+                      const std::filesystem::path& rrd_path,
+                      const std::filesystem::path& to_merge_file,
+                      uint32_t rrd_len,
+                      time_t from,
+                      uint32_t step,
+                      short value_type) {
+  std::vector<std::string_view> sources;
+  std::error_code err;
+  if (std::filesystem::exists(rrd_path, err))
+    sources.emplace_back(rrd_path.c_str());
+  sources.emplace_back(to_merge_file.c_str());
+
+  _creator.create(merged_path, rrd_len, from, step, value_type,
+                  /*without_cache=*/true, sources);
 }

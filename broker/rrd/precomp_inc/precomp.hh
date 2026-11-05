@@ -29,14 +29,17 @@
 #include <thread>
 #include <vector>
 
+#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include <absl/container/btree_map.h>
 #include <absl/strings/match.h>
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
 #include <boost/container/flat_map.hpp>
+#include <boost/multi_index/indexed_by.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <boost/system/system_error.hpp>
 
 #include <spdlog/fmt/ostr.h>

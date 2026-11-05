@@ -8,7 +8,7 @@ Documentation       RRD retention buffer benchmark.
 ...       accumulate in the DB with corresponding .rrd files.
 ...    2. Injects ${N_OLD_POINTS} old-timestamped pb_metric events per metric
 ...       plus one current-time event per metric to trigger the junction merge.
-...    3. Waits for all ``RRD: merging … buffered points for metric`` messages.
+...    3. Waits for a ``RRD: merge of metric <id> into <path> done`` message per metric.
 ...    4. Logs injection throughput and end-to-end latency.
 ...
 ...    The injected old timestamps run from (now - N_OLD_POINTS*STEP - STEP) to
@@ -72,7 +72,7 @@ BENCH_RRD_METRIC_RETENTION
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
-    # INFO level is sufficient: "merging N buffered points" is logged at INFO.
+    # INFO level is sufficient: "merge of metric <id> into <path> done" is logged at INFO.
     Ctn Broker Config Log    rrd    rrd    info
     Ctn Broker Config Flush Log    rrd    0
     # Reduce central-broker SQL noise to errors only.
@@ -123,13 +123,15 @@ BENCH_RRD_METRIC_RETENTION
     # -----------------------------------------------------------------------
     # Merge completion phase
     # -----------------------------------------------------------------------
-    # The RRD stream logs at INFO level when it starts merging:
-    #   "RRD: merging <N> buffered points for metric <id> into '<path>'"
-    # We match the prefix (substring match) so the trailing path is ignored.
+    # The retention manager logs at INFO level when a merge is finished:
+    #   "RRD: merge of metric <id> into <path> done"
+    # A retention file is merged as soon as it contains more than
+    # retention_merge_samples_threshold points, so the old points of a metric
+    # may be merged in several times: we only wait for the first merge.
     FOR    ${m}    IN    @{metrics}
         Log To Console    Step ${m}
         ${content}    Create List
-        ...    RRD: merging ${N_OLD_POINTS} buffered points for metric ${m}
+        ...    RRD: merge of metric ${m} into
         ${found}    Ctn Find In Log With Timeout
         ...    ${rrdLog}    ${inject_start}    ${content}    ${MERGE_TIMEOUT}
         Should Be True    ${found}

@@ -19,9 +19,6 @@
 #ifndef CCB_RRD_CACHED_HH
 #define CCB_RRD_CACHED_HH
 
-#include <absl/base/thread_annotations.h>
-#include <absl/synchronization/mutex.h>
-#include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
 
@@ -277,6 +274,32 @@ class cached : public backend {
    *  @param[in] value Associated value.
    */
   void update(time_t t, std::string const& value) override {
+    _update(t, value, true);
+  }
+
+  /**
+   * @brief Same as update(), except that a value too old for the file is only
+   * logged at debug level.
+   *
+   * @return false if t is not after the last update known by rrdcached, true
+   * otherwise.
+   */
+  bool try_update(time_t t, std::string const& value) override {
+    return _update(t, value, false);
+  }
+
+  /**
+   * @brief Send an UPDATE command to rrdcached.
+   *
+   * @param t Timestamp of value.
+   * @param value Associated value.
+   * @param log_too_old Log a value too old for the file as an error.
+   *
+   * @return false if t is not after the last update known by rrdcached, true
+   * otherwise.
+   * @throw exceptions::update on any other rrdcached error.
+   */
+  bool _update(time_t t, std::string const& value, bool log_too_old) {
     absl::MutexLock l(&_protect);
     // Build rrdcached command.
     std::string cmd(fmt::format("UPDATE {} {}:{}\n", _filename, t, value));
@@ -288,13 +311,19 @@ class cached : public backend {
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
+      if (log_too_old)
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "RRD: ignored update error in file '{}': {}",
+                            _filename, e.what() + 5);
       else
-        _logger->error("RRD: ignored update error in file '{}': {}", _filename,
-                       e.what() + 5);
+        SPDLOG_LOGGER_DEBUG(_logger, "RRD: value too old for file '{}': {}",
+                            _filename, e.what() + 5);
+      return false;
     }
+    return true;
   }
 
-  void update(const std::deque<std::string>& pts) override {
+  bool update(const std::deque<std::string>& pts) override {
     absl::MutexLock l(&_protect);
     _logger->debug("RRD: updating file '{}' with {} values", _filename,
                    pts.size());
@@ -305,12 +334,14 @@ class cached : public backend {
       _send_to_cached(cmd);
       _logger->trace("RRD: flushing file '{}'", _filename);
       _send_to_cached(fmt::format("FLUSH {}\n", _filename));
+      return true;
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
       else
         _logger->error("RRD: ignored update error in file '{}': {}", _filename,
                        e.what() + 5);
+      return false;
     }
   }
 
@@ -327,28 +358,6 @@ class cached : public backend {
       _logger->error("RRD: pre_merge_flush failed for '{}': {}", filename,
                      e.what());
     }
-  }
-
-  /**
-   * @brief Delegate to _lib (librrd direct) after the caller has flushed.
-   */
-  rrd_existing_data fetch_existing(const std::filesystem::path& filename,
-                                   uint64_t from_ts,
-                                   uint64_t to_ts) override {
-    return _lib.fetch_existing(filename, from_ts, to_ts);
-  }
-
-  /**
-   * @brief Create temp file and write batch via librrd directly (bypasses
-   *        rrdcached socket), so the file is immediately on disk for rename.
-   */
-  void merge_create_temp(const std::filesystem::path& tmp_path,
-                         uint32_t rrd_len,
-                         time_t from,
-                         uint32_t step,
-                         short value_type,
-                         const std::deque<std::string>& batch) override {
-    _lib.merge_create_temp(tmp_path, rrd_len, from, step, value_type, batch);
   }
 
   /**
