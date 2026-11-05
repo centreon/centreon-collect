@@ -350,6 +350,7 @@ void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
     cached_client->pre_merge_flush(final_path);
   }
   _merging = to_merge;
+  _merging_start = time(nullptr);
   boost::asio::post(*_io_context,
                     [me = shared_from_this(), to_merge = _merging, rrd_lib]() {
                       me->_do_merge(to_merge, *rrd_lib);
@@ -491,7 +492,8 @@ std::optional<
 retention_manager::start_merge(const std::shared_ptr<lib>& rrd_lib,
                                backend* cached_client) {
   absl::MutexLock l(&_data_m);
-  if (_merging || _retentions.empty()) {
+  if ((_merging && (_merging_start + _config.merge_time_out) > time(nullptr)) ||
+      _retentions.empty()) {
     return {};
   }
 

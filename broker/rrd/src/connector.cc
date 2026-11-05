@@ -58,7 +58,8 @@ connector::connector()
       _retention_merge_samples_threshold(60 * 24 / 5),
       _retention_proportional_activity_threshold(3),
       _retention_orphan_interval(3600),
-      _retention_merge_retry_delay(120) {}
+      _retention_merge_retry_delay(120),
+      _retention_merge_timeout(60) {}
 
 /**
  *  Connect.
@@ -74,6 +75,7 @@ std::shared_ptr<io::stream> connector::open() {
       _retention_proportional_activity_threshold;
   ret_cfg.orphan_interval = _retention_orphan_interval;
   ret_cfg.merge_retry_delay = _retention_merge_retry_delay;
+  ret_cfg.merge_time_out = _retention_merge_timeout;
 
   std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
@@ -203,6 +205,10 @@ void connector::set_retention_orphan_interval(uint32_t seconds) noexcept {
  */
 void connector::set_retention_merge_retry_delay(uint32_t seconds) noexcept {
   _retention_merge_retry_delay = seconds;
+}
+
+void connector::set_retention_merge_timeout(uint32_t seconds) noexcept {
+  _retention_merge_timeout = seconds;
 }
 
 /**************************************

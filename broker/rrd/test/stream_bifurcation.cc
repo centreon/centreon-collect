@@ -307,8 +307,9 @@ TEST_F(StreamBifurcation, FirstMetricGoesToRrd) {
 }
 
 /**
- * Points newer than the last update go to the rrd file, older ones (or at the
- * same time) to the retention.
+ * Points newer than the last update go to the rrd file, older ones to the
+ * retention. A point at the same time as the last update is already in the
+ * rrd file, it is dropped.
  */
 TEST_F(StreamBifurcation, OldMetricGoesToRetention) {
   stream<lib> s(_tmp.metrics, _tmp.status, 16,
@@ -320,13 +321,14 @@ TEST_F(StreamBifurcation, OldMetricGoesToRetention) {
   EXPECT_FALSE(fs::exists(_tmp.metric_file(1002, "ret")));
 
   s.write(make_metric(1002, base + 7 * interval, 7.5));
+  EXPECT_FALSE(fs::exists(_tmp.metric_file(1002, "ret")));
   s.write(make_metric(1002, base + 2 * interval, 2));
   s.write(make_metric(1002, base + 6 * interval + 30, 6.5));
-  EXPECT_EQ(nb_samples(_tmp.metric_file(1002, "ret")), 3u);
+  EXPECT_EQ(nb_samples(_tmp.metric_file(1002, "ret")), 2u);
 
   // new points still go to the rrd file
   s.write(make_metric(1002, base + 8 * interval, 8));
-  EXPECT_EQ(nb_samples(_tmp.metric_file(1002, "ret")), 3u);
+  EXPECT_EQ(nb_samples(_tmp.metric_file(1002, "ret")), 2u);
   EXPECT_EQ(lib::last_update(_tmp.metric_file(1002)),
             static_cast<time_t>(base + 8 * interval));
 }

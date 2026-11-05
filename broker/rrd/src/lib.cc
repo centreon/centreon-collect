@@ -125,7 +125,8 @@ void lib::open(const std::filesystem::path& filename,
 void lib::remove(const std::filesystem::path& filename) {
   if (::remove(filename.c_str())) {
     char const* msg(strerror(errno));
-    _logger->error("RRD: could not remove file '{}': {}", filename, msg);
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: could not remove file '{}': {}",
+                        filename, msg);
   } else
     SPDLOG_LOGGER_INFO(_logger, "remove file {}", filename);
 }
@@ -141,8 +142,8 @@ void lib::remove(const std::filesystem::path& filename) {
  */
 void lib::update(time_t t, std::string const& value) {
   if (!try_update(t, value))
-    _logger->error("RRD: ignored update error in file '{}': {}", _filename,
-                   rrd_get_error());
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: ignored update error in file '{}': {}",
+                        _filename, rrd_get_error());
 }
 
 /**
@@ -159,8 +160,9 @@ void lib::update(time_t t, std::string const& value) {
 bool lib::try_update(time_t t, std::string const& value) {
   // Build argument string.
   if (value == "") {
-    _logger->error("RRD: ignored update non-float value '{}' in file '{}'",
-                   value, _filename);
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "RRD: ignored update non-float value '{}' in file '{}'",
+                        value, _filename);
     return true;
   }
 
@@ -180,8 +182,9 @@ bool lib::try_update(time_t t, std::string const& value) {
                    argv)) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time")) {
-      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
-                     msg);
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "RRD: failed to update value in file '{}': {}",
+                          _filename, msg);
       throw exceptions::update(msg);
     }
     SPDLOG_LOGGER_DEBUG(_logger, "RRD: value too old for file '{}': {}",
@@ -202,12 +205,13 @@ bool lib::update(const std::deque<std::string>& pts) {
   if (rrd_update_r(_filename.c_str(), nullptr, argv.size() - 1, argv.data())) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
-      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
-                     msg);
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "RRD: failed to update value in file '{}': {}",
+                          _filename, msg);
 
     else
-      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
-                     msg);
+      SPDLOG_LOGGER_ERROR(_logger, "RRD: ignored update error in file '{}': {}",
+                          _filename, msg);
     return false;
   }
   return true;
@@ -233,8 +237,8 @@ rrd_existing_data lib::info(const std::filesystem::path& filename) {
 
   rrd_info_t* info = rrd_info_r(const_cast<char*>(filename.c_str()));
   if (!info) {
-    _logger->error("RRD: rrd_info_r failed for '{}': {}", filename,
-                   rrd_get_error());
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: rrd_info_r failed for '{}': {}",
+                        filename, rrd_get_error());
     return result;
   }
 
@@ -275,7 +279,8 @@ rrd_existing_data lib::info(const std::filesystem::path& filename) {
   rrd_info_free(info);
 
   if (result.step == 0) {
-    _logger->error("RRD: could not read step from '{}'", filename);
+    SPDLOG_LOGGER_ERROR(_logger, "RRD: could not read step from '{}'",
+                        filename);
     return result;
   }
 

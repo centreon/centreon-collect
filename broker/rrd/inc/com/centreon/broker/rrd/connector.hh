@@ -47,9 +47,10 @@ class connector : public io::endpoint {
       _retention_merge_samples_threshold;  // point-count threshold per batch
   uint32_t _retention_proportional_activity_threshold;  // max rotated files
                                                         // before forced merge
-  uint32_t _retention_orphan_interval;  // seconds before orphan cleanup
+  uint32_t _retention_orphan_interval;    // seconds before orphan cleanup
   uint32_t _retention_merge_retry_delay;  // seconds before retrying a failed
-                                         // merge
+  // merge
+  uint32_t _retention_merge_timeout;
 
  public:
   connector();
@@ -69,6 +70,7 @@ class connector : public io::endpoint {
   void set_retention_proportional_activity_threshold(uint32_t n) noexcept;
   void set_retention_orphan_interval(uint32_t seconds) noexcept;
   void set_retention_merge_retry_delay(uint32_t seconds) noexcept;
+  void set_retention_merge_timeout(uint32_t seconds) noexcept;
 };
 }  // namespace rrd
 

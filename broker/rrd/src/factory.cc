@@ -216,6 +216,18 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
+  uint32_t retention_merge_timeout = 60;
+  {
+    auto it = cfg.params.find("retention_merge_timeout");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_merge_timeout)) {
+      logger->error(
+          "factory: cannot parse 'retention_merge_timeout' for "
+          "endpoint '{}', using default (60)",
+          cfg.name);
+    }
+  }
+
   // Create endpoint.
   std::unique_ptr<rrd::connector> endp{std::make_unique<rrd::connector>()};
   if (write_metrics)
@@ -236,6 +248,7 @@ io::endpoint* factory::new_endpoint(
       retention_proportional_activity_threshold);
   endp->set_retention_orphan_interval(retention_orphan_interval);
   endp->set_retention_merge_retry_delay(retention_merge_retry_delay);
+  endp->set_retention_merge_timeout(retention_merge_timeout);
   is_acceptor = false;
   return endp.release();
 }
