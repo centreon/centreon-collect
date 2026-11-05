@@ -59,7 +59,7 @@ connector::connector()
       _retention_proportional_activity_threshold(3),
       _retention_orphan_interval(3600),
       _retention_merge_retry_delay(120),
-      _retention_merge_timeout(60) {}
+      _retention_merge_timeout(120) {}
 
 /**
  *  Connect.

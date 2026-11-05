@@ -44,7 +44,7 @@ struct retention_config {
   uint32_t proportional_activity_threshold = 3;
 
   uint32_t merge_retry_delay = 120;  ///< Seconds before retrying a failed merge
-  uint32_t merge_time_out = 60;
+  uint32_t merge_time_out = 120;
 };
 
 /**
@@ -133,7 +133,7 @@ class retention_manager
 
   retention_cont _retentions ABSL_GUARDED_BY(_data_m);
   std::shared_ptr<retention_file> _merging ABSL_GUARDED_BY(_data_m);
-  time_t _merging_start ABSL_GUARDED_BY(_data_m);
+  time_t _merging_ended ABSL_GUARDED_BY(_data_m);
 
   using pending_cont =
       absl::flat_hash_map<uint64_t, std::list<std::shared_ptr<io::data>>>;
@@ -158,6 +158,8 @@ class retention_manager
               backend* cached_client) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
 
   void _do_merge(const std::shared_ptr<retention_file>& to_merge, lib& rrd_lib);
+
+  void _post_end_merge(uint64_t id, bool is_status);
 
  public:
   retention_manager(const retention_config& config,

@@ -216,7 +216,7 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
-  uint32_t retention_merge_timeout = 60;
+  uint32_t retention_merge_timeout = 120;
   {
     auto it = cfg.params.find("retention_merge_timeout");
     if (it != cfg.params.end() &&

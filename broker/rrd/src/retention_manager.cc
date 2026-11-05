@@ -40,8 +40,8 @@ retention_manager::retention_manager(
     : _config(config),
       _io_context(io_context),
       _logger(logger),
-      _retentions(
-          _make_retention_cont(config.proportional_activity_threshold)) {}
+      _retentions(_make_retention_cont(config.proportional_activity_threshold)),
+      _merging_ended(0) {}
 
 static absl::Mutex _instance_m;
 static std::shared_ptr<retention_manager> _instance
@@ -112,6 +112,7 @@ void retention_manager::_update_config(const retention_config& config) {
   _config.merge_samples_threshold = config.merge_samples_threshold;
   _config.orphan_interval = config.orphan_interval;
   _config.merge_retry_delay = config.merge_retry_delay;
+  _config.merge_time_out = config.merge_time_out;
   if (_config.proportional_activity_threshold !=
       config.proportional_activity_threshold) {
     _config.proportional_activity_threshold =
@@ -349,8 +350,8 @@ void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
   if (cached_client) {
     cached_client->pre_merge_flush(final_path);
   }
+
   _merging = to_merge;
-  _merging_start = time(nullptr);
   boost::asio::post(*_io_context,
                     [me = shared_from_this(), to_merge = _merging, rrd_lib]() {
                       me->_do_merge(to_merge, *rrd_lib);
@@ -407,16 +408,26 @@ void retention_manager::_do_merge(
     }
   }
 
+  // Even on failure, the end of the merge must be published: the stream
+  // replays the events kept during the merge only when it receives it.
+  {
+    absl::MutexLock l(&_data_m);
+    _merging_ended = time(nullptr);
+  }
+  _post_end_merge(to_merge->id(), to_merge->is_status());
+}
+
+void retention_manager::_post_end_merge(uint64_t id, bool is_status) {
   multiplexing::publisher publish;
-  if (to_merge->is_status()) {
+  if (is_status) {
     std::shared_ptr<storage::pb_end_status_merge> to_dispatch =
         std::make_unique<storage::pb_end_status_merge>();
-    to_dispatch->mut_obj().set_index_id(to_merge->id());
+    to_dispatch->mut_obj().set_index_id(id);
     publish.write(to_dispatch);
   } else {
     std::shared_ptr<storage::pb_end_metric_merge> to_dispatch =
         std::make_unique<storage::pb_end_metric_merge>();
-    to_dispatch->mut_obj().set_metric_id(to_merge->id());
+    to_dispatch->mut_obj().set_metric_id(id);
     publish.write(to_dispatch);
   }
 }
@@ -492,10 +503,24 @@ std::optional<
 retention_manager::start_merge(const std::shared_ptr<lib>& rrd_lib,
                                backend* cached_client) {
   absl::MutexLock l(&_data_m);
-  if ((_merging && (_merging_start + _config.merge_time_out) > time(nullptr)) ||
-      _retentions.empty()) {
+  if (_retentions.empty()) {
     return {};
   }
+  if (_merging &&
+      (!_merging_ended ||
+       _merging_ended + static_cast<time_t>(_config.merge_time_out) >
+           time(nullptr))) {
+    return {};
+  }
+
+  if (_merging) {
+    boost::asio::post(
+        *_io_context,
+        [id = _merging->id(), is_status = _merging->is_status(),
+         me = shared_from_this()]() { me->_post_end_merge(id, is_status); });
+    _merging.reset();
+  }
+  _merging_ended = 0;
 
   time_t now = time(nullptr);
   {
