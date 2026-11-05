@@ -112,9 +112,11 @@ BDBTEPWD2
     ${encrypted_passwd}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    ${DBPass}
     Ctn Kindly Stop Broker    only_central=${True}
 
-    # Create engine-context.json with a WRONG app_secret so decryption will fail
+    # Create engine-context.json with a WRONG app_secret and salt so decryption will fail.
+    # The salt keys the HMAC: with the right salt, only the padding check catches the wrong key.
     ${WrongAppSecret}    Set Variable    d3JvbmcgYXBwIHNlY3JldCBmb3IgdGVzdGluZwo=
-    Create File    /etc/centreon-engine/engine-context.json    {"app_secret":"${WrongAppSecret}","salt":"${Salt}"}
+    ${WrongSalt}    Set Variable    d3Jvbmcgc2FsdA==
+    Create File    /etc/centreon-engine/engine-context.json    {"app_secret":"${WrongAppSecret}","salt":"${WrongSalt}"}
 
     # Set the encrypted password (encrypted with correct key, but broker will try to decrypt with wrong key)
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    encrypt::${encrypted_passwd}
