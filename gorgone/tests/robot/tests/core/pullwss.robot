@@ -192,18 +192,19 @@ check poller token revocation
     # Token revoked
     ${response}    PUT    ${revoked_url}/false
     ${response}    PUT    ${expired_url}/null
+    # Captured only now (after the PUTs return): a legitimate rejection (still revoked) logged
+    # between an earlier capture and the PUT taking effect would otherwise count as a new one.
+    ${central_lines}    Run    wc -l < ${central_log_file}
+    ${poller_lines}    Run    wc -l < ${poller_log_file}
     Sleep    ${sleep}
     # The poller is connected
     Check Poller Is Connected    port=${port}    expected_nb=2
-    # start_date is taken only now (reconnect already confirmed with the valid token): with the
-    # backoff from MON-214281, a rejected retry can still land during the revoked period, and an
-    # earlier start_date (pre-PUT) can sweep it in through Ctn Find In Log With Timeout's
-    # second-precision date matching.
-    ${start_date}    Get Current Date
-    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
-    Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
-    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
-    Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
+    # A line-count diff, not a date search: the backoff can land a rejected retry close enough to
+    # the PUT above that second-precision timestamps can't reliably tell them apart.
+    ${central_new}    Run    tail -n +$((${central_lines} + 1)) ${central_log_file} | grep 'invalid token' | wc -l
+    Should Be Equal As Integers    ${central_new}    0    central rejected the token after the un-revoke
+    ${poller_new}    Run    tail -n +$((${poller_lines} + 1)) ${poller_log_file} | grep -E 'invalid token|websocket closed with status' | wc -l
+    Should Be Equal As Integers    ${poller_new}    0    poller saw a rejection after the un-revoke
     # Token revoked
     ${start_date}    Get Current Date    increment=-1s
     ${response}    PUT    ${expired_url}/true
