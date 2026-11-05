@@ -303,6 +303,49 @@ TEST_F(RetentionFile, MergeKeepsRrdData) {
 }
 
 /**
+ * The last update of the rrd file is in the middle of a row: the data of this
+ * row not yet consolidated (cdp_prep) are kept by the merge, so the row mixes
+ * the values written before and after the merge.
+ */
+TEST_F(RetentionFile, MergeKeepsRowInProgress) {
+  const uint64_t base = base_time();
+  const uint64_t row_start = base + 10 * interval;
+  const fs::path rrd_path = _tmp.path / "12.rrd";
+
+  // real-time data every 10s, the last one in the middle of the row
+  // ]row_start + interval, row_start + 2 * interval]
+  std::vector<std::pair<uint64_t, double>> rt;
+  for (uint64_t ts = row_start + 10; ts <= row_start + interval + 30; ts += 10)
+    rt.emplace_back(ts, 5.0);
+  write_rrd(rrd_path, rt);
+  ASSERT_EQ(lib::last_update(rrd_path),
+            static_cast<time_t>(row_start + interval + 30));
+
+  retention_file f(_tmp.path, make_metric(12, base, 1.0));
+  f.add_metric(make_metric(12, base + interval, 1.0));
+  lib l("", 0);
+  f.merge(rrd_path, l);
+  ASSERT_EQ(lib::last_update(rrd_path),
+            static_cast<time_t>(row_start + interval + 30));
+
+  // real-time data after the merge, until the end of the row
+  lib rt_lib("", 0);
+  rt_lib.open(rrd_path);
+  for (uint64_t ts = row_start + interval + 40;
+       ts <= row_start + 2 * interval + 10; ts += 10)
+    rt_lib.update(ts, "7.000000");
+
+  auto values = fetch(rrd_path, base, row_start + 2 * interval);
+  ASSERT_TRUE(values.count(base + interval));
+  EXPECT_DOUBLE_EQ(values[base + interval], 1.0);
+  ASSERT_TRUE(values.count(row_start + interval));
+  EXPECT_DOUBLE_EQ(values[row_start + interval], 5.0);
+  // 30s at 5.0 written before the merge, 30s at 7.0 written after
+  ASSERT_TRUE(values.count(row_start + 2 * interval));
+  EXPECT_DOUBLE_EQ(values[row_start + 2 * interval], 6.0);
+}
+
+/**
  * When the rrd file and the retention have a value for the same row, the one
  * of the rrd file (real-time data) is kept.
  */

@@ -141,6 +141,8 @@ class retention_manager
 
   void _init();
 
+  static retention_cont _make_retention_cont(uint32_t threshold);
+
   void _update_config(const retention_config& config);
 
   void _merge(const std::shared_ptr<retention_file>& to_merge,

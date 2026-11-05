@@ -209,11 +209,13 @@ void stream<T>::update() {
  * @brief Write a metric point in its rrd file, the file is created if it
  * doesn't exist.
  *
- * @param m The metric point, its time must be newer than the last update of
- * the rrd file.
+ * @param m The metric point.
+ *
+ * @return false if the point is not written because its time is not after
+ * the last update of the rrd file, true otherwise.
  */
 template <typename T>
-void stream<T>::append_metric_to_rrd(const Metric& m) {
+bool stream<T>::append_metric_to_rrd(const Metric& m) {
   // Metric path.
   auto metric_path = _metrics_path / fmt::format("{}.rrd", m.metric_id());
   try {
@@ -257,18 +259,20 @@ void stream<T>::append_metric_to_rrd(const Metric& m) {
       break;
   }
 
-  _backend.update(m.time(), v);
+  return _backend.try_update(m.time(), v);
 }
 
 /**
  * @brief Write a status point in its rrd file (OK=100, WARNING=75,
  * CRITICAL=0, other=unknown), the file is created if it doesn't exist.
  *
- * @param s The status point, its time must be newer than the last update of
- * the rrd file.
+ * @param s The status point.
+ *
+ * @return false if the point is not written because its time is not after
+ * the last update of the rrd file, true otherwise.
  */
 template <typename T>
-void stream<T>::append_status_to_rrd(const Status& s) {
+bool stream<T>::append_status_to_rrd(const Status& s) {
   auto status_path = _status_path / fmt::format("{}.rrd", s.index_id());
   const std::string* value;
   using namespace std::string_literals;
@@ -297,7 +301,7 @@ void stream<T>::append_status_to_rrd(const Status& s) {
     assert(s.rrd_len());
     _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
   }
-  _backend.update(s.time(), *value);
+  return _backend.try_update(s.time(), *value);
 }
 
 /**
@@ -354,11 +358,19 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
                               m.metric_id(), m.time());
           break;
         }
-        uint64_t last_update = get_last_metric_latest_current(m.metric_id());
-        if (last_update < m.time()) {
-          append_metric_to_rrd(m);
+        // When the last update of the rrd file is not known yet, the point is
+        // written and rrd rejects it if it is too old: this avoids reading
+        // the file (and an rrdcached flush) for each new metric.
+        uint64_t last_update =
+            get_last_metric_latest_current(m.metric_id(), false);
+        bool written = false;
+        if (!last_update || last_update < m.time())
+          written = append_metric_to_rrd(m);
+        if (written) {
           _metric_latest_current[m.metric_id()] = m.time();
         } else {  // we receive an old metric => retention if enabled
+          if (!last_update)  // now we need the last update of the rrd file
+            get_last_metric_latest_current(m.metric_id(), true);
           if (_retention->enabled()) {
             _retention->write_metric(m);
           }
@@ -403,11 +415,18 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           break;
         }
 
-        uint64_t last_update = get_last_status_latest_current(s.index_id());
-        if (last_update < s.time()) {
-          append_status_to_rrd(s);
+        // Same as metrics: the point is written when the last update of the
+        // rrd file is not known yet.
+        uint64_t last_update =
+            get_last_status_latest_current(s.index_id(), false);
+        bool written = false;
+        if (!last_update || last_update < s.time())
+          written = append_status_to_rrd(s);
+        if (written) {
           _status_latest_current[s.index_id()] = s.time();
-        } else {  // we receive an old metric => retention if enabled
+        } else {  // we receive an old status => retention if enabled
+          if (!last_update)  // now we need the last update of the rrd file
+            get_last_status_latest_current(s.index_id(), true);
           if (_retention->enabled()) {
             _retention->write_status(s);
           }
@@ -845,16 +864,23 @@ void stream<T>::_write_postponed(rebuild_entry& entry,
  * cleared when the file is replaced (merge, rebuild, removal).
  *
  * @param id The metric identifier.
+ * @param search_in_rrd_file If the value is not known, read it from the rrd
+ * file (after an rrdcached flush), else return 0.
  *
- * @return The last update time, 0 if the rrd file doesn't exist.
+ * @return The last update time, 0 if it is not known or the rrd file doesn't
+ * exist.
  */
 template <typename T>
-uint64_t stream<T>::get_last_metric_latest_current(uint64_t id) {
+uint64_t stream<T>::get_last_metric_latest_current(uint64_t id,
+                                                   bool search_in_rrd_file) {
   auto last_recorded = _metric_latest_current.find(id);
   if (last_recorded != _metric_latest_current.end()) {
     return last_recorded->second;
   }
 
+  if (!search_in_rrd_file) {
+    return 0;
+  }
   std::filesystem::path rrd_path = _metrics_path / fmt::format("{}.rrd", id);
   // For rrdcached: flush pending writes to disk before reading.
   //    _backend.pre_merge_flush is thread-safe (socket mutex inside cached<T>).
@@ -874,14 +900,22 @@ uint64_t stream<T>::get_last_metric_latest_current(uint64_t id) {
  * status, the value is kept in _status_latest_current.
  *
  * @param id The index identifier.
+ * @param search_in_rrd_file If the value is not known, read it from the rrd
+ * file (after an rrdcached flush), else return 0.
  *
- * @return The last update time, 0 if the rrd file doesn't exist.
+ * @return The last update time, 0 if it is not known or the rrd file doesn't
+ * exist.
  */
 template <typename T>
-uint64_t stream<T>::get_last_status_latest_current(uint64_t id) {
+uint64_t stream<T>::get_last_status_latest_current(uint64_t id,
+                                                   bool search_in_rrd_file) {
   auto last_recorded = _status_latest_current.find(id);
   if (last_recorded != _status_latest_current.end()) {
     return last_recorded->second;
+  }
+
+  if (!search_in_rrd_file) {
+    return 0;
   }
 
   std::filesystem::path rrd_path = _status_path / fmt::format("{}.rrd", id);

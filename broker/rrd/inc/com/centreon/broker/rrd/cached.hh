@@ -273,6 +273,32 @@ class cached : public backend {
    *  @param[in] value Associated value.
    */
   void update(time_t t, std::string const& value) override {
+    _update(t, value, true);
+  }
+
+  /**
+   * @brief Same as update(), except that a value too old for the file is only
+   * logged at debug level.
+   *
+   * @return false if t is not after the last update known by rrdcached, true
+   * otherwise.
+   */
+  bool try_update(time_t t, std::string const& value) override {
+    return _update(t, value, false);
+  }
+
+  /**
+   * @brief Send an UPDATE command to rrdcached.
+   *
+   * @param t Timestamp of value.
+   * @param value Associated value.
+   * @param log_too_old Log a value too old for the file as an error.
+   *
+   * @return false if t is not after the last update known by rrdcached, true
+   * otherwise.
+   * @throw exceptions::update on any other rrdcached error.
+   */
+  bool _update(time_t t, std::string const& value, bool log_too_old) {
     absl::MutexLock l(&_protect);
     // Build rrdcached command.
     std::string cmd(fmt::format("UPDATE {} {}:{}\n", _filename, t, value));
@@ -284,10 +310,15 @@ class cached : public backend {
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
-      else
-        _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+      if (log_too_old)
+        SPDLOG_LOGGER_ERROR(_logger,"RRD: ignored update error in file '{}': {}", _filename,
                        e.what() + 5);
+      else
+        SPDLOG_LOGGER_DEBUG(_logger, "RRD: value too old for file '{}': {}",
+                            _filename, e.what() + 5);
+      return false;
     }
+    return true;
   }
 
   void update(const std::deque<std::string>& pts) override {

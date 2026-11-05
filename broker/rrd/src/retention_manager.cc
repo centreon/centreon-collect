@@ -41,13 +41,7 @@ retention_manager::retention_manager(
       _io_context(io_context),
       _logger(logger),
       _retentions(
-          boost::make_tuple(retention_cont::nth_index<0>::type::ctor_args(),
-                            retention_cont::nth_index<1>::type::ctor_args(),
-                            retention_cont::nth_index<2>::type::ctor_args(),
-                            retention_cont::nth_index<3>::type::ctor_args(
-                                proportional_activity_extractor(
-                                    config.proportional_activity_threshold),
-                                std::less<time_t>()))) {}
+          _make_retention_cont(config.proportional_activity_threshold)) {}
 
 static absl::Mutex _instance_m;
 static std::shared_ptr<retention_manager> _instance
@@ -116,10 +110,19 @@ void retention_manager::reset() {
 void retention_manager::_update_config(const retention_config& config) {
   absl::MutexLock l(&_data_m);
   _config.merge_samples_threshold = config.merge_samples_threshold;
-  _config.proportional_activity_threshold =
-      config.proportional_activity_threshold;
   _config.orphan_interval = config.orphan_interval;
   _config.merge_retry_delay = config.merge_retry_delay;
+  if (_config.proportional_activity_threshold !=
+      config.proportional_activity_threshold) {
+    _config.proportional_activity_threshold =
+        config.proportional_activity_threshold;
+    // index 3 is sorted with the threshold given to its extractor, it can't be
+    // changed in place: the container is rebuilt with a new extractor
+    retention_cont rebuilt(
+        _make_retention_cont(config.proportional_activity_threshold));
+    rebuilt.insert(_retentions.begin(), _retentions.end());
+    _retentions.swap(rebuilt);
+  }
 }
 
 /**
@@ -171,6 +174,16 @@ void retention_manager::_init() {
     scan_dir(_config.metrics_dir);
     scan_dir(_config.status_dir);
   }
+}
+
+retention_manager::retention_cont retention_manager::_make_retention_cont(
+    uint32_t threshold) {
+  return retention_cont(boost::make_tuple(
+      retention_cont::nth_index<0>::type::ctor_args(),
+      retention_cont::nth_index<1>::type::ctor_args(),
+      retention_cont::nth_index<2>::type::ctor_args(),
+      retention_cont::nth_index<3>::type::ctor_args(
+          proportional_activity_extractor(threshold), std::less<time_t>())));
 }
 
 /**

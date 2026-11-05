@@ -51,6 +51,7 @@ class lib : public backend {
             bool without_cache = false) override;
   void remove(const std::filesystem::path& filename) override;
   void update(time_t t, std::string const& value) override;
+  bool try_update(time_t t, std::string const& value) override;
   void update(const std::deque<std::string>& pts) override;
 
   static time_t last_update(const std::filesystem::path& filename);

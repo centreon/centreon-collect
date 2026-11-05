@@ -83,8 +83,8 @@ class stream : public io::stream {
   void _rebuild_data(const RebuildMessage& rm);
   void _write_postponed(rebuild_entry& entry, uint64_t id, bool is_status);
 
-  uint64_t get_last_metric_latest_current(uint64_t id);
-  uint64_t get_last_status_latest_current(uint64_t id);
+  uint64_t get_last_metric_latest_current(uint64_t id, bool search_in_rrd_file);
+  uint64_t get_last_status_latest_current(uint64_t id, bool search_in_rrd_file);
 
  public:
   stream(std::filesystem::path metrics_path,
@@ -117,8 +117,8 @@ class stream : public io::stream {
   uint32_t write(std::shared_ptr<io::data> const& d) override;
   uint32_t stop() override { return 0; }
 
-  void append_metric_to_rrd(const Metric& metric);
-  void append_status_to_rrd(const Status& status);
+  bool append_metric_to_rrd(const Metric& metric);
+  bool append_status_to_rrd(const Status& status);
 };
 
 }  // namespace rrd

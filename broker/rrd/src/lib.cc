@@ -133,15 +133,35 @@ void lib::remove(const std::filesystem::path& filename) {
 /**
  *  Update the RRD file with new value.
  *
+ *  A value whose time is not after the last update of the file is ignored
+ *  with an error log, see try_update().
+ *
  *  @param[in] t     Timestamp of value.
  *  @param[in] value Associated value.
  */
 void lib::update(time_t t, std::string const& value) {
+  if (!try_update(t, value))
+    _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+                   rrd_get_error());
+}
+
+/**
+ * @brief Update the RRD file with a new value, a value too old for the file
+ * is not written and only logged at debug level.
+ *
+ * @param t Timestamp of value.
+ * @param value Associated value, an empty value is ignored with an error log.
+ *
+ * @return false if t is not after the last update of the file, true
+ * otherwise.
+ * @throw exceptions::update on any other librrd error.
+ */
+bool lib::try_update(time_t t, std::string const& value) {
   // Build argument string.
   if (value == "") {
     _logger->error("RRD: ignored update non-float value '{}' in file '{}'",
                    value, _filename);
-    return;
+    return true;
   }
 
   std::string arg(fmt::format("{}:{}", t, value));
@@ -159,14 +179,16 @@ void lib::update(time_t t, std::string const& value) {
   if (rrd_update_r(_filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1,
                    argv)) {
     char const* msg(rrd_get_error());
-    if (!strstr(msg, "illegal attempt to update using time"))
+    if (!strstr(msg, "illegal attempt to update using time")) {
       _logger->error("RRD: failed to update value in file '{}': {}", _filename,
                      msg);
-
-    else
-      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
-                     msg);
+      throw exceptions::update(msg);
+    }
+    SPDLOG_LOGGER_DEBUG(_logger, "RRD: value too old for file '{}': {}",
+                        _filename, msg);
+    return false;
   }
+  return true;
 }
 
 void lib::update(const std::deque<std::string>& pts) {
