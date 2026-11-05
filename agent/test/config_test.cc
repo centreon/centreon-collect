@@ -152,7 +152,7 @@ TEST(config, old_fields) {
 
   config conf(_json_config_path);  // Declare and initialize conf
 
-  ASSERT_EQ(conf.get_ca_certificate_file(), "/path/to/ca.crt");
+  ASSERT_EQ(conf.get_ca_certificate_file().string(), "/path/to/ca.crt");
   ASSERT_EQ(conf.get_ca_name(), "toto");
 }
 
@@ -175,6 +175,6 @@ TEST(config, new_fields) {
 
   config conf(_json_config_path);  // Declare and initialize conf
 
-  ASSERT_EQ(conf.get_ca_certificate_file(), "/path/to/ca.crt");
+  ASSERT_EQ(conf.get_ca_certificate_file().string(), "/path/to/ca.crt");
   ASSERT_EQ(conf.get_ca_name(), "toto");
 }

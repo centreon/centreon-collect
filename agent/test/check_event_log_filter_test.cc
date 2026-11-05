@@ -107,6 +107,47 @@ TEST(eventlog_filter, provider) {
 }
 
 /**
+ * @brief Given filters with accented values, raw events (UTF-16) and stored
+ * events (UTF-8) are matched the same way
+ *
+ */
+TEST(eventlog_filter, provider_non_ascii) {
+  event_filter raw_filter(event_filter::raw_data_tag(),
+                          "provider == 'Tâche planifiée'",
+                          spdlog::default_logger());
+  event_filter raw_filter_in(event_filter::raw_data_tag(),
+                             "provider in ('Tâche planifiée', 'Москва')",
+                             spdlog::default_logger());
+  event_filter evt_filter(event_filter::event_tag(),
+                          "provider == 'Tâche planifiée'",
+                          spdlog::default_logger());
+
+  mock_event_data data;
+  data.event_id = 1;
+  data.level = 2;
+  data.task = 0;
+  data.keywords = 0;
+  data.time_created = 0;
+  data.record_id = 0;
+
+  data.provider = L"Tâche planifiée";
+  EXPECT_TRUE(raw_filter.allow(data));
+  EXPECT_TRUE(raw_filter_in.allow(data));
+
+  event evt(data, std::chrono::file_clock::now(), "");
+  EXPECT_EQ(evt.get_provider(), "Tâche planifiée");
+  EXPECT_TRUE(evt_filter.allow(evt));
+
+  data.provider = L"Москва";
+  EXPECT_FALSE(raw_filter.allow(data));
+  EXPECT_TRUE(raw_filter_in.allow(data));
+
+  data.provider = L"Tache planifiee";
+  EXPECT_FALSE(raw_filter.allow(data));
+  EXPECT_FALSE(raw_filter_in.allow(data));
+}
+
+/**
  * @brief Given filters, we test event_id matching or no
  *
  */

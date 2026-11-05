@@ -59,6 +59,15 @@ TEST(string_check_utf8, cp1252_bis) {
 }
 
 /*
+ * Given a string encoded in CP-1252 containing 0x9B (›), a valid CP-1252 char
+ * Then the check_string_utf8 function converts it as CP-1252.
+ */
+TEST(string_check_utf8, cp1252_single_right_angle_quote) {
+  std::string txt("Contr\xf4le \x9b l\xe9galit\xe9");
+  ASSERT_EQ(check_string_utf8(txt), "Contrôle › légalité");
+}
+
+/*
  * Given a string encoded in ISO-8859-15
  * Then the check_string_utf8 function converts it to UTF-8.
  */
@@ -222,4 +231,80 @@ TEST(adjust_size_utf8, utf8_1) {
         check_string_utf8(std::string(sv.data(), sv.data() + sv.size())));
     ASSERT_EQ(sv.size(), tmp.size());
   }
+}
+
+TEST(is_utf8, valid) {
+  ASSERT_TRUE(is_utf8(""));
+  ASSERT_TRUE(is_utf8("ascii"));
+  ASSERT_TRUE(is_utf8("Contrôle Légalité"));
+  ASSERT_TRUE(is_utf8("Москва 東京 📁"));
+}
+
+TEST(is_utf8, invalid) {
+  // cp1252 é
+  ASSERT_FALSE(is_utf8("l\xe9galit\xe9"));
+  // truncated sequence
+  ASSERT_FALSE(is_utf8("contr\xc3"));
+  // overlong '/'
+  ASSERT_FALSE(is_utf8("\xc0\xaf"));
+  // surrogate U+D800
+  ASSERT_FALSE(is_utf8("\xed\xa0\x80"));
+  // above U+10FFFF
+  ASSERT_FALSE(is_utf8("\xf4\x90\x80\x80"));
+}
+
+/*
+ * Given UTF-8 strings with 2, 3 and 4 bytes sequences
+ * Then utf8_to_wstring and wstring_to_utf8 convert them back and forth.
+ */
+TEST(utf8_to_wstring, round_trip) {
+  for (std::string_view str :
+       {"", "ascii", "Contrôle Légalité", "S=Côte-d'Or, C=FR", "Zażółć",
+        "Москва", "東京", "📁 ✅"}) {
+    ASSERT_EQ(wstring_to_utf8(utf8_to_wstring(str)), str);
+  }
+  ASSERT_EQ(utf8_to_wstring("Contrôle Légalité"), L"Contrôle Légalité");
+  ASSERT_EQ(utf8_to_wstring("東京"), L"東京");
+  ASSERT_EQ(utf8_to_wstring("📁"), L"📁");
+  ASSERT_EQ(wstring_to_utf8(L"Contrôle Légalité"), "Contrôle Légalité");
+  ASSERT_EQ(wstring_to_utf8(L"📁"), "📁");
+}
+
+/*
+ * Given an invalid UTF-8 string
+ * Then each invalid byte is replaced by U+FFFD
+ */
+TEST(utf8_to_wstring, invalid) {
+  ASSERT_EQ(utf8_to_wstring("l\xe9galit\xe9"), L"l\xfffdgalit\xfffd");
+  ASSERT_EQ(utf8_to_wstring("contr\xc3"), L"contr\xfffd");
+  ASSERT_EQ(utf8_to_wstring("\xc0\xaf"), L"\xfffd\xfffd");
+  ASSERT_EQ(utf8_to_wstring("\xed\xa0\x80"), L"\xfffd\xfffd\xfffd");
+}
+
+/*
+ * Given a wide string with an unpaired surrogate
+ * Then it is replaced by U+FFFD
+ */
+TEST(wstring_to_utf8, unpaired_surrogate) {
+  std::wstring str{L'a', static_cast<wchar_t>(0xd800), L'b'};
+  ASSERT_EQ(wstring_to_utf8(str),
+            "a\xef\xbf\xbd"
+            "b");
+}
+
+/*
+ * Given a valid UTF-8 string
+ * Then ensure_utf8 returns it unchanged
+ * Given a string in a legacy encoding
+ * Then ensure_utf8 returns a valid UTF-8 string
+ */
+TEST(ensure_utf8, nominal) {
+  ASSERT_EQ(ensure_utf8("Contrôle Légalité"), "Contrôle Légalité");
+  ASSERT_EQ(ensure_utf8("東京"), "東京");
+  ASSERT_TRUE(is_utf8(ensure_utf8("C=FR, S=C\xf4te-d'Or")));
+  ASSERT_TRUE(is_utf8(ensure_utf8("\x81\x8d\x8f\x90\x9d")));
+#ifndef _WIN32
+  // on Windows, result depends on the ANSI code page
+  ASSERT_EQ(ensure_utf8("C=FR, S=C\xf4te-d'Or"), "C=FR, S=Côte-d'Or");
+#endif
 }
