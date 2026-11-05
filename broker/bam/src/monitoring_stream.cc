@@ -576,14 +576,15 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
             "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
             "inheritance\n",
-            now, config::applier::state::instance().poller_id(), dwn.ba_id, now,
-            4102444799);
+            now, config::applier::state::instance().config_poller_id(),
+            dwn.ba_id, now, 4102444799);
       else
         cmd = fmt::format(
             "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
             "inheritance\n",
-            now, config::applier::state::instance().poller_id(), dwn.ba_id);
+            now, config::applier::state::instance().config_poller_id(),
+            dwn.ba_id);
       _write_external_command(cmd);
     } break;
     case pb_inherited_downtime::static_type(): {
@@ -601,14 +602,14 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
             "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
             "inheritance\n",
-            now, config::applier::state::instance().poller_id(),
+            now, config::applier::state::instance().config_poller_id(),
             dwn.obj().ba_id(), now, 4102444799);
       else
         cmd = fmt::format(
             "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
             "Broker BAM Module;Automatic downtime triggered by BA downtime "
             "inheritance\n",
-            now, config::applier::state::instance().poller_id(),
+            now, config::applier::state::instance().config_poller_id(),
             dwn.obj().ba_id());
       _write_external_command(cmd);
     } break;

@@ -37,6 +37,7 @@ state::state()
       _command_protocol{"json"},
       _event_queue_max_size{10000},
       _poller_id{0},
+      _config_poller_id{0},
       _pool_size{0},
       _log_conf{"/var/log/centreon-broker/",
                 log_v2_config::logger_type::LOGGER_FILE, 5u, false, false} {
@@ -65,6 +66,7 @@ state::state(const state& other)
       _module_list(other._module_list),
       _params(other._params),
       _poller_id(other._poller_id),
+      _config_poller_id(other._config_poller_id),
       _poller_name(other._poller_name),
       _pool_size(other._pool_size),
       _log_conf(other._log_conf) {}
@@ -96,6 +98,7 @@ state& state::operator=(state const& other) {
     _module_list = other._module_list;
     _params = other._params;
     _poller_id = other._poller_id;
+    _config_poller_id = other._config_poller_id;
     _poller_name = other._poller_name;
     _pool_size = other._pool_size;
   }
@@ -119,6 +122,7 @@ void state::clear() {
   _module_list.clear();
   _params.clear();
   _poller_id = 0;
+  _config_poller_id = 0;
   _poller_name.clear();
   _pool_size = 0;
 }
@@ -388,6 +392,25 @@ void state::poller_id(uint64_t id) noexcept {
  */
 uint64_t state::poller_id() const noexcept {
   return _poller_id;
+}
+
+/**
+ *  Set the poller ID configured in Centreon (poller_id key).
+ *
+ *  @param[in] id  Poller ID.
+ */
+void state::config_poller_id(uint64_t id) noexcept {
+  _config_poller_id = id;
+}
+
+/**
+ *  Get the poller ID configured in Centreon (poller_id key), which differs
+ *  from poller_id() when the configuration also provides a uid.
+ *
+ *  @return Poller ID, or poller_id() when the poller_id key is not set.
+ */
+uint64_t state::config_poller_id() const noexcept {
+  return _config_poller_id ? _config_poller_id : _poller_id;
 }
 
 /**

@@ -241,7 +241,11 @@ std::shared_ptr<neb::host> applier::ba::_ba_host(uint32_t host_id) {
   h->poller_id =
       com::centreon::broker::config::applier::state::instance().poller_id();
   h->host_id = host_id;
-  h->host_name = fmt::format("_Module_BAM_{}", h->poller_id);
+  // Named after the Centreon poller id, as in the Engine configuration.
+  h->host_name =
+      fmt::format("_Module_BAM_{}",
+                  com::centreon::broker::config::applier::state::instance()
+                      .config_poller_id());
   h->last_update = time(nullptr);
   return h;
 }
@@ -259,7 +263,11 @@ std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint32_t host_id) {
   o.set_instance_id(
       com::centreon::broker::config::applier::state::instance().poller_id());
   o.set_host_id(host_id);
-  o.set_name(fmt::format("_Module_BAM_{}", o.instance_id()));
+  // Named after the Centreon poller id, as in the Engine configuration.
+  o.set_name(
+      fmt::format("_Module_BAM_{}",
+                  com::centreon::broker::config::applier::state::instance()
+                      .config_poller_id()));
   o.set_last_update(time(nullptr));
   o.set_enabled(true);
   return h;
