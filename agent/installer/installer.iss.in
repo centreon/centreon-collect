@@ -505,15 +505,15 @@ end;
 
 
 // Checks if the given path string is a valid Windows absolute path.
-// Returns True if the path matches the expected format and contains only allowed characters.
+// Returns True if the path matches the expected format and contains no character forbidden by Windows
+// (non-ASCII characters such as accented letters are allowed).
 function IsPathValid(Path: string): Boolean;
 var
   I: Integer;
 begin
-  Path := Uppercase(Path);
   Result :=
     (Length(Path) >= 3) and
-    (Path[1] >= 'A') and (Path[1] <= 'Z') and
+    (Uppercase(Path[1]) >= 'A') and (Uppercase(Path[1]) <= 'Z') and
     (Path[2] = ':') and
     (Path[3] = '\');
 
@@ -521,13 +521,10 @@ begin
   begin
     for I := 3 to Length(Path) do
     begin
-      case Path[I] of
-        '0'..'9', 'A'..'Z', '\', ' ', '.', '-', '_', '(', ')':
-          else 
-        begin
-          Result := False;
-          Break;
-        end;
+      if (Ord(Path[I]) < 32) or (Pos(Path[I], '<>:"/|?*') > 0) then
+      begin
+        Result := False;
+        Break;
       end;
     end;
   end;
@@ -2131,7 +2128,7 @@ begin
           end;
           PublicCertWarningBitmapImage.Hint := 'Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).';
           PublicCertWarningBitmapImage.Show;
-          MsgBox('Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
+          MsgBox('Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt). Forbidden characters: < > : " / | ? *', mbError, MB_OK);
           Result := False;
           exit;
         end;
@@ -2144,7 +2141,7 @@ begin
           end;
           PrivateKeyWarningBitmapImage.Hint := 'Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).';
           PrivateKeyWarningBitmapImage.Show;
-          MsgBox('Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
+          MsgBox('Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key). Forbidden characters: < > : " / | ? *', mbError, MB_OK);
           Result := False;
           exit;
         end;
@@ -2158,7 +2155,7 @@ begin
           end;
           CaWarningBitmapImage.Hint := 'Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).';
           CaWarningBitmapImage.Show;
-          MsgBox('Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
+          MsgBox('Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt). Forbidden characters: < > : " / | ? *', mbError, MB_OK);
           Result := False;
           exit;
         end;

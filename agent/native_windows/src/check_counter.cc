@@ -19,32 +19,22 @@
 #include "check_counter.hh"
 #include "check.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/common/utf8.hh"
 
 using namespace com::centreon::agent;
 
-/*
+/**
+ * @brief Lower case a wide string (all letters, not only ASCII ones) and
+ * convert it to UTF-8.
  *
- * @brief Convert a string to a wide string (UTF-16).
- *
- * @param string The input string (UTF-8).
- * @return The converted wide string (UTF-16).
+ * @param str The wide string.
+ * @return The lower case UTF-8 string.
  */
-std::wstring string_to_wide_string(const std::string& string) {
-  if (string.empty()) {
-    return L"";
+static std::string _to_lower_utf8(std::wstring str) {
+  if (!str.empty()) {
+    CharLowerBuffW(str.data(), static_cast<DWORD>(str.size()));
   }
-
-  const auto size_needed = MultiByteToWideChar(CP_UTF8, 0, string.data(),
-                                               (int)string.size(), nullptr, 0);
-  if (size_needed <= 0) {
-    throw std::runtime_error("MultiByteToWideChar() failed: " +
-                             std::to_string(size_needed));
-  }
-
-  std::wstring result(size_needed, 0);
-  MultiByteToWideChar(CP_UTF8, 0, string.data(), (int)string.size(),
-                      result.data(), size_needed);
-  return result;
+  return com::centreon::common::wstring_to_utf8(str);
 }
 
 /**
@@ -157,16 +147,17 @@ check_counter::~check_counter() {}
     throw std::runtime_error("Failed to open pdh query for counter: " +
                              counter_name);
   }
-  // for english, we use the PdhAddEnglishCounterA function
+  // counter_name is UTF-8, so we use the wide functions
+  // for english, we use the PdhAddEnglishCounterW function
   // for other language, we use the PdhAddCounterW function
+  std::wstring wide_counter_name =
+      com::centreon::common::utf8_to_wstring(counter_name);
   if (use_english) {
-    if (PdhAddEnglishCounterA(query, counter_name.c_str(), 0,
+    if (PdhAddEnglishCounterW(query, wide_counter_name.c_str(), 0,
                               &counter_metric) != ERROR_SUCCESS) {
       throw std::runtime_error("Failed to add counter: " + counter_name);
     }
   } else {
-    // convert to widestring :: needed for language with é, è, ê,â etc.
-    std::wstring wide_counter_name = string_to_wide_string(counter_name);
     if (PdhAddCounterW(query, wide_counter_name.c_str(), 0, &counter_metric) !=
         ERROR_SUCCESS) {
       throw std::runtime_error("Failed to add counterW: " + counter_name);
@@ -254,29 +245,30 @@ bool check_counter::pdh_snapshot(bool first_measure) {
   if (_have_multi_return) {
     DWORD bufferSize = 0;
     DWORD itemCount = 0;
-    PDH_FMT_COUNTERVALUE_ITEM* pItems = NULL;
+    PDH_FMT_COUNTERVALUE_ITEM_W* pItems = NULL;
 
     // Get the size of the buffer needed for the counter array.
-    status = PdhGetFormattedCounterArray(_pdh_counter->counter_metric,
-                                         PDH_FMT_DOUBLE, &bufferSize,
-                                         &itemCount, nullptr);
+    // instance names are read as UTF-16 and stored as UTF-8 as they become
+    // metric names
+    status = PdhGetFormattedCounterArrayW(_pdh_counter->counter_metric,
+                                          PDH_FMT_DOUBLE, &bufferSize,
+                                          &itemCount, nullptr);
     if (status != PDH_MORE_DATA) {
       throw std::runtime_error("Failed to get buffer size for counter array");
     }
 
     // Allocate the buffer for the counter array.
-    pItems = (PDH_FMT_COUNTERVALUE_ITEM*)malloc(bufferSize);
+    pItems = (PDH_FMT_COUNTERVALUE_ITEM_W*)malloc(bufferSize);
     if (pItems) {
-      status = PdhGetFormattedCounterArray(_pdh_counter->counter_metric,
-                                           PDH_FMT_DOUBLE, &bufferSize,
-                                           &itemCount, pItems);
+      status = PdhGetFormattedCounterArrayW(_pdh_counter->counter_metric,
+                                            PDH_FMT_DOUBLE, &bufferSize,
+                                            &itemCount, pItems);
       if (ERROR_SUCCESS == status) {
         // Loop through the array and store the instance name and counter
         // value.
         for (DWORD i = 0; i < itemCount; i++) {
           // transform the instance name to lower case
-          std::string key = pItems[i].szName;
-          std::ranges::transform(key, key.begin(), ::tolower);
+          std::string key = _to_lower_utf8(pItems[i].szName);
           if (_use_all_data ||
               _perf_filter_list.find(key) != _perf_filter_list.end()) {
             _data_counter._map[key] = pItems[i].FmtValue.doubleValue;
@@ -771,10 +763,9 @@ void check_counter::_calc_counter_filter(const std::string_view& param) {
     return;
   }
   for (std::string_view label : absl::StrSplit(param, ',')) {
-    // make sure to transform the label to lower case
-    std::string lower_label(label);
-    std::ranges::transform(lower_label, lower_label.begin(), ::tolower);
-    _perf_filter_list.insert(std::move(lower_label));
+    // make sure to transform the label to lower case as instance names
+    _perf_filter_list.insert(
+        _to_lower_utf8(com::centreon::common::utf8_to_wstring(label)));
   }
   _use_all_data = _perf_filter_list.find("any") != _perf_filter_list.end();
 }

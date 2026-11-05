@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/common/utf8.hh"
 #include "windows_util.hh"
 
 #include "filter.hh"
@@ -324,7 +325,8 @@ void event_filter::check_builder<data_tag_type>::set_label_compare_to_string(
   } else if (filt->get_label() == "level") {
     uint8_t level;
     if constexpr (std::is_same_v<data_tag_type, raw_data_tag>) {
-      level = str_to_level(lpwcstr_to_acp(filt->get_value().c_str()));
+      level = str_to_level(
+          com::centreon::common::wstring_to_utf8(filt->get_value()));
     } else {
       level = str_to_level(filt->get_value());
     }
@@ -517,9 +519,11 @@ event::event(const event_data& raw_data,
       _time(tp),
       _audit(raw_data.get_keywords()),
       _level(raw_data.get_level()),
-      _computer(lpwcstr_to_acp(raw_data.get_computer().data())),
-      _channel(lpwcstr_to_acp(raw_data.get_channel().data())),
-      _provider(lpwcstr_to_acp(raw_data.get_provider().data())),
+      _computer(
+          com::centreon::common::wstring_to_utf8(raw_data.get_computer())),
+      _channel(com::centreon::common::wstring_to_utf8(raw_data.get_channel())),
+      _provider(
+          com::centreon::common::wstring_to_utf8(raw_data.get_provider())),
       _message(message) {
   std::string keywords;
   if (raw_data.get_keywords() & _keywords_audit_success) {

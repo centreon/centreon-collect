@@ -156,7 +156,7 @@ TEST(config, old_fields) {
 
   config conf(_json_config_path);  // Declare and initialize conf
 
-  ASSERT_EQ(conf.get_ca_certificate_file(), "/path/to/ca.crt");
+  ASSERT_EQ(conf.get_ca_certificate_file().string(), "/path/to/ca.crt");
   ASSERT_EQ(conf.get_ca_name(), "toto");
 }
 
@@ -179,7 +179,7 @@ TEST(config, new_fields) {
 
   config conf(_json_config_path);  // Declare and initialize conf
 
-  ASSERT_EQ(conf.get_ca_certificate_file(), "/path/to/ca.crt");
+  ASSERT_EQ(conf.get_ca_certificate_file().string(), "/path/to/ca.crt");
   ASSERT_EQ(conf.get_ca_name(), "toto");
 }
 
@@ -199,7 +199,8 @@ TEST(config, custom_checks) {
 
   config conf(_json_config_path);  // Declare and initialize conf
 
-  ASSERT_EQ(conf.get_path_to_custom_checks(), "./tests/custom_check.ini");
+  ASSERT_EQ(conf.get_path_to_custom_checks().string(),
+            "./tests/custom_check.ini");
   conf.read_custom_checks();
 
   const auto& custom_checks = conf.get_custom_checks();
@@ -323,4 +324,34 @@ TEST(config, custom_check_command_refreshed_after_reload) {
   ASSERT_EQ(after_reload->get_process_args()->get_args(), arg_two);
 
   ::remove(_custom_checks_ini_path.c_str());
+}
+TEST(config, custom_checks_utf8_bom) {
+  write_custom_checks_config(
+      "\xEF\xBB\xBF[custom_checks]\ncheck_echo=/usr/bin/echo Contrôle\n");
+
+  config conf(_json_config_path);
+  ASSERT_TRUE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().size(), 1);
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"),
+            "/usr/bin/echo Contrôle");
+
+  // BOM followed by a command on the first line
+  {
+    std::ofstream ini_f(_custom_checks_ini_path);
+    ini_f << "\xEF\xBB\xBF"
+             "check_echo=/usr/bin/echo one\n";
+  }
+  ASSERT_TRUE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().size(), 1);
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"), "/usr/bin/echo one");
+}
+
+TEST(config, custom_checks_not_utf8) {
+  // file saved in a legacy encoding (cp1252)
+  write_custom_checks_config("check_echo=/usr/bin/echo Contr\xf4le\n");
+
+  config conf(_json_config_path);
+  ASSERT_TRUE(conf.read_custom_checks());
+  ASSERT_EQ(conf.get_custom_checks().at("check_echo"),
+            "/usr/bin/echo Contrôle");
 }

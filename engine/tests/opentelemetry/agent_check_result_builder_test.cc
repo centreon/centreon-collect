@@ -25,6 +25,7 @@
 #include "opentelemetry/proto/common/v1/common.pb.h"
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
+#include "com/centreon/common/perfdata.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_check_result_builder.hh"
 
 #include "test_engine.hh"
@@ -421,4 +422,81 @@ TEST_F(otl_agent_check_result_builder_test, test_svc_builder_2) {
   };
 
   ASSERT_PRED1(compare_to_excepted, res.get_output());
+}
+
+static const char* agent_quoted_label_exemple = R"(
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "host.name", "value": { "stringValue": "test_host" } },
+          { "key": "service.name", "value": { "stringValue": "test_svc_cert" } }
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "metrics": [
+            {
+              "name": "status",
+              "description": "certificate ok",
+              "gauge": {
+                "dataPoints": [
+                  { "timeUnixNano": "1718345061381922153", "asInt": "0" }
+                ]
+              }
+            },
+            {
+              "name": "C=FR, S=Côte-d'Or#cert.expires",
+              "unit": "s",
+              "gauge": {
+                "dataPoints": [
+                  { "timeUnixNano": "1718345061381922153", "asInt": "123" }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+)";
+
+/**
+ * Given a metric whose name contains spaces, equal signs and a quote
+ * Then the perfdata label is quoted with its quote doubled, so that it is
+ * parsed back to the same name
+ */
+TEST_F(otl_agent_check_result_builder_test, test_svc_builder_quoted_label) {
+  metric_request_ptr request =
+      std::make_shared< ::opentelemetry::proto::collector::metrics::v1::
+                            ExportMetricsServiceRequest>();
+  ASSERT_TRUE(::google::protobuf::util::JsonStringToMessage(
+                  agent_quoted_label_exemple, request.get())
+                  .ok());
+
+  metric_to_datapoints received;
+  otl_data_point::extract_data_points(
+      request, [&](const otl_data_point& data_pt) {
+        received[data_pt.get_metric().name()].insert(data_pt);
+      });
+
+  auto check_result_builder = otl_check_result_builder::create(
+      "--processor=centreon_agent", spdlog::default_logger());
+
+  check_result res;
+  ASSERT_TRUE(check_result_builder->build_result_from_metrics(received, res));
+  ASSERT_EQ(res.get_output(),
+            "certificate ok| 'C=FR, S=Côte-d''Or#cert.expires'=123s;;;;");
+
+  std::string_view perfdata(res.get_output());
+  perfdata.remove_prefix(perfdata.find('|') + 1);
+  std::list<com::centreon::common::perfdata> parsed =
+      com::centreon::common::perfdata::parse_perfdata(
+          0, 0, std::string(perfdata).c_str(), spdlog::default_logger());
+  ASSERT_EQ(parsed.size(), 1u);
+  ASSERT_EQ(parsed.begin()->name(), "C=FR, S=Côte-d'Or#cert.expires");
+  ASSERT_EQ(parsed.begin()->value(), 123);
+  ASSERT_EQ(parsed.begin()->unit(), "s");
 }

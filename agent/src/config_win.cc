@@ -18,6 +18,7 @@
 
 #include <windows.h>
 
+#include "com/centreon/common/utf8.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
@@ -42,14 +43,29 @@ config::config(const std::string& registry_key) {
     }
   }
 
-  char str_buffer[4096];
+  wchar_t wstr_buffer[4096];
 
+  // strings are read as UTF-16, as the installer writes them
+  // returns nullptr if the value is absent
+  auto get_wsz_reg = [&](const char* value_name) -> const wchar_t* {
+    DWORD size = sizeof(wstr_buffer);
+    LSTATUS result = RegGetValueW(h_key, nullptr,
+                                  common::utf8_to_wstring(value_name).c_str(),
+                                  RRF_RT_REG_SZ, nullptr, wstr_buffer, &size);
+    return (result == ERROR_SUCCESS) ? wstr_buffer : nullptr;
+  };
+
+  // file paths are kept in UTF-16, the native encoding of Windows paths
+  auto get_path_reg = [&](const char* value_name) -> std::filesystem::path {
+    const wchar_t* value = get_wsz_reg(value_name);
+    return value ? std::filesystem::path(value) : std::filesystem::path();
+  };
+
+  // other strings are sent to the engine or compared to UTF-8 strings
   auto get_sz_reg_or_default = [&](const char* value_name,
-                                   const char* default_value) {
-    DWORD size = sizeof(str_buffer);
-    LSTATUS result = RegGetValueA(h_key, nullptr, value_name, RRF_RT_REG_SZ,
-                                  nullptr, str_buffer, &size);
-    return (result == ERROR_SUCCESS) ? str_buffer : default_value;
+                                   const char* default_value) -> std::string {
+    const wchar_t* value = get_wsz_reg(value_name);
+    return value ? common::wstring_to_utf8(value) : std::string(default_value);
   };
 
   auto get_bool = [&](const char* value_name) -> bool {
@@ -82,16 +98,16 @@ config::config(const std::string& registry_key) {
   _log_level =
       spdlog::level::from_str(get_sz_reg_or_default("log_level", "info"));
 
-  const char* log_type = get_sz_reg_or_default("log_type", "event-log");
-  if (!strcmp(log_type, "file")) {
+  std::string log_type = get_sz_reg_or_default("log_type", "event-log");
+  if (log_type == "file") {
     _log_type = to_file;
-  } else if (!strcmp(log_type, "stdout")) {
+  } else if (log_type == "stdout") {
     _log_type = to_stdout;
   } else {
     _log_type = to_event_log;
   }
 
-  _log_file = get_sz_reg_or_default("log_file", "");
+  _log_file = get_path_reg("log_file");
   _log_max_file_size = get_unsigned("log_max_file_size");
   _log_max_files = get_unsigned("log_max_files");
   std::string encryption = get_sz_reg_or_default("encryption", "no");
@@ -108,18 +124,19 @@ config::config(const std::string& registry_key) {
         "are: full, insecure, no",
         encryption);
   }
-  _public_cert_file = get_sz_reg_or_default("public_cert", "");
-  _private_key_file = get_sz_reg_or_default("private_key", "");
-  _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
+  _public_cert_file = get_path_reg("public_cert");
+  _private_key_file = get_path_reg("private_key");
+  _ca_certificate_file = get_path_reg("ca_certificate");
   _ca_name = get_sz_reg_or_default("ca_name", "");
   _ca_fingerprint = get_sz_reg_or_default("fingerprint", "");
-  _host = get_sz_reg_or_default("host", "");
+  // host and host_template are sent in protobuf strings that must be UTF-8
+  _host = common::ensure_utf8(get_sz_reg_or_default("host", ""));
   if (_host.empty()) {
-    _host = boost::asio::ip::host_name();
+    _host = common::ensure_utf8(boost::asio::ip::host_name());
   }
 
-  _host_template = get_sz_reg_or_default(
-      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom");
+  _host_template = common::ensure_utf8(get_sz_reg_or_default(
+      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom"));
 
   _reverse_connection = get_bool("reversed_grpc_streaming");
   _second_max_reconnect_backoff =
@@ -132,7 +149,7 @@ config::config(const std::string& registry_key) {
   else
     _token = get_sz_reg_or_default("token", "");
 
-  _path_to_custom_checks = get_sz_reg_or_default("custom_check_file", "");
+  _path_to_custom_checks = get_path_reg("custom_check_file");
 
   RegCloseKey(h_key);
 }

@@ -54,7 +54,7 @@ struct file_metadata : public testable {
   file_metadata& operator=(const file_metadata&) = delete;
 
   file_metadata(
-      const std::string& file_path,
+      const fs::path& file_path,
       bool line_count_needed,
       const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
           files_metadata);
