@@ -83,7 +83,7 @@ BEBAMIDT3
     Ctn Config Broker    module
     Ctn Config Broker    central
     # The uid replaces poller_id in Broker; the BA virtual host keeps the poller id
-    Ctn Broker Config Add Item    central    uid    ${376659861007501406}
+    Ctn Broker Config Add Item    central    uid    ${12345}
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    bam    trace
     Ctn Config Engine    ${1}
@@ -93,6 +93,10 @@ BEBAMIDT3
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Ctn Create Ba With Services    test    worst    ${svc}
+    # Centreon stores the poller uid in the BA poller relations
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute Sql String    UPDATE mod_bam_poller_relations SET poller_id=12345
+    Disconnect From Database
     Ctn Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Ctn Get Service Command Id    314
