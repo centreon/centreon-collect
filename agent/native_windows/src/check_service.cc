@@ -336,6 +336,7 @@ void w_service_info::dump_to_output(std::string* output) const {
 /**
  * @brief Constructor that initializes the service filter based on the provided
  * arguments.
+ * Empty filters (unset macros) are ignored.
  * @param args JSON value containing the plugin config.
  * @throws exceptions::msg_fmt if any of the filter parameters are invalid.
  */
@@ -359,6 +360,9 @@ service_filter::service_filter(const rapidjson::Value& args)
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
           std::string value = val.GetString();
+          if (value.empty()) {
+            continue;
+          }
           absl::AsciiStrToLower(&value);
           _name_filter = std::make_unique<re2::RE2>(value);
           if (!_name_filter->ok()) {
@@ -372,6 +376,9 @@ service_filter::service_filter(const rapidjson::Value& args)
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
           std::string value = val.GetString();
+          if (value.empty()) {
+            continue;
+          }
           absl::AsciiStrToLower(&value);
           _name_filter_exclude = std::make_unique<re2::RE2>(value);
           if (!_name_filter_exclude->ok()) {
@@ -385,6 +392,9 @@ service_filter::service_filter(const rapidjson::Value& args)
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
           std::string value = val.GetString();
+          if (value.empty()) {
+            continue;
+          }
           absl::AsciiStrToLower(&value);
           _display_filter = std::make_unique<re2::RE2>(value);
           if (!_display_filter->ok()) {
@@ -398,6 +408,9 @@ service_filter::service_filter(const rapidjson::Value& args)
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
           std::string value = val.GetString();
+          if (value.empty()) {
+            continue;
+          }
           absl::AsciiStrToLower(&value);
           _display_filter_exclude = std::make_unique<re2::RE2>(value);
           if (!_display_filter_exclude->ok()) {
@@ -893,6 +906,7 @@ void check_service::help(std::ostream& help_stream) {
     exclude-name: regex to exclude service names
     filter-display: regex to filter service display names as they appear in service manager
     exclude-display: regex to exclude service display names
+    Empty filters are ignored.
   An example of a configuration file:
   {
     "check": "service",
