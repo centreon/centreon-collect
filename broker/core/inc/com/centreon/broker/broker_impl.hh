@@ -132,6 +132,11 @@ class broker_impl final : public Broker::Service {
                         const ::google::protobuf::Empty* request,
                         PeerList* response) override;
 
+  grpc::Status SignalProcess(grpc::ServerContext* context [[maybe_unused]],
+                             const BrokerSignalProcess* request,
+                             ::google::protobuf::Empty* response
+                             [[maybe_unused]]) override;
+
  public:
   broker_impl(const std::string& name);
   void set_broker_name(const std::string& s);
