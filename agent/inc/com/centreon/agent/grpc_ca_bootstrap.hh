@@ -80,7 +80,7 @@ void bootstrap_ca_from_fingerprint_if_needed(
     const std::shared_ptr<com::centreon::common::grpc::grpc_config>& grpc_conf,
     const std::shared_ptr<spdlog::logger>& logger);
 
-std::string read_file_content(const std::string& file_path,
+std::string read_file_content(const std::filesystem::path& file_path,
                               const std::shared_ptr<spdlog::logger>& logger);
 }  // namespace com::centreon::agent
 

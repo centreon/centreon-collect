@@ -19,6 +19,7 @@
 #define CENTREON_AGENT_CONFIG_HH
 
 #include "com/centreon/common/grpc/grpc_config.hh"
+#include "com/centreon/common/utf8.hh"
 
 namespace com::centreon::agent {
 
@@ -32,14 +33,14 @@ class config {
   std::string _endpoint;
   spdlog::level::level_enum _log_level;
   log_type _log_type;
-  std::string _log_file;
+  std::filesystem::path _log_file;
   unsigned _log_max_file_size;
   unsigned _log_max_files;
 
   common::grpc::grpc_config::e_security_mode _security_mode;
-  std::string _public_cert_file;
-  std::string _private_key_file;
-  std::string _ca_certificate_file;
+  std::filesystem::path _public_cert_file;
+  std::filesystem::path _private_key_file;
+  std::filesystem::path _ca_certificate_file;
   std::string _ca_name;
   std::string _ca_fingerprint;
   std::string _host;
@@ -48,7 +49,7 @@ class config {
   unsigned _second_max_reconnect_backoff;
   unsigned _max_message_length;
   std::string _token;
-  std::string _path_to_custom_checks;
+  std::filesystem::path _path_to_custom_checks;
 
   std::shared_ptr<const absl::flat_hash_set<std::string>> _trusted_tokens;
   absl::flat_hash_map<std::string, std::string> _custom_checks;
@@ -104,7 +105,7 @@ class config {
   const std::string& get_endpoint() const { return _endpoint; }
   spdlog::level::level_enum get_log_level() const { return _log_level; };
   log_type get_log_type() const { return _log_type; }
-  const std::string& get_log_file() const { return _log_file; }
+  const std::filesystem::path& get_log_file() const { return _log_file; }
   unsigned get_log_max_file_size() const { return _log_max_file_size; }
   unsigned get_log_max_files() const { return _log_max_files; }
 
@@ -114,9 +115,13 @@ class config {
   bool use_encryption() const {
     return _security_mode != common::grpc::grpc_config::NONE;
   }
-  const std::string& get_public_cert_file() const { return _public_cert_file; }
-  const std::string& get_private_key_file() const { return _private_key_file; }
-  const std::string& get_ca_certificate_file() const {
+  const std::filesystem::path& get_public_cert_file() const {
+    return _public_cert_file;
+  }
+  const std::filesystem::path& get_private_key_file() const {
+    return _private_key_file;
+  }
+  const std::filesystem::path& get_ca_certificate_file() const {
     return _ca_certificate_file;
   }
   const std::string& get_ca_name() const { return _ca_name; }
@@ -135,7 +140,7 @@ class config {
     return _trusted_tokens;
   }
 
-  const std::string& get_path_to_custom_checks() const {
+  const std::filesystem::path& get_path_to_custom_checks() const {
     return _path_to_custom_checks;
   }
 
@@ -147,6 +152,7 @@ class config {
   /**
    * @brief read the custom checks file and replace commands on success
    * If the file can't be read or is malformed, the previous commands are kept
+   * The file should be UTF-8 (with or without BOM), an ANSI file is converted
    *
    * @return true if commands have been refreshed
    */
@@ -171,6 +177,12 @@ class config {
       unsigned line_number = 0;
       while (std::getline(f, line)) {
         ++line_number;
+        // notepad and powershell may save the file with an UTF-8 BOM
+        if (line_number == 1 && !line.compare(0, 3, "\xEF\xBB\xBF")) {
+          line.erase(0, 3);
+        }
+        // commands are passed as UTF-8 to the checks
+        line = common::ensure_utf8(line);
         trimming(line);
         // skip comments, empty lines and section headers like [custom_checks]
         if (line.empty() || line[0] == ';' || line[0] == '[') {

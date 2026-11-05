@@ -20,6 +20,7 @@
 #include <netdb.h>
 
 #include "agent_info.hh"
+#include "com/centreon/common/utf8.hh"
 #include "version.hh"
 
 static std::string _os;
