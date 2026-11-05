@@ -70,6 +70,69 @@ BEBAMIDT1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+BEBAMIDT3
+    [Documentation]    Given the central Broker configuration has a poller uid
+    ...    And a BA of type 'worst' with one service is configured
+    ...    And The BA is in critical state due to its service
+    ...    When a downtime is set on this service
+    ...    Then an inherited downtime is set to the BA
+    ...    When the downtime is removed from the service
+    ...    Then the inherited downtime is deleted from the BA
+    [Tags]    broker    downtime    engine    bam
+    Ctn Clear Commands Status
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    # The uid replaces poller_id in Broker; the BA virtual host keeps the poller id
+    Ctn Broker Config Add Item    central    uid    ${376659861007501406}
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Config Engine    ${1}
+
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Engine
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    Ctn Create Ba With Services    test    worst    ${svc}
+    Ctn Add Bam Config To Broker    central
+    # Command of service_314 is set to critical
+    ${cmd_1}    Ctn Get Service Command Id    314
+    Log To Console    service_314 has command id ${cmd_1}
+    Ctn Set Command Status    ${cmd_1}    2
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # KPI set to critical
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
+
+    # The BA should become critical
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
+
+    # A downtime is put on service_314
+    Ctn Schedule Service Downtime    host_16    service_314    3600
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    Should Be True    ${result}    The BA ba_1 is not in downtime as it should
+
+    # The downtime is deleted
+    Ctn Delete Service Downtime    host_16    service_314
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
+    Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
+
+    ${result}    Ctn Check Downtimes With Timeout    0    60
+    Should Be True    ${result}    We should have no more running downtimes
+
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    Should Be True    ${result}    The BA ba_1 is in downtime as it should not
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 BEBAMIDT2
     [Documentation]    Given a BA of type 'worst' with one service is configured
     ...    And the BA is in critical state due to its service
