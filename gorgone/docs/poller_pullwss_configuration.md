@@ -98,6 +98,31 @@ Subsequent messages on the same WebSocket connection are processed without re-au
 
 every 5 second check every token from the centreon api used to authenticate are still valid, or disconnect any poller using it.
 
+## Reconnection backoff
+
+If the websocket connection is lost (central restarted, unreachable, not ready yet...), the Poller
+retries with a capped exponential backoff instead of a fixed delay: it starts at `retry_delay_min`
+seconds, doubles after each failed attempt, and is capped at `retry_delay_max` seconds. The delay is
+reset to `retry_delay_min` once a connection has stayed up at least `retry_delay_max` seconds. A
+connection the central accepts then immediately closes (invalid or revoked token) keeps escalating
+instead of being retried at the minimum delay forever.
+
+| Option | Default | Description |
+|---|---|---|
+| `retry_delay_min` | `5` | Delay in seconds before the first reconnection attempt after a disconnect. |
+| `retry_delay_max` | `20` | Maximum delay in seconds between two reconnection attempts. |
+
+```yaml
+    - name: pullwss
+      package: "gorgone::modules::core::pullwss::hooks"
+      enable: true
+      ssl: true
+      port: 443
+      token: "your_secret_token"
+      address: 10.30.2.203
+      retry_delay_min: 5
+      retry_delay_max: 20
+```
 
 See the full startup sequence diagram [here](modules/core/pullwss.md).
 
