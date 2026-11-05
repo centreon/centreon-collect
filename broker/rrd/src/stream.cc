@@ -18,6 +18,7 @@
 
 #include <absl/strings/str_join.h>
 #include <fmt/format.h>
+#include <exception>
 #include <memory>
 
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -364,11 +365,18 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         uint64_t last_update =
             get_last_metric_latest_current(m.metric_id(), false);
         bool written = false;
-        if (!last_update || last_update < m.time())
-          written = append_metric_to_rrd(m);
+        if (!last_update || last_update < m.time()) {
+          try {
+            written = append_metric_to_rrd(m);
+          } catch (const std::exception&) {  // in case of update issue (disk
+                                             // full, bad value type... we pass
+                                             // this event)
+            break;
+          }
+        }
         if (written) {
           _metric_latest_current[m.metric_id()] = m.time();
-        } else {  // we receive an old metric => retention if enabled
+        } else {             // we receive an old metric => retention if enabled
           if (!last_update)  // now we need the last update of the rrd file
             get_last_metric_latest_current(m.metric_id(), true);
           if (_retention->enabled()) {
@@ -420,11 +428,18 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         uint64_t last_update =
             get_last_status_latest_current(s.index_id(), false);
         bool written = false;
-        if (!last_update || last_update < s.time())
-          written = append_status_to_rrd(s);
+        if (!last_update || last_update < s.time()) {
+          try {
+            written = append_status_to_rrd(s);
+          } catch (const std::exception&) {  // in case of update issue (disk
+                                             // full, bad value type... we pass
+                                             // this event)
+            break;
+          }
+        }
         if (written) {
           _status_latest_current[s.index_id()] = s.time();
-        } else {  // we receive an old status => retention if enabled
+        } else {             // we receive an old status => retention if enabled
           if (!last_update)  // now we need the last update of the rrd file
             get_last_status_latest_current(s.index_id(), true);
           if (_retention->enabled()) {

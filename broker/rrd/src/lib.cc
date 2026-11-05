@@ -192,17 +192,14 @@ bool lib::try_update(time_t t, std::string const& value) {
 }
 
 void lib::update(const std::deque<std::string>& pts) {
-  const char* argv[pts.size() + 1];
-  argv[pts.size()] = nullptr;
-  auto it = pts.begin();
-  for (uint32_t i = 0; i < pts.size(); i++) {
-    _logger->trace("insertion of {} in rrd file", *it);
-    argv[i] = it->data();
-    ++it;
+  std::vector<const char*> argv;
+  argv.reserve(pts.size() + 1);
+  for (const std::string& pt : pts) {
+    argv.push_back(pt.data());
   }
+  argv.push_back(nullptr);
   rrd_clear_error();
-  if (rrd_update_r(_filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1,
-                   argv)) {
+  if (rrd_update_r(_filename.c_str(), nullptr, argv.size() - 1, argv.data())) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
       _logger->error("RRD: failed to update value in file '{}': {}", _filename,
