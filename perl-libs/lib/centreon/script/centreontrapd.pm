@@ -406,6 +406,9 @@ sub create_logdb_child {
                 port => $self->{centreon_config}->{db_port},
                 user => $self->{centreon_config}->{db_user},
                 password => $self->{centreon_config}->{db_passwd},
+                ssl => $self->{centreon_config}->{db_ssl},
+                ssl_ca_file => $self->{centreon_config}->{db_ssl_ca},
+                ssl_verify => $self->{centreon_config}->{db_ssl_verify},
                 force => 1,
                 logger => $self->{logger}
             );
@@ -1198,6 +1201,9 @@ sub run {
             port => $self->{centreon_config}->{db_port},
             user => $self->{centreon_config}->{db_user},
             password => $self->{centreon_config}->{db_passwd},
+            ssl => $self->{centreon_config}->{db_ssl},
+            ssl_ca_file => $self->{centreon_config}->{db_ssl_ca},
+            ssl_verify => $self->{centreon_config}->{db_ssl_verify},
             force => 0,
             logger => $self->{logger}
         );
@@ -1210,6 +1216,9 @@ sub run {
             port => $self->{centreon_config}->{db_port},
             user => $self->{centreon_config}->{db_user},
             password => $self->{centreon_config}->{db_passwd},
+            ssl => $self->{centreon_config}->{db_ssl},
+            ssl_ca_file => $self->{centreon_config}->{db_ssl_ca},
+            ssl_verify => $self->{centreon_config}->{db_ssl_verify},
             force => 0,
             logger => $self->{logger}
         );
