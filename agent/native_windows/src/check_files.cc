@@ -260,8 +260,7 @@ std::string format_file_time(const std::filesystem::file_time_type& ftime) {
  * timestamps (creation, last access, last write), size, version (for
  * executables and DLLs), and optionally, the number of lines in the file.
  *
- * @param file_path The UTF-8 path to the file whose metadata is to be
- * collected.
+ * @param file_path The path to the file whose metadata is to be collected.
  * @param line_count_needed If true, the constructor will count the number of
  * lines in the file.
  *
@@ -277,19 +276,17 @@ std::string format_file_time(const std::filesystem::file_time_type& ftime) {
  * for efficiency.
  */
 file_metadata::file_metadata(
-    const std::string& file_path,
+    const fs::path& file_path,
     bool line_count_needed,
     const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
         files_metadata)
-    : path(file_path) {
-  // all file accesses use this wide path
-  const fs::path native_path = utf8_to_path(file_path);
-  name = path_to_utf8(native_path.filename());
-  extension = path_to_utf8(native_path.extension());
+    : path(path_to_utf8(file_path)),
+      name(path_to_utf8(file_path.filename())),
+      extension(path_to_utf8(file_path.extension())) {
   has_changed = true;
 
   HANDLE hFile =
-      CreateFileW(native_path.c_str(), GENERIC_READ,
+      CreateFileW(file_path.c_str(), GENERIC_READ,
                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (hFile != INVALID_HANDLE_VALUE) {
@@ -312,7 +309,7 @@ file_metadata::file_metadata(
 
   // if the file metadata already exists and the date match, we
   // don't need to check the file info
-  auto it = files_metadata.find(file_path);
+  auto it = files_metadata.find(path);
   exist = (it != files_metadata.end());
   if (exist && it->second->creation_time == creation_time &&
       it->second->last_write_time == last_write_time) {
@@ -320,19 +317,19 @@ file_metadata::file_metadata(
   } else {
     has_changed = true;
 
-    size = fs::file_size(native_path);
+    size = fs::file_size(file_path);
     version = "";
     // windows file names are case insensitive (CMD.EXE)
     if (absl::EqualsIgnoreCase(extension, ".exe") ||
         absl::EqualsIgnoreCase(extension, ".dll")) {
-      version = get_file_version(native_path.native());
+      version = get_file_version(file_path.native());
     }
 
     number_of_lines = 0;
     if (line_count_needed) {
       if (size > 0) {
         boost::interprocess::file_mapping file_map(
-            native_path.c_str(), boost::interprocess::read_only);
+            file_path.c_str(), boost::interprocess::read_only);
         boost::interprocess::mapped_region region(
             file_map, boost::interprocess::read_only);
 
@@ -416,9 +413,9 @@ void ::check_files_detail::filter::find_files() {
       if (fs::is_regular_file(*it)) {
         std::string filename = path_to_utf8(it->path().filename());
         if (re2::RE2::FullMatch(filename, regex_pattern)) {
-          std::string path_str = path_to_utf8(it->path());
           auto metadata = std::make_unique<file_metadata>(
-              path_str, _line_count_needed, _files_metadata);
+              it->path(), _line_count_needed, _files_metadata);
+          std::string path_str = metadata->path;
           if (metadata->has_changed) {
             if (_file_filter && !_file_filter->check(*metadata)) {
               continue;  // skip to next if the data don't match the filter

@@ -19,9 +19,6 @@
 #ifndef CCCM_UTF8_HH
 #define CCCM_UTF8_HH
 
-#include <string>
-#include <string_view>
-
 namespace com::centreon::common {
 
 /**
