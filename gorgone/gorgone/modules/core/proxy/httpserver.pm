@@ -525,7 +525,7 @@ sub is_logged_websocket {
     }
 
     if ($check_conf_token == 1
-        && ($self->{config}->{httpserver}->{token} eq ""
+        && (!defined($self->{config}->{httpserver}->{token}) || $self->{config}->{httpserver}->{token} eq ""
         || $self->{config}->{httpserver}->{token} ne $token)) {
         $self->close_websocket(
             code    => 500,
