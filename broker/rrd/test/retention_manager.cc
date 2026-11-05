@@ -331,6 +331,45 @@ TEST_F(RetentionManager, MergeOnSamplesThreshold) {
   EXPECT_FALSE(rm->start_merge(_lib, nullptr));
 }
 
+/**
+ * A COUNTER is merged in two retention files: the last point of the first one
+ * is written in the second one, so that the rate of its first point is known.
+ */
+TEST_F(RetentionManager, CounterMergedTwiceKeepsRate) {
+  auto rm = _load(make_config(_tmp, 3));
+  const uint64_t base = base_time();
+  auto counter = [base](int i) {
+    Metric m = make_metric(13, base + i * interval, 600.0 * i);
+    m.set_value_type(Metric_ValueType_COUNTER);
+    return m;
+  };
+
+  for (int i = 0; i < 4; ++i)
+    rm->write_metric(counter(i));
+  ASSERT_TRUE(rm->start_merge(_lib, nullptr));
+  _run_merges();
+  ASSERT_TRUE(_wait_end_merge());
+  EXPECT_FALSE(fs::exists(_tmp.metric_file(13)));
+
+  // the new file starts with the last point of the merged one
+  rm->write_metric(counter(4));
+  EXPECT_EQ(retention_file(_tmp.metric_file(13)).nb_samples(), 2u);
+  for (int i = 5; i < 8; ++i)
+    rm->write_metric(counter(i));
+  ASSERT_TRUE(rm->start_merge(_lib, nullptr));
+  _run_merges();
+  ASSERT_TRUE(_wait_end_merge());
+
+  // 600 every 60s => 10/s, only the first point of the first file is unknown
+  rrd_existing_data data = _lib->fetch_existing(
+      _tmp.metric_file(13, "rrd"), base, base + 7 * interval);
+  ASSERT_EQ(data.points.size(), 7u);
+  for (int i = 0; i < 7; ++i) {
+    EXPECT_EQ(data.points[i].first, base + (i + 1) * interval);
+    EXPECT_DOUBLE_EQ(data.points[i].second, 10.0);
+  }
+}
+
 TEST_F(RetentionManager, MergeStatus) {
   auto rm = _load(make_config(_tmp, 1));
   const uint64_t base = base_time();

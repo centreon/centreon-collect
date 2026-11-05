@@ -190,6 +190,12 @@ retention_manager::retention_cont retention_manager::_make_retention_cont(
  * @brief Append a metric point to the retention file of the metric, the file
  * is created on the first point. Nothing is done if metrics_dir is empty.
  *
+ * For a COUNTER or DERIVE metric, rrd computes the rate of a point from the
+ * previous raw value: when the file is created, the last point of the
+ * previous merged file (see _counter_primers) is also written in it. Its row
+ * is already in the rrd file, which has the priority at the merge, so this
+ * point only gives its rate to the first new one.
+ *
  * Errors are only logged.
  *
  * @param metric The metric point, older than the last update of its rrd file.
@@ -203,8 +209,24 @@ void retention_manager::write_metric(const Metric& metric) {
     auto exist = id_index.find(std::make_pair(metric.metric_id(), false));
     try {
       if (exist == id_index.end()) {
-        _retentions.emplace(
-            std::make_shared<retention_file>(_config.metrics_dir, metric));
+        auto created =
+            std::make_shared<retention_file>(_config.metrics_dir, metric);
+        auto primer = _counter_primers.find(metric.metric_id());
+        if (primer != _counter_primers.end()) {
+          Metric previous(metric);
+          previous.set_time(primer->second.first);
+          previous.set_value(primer->second.second);
+          _counter_primers.erase(primer);
+          try {
+            created->add_metric(previous);
+          } catch (const std::exception& e) {
+            SPDLOG_LOGGER_ERROR(_logger,
+                                "fail to add previous point of metric {} to "
+                                "retention: {}",
+                                metric.metric_id(), e);
+          }
+        }
+        _retentions.emplace(std::move(created));
       } else {
         id_index.modify(
             exist, [&metric, this](std::shared_ptr<retention_file>& to_update) {
@@ -275,6 +297,7 @@ void retention_manager::write_status(const Status& status) {
  */
 void retention_manager::remove_metric(uint64_t metric_id) {
   absl::MutexLock l(&_data_m);
+  _counter_primers.erase(metric_id);
   auto& id_index = _retentions.get<0>();
   auto found = id_index.find(std::make_pair(metric_id, false));
   if (found == id_index.end())
@@ -337,8 +360,10 @@ void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
  * @brief Merge a retention file into its rrd file (runs on _io_context).
  *
  * On success, the retention file is removed before the publication of the end
- * of the merge, so that a replayed event can create a new one. On failure, it
- * is kept in _retentions and can't be merged again before merge_retry_delay.
+ * of the merge, so that a replayed event can create a new one. For a COUNTER
+ * or DERIVE metric, its last point is kept in _counter_primers (see
+ * write_metric()). On failure, it is kept in _retentions and can't be merged
+ * again before merge_retry_delay.
  *
  * In both cases a pb_end_metric_merge or pb_end_status_merge is published:
  * the stream then calls clear_merging(), so that another merge can start, and
@@ -355,6 +380,15 @@ void retention_manager::_do_merge(
   final_path /= fmt::format("{}.rrd", to_merge->id());
   try {
     to_merge->merge(final_path, rrd_lib);
+    // keep the last raw value of a counter to compute the rate of the first
+    // point of the next retention file of this metric
+    if (!to_merge->is_status() && !to_merge->is_merge_aborted() &&
+        (to_merge->value_type() == Metric_ValueType_COUNTER ||
+         to_merge->value_type() == Metric_ValueType_DERIVE)) {
+      absl::MutexLock l(&_data_m);
+      _counter_primers[to_merge->id()] =
+          std::make_pair(to_merge->last_ts(), to_merge->last_value());
+    }
     ::remove(to_merge->file_path().c_str());
     SPDLOG_LOGGER_INFO(_logger, "RRD: merge of {} {} into {} done",
                        to_merge->is_status() ? "status" : "metric",

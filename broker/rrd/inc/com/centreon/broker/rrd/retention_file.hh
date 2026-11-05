@@ -60,6 +60,7 @@ class retention_file {
   size_t _nb_samples;
   uint64_t _first_ts;  // ts of oldest sample
   uint64_t _last_ts;   // ts of latest sample
+  double _last_value = 0;  // value of the latest sample (metric files only)
   // the file can't be merged before this time (set after a failed merge)
   time_t _no_merge_before = 0;
 
@@ -94,6 +95,8 @@ class retention_file {
   uint64_t interval() const { return _header.interval; }
   uint64_t first_ts() const { return _first_ts; }
   uint64_t last_ts() const { return _last_ts; }
+  Metric::ValueType value_type() const { return _header.value_type; }
+  double last_value() const { return _last_value; }
 
   time_t last_activity() const { return _last_activity; }
   void merge(const std::filesystem::path& rrd_path, lib& rrd_lib);

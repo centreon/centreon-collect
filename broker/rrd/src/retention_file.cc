@@ -83,9 +83,9 @@ retention_file::retention_file(const std::filesystem::path& rrd_data_dir,
  * @brief Open an existing retention file and load its header.
  *
  * The number of samples is deduced from the file size (an incomplete last
- * sample is ignored), first_ts and last_ts are computed from the samples. A
- * file that doesn't contain at least the header and one sample is removed and
- * an exception is thrown.
+ * sample is ignored), first_ts, last_ts and last_value are computed from the
+ * samples. A file that doesn't contain at least the header and one sample is
+ * removed and an exception is thrown.
  *
  * @param file_path Path of the retention file.
  * @throw msg_fmt if the file can't be opened, read or is too small.
@@ -129,8 +129,9 @@ retention_file::retention_file(const std::filesystem::path& file_path)
     if (begin->ts < _first_ts) {
       _first_ts = begin->ts;
     }
-    if (begin->ts > _last_ts) {
+    if (begin->ts >= _last_ts) {
       _last_ts = begin->ts;
+      _last_value = begin->val.d_value;
     }
   }
 }
@@ -141,8 +142,8 @@ retention_file::retention_file(const std::filesystem::path& file_path)
  * Samples are not sorted: they are written in their arrival order. The
  * position is computed from the file size rounded down to a whole number of
  * samples, so that an incomplete sample left by a previous failed write is
- * overwritten. The header is never rewritten, first_ts and last_ts are only
- * kept in memory.
+ * overwritten. The header is never rewritten, first_ts, last_ts and
+ * last_value are only kept in memory.
  *
  * @param to_append The sample to write.
  * @throw msg_fmt if the file can't be opened or written.
@@ -174,8 +175,9 @@ void retention_file::_append(const sample& to_append) {
   if (to_append.ts < _first_ts) {
     _first_ts = to_append.ts;
   }
-  if (to_append.ts > _last_ts) {
+  if (to_append.ts >= _last_ts) {
     _last_ts = to_append.ts;
+    _last_value = to_append.val.d_value;
   }
 
   _last_activity = time(nullptr);

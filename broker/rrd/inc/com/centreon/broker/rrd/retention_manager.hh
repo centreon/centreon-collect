@@ -139,6 +139,12 @@ class retention_manager
   pending_cont _pending_metrics ABSL_GUARDED_BY(_data_m);
   pending_cont _pending_statuses ABSL_GUARDED_BY(_data_m);
 
+  /// Last point (time, raw value) of the last merged retention file of each
+  /// COUNTER or DERIVE metric, written first in its next retention file so
+  /// that rrd can compute the rate of the first point of this file.
+  absl::flat_hash_map<uint64_t, std::pair<uint64_t, double>> _counter_primers
+      ABSL_GUARDED_BY(_data_m);
+
   void _init();
 
   static retention_cont _make_retention_cont(uint32_t threshold);
