@@ -212,6 +212,66 @@ check poller token revocation
     Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}
 
 
+check pullwss poller retries fast and backs off after a central restart
+    [Documentation]    Regression test for MON-214281: when the central becomes unavailable and
+    ...    comes back, the poller used to wait on a fixed 60s Mojo::IOLoop recurring timer before
+    ...    retrying the pullwss websocket connection, reconnecting anywhere between 0 and 60s after
+    ...    the central was back depending on the timer's phase. It now retries with a capped
+    ...    exponential backoff (retry_delay_min/retry_delay_max config options). This poller uses a
+    ...    tight retry_delay_min=1/retry_delay_max=4 so the reconnect assertion is deterministic:
+    ...    the old fixed-60s code would fail this timeout most of the time, the fixed one passes
+    ...    well within it every time.
+    [Teardown]    Stop Gorgone And Remove Gorgone Config
+    ...    gorgone_poller_2    gorgone_central
+    ...    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+
+    Ctn Init Tests
+    Gorgone Fix Schema
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
+
+    @{central_pullwss_config}=    Create List    ${pullwss_central_config}    ${gorgone_core_config}
+    @{poller_pullwss_config}=    Create List    ${gorgone_core_config}    ${pullwss_poller_config}
+
+    Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=gorgone_central
+    ...    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
+    Setup Gorgone Config    ${poller_pullwss_config}    gorgone_name=gorgone_poller_2
+    ...    replace_from=${{['@RETRY_DELAY_MIN@', '@RETRY_DELAY_MAX@']}}    replace_to=${{['1', '4']}}
+
+    Start Gorgone    debug    gorgone_central
+    Wait Until Port Is Bind    ${Ccom_port}
+    Start Gorgone    debug    gorgone_poller_2
+    Wait Until Port Is Bind    8085
+    Check Poller Is Connected    port=${Ccom_port}    expected_nb=2
+    Check Poller Communicate     2
+    Ctn Check No Error In Logs    gorgone_poller_2
+
+    ${start_date}    Get Current Date
+    Stop Gorgone And Remove Gorgone Config    gorgone_central
+
+    ${log_disconnect_query}    Create List    [pullwss] websocket closed with status
+    ${logs_poller}    Ctn Find In Log With Timeout
+    ...    log=/var/log/centreon-gorgone/gorgone_poller_2/gorgoned.log
+    ...    content=${log_disconnect_query}
+    ...    date=${start_date}
+    ...    timeout=15
+    Should Be True    ${logs_poller}    poller did not notice the central went away : ${logs_poller}
+
+    Start Gorgone    debug    gorgone_central
+    Wait Until Port Is Bind    ${Ccom_port}
+    Wait Until Port Is Bind    8085
+
+    ${log_reconnect_query}    Create List    [pullwss] websocket connected
+    ${logs_poller}    Ctn Find In Log With Timeout
+    ...    log=/var/log/centreon-gorgone/gorgone_poller_2/gorgoned.log
+    ...    content=${log_reconnect_query}
+    ...    date=${start_date}
+    ...    timeout=20
+    Should Be True    ${logs_poller}
+    ...    poller should reconnect quickly (capped backoff, max 4s here) well under the old fixed 60s retry period : ${logs_poller}
+
+    Check Poller Is Connected    port=${Ccom_port}    expected_nb=2
+
+
 *** Keywords ***
 Restart Poller And Check Connection
     [Arguments]    ${poller_name}    ${conn_number}=2    ${api_port}=${Capi_port}    ${com_port}=8086
