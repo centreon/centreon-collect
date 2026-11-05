@@ -46,7 +46,7 @@ sub new {
     $connector->{ping_timer} = -1;
     $connector->{connected} = 0;
     $connector->{stop} = 0;
-    $connector->{reconnect_delay} = $connector->{config}->{retry_delay_min} // 5;
+    $connector->{reconnect_delay} = $connector->{config}->{retry_delay_min};
 
     $connector->set_signal_handlers();
     return $connector;
@@ -191,18 +191,11 @@ sub wss_connect {
 
                     $connector->{connected} = 0;
                     $connector->{logger}->writeLogError('[pullwss] websocket closed with status ' . $code);
-                    # only forgive the backoff (reset to retry_delay_min) if the connection stayed
-                    # up for a while: a central that accepts the handshake then immediately closes
-                    # it (invalid/revoked token) must keep escalating, or a rejected poller would
-                    # hammer the central (and its API, for a name:value token) every retry_delay_min
-                    # seconds forever instead of backing off like before.
-                    my $max = $connector->{config}->{retry_delay_max} // 20;
-                    if (defined($connector->{connected_since}) && (time() - $connector->{connected_since}) >= $max) {
-                        $connector->{reconnect_delay} = $connector->{config}->{retry_delay_min} // 5;
+                    # reset backoff only after a stable connection, so a rejected poller (bad token) keeps escalating
+                    if (defined($connector->{connected_since}) && (time() - $connector->{connected_since}) >= $connector->{config}->{retry_delay_max}) {
+                        $connector->{reconnect_delay} = $connector->{config}->{retry_delay_min};
                     }
-                    # re-arm the reconnect timer now instead of waiting for the connected-state
-                    # (fixed 60s) one still pending: otherwise the first retry after a drop stays
-                    # phase-dependent on that old timer, defeating the backoff below.
+                    # re-arm now instead of waiting on the stale connected-state timer
                     $connector->reconnect_schedule();
                 }
             );
@@ -234,16 +227,8 @@ sub wss_connect {
 
 =head3 $self->reconnect_schedule()
 
-Re-arms itself as a one-shot timer instead of a fixed-period recurring one, so a lost
-connection is retried with a capped exponential backoff (reconnect_delay, doubled on each
-failed attempt up to retry_delay_max, reset to retry_delay_min once a connection has stayed
-up at least retry_delay_max - see the finish handler above) instead of hammering an
-unreachable/not-ready central at a fixed 60s rate or waiting up to 60s doing nothing. Called
-both from the normal scheduling loop and from the websocket's finish handler, so a drop is
-retried right away instead of waiting on whatever delay was already pending for the (now
-stale) connected-state check - any such pending timer is cancelled first. While connected it
-keeps the previous steady-state cadence (a fixed 60s, independent of retry_delay_max) to call
-ping(), which has its own internal throttle.
+Re-arms as a one-shot timer with capped exponential backoff instead of a flat recurring rate.
+Cancels any pending timer first; called both from the scheduling loop and the finish handler.
 
 =cut
 sub reconnect_schedule {
@@ -260,7 +245,7 @@ sub reconnect_schedule {
         return if ($connector->{stop});
 
         if ($connector->{connected} == 0) {
-            my $max = $connector->{config}->{retry_delay_max} // 60;
+            my $max = $connector->{config}->{retry_delay_max};
             my $next_delay = $connector->{reconnect_delay} * 2;
             $next_delay = $max if ($next_delay > $max);
             $connector->{logger}->writeLogDebug("[pullwss] not connected, retrying now (waited ${delay}s, next backoff if this attempt fails too: ${next_delay}s)");
