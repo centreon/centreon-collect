@@ -755,8 +755,13 @@ BERRDREC3
     ${p_start}    Evaluate    ${p_end} - 7 * 86400
 
     # Phase B: results sent every 5s, the RRD broker is restarted in the middle.
+    # Status RRD files contain the hard state: WARNING is hard at the third
+    # result, so the status phase B starts there.
     ${b_start}    Evaluate    int(time.time())    modules=time
     FOR    ${i}    IN RANGE    36
+        IF    ${i} == 2
+            ${b_status_start}    Evaluate    int(time.time())    modules=time
+        END
         Ctn Process Services Check Result With Value    host_1    1    ${nb_svc}    1    3.0    ${nb_metrics}
         IF    ${i} == 2
             Ctn Stop Rrd Broker
@@ -808,7 +813,7 @@ BERRDREC3
     FOR    ${index}    IN    @{index_ids}
         ${result}    Ctn Check Rrd Constant Value    status    ${index}    ${p_start}    ${p_end}    0
         Should Be True    ${result}    Retention points missing in status ${index}
-        ${result}    Ctn Check Rrd Constant Value    status    ${index}    ${b_start}    ${b_end}    75
+        ${result}    Ctn Check Rrd Constant Value    status    ${index}    ${b_status_start}    ${b_end}    75
         Should Be True    ${result}    Phase B points missing in status ${index}
         ${result}    Ctn Check Rrd Constant Value    status    ${index}    ${c_start}    ${c_end}    100
         Should Be True    ${result}    Phase C points missing in status ${index}

@@ -1615,7 +1615,8 @@ RETENTION_UNDEF_STATUS = 0xFFFF
 
 def _ctn_retention_file_content(id: int, is_status: bool, samples: list, interval: int, rrd_len: int):
     """
-    Build the content of a broker rrd retention file (.ret).
+    Build the content of a broker rrd retention file (.ret). A file without
+    any sample is removed by the broker when it is reloaded.
 
     Args:
         id (int): Metric ID or status index ID.

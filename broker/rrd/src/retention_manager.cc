@@ -350,9 +350,11 @@ void retention_manager::_do_merge(
     SPDLOG_LOGGER_ERROR(_logger, "fail to merge {} into {}: {}",
                         to_merge->file_path(), final_path, e.what());
     // in order to not log error on next metric received, we mark it
-    absl::MutexLock l(&_data_m);
-    to_merge->set_no_merge_before(time(nullptr) + _config.merge_retry_delay);
-    _retentions.emplace(to_merge);
+    if (!to_merge->is_merge_aborted()) {
+      absl::MutexLock l(&_data_m);
+      to_merge->set_no_merge_before(time(nullptr) + _config.merge_retry_delay);
+      _retentions.emplace(to_merge);
+    }
   }
 
   multiplexing::publisher publish;

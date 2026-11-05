@@ -521,22 +521,22 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         auto path = _metrics_path / fmt::format("{}.rrd", m);
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
-        _backend.remove(path);
         if (_retention->enabled()) {
-          _retention->remove_metric(m);
           _retention->abort_metric_merge(m);
+          _retention->remove_metric(m);
         }
+        _backend.remove(path);
         _metric_latest_current.erase(m);
       }
       for (auto& i : e->obj().index_ids()) {
         auto path = _status_path / fmt::format("{}.rrd", i);
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
-        _backend.remove(path);
         if (_retention->enabled()) {
-          _retention->remove_status(i);
           _retention->abort_status_merge(i);
+          _retention->remove_status(i);
         }
+        _backend.remove(path);
         _status_latest_current.erase(i);
       }
     } break;
@@ -559,20 +559,20 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         cache.erase(it);
 
       // Remove file and retention buffer.
-      _backend.remove(path);
       if (e->is_index) {
         if (_retention->enabled()) {
-          _retention->remove_status(e->id);
           _retention->abort_status_merge(e->id);
+          _retention->remove_status(e->id);
         }
         _status_latest_current.erase(e->id);
       } else {
         if (_retention->enabled()) {
-          _retention->remove_metric(e->id);
           _retention->abort_metric_merge(e->id);
+          _retention->remove_metric(e->id);
         }
         _metric_latest_current.erase(e->id);
       }
+      _backend.remove(path);
     } break;
     case storage::pb_end_metric_merge::static_type(): {
       const EndMetricMerge& end_merge =

@@ -99,6 +99,7 @@ class retention_file {
   void merge(const std::filesystem::path& rrd_path, lib& rrd_lib);
 
   void abort_merge() { _abort_merge = true; }
+  bool is_merge_aborted() const { return _abort_merge; }
   size_t nb_samples() const { return _nb_samples; }
 
   time_t no_merge_before() const { return _no_merge_before; }
