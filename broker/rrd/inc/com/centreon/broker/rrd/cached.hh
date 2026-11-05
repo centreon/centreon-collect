@@ -19,8 +19,10 @@
 #ifndef CCB_RRD_CACHED_HH
 #define CCB_RRD_CACHED_HH
 
+
 #include <fmt/ranges.h>
 #include <fmt/std.h>
+
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/broker/rrd/lib.hh"
@@ -311,8 +313,9 @@ class cached : public backend {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
       if (log_too_old)
-        SPDLOG_LOGGER_ERROR(_logger,"RRD: ignored update error in file '{}': {}", _filename,
-                       e.what() + 5);
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "RRD: ignored update error in file '{}': {}",
+                            _filename, e.what() + 5);
       else
         SPDLOG_LOGGER_DEBUG(_logger, "RRD: value too old for file '{}': {}",
                             _filename, e.what() + 5);
@@ -354,28 +357,6 @@ class cached : public backend {
       _logger->error("RRD: pre_merge_flush failed for '{}': {}", filename,
                      e.what());
     }
-  }
-
-  /**
-   * @brief Delegate to _lib (librrd direct) after the caller has flushed.
-   */
-  rrd_existing_data fetch_existing(const std::filesystem::path& filename,
-                                   uint64_t from_ts,
-                                   uint64_t to_ts) override {
-    return _lib.fetch_existing(filename, from_ts, to_ts);
-  }
-
-  /**
-   * @brief Create temp file and write batch via librrd directly (bypasses
-   *        rrdcached socket), so the file is immediately on disk for rename.
-   */
-  void merge_create_temp(const std::filesystem::path& tmp_path,
-                         uint32_t rrd_len,
-                         time_t from,
-                         uint32_t step,
-                         short value_type,
-                         const std::deque<std::string>& batch) override {
-    _lib.merge_create_temp(tmp_path, rrd_len, from, step, value_type, batch);
   }
 
   /**
