@@ -223,7 +223,7 @@ io::endpoint* factory::new_endpoint(
         !absl::SimpleAtoi(it->second, &retention_merge_timeout)) {
       logger->error(
           "factory: cannot parse 'retention_merge_timeout' for "
-          "endpoint '{}', using default (60)",
+          "endpoint '{}', using default (120)",
           cfg.name);
     }
   }

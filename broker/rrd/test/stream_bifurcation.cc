@@ -89,6 +89,7 @@ retention_config make_cfg(const tmp_dirs& tmp,
   cfg.metrics_dir = tmp.metrics;
   cfg.status_dir = tmp.status;
   cfg.merge_samples_threshold = merge_samples_threshold;
+  cfg.start_merge_interval = 0;
   return cfg;
 }
 

@@ -45,6 +45,9 @@ struct retention_config {
 
   uint32_t merge_retry_delay = 120;  ///< Seconds before retrying a failed merge
   uint32_t merge_time_out = 120;
+  /// Minimum seconds between two scans of the retention files by
+  /// start_merge(), 0 to scan on every call (tests).
+  uint32_t start_merge_interval = 1;
 };
 
 /**
@@ -146,6 +149,8 @@ class retention_manager
   /// that rrd can compute the rate of the first point of this file.
   absl::flat_hash_map<uint64_t, std::pair<uint64_t, double>> _counter_primers
       ABSL_GUARDED_BY(_data_m);
+
+  time_t _last_start_merge ABSL_GUARDED_BY(_data_m);
 
   void _init();
 

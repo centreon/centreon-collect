@@ -41,7 +41,8 @@ retention_manager::retention_manager(
       _io_context(io_context),
       _logger(logger),
       _retentions(_make_retention_cont(config.proportional_activity_threshold)),
-      _merging_ended(0) {}
+      _merging_ended(0),
+      _last_start_merge(0) {}
 
 static absl::Mutex _instance_m;
 static std::shared_ptr<retention_manager> _instance
@@ -113,6 +114,7 @@ void retention_manager::_update_config(const retention_config& config) {
   _config.orphan_interval = config.orphan_interval;
   _config.merge_retry_delay = config.merge_retry_delay;
   _config.merge_time_out = config.merge_time_out;
+  _config.start_merge_interval = config.start_merge_interval;
   if (_config.proportional_activity_threshold !=
       config.proportional_activity_threshold) {
     _config.proportional_activity_threshold =
@@ -300,6 +302,9 @@ void retention_manager::remove_metric(uint64_t metric_id) {
   absl::MutexLock l(&_data_m);
   _counter_primers.erase(metric_id);
   auto& id_index = _retentions.get<0>();
+  // a file being merged is no longer in _retentions, its pending events must
+  // be dropped all the same, otherwise the end of the merge would replay them
+  _pending_metrics.erase(metric_id);
   auto found = id_index.find(std::make_pair(metric_id, false));
   if (found == id_index.end())
     return;
@@ -317,6 +322,9 @@ void retention_manager::remove_metric(uint64_t metric_id) {
 void retention_manager::remove_status(uint64_t index_id) {
   absl::MutexLock l(&_data_m);
   auto& id_index = _retentions.get<0>();
+  // a file being merged is no longer in _retentions, its pending events must
+  // be dropped all the same, otherwise the end of the merge would replay them
+  _pending_statuses.erase(index_id);
   auto found = id_index.find(std::make_pair(index_id, true));
   if (found == id_index.end())
     return;
@@ -445,6 +453,7 @@ void retention_manager::clear_merging(uint64_t id, bool is_status) {
   absl::MutexLock l(&_data_m);
   if (_merging && _merging->id() == id && _merging->is_status() == is_status) {
     _merging.reset();
+    _merging_ended = 0;
   }
 }
 
@@ -503,9 +512,6 @@ std::optional<
 retention_manager::start_merge(const std::shared_ptr<lib>& rrd_lib,
                                backend* cached_client) {
   absl::MutexLock l(&_data_m);
-  if (_retentions.empty()) {
-    return {};
-  }
   if (_merging &&
       (!_merging_ended ||
        _merging_ended + static_cast<time_t>(_config.merge_time_out) >
@@ -523,6 +529,12 @@ retention_manager::start_merge(const std::shared_ptr<lib>& rrd_lib,
   _merging_ended = 0;
 
   time_t now = time(nullptr);
+  if (_retentions.empty() ||
+      now < _last_start_merge +
+                static_cast<time_t>(_config.start_merge_interval)) {
+    return {};
+  }
+  _last_start_merge = now;
   {
     auto& last_interval_index = _retentions.get<1>();
     time_t threshold = now - _config.orphan_interval;

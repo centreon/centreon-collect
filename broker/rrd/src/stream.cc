@@ -485,25 +485,25 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
           for (auto& m : e->obj().metric_to_index_id()) {
             /* Creation of metric caches */
             _metrics_rebuild[m.first];
-            /* File removed */
-            _backend.remove(_metrics_path / fmt::format("{}.rrd", m.first));
             /* Clear stale retention data so the rebuild starts fresh. */
             if (_retention->enabled()) {
               _retention->remove_metric(m.first);
               _retention->abort_metric_merge(m.first);
             }
+            /* File removed */
+            _backend.remove(_metrics_path / fmt::format("{}.rrd", m.first));
             _metric_latest_current.erase(m.first);
 
             // creation of status caches
             if (_status_rebuild.find(m.second) == _status_rebuild.end()) {
               _status_rebuild[m.second];
               _metrics_to_index_rebuild[m.first] = m.second;
-              /* File removed */
-              _backend.remove(_status_path / fmt::format("{}.rrd", m.second));
               if (_retention->enabled()) {
                 _retention->remove_status(m.second);
                 _retention->abort_status_merge(m.second);
               }
+              /* File removed */
+              _backend.remove(_status_path / fmt::format("{}.rrd", m.second));
               _status_latest_current.erase(m.second);
             }
           }
