@@ -20,6 +20,7 @@
 #define CA_PRECOMP_HH
 
 #include <deque>
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <list>
@@ -29,6 +30,7 @@
 #include <vector>
 
 #include <fmt/chrono.h>
+#include <fmt/std.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 

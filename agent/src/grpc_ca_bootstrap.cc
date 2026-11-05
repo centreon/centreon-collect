@@ -358,7 +358,7 @@ static bool persist_platform_ca_path_reference(
  *
  * @return file content, or an empty string when reading fails.
  */
-std::string read_file_content(const std::string& file_path,
+std::string read_file_content(const std::filesystem::path& file_path,
                               const std::shared_ptr<spdlog::logger>& logger) {
   if (file_path.empty()) {
     return {};

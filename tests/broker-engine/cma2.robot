@@ -2834,6 +2834,72 @@ BEOTEL_CENTREON_AGENT_UNKNOWN_HOST
     ${result}     Ctn Check Service Resource Status With Timeout    We_dont_know_me    service_2    0    90    HARD
     Should Be True    ${result}    resources table not updated for service_2@We_dont_know_me
 
+BEOTEL_CENTREON_AGENT_ACCENTED_PERFDATA
+    [Documentation]    Scenario: plugin output and perfdata label with accented characters (SSL certificate subject)
+    ...    Given an agent that executes two plugins printing an SSL certificate check result
+    ...    whose output and perfdata label contain ô, é and à
+    ...    And service_1 plugin prints it in UTF-8
+    ...    And service_2 plugin prints it in ISO-8859-1 (not valid UTF-8)
+    ...    When Broker, Engine and Agent are started
+    ...    Then the OTel messages are serialized without error and both services reach HARD OK
+    ...    And their outputs and metric names are stored in UTF-8 in the database
+    [Tags]    broker    engine    opentelemetry    MON-201474
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    ssl_check_utf8
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    ssl_check_latin1
+    Ctn Set Services Passive       0    service_[1-2]
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    retry_interval    1
+
+    ${ssl_output}    Set Variable    "OK - Certificat émis pour Côte-d'Or à Dijon|'C=FR, ST=Côte-d''Or#cert.expires'=12d;30;7;0;"
+    ${utf8_command}    Ctn Echo Encoded Command    UTF-8    ${ssl_output}
+    ${latin1_command}    Ctn Echo Encoded Command    ISO-8859-1    ${ssl_output}
+    Ctn Engine Config Add Command    ${0}    ssl_check_utf8    ${utf8_command}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    ssl_check_latin1    ${latin1_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Clear Db    resources
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start}    0    HARD    OK - Certificat émis pour Côte-d'Or à Dijon
+    Should Be True    ${result}    resources table not updated for service_1 (UTF-8 output)
+    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_2    120    ${start}    0    HARD    OK - Certificat émis pour Côte-d'Or à Dijon
+    Should Be True    ${result}    resources table not updated for service_2 (ISO-8859-1 output)
+
+    ${metrics_list}    Create List    C=FR, ST=Côte-d'Or#cert.expires
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    60
+    Should Be True    ${result}    accented metric not found for service_1 (UTF-8 output)
+    ${result}    Ctn Compare Metrics Of Service    2    ${metrics_list}    60
+    Should Be True    ${result}    accented metric not found for service_2 (ISO-8859-1 output)
+
 
 
 *** Keywords ***
