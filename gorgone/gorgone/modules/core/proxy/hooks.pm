@@ -489,6 +489,14 @@ sub check_httpserver_health {
     my $check_interval = $config->{httpserver}->{check_interval};
     my $check_timeout = $config->{httpserver}->{check_timeout};
 
+    # Drain any reply already sitting in the internal socket before judging a timeout: check()
+    # itself only runs every ~15s (check_exit_modules()'s own gate) and, being in the same single
+    # process/event loop as routing(), can be delayed by a long synchronous handler (e.g.
+    # prepare_remote_copy() building a big REMOTECOPY archive) for well over check_timeout. In
+    # that case the httpserver child may have answered our last probe long ago; without this, the
+    # reply sitting unread would wrongly look like a stuck child caused by OUR OWN delay, not its.
+    $options{gorgone}->router_internal_event();
+
     if (defined($httpserver->{health_check_pending}) && $httpserver->{health_check_pending} == 1) {
         return if ((time() - $httpserver->{health_check_sent}) <= $check_timeout);
 

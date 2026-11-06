@@ -257,6 +257,13 @@ is cleared (so `routing()` doesn't keep refusing traffic as "already in progress
 that no longer exists), and a replacement child is forked. The nodes reconnect to it the same way
 they would after a crash.
 
+Before judging a timeout, `check_httpserver_health()` first drains any reply already sitting in
+the internal socket (`router_internal_event()`). `check()` runs in the same single process/event
+loop as `routing()`, so a long synchronous handler there (`prepare_remote_copy()` building a big
+REMOTECOPY archive, see below) can itself delay `check()` well past `check_timeout` - in that case
+the child may have answered long ago, and without the drain its unread reply would look like the
+child being stuck when the delay was gorgoned's own.
+
 ## check()
 
 Run by the gorgone-core process regularly (every ~15s, see `check_exit_modules()` in `class/core.pm`).
