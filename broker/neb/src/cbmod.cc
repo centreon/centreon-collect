@@ -414,9 +414,26 @@ void cbmod::send_engine_conf(
   _impl->state().set_current_engine_conf(conf);
 }
 
+/**
+ * @brief Tell Broker that the DiffState it sent is applied: Engine runs
+ * @p config_version now.
+ *
+ * @param config_version The version Engine runs now.
+ */
 void cbmod::set_diff_state_applied(const std::string& config_version) {
-  _impl->state().set_engine_conf(config_version);
-  _impl->state().set_diff_state_applied(true);
+  _impl->state().set_diff_state_applied(config_version);
+}
+
+/**
+ * @brief Tell Broker that the DiffState it sent could not be applied: Engine
+ * still runs its previous configuration.
+ *
+ * @param failed_version The version Engine was sent and could not apply.
+ * @param error Why it could not.
+ */
+void cbmod::set_diff_state_failed(const std::string& failed_version,
+                                  const std::string& error) {
+  _impl->state().set_diff_state_failed(failed_version, error);
 }
 
 /**

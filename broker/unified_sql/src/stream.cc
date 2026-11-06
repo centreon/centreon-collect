@@ -1479,7 +1479,7 @@ void stream::process_stop(const std::shared_ptr<io::data>& d) {
                     stop.poller_id());
 
   // Clean tables.
-  clean_tables(stop.poller_id());
+  clean_tables(stop.poller_id(), clean_reason::poller_stopped);
 
   // Processing.
   if (_is_valid_poller(stop.poller_id())) {

@@ -22,6 +22,8 @@
 #include <atomic>
 #include <future>
 
+#include <absl/algorithm/container.h>
+#include <absl/strings/strip.h>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/post.hpp>
@@ -36,6 +38,7 @@
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/engine_conf/indexed_diff_state.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
@@ -460,29 +463,31 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
 }
 
 /**
- * @brief Write a diff file so that nobody can ever read it half written.
+ * @brief Write a work file of the pollers configuration directory so that
+ * nobody can ever read it half written.
  *
  * A `diff-<id>.prot` is read by the stream that sends it, by the cache at the
- * acknowledgement and by the merge of the global diff, while a new preparation
- * may rewrite it. Written in place, a reader can get a truncated file whose
- * strings are garbage: Engine then refuses the DiffState and never applies the
- * configuration. So the content goes to a temporary file, renamed over the
- * diff once complete: a reader opens either the old file or the new one, whole.
- * Renaming also protects against a cbd killed during the write (crash,
- * kill -9, power loss): what stays on disk is the previous diff or the new
- * one, never a truncated file that the next global diff merge would read.
+ * acknowledgement and by the merge of the global diff, and a `new-<id>.prot` by
+ * the stream when the poller needs the full configuration, while a new
+ * preparation may rewrite them. Written in place, a reader can get a truncated
+ * file whose strings are garbage: Engine then refuses the DiffState and never
+ * applies the configuration. So the content goes to a temporary file, renamed
+ * over the target once complete: a reader opens either the old file or the new
+ * one, whole. Renaming also protects against a cbd killed during the write
+ * (crash, kill -9, power loss): what stays on disk is the previous file or the
+ * new one, never a truncated file that the next reader would get.
  *
  * The temporary name does not end with `.prot`, so no scan of the directory
  * takes it for a configuration or a diff. It is unique, as two writers of the
- * same diff are not always serialized by the same lock.
+ * same file are not always serialized by the same lock.
  *
- * @param path The diff file to write.
- * @param diff The diff to store.
+ * @param path The file to write.
+ * @param msg The message to store.
  * @param ec Cleared on success, set to the reason of the failure otherwise; the
- * diff file is then left as it was.
+ * file is then left as it was.
  */
-void write_diff_file(const std::filesystem::path& path,
-                     const engine::configuration::DiffState& diff,
+void write_prot_file(const std::filesystem::path& path,
+                     const google::protobuf::Message& msg,
                      std::error_code& ec) {
   static std::atomic<uint64_t> counter{0};
   std::filesystem::path tmp(path);
@@ -495,7 +500,7 @@ void write_diff_file(const std::filesystem::path& path,
       return;
     }
     /* Serialization says nothing more precise than a failed stream. */
-    if (!diff.SerializeToOstream(&f))
+    if (!msg.SerializeToOstream(&f))
       ec = std::make_error_code(std::errc::io_error);
     f.close();
     if (!ec && !f)
@@ -652,6 +657,7 @@ void broker_state::apply_poller_diff_in_cache(uint64_t poller_id) {
 void broker_state::remove_poller_config(uint64_t poller_id) {
   if (!pollers_config_dir_usable())
     return;
+  absl::MutexLock lck(&_conf_handover_m);
   for (const char* pattern : {"{}.prot", "new-{}.prot", "diff-{}.prot"}) {
     const auto path =
         pollers_config_dir() / fmt::format(fmt::runtime(pattern), poller_id);
@@ -1326,7 +1332,7 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
  * can prepare the database for them.
  *
  * This function is a "test-and-reset": if all ENGINE peers have
- * acknowledged, it resets all their conf_acknowledged flags to false before
+ * acknowledged, it takes them all out of the round (conf_round::out) before
  * returning true. This prevents two concurrent ack handlers from both
  * entering the global diff block when they check simultaneously under the
  * same write lock.
@@ -1459,10 +1465,11 @@ void broker_state::_post_batch_work() {
 }
 
 /**
- * @brief Read, validate and store the configuration a poller was pushed.
+ * @brief Read and validate the configuration a poller was pushed.
  *
- * The two halves of this are told apart on purpose, because a failure does not
- * mean the same thing in each:
+ * Storing it is left to the caller, under the handover lock (see
+ * _store_poller_conf()), and the two are told apart on purpose, because a
+ * failure does not mean the same thing in each:
  *
  *  - **reading and validating** work on the pushed content and on nothing else,
  *    so a failure there is a property of that content. It will not become valid
@@ -1471,14 +1478,17 @@ void broker_state::_post_batch_work() {
  *  - **storing** is about the disk, or about a directory that is not
  *    configured. It says nothing of the configuration, so the announcement is
  *    kept -- it is then the only trace left of the push, and what makes the
- * next cycle read it again.
+ *    next cycle read it again.
+ *
+ * Reading takes seconds on a large platform, so it is done before the handover
+ * lock is taken: acknowledgements are not held up meanwhile.
  *
  * @param poller_id The poller whose pushed configuration is read.
  * @param foreign The configurations stored for the other pollers, so that an
  * object living elsewhere is not taken for an undefined one.
- * @return The stored state, ready to be handed over; nullptr when nothing was
- * stored. @p refused then says which of the two halves failed, so the caller
- * can count it and know whether an announcement is still waiting.
+ * @param refused Set when the configuration is invalid, and its announcement
+ * consumed; left false when nothing could be read and the announcement stays.
+ * @return The validated state, ready to be stored; nullptr otherwise.
  */
 std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
     uint32_t poller_id,
@@ -1539,8 +1549,6 @@ std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
     return nullptr;
   }
 
-  if (!_store_poller_conf(poller_id, *state, version))
-    return nullptr;
   return state;
 }
 
@@ -1579,22 +1587,16 @@ bool broker_state::_store_poller_conf(uint32_t poller_id,
   }
   const std::filesystem::path last_prot_conf =
       pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
-  std::ofstream f(last_prot_conf);
-  if (!f) {
+  /* Whole or not at all: the stream may read it to send the full configuration
+   * while a newer one replaces it. */
+  write_prot_file(last_prot_conf, state, ec);
+  if (ec) {
     _logger->error(
         "Cannot write the new Engine protobuf configuration '{}': {}. Keeping "
         "the announcement of poller {}",
-        last_prot_conf.string(), strerror(errno), poller_id);
+        last_prot_conf.string(), ec.message(), poller_id);
     return false;
   }
-  if (!state.SerializeToOstream(&f)) {
-    _logger->error(
-        "Cannot serialize the new Engine configuration of poller {} to '{}'. "
-        "Keeping its announcement",
-        poller_id, last_prot_conf.string());
-    return false;
-  }
-  f.close();
   _logger->info("New Engine configuration for poller {} stored, version '{}'",
                 poller_id, version);
   /* The announcement has been read and what it announced is now on disk, so it
@@ -1648,6 +1650,19 @@ void broker_state::_run_config_cycle(
       conf_rejected += refused;
       continue;
     }
+
+    /* Reading took the time, handing over takes the lock: an acknowledgement
+     * must not slip between the two files written below. */
+    absl::MutexLock handover_lck(&_conf_handover_m);
+    /* The diff about to be written replaces the one on disk. If the poller
+     * already acknowledged that one but the round is still waiting for others,
+     * the database and the cache have not received it yet, and the new diff
+     * starts from the <ID>.prot that acknowledgement wrote: overwritten, it
+     * would be lost for them. */
+    if (_diff_waits_for_integration(poller_id))
+      _integrate_acknowledged_diffs();
+    if (!_store_poller_conf(poller_id, *state, state->config_version()))
+      continue;
 
     ++conf_ready;
     if (is_poller_connected(poller_id))
@@ -1926,37 +1941,30 @@ bool broker_state::_prepare_diff_for_poller(
       peer->poller_name, poller_id, peer->engine_conf, state->config_version());
   std::filesystem::path previous_prot_conf =
       pollers_config_dir() / fmt::format("{}.prot", poller_id);
-  std::fstream f(previous_prot_conf);
-  std::unique_ptr<engine::configuration::DiffState> diff_state;
+  std::ifstream f(previous_prot_conf, std::ios::binary);
+  auto diff_state = std::make_unique<engine::configuration::DiffState>();
   std::string new_version = state->config_version();
-  if (f) {
-    /* There is a previous configuration */
-    auto previous_state = std::make_unique<engine::configuration::State>();
-    previous_state->ParseFromIstream(&f);
-    /* If the known configuration by Broker is the same as the one
-     * sent by the poller, we can compute the diff. */
-    if (previous_state->config_version() == peer->engine_conf) {
-      diff_state = std::make_unique<engine::configuration::DiffState>();
-      auto previous_indexed_state =
-          engine::configuration::indexed_state(std::move(previous_state));
-      previous_indexed_state.diff_with_new_config(*state, _logger,
-                                                  diff_state.get());
-    } else {
-      /* Otherwise, we do as if there was no previous configuration,
-       * so the diff will be the whole new configuration. */
-      _logger->warn(
-          "Poller '{}' with id {} has a new configuration available, but "
-          "the previous configuration is not the same as the one sent by "
-          "the poller (previous: '{}', new: '{}'). The diff will be the "
-          "whole new configuration.",
-          peer->poller_name, poller_id, peer->engine_conf,
-          state->config_version());
-      diff_state = std::make_unique<engine::configuration::DiffState>();
-      diff_state->set_allocated_state(state.release());
-    }
+  auto previous_state = std::make_unique<engine::configuration::State>();
+  if (f && previous_state->ParseFromIstream(&f)) {
+    /* The cache and the database hold <ID>.prot: they need the difference from
+     * it, whatever the poller runs. A full configuration would make them add
+     * everything and remove nothing. Whether the poller itself can apply the
+     * difference is decided when it is sent (see
+     * broker_stream::_send_diff_state_for_poller()): it may change in between.
+     */
+    std::string from_version = previous_state->config_version();
+    auto previous_indexed_state =
+        engine::configuration::indexed_state(std::move(previous_state));
+    previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                diff_state.get());
+    diff_state->set_from_version(std::move(from_version));
   } else {
-    /* No previous configuration */
-    diff_state = std::make_unique<engine::configuration::DiffState>();
+    /* No previous configuration: nothing holds anything of this poller, the
+     * whole new configuration is the difference. */
+    if (f)
+      _logger->error(
+          "Cannot parse '{}': poller {} gets its whole new configuration",
+          previous_prot_conf.string(), poller_id);
     diff_state->set_allocated_state(state.release());
   }
   /* The diff names the poller it is for: whoever sends it reads it there,
@@ -1965,7 +1973,7 @@ bool broker_state::_prepare_diff_for_poller(
   std::filesystem::path diff_prot_conf =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
   std::error_code ec;
-  write_diff_file(diff_prot_conf, *diff_state, ec);
+  write_prot_file(diff_prot_conf, *diff_state, ec);
   if (!ec) {
     /* The new configuration to send to the poller is
      * new-<poller-ID>.prot. Once sent to it, this file must be renamed
@@ -1980,7 +1988,7 @@ bool broker_state::_prepare_diff_for_poller(
      * answer. */
     if (peer->available_conf != new_version) {
       peer->available_conf = new_version;
-      peer->available_conf_sent = false;
+      peer->round = peer_registry::conf_round::out;
     }
     return true;
   }
@@ -2014,14 +2022,232 @@ bool broker_state::poller_needs_update(uint64_t poller_id) const {
 }
 
 /**
- * @brief Acknowledge or not the poller engine peer configuration. When
- * true, the poller is well up to date. When false, broker has a new
- * configuration and the poller did not send any acknowledgement.
+ * @brief Record what a poller acknowledged (see
+ * peer_registry::acknowledge_poller_conf()).
  *
- * @param poller_id
+ * @param poller_id The poller ID.
+ * @param version The version it acknowledged.
+ *
+ * @return true if @p version is the configuration prepared and sent for it.
  */
-void broker_state::set_poller_conf_acknowledged(uint64_t poller_id) {
-  _peers.set_poller_conf_acknowledged(poller_id);
+bool broker_state::acknowledge_poller_conf(uint64_t poller_id,
+                                           const std::string& version) {
+  return _peers.acknowledge_poller_conf(poller_id, version);
+}
+
+/**
+ * @brief Handle the acknowledgement of a configuration by a poller, on the
+ * central.
+ *
+ * When it is the configuration prepared for it, `new-<ID>.prot` becomes
+ * `<ID>.prot`, the cache follows the difference, and once every poller of the
+ * round has played its part the global diff is published. An older version --
+ * sent before a newer export replaced it -- only says what the poller runs:
+ * `new-<ID>.prot` and `diff-<ID>.prot` now describe the newer configuration,
+ * which stays owed.
+ *
+ * @param poller_id The poller ID.
+ * @param version The version it acknowledged.
+ */
+void broker_state::on_poller_conf_acknowledged(uint64_t poller_id,
+                                               const std::string& version) {
+  absl::MutexLock lck(&_conf_handover_m);
+  if (!_peers.acknowledge_poller_conf(poller_id, version)) {
+    _logger->info(
+        "Poller {} acknowledged '{}', which is not the configuration prepared "
+        "for it: nothing renamed, nothing carried to the cache",
+        poller_id, version);
+    return;
+  }
+  if (!pollers_config_dir_usable())
+    return;
+
+  const std::filesystem::path new_name(pollers_config_dir() /
+                                       fmt::format("new-{}.prot", poller_id));
+  const std::filesystem::path name(pollers_config_dir() /
+                                   fmt::format("{}.prot", poller_id));
+  _logger->debug("Renaming '{}' to '{}'", new_name.string(), name.string());
+  std::error_code ec;
+  std::filesystem::rename(new_name, name, ec);
+  if (ec) {
+    if (ec != std::errc::no_such_file_or_directory)
+      _logger->error("Unable to rename the file from '{}' to '{}'",
+                     new_name.string(), name.string());
+  } else {
+    /* A new configuration just became this poller's reference, so the cache
+     * follows -- and it follows the *difference*, which is the only form that
+     * says what the export removed. Only on a successful rename: without a
+     * `new-<ID>.prot` there was nothing new to acknowledge.
+     *
+     * Before the global diff is published a few lines below, so whoever
+     * handles it finds the cache already up to date. And done here rather than
+     * by publishing a pb_engine_state: that event is handled by unified_sql's
+     * _process_engine_state, which calls process_state() and would rewrite the
+     * whole configuration to the database on every single export. */
+    apply_poller_diff_in_cache(poller_id);
+  }
+
+  if (_peers.try_close_conf_round()) {
+    _logger->info(
+        "BBDO: all engine peers have acknowledged their configuration");
+    _publish_global_diff(nullptr);
+  }
+}
+
+/**
+ * @brief Handle, on the central, a poller that could not apply the
+ * configuration it was sent.
+ *
+ * It still runs its previous configuration, `<ID>.prot`. When the failed
+ * version is the one prepared for it, `new-<ID>.prot` and `diff-<ID>.prot`
+ * describe a configuration the poller will never run: they are removed, or the
+ * closing of the round would merge that diff into the database. The next export
+ * is computed from `<ID>.prot` again. The poller leaving the round may be what
+ * the other pollers were waiting for, hence the attempt to close it.
+ *
+ * @param poller_id The poller ID.
+ * @param running_version The version the poller still runs.
+ * @param failed_version The version it could not apply.
+ * @param error Why it could not.
+ */
+void broker_state::on_poller_conf_rejected(uint64_t poller_id,
+                                           const std::string& running_version,
+                                           const std::string& failed_version,
+                                           const std::string& error) {
+  absl::MutexLock lck(&_conf_handover_m);
+  if (_peers.reject_poller_conf(poller_id, running_version, failed_version,
+                                error) &&
+      pollers_config_dir_usable()) {
+    for (const char* pattern : {"new-{}.prot", "diff-{}.prot"}) {
+      const std::filesystem::path path(
+          pollers_config_dir() / fmt::format(fmt::runtime(pattern), poller_id));
+      std::error_code ec;
+      std::filesystem::remove(path, ec);
+      if (ec)
+        _logger->error("Cannot remove '{}': {}", path.string(), ec.message());
+    }
+  }
+
+  if (_peers.try_close_conf_round()) {
+    _logger->info(
+        "BBDO: all engine peers have acknowledged their configuration");
+    _publish_global_diff(nullptr);
+  }
+}
+
+/**
+ * @brief Whether the diff of this poller was acknowledged but not carried to
+ * the database yet.
+ *
+ * The acknowledgement renames `new-<ID>.prot`, and the global diff removes
+ * `diff-<ID>.prot`: a diff left without its `new-<ID>.prot` is exactly one
+ * waiting for the rest of its round. Told by the files rather than by the
+ * flags of the peer, which a reconnection resets while the files stay.
+ *
+ * @param poller_id The poller ID.
+ */
+bool broker_state::_diff_waits_for_integration(uint64_t poller_id) const {
+  if (!pollers_config_dir_usable())
+    return false;
+  std::error_code ec;
+  return std::filesystem::exists(
+             pollers_config_dir() / fmt::format("diff-{}.prot", poller_id),
+             ec) &&
+         !std::filesystem::exists(
+             pollers_config_dir() / fmt::format("new-{}.prot", poller_id), ec);
+}
+
+/**
+ * @brief Carry to the database and the cache, ahead of their round, the diffs
+ * already acknowledged.
+ *
+ * Called when a new export is about to replace one of them. Those pollers
+ * leave the round, which goes on for the ones still waiting for their
+ * configuration; the global diff they make is published on its own. The
+ * export then reaches the database in two parts instead of one, which
+ * unified_sql handles since it treats the groups poller by poller.
+ */
+void broker_state::_integrate_acknowledged_diffs() {
+  std::vector<uint64_t> pollers;
+  std::error_code ec;
+  for (const auto& entry :
+       std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
+    const std::string name = entry.path().filename().string();
+    std::string_view id_view(name);
+    if (!entry.is_regular_file() || entry.path().extension() != ".prot" ||
+        !absl::ConsumePrefix(&id_view, "diff-") ||
+        !absl::ConsumeSuffix(&id_view, ".prot"))
+      continue;
+    uint64_t poller_id;
+    if (absl::SimpleAtoi(id_view, &poller_id) &&
+        _diff_waits_for_integration(poller_id))
+      pollers.push_back(poller_id);
+  }
+  if (pollers.empty())
+    return;
+  std::sort(pollers.begin(), pollers.end());
+  _logger->info(
+      "A new configuration arrives while poller(s) {} acknowledged theirs and "
+      "wait for the rest of the round: carrying it to the database first",
+      fmt::join(pollers, ", "));
+  _peers.leave_conf_round(pollers);
+  _publish_global_diff(&pollers);
+}
+
+/**
+ * @brief Merge `diff-*.prot` files into a global diff, publish it, and remove
+ * them.
+ *
+ * @param poller_ids The pollers whose diff is merged, or nullptr for every
+ * diff of the directory -- which is what closing a round does.
+ */
+void broker_state::_publish_global_diff(
+    const std::vector<uint64_t>* poller_ids) {
+  engine::configuration::indexed_diff_state global_diff;
+  std::error_code ec;
+  for (const auto& entry :
+       std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
+    const std::string name = entry.path().filename().string();
+    std::string_view id_view(name);
+    if (!entry.is_regular_file() || entry.path().extension() != ".prot" ||
+        !absl::ConsumePrefix(&id_view, "diff-"))
+      continue;
+    id_view.remove_suffix(5);
+    uint64_t poller_id;
+    if (!absl::SimpleAtoi(id_view, &poller_id)) {
+      _logger->error("BBDO: The file '{}' seems not to be a diff state file.",
+                     name);
+      continue;
+    }
+    if (poller_ids && !absl::c_linear_search(*poller_ids, poller_id))
+      continue;
+    _logger->debug("BBDO: Merging diff file '{}' into the global one",
+                   entry.path().string());
+    std::ifstream f(entry.path(), std::ios::binary);
+    if (!f)
+      continue;
+    engine::configuration::DiffState diff;
+    if (diff.ParseFromIstream(&f))
+      global_diff.add_diff_state(diff, _logger);
+    else
+      _logger->error(
+          "BBDO: cannot parse diff file '{}': not merged into the global diff",
+          entry.path().string());
+    f.close();
+    _logger->debug("BBDO: Removing diff file '{}'", entry.path().string());
+    std::error_code remove_ec;
+    if (!std::filesystem::remove(entry.path(), remove_ec) && remove_ec)
+      _logger->error("BBDO: cannot remove diff file '{}': {}",
+                     entry.path().string(), remove_ec.message());
+  }
+  if (ec)
+    _logger->error("BBDO: cannot browse '{}' for the global diff: {}",
+                   pollers_config_dir().string(), ec.message());
+  auto diff = std::make_shared<neb::pb_global_diff_state>();
+  global_diff.release_diff_state(diff->mut_obj());
+  multiplexing::publisher pblshr;
+  _logger->debug("BBDO: Publishing global diff state");
+  pblshr.write(diff);
 }
 
 /**
@@ -2208,6 +2434,7 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
     return std::nullopt;
   }
   f.close();
+  absl::MutexLock lck(&_conf_handover_m);
   return _prepare_diff_for_poller(poller_id, std::move(state));
 }
 
@@ -2283,6 +2510,8 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
 
   /* 3. */
   {
+    /* diff-<ID>.prot is written below, which only the handover may do. */
+    absl::MutexLock handover_lck(&_conf_handover_m);
     std::ifstream f(prev_file);
     if (f) {
       auto state = std::make_unique<engine::configuration::State>();
@@ -2300,7 +2529,7 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       engine::configuration::DiffState diff;
       diff.set_allocated_state(state.release());
       std::error_code ec;
-      write_diff_file(diff_file, diff, ec);
+      write_prot_file(diff_file, diff, ec);
       if (ec) {
         _logger->error("Cannot write diff-{}.prot for relay poller {}: {}",
                        engine_id, engine_id, ec.message());
@@ -2312,7 +2541,7 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
          * flag for a version already in flight orphans its acknowledgement. */
         if (peer && peer->available_conf != version) {
           peer->available_conf = version;
-          peer->available_conf_sent = false;
+          peer->round = peer_registry::conf_round::out;
         }
       }
       return relay_config_response::diff_ready;

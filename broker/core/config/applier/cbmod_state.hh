@@ -51,7 +51,11 @@ class cbmod_state : public state {
   absl::btree_map<std::tuple<uint64_t, std::string, std::string>, peer>
       _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
-  std::atomic_bool _diff_state_applied;
+  /* The acknowledgement owed to Broker for the last DiffState Engine handled,
+   * until the stream sends it. */
+  std::optional<DiffStateAck> _diff_state_ack
+      ABSL_GUARDED_BY(_diff_state_ack_m);
+  mutable absl::Mutex _diff_state_ack_m;
   /* Set from broker's Welcome at negotiation: true when Broker owns the
    * notification decision. Read from the Engine event loop, hence atomic. */
   std::atomic_bool _broker_handles_notifications{false};
@@ -100,7 +104,13 @@ class cbmod_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_diff_state(const std::shared_ptr<io::data>& diff);
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
-  void set_diff_state_applied(bool done);
+  void set_diff_state_applied(const std::string& config_version)
+      ABSL_LOCKS_EXCLUDED(_diff_state_ack_m);
+  void set_diff_state_failed(const std::string& failed_version,
+                             const std::string& error)
+      ABSL_LOCKS_EXCLUDED(_diff_state_ack_m);
+  std::optional<DiffStateAck> take_diff_state_ack()
+      ABSL_LOCKS_EXCLUDED(_diff_state_ack_m);
   void push_notification_execute(const std::shared_ptr<io::data>& ne)
       ABSL_LOCKS_EXCLUDED(_pending_notifications_m);
   std::vector<NotificationExecute> drain_notification_executes()
@@ -118,18 +128,6 @@ class cbmod_state : public state {
   bool broker_handles_notifications() const {
     return _broker_handles_notifications.load();
   }
-  /**
-   * @brief Check if the diff state has been applied. This method is called from
-   * Engine. It must return true if the diff state has been applied but only
-   * once.
-   *
-   * @return a boolean.
-   */
-  bool diff_state_applied() {
-    bool expected = true;
-    return _diff_state_applied.compare_exchange_strong(expected, false);
-  }
-
   void set_proto_conf(const std::filesystem::path& proto_conf);
   const std::filesystem::path& proto_conf() const;
   bool supports_centralized_conf() const override {

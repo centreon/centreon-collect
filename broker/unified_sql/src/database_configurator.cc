@@ -312,7 +312,8 @@ void database_configurator::_wake_up_resources_mysql(
 void database_configurator::_disable_resources_for_pollers_with_full_conf(
     const DiffState& diff) {
   for (uint64_t instance_id : diff.full_conf_poller_id())
-    _stream->clean_tables(instance_id);
+    _stream->clean_tables(instance_id,
+                          stream::clean_reason::full_configuration);
 
   auto& mysql = _stream->get_mysql();
 

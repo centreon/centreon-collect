@@ -42,14 +42,41 @@ namespace com::centreon::broker::config::applier {
  */
 class peer_registry {
  public:
+  /* Where an Engine peer stands. Each state implies the previous one: an
+   * Engine cannot be running on a poller that is not connected. There is no
+   * "disconnected" state: a peer that leaves is removed from the registry. */
+  enum class peer_state : uint8_t {
+    /* Known from topology.cache only: a routing hint, not a peer. It has not
+     * been seen connected in this Broker session. */
+    expected,
+    /* Connected, directly or through a relay, its Engine not announced as
+     * running -- the case at TCP connect time. */
+    connected,
+    /* Connected, and the last pb_instance received for it said its Engine
+     * runs. */
+    running,
+  };
+
+  /* Where an Engine peer stands in the current configuration round. */
+  enum class conf_round : uint8_t {
+    /* Not part of the round: nothing was handed over to it, or what it
+     * acknowledged has already been carried to the database. */
+    out,
+    /* Its available_conf has been handed over, the acknowledgement is
+     * awaited. */
+    sent,
+    /* It acknowledged its available_conf, and waits for the round to
+     * close. */
+    acknowledged,
+  };
+
   struct engine_peer {
     uint64_t poller_id;
     std::string poller_name;
-    /* When the peer connected, directly or through a relay. Empty while it has
-     * never been seen connected in this Broker session -- which is the case of
-     * an entry restored from topology.cache, a routing hint rather than a
-     * peer. */
-    std::optional<time_t> connected_since;
+    peer_state state = peer_state::expected;
+    /* When the peer connected, directly or through a relay. Meaningless while
+     * state is peer_state::expected. */
+    time_t connected_since = 0;
     /* Does the peer support extended negotiation? */
     bool extended_negotiation;
     /* Does this peer need an update concerning the engine configuration? */
@@ -57,13 +84,8 @@ class peer_registry {
     /* The current Engine configuration known by this poller. Only available
      * for an Engine peer. */
     std::string engine_conf;
-    /* The available_conf_sent flag is set to true when the available
-     * configuration has been sent to the Engine peer. Otherwise, it is false.
-     */
-    bool available_conf_sent;
-    /* The conf_acknowledged flag is set to false when a new configuration
-     * concerning this Engine peer must be sent to it. Otherwise, it is true. */
-    bool conf_acknowledged;
+    /* Where this peer stands in the current configuration round. */
+    conf_round round = conf_round::out;
     /* Whether Broker holds the content of the configuration this poller runs:
      * a <ID>.prot on disk, or a <ID>.lck announcing one. False is not a
      * property of the poller -- which may well tell us in engine_conf the
@@ -72,13 +94,6 @@ class peer_registry {
     bool broker_knows_poller_conf;
     /* poller_id of the remote peer that is in front of this peer or 0. */
     uint64_t via_remote;
-    /* Whether this poller's Engine is running, as told by the last pb_instance
-     * received for it. False at TCP connect time: a peer may well be connected
-     * with its Engine not started yet. Maintained by the BAM module, the only
-     * reader and writer of it, which relies on reading it before flipping it
-     * to tell a real Engine stop from a running=false event replayed on
-     * Broker reconnect. */
-    bool engine_running = false;
     /* Whether the poller is still owed the runtime snapshot of its
      * resources: true by construction, a peer that was just registered got
      * nothing yet, and again once Broker rebuilt and restored a configuration
@@ -92,9 +107,21 @@ class peer_registry {
      * host/service carries no explicit timezone. */
     std::string timezone{};
 
+    /* The version last handed over to this poller, until it acknowledges a
+     * configuration -- applied or not; empty when nothing is in flight. Engine
+     * applies the DiffStates it receives in order, so a second one sent
+     * meanwhile would be applied on top of a configuration it was not computed
+     * from. */
+    std::string conf_in_flight{};
+    /* The last version this poller could not apply, and why. That version is
+     * not sent again: it would fail the same way. A new export, or a
+     * reconnection of the poller, is what tries again. */
+    std::string rejected_conf{};
+    std::string rejection_error{};
+
     /* Whether this entry describes a peer that connected, as opposed to one
      * restored from topology.cache. */
-    bool connected() const noexcept { return connected_since.has_value(); }
+    bool connected() const noexcept { return state != peer_state::expected; }
   };
   struct peer {
     uint64_t poller_id;
@@ -165,6 +192,8 @@ class peer_registry {
  private:
   /* Whether a configuration is prepared for this peer and still owes it a
    * delivery. */
+  static bool _peer_owes_conf(const engine_peer& peer);
+  /* Whether that delivery can be made now: owed, and nothing in flight. */
   static bool _peer_needs_update(const engine_peer& peer);
 
   std::shared_ptr<spdlog::logger> _logger;
@@ -251,7 +280,14 @@ class peer_registry {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool set_poller_conf_sent(uint64_t poller_id, std::string_view version)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void set_poller_conf_acknowledged(uint64_t poller_id)
+  bool acknowledge_poller_conf(uint64_t poller_id, const std::string& version)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool reject_poller_conf(uint64_t poller_id,
+                          const std::string& running_version,
+                          const std::string& failed_version,
+                          const std::string& error)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void leave_conf_round(const std::vector<uint64_t>& poller_ids)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool try_close_conf_round() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<uint64_t> pollers_via_relay_needing_update(

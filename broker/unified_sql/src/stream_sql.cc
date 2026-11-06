@@ -46,6 +46,45 @@ static const std::string _insert_or_update_nothing_tags =
     "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
     "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id)";
 
+namespace {
+/**
+ * @brief The file where this Broker stores the configuration of a poller,
+ * `<ID>.prot`.
+ *
+ * Only a poller in centralized configuration has one: Broker manages its
+ * configuration and sends the database what it changes. A poller started with
+ * its own configuration has none, even behind a Broker able to manage
+ * configurations.
+ *
+ * @param poller_id The poller ID.
+ *
+ * @return The path, or an empty one if this instance stores no configuration
+ * (not a Broker, or no pollers configuration directory).
+ */
+std::filesystem::path stored_poller_config_path(uint32_t poller_id) {
+  auto& applier_state = config::applier::state::instance();
+  if (applier_state.peer_type() != com::centreon::common::BROKER)
+    return {};
+  const auto& bs =
+      static_cast<const config::applier::broker_state&>(applier_state);
+  if (!bs.pollers_config_dir_usable())
+    return {};
+  return bs.pollers_config_dir() / fmt::format("{}.prot", poller_id);
+}
+
+/**
+ * @brief Whether Broker stores the configuration of a poller, that is
+ * whether the poller is in centralized configuration.
+ *
+ * @param poller_id The poller ID.
+ */
+bool poller_config_is_stored(uint32_t poller_id) {
+  const std::filesystem::path path = stored_poller_config_path(poller_id);
+  std::error_code ec;
+  return !path.empty() && std::filesystem::is_regular_file(path, ec);
+}
+}  // namespace
+
 /**
  * @brief The goal of these two macros is to fill insert or update request
  * second part toto=VALUES(toto)
@@ -65,12 +104,32 @@ static const std::string _insert_or_update_nothing_tags =
 /**
  *  @brief Clean tables with data associated to the instance.
  *
- *  Rather than delete appropriate entries in tables, they are instead
- *  deactivated using a specific flag.
+ *  Hosts, services and resources are not deleted but disabled
+ *  (`enabled=0`).
+ *
+ *  What they are linked to -- host parents, group memberships, tags and custom
+ *  variables -- depends on @p reason:
+ *
+ *  - A full configuration replaces everything the poller had: the links are
+ *    removed here, and the configuration that follows writes back those that
+ *    still exist.
+ *  - A poller that stops in centralized configuration (Broker stores its
+ *    configuration, `<ID>.prot`) keeps them. Broker
+ *    computes the next differences against the configuration it stores
+ *    (`<ID>.prot`), so the database has to keep describing it: links removed
+ *    here would never be written back, since a difference only carries what
+ *    changed. The poller's objects being disabled, it is up to the readers to
+ *    filter them out.
+ *  - A poller started with its own configuration sends it whole again when
+ *    it starts, so the links are removed as before: that is what drops those
+ *    removed from its configuration in the meantime.
  *
  *  @param[in] instance_id Instance ID to remove.
+ *  @param[in] reason Why the tables are cleaned.
  */
-void stream::clean_tables(uint32_t instance_id) {
+void stream::clean_tables(uint32_t instance_id, clean_reason reason) {
+  const bool keep_links = reason == clean_reason::poller_stopped &&
+                          poller_config_is_stored(instance_id);
   // no hostgroup and servicegroup clean during this function
   {
     absl::MutexLock l(&_timer_m);
@@ -80,17 +139,16 @@ void stream::clean_tables(uint32_t instance_id) {
   /* Database version. */
 
   _mysql.commit();
-  if (_store_in_resources) {
+
+  /* Before disabling: the tags are found through the poller's resources. */
+  if (!keep_links)
+    _remove_poller_links(instance_id);
+  else
     SPDLOG_LOGGER_DEBUG(
-        _logger_sql, "unified sql: remove tags memberships (instance_id: {})",
+        _logger_sql,
+        "unified sql: poller {} stopped, its host parents, group memberships, "
+        "tags and custom variables are kept",
         instance_id);
-    _mysql.run_query(
-        fmt::format("DELETE rt FROM resources_tags rt LEFT JOIN resources r ON "
-                    "rt.resource_id=r.resource_id WHERE r.poller_id={}",
-                    instance_id),
-        database::mysql_error::clean_resources_tags, 0);
-    _mysql.commit(0);
-  }
 
   _mysql.run_query(
       fmt::format("UPDATE resources SET enabled=0 WHERE poller_id={}",
@@ -105,40 +163,6 @@ void stream::clean_tables(uint32_t instance_id) {
       "SET h.enabled=0, s.enabled=0 WHERE h.instance_id={}",
       instance_id));
   _mysql.run_query(query, database::mysql_error::clean_hosts_services, 0);
-
-  /* Remove host group memberships. */
-  SPDLOG_LOGGER_DEBUG(
-      _logger_sql,
-      "unified sql: remove host group memberships (instance_id: {})",
-      instance_id);
-  query = fmt::format(
-      "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
-      "hosts_hostgroups.host_id=hosts.host_id WHERE hosts.instance_id={}",
-      instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_hostgroup_members, 0);
-
-  /* Remove service group memberships */
-  SPDLOG_LOGGER_DEBUG(
-      _logger_sql,
-      "unified sql: remove service group memberships (instance_id: {})",
-      instance_id);
-  query = fmt::format(
-      "DELETE services_servicegroups FROM services_servicegroups LEFT JOIN "
-      "hosts ON services_servicegroups.host_id=hosts.host_id WHERE "
-      "hosts.instance_id={}",
-      instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_servicegroup_members, 0);
-
-  /* Remove host parents. */
-  SPDLOG_LOGGER_DEBUG(_logger_sql,
-                      "unified sql: remove host parents (instance_id: {})",
-                      instance_id);
-  query = fmt::format(
-      "DELETE hhp FROM hosts_hosts_parents AS hhp INNER JOIN hosts as h ON "
-      "hhp.child_id=h.host_id OR hhp.parent_id=h.host_id WHERE "
-      "h.instance_id={}",
-      instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_host_parents, 0);
 
   /* Remove list of modules. */
   SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -182,17 +206,6 @@ void stream::clean_tables(uint32_t instance_id) {
 
   _mysql.run_query(query, database::mysql_error::clean_comments, 0);
 
-  // Remove custom variables. No need to choose the good instance, there are
-  // no constraint between custom variables and instances.
-  SPDLOG_LOGGER_DEBUG(
-      _logger_sql, "Removing custom variables (instance_id: {})", instance_id);
-  query = fmt::format(
-      "DELETE cv FROM customvariables AS cv INNER JOIN hosts AS h ON "
-      "cv.host_id = h.host_id WHERE h.instance_id={}",
-      instance_id);
-
-  _mysql.run_query(query, database::mysql_error::clean_customvariables, 0);
-
   absl::MutexLock l(&_timer_m);
   _group_clean_timer.expires_after(std::chrono::minutes(1));
   _group_clean_timer.async_wait([this](const boost::system::error_code& err) {
@@ -201,6 +214,73 @@ void stream::clean_tables(uint32_t instance_id) {
       _clean_group_table();
     }
   });
+}
+
+/**
+ *  @brief Remove what the objects of a poller are linked to: tags, host
+ *  group and service group memberships, host parents and custom variables.
+ *
+ *  These come from the poller configuration and are written back by the
+ *  configuration that follows (see clean_tables() for when they are kept).
+ *
+ *  @param[in] instance_id The poller ID.
+ */
+void stream::_remove_poller_links(uint32_t instance_id) {
+  if (_store_in_resources) {
+    SPDLOG_LOGGER_DEBUG(
+        _logger_sql, "unified sql: remove tags memberships (instance_id: {})",
+        instance_id);
+    _mysql.run_query(
+        fmt::format("DELETE rt FROM resources_tags rt LEFT JOIN resources r ON "
+                    "rt.resource_id=r.resource_id WHERE r.poller_id={}",
+                    instance_id),
+        database::mysql_error::clean_resources_tags, 0);
+    _mysql.commit(0);
+  }
+
+  /* Remove host group memberships. */
+  SPDLOG_LOGGER_DEBUG(
+      _logger_sql,
+      "unified sql: remove host group memberships (instance_id: {})",
+      instance_id);
+  std::string query(fmt::format(
+      "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts ON "
+      "hosts_hostgroups.host_id=hosts.host_id WHERE hosts.instance_id={}",
+      instance_id));
+  _mysql.run_query(query, database::mysql_error::clean_hostgroup_members, 0);
+
+  /* Remove service group memberships */
+  SPDLOG_LOGGER_DEBUG(
+      _logger_sql,
+      "unified sql: remove service group memberships (instance_id: {})",
+      instance_id);
+  query = fmt::format(
+      "DELETE services_servicegroups FROM services_servicegroups LEFT JOIN "
+      "hosts ON services_servicegroups.host_id=hosts.host_id WHERE "
+      "hosts.instance_id={}",
+      instance_id);
+  _mysql.run_query(query, database::mysql_error::clean_servicegroup_members, 0);
+
+  /* Remove host parents. */
+  SPDLOG_LOGGER_DEBUG(_logger_sql,
+                      "unified sql: remove host parents (instance_id: {})",
+                      instance_id);
+  query = fmt::format(
+      "DELETE hhp FROM hosts_hosts_parents AS hhp INNER JOIN hosts as h ON "
+      "hhp.child_id=h.host_id OR hhp.parent_id=h.host_id WHERE "
+      "h.instance_id={}",
+      instance_id);
+  _mysql.run_query(query, database::mysql_error::clean_host_parents, 0);
+
+  // Remove custom variables. No need to choose the good instance, there are
+  // no constraint between custom variables and instances.
+  SPDLOG_LOGGER_DEBUG(
+      _logger_sql, "Removing custom variables (instance_id: {})", instance_id);
+  query = fmt::format(
+      "DELETE cv FROM customvariables AS cv INNER JOIN hosts AS h ON "
+      "cv.host_id = h.host_id WHERE h.instance_id={}",
+      instance_id);
+  _mysql.run_query(query, database::mysql_error::clean_customvariables, 0);
 }
 
 void stream::_clean_group_table() {
@@ -2531,7 +2611,7 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
   // Clean tables.
   // FIXME DBO
   if (!i.is_running)
-    clean_tables(i.poller_id);
+    clean_tables(i.poller_id, clean_reason::poller_stopped);
 
   // Processing.
   if (_is_valid_poller(i.poller_id)) {
@@ -2577,7 +2657,7 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
   // Clean tables.
   // FIXME DBO
   if (!inst.running())
-    clean_tables(inst.instance_id());
+    clean_tables(inst.instance_id(), clean_reason::poller_stopped);
 
   // Processing.
   if (_is_valid_poller(inst.instance_id())) {
@@ -2611,7 +2691,52 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
     _pb_instance_insupdate << inst_obj;
     _mysql.run_statement(_pb_instance_insupdate,
                          database::mysql_error::store_poller, 0);
+
+    if (inst.running())
+      _wake_up_poller_resources(inst.instance_id());
   }
+}
+
+/**
+ * @brief Enable again the hosts, services and resources of a poller in
+ * centralized configuration that has just started.
+ *
+ * A poller started with its own configuration sends the definition of each of
+ * its objects right after this event, and writing them enables them. A poller
+ * in centralized configuration sends none: Broker owns its configuration. Its
+ * objects are enabled from the configuration Broker stores, which is done when
+ * the poller connects -- but that is not enough. A poller that stopped without
+ * delivering its stop event keeps it in its retention, and the next Engine
+ * sends it first: the `running: no` then comes after the connection and
+ * disables everything again. The `running: yes` that follows is the last word
+ * on whether the poller runs, so it is what enables its objects.
+ *
+ * Only the objects of the stored configuration are enabled: those removed from
+ * it are disabled too, and must stay so.
+ *
+ * @param poller_id The poller that started.
+ */
+void stream::_wake_up_poller_resources(uint32_t poller_id) {
+  const std::filesystem::path path = stored_poller_config_path(poller_id);
+  if (path.empty())
+    return;
+  std::ifstream f(path, std::ios::binary);
+  if (!f)
+    return;
+  engine::configuration::State state;
+  if (!state.ParseFromIstream(&f)) {
+    SPDLOG_LOGGER_ERROR(_logger_sql,
+                        "unified_sql: cannot parse '{}': the objects of "
+                        "poller {} are not enabled again at its start",
+                        path.string(), poller_id);
+    return;
+  }
+  SPDLOG_LOGGER_INFO(_logger_sql,
+                     "unified_sql: poller {} started, enabling again the "
+                     "objects of its stored configuration",
+                     poller_id);
+  database_configurator cfg(this, _logger_sql);
+  cfg.process_state(state);
 }
 
 /**

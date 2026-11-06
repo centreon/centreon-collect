@@ -132,6 +132,13 @@ class broker_state : public state {
       _watch_strand;
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
+  /* Serializes what hands a configuration over between files: the cycle
+   * writing `new-<ID>.prot` and `diff-<ID>.prot`, and an acknowledgement
+   * renaming the first, feeding the cache with the second and merging the
+   * `diff-*.prot` into the global diff. Interleaved, an acknowledgement could
+   * rename a `new-<ID>.prot` written for a newer configuration, or a cycle
+   * compute a diff from a `<ID>.prot` about to be replaced. */
+  absl::Mutex _conf_handover_m;
   /* Where the configuration work runs. Reading a poller configuration --
    * hash_directory, parse, expand, resolve, and the reload of the stored
    * configurations behind it -- takes seconds on a large platform, and running
@@ -157,8 +164,16 @@ class broker_state : public state {
 
   bool _prepare_diff_for_poller(
       uint64_t poller_id,
-      std::unique_ptr<engine::configuration::State>&& state);
-  std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id);
+      std::unique_ptr<engine::configuration::State>&& state)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id)
+      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
+  bool _diff_waits_for_integration(uint64_t poller_id) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  void _integrate_acknowledged_diffs()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  void _publish_global_diff(const std::vector<uint64_t>* poller_ids)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _start_watching();
   void _arm_inotify_wait();
   void _arm_debounce();
@@ -194,7 +209,8 @@ class broker_state : public state {
       bool& refused);
   bool _store_poller_conf(uint32_t poller_id,
                           const engine::configuration::State& state,
-                          const std::string& version);
+                          const std::string& version)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
   void save_topology_cache() const;
@@ -239,7 +255,15 @@ class broker_state : public state {
   void set_broker_knows_poller_conf(uint64_t poller_id, bool known);
   bool try_close_conf_round();
   bool set_poller_conf_sent(uint32_t poller_id, std::string_view version);
-  void set_poller_conf_acknowledged(uint64_t poller_id);
+  bool acknowledge_poller_conf(uint64_t poller_id, const std::string& version);
+  void on_poller_conf_acknowledged(uint64_t poller_id,
+                                   const std::string& version)
+      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
+  void on_poller_conf_rejected(uint64_t poller_id,
+                               const std::string& running_version,
+                               const std::string& failed_version,
+                               const std::string& error)
+      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
   void apply(const com::centreon::broker::config::state& s,
              bool run_mux = true) override;
   const std::filesystem::path& pollers_config_dir() const noexcept;
@@ -277,7 +301,8 @@ class broker_state : public state {
       const com::centreon::broker::config::state& s) override;
   void load_pollers_config_in_cache();
   void apply_poller_diff_in_cache(uint64_t poller_id);
-  void remove_poller_config(uint64_t poller_id) override;
+  void remove_poller_config(uint64_t poller_id) override
+      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
   com::centreon::engine::configuration::foreign_objects load_foreign_objects()
       const;
 
@@ -289,7 +314,8 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   relay_config_response prepare_relay_config_response(
       uint64_t engine_id,
-      const std::string& relay_config_version) ABSL_LOCKS_EXCLUDED(_lck_set_m);
+      const std::string& relay_config_version)
+      ABSL_LOCKS_EXCLUDED(_lck_set_m, _conf_handover_m);
 
   /* Relay: queue a DiffState for forwarding to the Engine stream of poller N.
    * Called on the BROKER-connected stream when it receives a DiffState from

@@ -44,13 +44,19 @@ void cbmod_stream::send_engine_conf(
 
 uint32_t cbmod_stream::write(const std::shared_ptr<io::data>& d) {
   if (_state.peer_type() == common::ENGINE && peer_type() == common::BROKER) {
-    if (_state.diff_state_applied()) {
-      const std::string& version = _state.engine_conf();
-      _logger->debug("BBDO: Sending diff state '{}' acknowledgement", version);
+    if (auto ack = _state.take_diff_state_ack(); ack) {
+      if (ack->failed_version().empty())
+        _logger->debug("BBDO: Sending diff state '{}' acknowledgement",
+                       ack->config_version());
+      else
+        _logger->error(
+            "BBDO: Sending diff state '{}' failure acknowledgement, still "
+            "running '{}': {}",
+            ack->failed_version(), ack->config_version(), ack->error());
       auto diff_state_ack = std::make_shared<bbdo::pb_diff_state_ack>();
       auto& obj = diff_state_ack->mut_obj();
+      obj = std::move(*ack);
       obj.set_poller_id(_state.poller_id());
-      obj.set_config_version(version);
       _write(diff_state_ack);
     }
     if (auto current_conf = _state.current_engine_conf(); current_conf) {

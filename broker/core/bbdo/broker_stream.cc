@@ -20,7 +20,6 @@
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "common/engine_conf/indexed_diff_state.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -83,6 +82,13 @@ void broker_stream::_add_runtime_state(
  * the connection, and the poller would never apply its configuration. It stays
  * owed, and the next read of the stream tries again.
  *
+ * The file holds the difference from `<ID>.prot`, which is what the cache and
+ * the database need. A poller that does not run that version (it lost its
+ * state.prot, for instance) cannot apply it: it is sent the full configuration
+ * read from `new-<ID>.prot` instead. The choice is made here and not when the
+ * diff is prepared, as the poller may have reconnected with another version in
+ * between.
+ *
  * @param poller_id The ID of the poller for which to send the DiffState.
  */
 void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
@@ -104,6 +110,32 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
     return;
   }
   f.close();
+  if (!obj.has_state() && obj.has_from_version()) {
+    const std::string engine_conf = _state.poller_engine_conf(poller_id);
+    if (engine_conf != obj.from_version()) {
+      std::filesystem::path new_name(_state.pollers_config_dir() /
+                                     fmt::format("new-{}.prot", poller_id));
+      auto full =
+          std::make_unique<com::centreon::engine::configuration::State>();
+      std::ifstream nf(new_name, std::ios::binary);
+      if (!nf || !full->ParseFromIstream(&nf)) {
+        _logger->error(
+            "BBDO: poller {} runs configuration '{}' and not '{}' the diff "
+            "starts from, but '{}' cannot be read: nothing sent, it stays owed",
+            poller_id, engine_conf, obj.from_version(), new_name.string());
+        return;
+      }
+      SPDLOG_LOGGER_INFO(_logger,
+                         "BBDO: poller {} runs configuration '{}' and not '{}' "
+                         "the diff starts from: sending it the full "
+                         "configuration '{}'",
+                         poller_id, engine_conf, obj.from_version(),
+                         full->config_version());
+      obj.Clear();
+      obj.set_poller_id(static_cast<uint32_t>(poller_id));
+      obj.set_allocated_state(full.release());
+    }
+  }
   /* Read before _add_runtime_state(), which only adds the snapshot. */
   const std::string version = diff_version(obj);
   _add_runtime_state(obj);
@@ -227,89 +259,22 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         break;
       }
       // Central: handle the ack (direct connection or forwarded by a relay).
-      const uint64_t engine_id = obj.poller_id();
-      _state.set_poller_engine_conf(engine_id, obj.config_version());
-      _state.set_poller_conf_acknowledged(engine_id);
+      if (!obj.failed_version().empty()) {
+        SPDLOG_LOGGER_INFO(_logger,
+                           "BBDO: received diff state failure from poller {} "
+                           "for version '{}', still running '{}'",
+                           obj.poller_id(), obj.failed_version(),
+                           obj.config_version());
+        _state.on_poller_conf_rejected(obj.poller_id(), obj.config_version(),
+                                       obj.failed_version(), obj.error());
+        break;
+      }
       SPDLOG_LOGGER_INFO(
           _logger,
           "BBDO: received diff state ack from poller {} with version '{}'",
-          engine_id, obj.config_version());
-      std::filesystem::path new_name(_state.pollers_config_dir() /
-                                     fmt::format("new-{}.prot", engine_id));
-      std::filesystem::path name(_state.pollers_config_dir() /
-                                 fmt::format("{}.prot", engine_id));
-      _logger->debug("bbdo::basic_stream removing {}", name.string());
-      std::error_code ec;
-      std::filesystem::rename(new_name, name, ec);
-      if (ec) {
-        if (ec != std::errc::no_such_file_or_directory)
-          _logger->error("Unable to rename the file from '{}' to '{}'",
-                         new_name.string(), name.string());
-      } else {
-        /* A new configuration just became this poller's reference, so the
-         * cache follows -- and it follows the *difference*, which is the only
-         * form that says what the export removed. Only on a successful rename:
-         * without a `new-<ID>.prot` there was nothing new to acknowledge.
-         *
-         * Before the global diff is published a few lines below, so whoever
-         * handles it finds the cache already up to date. And done here rather
-         * than by publishing a pb_engine_state: that event is handled by
-         * unified_sql's _process_engine_state, which calls process_state() and
-         * would rewrite the whole configuration to the database on every single
-         * export. */
-        _state.apply_poller_diff_in_cache(engine_id);
-      }
-
-      // All the peer pollers have their configuration acknowledged.
-      if (_state.try_close_conf_round()) {
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: all engine peers have acknowledged their configuration");
-        com::centreon::engine::configuration::indexed_diff_state global_diff;
-        std::error_code ec;
-        for (const auto& entry : std::filesystem::directory_iterator(
-                 _state.pollers_config_dir(), ec)) {
-          std::string poller_id_str(entry.path().filename().string());
-          if (entry.is_regular_file() && entry.path().extension() == ".prot" &&
-              absl::StartsWith(poller_id_str, "diff-")) {
-            _logger->debug("BBDO: Merging diff file '{}' into the global one",
-                           entry.path().string());
-            std::string_view poller_id_view(poller_id_str);
-            poller_id_view.remove_prefix(5);
-            poller_id_view.remove_suffix(5);
-            uint64_t poller_id;
-            if (absl::SimpleAtoi(poller_id_view, &poller_id)) {
-              std::filesystem::path diff_name(_state.pollers_config_dir() /
-                                              entry.path());
-              std::ifstream f(diff_name, std::ios::binary);
-              com::centreon::engine::configuration::DiffState diff;
-              if (f) {
-                if (diff.ParseFromIstream(&f))
-                  global_diff.add_diff_state(diff, _logger);
-                else
-                  _logger->error(
-                      "BBDO: cannot parse diff file '{}': not merged into the "
-                      "global diff",
-                      diff_name.string());
-                f.close();
-                _logger->debug("BBDO: Removing diff file '{}'",
-                               diff_name.string());
-                std::filesystem::remove(diff_name);
-              }
-            } else {
-              _logger->error(
-                  "BBDO: The file '{}' seems not to be a diff state file.",
-                  poller_id_str);
-            }
-          }
-        }
-        auto diff = std::make_shared<neb::pb_global_diff_state>();
-        auto& obj = diff->mut_obj();
-        global_diff.release_diff_state(obj);
-        multiplexing::publisher pblshr;
-        _logger->debug("BBDO: Publishing global diff state");
-        pblshr.write(diff);
-      }
+          obj.poller_id(), obj.config_version());
+      _state.on_poller_conf_acknowledged(obj.poller_id(),
+                                         obj.config_version());
     } break;
     case pb_diff_state::static_type(): {
       auto diff = std::static_pointer_cast<bbdo::pb_diff_state>(d);

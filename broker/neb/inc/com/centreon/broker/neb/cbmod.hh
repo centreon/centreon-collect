@@ -85,6 +85,8 @@ class cbmod {
   std::vector<std::string> drain_external_commands();
   bool broker_handles_notifications() const;
   void set_diff_state_applied(const std::string& config_version);
+  void set_diff_state_failed(const std::string& failed_version,
+                             const std::string& error);
   bool centralized_conf() const;
   void send_engine_conf(
       std::unique_ptr<com::centreon::engine::configuration::State>&& conf);

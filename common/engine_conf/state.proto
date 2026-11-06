@@ -1341,4 +1341,10 @@ message DiffState {
    * with the same version, and leaves its configuration, scheduler and
    * modules alone. */
   bool runtime_only = 149;
+  /* Set by Broker on a differential (no `state`): the version of the
+   * configuration it starts from, the `<ID>.prot` Broker had acknowledged when
+   * it computed it. The cache and the database always apply the differential,
+   * since they hold that version. A poller running another one cannot: Broker
+   * then sends it the full configuration instead. */
+  optional string from_version = 150;
 }

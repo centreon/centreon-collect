@@ -844,11 +844,13 @@ grpc::Status broker_impl::GetPollers(grpc::ServerContext* context
     auto peer = response->add_peers();
     peer->set_id(p.poller_id);
     peer->set_poller_name(p.poller_name);
-    peer->mutable_connected_since()->set_seconds(*p.connected_since);
+    peer->mutable_connected_since()->set_seconds(p.connected_since);
     peer->set_engine_conf(p.engine_conf);
     peer->set_available_conf(p.available_conf);
     peer->set_type(common::ENGINE);
     peer->set_timezone(p.timezone);
+    peer->set_rejected_conf(p.rejected_conf);
+    peer->set_rejection_error(p.rejection_error);
   }
   return grpc::Status::OK;
 }

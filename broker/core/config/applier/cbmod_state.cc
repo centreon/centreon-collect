@@ -23,8 +23,7 @@ namespace com::centreon::broker::config::applier {
 cbmod_state::cbmod_state(const std::string& engine_conf_version,
                          const std::shared_ptr<spdlog::logger>& logger)
     : state(common::PeerType::ENGINE, logger),
-      _engine_conf{engine_conf_version},
-      _diff_state_applied{false} {}
+      _engine_conf{engine_conf_version} {}
 /**
  * @brief Set the Engine configuration version. This method has sense only When
  * called from Engine. Broker instance does not have a configuration version.
@@ -181,8 +180,49 @@ cbmod_state::diff_state() {
   return std::move(_diff_state);
 }
 
-void cbmod_state::set_diff_state_applied(bool done) {
-  _diff_state_applied = done;
+/**
+ * @brief Record that Engine applied the DiffState it received: it runs
+ * @p config_version now, and Broker is owed an acknowledgement saying so.
+ * Called from Engine.
+ *
+ * @param config_version The version Engine runs now.
+ */
+void cbmod_state::set_diff_state_applied(const std::string& config_version) {
+  set_engine_conf(config_version);
+  DiffStateAck ack;
+  ack.set_config_version(config_version);
+  absl::MutexLock lck(&_diff_state_ack_m);
+  _diff_state_ack = std::move(ack);
+}
+
+/**
+ * @brief Record that Engine could not apply the DiffState it received. It
+ * still runs the configuration it had before, and Broker is owed an
+ * acknowledgement saying so, with what failed and why: without it, Broker
+ * would wait for an acknowledgement that never comes. Called from Engine.
+ *
+ * @param failed_version The version Engine was sent and could not apply.
+ * @param error Why it could not.
+ */
+void cbmod_state::set_diff_state_failed(const std::string& failed_version,
+                                        const std::string& error) {
+  DiffStateAck ack;
+  ack.set_config_version(engine_conf());
+  ack.set_failed_version(failed_version);
+  ack.set_error(error);
+  absl::MutexLock lck(&_diff_state_ack_m);
+  _diff_state_ack = std::move(ack);
+}
+
+/**
+ * @brief Get and consume the acknowledgement owed to Broker, if any. Called by
+ * the stream connected to Broker.
+ *
+ * @return The acknowledgement, without its poller_id, or std::nullopt.
+ */
+std::optional<DiffStateAck> cbmod_state::take_diff_state_ack() {
+  absl::MutexLock lck(&_diff_state_ack_m);
+  return std::exchange(_diff_state_ack, std::nullopt);
 }
 
 /**

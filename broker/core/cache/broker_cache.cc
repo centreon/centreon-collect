@@ -4948,7 +4948,7 @@ broker_cache::escalation_result broker_cache::notification_escalation(
   /* Materialize the resource escalations as value snapshots and let the shared
    * library evaluate their viability and aggregate them. */
   std::vector<notifications::escalation> snap;
-  auto to_snapshot = [&](const auto& esc) {
+  auto to_snapshot = [&](const auto& esc) ABSL_SHARED_LOCKS_REQUIRED(_mutex) {
     notifications::escalation s;
     s.first_notification = esc.first_notification;
     s.last_notification = esc.last_notification;
