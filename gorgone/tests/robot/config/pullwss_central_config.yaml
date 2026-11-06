@@ -13,6 +13,7 @@ gorgone:
     - name: proxy
       package: "gorgone::modules::core::proxy::hooks"
       enable: true
+      ping: @PROXY_PING@
       httpserver:
         enable: true
         ssl: false

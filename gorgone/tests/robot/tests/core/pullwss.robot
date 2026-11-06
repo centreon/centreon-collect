@@ -276,6 +276,60 @@ check pullwss poller retries fast and backs off after a central restart
 
     Check Poller Is Connected    port=${Ccom_port}    expected_nb=2
 
+check constatus reflects a poller reconnection quickly after a central restart
+    [Documentation]    Regression test for MON-214293: after a central restart, constatus
+    ...    (ping_ok) used to only reflect a reconnected poller once the central's own
+    ...    randomized first ping completed - up to proxy's ping_interval away, observed
+    ...    around 65s in k3d with the 60s default - rejecting legitimate exports as if the
+    ...    poller were still disconnected. A completed REGISTERNODES handshake now forces
+    ...    an immediate ping. This poller sets ping=600s so a false pass can't come from
+    ...    the central's own schedule firing by coincidence within the test's timeout.
+    [Teardown]    Stop Gorgone And Remove Gorgone Config
+    ...    gorgone_poller_2    gorgone_central
+    ...    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+
+    Ctn Init Tests
+    Gorgone Fix Schema
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
+
+    @{central_pullwss_config}=    Create List    ${pullwss_central_config}    ${gorgone_core_config}
+    @{poller_pullwss_config}=    Create List    ${gorgone_core_config}    ${pullwss_poller_config}
+
+    Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=gorgone_central
+    ...    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
+    ...    replace_from=${{['@PROXY_PING@']}}    replace_to=${{['600']}}
+    Setup Gorgone Config    ${poller_pullwss_config}    gorgone_name=gorgone_poller_2
+
+    Start Gorgone    debug    gorgone_central
+    Wait Until Port Is Bind    ${Ccom_port}
+    Start Gorgone    debug    gorgone_poller_2
+    Wait Until Port Is Bind    8085
+    Check Poller Is Connected    port=${Ccom_port}    expected_nb=2
+    Check Poller Communicate     2
+
+    ${before}    Get Current Date
+    Stop Gorgone And Remove Gorgone Config    gorgone_central
+    Start Gorgone    debug    gorgone_central
+    Wait Until Port Is Bind    ${Ccom_port}
+    Wait Until Port Is Bind    8085
+
+    ${log_relogged}    Create List    httpserver client 2 is logged
+    ${status}    Ctn Find In Log With Timeout
+    ...    log=/var/log/centreon-gorgone/gorgone_central/gorgoned.log
+    ...    content=${log_relogged}
+    ...    date=${before}
+    ...    timeout=20
+    Should Be True    ${status}    poller never re-registered with the restarted central: ${status}
+
+    ${ping_ok}    Set Variable    ${0}
+    FOR    ${i}    IN RANGE    10
+        ${response}    GET    http://127.0.0.1:8085/api/internal/constatus
+        ${ping_ok}    Set Variable    ${response.json()}[data][2][ping_ok]
+        IF    ${ping_ok} > 0    BREAK
+        Sleep    1s
+    END
+    Should Be True    ${ping_ok} > 0
+    ...    constatus still doesn't show the poller connected shortly after reconnection (ping_ok=${ping_ok})
 
 *** Keywords ***
 Restart Poller And Check Connection
