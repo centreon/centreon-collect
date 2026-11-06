@@ -75,6 +75,11 @@ sub new {
     $connector->{payload_purge_interval} = 60;
     $connector->{payload_purge_last} = -1;
 
+    # CENTREONCOMMAND batches pending an aggregated final result - see start_batch().
+    $connector->{pending_batches} = {};
+    $connector->{config}->{legacycmd_result_timeout} = defined($connector->{config}->{legacycmd_result_timeout}) && $connector->{config}->{legacycmd_result_timeout} =~ /^\d+$/
+        ? $connector->{config}->{legacycmd_result_timeout} : 40;
+
     # nagios_server.id whose row means "gorgone and engine on the same host"
     # (classic VM/RPM install: localhost=1, poller_type != 'docker'). nodes'
     # DB sync (action_centreonnodessync) excludes that row from register_nodes
@@ -243,6 +248,150 @@ sub add_external_command {
         push @{$self->{bulk_commands}->{ $options{target} }}, $options{param};
         if (scalar(@{$self->{bulk_commands}->{ $options{target} }}) > $self->{config}->{bulk_external_cmd}) {
             $self->send_external_commands(%options);
+        }
+    }
+}
+
+# Commands whose dispatched sub-action(s) log exactly one terminal entry each -
+# safe to wait on and aggregate (EXTERNALCMD/SENDEXPORTFILE/STARTWORKER don't).
+my %BATCH_SAFE_COMMANDS = map { $_ => 1 } (
+    'SENDCFGFILE', 'SYNCTRAP', 'ENGINERESTART', 'RESTART', 'ENGINERELOAD', 'RELOAD',
+    'START', 'STOP', 'RELOADBROKER', 'RESTARTCENTREONTRAPD', 'RELOADCENTREONTRAPD', 'VMWARERESTART'
+);
+
+# Counts every sub-action a tracked batch dispatches; no-op otherwise.
+sub send_internal_action {
+    my ($self, $options) = (shift, shift);
+
+    if (defined($options->{token}) && defined($options->{action})
+        && $options->{action} =~ /^(?:REMOTECOPY|ACTIONENGINE|COMMAND)$/
+        && defined($self->{pending_batches}->{ $options->{token} })) {
+        my $batch = $self->{pending_batches}->{ $options->{token} };
+        $batch->{expected}++;
+        push @{$batch->{results}}, { target => $options->{target}, command => $options->{action}, status => 'pending' };
+        $batch->{targets}->{ $options->{target} } = 1 if (defined($options->{target}) && $options->{target} ne '');
+    }
+
+    return $self->SUPER::send_internal_action($options, @_);
+}
+
+sub start_batch {
+    my ($self, %options) = @_;
+
+    $self->{pending_batches}->{ $options{token} } = {
+        expected => 0,
+        results => [],
+        targets => {},
+        deadline => time() + $self->{config}->{legacycmd_result_timeout}
+    };
+}
+
+# Always logs exactly one final entry for the token, tracked batch or not -
+# the web only ever waits on this marker, never on gorgone's initial accept.
+sub finalize_batch {
+    my ($self, %options) = @_;
+
+    my $batch = delete $self->{pending_batches}->{ $options{token} };
+    my $results = defined($batch) ? $batch->{results} : [];
+    if ($options{code} == GORGONE_ACTION_FINISH_OK) {
+        $_->{status} = 'ok' foreach (@$results);
+    }
+
+    $self->send_log(
+        code => $options{code},
+        token => $options{token},
+        data => { message => $options{message}, legacycmd_final => 1, tracked => defined($batch) ? 1 : 0, results => $results }
+    );
+}
+
+# Reports an immediate success when the batch dispatched nothing async.
+sub finalize_batch_if_idle {
+    my ($self, %options) = @_;
+
+    my $batch = $self->{pending_batches}->{ $options{token} };
+    return if (!defined($batch) || $batch->{expected} > 0);
+
+    $self->finalize_batch(token => $options{token}, code => GORGONE_ACTION_FINISH_OK, message => 'centreoncommand finished successfully');
+}
+
+# Periodic sweep (every 5s): nudges each poller's SETLOGS via GETLOG, then
+# polls this central's own history for the batch token - see action_ack.
+sub check_pending_batches {
+    my ($self) = @_;
+
+    my $ctime = time();
+    foreach my $token (keys %{$self->{pending_batches}}) {
+        my $batch = $self->{pending_batches}->{$token};
+
+        if ($ctime > $batch->{deadline}) {
+            $self->finalize_batch(token => $token, code => GORGONE_ACTION_FINISH_KO, message => 'timeout waiting for sub-actions to finish');
+            next;
+        }
+
+        foreach my $target (keys %{$batch->{targets}}) {
+            $self->send_internal_action({ action => 'GETLOG', target => $target, data => {} });
+        }
+
+        # No cursor: recounts every row for the token from scratch each time.
+        $self->send_internal_action({
+            action => 'GETLOG',
+            token => $token . '-poll',
+            data => { token => $token }
+        });
+    }
+}
+
+# Reply to the local GETLOG poll above (see event() for why it reaches here).
+sub action_ack {
+    my ($self, %options) = @_;
+
+    return if (!defined($options{token}) || $options{token} !~ /^(.*)-poll$/);
+    my $token = $1;
+    my $batch = $self->{pending_batches}->{$token};
+    return if (!defined($batch));
+
+    my $rows = (defined($options{data}->{data}->{result})) ? $options{data}->{data}->{result} : [];
+    my ($ok_count, $ko_message) = (0, undef);
+    foreach my $row (@$rows) {
+        next if ($row->{code} != GORGONE_ACTION_FINISH_OK && $row->{code} != GORGONE_ACTION_FINISH_KO);
+
+        my ($rv, $data) = $self->json_decode(argument => $row->{data});
+        next if ($rv || defined($data->{legacycmd_final}));
+
+        if ($row->{code} == GORGONE_ACTION_FINISH_KO) {
+            $ko_message = defined($data->{message}) ? $data->{message} : 'sub-action failed';
+            last;
+        }
+        $ok_count++;
+    }
+
+    if (defined($ko_message)) {
+        $self->finalize_batch(token => $token, code => GORGONE_ACTION_FINISH_KO, message => $ko_message);
+    } elsif ($ok_count >= $batch->{expected}) {
+        $self->finalize_batch(token => $token, code => GORGONE_ACTION_FINISH_OK, message => 'centreoncommand finished successfully');
+    }
+}
+
+# A local GETLOG's reply has two bracket groups ("[ACK] [token] {...}"), not
+# three like a routed message - module.pm's event() only parses the latter.
+sub event {
+    my ($self, %options) = @_;
+
+    my $socket = defined($options{socket}) ? $options{socket} : $self->{internal_socket};
+    while ($socket->has_pollin()) {
+        my ($message) = $self->read_message();
+        next if (!defined($message));
+
+        if ($message =~ /^\[(.*?)\]\s+\[(.*?)\]\s+\[.*?\]\s+(.*)$/m || $message =~ /^\[(.*?)\]\s+\[(.*?)\]\s+(.*)$/m) {
+            my ($action, $token, $raw) = ($1, $2, $3);
+            if ((my $method = $self->can('action_' . lc($action)))) {
+                # ACK answers every dispatch this module makes, not just our GETLOG polls:
+                # a decode failure must stay silent, not KO whatever token that was.
+                my ($rv, $data) = $action eq 'ACK'
+                    ? $self->json_decode(argument => $raw)
+                    : $self->json_decode(argument => $raw, token => $token);
+                $method->($self, token => $token, data => $data) if (!$rv);
+            }
         }
     }
 }
@@ -1195,6 +1344,7 @@ sub action_centreoncommand {
             token => $options{token},
             data => {
                 message => "expected array, found '" . ref($options{data}->{content}) . "'",
+                legacycmd_final => 1
             }
         );
         return -1;
@@ -1202,9 +1352,16 @@ sub action_centreoncommand {
 
     if ($self->check_pollers_config() == 0) {
         $self->{logger}->writeLogError('[legacycmd] cannot get centreon database configuration');
-        $self->send_log(code => GORGONE_ACTION_FINISH_KO, token => $options{token}, data => { message => 'cannot get centreon database configuration' });
+        $self->send_log(code => GORGONE_ACTION_FINISH_KO, token => $options{token}, data => { message => 'cannot get centreon database configuration', legacycmd_final => 1 });
         return 1;
     }
+
+    # Track only if every command is in %BATCH_SAFE_COMMANDS.
+    my $trackable = 1;
+    foreach my $command (@{$options{data}->{content}}) {
+        $trackable = 0 if (!defined($BATCH_SAFE_COMMANDS{ $command->{command} }));
+    }
+    $self->start_batch(token => $options{token}) if ($trackable);
 
     foreach my $command (@{$options{data}->{content}}) {
         my ($code, $message) = $self->execute_cmd(
@@ -1219,9 +1376,17 @@ sub action_centreoncommand {
 
         if ($code == -1) {
             $self->{logger}->writeLogError('[legacycmd] -class- ' . $message);
-            $self->send_log(code => GORGONE_ACTION_FINISH_KO, token => $options{token}, data => { message => $message });
+            $self->finalize_batch(token => $options{token}, code => GORGONE_ACTION_FINISH_KO, message => $message);
             return 1;
         }
+    }
+
+    # Tracked: wait on check_pending_batches unless nothing async was dispatched.
+    # Untracked: today's behaviour (fire-and-forget) - still close the token.
+    if ($trackable) {
+        $self->finalize_batch_if_idle(token => $options{token});
+    } else {
+        $self->finalize_batch(token => $options{token}, code => GORGONE_ACTION_FINISH_OK, message => 'centreoncommand finished successfully');
     }
 
     $self->{logger}->writeLogDebug('[legacycmd] -class- finish centreoncommand');
@@ -1237,6 +1402,7 @@ sub periodic_exec {
     $connector->cache_refresh();
     $connector->handle_cmd_files();
     $connector->purge_old_payloads();
+    $connector->check_pending_batches();
 }
 
 sub run {
