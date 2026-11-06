@@ -199,6 +199,18 @@ For `pull` nodes, `routing()` calls `pull_request()` instead: the message is wri
 
 For `wss`/`pullwss` nodes, the identity is always `gorgone-proxy-httpserver` regardless of the worker pool.
 
+`channel_ready` means something different depending on the node type, because it is set from two
+different events. For `push_zmq`/`push_ssh`, it is set from the pool worker's `PROXYADDNODE` ack
+(`routing()`'s `PROXYREADY` handling): that ack genuinely means the worker is ready to route to
+this node. For `wss`/`pullwss`, the httpserver child's `PROXYADDNODE` ack only means it now
+recognizes this id - the poller connects to it (not the other way around), so the ack says nothing
+about whether that connection actually exists yet. For these types `channel_ready` is instead set
+from `register_nodes()`, i.e. a genuine `REGISTERNODES` received over an actual live websocket.
+This matters most right after the httpserver child is recreated (see "httpserver child health
+check" below): the replacement child's startup `PROXYADDNODE` ack arrives immediately, well before
+the poller has reconnected to it, so routing traffic off that ack alone reaches a child that
+doesn't have the connection mapped yet ("cannot get connection for target node").
+
 #### Route resolution: `pathway()`
 
 `pathway()` determines which parent node to use to reach a target. Priority order:
@@ -257,12 +269,19 @@ is cleared (so `routing()` doesn't keep refusing traffic as "already in progress
 that no longer exists), and a replacement child is forked. The nodes reconnect to it the same way
 they would after a crash.
 
-Before judging a timeout, `check_httpserver_health()` first drains any reply already sitting in
-the internal socket (`router_internal_event()`). `check()` runs in the same single process/event
-loop as `routing()`, so a long synchronous handler there (`prepare_remote_copy()` building a big
+A timeout alone does not recreate the child: `check()` runs in the same single process/event loop
+as `routing()`, so a long synchronous handler there (`prepare_remote_copy()` building a big
 REMOTECOPY archive, see below) can itself delay `check()` well past `check_timeout` - in that case
-the child may have answered long ago, and without the drain its unread reply would look like the
-child being stuck when the delay was gorgoned's own.
+the child may have answered long ago, with its reply simply sitting unread in the internal socket
+while gorgoned was busy elsewhere. `periodic_exec()` calls `router_internal_event()` right after
+`check_exit_modules()` on every tick, so that reply gets drained (clearing the pending flag) before
+`check_httpserver_health()` runs again - unless the child really is stuck. A first timeout only
+marks the child suspect; recreating it needs a second, consecutive timeout.
+
+Recreating the child clears every wss/pullwss node's in-flight GETLOG/ping/channel-ready state
+(the same reset also runs on the older crash-recovery path, where a dead child is caught via
+`dead_childs`): otherwise `routing()` keeps refusing traffic as "already in progress" against a
+child that no longer exists.
 
 ## check()
 
