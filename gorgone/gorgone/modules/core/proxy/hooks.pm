@@ -65,6 +65,7 @@ use constant EVENTS => [
     { event => 'PROXYDELNODE' },
     { event => 'PROXYADDSUBNODE' },
     { event => 'PONGRESET' },
+    { event => 'PROXYHEALTHCHECK' }, # internal round trip to detect a stuck httpserver child
 
 ];
 
@@ -124,6 +125,8 @@ sub register {
     $config->{pong_discard_timeout} = defined($config->{pong_discard_timeout}) ? $config->{pong_discard_timeout} : 300;
     $config->{pong_max_timeout} = defined($config->{pong_max_timeout}) ? $config->{pong_max_timeout} : 3;
     $config->{pool} = defined($config->{pool}) && $config->{pool} =~ /(\d+)/ ? $1 : 5;
+    $config->{httpserver}->{check_interval} = defined($config->{httpserver}->{check_interval}) && $config->{httpserver}->{check_interval} =~ /(\d+)/ ? $1 : 30;
+    $config->{httpserver}->{check_timeout} = defined($config->{httpserver}->{check_timeout}) && $config->{httpserver}->{check_timeout} =~ /(\d+)/ ? $1 : 60;
     return (1, NAMESPACE, NAME, EVENTS);
 }
 
@@ -218,6 +221,15 @@ sub routing {
             $synctime_nodes->{ $data->{node_id} }->{channel_ready} = 1;
             $synctime_nodes->{ $data->{node_uid} }->{channel_ready} = 1;
 
+        }
+        return undef;
+    }
+
+    if ($options{action} eq 'PROXYHEALTHCHECK') {
+        # reply to our own internal probe (see check_httpserver_health()): the httpserver child
+        # is alive and its event loop is processing messages, not wedged.
+        if (defined($data->{httpserver})) {
+            $httpserver->{health_check_pending} = 0;
         }
         return undef;
     }
@@ -438,6 +450,74 @@ sub check_create_child {
     }
 }
 
+# The httpserver child is the single DEALER identity handling all wss/pullwss traffic (no pool,
+# unlike push_zmq/push_ssh nodes). Unlike create_child()'s pool workers, a dead_childs entry only
+# catches it when the process has actually exited: if its event loop gets wedged (overloaded,
+# stuck in a blocking call) while the process itself stays alive, nothing detects it and every
+# pullwss export fails until gorgoned itself is restarted. This sends it a periodic internal
+# round trip and force-recreates it if it never answers within check_timeout.
+sub check_httpserver_health {
+    my (%options) = @_;
+
+    return if ($stop == 1);
+    return if (!defined($httpserver->{running}) || $httpserver->{running} != 1);
+    return if (!defined($httpserver->{ready}) || $httpserver->{ready} != 1);
+
+    my $check_interval = $config->{httpserver}->{check_interval};
+    my $check_timeout = $config->{httpserver}->{check_timeout};
+
+    if (defined($httpserver->{health_check_pending}) && $httpserver->{health_check_pending} == 1) {
+        return if ((time() - $httpserver->{health_check_sent}) <= $check_timeout);
+
+        $options{logger}->writeLogError(
+            "[proxy] httpserver child (pid " . $httpserver->{pid} . ") did not answer the internal health " .
+            "check within " . $check_timeout . "s: considering it stuck, killing and recreating it"
+        );
+        gorgone::standard::library::add_history({
+            dbh => $options{dbh},
+            code => GORGONE_ACTION_FINISH_KO,
+            data => { message => 'proxy - httpserver child stuck, recreated' },
+            json_encode => 1
+        });
+        CORE::kill('KILL', $httpserver->{pid});
+        $httpserver = {};
+
+        # the killed child's in-flight state (a GETLOG it never answered, a ping it never replied
+        # to, a channel it had acked ready) is gone with it: clear it for every wss/pullwss node so
+        # routing() doesn't keep refusing GETLOG as "already in progress" (hooks.pm's own 30s
+        # synchistory_timeout sweep would eventually do it, but that can land past
+        # legacycmd's own result timeout) and defers traffic until the new child re-acks
+        # PROXYADDNODE.
+        foreach my $node_id (keys %$register_nodes) {
+            next if ($register_nodes->{$node_id}->{type} !~ /^(?:wss|pullwss)$/);
+            if (defined($synctime_nodes->{$node_id})) {
+                delete($synctime_nodes->{$node_id}->{total_msg});
+                $synctime_nodes->{$node_id}->{got_msg} = 0;
+                $synctime_nodes->{$node_id}->{channel_ready} = 0;
+            }
+            if (defined($constatus_ping->{$node_id})) {
+                $constatus_ping->{$node_id}->{in_progress_ping} = 0;
+            }
+        }
+
+        create_httpserver_child(logger => $options{logger});
+        return;
+    }
+
+    return if (defined($httpserver->{last_health_check_sent}) &&
+        (time() - $httpserver->{last_health_check_sent}) < $check_interval);
+
+    $httpserver->{last_health_check_sent} = time();
+    $httpserver->{health_check_sent} = time();
+    $httpserver->{health_check_pending} = 1;
+    $options{gorgone}->send_internal_message(
+        identity => 'gorgone-proxy-httpserver',
+        action => 'PROXYHEALTHCHECK',
+        json_encode => 1,
+        data => {}
+    );
+}
+
 sub check {
     my (%options) = @_;
 
@@ -466,6 +546,7 @@ sub check {
     }
 
     check_create_child(dbh => $options{dbh}, logger => $options{logger});
+    check_httpserver_health(gorgone => $options{gorgone}, dbh => $options{dbh}, logger => $options{logger});
 
     $count++  if (defined($httpserver->{running}) && $httpserver->{running} == 1);
     foreach (keys %$pools) {
