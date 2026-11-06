@@ -9,6 +9,6 @@ Only this file and `AGENTS.md` load at session start. The other files load on de
 - The `PreToolUse` hook `.claude/hooks/component-context.sh` refuses the first edit (Edit and Write tools) of each component in a session and lists the files to read, minus those a folder `CLAUDE.md` already loaded (recorded by the same script as a `PostToolUse` hook on `Read`); the retry passes. Tests: `.claude/hooks/test-component-context.sh`.
 - `.claude/settings.json` denies `--no-verify` and force pushes, and asks for confirmation before any edit of `AGENTS.md`, `CLAUDE.md` files, `ARCHITECTURE.md`, `docs/` and `.claude/`.
 
-Skills in `.claude/skills/` follow the same files: `/create-adr` drafts an ADR from `docs/adr/README.md` and opens its own pull request.
+Skills in `.claude/skills/` follow the same files: `/create-adr` drafts an ADR from `docs/adr/README.md` and opens its own pull request; `/update-guidelines` updates the architecture or the conventions, for one component or the whole repository, and hands over to `/create-adr` when the change needs an ADR.
 
 The built-in Explore and Plan subagents do not load `CLAUDE.md` or the rules: name the files to read in their prompt.
