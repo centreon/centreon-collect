@@ -35,9 +35,10 @@ VICT_ONE_CHECK_METRIC
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
+    # Taken before the check result: the metric timestamp must not be older than it
+    ${start}    Ctn Get Round Current Date
     Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
-    ${start}    Ctn Get Round Current Date
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
     ${now}    Get Current Date    result_format=epoch
     WHILE    ${now} < ${timeout}
@@ -220,8 +221,9 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    # Taken before the check result: the metric timestamp must not be older than it
     ${start}    Ctn Get Round Current Date
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
     ${content}    Create List    [victoria_metrics]    "name":"metric_taratata"
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
