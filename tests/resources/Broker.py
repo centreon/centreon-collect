@@ -3446,7 +3446,12 @@ def ctn_get_pollers(port, timeout=TIMEOUT):
 def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT, msg_type: int = 10):
     """
     Check if a row exists in the logs table with the given msg_type (10 for a
-    service acknowledgement, 11 for a host one) and ctime >= date.
+    service acknowledgement, 11 for a host one) and ctime >= date - 1.
+
+    The second of margin is the one of
+    ctn_check_acknowledgement_with_timeout: Broker dates the row with time(),
+    whose coarse clock may still return the previous second a few ms after
+    time.time() has moved on.
 
     Args:
         date: The date to check.
@@ -3457,6 +3462,7 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT, m
         True on success.
     """
     limit = time.time() + timeout
+    min_ctime = int(date) - 1
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -3468,7 +3474,7 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT, m
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT * FROM logs WHERE msg_type={msg_type} and ctime >= {date}")
+                    f"SELECT * FROM logs WHERE msg_type={msg_type} and ctime >= {min_ctime}")
                 result = cursor.fetchall()
                 logger.console(result)
                 if len(result) > 0 and len(result[0]) > 0:

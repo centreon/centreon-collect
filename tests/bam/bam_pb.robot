@@ -76,7 +76,18 @@ BAWORST_ACK
     Disconnect From Database
 
 BAWORST
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. We also check stats output
+    [Documentation]    Scenario: A BA of type "worst" takes the state of its worst KPI
+    ...    Given a BA of type "worst" is configured with the services service_314 and service_303
+    ...    When service_303 becomes UNKNOWN
+    ...    Then the BA is UNKNOWN and its output names service_303
+    ...    When service_303 becomes WARNING
+    ...    Then the BA is WARNING and its output names service_303
+    ...    When service_314 becomes CRITICAL
+    ...    Then the BA is CRITICAL, neither acknowledged nor in downtime, and its output names both services
+    ...    And the Broker stats show the central input listening with one peer and both BAM endpoints connected
+    ...    When Engine and Broker are reloaded
+    ...    Then the Broker stats show the same endpoints in the same states
+    ...    And the GetBa gRPC command dumps the BA as a graphviz digraph
     [Tags]    broker    downtime    engine    bam
     Ctn BAM Init
 
@@ -203,7 +214,16 @@ BAWORST
     Should Not Be Empty    ${result}    /tmp/output does not contain the word 'digraph'
 
 BAWORST2
-    [Documentation]    a worst ba with a boolean kpi and a ba kpi
+    [Documentation]    Scenario: A BA of type "worst" with a boolean KPI and a BA KPI takes the state of its worst KPI
+    ...    Given a BA "test" of type "worst" with a boolean KPI impacting when "service_302 is OK" is false
+    ...    And a BA KPI on the BA "test_child" of type "worst" with the service service_314
+    ...    When service_302 becomes CRITICAL
+    ...    Then the BA "test" is CRITICAL because of the boolean rule
+    ...    When service_314 becomes CRITICAL
+    ...    Then the BA "test_child" is CRITICAL
+    ...    And the BA "test" is CRITICAL because of both the boolean rule and "test_child"
+    ...    When service_302 is OK again
+    ...    Then the BA "test" stays CRITICAL, because of "test_child" only
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -291,7 +311,15 @@ BAWORST2
     Should Be True    ${result}    The BA test has not the expected output
 
 BABEST_SERVICE_CRITICAL
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
+    [Documentation]    Scenario: A BA of type "best" takes the state of its best KPI
+    ...    Given a BA of type "best" is configured with the services service_314 and service_303
+    ...    And the command of service_314 returns CRITICAL
+    ...    When service_314 becomes CRITICAL
+    ...    Then the BA stays OK since service_303 is still OK
+    ...    When service_303 becomes UNKNOWN, then WARNING, then CRITICAL
+    ...    Then the BA takes successively the states UNKNOWN, WARNING and CRITICAL with the matching output
+    ...    When service_314 is OK again
+    ...    Then the BA is OK
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -393,7 +421,20 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not OK as expected
 
 BA_IMPACT_2KPI_SERVICES
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
+    [Documentation]    Scenario: A BA of type "impact" changes its state when its level crosses the thresholds
+    ...    Given a BA of type "impact" with a warning threshold of 35 and a critical threshold of 20
+    ...    And two service KPIs, service_302 and service_303, each with an impact of 40 when CRITICAL and 30 when WARNING
+    ...    When service_302 is CRITICAL
+    ...    Then the level is 60 and the BA is OK
+    ...    When service_303 becomes WARNING
+    ...    Then the level is 30 and the BA is WARNING
+    ...    When both services are CRITICAL
+    ...    Then the level is 20 and the BA is CRITICAL
+    ...    When service_302 is OK again
+    ...    Then the level is 60 and the BA is OK
+    ...    When both services are WARNING
+    ...    Then the level is 40 and the BA is OK
+    ...    And each time the BA output gives the level and the impacting KPIs
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -491,7 +532,16 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
 BA_RATIO_PERCENT_BA_SERVICE
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
+    [Documentation]    Scenario: A BA of type "ratio percent" counts the percentage of its KPIs in CRITICAL state
+    ...    Given a BA "test" of type "ratio percent" with a warning threshold of 49% and a critical threshold of 67%
+    ...    And three KPIs: the services service_302 and service_303 and the BA "test_child" of type "worst" with the service service_314
+    ...    When service_302 is CRITICAL
+    ...    Then 33% of the KPIs are CRITICAL and the BA "test" is OK
+    ...    When service_302 and service_303 are CRITICAL
+    ...    Then 66% of the KPIs are CRITICAL and the BA "test" is WARNING
+    ...    When service_314 is also CRITICAL
+    ...    Then the BA "test_child" is CRITICAL
+    ...    And 100% of the KPIs are CRITICAL and the BA "test" is CRITICAL
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -590,7 +640,16 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
 BA_RATIO_NUMBER_BA_SERVICE
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
+    [Documentation]    Scenario: A BA of type "ratio number" counts its KPIs in CRITICAL state
+    ...    Given a BA "test" of type "ratio number" with a warning threshold of 2 and a critical threshold of 3
+    ...    And three KPIs: the services service_302 and service_303 and the BA "test_child" of type "worst" with the service service_314
+    ...    When service_302 is CRITICAL
+    ...    Then 1 KPI out of 3 is CRITICAL and the BA "test" is OK
+    ...    When service_302 and service_303 are CRITICAL
+    ...    Then 2 KPIs out of 3 are CRITICAL and the BA "test" is WARNING
+    ...    When service_314 is also CRITICAL
+    ...    Then the BA "test_child" is CRITICAL
+    ...    And 3 KPIs out of 3 are CRITICAL and the BA "test" is CRITICAL
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -694,7 +753,11 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
 BA_BOOL_KPI
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
+    [Documentation]    Scenario: A boolean KPI impacts its BA when its expression is false
+    ...    Given a BA of type "worst" with a single boolean KPI impacting when the expression
+    ...    "service_302 is OK or (service_303 is OK and service_314 is not UNKNOWN)" is false
+    ...    When service_302 is WARNING, service_303 is CRITICAL and service_314 is OK
+    ...    Then the expression is false and the BA is CRITICAL
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -735,7 +798,11 @@ BA_BOOL_KPI
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
 BEPB_DIMENSION_BV_EVENT
-    [Documentation]    bbdo_version 3 use pb_dimension_bv_event message.
+    [Documentation]    Scenario: Broker sends the business views as pb_dimension_bv_event events
+    ...    Given a BA and a business view 574 named "virsgtr" in the configuration database
+    ...    And a Lua output on the central Broker logging every event
+    ...    When Broker and Engine are started
+    ...    Then the Lua output receives a pb_dimension_bv_event with the id, the name and the description of the business view
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -767,7 +834,11 @@ BEPB_DIMENSION_BV_EVENT
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_BA_EVENT
-    [Documentation]    bbdo_version 3 use pb_dimension_ba_event message.
+    [Documentation]    Scenario: Broker sends the BAs as pb_dimension_ba_event events
+    ...    Given a BA whose description and SLA values are set in the configuration database
+    ...    And a Lua output on the central Broker logging every event
+    ...    When Broker and Engine are started
+    ...    Then the Lua output receives a pb_dimension_ba_event with the name, the description and the SLA values of the BA
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -800,7 +871,12 @@ BEPB_DIMENSION_BA_EVENT
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
-    [Documentation]    bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+    [Documentation]    Scenario: Broker sends the BA/business view relations as pb_dimension_ba_bv_relation_event events
+    ...    Given a BA attached to the business view 456 in the configuration database
+    ...    And a Lua output on the central Broker logging every event
+    ...    When Broker and Engine are started
+    ...    Then the Lua output receives a pb_dimension_ba_bv_relation_event linking the BA to the business view 456
+    ...    And the relation is written in the mod_bam_reporting_relations_ba_bv table
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -840,7 +916,11 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    ${True}
 
 BEPB_DIMENSION_TIMEPERIOD
-    [Documentation]    use of pb_dimension_timeperiod message.
+    [Documentation]    Scenario: Broker sends the timeperiods as pb_dimension_timeperiod events
+    ...    Given a BA and a timeperiod 732 named "ezizae" in the configuration database
+    ...    And a Lua output on the central Broker logging every event
+    ...    When Broker and Engine are started
+    ...    Then the Lua output receives a pb_dimension_timeperiod with the id, the name and the ranges of each day of the timeperiod
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -872,7 +952,10 @@ BEPB_DIMENSION_TIMEPERIOD
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_KPI_EVENT
-    [Documentation]    bbdo_version 3 use pb_dimension_kpi_event message.
+    [Documentation]    Scenario: The KPIs of a BA are written in the reporting table mod_bam_reporting_kpi
+    ...    Given a BA of type "worst" with a service KPI on service_314 and a boolean KPI
+    ...    When Broker and Engine are started
+    ...    Then the mod_bam_reporting_kpi table contains both KPIs with their BA, their host, service or boolean rule
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -905,7 +988,11 @@ BEPB_DIMENSION_KPI_EVENT
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_KPI_STATUS
-    [Documentation]    bbdo_version 3 use kpi_status message.
+    [Documentation]    Scenario: The status of a KPI is written in the mod_bam_kpi table
+    ...    Given a BA of type "worst" with the service service_314
+    ...    When service_314 becomes CRITICAL in hard state
+    ...    Then the KPI of service_314 is CRITICAL and HARD in the mod_bam_kpi table
+    ...    And its last state change is not older than the Engine start
     [Tags]    broker    engine    protobuf    bam    bbdo
 
     Ctn BAM Init
@@ -942,7 +1029,13 @@ BEPB_KPI_STATUS
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_BA_DURATION_EVENT
-    [Documentation]    use of pb_ba_duration_event message.
+    [Documentation]    Scenario: The duration of a BA event is written in mod_bam_reporting_ba_events_durations
+    ...    Given a BA of type "worst" with the service service_314 and no timeperiod relation
+    ...    When service_314 becomes CRITICAL and then OK again
+    ...    Then a duration is written for the BA event 1
+    ...    And its duration and its SLA duration are both the difference between its end and its start
+    ...    And it is computed on the default timeperiod
+    ...    And its start and end times lie between the Engine start and the return to OK
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -999,7 +1092,10 @@ BEPB_BA_DURATION_EVENT
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
-    [Documentation]    use of pb_dimension_ba_timeperiod_relation message.
+    [Documentation]    Scenario: The BA/timeperiod relations are written in mod_bam_reporting_relations_ba_timeperiods
+    ...    Given a BA attached to the timeperiod 732 in the configuration database
+    ...    When Broker and Engine are started
+    ...    Then the mod_bam_reporting_relations_ba_timeperiods table links the BA to the timeperiod 732, which is not the default one
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -1032,7 +1128,11 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_TRUNCATE_TABLE
-    [Documentation]    use of pb_dimension_timeperiod message.
+    [Documentation]    Scenario: Broker frames the dimension events with pb_dimension_truncate_table_signal events
+    ...    Given a BA and a Lua output on the central Broker logging every event
+    ...    When Broker and Engine are started
+    ...    Then the Lua output receives a pb_dimension_truncate_table_signal with update_started set to true
+    ...    And another one with update_started set to false
     [Tags]    broker    engine    protobuf    bam    bbdo
     Ctn BAM Init
 
@@ -1064,7 +1164,16 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BA_RATIO_NUMBER_BA_4_SERVICE
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+    [Documentation]    Scenario: A BA of type "ratio number" with four service KPIs
+    ...    Given a BA of type "ratio number" with a warning threshold of 1 and a critical threshold of 2
+    ...    And service KPIs on service_302, service_303, service_304 and service_305
+    ...    Then the BA is OK while all the services are OK
+    ...    When service_302 becomes CRITICAL
+    ...    Then the BA is WARNING
+    ...    When service_303 also becomes CRITICAL
+    ...    Then the BA is CRITICAL
+    ...    When both services are OK again
+    ...    Then the BA is OK
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -1072,7 +1181,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
     Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
     Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
-    Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_305    ${id_ba__sid[0]}    40    30    20
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -1096,7 +1205,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
-    # two services critical => ba ok
+    # two services critical => ba critical
     Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
@@ -1122,7 +1231,16 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_RATIO_PERCENT_BA_4_SERVICE
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+    [Documentation]    Scenario: A BA of type "ratio percent" with four service KPIs
+    ...    Given a BA of type "ratio percent" with a warning threshold of 25% and a critical threshold of 50%
+    ...    And service KPIs on service_302, service_303, service_304 and service_305
+    ...    Then the BA is OK while all the services are OK
+    ...    When service_302 becomes CRITICAL
+    ...    Then 25% of the KPIs are CRITICAL and the BA is WARNING
+    ...    When service_303 also becomes CRITICAL
+    ...    Then 50% of the KPIs are CRITICAL and the BA is CRITICAL
+    ...    When both services are OK again
+    ...    Then the BA is OK
     [Tags]    broker    engine    bam
     Ctn BAM Init
 
@@ -1154,7 +1272,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
-    # two services critical => ba ok
+    # two services critical => ba critical
     Ctn Process Service Result Hard
     ...    host_16
     ...    service_303
@@ -1323,7 +1441,12 @@ BA_IMPACT_IMPACT
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_DISABLED
-    [Documentation]    create a disabled BA with timeperiods and reporting filter don't create error message
+    [Documentation]    Scenario: A disabled BA with a timeperiod produces no error
+    ...    Given a disabled BA attached to a timeperiod
+    ...    When Broker is started
+    ...    Then the BAM configuration is loaded
+    ...    And no error about the relation between the BA and the timeperiod is logged
+    ...    And no warning about too restrictive filters on the centreon-bam-reporting endpoint is logged
     [Tags]    broker    engine    bam    MON-33778
     Ctn Bam Init
     Ctn Create Ba    test    worst    100    100    ignore    0
@@ -1343,7 +1466,8 @@ BA_DISABLED
 
     ${res}    Grep File
     ...    ${centralLog}
-    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored    regexp=True
+    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored
+    ...    regexp=True
     Should Be Empty    ${res}    A filter error of centreon-bam-reporting had been found in log
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
@@ -1546,8 +1670,18 @@ BA_RELOAD_KEEPS_KPI
 
     # The state the reload will read back from mod_bam_kpi is now CRITICAL, with
     # a last_state_change the first apply did not know. Only the state moved.
+    # The BA status above is written by the BAM monitoring stream; the KPI
+    # events come from the reporting stream, which may still be writing the
+    # one of this CRITICAL change. The count is taken once it no longer moves,
+    # or it would be blamed on the reload.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${before}    Query    SELECT COUNT(*) FROM mod_bam_reporting_kpi_events
+    FOR    ${i}    IN RANGE    15
+        Sleep    2s
+        ${count}    Query    SELECT COUNT(*) FROM mod_bam_reporting_kpi_events
+        IF    ${count} == ${before}    BREAK
+        VAR    ${before}    ${count}
+    END
     Disconnect From Database
 
     ${start}    Ctn Get Round Current Date
@@ -1577,7 +1711,6 @@ BA_RELOAD_KEEPS_KPI
     ...    The reload added KPI events to the reporting history: ${before} -> ${after}
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 
 BAM_KPI_STATE_SEEDED_FROM_GLOBAL_CACHE
     [Documentation]    Scenario: after a Broker restart, BAM seeds the state of its KPI services from the Broker global cache

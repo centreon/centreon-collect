@@ -119,7 +119,16 @@ them. Each section is introduced by its number of tests.
 
 This chapter contains 89 tests.
 
-1. **BABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
+1. **BABEST_SERVICE_CRITICAL**:
+     * **SCENARIO:** A BA of type "best" takes the state of its best KPI
+     * **GIVEN** a BA of type "best" is configured with the services service_314 and service_303
+     * **AND** the command of service_314 returns CRITICAL
+     * **WHEN** service_314 becomes CRITICAL
+     * **THEN** the BA stays OK since service_303 is still OK
+     * **WHEN** service_303 becomes UNKNOWN, then WARNING, then CRITICAL
+     * **THEN** the BA takes successively the states UNKNOWN, WARNING and CRITICAL with the matching output
+     * **WHEN** service_314 is OK again
+     * **THEN** the BA is OK
 2. **BABOO**: With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
 3. **BABOOAND**: With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
 4. **BABOOCOMPL**: With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
@@ -145,8 +154,30 @@ This chapter contains 89 tests.
      * **AND** Broker is started again, Engine still stopped so that no service definition is replayed
      * **THEN** once the global cache is ready, BAM seeds its KPI services from it
      * **AND** the BA is still CRITICAL
-11. **BAWORST**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. We also check stats output
-12. **BAWORST2**: a worst ba with a boolean kpi and a ba kpi
+11. **BAWORST**:
+     * **SCENARIO:** A BA of type "worst" takes the state of its worst KPI
+     * **GIVEN** a BA of type "worst" is configured with the services service_314 and service_303
+     * **WHEN** service_303 becomes UNKNOWN
+     * **THEN** the BA is UNKNOWN and its output names service_303
+     * **WHEN** service_303 becomes WARNING
+     * **THEN** the BA is WARNING and its output names service_303
+     * **WHEN** service_314 becomes CRITICAL
+     * **THEN** the BA is CRITICAL, neither acknowledged nor in downtime, and its output names both services
+     * **AND** the Broker stats show the central input listening with one peer and both BAM endpoints connected
+     * **WHEN** Engine and Broker are reloaded
+     * **THEN** the Broker stats show the same endpoints in the same states
+     * **AND** the GetBa gRPC command dumps the BA as a graphviz digraph
+12. **BAWORST2**:
+     * **SCENARIO:** A BA of type "worst" with a boolean KPI and a BA KPI takes the state of its worst KPI
+     * **GIVEN** a BA "test" of type "worst" with a boolean KPI impacting when "service_302 is OK" is false
+     * **AND** a BA KPI on the BA "test_child" of type "worst" with the service service_314
+     * **WHEN** service_302 becomes CRITICAL
+     * **THEN** the BA "test" is CRITICAL because of the boolean rule
+     * **WHEN** service_314 becomes CRITICAL
+     * **THEN** the BA "test_child" is CRITICAL
+     * **AND** the BA "test" is CRITICAL because of both the boolean rule and "test_child"
+     * **WHEN** service_302 is OK again
+     * **THEN** the BA "test" stays CRITICAL, because of "test_child" only
 13. **BAWORST_ACK**:
      * **SCENARIO:** Acknowledging a service acknowledges the BA, and removing it unacknowledges the BA
      * **GIVEN** BBDO version is 3.0.1
@@ -155,7 +186,12 @@ This chapter contains 89 tests.
      * **THEN** the Business Activity is acknowledged
      * **WHEN** the acknowledgement is removed from the service
      * **THEN** the Business Activity is no longer acknowledged
-14. **BA_BOOL_KPI**: With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
+14. **BA_BOOL_KPI**:
+     * **SCENARIO:** A boolean KPI impacts its BA when its expression is false
+     * **GIVEN** a BA of type "worst" with a single boolean KPI impacting when the expression
+     "service_302 is OK or (service_303 is OK and service_314 is not UNKNOWN)" is false
+     * **WHEN** service_302 is WARNING, service_303 is CRITICAL and service_314 is OK
+     * **THEN** the expression is false and the BA is CRITICAL
 15. **BA_CHANGED**:
      * **SCENARIO:** Replace Service KPI with Boolean Rule KPI in Worst-type BA
      * **GIVEN** a BA of type "worst" is configured with one service KPI
@@ -170,8 +206,28 @@ This chapter contains 89 tests.
      * **THEN** BAM loads the mapping from the database
      * **AND** the KPI of service_303 is dropped
      * **AND** the BA still follows service_302
-17. **BA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
-18. **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
+17. **BA_DISABLED**:
+     * **SCENARIO:** A disabled BA with a timeperiod produces no error
+     * **GIVEN** a disabled BA attached to a timeperiod
+     * **WHEN** Broker is started
+     * **THEN** the BAM configuration is loaded
+     * **AND** no error about the relation between the BA and the timeperiod is logged
+     * **AND** no warning about too restrictive filters on the centreon-bam-reporting endpoint is logged
+18. **BA_IMPACT_2KPI_SERVICES**:
+     * **SCENARIO:** A BA of type "impact" changes its state when its level crosses the thresholds
+     * **GIVEN** a BA of type "impact" with a warning threshold of 35 and a critical threshold of 20
+     * **AND** two service KPIs, service_302 and service_303, each with an impact of 40 when CRITICAL and 30 when WARNING
+     * **WHEN** service_302 is CRITICAL
+     * **THEN** the level is 60 and the BA is OK
+     * **WHEN** service_303 becomes WARNING
+     * **THEN** the level is 30 and the BA is WARNING
+     * **WHEN** both services are CRITICAL
+     * **THEN** the level is 20 and the BA is CRITICAL
+     * **WHEN** service_302 is OK again
+     * **THEN** the level is 60 and the BA is OK
+     * **WHEN** both services are WARNING
+     * **THEN** the level is 40 and the BA is OK
+     * **AND** each time the BA output gives the level and the impacting KPIs
 19. **BA_IMPACT_IMPACT**:
      * **GIVEN** a Business Activity (BA) of type "impact"
      * **AND** it has two child BAs of type "impact"
@@ -181,10 +237,50 @@ This chapter contains 89 tests.
      * **THEN** the parent BA should be "critical"
      * **WHEN** both child BAs are not impacting
      * **THEN** the parent BA should be "ok"
-20. **BA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-21. **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
-22. **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-23. **BA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
+20. **BA_RATIO_NUMBER_BA_4_SERVICE**:
+     * **SCENARIO:** A BA of type "ratio number" with four service KPIs
+     * **GIVEN** a BA of type "ratio number" with a warning threshold of 1 and a critical threshold of 2
+     * **AND** service KPIs on service_302, service_303 and service_304
+     * **THEN** the BA is OK while all the services are OK
+     * **WHEN** service_302 becomes CRITICAL
+     * **THEN** the BA is WARNING
+     * **WHEN** service_303 also becomes CRITICAL
+     * **THEN** the BA is CRITICAL
+     * **WHEN** both services are OK again
+     * **THEN** the BA is OK
+21. **BA_RATIO_NUMBER_BA_SERVICE**:
+     * **SCENARIO:** A BA of type "ratio number" counts its KPIs in CRITICAL state
+     * **GIVEN** a BA "test" of type "ratio number" with a warning threshold of 2 and a critical threshold of 3
+     * **AND** three KPIs: the services service_302 and service_303 and the BA "test_child" of type "worst" with the service service_314
+     * **WHEN** service_302 is CRITICAL
+     * **THEN** 1 KPI out of 3 is CRITICAL and the BA "test" is OK
+     * **WHEN** service_302 and service_303 are CRITICAL
+     * **THEN** 2 KPIs out of 3 are CRITICAL and the BA "test" is WARNING
+     * **WHEN** service_314 is also CRITICAL
+     * **THEN** the BA "test_child" is CRITICAL
+     * **AND** 3 KPIs out of 3 are CRITICAL and the BA "test" is CRITICAL
+22. **BA_RATIO_PERCENT_BA_4_SERVICE**:
+     * **SCENARIO:** A BA of type "ratio percent" with four service KPIs
+     * **GIVEN** a BA of type "ratio percent" with a warning threshold of 25% and a critical threshold of 50%
+     * **AND** service KPIs on service_302, service_303, service_304 and service_305
+     * **THEN** the BA is OK while all the services are OK
+     * **WHEN** service_302 becomes CRITICAL
+     * **THEN** 25% of the KPIs are CRITICAL and the BA is WARNING
+     * **WHEN** service_303 also becomes CRITICAL
+     * **THEN** 50% of the KPIs are CRITICAL and the BA is CRITICAL
+     * **WHEN** both services are OK again
+     * **THEN** the BA is OK
+23. **BA_RATIO_PERCENT_BA_SERVICE**:
+     * **SCENARIO:** A BA of type "ratio percent" counts the percentage of its KPIs in CRITICAL state
+     * **GIVEN** a BA "test" of type "ratio percent" with a warning threshold of 49% and a critical threshold of 67%
+     * **AND** three KPIs: the services service_302 and service_303 and the BA "test_child" of type "worst" with the service service_314
+     * **WHEN** service_302 is CRITICAL
+     * **THEN** 33% of the KPIs are CRITICAL and the BA "test" is OK
+     * **WHEN** service_302 and service_303 are CRITICAL
+     * **THEN** 66% of the KPIs are CRITICAL and the BA "test" is WARNING
+     * **WHEN** service_314 is also CRITICAL
+     * **THEN** the BA "test_child" is CRITICAL
+     * **AND** 100% of the KPIs are CRITICAL and the BA "test" is CRITICAL
 24. **BA_RELOAD_KEEPS_KPI**:
      * **SCENARIO:** A reload keeps the KPIs whose configuration did not change
      * **GIVEN** a BA of type "worst" with one service KPI, service_302
@@ -340,15 +436,61 @@ This chapter contains 89 tests.
 50. **BECPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
 51. **BECPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
 52. **BECPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
-53. **BEPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
-54. **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
-55. **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
-56. **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
-57. **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
-58. **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
-59. **BEPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
-60. **BEPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
-61. **BEPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
+53. **BEPB_BA_DURATION_EVENT**:
+     * **SCENARIO:** The duration of a BA event is written in mod_bam_reporting_ba_events_durations
+     * **GIVEN** a BA of type "worst" with the service service_314 and no timeperiod relation
+     * **WHEN** service_314 becomes CRITICAL and then OK again
+     * **THEN** a duration is written for the BA event 1
+     * **AND** its duration and its SLA duration are both the difference between its end and its start
+     * **AND** it is computed on the default timeperiod
+     * **AND** its start and end times lie between the Engine start and the return to OK
+54. **BEPB_DIMENSION_BA_BV_RELATION_EVENT**:
+     * **SCENARIO:** Broker sends the BA/business view relations as pb_dimension_ba_bv_relation_event events
+     * **GIVEN** a BA attached to the business view 456 in the configuration database
+     * **AND** a Lua output on the central Broker logging every event
+     * **WHEN** Broker and Engine are started
+     * **THEN** the Lua output receives a pb_dimension_ba_bv_relation_event linking the BA to the business view 456
+     * **AND** the relation is written in the mod_bam_reporting_relations_ba_bv table
+55. **BEPB_DIMENSION_BA_EVENT**:
+     * **SCENARIO:** Broker sends the BAs as pb_dimension_ba_event events
+     * **GIVEN** a BA whose description and SLA values are set in the configuration database
+     * **AND** a Lua output on the central Broker logging every event
+     * **WHEN** Broker and Engine are started
+     * **THEN** the Lua output receives a pb_dimension_ba_event with the name, the description and the SLA values of the BA
+56. **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**:
+     * **SCENARIO:** The BA/timeperiod relations are written in mod_bam_reporting_relations_ba_timeperiods
+     * **GIVEN** a BA attached to the timeperiod 732 in the configuration database
+     * **WHEN** Broker and Engine are started
+     * **THEN** the mod_bam_reporting_relations_ba_timeperiods table links the BA to the timeperiod 732, which is not the default one
+57. **BEPB_DIMENSION_BV_EVENT**:
+     * **SCENARIO:** Broker sends the business views as pb_dimension_bv_event events
+     * **GIVEN** a BA and a business view 574 named "virsgtr" in the configuration database
+     * **AND** a Lua output on the central Broker logging every event
+     * **WHEN** Broker and Engine are started
+     * **THEN** the Lua output receives a pb_dimension_bv_event with the id, the name and the description of the business view
+58. **BEPB_DIMENSION_KPI_EVENT**:
+     * **SCENARIO:** The KPIs of a BA are written in the reporting table mod_bam_reporting_kpi
+     * **GIVEN** a BA of type "worst" with a service KPI on service_314 and a boolean KPI
+     * **WHEN** Broker and Engine are started
+     * **THEN** the mod_bam_reporting_kpi table contains both KPIs with their BA, their host, service or boolean rule
+59. **BEPB_DIMENSION_TIMEPERIOD**:
+     * **SCENARIO:** Broker sends the timeperiods as pb_dimension_timeperiod events
+     * **GIVEN** a BA and a timeperiod 732 named "ezizae" in the configuration database
+     * **AND** a Lua output on the central Broker logging every event
+     * **WHEN** Broker and Engine are started
+     * **THEN** the Lua output receives a pb_dimension_timeperiod with the id, the name and the ranges of each day of the timeperiod
+60. **BEPB_DIMENSION_TRUNCATE_TABLE**:
+     * **SCENARIO:** Broker frames the dimension events with pb_dimension_truncate_table_signal events
+     * **GIVEN** a BA and a Lua output on the central Broker logging every event
+     * **WHEN** Broker and Engine are started
+     * **THEN** the Lua output receives a pb_dimension_truncate_table_signal with update_started set to true
+     * **AND** another one with update_started set to false
+61. **BEPB_KPI_STATUS**:
+     * **SCENARIO:** The status of a KPI is written in the mod_bam_kpi table
+     * **GIVEN** a BA of type "worst" with the service service_314
+     * **WHEN** service_314 becomes CRITICAL in hard state
+     * **THEN** the KPI of service_314 is CRITICAL and HARD in the mod_bam_kpi table
+     * **AND** its last state change is not older than the Engine start
 62. **CBABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
 63. **CBABOO**:
      * **SCENARIO:** A "worst" BA and an impact BA with an OR boolean rule built on the same 2 services behave identically when a service becomes CRITICAL

@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Broker validates a centralized poller configuration at ingestion and refuses to push an invalid one, even when CheckPollerConfig was not called.
+Documentation     Broker validates a centralized poller configuration at ingestion and refuses to push an invalid one, even when CheckPollerConfig was not called.
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Clean Before Test
-Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=True
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn Clean Before Test
+Test Teardown     Ctn Stop Engine Broker And Save Logs    only_central=True
 
 
 *** Test Cases ***
@@ -404,3 +404,57 @@ BECFGVAL9_${lck_mode}
     Examples:    lck_mode    --
     ...    batch
     ...    per_poller
+
+BECFGVAL10
+    [Documentation]    Scenario: Engine says so when it cannot apply the configuration it was sent
+    ...    Given one poller running the configuration Broker pushed to it
+    ...    When its hosts are given a tag that is not defined and the configuration is announced
+    ...    Then Broker validates and sends the configuration, tags not being its business
+    ...    And Engine cannot apply it, restores its previous configuration and tells Broker why
+    ...    And Broker logs the failure and removes new-1.prot and diff-1.prot
+    ...    And the configuration is not sent again
+    ...    When the tag is removed and the configuration is announced again
+    ...    Then the poller acknowledges the new configuration
+    [Tags]    broker    engine    config    centralized
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    # Tag 99 is defined nowhere: Broker does not check host tags, Engine does.
+    Ctn Add Tags To All Hosts    ${0}    group_tags    99
+    ${start}    Ctn Get Round Current Date
+    Ctn Announce Poller Configurations    batch    ${0}
+
+    ${content}    Create List    Cannot apply new configuration: Could not find tag
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Engine did not fail to apply the configuration with an undefined tag
+
+    ${content}    Create List    Poller 1 could not apply the configuration
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker was not told that the poller could not apply its configuration
+
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    Wait Until Removed    ${dir}/new-1.prot    10s
+    Wait Until Removed    ${dir}/diff-1.prot    10s
+
+    # A configuration that failed would fail again: it must not be resent.
+    Sleep    5s
+    ${failures}    Grep File    ${centralLog}    Poller 1 could not apply the configuration
+    ${count}    Get Line Count    ${failures}
+    Should Be Equal As Integers    ${count}    1    The failed configuration was sent again
+
+    Ctn Remove Tags From Hosts    ${0}
+    ${start}    Ctn Get Round Current Date
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
