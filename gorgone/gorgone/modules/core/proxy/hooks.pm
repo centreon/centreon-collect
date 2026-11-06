@@ -325,8 +325,19 @@ sub routing {
     my $bulk_actions;
     push @{$bulk_actions}, $options{frame}->getRawData();
 
+    # MON-214476 temporary profiling: remove once memory/blocking per step is measured. This
+    # brackets the whole REMOTECOPY handling (prepare_remote_copy() + dispatching every chunk to
+    # send_internal_message() below), all still inside the main process/event loop: with
+    # ZMQ_SNDHWM=0 (unlimited queuing, library.pm connect_com()), the main process likely still
+    # holds @actions and libzmq's own copy of every queued frame at once, so the real peak and
+    # the real main-loop block duration are probably only visible once this whole block - not
+    # just prepare_remote_copy() - has returned.
+    my ($profile_rc_t0, $profile_rc_rss0, $profile_rc_hwm0);
     if ($options{action} eq 'REMOTECOPY' && defined($register_nodes->{$target_parent}) &&
         $register_nodes->{$target_parent}->{type} ne 'push_ssh') {
+        $profile_rc_t0 = Time::HiRes::time();
+        ($profile_rc_rss0, $profile_rc_hwm0) = _profile_mem_kb();
+
         $action = 'PROCESSCOPY';
         ($code, $bulk_actions) = prepare_remote_copy(
             dbh => $options{dbh},
@@ -413,6 +424,18 @@ sub routing {
             raw_data_ref => $raw_data_ref,
             token => $options{token},
             target => $target_complete
+        );
+    }
+
+    # MON-214476 temporary profiling: remove once memory/blocking per step is measured.
+    if (defined($profile_rc_t0)) {
+        my $profile_rc_t1 = Time::HiRes::time();
+        my ($profile_rc_rss1, $profile_rc_hwm1) = _profile_mem_kb();
+        $options{logger}->writeLogInfo(
+            "[proxy][profile-MON-214476] REMOTECOPY routing() done: elapsed=" . ($profile_rc_t1 - $profile_rc_t0) .
+            "s rss=${profile_rc_rss1}kB hwm=${profile_rc_hwm1}kB (rss_delta=" . ($profile_rc_rss1 - $profile_rc_rss0) .
+            "kB hwm_delta=" . ($profile_rc_hwm1 - $profile_rc_hwm0) . "kB) frames=" . scalar(@{$bulk_actions}) .
+            " identity=${identity}"
         );
     }
 }
@@ -1420,6 +1443,21 @@ sub register_nodes_from_db {
     }
 }
 
+# MON-214476 temporary profiling helper, to be removed once the REMOTECOPY memory/blocking
+# profile has been measured on c13: reads this process's own resident memory and high-water
+# mark from /proc. VmHWM is monotonic, so comparing it across steps shows which step actually
+# set the peak even though snapshots are taken after the fact.
+sub _profile_mem_kb {
+    my ($rss, $hwm) = (-1, -1);
+    open(my $fh, '<', '/proc/self/status') or return ($rss, $hwm);
+    while (my $line = <$fh>) {
+        $rss = $1 if ($line =~ /^VmRSS:\s*(\d+)\s*kB/);
+        $hwm = $1 if ($line =~ /^VmHWM:\s*(\d+)\s*kB/);
+    }
+    close($fh);
+    return ($rss, $hwm);
+}
+
 sub prepare_remote_copy {
     my (%options) = @_;
 
@@ -1454,6 +1492,10 @@ sub prepare_remote_copy {
     my $src = $options{data}->{content}->{source};
     my $dst = $options{data}->{content}->{destination};
 
+    # MON-214476 temporary profiling: remove once memory/blocking per step is measured.
+    my $profile_t0 = Time::HiRes::time();
+    my ($profile_rss0, $profile_hwm0) = _profile_mem_kb();
+
     if (-f $options{data}->{content}->{source}) {
         $type = 'regular';
         $localsrc = $src;
@@ -1463,6 +1505,10 @@ sub prepare_remote_copy {
         $type = 'archive';
         $filename = (defined($options{data}->{content}->{type}) ? $options{data}->{content}->{type} : 'tmp') . '-' . $options{target} . '.tar.gz';
         $localsrc = $options{data}->{content}->{cache_dir} . '/' . $filename;
+
+        $options{logger}->writeLogInfo(
+            "[proxy][profile-MON-214476] tar build start: source='$options{data}->{content}->{source}' rss=${profile_rss0}kB hwm=${profile_hwm0}kB"
+        );
 
         my $tar = Archive::Tar->new();
         unless (chdir($options{data}->{content}->{source})) {
@@ -1478,7 +1524,18 @@ sub prepare_remote_copy {
         }
 
         my @inventory = ();
-        File::Find::find ({ wanted => sub { push @inventory, $_ }, no_chdir => 1 }, '.');
+        # MON-214476 temporary profiling: remove once memory/blocking per step is measured.
+        # Archive::Tar holds the whole uncompressed content in memory while building, so the
+        # blow-up ratio needs this number, not the final compressed tar_gz_size.
+        my $profile_uncompressed_bytes = 0;
+        my $profile_file_count = 0;
+        File::Find::find ({ wanted => sub {
+            push @inventory, $_;
+            if (-f $_) {
+                $profile_uncompressed_bytes += -s _;
+                $profile_file_count++;
+            }
+        }, no_chdir => 1 }, '.');
         my $owner;
         $owner = $options{data}->{content}->{owner} if (defined($options{data}->{content}->{owner}) && $options{data}->{content}->{owner} ne '');
         my $group;
@@ -1519,6 +1576,17 @@ sub prepare_remote_copy {
             });
             return -1;
         }
+
+        # MON-214476 temporary profiling: remove once memory/blocking per step is measured.
+        my $profile_t1 = Time::HiRes::time();
+        my ($profile_rss1, $profile_hwm1) = _profile_mem_kb();
+        my $profile_tar_size = -s $localsrc;
+        $options{logger}->writeLogInfo(
+            "[proxy][profile-MON-214476] tar build done: elapsed=" . ($profile_t1 - $profile_t0) .
+            "s rss=${profile_rss1}kB hwm=${profile_hwm1}kB (rss_delta=" . ($profile_rss1 - $profile_rss0) .
+            "kB hwm_delta=" . ($profile_hwm1 - $profile_hwm0) . "kB) files=${profile_file_count} " .
+            "uncompressed_size=${profile_uncompressed_bytes}B tar_gz_size=${profile_tar_size}B"
+        );
     } else {
         $options{logger}->writeLogError('[proxy] Unknown source for remote copy');
         gorgone::standard::library::add_history({
@@ -1531,11 +1599,21 @@ sub prepare_remote_copy {
         return -1;
     }
 
+    # MON-214476 temporary profiling: remove once memory/blocking per step is measured.
+    my $profile_t2 = Time::HiRes::time();
+    my ($profile_rss2, $profile_hwm2) = _profile_mem_kb();
+    $options{logger}->writeLogInfo(
+        "[proxy][profile-MON-214476] chunking start: rss=${profile_rss2}kB hwm=${profile_hwm2}kB localsrc_size=" . (-s $localsrc) .
+        "B buffer_size=" . (defined($config->{buffer_size}) ? $config->{buffer_size} : 150_000)
+    );
+
     sysopen(FH, $localsrc, O_RDONLY);
     binmode(FH);
     my $buffer_size = (defined($config->{buffer_size})) ? $config->{buffer_size} : 150_000;
     my $buffer;
+    my $profile_chunks = 0;
     while (my $bytes = sysread(FH, $buffer, $buffer_size)) {
+        $profile_chunks++;
         my $action = JSON::XS->new->encode({
             logging => $options{data}->{logging},
             content => {
@@ -1555,13 +1633,30 @@ sub prepare_remote_copy {
     }
     close FH;
 
+    # MON-214476 temporary profiling: remove once memory/blocking per step is measured.
+    my $profile_t3 = Time::HiRes::time();
+    my ($profile_rss3, $profile_hwm3) = _profile_mem_kb();
+    $options{logger}->writeLogInfo(
+        "[proxy][profile-MON-214476] chunking done: elapsed=" . ($profile_t3 - $profile_t2) .
+        "s rss=${profile_rss3}kB hwm=${profile_hwm3}kB (rss_delta=" . ($profile_rss3 - $profile_rss2) .
+        "kB hwm_delta=" . ($profile_hwm3 - $profile_hwm2) . "kB) chunks=${profile_chunks}"
+    );
+    my $profile_md5_start = Time::HiRes::time();
+    my $profile_md5 = file_md5_hex($localsrc);
+    my $profile_t4 = Time::HiRes::time();
+    my ($profile_rss4, $profile_hwm4) = _profile_mem_kb();
+    $options{logger}->writeLogInfo(
+        "[proxy][profile-MON-214476] md5 done: elapsed=" . ($profile_t4 - $profile_md5_start) .
+        "s rss=${profile_rss4}kB hwm=${profile_hwm4}kB total_elapsed=" . ($profile_t4 - $profile_t0)
+    );
+
     my $action = JSON::XS->new->encode({
         logging => $options{data}->{logging},
         content => {
             status => 'end',
             type => $type,
             chunk => undef,
-            md5 => file_md5_hex($localsrc),
+            md5 => $profile_md5,
             destination => $dst,
             cache_dir => $options{data}->{content}->{cache_dir},
             owner => $options{data}->{content}->{owner},
