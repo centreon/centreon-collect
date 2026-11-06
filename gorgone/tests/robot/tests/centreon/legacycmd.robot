@@ -206,7 +206,7 @@ Legacycmd exports recover once a stuck httpserver child is detected and recreate
 
     ${central_log_file}    Set Variable    /var/log/centreon-gorgone/${central}/gorgoned.log
     ${old_pid}    Run    pgrep -f '^gorgone-proxy-httpserver$'
-    Should Match Regexp    ${old_pid}    ^\d+$    expected exactly one httpserver child process, got: ${old_pid}
+    Should Match Regexp    ${old_pid}    ^\\d+$    expected exactly one httpserver child process, got: ${old_pid}
 
     ${start_date}    Get Current Date
     Run    kill -STOP ${old_pid}
@@ -230,7 +230,7 @@ Legacycmd exports recover once a stuck httpserver child is detected and recreate
     ...    gorgoned never recreated the httpserver child : ${logs_central}
 
     ${new_pid}    Run    pgrep -f '^gorgone-proxy-httpserver$'
-    Should Match Regexp    ${new_pid}    ^\d+$    expected exactly one httpserver child process after recreation, got: ${new_pid}
+    Should Match Regexp    ${new_pid}    ^\\d+$    expected exactly one httpserver child process after recreation, got: ${new_pid}
     Should Not Be Equal As Strings    ${old_pid}    ${new_pid}
     ...    the httpserver child still has its old pid, it was not actually recreated
 
