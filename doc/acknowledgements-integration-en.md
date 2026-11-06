@@ -263,7 +263,7 @@ recovery even when no closing acknowledgement event is written (e.g. a plain BBD
 
 Everything above describes the `engine` mode: Engine sets and clears the acknowledgement, Broker
 tracks it. In `notification_mode = broker`, Engine is **never told** about acknowledgements (see
-[Centralized downtime and acknowledgement management](./nego-engine-broker-en.md#centralized-downtime-and-acknowledgement-management)).
+[Centralized downtime and acknowledgement management](./nego-engine-broker/07-downtimes-acknowledgements-en.md#centralized-downtime-and-acknowledgement-management)).
 Broker receives them through `BrokerRpc`, stores them, exports them to the database and clears them
 itself. The `broker_acknowledgement_manager` is a singleton loaded by `broker_state` in that mode
 only, next to the `downtime_manager`; all the state lives in `broker_cache`, the class only

@@ -269,7 +269,7 @@ BBDO2).
 
 Tout ce qui précède décrit le mode `engine` : Engine pose et lève l'acquittement, Broker le suit. En
 `notification_mode = broker`, Engine **n'est jamais informé** des acquittements (voir
-[Gestion centralisée des downtimes et acquittements](./nego-engine-broker-fr.md#gestion-centralisée-des-downtimes-et-acquittements)).
+[Gestion centralisée des downtimes et acquittements](./nego-engine-broker/07-downtimes-acknowledgements-fr.md#gestion-centralisée-des-downtimes-et-acquittements)).
 Broker les reçoit par `BrokerRpc`, les stocke, les exporte en base et les lève lui-même. Le
 `broker_acknowledgement_manager` est un singleton chargé par `broker_state` dans ce mode seulement,
 à côté du `downtime_manager` ; tout l'état vit dans `broker_cache`, la classe ne fait qu'orchestrer.
