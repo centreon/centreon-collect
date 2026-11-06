@@ -82,6 +82,55 @@ Legacycmd reports a final batch result over the HTTP API
     Should Be Equal As Integers    ${result}[code]    2    an untracked batch always reports accepted
     Should Be Equal As Integers    ${result}[data][tracked]    0    EXTERNALCMD must not be tracked
 
+Legacycmd retries loading the pollers cache right away after a database outage
+    [Documentation]    Given gorgone-central's pollers cache fails to load (e.g. cfg_nagios
+    ...    unavailable while an install is still running)
+    ...    When a CENTREONCOMMAND arrives once the table is available again
+    ...    Then it succeeds right away instead of waiting cache_refresh_interval seconds
+    [Tags]    gorgone    legacycmd    MON-214293
+    ${central}=    Set Variable    pullwss_gorgone_central_legacycmd_cache
+    ${poller}=    Set Variable    pullwss_gorgone_poller2_legacycmd_cache
+    [Teardown]    Legacycmd Cache Refresh Teardown    central=${central}    poller=${poller}
+
+    @{central_config}    Create List    ${ROOT_CONFIG}legacycmd.yaml    ${ROOT_CONFIG}engine.yaml    ${ROOT_CONFIG}actions.yaml
+    @{poller_config}    Create List     ${ROOT_CONFIG}actions.yaml    ${ROOT_CONFIG}engine.yaml
+    Setup Two Gorgone Instances
+    ...    central_config=${central_config}
+    ...    communication_mode=pullwss
+    ...    central_name=${central}
+    ...    poller_name=${poller}
+    ...    poller_config=${poller_config}
+
+    # Force legacycmd's very first cache load on this fresh process to fail, like a
+    # restart racing an install that hasn't created cfg_nagios yet. The nodes module
+    # (poller registration) doesn't read cfg_nagios, so the poller still reconnects.
+    Execute SQL String    RENAME TABLE cfg_nagios TO cfg_nagios_robot_tmp    alias=${DBNAME}
+    Stop Gorgone And Remove Gorgone Config    ${central}
+    Start Gorgone    debug    ${central}
+    Wait Until Port Is Bind    ${Ccom_port}
+    Wait Until Port Is Bind    8085
+    Check Poller Is Connected    port=${Ccom_port}    expected_nb=2
+
+    ${command}    Create Dictionary    command=RELOAD    target=2
+    ${body}    Create List    ${command}
+    ${response}    POST    http://127.0.0.1:8085/api/centreon/legacycmd/command    json=${body}
+    ${status}    ${result}    Ctn Get Legacycmd Final Result    token=${response.json()}[token]    timeout=15
+    Should Be True    ${status}    No final batch result found: ${result}
+    Should Be Equal As Integers    ${result}[code]    1    batch should fail while cfg_nagios is unavailable
+    Should Be Equal As Strings    ${result}[data][message]    cannot get centreon database configuration
+    ...    the KO must come from the missing table, not e.g. the poller not being reconnected yet
+
+    Execute SQL String    RENAME TABLE cfg_nagios_robot_tmp TO cfg_nagios    alias=${DBNAME}
+
+    ${command2}    Create Dictionary    command=RELOAD    target=2
+    ${body2}    Create List    ${command2}
+    ${response2}    POST    http://127.0.0.1:8085/api/centreon/legacycmd/command    json=${body2}
+    ${status2}    ${result2}    Ctn Get Legacycmd Final Result    token=${response2.json()}[token]    timeout=15
+    Should Be True    ${status2}    No final batch result found: ${result2}
+    Should Be Equal As Integers    ${result2}[code]    2    the very next command must succeed, not wait cache_refresh_interval seconds
+    Should Not Be Equal As Strings    ${result2}[data][message]    cannot get centreon database configuration
+    ...    the cache must have reloaded, not failed again
+
 Legacycmd reports a final KO when the target poller is not connected
     [Documentation]    Given a poller that was connected and lost its pullwss link
     ...    When a RELOAD CENTREONCOMMAND is posted while it is disconnected
@@ -136,6 +185,12 @@ Legacycmd Final Result Teardown
     Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Run    rm -rf /var/cache/centreon/config
     Run    rm -rf /etc/centreon/centreon_vmware.json /etc/centreon-engine/randomBigFile.cfg /etc/centreon-engine/engine-hosts.cfg /etc/centreon-broker/broker.cfg
+
+Legacycmd Cache Refresh Teardown
+    [Arguments]    ${central}    ${poller}
+    # best-effort: already restored if the test's own rename-back ran.
+    Run Keyword And Ignore Error    Execute SQL String    RENAME TABLE cfg_nagios_robot_tmp TO cfg_nagios    alias=${DBNAME}
+    Legacycmd Final Result Teardown    central=${central}    poller=${poller}
 
 Legacycmd Teardown
     [Arguments]    ${central}    ${poller}    ${comm}

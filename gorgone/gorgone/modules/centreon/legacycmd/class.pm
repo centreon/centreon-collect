@@ -130,7 +130,6 @@ sub cache_refresh {
     my ($self, %options) = @_;
 
     return if ((time() - $self->{cache_refresh_interval}) < $self->{cache_refresh_last});
-    $self->{cache_refresh_last} = time();
 
     # get pollers config
     $self->{pollers} = undef;
@@ -147,6 +146,8 @@ sub cache_refresh {
         $self->{logger}->writeLogError('[legacycmd] Cannot get configuration for pollers');
         return ;
     }
+    # Set only on success, so a startup DB failure retries next tick, not in cache_refresh_interval seconds.
+    $self->{cache_refresh_last} = time();
 
     $self->{pollers} = $datas;
     $self->{local_poller_id} = undef;
@@ -1344,6 +1345,8 @@ sub action_centreoncommand {
         return -1;
     }
 
+    # No-op if already loaded; retries right away if the last periodic refresh failed.
+    $self->cache_refresh();
     if ($self->check_pollers_config() == 0) {
         $self->{logger}->writeLogError('[legacycmd] cannot get centreon database configuration');
         $self->finalize_batch(token => $options{token}, code => GORGONE_ACTION_FINISH_KO, message => 'cannot get centreon database configuration');
