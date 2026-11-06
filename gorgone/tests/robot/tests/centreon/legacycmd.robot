@@ -102,13 +102,23 @@ Legacycmd reports a final KO when the target poller is not connected
 
     # was connected, now isn't - the ticket's own scenario (a restart, a command sent
     # during the reconnection window), not a poller that never connected at all.
-    ${before}    Get Current Date
+    # Line-count diff, not a date search: Terminate Process can return the same
+    # second the disconnect gets logged (second-precision timestamps), which a
+    # date-based search can miss depending on sub-second ordering.
+    ${central_log_file}    Set Variable    /var/log/centreon-gorgone/${central}/gorgoned.log
+    ${lines_before}    Run    wc -l < ${central_log_file}
     Terminate Process    ${poller}
-    # wait for the central to actually process the close, not just for the poller
-    # process to exit, or the command below could race it to proxy-httpserver.
-    ${disconnect_log}    Create List    websocket client disconnected
-    ${disconnect_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${central}/gorgoned.log    content=${disconnect_log}    date=${before}    regex=0    timeout=20
-    Should Be True    ${disconnect_status}    Central never saw the poller disconnect
+
+    ${disconnected}    Set Variable    ${False}
+    FOR    ${i}    IN RANGE    20
+        ${new_lines}    Run    tail -n +$((${lines_before} + 1)) ${central_log_file} | grep -c 'websocket client disconnected'
+        IF    ${new_lines} > 0
+            ${disconnected}    Set Variable    ${True}
+            BREAK
+        END
+        Sleep    1s
+    END
+    Should Be True    ${disconnected}    Central never saw the poller disconnect
 
     ${command}    Create Dictionary    command=RELOAD    target=2
     ${body}    Create List    ${command}
