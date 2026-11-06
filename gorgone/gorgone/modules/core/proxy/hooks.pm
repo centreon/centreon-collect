@@ -218,9 +218,19 @@ sub routing {
         } elsif (defined($data->{httpserver})) {
             $httpserver->{ready} = 1;
         } elsif (defined($data->{node_id}) && defined($synctime_nodes->{ $data->{node_id} })) {
-            $synctime_nodes->{ $data->{node_id} }->{channel_ready} = 1;
-            $synctime_nodes->{ $data->{node_uid} }->{channel_ready} = 1;
-
+            # For push_zmq/push_ssh, this PROXYADDNODE ack from the pool worker means it is
+            # ready to route to this node: channel_ready can flip right away. For wss/pullwss,
+            # the httpserver child merely now recognizes this id - it does NOT mean the
+            # poller's websocket is actually (re)connected yet (can take a few seconds after a
+            # recreate, see check_httpserver_health()): only a genuine REGISTERNODES from the
+            # poller (register_nodes()) knows that for sure. Flipping it here too early makes
+            # routing() forward traffic to a child that doesn't have the connection mapped yet
+            # ("cannot get connection for target node").
+            if (!defined($register_nodes->{ $data->{node_id} }) ||
+                $register_nodes->{ $data->{node_id} }->{type} !~ /^(?:wss|pullwss)$/) {
+                $synctime_nodes->{ $data->{node_id} }->{channel_ready} = 1;
+                $synctime_nodes->{ $data->{node_uid} }->{channel_ready} = 1;
+            }
         }
         return undef;
     }
@@ -380,16 +390,24 @@ sub routing {
             next;
         }
 
-        # don't dispatch to a node until its PROXYADDNODE has been acked (channel_ready) by
-        # whichever backend manages it (class.pm pool worker or httpserver.pm) - otherwise a
-        # message can reach a pool worker/httpserver before it has finished registering the
-        # node
+        # don't dispatch to a node until channel_ready is set - the pool worker's PROXYADDNODE
+        # ack for push_zmq/push_ssh, or a genuine REGISTERNODES over its actual live websocket
+        # for wss/pullwss (see register_nodes()) - otherwise a message can reach a backend before
+        # it is actually able to route to this node
         if ($options{action} !~ /^(?:PROXYADDNODE|PROXYDELNODE|PROXYCLOSECONNECTION)$/
             && (!defined($synctime_nodes->{$target_parent}) || $synctime_nodes->{$target_parent}->{channel_ready} != 1)) {
             $options{logger}->writeLogDebug(
                 "[proxy] deferring '" . $options{action} . "' for '" . $target_parent .
-                "': node not yet fully registered (no PROXYADDNODE ack)"
+                "': node not yet fully registered (channel not ready)"
             );
+            # a GETLOG lock (total_msg) was already taken above, before this channel_ready
+            # check could run: release it now, or it sits locked until the much longer
+            # synchistory_timeout sweep instead of being retried as soon as the node actually
+            # becomes ready.
+            if ($options{action} eq 'GETLOG' && defined($synctime_nodes->{$target})) {
+                delete($synctime_nodes->{$target}->{total_msg});
+                $synctime_nodes->{$target}->{got_msg} = 0;
+            }
             gorgone::standard::library::add_history({
                 dbh => $options{dbh},
                 code => GORGONE_ACTION_FINISH_KO,
@@ -473,6 +491,25 @@ sub check_create_child {
     }
 }
 
+# Whatever took the old httpserver child down (crash, or check_httpserver_health() killing a
+# wedged one), its in-flight state (a GETLOG it never answered, a ping it never replied to, a
+# channel it had acked ready) is gone with it: clear it for every wss/pullwss node so routing()
+# doesn't keep refusing GETLOG as "already in progress" against a child that no longer exists,
+# and defers traffic until the replacement child's node re-registers (see register_nodes()).
+sub reset_wss_nodes_channel_state {
+    foreach my $node_id (keys %$register_nodes) {
+        next if ($register_nodes->{$node_id}->{type} !~ /^(?:wss|pullwss)$/);
+        if (defined($synctime_nodes->{$node_id})) {
+            delete($synctime_nodes->{$node_id}->{total_msg});
+            $synctime_nodes->{$node_id}->{got_msg} = 0;
+            $synctime_nodes->{$node_id}->{channel_ready} = 0;
+        }
+        if (defined($constatus_ping->{$node_id})) {
+            $constatus_ping->{$node_id}->{in_progress_ping} = 0;
+        }
+    }
+}
+
 # The httpserver child is the single DEALER identity handling all wss/pullwss traffic (no pool,
 # unlike push_zmq/push_ssh nodes). Unlike create_child()'s pool workers, a dead_childs entry only
 # catches it when the process has actually exited: if its event loop gets wedged (overloaded,
@@ -489,20 +526,28 @@ sub check_httpserver_health {
     my $check_interval = $config->{httpserver}->{check_interval};
     my $check_timeout = $config->{httpserver}->{check_timeout};
 
-    # Drain any reply already sitting in the internal socket before judging a timeout: check()
-    # itself only runs every ~15s (check_exit_modules()'s own gate) and, being in the same single
-    # process/event loop as routing(), can be delayed by a long synchronous handler (e.g.
-    # prepare_remote_copy() building a big REMOTECOPY archive) for well over check_timeout. In
-    # that case the httpserver child may have answered our last probe long ago; without this, the
-    # reply sitting unread would wrongly look like a stuck child caused by OUR OWN delay, not its.
-    $options{gorgone}->router_internal_event();
-
     if (defined($httpserver->{health_check_pending}) && $httpserver->{health_check_pending} == 1) {
         return if ((time() - $httpserver->{health_check_sent}) <= $check_timeout);
 
+        # Don't kill on the first strike: check() runs in the same single process/event loop as
+        # routing() and can itself be delayed (e.g. by a long prepare_remote_copy()) well past
+        # check_timeout. In that case the child answered long ago, but the reply has been
+        # sitting unread in the internal socket while we were blocked; periodic_exec() calls
+        # router_internal_event() right after check_exit_modules() every tick, so that reply
+        # gets drained (clearing health_check_pending) before this runs again - unless the child
+        # really is stuck. Two consecutive timeouts are required before recreating it.
+        if (!defined($httpserver->{health_check_suspect}) || $httpserver->{health_check_suspect} == 0) {
+            $httpserver->{health_check_suspect} = 1;
+            $options{logger}->writeLogInfo(
+                "[proxy] httpserver child (pid " . $httpserver->{pid} . ") did not answer the internal health " .
+                "check within " . $check_timeout . "s: marking it suspect, will confirm on the next check"
+            );
+            return;
+        }
+
         $options{logger}->writeLogError(
             "[proxy] httpserver child (pid " . $httpserver->{pid} . ") did not answer the internal health " .
-            "check within " . $check_timeout . "s: considering it stuck, killing and recreating it"
+            "check within " . $check_timeout . "s on two consecutive checks: considering it stuck, killing and recreating it"
         );
         gorgone::standard::library::add_history({
             dbh => $options{dbh},
@@ -512,28 +557,14 @@ sub check_httpserver_health {
         });
         CORE::kill('KILL', $httpserver->{pid});
         $httpserver = {};
-
-        # the killed child's in-flight state (a GETLOG it never answered, a ping it never replied
-        # to, a channel it had acked ready) is gone with it: clear it for every wss/pullwss node so
-        # routing() doesn't keep refusing GETLOG as "already in progress" (hooks.pm's own 30s
-        # synchistory_timeout sweep would eventually do it, but that can land past
-        # legacycmd's own result timeout) and defers traffic until the new child re-acks
-        # PROXYADDNODE.
-        foreach my $node_id (keys %$register_nodes) {
-            next if ($register_nodes->{$node_id}->{type} !~ /^(?:wss|pullwss)$/);
-            if (defined($synctime_nodes->{$node_id})) {
-                delete($synctime_nodes->{$node_id}->{total_msg});
-                $synctime_nodes->{$node_id}->{got_msg} = 0;
-                $synctime_nodes->{$node_id}->{channel_ready} = 0;
-            }
-            if (defined($constatus_ping->{$node_id})) {
-                $constatus_ping->{$node_id}->{in_progress_ping} = 0;
-            }
-        }
-
+        reset_wss_nodes_channel_state();
         create_httpserver_child(logger => $options{logger});
         return;
     }
+
+    # a reply came back since the last check (possibly one that was merely delayed, see above):
+    # clear any pending suspicion.
+    $httpserver->{health_check_suspect} = 0;
 
     return if (defined($httpserver->{last_health_check_sent}) &&
         (time() - $httpserver->{last_health_check_sent}) < $check_interval);
@@ -557,6 +588,7 @@ sub check {
         if (defined($httpserver->{pid}) && $httpserver->{pid} == $pid) {
             $httpserver = {};
             delete $options{dead_childs}->{$pid};
+            reset_wss_nodes_channel_state();
             if ($stop == 0) {
                 create_httpserver_child(logger => $options{logger});
             }
@@ -1229,6 +1261,19 @@ sub register_nodes {
             my $first_connection = !defined($register_nodes->{ $node->{id} }->{identity});
             $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
             $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
+
+            # For wss/pullwss, THIS - a genuine REGISTERNODES over an actual live websocket - is
+            # what channel_ready should track, not the httpserver child's earlier PROXYADDNODE
+            # ack (see routing()'s PROXYREADY handling), which only means it recognizes this id,
+            # not that the connection exists yet.
+            if ($node->{type} =~ /^(?:wss|pullwss)$/) {
+                $synctime_nodes->{ $node->{id} }->{channel_ready} = 1
+                    if defined($synctime_nodes->{ $node->{id} });
+                if (defined($register_nodes->{ $node->{id} }->{uid}) &&
+                    defined($synctime_nodes->{ $register_nodes->{ $node->{id} }->{uid} })) {
+                    $synctime_nodes->{ $register_nodes->{ $node->{id} }->{uid} }->{channel_ready} = 1;
+                }
+            }
 
             # Don't make constatus (ping_ok) wait for the next scheduled ping, up to
             # ping_interval away: force one now instead of faking the result.

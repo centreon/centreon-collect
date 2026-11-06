@@ -185,9 +185,10 @@ Legacycmd exports recover once a stuck httpserver child is detected and recreate
     ...    spike (5k hosts / 10 pollers) where it stayed alive but stopped answering, leaving
     ...    every export stuck in "timeout waiting for sub-actions to finish" until gorgoned
     ...    itself was restarted (MON-214475)
-    ...    Then gorgoned detects it via its periodic internal health check, kills and recreates
-    ...    it, and a CENTREONCOMMAND batch posted afterwards reports a final result again within
-    ...    seconds, without restarting gorgoned
+    ...    Then gorgoned confirms it on two consecutive health checks (the first can be gorgoned's
+    ...    own main loop running late, not the child), kills and recreates it, and a
+    ...    CENTREONCOMMAND batch posted after the poller reconnects reports a final result again,
+    ...    without restarting gorgoned
     [Tags]    gorgone    legacycmd    proxy    pullwss    MON-214475
     ${central}=    Set Variable    pullwss_gorgone_central_legacycmd_httpserver
     ${poller}=    Set Variable    pullwss_gorgone_poller2_legacycmd_httpserver
@@ -211,14 +212,16 @@ Legacycmd exports recover once a stuck httpserver child is detected and recreate
     ${start_date}    Get Current Date
     Run    kill -STOP ${old_pid}
 
-    ${log_stuck_query}    Create List    httpserver child (pid ${old_pid}) did not answer the internal health check
+    ${log_stuck_query}    Create List
+    ...    httpserver child (pid ${old_pid}) did not answer the internal health check within
+    ...    on two consecutive checks: considering it stuck, killing and recreating it
     ${logs_central}    Ctn Find In Log With Timeout
     ...    log=${central_log_file}
     ...    content=${log_stuck_query}
     ...    date=${start_date}
-    ...    timeout=60
+    ...    timeout=90
     Should Be True    ${logs_central}
-    ...    gorgoned never detected the stuck httpserver child : ${logs_central}
+    ...    gorgoned never confirmed the stuck httpserver child : ${logs_central}
 
     ${log_recreate_query}    Create List    Create module 'proxy' httpserver child process
     ${logs_central}    Ctn Find In Log With Timeout
@@ -235,7 +238,19 @@ Legacycmd exports recover once a stuck httpserver child is detected and recreate
     ...    the httpserver child still has its old pid, it was not actually recreated
 
     # the stuck process was killed, not just stopped: the poller's websocket drops and it
-    # reconnects on its own backoff, through the newly recreated httpserver child.
+    # reconnects on its own backoff, through the newly recreated httpserver child. Waiting on
+    # TCP ESTAB or on ping_ok (cumulative, already non-zero from before the kill) would not
+    # prove the new child actually re-registered the node: wait for its own REGISTERNODES ack
+    # instead, the same signal channel_ready now depends on (see register_nodes()).
+    ${log_relogged_query}    Create List    httpserver client 2 is logged
+    ${logs_central}    Ctn Find In Log With Timeout
+    ...    log=${central_log_file}
+    ...    content=${log_relogged_query}
+    ...    date=${start_date}
+    ...    timeout=30
+    Should Be True    ${logs_central}
+    ...    poller never re-registered with the recreated httpserver child : ${logs_central}
+
     ${command}    Create Dictionary    command=RELOAD    target=2
     ${body}    Create List    ${command}
     ${response}    POST    http://127.0.0.1:8085/api/centreon/legacycmd/command    json=${body}
