@@ -382,7 +382,8 @@ sub event {
         my ($message) = $self->read_message();
         next if (!defined($message));
 
-        if ($message =~ /^\[(.*?)\]\s+\[(.*?)\]\s+\[.*?\]\s+(.*)$/m || $message =~ /^\[(.*?)\]\s+\[(.*?)\]\s+(.*)$/m) {
+        $self->{logger}->writeLogDebug("[$self->{module_id}]$self->{container} Event: $message");
+        if ($message =~ /^\[([^\]]*)\]\s+\[([^\]]*)\]\s+\[.*?\]\s+(.*)$/m || $message =~ /^\[([^\]]*)\]\s+\[([^\]]*)\]\s+(.*)$/m) {
             my ($action, $token, $raw) = ($1, $2, $3);
             if ((my $method = $self->can('action_' . lc($action)))) {
                 # ACK answers every dispatch this module makes, not just our GETLOG polls:
@@ -1339,20 +1340,13 @@ sub action_centreoncommand {
     $self->send_log(code => GORGONE_ACTION_BEGIN, token => $options{token}, data => { message => 'action centreoncommand proceed' });
 
     if (!defined($options{data}->{content}) || ref($options{data}->{content}) ne 'ARRAY') {
-        $self->send_log(
-            code => GORGONE_ACTION_FINISH_KO,
-            token => $options{token},
-            data => {
-                message => "expected array, found '" . ref($options{data}->{content}) . "'",
-                legacycmd_final => 1
-            }
-        );
+        $self->finalize_batch(token => $options{token}, code => GORGONE_ACTION_FINISH_KO, message => "expected array, found '" . ref($options{data}->{content}) . "'");
         return -1;
     }
 
     if ($self->check_pollers_config() == 0) {
         $self->{logger}->writeLogError('[legacycmd] cannot get centreon database configuration');
-        $self->send_log(code => GORGONE_ACTION_FINISH_KO, token => $options{token}, data => { message => 'cannot get centreon database configuration', legacycmd_final => 1 });
+        $self->finalize_batch(token => $options{token}, code => GORGONE_ACTION_FINISH_KO, message => 'cannot get centreon database configuration');
         return 1;
     }
 
