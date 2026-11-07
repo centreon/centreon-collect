@@ -406,3 +406,64 @@ TEST_F(BrokerStateRound, OvertakenRejectionKeepsTheNewerFiles) {
   EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
             std::vector<uint64_t>{1});
 }
+
+/**
+ * Scenario: a poller that connects announcing the configuration prepared for
+ * it has applied it, and that announcement is its acknowledgement.
+ * Given a poller whose acknowledged configuration <N>.prot is v1
+ * And v2 waiting in new-<N>.prot, applied by the poller whose acknowledgement
+ * never reached Broker
+ * And a second poller still owed its configuration, so that the round stays
+ * open and nothing is published
+ * When the first poller connects announcing v2
+ * Then new-<N>.prot becomes <N>.prot
+ * And diff-<N>.prot holds the difference from v1 to v2, waiting for the round
+ * And v2 is not owed to the poller: it runs it
+ * When the second poller is served and acknowledges
+ * Then the round is over, the first poller having played its part.
+ */
+TEST_F(BrokerStateRound, AnnouncementOfThePreparedVersionAcknowledgesIt) {
+  /* The acknowledgement feeds the cache with the difference. */
+  _state->initialize_cache();
+  for (const auto& [name, version] :
+       {std::pair{"1.prot", "v1"}, std::pair{"new-1.prot", "v2"}}) {
+    com::centreon::engine::configuration::State st;
+    st.set_poller_id(1);
+    st.set_config_version(version);
+    std::ofstream f(_dir / name, std::ios::binary);
+    ASSERT_TRUE(st.SerializeToOstream(&f));
+  }
+  leave_prepared_conf(2, "v1");
+  connect(2);
+  ASSERT_TRUE(_state->poller_needs_update(2));
+
+  /* Behind a relay, as <N>.prot would otherwise be published at the
+   * connection of a direct poller: the relay asks with the version its Engine
+   * announced. */
+  _state->register_poller_via_relay(1, "Poller1", 10, "v2");
+  EXPECT_EQ(_state->prepare_relay_config_response(1, "v2"),
+            broker_state::relay_config_response::up_to_date);
+
+  EXPECT_FALSE(std::filesystem::exists(_dir / "new-1.prot"));
+  com::centreon::engine::configuration::State st;
+  {
+    std::ifstream f(_dir / "1.prot", std::ios::binary);
+    ASSERT_TRUE(f);
+    ASSERT_TRUE(st.ParseFromIstream(&f));
+  }
+  EXPECT_EQ(st.config_version(), "v2");
+  com::centreon::engine::configuration::DiffState diff;
+  {
+    std::ifstream f(_dir / "diff-1.prot", std::ios::binary);
+    ASSERT_TRUE(f);
+    ASSERT_TRUE(diff.ParseFromIstream(&f));
+  }
+  EXPECT_EQ(diff.from_version(), "v1");
+  EXPECT_EQ(diff.config_version(), "v2");
+  EXPECT_FALSE(_state->poller_needs_update(1));
+  EXPECT_TRUE(_state->pollers_via_relay_needing_update(10).empty());
+
+  EXPECT_FALSE(_state->try_close_conf_round());
+  deliver_and_acknowledge(2, "v1");
+  EXPECT_TRUE(_state->try_close_conf_round());
+}

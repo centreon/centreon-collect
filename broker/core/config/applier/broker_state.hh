@@ -174,6 +174,10 @@ class broker_state : public state {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _publish_global_diff(const std::vector<uint64_t>* poller_ids)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  void _install_acknowledged_conf(uint64_t poller_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  void _close_conf_round_if_over()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _start_watching();
   void _arm_inotify_wait();
   void _arm_debounce();

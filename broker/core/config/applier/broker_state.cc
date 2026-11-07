@@ -1915,85 +1915,125 @@ bool broker_state::_prepare_diff_for_poller(
         poller_id);
     return false;
   }
-  /* Held from the version read below to the arming at the end: two
-   * preparations of the same poller must not interleave. */
-  auto peer = _peers.lock_engine_peer(poller_id);
-  /* A poller that is not there gets nothing prepared, and that has to hold for
-   * a poller behind a relay exactly as it holds for a direct one. A directly
-   * connected poller that is away has no entry at all, so this returns here and
-   * its `new-<ID>.prot` simply waits for it. An entry restored from
-   * topology.cache would otherwise pass: a diff would be written and
-   * `available_conf` armed for a peer nobody can reach, which holds
-   * try_close_conf_round() open -- and with it the global diff of
-   * every other poller of the round -- until that relay comes back. */
-  if (!peer || !peer->connected())
-    return false;
-  if (peer->engine_conf == state->config_version()) {
-    _logger->info(
-        "Poller '{}' with id {} already has the latest configuration "
-        "(conf: '{}')",
-        peer->poller_name, poller_id, peer->engine_conf);
-    return false;
-  }
-  _logger->debug(
-      "Poller '{}' with id {} has a new configuration available "
-      "(old: '{}', new: '{}')",
-      peer->poller_name, poller_id, peer->engine_conf, state->config_version());
-  std::filesystem::path previous_prot_conf =
-      pollers_config_dir() / fmt::format("{}.prot", poller_id);
-  std::ifstream f(previous_prot_conf, std::ios::binary);
-  auto diff_state = std::make_unique<engine::configuration::DiffState>();
-  std::string new_version = state->config_version();
-  auto previous_state = std::make_unique<engine::configuration::State>();
-  if (f && previous_state->ParseFromIstream(&f)) {
-    /* The cache and the database hold <ID>.prot: they need the difference from
-     * it, whatever the poller runs. A full configuration would make them add
-     * everything and remove nothing. Whether the poller itself can apply the
-     * difference is decided when it is sent (see
-     * broker_stream::_send_diff_state_for_poller()): it may change in between.
-     */
-    std::string from_version = previous_state->config_version();
-    auto previous_indexed_state =
-        engine::configuration::indexed_state(std::move(previous_state));
-    previous_indexed_state.diff_with_new_config(*state, _logger,
-                                                diff_state.get());
-    diff_state->set_from_version(std::move(from_version));
-  } else {
-    /* No previous configuration: nothing holds anything of this poller, the
-     * whole new configuration is the difference. */
-    if (f)
-      _logger->error(
-          "Cannot parse '{}': poller {} gets its whole new configuration",
-          previous_prot_conf.string(), poller_id);
-    diff_state->set_allocated_state(state.release());
-  }
-  /* The diff names the poller it is for: whoever sends it reads it there,
-   * and the embedded full state is not always present to say so. */
-  diff_state->set_poller_id(static_cast<uint32_t>(poller_id));
-  std::filesystem::path diff_prot_conf =
-      pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
-  std::error_code ec;
-  write_prot_file(diff_prot_conf, *diff_state, ec);
-  if (!ec) {
-    /* The new configuration to send to the poller is
-     * new-<poller-ID>.prot. Once sent to it, this file must be renamed
-     * into <poller-ID>.prot and the diff file can be removed.
-     *
-     * The "not sent yet" flag is armed only when the version actually changes.
-     * Re-preparing a version already in flight -- two announcements for one
-     * export, which PHP is free to make -- would otherwise orphan its
-     * acknowledgement: the ack closes the round by looking for a peer marked as
-     * served, finds none, and the round never completes. No global diff is then
-     * published and nothing reaches the database, even though the poller did
-     * answer. */
-    if (peer->available_conf != new_version) {
-      peer->available_conf = new_version;
-      peer->round = peer_registry::conf_round::out;
+  {
+    /* Held from the version read below to the arming at the end: two
+     * preparations of the same poller must not interleave. Released before
+     * an acknowledgement is handled below, since closing the round takes the
+     * registry lock again. */
+    auto peer = _peers.lock_engine_peer(poller_id);
+    /* A poller that is not there gets nothing prepared, and that has to hold
+     * for a poller behind a relay exactly as it holds for a direct one. A
+     * directly connected poller that is away has no entry at all, so this
+     * returns here and its `new-<ID>.prot` simply waits for it. An entry
+     * restored from topology.cache would otherwise pass: a diff would be
+     * written and `available_conf` armed for a peer nobody can reach, which
+     * holds try_close_conf_round() open -- and with it the global diff of
+     * every other poller of the round -- until that relay comes back. */
+    if (!peer || !peer->connected())
+      return false;
+    /* The poller already runs the version prepared for it: it applied it, and
+     * its acknowledgement never reached Broker -- Broker restarted, or the
+     * connection broke, in between. Its announcement is that acknowledgement.
+     * Stopping here would leave `new-<ID>.prot` unrenamed, and the cache and
+     * the database on the previous version until the next export. */
+    const bool already_runs = peer->engine_conf == state->config_version();
+    if (!already_runs)
+      _logger->debug(
+          "Poller '{}' with id {} has a new configuration available "
+          "(old: '{}', new: '{}')",
+          peer->poller_name, poller_id, peer->engine_conf,
+          state->config_version());
+    std::filesystem::path previous_prot_conf =
+        pollers_config_dir() / fmt::format("{}.prot", poller_id);
+    std::ifstream f(previous_prot_conf, std::ios::binary);
+    auto diff_state = std::make_unique<engine::configuration::DiffState>();
+    std::string new_version = state->config_version();
+    auto previous_state = std::make_unique<engine::configuration::State>();
+    if (f && previous_state->ParseFromIstream(&f)) {
+      std::string from_version = previous_state->config_version();
+      if (already_runs && from_version == new_version) {
+        /* An export identical to the stored configuration, which the poller
+         * runs: there is nothing to send and nothing to acknowledge, and the
+         * prepared copy is dropped rather than left waiting for a delivery
+         * that will never take place. */
+        _logger->info(
+            "Poller '{}' with id {} already has the latest configuration "
+            "(conf: '{}')",
+            peer->poller_name, poller_id, peer->engine_conf);
+        std::error_code rm_ec;
+        const auto new_prot_conf =
+            pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+        if (!std::filesystem::remove(new_prot_conf, rm_ec) && rm_ec)
+          _logger->error("Cannot remove '{}': {}", new_prot_conf.string(),
+                         rm_ec.message());
+        return false;
+      }
+      /* The cache and the database hold <ID>.prot: they need the difference
+       * from it, whatever the poller runs. A full configuration would make them
+       * add everything and remove nothing. Whether the poller itself can apply
+       * the difference is decided when it is sent (see
+       * broker_stream::_send_diff_state_for_poller()): it may change in
+       * between. */
+      auto previous_indexed_state =
+          engine::configuration::indexed_state(std::move(previous_state));
+      previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                  diff_state.get());
+      diff_state->set_from_version(std::move(from_version));
+    } else {
+      /* No previous configuration: nothing holds anything of this poller, the
+       * whole new configuration is the difference. */
+      if (f)
+        _logger->error(
+            "Cannot parse '{}': poller {} gets its whole new configuration",
+            previous_prot_conf.string(), poller_id);
+      diff_state->set_allocated_state(state.release());
     }
-    return true;
+    /* The diff names the poller it is for: whoever sends it reads it there,
+     * and the embedded full state is not always present to say so. */
+    diff_state->set_poller_id(static_cast<uint32_t>(poller_id));
+    std::filesystem::path diff_prot_conf =
+        pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
+    std::error_code ec;
+    write_prot_file(diff_prot_conf, *diff_state, ec);
+    if (ec) {
+      _logger->error(
+          "Cannot write the diff Engine protobuf configuration '{}': {}",
+          diff_prot_conf.string(), ec.message());
+      return false;
+    }
+    if (!already_runs) {
+      /* The new configuration to send to the poller is
+       * new-<poller-ID>.prot. Once sent to it, this file must be renamed
+       * into <poller-ID>.prot and the diff file can be removed.
+       *
+       * The "not sent yet" flag is armed only when the version actually
+       * changes. Re-preparing a version already in flight -- two announcements
+       * for one export, which PHP is free to make -- would otherwise orphan its
+       * acknowledgement: the ack closes the round by looking for a peer marked
+       * as served, finds none, and the round never completes. No global diff
+       * is then published and nothing reaches the database, even though the
+       * poller did answer. */
+      if (peer->available_conf != new_version) {
+        peer->available_conf = new_version;
+        peer->round = peer_registry::conf_round::out;
+      }
+      return true;
+    }
+    _logger->info(
+        "Poller '{}' with id {} already runs '{}', the configuration prepared "
+        "for it: its announcement counts as the acknowledgement",
+        peer->poller_name, poller_id, new_version);
+    /* What acknowledge_poller_conf() records, without the "sent" step that
+     * never took place in this session. */
+    peer->available_conf = std::move(new_version);
+    peer->conf_in_flight.clear();
+    peer->rejected_conf.clear();
+    peer->rejection_error.clear();
+    peer->round = peer_registry::conf_round::acknowledged;
   }
-  _logger->error("Cannot write the diff Engine protobuf configuration '{}': {}",
-                 diff_prot_conf.string(), ec.message());
+  _install_acknowledged_conf(poller_id);
+  _close_conf_round_if_over();
+  /* Nothing to send: the poller runs it already. */
   return false;
 }
 
@@ -2061,7 +2101,22 @@ void broker_state::on_poller_conf_acknowledged(uint64_t poller_id,
   }
   if (!pollers_config_dir_usable())
     return;
+  _install_acknowledged_conf(poller_id);
+  _close_conf_round_if_over();
+}
 
+/**
+ * @brief Make the configuration a poller acknowledged its reference:
+ * `new-<ID>.prot` becomes `<ID>.prot`, and the cache follows `diff-<ID>.prot`,
+ * which stays on disk for the global diff.
+ *
+ * The acknowledgement may be a real DiffStateAck, or the announcement a poller
+ * makes at its connection of the version it runs (see
+ * _prepare_diff_for_poller()).
+ *
+ * @param poller_id The poller ID.
+ */
+void broker_state::_install_acknowledged_conf(uint64_t poller_id) {
   const std::filesystem::path new_name(pollers_config_dir() /
                                        fmt::format("new-{}.prot", poller_id));
   const std::filesystem::path name(pollers_config_dir() /
@@ -2086,7 +2141,13 @@ void broker_state::on_poller_conf_acknowledged(uint64_t poller_id,
      * whole configuration to the database on every single export. */
     apply_poller_diff_in_cache(poller_id);
   }
+}
 
+/**
+ * @brief Close the configuration round if every poller played its part, and
+ * then publish the global diff that carries the round to the database.
+ */
+void broker_state::_close_conf_round_if_over() {
   if (_peers.try_close_conf_round()) {
     _logger->info(
         "BBDO: all engine peers have acknowledged their configuration");
@@ -2128,11 +2189,7 @@ void broker_state::on_poller_conf_rejected(uint64_t poller_id,
     }
   }
 
-  if (_peers.try_close_conf_round()) {
-    _logger->info(
-        "BBDO: all engine peers have acknowledged their configuration");
-    _publish_global_diff(nullptr);
-  }
+  _close_conf_round_if_over();
 }
 
 /**
