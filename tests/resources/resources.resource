@@ -674,7 +674,7 @@ Ctn Push Configuration Per Poller And Wait
         ${poller_id}    Evaluate    ${idx} + 1
         Ctn Notify Broker Of Engine Config Change Per Poller    ${idx}
         Append To List    ${content}
-        ...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already has the latest configuration
+        ...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already (has the latest configuration|runs .*: its announcement counts as the acknowledgement)
     END
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result[0]}    The broker must receive a diff state ack from pollers in range [${idx_start}, ${idx_end}].
@@ -710,7 +710,7 @@ Ctn Push Configuration Batch And Wait
         ${poller_id}    Evaluate    ${idx} + 1
         Append To List    ${ids}    ${poller_id}
         Append To List    ${content}
-        ...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already has the latest configuration
+        ...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already (has the latest configuration|runs .*: its announcement counts as the acknowledgement)
     END
     ${body}    Catenate    SEPARATOR=\n    @{ids}
     ${batch}    Set Variable    ${VarRoot}/lib/centreon/config/pollers.lck
