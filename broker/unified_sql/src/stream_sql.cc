@@ -33,6 +33,7 @@
 #include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/proto_file/proto_file.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -2720,15 +2721,16 @@ void stream::_wake_up_poller_resources(uint32_t poller_id) {
   const std::filesystem::path path = stored_poller_config_path(poller_id);
   if (path.empty())
     return;
-  std::ifstream f(path, std::ios::binary);
-  if (!f)
-    return;
   engine::configuration::State state;
-  if (!state.ParseFromIstream(&f)) {
+  std::error_code ec;
+  com::centreon::common::read_proto_file(path, state, ec);
+  if (ec == std::errc::no_such_file_or_directory)
+    return;
+  if (ec) {
     SPDLOG_LOGGER_ERROR(_logger_sql,
-                        "unified_sql: cannot parse '{}': the objects of "
+                        "unified_sql: cannot read '{}': {}. The objects of "
                         "poller {} are not enabled again at its start",
-                        path.string(), poller_id);
+                        path.string(), ec.message(), poller_id);
     return;
   }
   SPDLOG_LOGGER_INFO(_logger_sql,

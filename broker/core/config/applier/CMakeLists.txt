@@ -40,6 +40,8 @@ target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp
 
 set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+target_link_libraries(broker_applier_state PRIVATE proto_file)
+
 add_dependencies(broker_applier_state process_stat)
 
 add_library(cbmod_applier_state STATIC

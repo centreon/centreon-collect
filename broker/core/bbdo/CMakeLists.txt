@@ -25,7 +25,8 @@ add_library(broker_bbdo STATIC acceptor.cc connector.cc factory.cc internal.cc
 
 target_compile_definitions(broker_bbdo PRIVATE BROKER_COMPILATION)
 
-target_link_libraries(broker_bbdo PRIVATE protobuf::libprotobuf engine_conf)
+target_link_libraries(broker_bbdo PRIVATE protobuf::libprotobuf engine_conf
+                                          proto_file)
 add_dependencies(
   broker_bbdo
   pb_bbdo_lib

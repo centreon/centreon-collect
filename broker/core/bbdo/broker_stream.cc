@@ -20,6 +20,7 @@
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "common/proto_file/proto_file.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -96,20 +97,20 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   auto& obj = pb_conf->mut_obj();
   std::filesystem::path diff_name(_state.pollers_config_dir() /
                                   fmt::format("diff-{}.prot", poller_id));
-  std::ifstream f(diff_name, std::ios::binary);
-  if (!f) {
+  std::error_code ec;
+  common::read_proto_file(diff_name, obj, ec);
+  if (ec == std::errc::no_such_file_or_directory) {
     _logger->error("BBDO: failed to open diff file '{}' for poller {}",
                    diff_name.string(), poller_id);
     return;
   }
-  if (!obj.ParseFromIstream(&f)) {
+  if (ec) {
     _logger->error(
-        "BBDO: cannot parse diff file '{}' for poller {}: not sent, it stays "
-        "owed",
-        diff_name.string(), poller_id);
+        "BBDO: cannot read diff file '{}' for poller {}: {}. Not sent, it "
+        "stays owed",
+        diff_name.string(), poller_id, ec.message());
     return;
   }
-  f.close();
   if (!obj.has_state() && obj.has_from_version()) {
     const std::string engine_conf = _state.poller_engine_conf(poller_id);
     if (engine_conf != obj.from_version()) {
@@ -117,12 +118,14 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
                                      fmt::format("new-{}.prot", poller_id));
       auto full =
           std::make_unique<com::centreon::engine::configuration::State>();
-      std::ifstream nf(new_name, std::ios::binary);
-      if (!nf || !full->ParseFromIstream(&nf)) {
+      common::read_proto_file(new_name, *full, ec);
+      if (ec) {
         _logger->error(
             "BBDO: poller {} runs configuration '{}' and not '{}' the diff "
-            "starts from, but '{}' cannot be read: nothing sent, it stays owed",
-            poller_id, engine_conf, obj.from_version(), new_name.string());
+            "starts from, but '{}' cannot be read: {}. Nothing sent, it stays "
+            "owed",
+            poller_id, engine_conf, obj.from_version(), new_name.string(),
+            ec.message());
         return;
       }
       SPDLOG_LOGGER_INFO(_logger,

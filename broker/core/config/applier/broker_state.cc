@@ -19,7 +19,6 @@
 #include "broker/core/config/applier/broker_state.hh"
 
 #include <algorithm>
-#include <atomic>
 #include <future>
 
 #include <absl/algorithm/container.h>
@@ -42,6 +41,7 @@
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/proto_file/proto_file.hh"
 
 using com::centreon::common::log_v2::log_v2;
 
@@ -385,14 +385,11 @@ void broker_state::save_topology_cache() const {
     return;
   TopologyCache cache = _peers.topology_cache();
   const auto path = _pollers_config_dir / "topology.cache";
-  std::ofstream f(path, std::ios::binary | std::ios::trunc);
-  if (!f) {
-    _logger->warn("Cannot write topology cache: '{}' not accessible",
-                  path.string());
-    return;
-  }
-  if (!cache.SerializeToOstream(&f))
-    _logger->error("Failed to write topology cache to '{}'", path.string());
+  std::error_code ec;
+  common::write_proto_file(path, cache, false, ec);
+  if (ec)
+    _logger->error("Cannot write the topology cache '{}': {}", path.string(),
+                   ec.message());
   else
     _logger->info("Topology cache written: {} entries", cache.entries_size());
 }
@@ -407,12 +404,13 @@ void broker_state::load_topology_cache() {
   if (_pollers_config_dir.empty())
     return;
   const auto path = _pollers_config_dir / "topology.cache";
-  std::ifstream f(path, std::ios::binary);
-  if (!f)
-    return;
+  std::error_code ec;
   TopologyCache cache;
-  if (!cache.ParseFromIstream(&f)) {
-    _logger->warn("Failed to parse topology cache from '{}'", path.string());
+  common::read_proto_file(path, cache, ec);
+  if (ec) {
+    if (ec != std::errc::no_such_file_or_directory)
+      _logger->warn("Cannot read the topology cache '{}': {}", path.string(),
+                    ec.message());
     return;
   }
   _peers.restore_pollers_from_cache(cache);
@@ -462,57 +460,6 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
   return absl::SimpleAtoi(p.stem().string(), &retval) ? retval : 0;
 }
 
-/**
- * @brief Write a work file of the pollers configuration directory so that
- * nobody can ever read it half written.
- *
- * A `diff-<id>.prot` is read by the stream that sends it, by the cache at the
- * acknowledgement and by the merge of the global diff, and a `new-<id>.prot` by
- * the stream when the poller needs the full configuration, while a new
- * preparation may rewrite them. Written in place, a reader can get a truncated
- * file whose strings are garbage: Engine then refuses the DiffState and never
- * applies the configuration. So the content goes to a temporary file, renamed
- * over the target once complete: a reader opens either the old file or the new
- * one, whole. Renaming also protects against a cbd killed during the write
- * (crash, kill -9, power loss): what stays on disk is the previous file or the
- * new one, never a truncated file that the next reader would get.
- *
- * The temporary name does not end with `.prot`, so no scan of the directory
- * takes it for a configuration or a diff. It is unique, as two writers of the
- * same file are not always serialized by the same lock.
- *
- * @param path The file to write.
- * @param msg The message to store.
- * @param ec Cleared on success, set to the reason of the failure otherwise; the
- * file is then left as it was.
- */
-void write_prot_file(const std::filesystem::path& path,
-                     const google::protobuf::Message& msg,
-                     std::error_code& ec) {
-  static std::atomic<uint64_t> counter{0};
-  std::filesystem::path tmp(path);
-  tmp += fmt::format(".tmp{}", counter++);
-  ec.clear();
-  {
-    std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
-    if (!f) {
-      ec.assign(errno, std::generic_category());
-      return;
-    }
-    /* Serialization says nothing more precise than a failed stream. */
-    if (!msg.SerializeToOstream(&f))
-      ec = std::make_error_code(std::errc::io_error);
-    f.close();
-    if (!ec && !f)
-      ec = std::make_error_code(std::errc::io_error);
-  }
-  if (!ec)
-    std::filesystem::rename(tmp, path, ec);
-  if (ec) {
-    std::error_code ignored;
-    std::filesystem::remove(tmp, ignored);
-  }
-}
 }  // namespace
 
 /**
@@ -547,14 +494,15 @@ bool broker_state::_merge_stored_config_in_cache(
     const std::filesystem::path& path,
     uint64_t poller_id) {
   engine::configuration::State state;
-  std::ifstream f(path, std::ios::binary);
-  if (!f || !state.ParseFromIstream(&f)) {
+  std::error_code ec;
+  common::read_proto_file(path, state, ec);
+  if (ec) {
     /* One unreadable configuration costs the cache what that poller defines,
      * nothing more. */
     _logger->warn(
-        "Cannot read the stored configuration '{}' of poller {}: the cache "
+        "Cannot read the stored configuration '{}' of poller {}: {}. The cache "
         "will not know what this poller defines",
-        path.string(), poller_id);
+        path.string(), poller_id, ec.message());
     return false;
   }
   cache().merge(state);
@@ -605,20 +553,20 @@ void broker_state::apply_poller_diff_in_cache(uint64_t poller_id) {
   const auto path =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
   engine::configuration::DiffState diff;
-  std::ifstream f(path, std::ios::binary);
-  if (!f) {
+  std::error_code ec;
+  common::read_proto_file(path, diff, ec);
+  if (ec == std::errc::no_such_file_or_directory) {
     /* No difference was prepared for this poller: it acknowledged a
      * configuration it already ran, and there is nothing to carry over. */
     return;
   }
-  if (!diff.ParseFromIstream(&f)) {
+  if (ec) {
     _logger->warn(
-        "Cannot read '{}': the cache will not follow what poller {} just "
+        "Cannot read '{}': {}. The cache will not follow what poller {} just "
         "acknowledged",
-        path.string(), poller_id);
+        path.string(), ec.message(), poller_id);
     return;
   }
-  f.close();
 
   const auto started_at = std::chrono::steady_clock::now();
   cache().apply(diff);
@@ -752,16 +700,17 @@ engine::configuration::foreign_objects broker_state::load_foreign_objects()
       continue;
 
     engine::configuration::State state;
-    std::ifstream f(entry.path(), std::ios::binary);
-    if (!f || !state.ParseFromIstream(&f)) {
+    std::error_code read_ec;
+    common::read_proto_file(entry.path(), state, read_ec);
+    if (read_ec) {
       /* A configuration we cannot read only costs us the precision of the
        * diagnostics about that poller, so it is not worth failing the whole
        * validation. */
       _logger->warn(
-          "Cannot read the stored configuration '{}' of poller {}: the "
+          "Cannot read the stored configuration '{}' of poller {}: {}. The "
           "validation of the other pollers will not be able to report objects "
           "living on it",
-          entry.path().string(), id);
+          entry.path().string(), id, read_ec.message());
       continue;
     }
     for (const auto& h : state.hosts())
@@ -853,17 +802,17 @@ void broker_state::create_prot_file(
     return;
   }
 
-  std::ofstream f(prot_file);
-  if (f) {
-    conf.SerializeToOstream(&f);
-    f.close();
-    _logger->debug("Created prot file '{}' for poller id {}",
-                   prot_file.string(), poller_id);
-    set_broker_knows_poller_conf(poller_id, true);
-    _feed_cache_and_wake_up_resources(poller_id);
-  } else {
-    _logger->error("Unable to create '{}'", prot_file.string());
+  std::error_code ec;
+  common::write_proto_file(prot_file, conf, false, ec);
+  if (ec) {
+    _logger->error("Unable to create '{}': {}", prot_file.string(),
+                   ec.message());
+    return;
   }
+  _logger->debug("Created prot file '{}' for poller id {}", prot_file.string(),
+                 poller_id);
+  set_broker_knows_poller_conf(poller_id, true);
+  _feed_cache_and_wake_up_resources(poller_id);
 }
 
 /**
@@ -932,19 +881,27 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   }
   std::filesystem::path prot_file =
       pollers_config_dir() / fmt::format("{}.prot", poller_id);
-  std::fstream f(prot_file);
   multiplexing::publisher pblshr;
   bool poller_conf_lost = false;
-  if (f) {
-    auto engine_state = std::make_shared<neb::pb_engine_state>();
-    auto& state = engine_state->mut_obj();
-    state.ParseFromIstream(&f);
+  auto engine_state = std::make_shared<neb::pb_engine_state>();
+  std::error_code ec;
+  common::read_proto_file(prot_file, engine_state->mut_obj(), ec);
+  if (!ec) {
     _logger->debug("Publishing poller {} configuration", poller_id);
     pblshr.write(engine_state);
-  } else {
+  } else if (ec == std::errc::no_such_file_or_directory) {
     _logger->info("Unable to fill global cache: cannot open '{}'",
                   prot_file.string());
     poller_conf_lost = true;
+  } else {
+    /* Never publish what could not be read: unified_sql would take a partial
+     * or empty configuration for the poller's whole one, and disable in the
+     * database every object it lacks. The configuration is not lost either:
+     * asking Engine for it would not replace the file, since <ID>.prot is only
+     * recreated when it does not exist. */
+    _logger->error(
+        "Cannot read '{}': {}. The configuration of poller {} is not published",
+        prot_file.string(), ec.message(), poller_id);
   }
 
   /* A poller that was away when its configuration was pushed finds it here.
@@ -1589,7 +1546,7 @@ bool broker_state::_store_poller_conf(uint32_t poller_id,
       pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
   /* Whole or not at all: the stream may read it to send the full configuration
    * while a newer one replaces it. */
-  write_prot_file(last_prot_conf, state, ec);
+  common::write_proto_file(last_prot_conf, state, false, ec);
   if (ec) {
     _logger->error(
         "Cannot write the new Engine protobuf configuration '{}': {}. Keeping "
@@ -1945,11 +1902,12 @@ bool broker_state::_prepare_diff_for_poller(
           state->config_version());
     std::filesystem::path previous_prot_conf =
         pollers_config_dir() / fmt::format("{}.prot", poller_id);
-    std::ifstream f(previous_prot_conf, std::ios::binary);
     auto diff_state = std::make_unique<engine::configuration::DiffState>();
     std::string new_version = state->config_version();
     auto previous_state = std::make_unique<engine::configuration::State>();
-    if (f && previous_state->ParseFromIstream(&f)) {
+    std::error_code read_ec;
+    common::read_proto_file(previous_prot_conf, *previous_state, read_ec);
+    if (!read_ec) {
       std::string from_version = previous_state->config_version();
       if (already_runs && from_version == new_version) {
         /* An export identical to the stored configuration, which the poller
@@ -1982,10 +1940,10 @@ bool broker_state::_prepare_diff_for_poller(
     } else {
       /* No previous configuration: nothing holds anything of this poller, the
        * whole new configuration is the difference. */
-      if (f)
+      if (read_ec != std::errc::no_such_file_or_directory)
         _logger->error(
-            "Cannot parse '{}': poller {} gets its whole new configuration",
-            previous_prot_conf.string(), poller_id);
+            "Cannot read '{}': {}. Poller {} gets its whole new configuration",
+            previous_prot_conf.string(), read_ec.message(), poller_id);
       diff_state->set_allocated_state(state.release());
     }
     /* The diff names the poller it is for: whoever sends it reads it there,
@@ -1994,7 +1952,7 @@ bool broker_state::_prepare_diff_for_poller(
     std::filesystem::path diff_prot_conf =
         pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
     std::error_code ec;
-    write_prot_file(diff_prot_conf, *diff_state, ec);
+    common::write_proto_file(diff_prot_conf, *diff_state, false, ec);
     if (ec) {
       _logger->error(
           "Cannot write the diff Engine protobuf configuration '{}': {}",
@@ -2280,17 +2238,25 @@ void broker_state::_publish_global_diff(
       continue;
     _logger->debug("BBDO: Merging diff file '{}' into the global one",
                    entry.path().string());
-    std::ifstream f(entry.path(), std::ios::binary);
-    if (!f)
-      continue;
     engine::configuration::DiffState diff;
-    if (diff.ParseFromIstream(&f))
+    std::error_code read_ec;
+    common::read_proto_file(entry.path(), diff, read_ec);
+    if (!read_ec)
       global_diff.add_diff_state(diff, _logger);
-    else
+    else if (read_ec.category() == common::proto_file_error_category())
+      /* Its content will never be readable: it is removed like a merged one. */
       _logger->error(
-          "BBDO: cannot parse diff file '{}': not merged into the global diff",
-          entry.path().string());
-    f.close();
+          "BBDO: cannot read diff file '{}': {}. Not merged into the global "
+          "diff",
+          entry.path().string(), read_ec.message());
+    else {
+      /* The system refused it, maybe for a while (too many open files): it is
+       * kept for the next merge. */
+      if (read_ec != std::errc::no_such_file_or_directory)
+        _logger->error("BBDO: cannot open diff file '{}': {}",
+                       entry.path().string(), read_ec.message());
+      continue;
+    }
     _logger->debug("BBDO: Removing diff file '{}'", entry.path().string());
     std::error_code remove_ec;
     if (!std::filesystem::remove(entry.path(), remove_ec) && remove_ec)
@@ -2481,16 +2447,15 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
   }
   const auto new_file =
       pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
-  std::ifstream f(new_file);
-  if (!f)
-    return std::nullopt;
   auto state = std::make_unique<engine::configuration::State>();
-  if (!state->ParseFromIstream(&f)) {
-    _logger->error("Failed to parse new-{}.prot for poller {}", poller_id,
-                   poller_id);
+  std::error_code ec;
+  common::read_proto_file(new_file, *state, ec);
+  if (ec) {
+    if (ec != std::errc::no_such_file_or_directory)
+      _logger->error("Cannot read '{}' for poller {}: {}", new_file.string(),
+                     poller_id, ec.message());
     return std::nullopt;
   }
-  f.close();
   absl::MutexLock lck(&_conf_handover_m);
   return _prepare_diff_for_poller(poller_id, std::move(state));
 }
@@ -2569,15 +2534,15 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
   {
     /* diff-<ID>.prot is written below, which only the handover may do. */
     absl::MutexLock handover_lck(&_conf_handover_m);
-    std::ifstream f(prev_file);
-    if (f) {
-      auto state = std::make_unique<engine::configuration::State>();
-      if (!state->ParseFromIstream(&f)) {
-        _logger->error("Failed to parse {}.prot for relay poller {}", engine_id,
-                       engine_id);
-        return relay_config_response::unknown;
-      }
-      f.close();
+    auto state = std::make_unique<engine::configuration::State>();
+    std::error_code read_ec;
+    common::read_proto_file(prev_file, *state, read_ec);
+    if (read_ec && read_ec != std::errc::no_such_file_or_directory) {
+      _logger->error("Cannot read '{}' for relay poller {}: {}",
+                     prev_file.string(), engine_id, read_ec.message());
+      return relay_config_response::unknown;
+    }
+    if (!read_ec) {
       if (state->config_version() == relay_config_version)
         return relay_config_response::up_to_date;
 
@@ -2586,7 +2551,7 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       engine::configuration::DiffState diff;
       diff.set_allocated_state(state.release());
       std::error_code ec;
-      write_prot_file(diff_file, diff, ec);
+      common::write_proto_file(diff_file, diff, false, ec);
       if (ec) {
         _logger->error("Cannot write diff-{}.prot for relay poller {}: {}",
                        engine_id, engine_id, ec.message());

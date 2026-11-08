@@ -467,3 +467,30 @@ TEST_F(BrokerStateRound, AnnouncementOfThePreparedVersionAcknowledgesIt) {
   deliver_and_acknowledge(2, "v1");
   EXPECT_TRUE(_state->try_close_conf_round());
 }
+
+/**
+ * Scenario: a stored configuration that cannot be read is neither published nor
+ * taken for lost.
+ * Given poller 1 whose 1.prot is not a protobuf message, and poller 2 with no
+ * stored configuration at all
+ * When both connect
+ * Then nothing is published for poller 1: unified_sql would take what was read
+ * for its whole configuration, and disable in the database every object it
+ * lacks. No multiplexing engine is loaded here, so a publication would crash.
+ * And Broker still says it knows the configuration of poller 1: asking Engine
+ * for it would not help, since 1.prot is only recreated when it does not exist
+ * And it says it does not know the one of poller 2, which is asked for.
+ */
+TEST_F(BrokerStateRound, UnreadableStoredConfigurationIsNotPublished) {
+  {
+    /* Field number 0 does not exist: no message starts with a null byte. */
+    std::ofstream f(_dir / "1.prot", std::ios::binary);
+    f.write("\0\1\2\3\4\5\6\7", 8);
+  }
+  connect(1);
+  connect(2);
+
+  EXPECT_TRUE(_state->broker_knows_poller_conf(1));
+  EXPECT_TRUE(std::filesystem::exists(_dir / "1.prot"));
+  EXPECT_FALSE(_state->broker_knows_poller_conf(2));
+}
