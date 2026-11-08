@@ -41,6 +41,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     perfdata_test.cc
     process_stat_test.cc
     process_test.cc
+    proto_file_test.cc
     rapidjson_helper_test.cc
     test_main.cc
     timeperiods/utils.cc
@@ -116,6 +117,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     ut_common
     PRIVATE centreon_common
             process_stat
+            proto_file
             ctncrypto
             centreon_http
             centreon_process

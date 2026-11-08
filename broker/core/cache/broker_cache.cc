@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 #include <absl/strings/match.h>
-#include <zstd.h>
 
 #include <boost/preprocessor/seq/for_each.hpp>
 
@@ -33,6 +32,7 @@
 #include "common/engine_conf/servicedependency_helper.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/proto_file/proto_file.hh"
 #include "common/timeperiods/timezone.hh"
 
 namespace com::centreon::broker::cache {
@@ -5971,90 +5971,6 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
   return 0;
 }
 
-namespace {
-/* Header of a compressed cache file: a magic, the format version and the
- * compression algorithm, then the compressed BrokerCache. The magic starts with
- * a null byte, which can never start a serialized protobuf message (field
- * number 0 does not exist): a file without it is a plain BrokerCache, as
- * written by the previous versions or with cache_compression disabled. */
-constexpr std::string_view cache_magic{"\0CBC", 4};
-constexpr char cache_format_version = 1;
-constexpr char cache_algorithm_zstd = 1;
-constexpr size_t cache_header_size = cache_magic.size() + 2;
-/* Level 1: on the cache files, it compresses better than zlib at its highest
- * level, eight times faster than zlib at its default level. */
-constexpr int cache_zstd_level = 1;
-
-/**
- * @brief Compress a serialized BrokerCache and prepend the header.
- *
- * @param serialized The serialized BrokerCache.
- *
- * @return The content of the cache file.
- */
-std::string compress_cache(const std::string& serialized) {
-  std::string retval(cache_header_size + ZSTD_compressBound(serialized.size()),
-                     '\0');
-  retval.replace(0, cache_magic.size(), cache_magic);
-  retval[cache_magic.size()] = cache_format_version;
-  retval[cache_magic.size() + 1] = cache_algorithm_zstd;
-
-  std::unique_ptr<ZSTD_CCtx, decltype(&ZSTD_freeCCtx)> cctx{ZSTD_createCCtx(),
-                                                            ZSTD_freeCCtx};
-  if (!cctx)
-    throw exceptions::msg_fmt("cannot create a zstd context");
-  ZSTD_CCtx_setParameter(cctx.get(), ZSTD_c_compressionLevel, cache_zstd_level);
-  /* The checksum makes a corrupted file detected instead of parsed. */
-  ZSTD_CCtx_setParameter(cctx.get(), ZSTD_c_checksumFlag, 1);
-  size_t size = ZSTD_compress2(cctx.get(), retval.data() + cache_header_size,
-                               retval.size() - cache_header_size,
-                               serialized.data(), serialized.size());
-  if (ZSTD_isError(size))
-    throw exceptions::msg_fmt("zstd compression failed: {}",
-                              ZSTD_getErrorName(size));
-  retval.resize(cache_header_size + size);
-  return retval;
-}
-
-/**
- * @brief Get the serialized BrokerCache out of the content of a cache file,
- * compressed or not.
- *
- * @param content The content of the cache file.
- *
- * @return The serialized BrokerCache. An exception is thrown if the file is
- * compressed in an unknown format or cannot be decompressed.
- */
-std::string uncompress_cache(std::string content) {
-  if (!absl::StartsWith(content, cache_magic))
-    return content;
-  if (content.size() < cache_header_size)
-    throw exceptions::msg_fmt("truncated header");
-  if (content[cache_magic.size()] != cache_format_version)
-    throw exceptions::msg_fmt("unknown format version {}",
-                              static_cast<int>(content[cache_magic.size()]));
-  if (content[cache_magic.size() + 1] != cache_algorithm_zstd)
-    throw exceptions::msg_fmt(
-        "unknown compression algorithm {}",
-        static_cast<int>(content[cache_magic.size() + 1]));
-
-  const char* src = content.data() + cache_header_size;
-  const size_t src_size = content.size() - cache_header_size;
-  unsigned long long size = ZSTD_getFrameContentSize(src, src_size);
-  if (size == ZSTD_CONTENTSIZE_ERROR || size == ZSTD_CONTENTSIZE_UNKNOWN)
-    throw exceptions::msg_fmt("invalid zstd frame");
-  std::string retval(size, '\0');
-  size_t res = ZSTD_decompress(retval.data(), retval.size(), src, src_size);
-  if (ZSTD_isError(res))
-    throw exceptions::msg_fmt("zstd decompression failed: {}",
-                              ZSTD_getErrorName(res));
-  if (res != size)
-    throw exceptions::msg_fmt(
-        "zstd decompression returned {} bytes instead of {}", res, size);
-  return retval;
-}
-}  // namespace
-
 /**
  * @brief Load the cache from a file. This is used to persist the cache across
  * restarts of the broker. The cache is loaded from a binary file using
@@ -6064,21 +5980,14 @@ std::string uncompress_cache(std::string content) {
 void broker_cache::_load_cache() {
   SPDLOG_LOGGER_INFO(_logger, "broker_cache: loading cache from '{}'",
                      _cache_file.string());
-  std::ifstream ifs{_cache_file, std::ios::binary};
-  if (ifs) {
-    BrokerCache to_load;
-    bool parsed = false;
-    try {
-      std::string content{std::istreambuf_iterator<char>{ifs},
-                          std::istreambuf_iterator<char>{}};
-      parsed = to_load.ParseFromString(uncompress_cache(std::move(content)));
-    } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cache file '{}': {}",
-                          _cache_file.string(), e.what());
-    }
-    if (!parsed) {
-      SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot parse cache file '{}'",
-                          _cache_file.string());
+  BrokerCache to_load;
+  std::error_code ec;
+  common::read_proto_file(_cache_file, to_load, ec);
+  if (ec != std::errc::no_such_file_or_directory) {
+    if (ec) {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "broker_cache: cannot read cache file '{}': {}",
+                          _cache_file.string(), ec.message());
     } else {
       absl::WriterMutexLock lck{&_mutex};
       /* The heavy cache sections are reloaded only in legacy mode; in
@@ -6311,36 +6220,18 @@ void broker_cache::_save_cache() {
       o->set_enabled(enabled);
     }
   }
-  /* Saving the BrokerCache */
-  std::ofstream ofs{_cache_file, std::ios::binary | std::ios::trunc};
-  if (!ofs) {
-    SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot open cache file '{}'",
-                        _cache_file.string());
-  } else if (!config::applier::state::instance().cache_compression()) {
-    if (!to_save.SerializeToOstream(&ofs)) {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "broker_cache: cannot serialize cache to file '{}'",
-                          _cache_file.string());
-    } else {
-      SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache saved to file '{}'",
-                         _cache_file.string());
-    }
-  } else {
-    try {
-      const std::string serialized = to_save.SerializeAsString();
-      const std::string compressed = compress_cache(serialized);
-      if (!ofs.write(compressed.data(), compressed.size()))
-        throw exceptions::msg_fmt("write error");
-      SPDLOG_LOGGER_INFO(
-          _logger,
-          "broker_cache: cache saved to file '{}' ({} bytes compressed to {})",
-          _cache_file.string(), serialized.size(), compressed.size());
-    } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "broker_cache: cannot save cache to file '{}': {}",
-                          _cache_file.string(), e.what());
-    }
-  }
+  /* Saving the BrokerCache, whole or not at all: a Broker killed while saving
+   * keeps the previous file. */
+  const bool compress = config::applier::state::instance().cache_compression();
+  std::error_code ec;
+  common::write_proto_file(_cache_file, to_save, compress, ec);
+  if (ec)
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "broker_cache: cannot save cache to file '{}': {}",
+                        _cache_file.string(), ec.message());
+  else
+    SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache saved to file '{}'{}",
+                       _cache_file.string(), compress ? " (compressed)" : "");
 }
 
 /**

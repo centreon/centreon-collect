@@ -67,6 +67,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(http)
   add_subdirectory(vault)
   add_subdirectory(process_stat)
+  add_subdirectory(proto_file)
 endif()
 
 add_subdirectory(grpc)
