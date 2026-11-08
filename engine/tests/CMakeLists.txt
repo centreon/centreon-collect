@@ -93,6 +93,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/configuration/applier/applier-pbservice.cc
       ${TESTS_DIR}/configuration/applier/applier-pbserviceescalation.cc
       ${TESTS_DIR}/configuration/applier/applier-pbservicegroup.cc
+      ${TESTS_DIR}/configuration/applier/applier-state-prot.cc
       ${TESTS_DIR}/configuration/applier/applier-pbstate.cc
       ${TESTS_DIR}/configuration/pbcontact.cc
       ${TESTS_DIR}/configuration/pbhost.cc

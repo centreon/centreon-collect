@@ -67,6 +67,7 @@ namespace po = boost::program_options;
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/proto_file/proto_file.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -111,10 +112,11 @@ bool startup_log_ready = false;
  * @return end, so that phases can be chained without a second clock read.
  */
 startup_clock::time_point log_startup_phase(const char* phase,
-                                           startup_clock::time_point begin,
-                                           startup_clock::time_point end) {
+                                            startup_clock::time_point begin,
+                                            startup_clock::time_point end) {
   const int64_t ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - begin)
+          .count();
   config_logger->info("Startup timing: {} = {} ms", phase, ms);
   if (!startup_log_ready)
     pending_startup_phases.emplace_back(phase, ms);
@@ -144,14 +146,15 @@ void flush_startup_phases() {
  * In centralized configuration, the runtime state of the resources comes from
  * Broker in the DiffState it sends at connection (RuntimeState), and Engine no
  * longer writes the retention file; the downtimes it owns, that Broker does not
- * send back, are saved apart (see retention::downtimes_file). A file still there is then the one left by
- * the legacy configuration of a poller that just switched to centralized: it is
- * read once, so that what Broker cannot know yet (downtimes owned by Engine,
- * notification state of Engine, anomalydetection sensitivities...) survives the
- * switch, and renamed with the ".migrated" suffix, so that it is never read
- * again. The RuntimeState received later is applied over it, Broker being
- * fresher. The file is renamed even if its parsing failed, a corrupted file
- * would otherwise be read again at each startup; it is kept for diagnosis.
+ * send back, are saved apart (see retention::downtimes_file). A file still
+ * there is then the one left by the legacy configuration of a poller that just
+ * switched to centralized: it is read once, so that what Broker cannot know yet
+ * (downtimes owned by Engine, notification state of Engine, anomalydetection
+ * sensitivities...) survives the switch, and renamed with the ".migrated"
+ * suffix, so that it is never read again. The RuntimeState received later is
+ * applied over it, Broker being fresher. The file is renamed even if its
+ * parsing failed, a corrupted file would otherwise be read again at each
+ * startup; it is kept for diagnosis.
  *
  * At this stage, config_logger only writes to the standard output.
  *
@@ -521,20 +524,30 @@ int main(int argc, char* argv[]) {
           bool proto_valid = false;
           if (!proto_conf.empty()) {
             std::filesystem::path proto_conf_file(proto_conf / "state.prot");
-            std::ifstream ifs(proto_conf_file);
-            if (ifs.good()) {
-              new_conf->ParseFromIstream(&ifs);
-              ifs.close();
+            std::error_code ec;
+            com::centreon::common::read_proto_file(proto_conf_file, *new_conf,
+                                                   ec);
+            if (ec && ec != std::errc::no_such_file_or_directory) {
+              /* Started as if there were none: Engine announces the
+               * configuration of its centengine.cfg, and Broker sends it the
+               * whole one it stores. A partly read State would instead run
+               * a configuration nobody pushed. */
+              config_logger->error(
+                  "Cannot read '{}': {}. Starting as if it did not exist",
+                  proto_conf_file.string(), ec.message());
+              new_conf->Clear();
+            }
+            if (!ec) {
               proto_valid = true;
-              /* Where the configuration came from matters as much as how long it
-               * took: reading a serialized State and parsing text files are two
-               * different pieces of work, and two runs that look alike may not
-               * have read the same thing at all. */
+              /* Where the configuration came from matters as much as how long
+               * it took: reading a serialized State and parsing text files are
+               * two different pieces of work, and two runs that look alike may
+               * not have read the same thing at all. */
               config_logger->info(
                   "Startup: configuration read from {} ({} bytes)",
                   proto_conf_file.string(), new_conf->ByteSizeLong());
               phase_begin = log_startup_phase("config-read", phase_begin,
-                                             startup_clock::now());
+                                              startup_clock::now());
             }
           }
           if (!proto_valid) {

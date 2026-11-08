@@ -52,6 +52,7 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "common/proto_file/proto_file.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -102,20 +103,52 @@ static void increase_fd_limit(uint32_t soft_fd_limit) {
   }
 }
 
+namespace {
+/**
+ * @brief Write the configuration Engine runs to state.prot, whole or not at
+ * all: an Engine killed during the write restarts on the previous one, not on
+ * a truncated file.
+ *
+ * A failure is only logged. The configuration is applied all the same, and the
+ * next start reads the previous state.prot: Engine then announces the previous
+ * version, and Broker sends the new one again.
+ */
+void save_state_prot() {
+  const auto path = proto_conf / "state.prot";
+  std::error_code ec;
+  com::centreon::common::write_proto_file_streamed(
+      path,
+      [](std::ostream& os) {
+        pb_indexed_config.serialize_to_ostream(&os);
+        return true;
+      },
+      false, ec);
+  if (ec)
+    config_logger->error(
+        "Cannot write '{}': {}. The next start will run the previous "
+        "configuration until Broker sends this one again",
+        path.string(), ec.message());
+}
+}  // namespace
+
 /**
  * @brief Get the current configuration state from the state.prot and fill the
  * given state object with it.
  *
  * @param state The state object to fill with the current configuration state.
+ * Left empty when state.prot cannot be read, so that its poller_id is 0: a
+ * partly read configuration sent to Broker would become the one it stores for
+ * this poller.
  */
 void applier::state::get_current_state(configuration::State& state) {
   if (!proto_conf.empty()) {
-    std::ifstream f(proto_conf / "state.prot", std::ios::binary);
-    if (f) {
-      state.ParseFromIstream(&f);
-    } else {
-      process_logger->error("Unable to open '{}/state.prot'",
-                            proto_conf.string());
+    const auto path = proto_conf / "state.prot";
+    std::error_code ec;
+    com::centreon::common::read_proto_file(path, state, ec);
+    if (ec) {
+      state.Clear();
+      process_logger->error("Unable to read '{}': {}", path.string(),
+                            ec.message());
     }
   }
 }
@@ -135,11 +168,8 @@ void applier::state::apply(configuration::State& new_cfg,
     _processing(new_cfg, err, state);
     /* A configuration that is only verified (--verify-config) must not replace
      * the state.prot of the Engine that runs with it. */
-    if (!proto_conf.empty() && !verify_config) {
-      std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-      pb_indexed_config.serialize_to_ostream(&f);
-      f.close();
-    }
+    if (!proto_conf.empty() && !verify_config)
+      save_state_prot();
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -182,9 +212,7 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
   try {
     _processing_state = state_ready;
     _processing_diff(diff_conf, err);
-    std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-    pb_indexed_config.serialize_to_ostream(&f);
-    f.close();
+    save_state_prot();
   } catch (const std::exception& e) {
     /* Broker waits for an acknowledgement: it gets one saying this version
      * failed, and why. The version Engine runs is still the previous one, the

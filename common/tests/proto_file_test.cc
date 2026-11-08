@@ -220,3 +220,57 @@ TEST_F(ProtoFile, BadContents) {
   EXPECT_EQ(ec, proto_file_errc::parse_error);
   EXPECT_NE(ec.message().find("parse"), std::string::npos);
 }
+
+/**
+ * Scenario: a message produced in a stream is written as the message itself
+ * would be.
+ * Given a State serialized by a function into the stream it is given
+ * When it is written without compression, then with compression
+ * Then the plain file is the serialized message
+ * And both are read back identical, with no temporary file left.
+ */
+TEST_F(ProtoFile, StreamedRoundTrip) {
+  const State st = make_state("v1");
+  const auto serialize = [&st](std::ostream& os) {
+    return st.SerializeToOstream(&os);
+  };
+  std::error_code ec;
+  write_proto_file_streamed(_file, serialize, false, ec);
+  ASSERT_FALSE(ec) << ec.message();
+  EXPECT_EQ(read_raw(), st.SerializeAsString());
+  EXPECT_EQ(read_proto_file<State>(_file, ec).SerializeAsString(),
+            st.SerializeAsString());
+  ASSERT_FALSE(ec) << ec.message();
+
+  write_proto_file_streamed(_file, serialize, true, ec);
+  ASSERT_FALSE(ec) << ec.message();
+  EXPECT_EQ(read_raw().substr(0, 4), std::string("\0CBC", 4));
+  EXPECT_EQ(read_proto_file<State>(_file, ec).SerializeAsString(),
+            st.SerializeAsString());
+  ASSERT_FALSE(ec) << ec.message();
+  EXPECT_FALSE(leftover());
+}
+
+/**
+ * Scenario: a serialization that fails leaves the previous file.
+ * Given a file holding v1
+ * When a function that cannot serialize writes over it, with or without
+ * compression
+ * Then the error is serialize_error
+ * And the file still holds v1, with no temporary file left.
+ */
+TEST_F(ProtoFile, StreamedFailureKeepsThePreviousFile) {
+  std::error_code ec;
+  write_proto_file(_file, make_state("v1"), false, ec);
+  ASSERT_FALSE(ec);
+  const auto fail = [](std::ostream& os) {
+    os << "partial";
+    return false;
+  };
+  for (bool compress : {false, true}) {
+    write_proto_file_streamed(_file, fail, compress, ec);
+    EXPECT_EQ(ec, proto_file_errc::serialize_error);
+    EXPECT_EQ(read_proto_file<State>(_file, ec).config_version(), "v1");
+    EXPECT_FALSE(leftover());
+  }
+}
