@@ -17,12 +17,10 @@
  */
 #include <errmsg.h>
 #include <mysqld_error.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
+#include "com/centreon/broker/sql/mysql_tls_probe.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -50,77 +48,6 @@ void (mysql_connection::*const mysql_connection::_task_processing_table[])(
     &mysql_connection::_fetch_row_sync,
     &mysql_connection::_get_version,
 };
-
-namespace {
-/**
- * @brief Read the greeting packet that a MySQL/MariaDB server sends as soon as
- * it accepts a TCP connection, and tell if it advertises TLS (CLIENT_SSL
- * capability). The connection is closed without sending anything, so no
- * credential leaves the host.
- *
- * @param host The database host.
- * @param port The database port, 0 for the default MySQL port.
- *
- * @return Whether the server supports TLS, or std::nullopt if the greeting
- * could not be read (server unreachable, error packet...). In that case,
- * libmariadb reports the same error while connecting, before authenticating.
- */
-std::optional<bool> server_advertises_tls(const std::string& host, int port) {
-  addrinfo hints{};
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
-  addrinfo* res;
-  if (getaddrinfo(host.c_str(),
-                  std::to_string(port ? port : MYSQL_PORT).c_str(), &hints,
-                  &res))
-    return std::nullopt;
-  std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> res_guard(res,
-                                                               freeaddrinfo);
-
-  for (const addrinfo* ai = res; ai; ai = ai->ai_next) {
-    int fd =
-        socket(ai->ai_family, ai->ai_socktype | SOCK_CLOEXEC, ai->ai_protocol);
-    if (fd < 0)
-      continue;
-    /* Same timeout as MYSQL_OPT_CONNECT_TIMEOUT, it applies to connect() and
-     * recv(). */
-    timeval timeout{10, 0};
-    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    if (connect(fd, ai->ai_addr, ai->ai_addrlen)) {
-      close(fd);
-      continue;
-    }
-
-    unsigned char header[4];
-    unsigned char payload[256];
-    ssize_t size = -1;
-    if (recv(fd, header, sizeof(header), MSG_WAITALL) == sizeof(header)) {
-      size_t len = std::min<size_t>(
-          header[0] | header[1] << 8 | header[2] << 16, sizeof(payload));
-      if (recv(fd, payload, len, MSG_WAITALL) == static_cast<ssize_t>(len))
-        size = len;
-    }
-    close(fd);
-
-    /* Handshake v10: protocol version (1), server version (NUL-terminated),
-     * thread id (4), scramble (8), filler (1), capabilities (2). Anything else,
-     * as an error packet, is left to libmariadb. */
-    if (size < 1 || payload[0] != 10)
-      return std::nullopt;
-    const unsigned char* version_end =
-        static_cast<const unsigned char*>(memchr(payload + 1, 0, size - 1));
-    if (!version_end)
-      return std::nullopt;
-    size_t caps_offset = version_end - payload + 1 + 4 + 8 + 1;
-    if (caps_offset + 2 > static_cast<size_t>(size))
-      return std::nullopt;
-    uint16_t caps = payload[caps_offset] | payload[caps_offset + 1] << 8;
-    return (caps & CLIENT_SSL) != 0;
-  }
-  return std::nullopt;
-}
-}  // namespace
 
 /******************************************************************************/
 /*                      Methods executed by this thread                       */
@@ -175,6 +102,10 @@ void mysql_connection::_prepare_connection() {
  * verification, libmariadb refuses it by itself. Unix socket connections are
  * not checked since nothing goes on the network.
  *
+ * The greeting is waited for at most as long as MYSQL_OPT_CONNECT_TIMEOUT, so
+ * an unreachable server does not hold the stream longer than
+ * mysql_real_connect() would.
+ *
  * @return false if the connection must be refused.
  */
 bool mysql_connection::_check_tls_before_connect() {
@@ -182,7 +113,10 @@ bool mysql_connection::_check_tls_before_connect() {
   if (!_ssl_enabled || _ssl_verify_cert || _host.empty() ||
       _host == "localhost")
     return true;
-  if (server_advertises_tls(_host, _port).value_or(true))
+  if (database::server_advertises_tls(
+          _host, static_cast<uint16_t>(_port ? _port : MYSQL_PORT),
+          std::chrono::seconds(10), _logger)
+          .value_or(true))
     return true;
 
   std::string msg = fmt::format(
