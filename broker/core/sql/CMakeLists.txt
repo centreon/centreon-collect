@@ -61,6 +61,7 @@ set(SOURCES
     src/mysql_stmt.cc
     src/mysql_bulk_stmt.cc
     src/mysql_multi_insert.cc
+    src/mysql_tls_probe.cc
     src/stats.cc
     # Headers
     inc/com/centreon/broker/sql/database_config.hh
@@ -75,6 +76,7 @@ set(SOURCES
     inc/com/centreon/broker/sql/mysql_stmt.hh
     inc/com/centreon/broker/sql/mysql_stmt_base.hh
     inc/com/centreon/broker/sql/mysql_task.hh
+    inc/com/centreon/broker/sql/mysql_tls_probe.hh
     inc/com/centreon/broker/sql/query_preparator.hh
     inc/com/centreon/broker/sql/stats.hh
     inc/com/centreon/broker/sql/table_max_size.hh)
