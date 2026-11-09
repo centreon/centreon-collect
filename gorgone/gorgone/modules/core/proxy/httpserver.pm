@@ -37,6 +37,7 @@ use IO::Poll qw(POLLIN POLLPRI);
 use EV;
 use HTML::Entities;
 use Date::Parse;
+use Time::HiRes;
 
 my %handlers = (TERM => {}, HUP => {});
 my ($connector);
@@ -300,6 +301,12 @@ sub read_message_client {
         my ($rv, $data) = $connector->json_decode(argument => $3);
         return undef if ($rv == 1);
 
+        # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
+        $connector->{logger}->writeLogInfo(
+            "[proxy-httpserver][diag-ping] received PONG from websocket for '" .
+            (defined($data->{id}) ? $data->{id} : '?') . "' at " . Time::HiRes::time()
+        );
+
         $connector->send_internal_action({
             action => 'PONG',
             data   => $data,
@@ -312,6 +319,13 @@ sub read_message_client {
         return undef if ($options{data} !~ /^\[(.+?)\]\s+\[(.*?)\]\s+\[.*?\]\s+(.*)/ms);
 
         my ($action, $token, $data)  = ($1, $2, $3);
+
+        # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
+        if ($action eq 'SETLOGS') {
+            $connector->{logger}->writeLogInfo(
+                "[proxy-httpserver][diag-ping] received SETLOGS from websocket at " . Time::HiRes::time()
+            );
+        }
 
         $connector->send_internal_action({
             action => $action,
@@ -492,6 +506,12 @@ sub proxy {
         data => $data
     );
 
+    # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
+    if ($action eq 'PING' || $action eq 'GETLOG') {
+        $connector->{logger}->writeLogInfo(
+            "[proxy-httpserver][diag-ping] sending '$action' to websocket for '$target_client' at " . Time::HiRes::time()
+        );
+    }
     $connector->{ws_clients}->{ $connector->{identities}->{$target_client} }->{tx}->send({text => $message});
 }
 

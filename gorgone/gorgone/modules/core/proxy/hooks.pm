@@ -171,6 +171,8 @@ sub routing {
         $constatus_ping->{ $data->{data}->{id} }->{ping_ok}++;
         register_subnodes(%options, id => $data->{data}->{id}, subnodes => $data->{data}->{data});
         $options{logger}->writeLogInfo("[proxy] Pong received from '" . $data->{data}->{id} . "'");
+        # DO-NOT-MERGE temporary diagnostic: see ping_send().
+        $options{logger}->writeLogInfo("[proxy][diag-ping] PONG processed for '" . $data->{data}->{id} . "' at " . Time::HiRes::time());
         return undef;
     }
 
@@ -625,6 +627,12 @@ sub check {
             if ((time() - $constatus_ping->{$_}->{in_progress_ping_pull}) > $ping_timeout) {
                 $constatus_ping->{$_}->{in_progress_ping} = 0;
                 $options{logger}->writeLogInfo("[proxy] Ping timeout from '" . $_ . "'");
+                # DO-NOT-MERGE temporary diagnostic: see ping_send().
+                $options{logger}->writeLogInfo(
+                    "[proxy][diag-ping] timeout check for '" . $_ . "' at " . Time::HiRes::time() .
+                    ": in_progress_ping_pull=" . $constatus_ping->{$_}->{in_progress_ping_pull} .
+                    " ping_timeout=" . $ping_timeout . " now=" . time()
+                );
             }
         }
         if ($register_nodes->{$_}->{type} !~ /^(?:pull|wss|pullwss)$/ && $constatus_ping->{$_}->{in_progress_ping} == 1) {
@@ -915,6 +923,22 @@ sub ping_send {
     my $current_time = time();
     foreach my $id (@$nodes_id) {
         next if $id ne $register_nodes->{$id}->{id};
+
+        # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss
+        # (synchronous across all nodes, no PING send logged in the gap). Logs the exact
+        # scheduling decision for every node on every check() tick.
+        if ($register_nodes->{$id}->{type} =~ /^(?:pull|wss|pullwss)$/) {
+            my $diag_decision = $constatus_ping->{$id}->{in_progress_ping} == 1 ? 'SKIP (already in progress)'
+                : ($current_time < $constatus_ping->{$id}->{next_ping} ? 'SKIP (not due)' : 'SEND');
+            $options{logger}->writeLogInfo(
+                "[proxy][diag-ping] node '" . $id . "' at " . Time::HiRes::time() .
+                ": in_progress_ping=" . $constatus_ping->{$id}->{in_progress_ping} .
+                " next_ping=" . $constatus_ping->{$id}->{next_ping} .
+                " current_time=" . $current_time .
+                " in_progress_ping_pull=" . (defined($constatus_ping->{$id}->{in_progress_ping_pull}) ? $constatus_ping->{$id}->{in_progress_ping_pull} : 'undef') .
+                " -> " . $diag_decision
+            );
+        }
 
         next if ($constatus_ping->{$id}->{in_progress_ping} == 1 || $current_time < $constatus_ping->{$id}->{next_ping});
 
