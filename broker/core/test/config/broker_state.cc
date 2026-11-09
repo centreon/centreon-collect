@@ -349,12 +349,11 @@ TEST_F(BrokerStateRound, RejectedConfigurationLeavesTheRound) {
   EXPECT_EQ(_state->poller_engine_conf(1), "");
   EXPECT_TRUE(_state->pollers_via_relay_needing_update(10).empty());
   auto pollers = _state->connected_pollers();
-  auto p1 = absl::c_find_if(pollers, [](const auto& p) {
-    return p.poller_id == 1;
-  });
+  auto p1 = absl::c_find_if(
+      pollers, [](const auto& p) { return p.peer.poller_id == 1; });
   ASSERT_NE(p1, pollers.end());
-  EXPECT_EQ(p1->rejected_conf, "v1");
-  EXPECT_EQ(p1->rejection_error, "boom");
+  EXPECT_EQ(p1->conf.rejected_conf, "v1");
+  EXPECT_EQ(p1->conf.rejection_error, "boom");
 
   EXPECT_TRUE(_state->acknowledge_poller_conf(2, "v1"));
   EXPECT_TRUE(_state->try_close_conf_round());
@@ -381,8 +380,8 @@ TEST_F(BrokerStateRound, NewExportIsSentAfterARejection) {
   EXPECT_TRUE(_state->acknowledge_poller_conf(1, "v2"));
   auto pollers = _state->connected_pollers();
   ASSERT_EQ(pollers.size(), 1u);
-  EXPECT_TRUE(pollers[0].rejected_conf.empty());
-  EXPECT_TRUE(pollers[0].rejection_error.empty());
+  EXPECT_TRUE(pollers[0].conf.rejected_conf.empty());
+  EXPECT_TRUE(pollers[0].conf.rejection_error.empty());
 }
 
 /**

@@ -30,6 +30,8 @@ add_library(broker_applier_state STATIC
   modules.hh
   peer_registry.cc
   peer_registry.hh
+  poller_conf.cc
+  poller_conf.hh
   state.cc
   state.hh
 )

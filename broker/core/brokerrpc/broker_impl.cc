@@ -876,17 +876,17 @@ grpc::Status broker_impl::GetPollers(grpc::ServerContext* context
   config::applier::broker_state* broker_state =
       static_cast<config::applier::broker_state*>(
           &config::applier::state::instance());
-  for (auto& p : broker_state->connected_pollers()) {
+  for (auto& [p, conf] : broker_state->connected_pollers()) {
     auto peer = response->add_peers();
     peer->set_id(p.poller_id);
     peer->set_poller_name(p.poller_name);
     peer->mutable_connected_since()->set_seconds(p.connected_since);
-    peer->set_engine_conf(p.engine_conf);
-    peer->set_available_conf(p.available_conf);
+    peer->set_engine_conf(conf.engine_conf);
+    peer->set_available_conf(conf.available_conf);
     peer->set_type(common::ENGINE);
     peer->set_timezone(p.timezone);
-    peer->set_rejected_conf(p.rejected_conf);
-    peer->set_rejection_error(p.rejection_error);
+    peer->set_rejected_conf(conf.rejected_conf);
+    peer->set_rejection_error(conf.rejection_error);
   }
   return grpc::Status::OK;
 }
@@ -2425,7 +2425,8 @@ grpc::Status broker_impl::ExecuteExternalCommand(
                             "no poller connected");
       for (const auto& p : pollers)
         state.push_pending_for_poller(
-            p.poller_id, make_external_command(p.poller_id, full_line));
+            p.peer.poller_id,
+            make_external_command(p.peer.poller_id, full_line));
       _logger->info("external command {} broadcast to {} poller(s)", name,
                     pollers.size());
       return grpc::Status::OK;

@@ -1303,7 +1303,8 @@ void broker_state::set_instance_running(uint64_t poller_id,
  *
  * @return A vector of engine_peers, each one with a connection date.
  */
-std::vector<broker_state::engine_peer> broker_state::connected_pollers() const {
+std::vector<broker_state::connected_poller> broker_state::connected_pollers()
+    const {
   return _peers.connected_pollers();
 }
 
@@ -1921,17 +1922,18 @@ bool broker_state::_prepare_diff_for_poller(
      * every other poller of the round -- until that relay comes back. */
     if (!peer || !peer->connected())
       return false;
+    poller_conf& conf = peer.conf();
     /* The poller already runs the version prepared for it: it applied it, and
      * its acknowledgement never reached Broker -- Broker restarted, or the
      * connection broke, in between. Its announcement is that acknowledgement.
      * Stopping here would leave `new-<ID>.prot` unrenamed, and the cache and
      * the database on the previous version until the next export. */
-    const bool already_runs = peer->engine_conf == state->config_version();
+    const bool already_runs = conf.engine_conf == state->config_version();
     if (!already_runs)
       _logger->debug(
           "Poller '{}' with id {} has a new configuration available "
           "(old: '{}', new: '{}')",
-          peer->poller_name, poller_id, peer->engine_conf,
+          peer->poller_name, poller_id, conf.engine_conf,
           state->config_version());
     std::filesystem::path previous_prot_conf =
         pollers_config_dir() / fmt::format("{}.prot", poller_id);
@@ -1950,7 +1952,7 @@ bool broker_state::_prepare_diff_for_poller(
         _logger->info(
             "Poller '{}' with id {} already has the latest configuration "
             "(conf: '{}')",
-            peer->poller_name, poller_id, peer->engine_conf);
+            peer->poller_name, poller_id, conf.engine_conf);
         std::error_code rm_ec;
         const auto new_prot_conf =
             pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
@@ -2004,9 +2006,9 @@ bool broker_state::_prepare_diff_for_poller(
        * as served, finds none, and the round never completes. No global diff
        * is then published and nothing reaches the database, even though the
        * poller did answer. */
-      if (peer->available_conf != new_version) {
-        peer->available_conf = new_version;
-        peer->round = peer_registry::conf_round::out;
+      if (conf.available_conf != new_version) {
+        conf.available_conf = new_version;
+        conf.round = poller_conf::conf_round::out;
       }
       return true;
     }
@@ -2016,11 +2018,11 @@ bool broker_state::_prepare_diff_for_poller(
         peer->poller_name, poller_id, new_version);
     /* What acknowledge_poller_conf() records, without the "sent" step that
      * never took place in this session. */
-    peer->available_conf = std::move(new_version);
-    peer->conf_in_flight.clear();
-    peer->rejected_conf.clear();
-    peer->rejection_error.clear();
-    peer->round = peer_registry::conf_round::acknowledged;
+    conf.available_conf = std::move(new_version);
+    conf.conf_in_flight.clear();
+    conf.rejected_conf.clear();
+    conf.rejection_error.clear();
+    conf.round = poller_conf::conf_round::acknowledged;
   }
   _install_acknowledged_conf(poller_id);
   _close_conf_round_if_over();
@@ -2594,9 +2596,9 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
         auto peer = _peers.lock_engine_peer(engine_id);
         /* Same rule as in _prepare_diff_for_poller: arming the "not sent yet"
          * flag for a version already in flight orphans its acknowledgement. */
-        if (peer && peer->available_conf != version) {
-          peer->available_conf = version;
-          peer->round = peer_registry::conf_round::out;
+        if (peer && peer.conf().available_conf != version) {
+          peer.conf().available_conf = version;
+          peer.conf().round = poller_conf::conf_round::out;
         }
       }
       return relay_config_response::diff_ready;

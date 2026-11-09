@@ -30,6 +30,7 @@ class broker_state : public state {
   /* The peers live in the registry now; the names stay so that callers and
    * the gRPC service are unaffected. */
   using engine_peer = peer_registry::engine_peer;
+  using connected_poller = peer_registry::connected_poller;
   using peer = peer_registry::peer;
   using broker_peer = peer_registry::broker_peer;
   using unknown_peer = peer_registry::unknown_peer;
@@ -251,7 +252,7 @@ class broker_state : public state {
    * cbmod also implements, where they would mean nothing. */
   bool is_poller_running(uint64_t poller_id) const;
   void set_instance_running(uint64_t poller_id, bool running) noexcept;
-  std::vector<engine_peer> connected_pollers() const;
+  std::vector<connected_poller> connected_pollers() const;
   std::vector<peer> connected_peers() const;
   bool poller_needs_update(uint64_t poller_id) const;
   void set_poller_engine_conf(uint32_t poller_id,

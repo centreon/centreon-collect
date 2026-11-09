@@ -23,16 +23,17 @@ namespace com::centreon::broker::config::applier {
  * @brief Get the Engine peers currently connected, directly or through a
  * relay.
  *
- * @return A vector of engine_peers, each one with a connection date.
+ * @return The connected pollers, each one with a connection date and what
+ * Broker knows of its configuration.
  */
-std::vector<peer_registry::engine_peer> peer_registry::connected_pollers()
+std::vector<peer_registry::connected_poller> peer_registry::connected_pollers()
     const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  std::vector<engine_peer> retval;
+  std::vector<connected_poller> retval;
   retval.reserve(_engine_peers.size());
-  for (const auto& [_, peer] : _engine_peers) {
+  for (const auto& [poller_id, peer] : _engine_peers) {
     if (peer.connected())
-      retval.push_back(peer);
+      retval.push_back({peer, _poller_confs.at(poller_id)});
   }
 
   return retval;
@@ -56,17 +57,18 @@ std::vector<peer_registry::peer> peer_registry::connected_peers() const {
                       .extended_negotiation = bp.extended_negotiation,
                       .peer_type = common::BROKER});
   }
-  for (const auto& [_, ep] : _engine_peers) {
+  for (const auto& [poller_id, ep] : _engine_peers) {
     /* A peer known from topology.cache has no connection to report. */
     if (!ep.connected())
       continue;
+    const poller_conf& conf = _poller_confs.at(poller_id);
     retval.push_back({.poller_id = ep.poller_id,
                       .poller_name = ep.poller_name,
                       .connected_since = ep.connected_since,
                       .extended_negotiation = ep.extended_negotiation,
                       .peer_type = common::ENGINE,
-                      .available_conf = ep.available_conf,
-                      .engine_conf = ep.engine_conf,
+                      .available_conf = conf.available_conf,
+                      .engine_conf = conf.engine_conf,
                       .via_remote = ep.via_remote,
                       .timezone = ep.timezone});
   }
@@ -151,16 +153,15 @@ void peer_registry::restore_pollers_from_cache(const TopologyCache& cache) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   for (const auto& e : cache.entries()) {
     _poller_to_relay[e.poller_id()] = e.relay_id();
-    if (!_engine_peers.contains(e.poller_id()))
-      _engine_peers[e.poller_id()] =
-          engine_peer{.poller_id = e.poller_id(),
-                      .poller_name = {},
-                      .state = peer_state::expected,
-                      .extended_negotiation = false,
-                      .available_conf = {},
-                      .engine_conf = {},
-                      .broker_knows_poller_conf = true,
-                      .via_remote = e.relay_id()};
+    if (!_engine_peers.contains(e.poller_id())) {
+      _engine_peers[e.poller_id()] = engine_peer{.poller_id = e.poller_id(),
+                                                 .poller_name = {},
+                                                 .state = peer_state::expected,
+                                                 .extended_negotiation = false,
+                                                 .via_remote = e.relay_id()};
+      _poller_confs.insert_or_assign(e.poller_id(),
+                                     poller_conf{e.poller_id(), _logger});
+    }
   }
 }
 
@@ -205,7 +206,7 @@ std::string peer_registry::add_peer(uint64_t poller_id,
   std::string effective_engine_conf = engine_conf;
   if (effective_engine_conf.empty() && peer_type == common::ENGINE &&
       found_engine != _engine_peers.end())
-    effective_engine_conf = found_engine->second.engine_conf;
+    effective_engine_conf = _poller_confs.at(poller_id).engine_conf;
 
   /* Remove from all maps in case the peer type changed.
    * For BROKER peers, do NOT erase _engine_peers: a relay-registered engine
@@ -213,8 +214,10 @@ std::string peer_registry::add_peer(uint64_t poller_id,
    * poller_id (e.g. rrd and Engine both on poller 1) and must not interfere.
    * The engine_peer entry was created by register_poller_via_relay and
    * must survive until the diff is prepared for it. */
-  if (peer_type != common::BROKER)
+  if (peer_type != common::BROKER) {
     _engine_peers.erase(poller_id);
+    _poller_confs.erase(poller_id);
+  }
   _broker_peers.erase(key);
   _unknown_peers.erase(key);
 
@@ -230,11 +233,10 @@ std::string peer_registry::add_peer(uint64_t poller_id,
                       .state = peer_state::connected,
                       .connected_since = time(nullptr),
                       .extended_negotiation = extended_negotiation,
-                      .available_conf = {},
-                      .engine_conf = effective_engine_conf,
-                      .broker_knows_poller_conf = true,
                       .via_remote = 0,
                       .timezone = timezone};
+      _poller_confs.insert_or_assign(
+          poller_id, poller_conf{poller_id, _logger, effective_engine_conf});
       break;
     default:
       _unknown_peers[key] =
@@ -259,8 +261,11 @@ bool peer_registry::remove_peer(uint64_t poller_id,
                                 const std::string& broker_name) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   const peer_key key{poller_id, poller_name, broker_name};
-  return _engine_peers.erase(poller_id) || _broker_peers.erase(key) ||
-         _unknown_peers.erase(key);
+  if (_engine_peers.erase(poller_id)) {
+    _poller_confs.erase(poller_id);
+    return true;
+  }
+  return _broker_peers.erase(key) || _unknown_peers.erase(key);
 }
 
 /**
@@ -299,22 +304,22 @@ uint64_t peer_registry::register_poller_via_relay(
     }
     if (!poller_name.empty())
       it->second.poller_name = poller_name;
+    poller_conf& conf = _poller_confs.at(poller_id);
     if (!config_version.empty())
-      it->second.engine_conf = config_version;
+      conf.engine_conf = config_version;
     /* A ConfigRequest opens a new exchange: whatever was handed over before
      * will not be acknowledged through it, and the version the relay knows is
      * what the poller runs. */
-    it->second.conf_in_flight.clear();
+    conf.conf_in_flight.clear();
   } else {
     _engine_peers[poller_id] = engine_peer{.poller_id = poller_id,
                                            .poller_name = poller_name,
                                            .state = peer_state::connected,
                                            .connected_since = time(nullptr),
                                            .extended_negotiation = true,
-                                           .available_conf = {},
-                                           .engine_conf = config_version,
-                                           .broker_knows_poller_conf = true,
                                            .via_remote = relay_poller_id};
+    _poller_confs.insert_or_assign(
+        poller_id, poller_conf{poller_id, _logger, config_version});
   }
   _poller_to_relay[poller_id] = relay_poller_id;
   return migrated_from;
@@ -335,8 +340,10 @@ peer_registry::locked_engine_peer peer_registry::lock_engine_peer(
    * while the map cannot rehash under it. */
   _connected_peers_m.Lock();
   auto it = _engine_peers.find(poller_id);
-  return locked_engine_peer{&_connected_peers_m,
-                            it == _engine_peers.end() ? nullptr : &it->second};
+  if (it == _engine_peers.end())
+    return locked_engine_peer{&_connected_peers_m, nullptr, nullptr};
+  return locked_engine_peer{&_connected_peers_m, &it->second,
+                            &_poller_confs.at(poller_id)};
 }
 
 /**
@@ -357,8 +364,8 @@ peer_registry::locked_engine_peer peer_registry::lock_engine_peer(
  */
 std::string peer_registry::poller_engine_conf(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end())
+  auto found = _poller_confs.find(poller_id);
+  if (found == _poller_confs.end())
     return {};
   return found->second.engine_conf;
 }
@@ -385,8 +392,8 @@ std::string peer_registry::poller_timezone(uint64_t poller_id) const {
  */
 bool peer_registry::broker_knows_poller_conf(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end())
+  auto found = _poller_confs.find(poller_id);
+  if (found != _poller_confs.end())
     return found->second.broker_knows_poller_conf;
   return true;
 }
@@ -405,42 +412,6 @@ bool peer_registry::broker_peer_supports_extended_negotiation() const {
 }
 
 /**
- * @brief Whether a configuration is prepared for this peer and still owes it a
- * delivery.
- *
- * This is what keeps a configuration round open, whether or not the delivery
- * can be made right now: see try_close_conf_round().
- *
- * A version the poller could not apply is not owed any more: it would fail the
- * same way, and keeping it owed would hold the round open for every other
- * poller.
- *
- * @param peer The peer to look at.
- */
-bool peer_registry::_peer_owes_conf(const engine_peer& peer) {
-  return peer.round == conf_round::out && !peer.available_conf.empty() &&
-         peer.available_conf != peer.engine_conf &&
-         peer.available_conf != peer.rejected_conf;
-}
-
-/**
- * @brief Whether the configuration owed to this peer can be handed over now.
- *
- * Not while another one is in flight. Engine applies its DiffStates in order:
- * a configuration sent before the previous one is acknowledged would be a
- * difference computed from the version Broker believed the poller ran, applied
- * on top of the one it actually runs. The acknowledgement says which version
- * that is, and the delivery waits for it. It always comes: Engine acknowledges
- * a configuration it could not apply too (see reject_poller_conf()), and a
- * poller that dies on the way disconnects, which drops its entry.
- *
- * @param peer The peer to look at.
- */
-bool peer_registry::_peer_needs_update(const engine_peer& peer) {
-  return _peer_owes_conf(peer) && peer.conf_in_flight.empty();
-}
-
-/**
  * @brief Whether a configuration is prepared for this poller and still owes it
  * a delivery.
  *
@@ -448,7 +419,7 @@ bool peer_registry::_peer_needs_update(const engine_peer& peer) {
  */
 /**
  * @brief Whether the poller is still owed the runtime snapshot of its
- * resources (see engine_peer::runtime_state_owed).
+ * resources (see poller_conf::runtime_state_owed).
  *
  * @param poller_id The poller.
  *
@@ -457,8 +428,8 @@ bool peer_registry::_peer_needs_update(const engine_peer& peer) {
  */
 bool peer_registry::runtime_state_owed(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  return found != _engine_peers.end() && found->second.runtime_state_owed;
+  auto found = _poller_confs.find(poller_id);
+  return found != _poller_confs.end() && found->second.runtime_state_owed;
 }
 
 /**
@@ -470,21 +441,21 @@ bool peer_registry::runtime_state_owed(uint64_t poller_id) const {
  */
 void peer_registry::set_runtime_state_owed(uint64_t poller_id, bool owed) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end())
+  auto found = _poller_confs.find(poller_id);
+  if (found != _poller_confs.end())
     found->second.runtime_state_owed = owed;
 }
 
 bool peer_registry::poller_needs_update(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   _logger->trace("poller_needs_update called for poller id {}", poller_id);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end())
+  auto found = _poller_confs.find(poller_id);
+  if (found == _poller_confs.end())
     return false;
-  const auto& peer = found->second;
-  if (_peer_needs_update(peer)) {
+  const poller_conf& conf = found->second;
+  if (conf.needs_update()) {
     _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
-                   peer.available_conf, peer.engine_conf, poller_id);
+                   conf.available_conf, conf.engine_conf, poller_id);
     return true;
   }
   return false;
@@ -499,16 +470,16 @@ bool peer_registry::poller_needs_update(uint64_t poller_id) const {
 void peer_registry::set_poller_engine_conf(uint64_t poller_id,
                                            const std::string& engine_conf) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end()) {
+  auto found = _poller_confs.find(poller_id);
+  if (found == _poller_confs.end()) {
     _logger->info("Poller with id {} not found in connected peers", poller_id);
   } else {
-    auto& peer = found->second;
+    poller_conf& conf = found->second;
     _logger->info(
         "Poller with id {} available conf '{}' and current version changed "
         "from '{}' to '{}'",
-        poller_id, peer.available_conf, peer.engine_conf, engine_conf);
-    peer.engine_conf = engine_conf;
+        poller_id, conf.available_conf, conf.engine_conf, engine_conf);
+    conf.engine_conf = engine_conf;
   }
 }
 
@@ -524,8 +495,8 @@ void peer_registry::set_poller_engine_conf(uint64_t poller_id,
 void peer_registry::set_broker_knows_poller_conf(uint64_t poller_id,
                                                  bool known) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found != _engine_peers.end()) {
+  auto found = _poller_confs.find(poller_id);
+  if (found != _poller_confs.end()) {
     _logger->info("Broker {} the configuration of poller {}",
                   known ? "knows" : "does not know", poller_id);
     found->second.broker_knows_poller_conf = known;
@@ -534,17 +505,7 @@ void peer_registry::set_broker_knows_poller_conf(uint64_t poller_id,
 
 /**
  * @brief Record that the prepared configuration has been handed over to this
- * poller, if the configuration sent is still the one prepared for it. This
- * opens a round for it: the acknowledgement it owed for the previous one no
- * longer counts.
- *
- * What is sent is decided without the registry lock (the diff file is read, or
- * the relay is found up to date, before this call). A newer configuration can
- * therefore be prepared in between: marking it as sent would claim the poller
- * received a version it never saw, and nothing would send it any more. Left
- * unmarked, it is still owed and the next read of the stream sends it.
- *
- * With no configuration prepared at all, there is nothing to mark either.
+ * poller. See poller_conf::mark_sent().
  *
  * @param poller_id The poller ID.
  * @param version The version of the configuration actually sent.
@@ -554,47 +515,18 @@ void peer_registry::set_broker_knows_poller_conf(uint64_t poller_id,
 bool peer_registry::set_poller_conf_sent(uint64_t poller_id,
                                          std::string_view version) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end()) {
+  auto found = _poller_confs.find(poller_id);
+  if (found == _poller_confs.end()) {
     _logger->info("Unable to send configuration to poller {}: it doesn't exist",
                   poller_id);
     return false;
   }
-  /* Whatever is decided below, this version did leave: nothing else is sent
-   * to the poller until it says which version it runs. */
-  found->second.conf_in_flight = version;
-  if (found->second.available_conf.empty()) {
-    _logger->debug(
-        "Configuration '{}' sent to poller {}, which has none prepared: "
-        "nothing to mark",
-        version, poller_id);
-    return false;
-  }
-  if (found->second.available_conf != version) {
-    _logger->info(
-        "Configuration '{}' sent to poller {} is no longer the latest one "
-        "('{}'): the latest stays owed",
-        version, poller_id, found->second.available_conf);
-    return false;
-  }
-  found->second.round = conf_round::sent;
-  _logger->debug("New configuration sent to poller {}", poller_id);
-  return true;
+  return found->second.mark_sent(version);
 }
 
 /**
  * @brief Record what a poller acknowledged, and tell whether it is the
- * configuration prepared for it.
- *
- * Whatever the version, the poller runs it now, and it no longer has anything
- * in flight: the next delivery can be made.
- *
- * Only the prepared version counts as this poller's part of the round, though.
- * An older one -- sent before a newer export replaced it -- is not what
- * `new-<ID>.prot` and `diff-<ID>.prot` hold any more: renaming the first or
- * feeding the cache with the second would claim the poller runs a
- * configuration it never received. The newer one stays owed, and is sent once
- * this acknowledgement has said which version the poller runs.
+ * configuration prepared for it. See poller_conf::acknowledge().
  *
  * @param poller_id The poller ID.
  * @param version The version the poller acknowledged.
@@ -605,36 +537,18 @@ bool peer_registry::set_poller_conf_sent(uint64_t poller_id,
 bool peer_registry::acknowledge_poller_conf(uint64_t poller_id,
                                             const std::string& version) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end()) {
+  auto found = _poller_confs.find(poller_id);
+  if (found == _poller_confs.end()) {
     _logger->info("Acknowledgement of '{}' from unknown poller {}: ignored",
                   version, poller_id);
     return false;
   }
-  auto& peer = found->second;
-  _logger->info(
-      "Poller {} acknowledged '{}' (it ran '{}', '{}' is the latest prepared)",
-      poller_id, version, peer.engine_conf, peer.available_conf);
-  peer.engine_conf = version;
-  peer.conf_in_flight.clear();
-  if (peer.round != conf_round::sent || peer.available_conf != version)
-    return false;
-  peer.round = conf_round::acknowledged;
-  peer.rejected_conf.clear();
-  peer.rejection_error.clear();
-  return true;
+  return found->second.acknowledge(version);
 }
 
 /**
  * @brief Record that a poller could not apply a configuration it was sent.
- *
- * The poller still runs @p running_version, and nothing is in flight any more.
- * When @p failed_version is the configuration prepared for it, the poller
- * leaves the round, since it will not acknowledge it, and that version is no
- * longer owed: sending it again would fail the same way. A new export, or a
- * reconnection of the poller -- which recreates its entry -- tries again. An
- * older version only says what the poller runs, as with
- * acknowledge_poller_conf(): the newer one stays owed and is sent now.
+ * See poller_conf::reject().
  *
  * @param poller_id The poller ID.
  * @param running_version The version the poller still runs.
@@ -649,25 +563,13 @@ bool peer_registry::reject_poller_conf(uint64_t poller_id,
                                        const std::string& failed_version,
                                        const std::string& error) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _engine_peers.find(poller_id);
-  if (found == _engine_peers.end()) {
+  auto found = _poller_confs.find(poller_id);
+  if (found == _poller_confs.end()) {
     _logger->info("Failure of '{}' from unknown poller {}: ignored",
                   failed_version, poller_id);
     return false;
   }
-  auto& peer = found->second;
-  _logger->error(
-      "Poller {} could not apply the configuration '{}', it still runs '{}': "
-      "{}",
-      poller_id, failed_version, running_version, error);
-  peer.engine_conf = running_version;
-  peer.conf_in_flight.clear();
-  if (peer.available_conf != failed_version)
-    return false;
-  peer.rejected_conf = failed_version;
-  peer.rejection_error = error;
-  peer.round = conf_round::out;
-  return true;
+  return found->second.reject(running_version, failed_version, error);
 }
 
 /**
@@ -683,9 +585,9 @@ bool peer_registry::reject_poller_conf(uint64_t poller_id,
 void peer_registry::leave_conf_round(const std::vector<uint64_t>& poller_ids) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   for (uint64_t poller_id : poller_ids) {
-    auto found = _engine_peers.find(poller_id);
-    if (found != _engine_peers.end())
-      found->second.round = conf_round::out;
+    auto found = _poller_confs.find(poller_id);
+    if (found != _poller_confs.end())
+      found->second.round = poller_conf::conf_round::out;
   }
 }
 
@@ -708,7 +610,7 @@ bool peer_registry::try_close_conf_round() {
   uint32_t engine_count = 0;
   uint32_t engine_good = 0;
   uint32_t engine_pending = 0;
-  for (const auto& [key, peer] : _engine_peers) {
+  for (const auto& [key, conf] : _poller_confs) {
     /* A peer whose configuration is prepared but not delivered yet is part of
      * this round, even though nothing was sent to it. Leaving it out would let
      * one peer's acknowledgement close the round on its own -- and the global
@@ -718,13 +620,13 @@ bool peer_registry::try_close_conf_round() {
      * file that no longer exists. Owed is what counts here, not deliverable: a
      * peer waiting for the acknowledgement of a previous configuration before
      * receiving its own is just as much part of the round. */
-    if (_peer_owes_conf(peer)) {
+    if (conf.owes_conf()) {
       ++engine_pending;
       retval = false;
       continue;
     }
-    if (peer.round != conf_round::out) {
-      if (peer.round == conf_round::sent)
+    if (conf.round != poller_conf::conf_round::out) {
+      if (conf.round == poller_conf::conf_round::sent)
         retval = false;
       else
         ++engine_good;
@@ -738,8 +640,8 @@ bool peer_registry::try_close_conf_round() {
   if (retval && engine_count > 0) {
     /* Reset all flags so that a concurrent or subsequent call won't trigger a
      * second global diff publication for the same round. */
-    for (auto& [key, peer] : _engine_peers)
-      peer.round = conf_round::out;
+    for (auto& [key, conf] : _poller_confs)
+      conf.round = poller_conf::conf_round::out;
   }
   return retval && engine_count > 0;
 }
@@ -748,7 +650,7 @@ bool peer_registry::try_close_conf_round() {
  * @brief Returns the poller IDs reachable through the given relay that are
  * still owed a configuration.
  *
- * The test is _peer_needs_update() and nothing else, as for a direct poller in
+ * The test is poller_conf::needs_update() and nothing else, as for a direct poller in
  * poller_needs_update(): writing the same conditions a second time here is
  * what let the two drift apart once, and a poller left out of one of them
  * loses its configuration.
@@ -762,7 +664,7 @@ std::vector<uint64_t> peer_registry::pollers_via_relay_needing_update(
   absl::ReaderMutexLock lck(&_connected_peers_m);
   std::vector<uint64_t> result;
   for (const auto& [id, peer] : _engine_peers) {
-    if (peer.via_remote == relay_id && _peer_needs_update(peer))
+    if (peer.via_remote == relay_id && _poller_confs.at(id).needs_update())
       result.push_back(id);
   }
   return result;
