@@ -79,6 +79,11 @@ sub new {
     $connector->{pending_batches} = {};
     $connector->{config}->{legacycmd_result_timeout} = defined($connector->{config}->{legacycmd_result_timeout}) && $connector->{config}->{legacycmd_result_timeout} =~ /^\d+$/
         ? $connector->{config}->{legacycmd_result_timeout} : 40;
+    # bound on check_pending_batches_fast() below: a batch spanning more targets than this
+    # falls back to the unchanged 5s sweep for the remote nudge, so a wide broadcast never
+    # sends more httpserver-child traffic than before MON-214478.
+    $connector->{config}->{legacycmd_fast_poll_max_targets} = defined($connector->{config}->{legacycmd_fast_poll_max_targets}) && $connector->{config}->{legacycmd_fast_poll_max_targets} =~ /^\d+$/
+        ? $connector->{config}->{legacycmd_fast_poll_max_targets} : 3;
 
     # nagios_server.id whose row means "gorgone and engine on the same host"
     # (classic VM/RPM install: localhost=1, poller_type != 'docker'). nodes'
@@ -334,6 +339,40 @@ sub check_pending_batches {
         }
 
         # No cursor: recounts every row for the token from scratch each time.
+        $self->send_internal_action({
+            action => 'GETLOG',
+            token => $token . '-poll',
+            data => { token => $token }
+        });
+    }
+}
+
+# Periodic sweep (every 1s, see run()): while a batch is pending, notices its result much
+# sooner than waiting for the 5s sweep above - the actual latency fix for MON-214478. The
+# local "-poll" query touches no shared resource (a local history read), so it always runs;
+# the remote nudge does go through the shared httpserver child (see proxy.md's "Message
+# routing flow" and "httpserver child health check"), so it's skipped once every pending
+# batch combined has more targets than legacycmd_fast_poll_max_targets, leaving a wide
+# broadcast on the unchanged 5s sweep above instead of multiplying its traffic by 5. The
+# deadline check stays on the 5s sweep only: a timeout landing up to ~4s late is harmless.
+sub check_pending_batches_fast {
+    my ($self) = @_;
+
+    return if (!%{$self->{pending_batches}});
+
+    my $total_targets = 0;
+    $total_targets += scalar(keys %{$self->{pending_batches}->{$_}->{targets}})
+        foreach (keys %{$self->{pending_batches}});
+
+    foreach my $token (keys %{$self->{pending_batches}}) {
+        my $batch = $self->{pending_batches}->{$token};
+
+        if ($total_targets <= $self->{config}->{legacycmd_fast_poll_max_targets}) {
+            foreach my $target (keys %{$batch->{targets}}) {
+                $self->send_internal_action({ action => 'GETLOG', target => $target, data => {} });
+            }
+        }
+
         $self->send_internal_action({
             action => 'GETLOG',
             token => $token . '-poll',
@@ -1402,6 +1441,12 @@ sub periodic_exec {
     $connector->check_pending_batches();
 }
 
+sub periodic_exec_fast {
+    return if ($connector->{stop} == 1);
+
+    $connector->check_pending_batches_fast();
+}
+
 sub run {
     my ($self, %options) = @_;
 
@@ -1440,6 +1485,7 @@ sub run {
     );
 
     my $watcher_timer = $self->{loop}->timer(5, 5, \&periodic_exec);
+    my $watcher_timer_fast = $self->{loop}->timer(1, 1, \&periodic_exec_fast);
     my $watcher_io = $self->{loop}->io($connector->{internal_socket}->get_fd(), EV::READ, sub { $connector->event() } );
     $self->{loop}->run();
 }
