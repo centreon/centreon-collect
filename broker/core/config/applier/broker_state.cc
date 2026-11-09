@@ -587,7 +587,26 @@ void broker_state::apply_poller_diff_in_cache(uint64_t poller_id) {
 }
 
 /**
- * @brief Forget everything stored about a poller removed from the platform.
+ * @brief Find a poller known to Broker by its name.
+ *
+ * @param name The poller name.
+ *
+ * @return The poller ID, or std::nullopt if Broker does not know this poller:
+ * it has neither its configuration nor a connection from it.
+ */
+std::optional<uint64_t> broker_state::poller_id_by_name(
+    const std::string& name) {
+  return cache().instance_id(name);
+}
+
+/**
+ * @brief Forget everything Broker keeps about a poller removed from the
+ * platform: its configuration files and its entries in the global cache. The
+ * real-time database is not touched here, the caller publishes a
+ * pb_remove_poller for that.
+ *
+ * A connected poller is not removed: it is still monitoring, and its next
+ * events would bring it back half known.
  *
  * The three files a poller can have in the configuration directory go together:
  * `<ID>.prot` is the configuration it acknowledged, `new-<ID>.prot` one waiting
@@ -600,23 +619,37 @@ void broker_state::apply_poller_diff_in_cache(uint64_t poller_id) {
  * worse, since the global diff is built by merging whatever `diff-*.prot` the
  * directory holds.
  *
+ * Removing a poller Broker does not know is not an error: there is just
+ * nothing to remove.
+ *
  * @param poller_id The poller being removed.
+ *
+ * @return false if the poller is connected and nothing was removed, true
+ * otherwise.
  */
-void broker_state::remove_poller_config(uint64_t poller_id) {
-  if (!pollers_config_dir_usable())
-    return;
+bool broker_state::remove_poller(uint64_t poller_id) {
   absl::MutexLock lck(&_conf_handover_m);
-  for (const char* pattern : {"{}.prot", "new-{}.prot", "diff-{}.prot"}) {
-    const auto path =
-        pollers_config_dir() / fmt::format(fmt::runtime(pattern), poller_id);
-    std::error_code ec;
-    if (std::filesystem::remove(path, ec))
-      _logger->info("Removed '{}': poller {} is no longer on the platform",
-                    path.string(), poller_id);
-    else if (ec)
-      _logger->warn("Cannot remove '{}' of removed poller {}: {}",
-                    path.string(), poller_id, ec.message());
+  if (is_poller_connected(poller_id)) {
+    _logger->warn("Poller {} is not removed: it is connected", poller_id);
+    return false;
   }
+
+  if (pollers_config_dir_usable()) {
+    for (const char* pattern : {"{}.prot", "new-{}.prot", "diff-{}.prot"}) {
+      const auto path =
+          pollers_config_dir() / fmt::format(fmt::runtime(pattern), poller_id);
+      std::error_code ec;
+      if (std::filesystem::remove(path, ec))
+        _logger->info("Removed '{}': poller {} is no longer on the platform",
+                      path.string(), poller_id);
+      else if (ec)
+        _logger->warn("Cannot remove '{}' of removed poller {}: {}",
+                      path.string(), poller_id, ec.message());
+    }
+  }
+  cache().remove_instance(poller_id);
+  _logger->info("Poller {} removed from Broker", poller_id);
+  return true;
 }
 
 /**

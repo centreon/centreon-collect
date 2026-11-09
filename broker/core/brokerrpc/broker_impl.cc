@@ -626,22 +626,58 @@ grpc::Status broker_impl::GetProcessingStats(
 }
 
 /**
- * @brief Remove a poller configuration from Broker and the real-time
- * database.
+ * @brief Remove a poller from the platform.
+ *
+ * Broker decides, from what it knows of the poller: a connected poller is
+ * refused. Otherwise Broker forgets its configuration files and its cache
+ * entries, then publishes a pb_remove_poller for the real-time database, so
+ * that the removal does not depend on an unified_sql output being there.
+ *
+ * A poller asked by name is looked for in the global cache. A name Broker does
+ * not know, an old poller left in the database only, has nothing to remove in
+ * Broker: the event is published as received, and unified_sql finds its ID in
+ * the database.
  *
  * @param context gRPC context (unused).
  * @param request A GenericNameOrIndex containing the poller name or its ID.
  * @param response Unused.
  *
- * @return grpc::Status::OK
+ * @return grpc::Status::OK, or grpc::StatusCode::FAILED_PRECONDITION if the
+ * poller is connected.
  */
 grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        [[maybe_unused]],
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
-  _logger->info("Remove poller...");
-  multiplexing::publisher pblshr;
+  /* The Broker gRPC service is only available on Broker instances with the
+   * Broker role. So it's safe to static_cast the state to broker_state. */
+  auto& state = static_cast<config::applier::broker_state&>(
+      config::applier::state::instance());
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
+
+  std::optional<uint64_t> poller_id;
+  if (request->has_str()) {
+    _logger->info("Remove poller '{}'", request->str());
+    poller_id = state.poller_id_by_name(request->str());
+    if (!poller_id)
+      _logger->info(
+          "Poller '{}' is unknown to Broker, only the database is cleaned",
+          request->str());
+  } else {
+    _logger->info("Remove poller {}", request->idx());
+    poller_id = request->idx();
+  }
+
+  if (poller_id) {
+    if (!state.remove_poller(*poller_id))
+      return grpc::Status(
+          grpc::StatusCode::FAILED_PRECONDITION,
+          fmt::format("poller {} is connected, it cannot be removed",
+                      *poller_id));
+    e->mut_obj().set_idx(*poller_id);
+  }
+
+  multiplexing::publisher pblshr;
   pblshr.write(e);
   return grpc::Status::OK;
 }

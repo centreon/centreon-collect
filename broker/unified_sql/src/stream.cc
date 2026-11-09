@@ -1623,7 +1623,13 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
 }
 
 /**
- * @brief process a remove poller message.
+ * @brief Process a remove poller message: delete the poller rows from the
+ * real-time database.
+ *
+ * Broker decided before publishing the message, it refuses a connected poller,
+ * and it already forgot the poller configuration files and its cache entries.
+ * The message carries the poller ID, unless Broker did not know the poller:
+ * then it carries the name, and the ID is looked for in the database.
  *
  * @param d The BBDO message with the name or the id of the poller to
  * remove.
@@ -1633,89 +1639,23 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       *static_cast<const bbdo::pb_remove_poller*>(d.get());
 
   try {
-    std::promise<database::mysql_result> promise;
-    std::future<mysql_result> future = promise.get_future();
     std::list<uint64_t> ids;
-    uint32_t count = 0;
     if (poller.obj().has_str()) {
+      std::promise<database::mysql_result> promise;
+      std::future<mysql_result> future = promise.get_future();
       _mysql.run_query_and_get_result(
-          fmt::format("SELECT instance_id from instances WHERE name='{}' AND "
-                      "(running=0 OR deleted=1)",
+          fmt::format("SELECT instance_id FROM instances WHERE name='{}'",
                       poller.obj().str()),
           std::move(promise), 0);
       database::mysql_result res(future.get());
-
-      while (_mysql.fetch_row(res)) {
-        count++;
+      while (_mysql.fetch_row(res))
         ids.push_back(res.value_as_u64(0));
-      }
-      if (count == 0) {
-        SPDLOG_LOGGER_WARN(
-            _logger_sql,
-            "Unable to remove poller '{}', {} running found in the database",
-            poller.obj().str(), count == 0 ? "none" : "more than one");
-        std::promise<database::mysql_result> promise;
-        std::future<mysql_result> future = promise.get_future();
-        _mysql.run_query_and_get_result(
-            fmt::format("SELECT instance_id from instances WHERE name='{}'",
-                        poller.obj().str()),
-            std::move(promise), 0);
-        database::mysql_result res(future.get());
-
-        while (_mysql.fetch_row(res)) {
-          if (!config::applier::state::instance().is_poller_connected(
-                  res.value_as_u64(0))) {
-            SPDLOG_LOGGER_WARN(
-                _logger_sql,
-                "The poller '{}' id {} is not connected (even if it looks "
-                "running or not deleted)",
-                poller.obj().str(), res.value_as_u64(0));
-            count++;
-            ids.push_back(res.value_as_u64(0));
-          }
-        }
-      }
-    } else {
-      _mysql.run_query_and_get_result(
-          fmt::format(
-              "SELECT instance_id from instances WHERE instance_id={} AND "
-              "(running=0 OR deleted=1)",
-              poller.obj().idx()),
-          std::move(promise), 0);
-      database::mysql_result res(future.get());
-
-      while (_mysql.fetch_row(res)) {
-        count++;
-        ids.push_back(res.value_as_u64(0));
-      }
-      if (count == 0) {
-        SPDLOG_LOGGER_WARN(
-            _logger_sql,
-            "Unable to remove poller {}, {} running found in the "
-            "database",
-            poller.obj().idx(), count == 0 ? "none" : "more than one");
-        std::promise<database::mysql_result> promise;
-        std::future<mysql_result> future = promise.get_future();
-        _mysql.run_query_and_get_result(
-            fmt::format("SELECT name from instances WHERE instance_id={}",
-                        poller.obj().idx()),
-            std::move(promise), 0);
-        database::mysql_result res(future.get());
-
-        while (_mysql.fetch_row(res)) {
-          if (!config::applier::state::instance().is_poller_connected(
-                  poller.obj().idx())) {
-            SPDLOG_LOGGER_WARN(
-                _logger_sql,
-                "The poller '{}' id {} is not connected (even if it looks "
-                "running or not deleted)",
-                res.value_as_str(0), poller.obj().idx());
-            count++;
-            ids.push_back(poller.obj().idx());
-          }
-        }
-      }
-    }
+      if (ids.empty())
+        SPDLOG_LOGGER_WARN(_logger_sql,
+                           "Unable to remove poller '{}': not in the database",
+                           poller.obj().str());
+    } else
+      ids.push_back(poller.obj().idx());
 
     for (uint64_t id : ids) {
       SPDLOG_LOGGER_INFO(_logger_sql, "unified sql: removing poller {}", id);
@@ -1735,68 +1675,10 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
           database::mysql_error::delete_poller, 0);
       _cache_deleted_instance_id.insert(id);
     }
-    _clear_instances_cache(ids);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(
         _logger_sql, "Error encountered while removing a poller: {}", e.what());
   }
-}
-
-/**
- * @brief Clear the cache of instances for the given instance IDs. All resources
- * attached to these instances are also removed from the cache.
- *
- * @param ids The list of instance IDs to clear from the cache.
- */
-void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
-  auto& state = config::applier::state::instance();
-  auto& cache = state.cache();
-  for (uint64_t instance_id : ids) {
-    cache.remove_instance(instance_id);
-    /* And the configuration files kept for it: otherwise the next startup
-     * would load them back into the cache we just cleaned. */
-    state.remove_poller_config(instance_id);
-  }
-
-  // auto host_ids = cache.host_ids();
-  // for (uint64_t host_id : host_ids) {
-  //   uint64_t instance_id = cache.host(host_id)->obj().instance_id();
-  //   if (std::find(ids.begin(), ids.end(), instance_id) != ids.end()) {
-  //     _cache_hst_cmd.erase(host_id);
-  //     for (auto itt = _cache_svc_cmd.begin(); itt != _cache_svc_cmd.end();
-  //          ++itt) {
-  //       if (itt->first.first == host_id) {
-  //         uint64_t svc_id = itt->first.second;
-  //         auto ridx_it = _index_cache.find({host_id, svc_id});
-  //         uint64_t index_id = ridx_it->second.index_id;
-  //         for (auto idx_it = _index_cache.begin(); idx_it !=
-  //         _index_cache.end();
-  //              ++idx_it) {
-  //           if (idx_it->first.first == index_id)
-  //             _index_cache.erase(idx_it);
-  //           std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
-  //           for (auto metric_it = _metric_cache.begin();
-  //                metric_it != _metric_cache.end(); ++metric_it) {
-  //             if (metric_it->first.first == index_id)
-  //               _metric_cache.erase(metric_it);
-  //           }
-  //         }
-  //         _index_cache.erase(ridx_it);
-  //         _cache_svc_cmd.erase(itt);
-
-  //        // resources
-  //        auto res_it = _resources_cache.find({svc_id, host_id});
-  //        if (res_it != _resources_cache.end())
-  //          _resources_cache.erase(res_it);
-  //      }
-  //      auto res_it = _resources_cache.find({host_id, 0});
-  //      if (res_it != _resources_cache.end())
-  //        _resources_cache.erase(res_it);
-  //    }
-  //    it = _cache_host_instance.erase(it);
-  //  } else
-  //    ++it;
-  //}
 }
 
 void stream::update() {

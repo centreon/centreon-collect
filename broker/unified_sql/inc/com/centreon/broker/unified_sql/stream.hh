@@ -456,7 +456,6 @@ class stream : public io::stream {
   void _prepare_pb_sg_insupdate_statement();
   void _finish_actions();
   void _update_metrics() ABSL_LOCKS_EXCLUDED(_metrics_m);
-  void _clear_instances_cache(const std::list<uint64_t>& ids);
   bool _host_instance_known(uint64_t host_id) const;
 
   void _start_loop_timer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_timer_m);
