@@ -565,6 +565,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   set(TESTS_SOURCES
     ${TESTS_SOURCES}
     ${TEST_DIR}/bbdo/category.cc
+    ${TEST_DIR}/bbdo/negotiation.cc
     ${TEST_DIR}/bbdo/output.cc
     ${TEST_DIR}/bbdo/read.cc
     ${TEST_DIR}/compression/stream/memory_stream.hh
