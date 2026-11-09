@@ -234,7 +234,9 @@ check httpserver doesn't drop Ping or Getlog messages under its own send traffic
     ...    flight on that same socket at that moment used to be read and silently discarded there,
     ...    since the child handles those through its own proxy()/transmit_back() loop, not the
     ...    action_<name> convention event() looks for. check_interval/ping/synchistory_time are set
-    ...    tight here so the two loops race often within the test window instead of relying on luck.
+    ...    below hooks.pm::check()'s own ~20s cycle (gated by core.pm's check_exit_modules(), not
+    ...    these values) so Ping, the health check and Getlog are all due on every cycle instead of
+    ...    occasionally, making the two loops race often within the test window.
     [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}
     ...    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
@@ -247,16 +249,24 @@ check httpserver doesn't drop Ping or Getlog messages under its own send traffic
     Ctn Check No Error In Logs    pullwss_gorgone_poller_2_simple
 
     ${start_lines}    Run    wc -l < ${central_log_file}
-    Sleep    60s
+    # hooks.pm::check() (and the ping/getlog/health-check cycle it drives) only runs when
+    # check_exit_modules() 's own ">15s since last run" gate opens, roughly every 20s here
+    # regardless of ping/synchistory_time/check_interval above: those only make each cycle,
+    # once it runs, treat the node as due every time instead of occasionally. 120s comfortably
+    # covers several such cycles.
+    Sleep    120s
 
-    ${pongs}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep 'Pong received from' | wc -l
-    Should Be True    ${pongs} >= 10    too few successful Ping round trips during the window : ${pongs}
-    ${setlogs}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep 'Received setlogs for' | wc -l
-    Should Be True    ${setlogs} >= 5    too few successful Getlog round trips during the window : ${setlogs}
+    ${pongs}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep "Pong received from '2'" | wc -l
+    Should Be True    ${pongs} >= 4    too few successful Ping round trips during the window : ${pongs}
+    ${setlogs}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep "Received setlogs for '2'" | wc -l
+    Should Be True    ${setlogs} >= 4    too few successful Getlog round trips during the window : ${setlogs}
 
-    ${lost_ping}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep 'Ping timeout from' | wc -l
+    # scoped to node 2 (this test's own poller): node 4, left registered-but-never-connected by
+    # an earlier test in this same suite, legitimately times out on its own and isn't this test's
+    # concern.
+    ${lost_ping}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep "Ping timeout from '2'" | wc -l
     Should Be Equal As Integers    ${lost_ping}    0    a Ping was silently dropped : ${lost_ping}
-    ${lost_getlog}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep 'Getlog max timeout reached' | wc -l
+    ${lost_getlog}    Run    tail -n +$((${start_lines} + 1)) ${central_log_file} | grep "Getlog max timeout reached for '2'" | wc -l
     Should Be Equal As Integers    ${lost_getlog}    0    a Getlog was silently dropped : ${lost_getlog}
 
 
