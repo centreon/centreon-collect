@@ -203,14 +203,17 @@ void tls_probe::_fail(const std::string& reason) {
 }
 
 /**
- * @brief Close the socket and give the result, only once: after cancel(), the
- * pending handler calls it again.
+ * @brief Shut down and close the socket and give the result, only once: after
+ * cancel(), the pending handler calls it again. The socket may not be
+ * connected yet (cancel() during resolution or connection): the error of
+ * shutdown() is then expected and ignored.
  */
 void tls_probe::_finish(std::optional<bool> result) {
   if (_done)
     return;
   _done = true;
   boost::system::error_code ignored;
+  _socket.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
   _socket.close(ignored);
   _result.set_value(result);
 }
