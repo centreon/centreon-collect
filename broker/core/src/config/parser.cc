@@ -569,7 +569,9 @@ void parser::_get_generic_endpoint_configuration(const json& elem,
 }
 
 /**
- *  Parse the configuration of an endpoint.
+ *  @brief Parse the configuration of an endpoint. String, boolean and number
+ *  values are stored in the endpoint parameters as strings (true gives
+ *  "true"), arrays and objects are left out of them.
  *
  *  @param[in]  elem JSON element that has the endpoint configuration.
  *  @param[out] e    Element object.
@@ -682,6 +684,8 @@ void parser::_parse_endpoint(const json& elem,
     }
     if (it.value().is_string())
       e.params[it.key()] = it.value().get<std::string>();
+    else if (it.value().is_boolean() || it.value().is_number())
+      e.params[it.key()] = it.value().dump();
     else
       log_v2::instance()
           .get(log_v2::CONFIG)
