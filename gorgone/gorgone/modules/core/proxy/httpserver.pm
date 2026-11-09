@@ -304,7 +304,7 @@ sub read_message_client {
         # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
         $connector->{logger}->writeLogInfo(
             "[proxy-httpserver][diag-ping] received PONG from websocket for '" .
-            (defined($data->{id}) ? $data->{id} : '?') . "' at " . Time::HiRes::time()
+            (defined($data->{data}->{id}) ? $data->{data}->{id} : '?') . "' at " . Time::HiRes::time()
         );
 
         $connector->send_internal_action({
@@ -445,6 +445,14 @@ sub proxy {
     $connector->{logger}->writeLogDebug(
         "[proxy] httpserver send message: [action = $action] [token = $token] [target = $target_complete] [data = $data]"
     );
+    # DO-NOT-MERGE temporary diagnostic: proves this message actually reached proxy() in the
+    # child, before any of the branches below can silently return without ever writing to the
+    # text log (send_log() below only writes a PUTLOG to the DB history, never to this log).
+    if ($action eq 'PING' || $action eq 'GETLOG') {
+        $connector->{logger}->writeLogInfo(
+            "[proxy-httpserver][diag-ping] proxy() entered for '$action' target='$target_complete' at " . Time::HiRes::time()
+        );
+    }
 
     if ($action eq 'BCASTLOGGER' && $target_complete eq '') {
         my (undef, $decoded) = $connector->json_decode(argument => $data);
@@ -471,6 +479,11 @@ sub proxy {
     }
 
     if ($target_complete !~ /^(.+)~~(.+)$/) {
+        # DO-NOT-MERGE temporary diagnostic: send_log() only writes a PUTLOG to the DB history,
+        # never to this text log - add an explicit one so this path shows up in a log capture.
+        $connector->{logger}->writeLogError(
+            "[proxy-httpserver][diag-ping] unknown target format '$target_complete' for action '$action' at " . Time::HiRes::time()
+        );
         $connector->send_log(
             code => GORGONE_ACTION_FINISH_KO,
             token => $token,
@@ -488,6 +501,12 @@ sub proxy {
     }
 
     if (!defined($connector->{identities}->{$target_client})) {
+        # DO-NOT-MERGE temporary diagnostic: see above. Also logs the full current identities
+        # map so a stale/missing entry for this node is directly visible.
+        $connector->{logger}->writeLogError(
+            "[proxy-httpserver][diag-ping] cannot get connection for target node '$target_client' (action '$action') at " .
+            Time::HiRes::time() . ": known identities=" . join(',', sort keys %{$connector->{identities}})
+        );
         $connector->send_log(
             code => GORGONE_ACTION_FINISH_KO,
             token => $token,
@@ -626,6 +645,11 @@ sub is_logged_websocket {
     my $poller_uid = $self->{nodes}->{$content->{nodes}->[0]->{id}}->{uid};
 
     $self->{logger}->writeLogDebug("[proxy] httpserver client " . $content->{nodes}->[0]->{id} . " is logged");
+    # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
+    $self->{logger}->writeLogInfo(
+        "[proxy-httpserver][diag-ping] identity assigned: ws_id='" . $options{ws_id} . "' poller_id='" .
+        $poller_id . "' poller_uid='" . (defined($poller_uid) ? $poller_uid : 'undef') . "' at " . Time::HiRes::time()
+    );
     $self->{ws_clients}->{ $options{ws_id} }->{identity} = $content->{nodes}->[0]->{id};
     $self->{identities}->{ $poller_id } = $options{ws_id};
     $self->{identities}->{ $poller_uid } = $options{ws_id};
@@ -643,9 +667,19 @@ sub clean_websocket {
 
     if (defined($self->{ws_clients}->{ $options{ws_id} }->{identity})){
         my $poller_id = $self->get_poller_id($self->{ws_clients}->{ $options{ws_id} }->{identity});
-        delete $self->{identities}->{ $poller_id };
-
         my $poller_uid = $self->get_poller_uid($self->{ws_clients}->{ $options{ws_id} }->{identity});
+        # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss. This
+        # delete is unconditional - if a newer websocket for the same node already reassigned
+        # these identities to a different ws_id (a late finish on this old connection racing a
+        # reconnect), this would wipe a mapping that's still in use. Log it to check for that.
+        $self->{logger}->writeLogInfo(
+            "[proxy-httpserver][diag-ping] clean_websocket: ws_id='" . $options{ws_id} . "' poller_id='" . $poller_id .
+            "' poller_uid='" . (defined($poller_uid) ? $poller_uid : 'undef') .
+            "' identities{poller_id}=" . (defined($self->{identities}->{$poller_id}) ? $self->{identities}->{$poller_id} : 'undef') .
+            " (stale_delete=" . ((defined($self->{identities}->{$poller_id}) && $self->{identities}->{$poller_id} ne $options{ws_id}) ? 1 : 0) .
+            ") at " . Time::HiRes::time()
+        );
+        delete $self->{identities}->{ $poller_id };
         delete $self->{identities}->{ $poller_uid };
     }
 
@@ -654,6 +688,12 @@ sub clean_websocket {
 
 sub close_websocket {
     my ($self, %options) = @_;
+
+    # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
+    $self->{logger}->writeLogInfo(
+        "[proxy-httpserver][diag-ping] close_websocket: ws_id='" . $options{ws_id} . "' code=" . $options{code} .
+        " message='" . $options{message} . "' at " . Time::HiRes::time()
+    );
 
     $self->{ws_clients}->{ $options{ws_id} }->{tx}->send({json => {
         code => $options{code},

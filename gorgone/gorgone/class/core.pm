@@ -25,7 +25,7 @@ use warnings;
 use POSIX ":sys_wait_h";
 use MIME::Base64;
 use Crypt::Mode::CBC;
-use ZMQ::FFI qw(ZMQ_DONTWAIT ZMQ_SNDMORE);
+use ZMQ::FFI qw(ZMQ_DONTWAIT ZMQ_SNDMORE ZMQ_ROUTER_MANDATORY ZMQ_SNDHWM ZMQ_RCVHWM);
 use EV;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
@@ -597,7 +597,28 @@ sub send_internal_message {
     }
 
     $self->{internal_socket}->send($options{identity}, ZMQ_DONTWAIT | ZMQ_SNDMORE);
+    if ($self->{internal_socket}->has_error) {
+        # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss. This
+        # socket is a ZMQ_ROUTER without ZMQ_ROUTER_MANDATORY (see where it's created): by
+        # default that silently drops a message addressed to a momentarily-unroutable identity
+        # instead of erroring, so this check alone may never fire even when that's exactly what
+        # happened - ZMQ_ROUTER_MANDATORY is set on the socket for this diagnostic specifically
+        # to force the error to surface here instead.
+        $self->{logger}->writeLogError(
+            "[core][diag-ping] send_internal_message identity frame failed for identity='" . $options{identity} .
+            "' action='" . (defined($options{action}) ? $options{action} : 'undef') .
+            "' at " . Time::HiRes::time() . ": " . $self->{internal_socket}->last_strerror()
+        );
+    }
     $self->{internal_socket}->send($message, ZMQ_DONTWAIT);
+    if ($self->{internal_socket}->has_error) {
+        # DO-NOT-MERGE temporary diagnostic: see above.
+        $self->{logger}->writeLogError(
+            "[core][diag-ping] send_internal_message message frame failed for identity='" . $options{identity} .
+            "' action='" . (defined($options{action}) ? $options{action} : 'undef') .
+            "' at " . Time::HiRes::time() . ": " . $self->{internal_socket}->last_strerror()
+        );
+    }
 }
 
 sub broadcast_run {
@@ -1273,6 +1294,21 @@ sub run {
         name => 'router-internal',
         zmq_router_handover => $gorgone->{config}->{configuration}->{gorgone}->{gorgonecore}->{internal_com_zmq_router_handover},
         logger => $gorgone->{logger}
+    );
+
+    # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss. This
+    # ROUTER socket is created without ZMQ_ROUTER_MANDATORY anywhere in gorgone, so by default a
+    # send to a momentarily-unroutable identity (e.g. a reconnecting/just-recreated child) is
+    # silently dropped instead of returning an error - set it here, for this diagnostic only, so
+    # send_internal_message()'s new error check above actually has something to catch. Also logs
+    # the effective SNDHWM/RCVHWM: create_com() never sets them for this socket (unlike
+    # connect_com(), used for the children's own sockets, which defaults them to 0/unlimited), so
+    # this uses whatever libzmq's own built-in default is.
+    $gorgone->{internal_socket}->set(ZMQ_ROUTER_MANDATORY, 'int', 1);
+    $gorgone->{logger}->writeLogInfo(
+        "[core][diag-ping] internal_socket (main ROUTER): ZMQ_ROUTER_MANDATORY=1 (forced for diagnostic) " .
+        "SNDHWM=" . $gorgone->{internal_socket}->get(ZMQ_SNDHWM, 'int') .
+        " RCVHWM=" . $gorgone->{internal_socket}->get(ZMQ_RCVHWM, 'int')
     );
 
     if (defined($gorgone->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_type}) && $gorgone->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_type} ne '') {

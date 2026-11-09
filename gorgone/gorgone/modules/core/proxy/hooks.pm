@@ -279,6 +279,13 @@ sub routing {
 
     # we check if we have all proxy connected
     if (gorgone::class::core::waiting_ready_pool() == 0) {
+        # DO-NOT-MERGE temporary diagnostic: this path only writes to DB history (add_history),
+        # never to the text log, so it would never show up in a kubectl logs capture regardless
+        # of level - add an explicit text log here so this path can be ruled in or out.
+        $options{logger}->writeLogInfo(
+            "[proxy][diag-ping] routing() '" . $options{action} . "' for '" . (defined($options{target}) ? $options{target} : 'undef') .
+            "' rejected: waiting_ready_pool() == 0"
+        );
         gorgone::standard::library::add_history({
             dbh => $options{dbh},
             code => GORGONE_ACTION_FINISH_KO,
@@ -414,9 +421,13 @@ sub routing {
         # it is actually able to route to this node
         if ($options{action} !~ /^(?:PROXYADDNODE|PROXYDELNODE|PROXYCLOSECONNECTION)$/
             && (!defined($synctime_nodes->{$target_parent}) || $synctime_nodes->{$target_parent}->{channel_ready} != 1)) {
-            $options{logger}->writeLogDebug(
-                "[proxy] deferring '" . $options{action} . "' for '" . $target_parent .
-                "': node not yet fully registered (channel not ready)"
+            # DO-NOT-MERGE temporary diagnostic: bumped from Debug to Info, with channel_ready's
+            # exact value and the node's registered identity, to confirm or rule out this path
+            # for the at-rest pullwss ping/getlog loss.
+            $options{logger}->writeLogInfo(
+                "[proxy][diag-ping] deferring '" . $options{action} . "' for '" . $target_parent .
+                "': channel_ready=" . (defined($synctime_nodes->{$target_parent}) && defined($synctime_nodes->{$target_parent}->{channel_ready}) ? $synctime_nodes->{$target_parent}->{channel_ready} : 'undef') .
+                " identity=" . (defined($register_nodes->{$target_parent}) && defined($register_nodes->{$target_parent}->{identity}) ? $register_nodes->{$target_parent}->{identity} : 'undef')
             );
             # a GETLOG lock (total_msg) was already taken above, before this channel_ready
             # check could run: release it now, or it sits locked until the much longer
@@ -777,7 +788,8 @@ sub pathway {
     my $first_target;
     foreach (@targets) {
         if ($register_nodes->{$_}->{type} =~ /^(?:pull|wss|pullwss)$/ && !defined($register_nodes->{$_}->{identity})) {
-            $options{logger}->writeLogDebug("[proxy] skip node " . $register_nodes->{$_}->{type} . " target '$_' for node '$target' - never connected");
+            # DO-NOT-MERGE temporary diagnostic: bumped from Debug to Info.
+            $options{logger}->writeLogInfo("[proxy][diag-ping] skip node " . $register_nodes->{$_}->{type} . " target '$_' for node '$target' - never connected");
             next;
         }
 
@@ -795,7 +807,8 @@ sub pathway {
     }
 
     if (!defined($first_target)) {
-        $options{logger}->writeLogDebug("[proxy] no pathway for target '$target'");
+        # DO-NOT-MERGE temporary diagnostic: bumped from Debug to Info.
+        $options{logger}->writeLogInfo("[proxy][diag-ping] no pathway for target '$target'");
         gorgone::standard::library::add_history({
             dbh => $options{dbh},
             code => GORGONE_ACTION_FINISH_KO, token => $options{token},
