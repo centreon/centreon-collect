@@ -18,6 +18,8 @@
 
 #ifndef CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #define CCB_CONFIG_APPLIER_BROKER_STATE_HH
+#include <atomic>
+
 #include "broker/core/config/applier/state.hh"
 
 namespace com::centreon::broker::config::applier {
@@ -92,6 +94,13 @@ class broker_state : public state {
    * storage database. */
   std::filesystem::path _pollers_config_dir;
 
+  /* Set at the end of the first apply(). From then, _cache_config_dir and
+   * _pollers_config_dir can no longer change: streams and the watcher timer
+   * read them without lock, and the Broker role (central/relay) can't change
+   * with already negotiated streams. A change needs a Broker restart. Only
+   * accessed by the thread applying the configuration. */
+  bool _config_dirs_frozen = false;
+
   /* This object is used to watch the _cache_config_dir. */
   std::unique_ptr<file::directory_watcher> _cache_config_dir_watcher;
 
@@ -130,6 +139,22 @@ class broker_state : public state {
   std::vector<std::shared_ptr<io::data>> _pending_diff_state_acks
       ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
+  /* Incremented each time the state read by broker_stream::read() to push
+   * configuration messages may give it new work: engine peers added or their
+   * available_conf/engine_conf/via_remote changed, available_conf_sent reset,
+   * pending DiffStates/ConfigRequests/DiffStateAcks/ConfigRevokes pushed.
+   * (_pollers_config_dir, that is_relay() depends on, is set before any stream
+   * exists and can't change afterwards.) It lets streams skip the locked scans when
+   * nothing changed since their last check.
+   * IMPORTANT: any new code adding such work MUST call
+   * _bump_config_generation(), otherwise streams will not send it until an
+   * unrelated change. Changes that only remove work (pop_*(),
+   * available_conf_sent set to true...) must not call it, they would make
+   * every stream rescan for nothing. */
+  std::atomic<uint64_t> _config_generation{0};
+  void _bump_config_generation() noexcept {
+    _config_generation.fetch_add(1, std::memory_order_release);
+  }
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
    * bbdo::pb_engine_configuration messages. And it is used in unified_sql
@@ -169,6 +194,11 @@ class broker_state : public state {
   bool broker_peer_supports_extended_negotiation() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool is_relay() const noexcept;
+  /* Lock-free: returns the current configuration generation. A stream that
+   * saw the same value at its previous check has nothing new to send. */
+  uint64_t config_generation() const noexcept {
+    return _config_generation.load(std::memory_order_acquire);
+  }
   std::vector<std::tuple<uint64_t, std::string, std::string>>
   pop_pending_config_requests() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void add_peer(uint64_t poller_id,

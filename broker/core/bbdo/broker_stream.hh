@@ -24,6 +24,16 @@ namespace com::centreon::broker::bbdo {
 class broker_stream : public stream {
   config::applier::broker_state& _state;
 
+  /* broker_state configuration generation seen at the last configuration
+   * relay check done in read(): if it did not change since, the check is
+   * skipped. The initial value can't be a real generation, so the first
+   * read() always checks. No need to track the peer identity: it is set once
+   * in negotiate(), that the acceptor/connector call before the stream is
+   * read, so the first check is already done with the right identity. */
+  uint64_t _last_config_generation = UINT64_MAX;
+
+  void _push_pending_config_messages();
+
  protected:
   void _send_diff_state_for_poller(uint64_t poller_id);
   void _handle_bbdo_event(const std::shared_ptr<io::data>& d) override;
