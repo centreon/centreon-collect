@@ -57,13 +57,16 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
 
     // Pollers configuration directory (for Broker).
     // If not provided in the configuration, use a default directory.
-    if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
+    if (!s.cache_config_dir().empty()) {
       std::filesystem::path cache_dir = calc_cache_dir(s);
       set_pollers_config_dir(cache_dir / "pollers-configuration/");
-      load_topology_cache();
+      if (!_config_dirs_frozen)
+        load_topology_cache();
     } else
       set_pollers_config_dir(s.pollers_config_dir());
   }
+  /* From now, streams can exist: directories can no longer change. */
+  _config_dirs_frozen = true;
 
   state::apply(s, run_mux);
 }
@@ -84,6 +87,19 @@ const std::filesystem::path& broker_state::pollers_config_dir() const noexcept {
  */
 void broker_state::set_pollers_config_dir(
     const std::filesystem::path& pollers_config_dir) {
+  if (_pollers_config_dir == pollers_config_dir)
+    return;
+
+  /* Streams read it without lock and is_relay() depends on it: it can't
+   * change once they may exist. */
+  if (_config_dirs_frozen) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Pollers configuration directory can't change from "
+                        "'{}' to '{}' without a Broker restart, change ignored",
+                        _pollers_config_dir.string(),
+                        pollers_config_dir.string());
+    return;
+  }
   _pollers_config_dir = pollers_config_dir;
 }
 
@@ -94,6 +110,17 @@ void broker_state::set_pollers_config_dir(
  */
 void broker_state::set_cache_config_dir(
     const std::filesystem::path& cache_config_dir) {
+  if (_cache_config_dir == cache_config_dir)
+    return;
+  /* On reload, nothing to do if unchanged: no need to rebuild the watcher. */
+  if (_config_dirs_frozen) {
+    SPDLOG_LOGGER_ERROR(
+        _logger,
+        "Configuration cache directory can't change from '{}' to '{}' "
+        "without a Broker restart, change ignored",
+        _cache_config_dir.string(), cache_config_dir.string());
+    return;
+  }
   _cache_config_dir = cache_config_dir;
   if (!_cache_config_dir.empty()) {
     SPDLOG_LOGGER_INFO(_logger, "Watching for changes in '{}'",
@@ -168,6 +195,8 @@ void broker_state::load_topology_cache() {
       _engine_peers[e.poller_id()] =
           engine_peer{e.poller_id(), "",   0,     false,       "", "",
                       false,         true, false, e.relay_id()};
+      /* No _bump_config_generation(): available_conf is empty, there is
+       * nothing to send to this peer yet. */
     }
   }
   SPDLOG_LOGGER_INFO(_logger, "Topology cache loaded: {} hints",
@@ -302,6 +331,7 @@ void broker_state::add_peer(uint64_t poller_id,
                                          time(nullptr), extended_negotiation};
         break;
       case common::ENGINE:
+        _bump_config_generation();
         _engine_peers[poller_id] = engine_peer{
             poller_id, poller_name, time(nullptr), extended_negotiation,
             "",        engine_conf, false,         true,
@@ -392,6 +422,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
             poller_id, found->second.engine_conf, full_state.config_version(),
             prot_file.string());
         found->second.engine_conf.clear();
+        _bump_config_generation();
         have_to_send_all_conf = true;
       }
     } else {
@@ -519,12 +550,15 @@ void broker_state::set_poller_engine_conf(uint32_t poller_id,
         _logger, "Poller with id {} not found in connected peers", poller_id);
   } else {
     auto& peer = found->second;
-    SPDLOG_LOGGER_INFO(
-        _logger,
-        "Poller with id {} available conf '{}' and current version changed "
-        "from '{}' to '{}'",
-        poller_id, peer.available_conf, peer.engine_conf, engine_conf);
-    peer.engine_conf = engine_conf;
+    if (peer.engine_conf != engine_conf) {
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "Poller with id {} available conf '{}' and current version changed "
+          "from '{}' to '{}'",
+          poller_id, peer.available_conf, peer.engine_conf, engine_conf);
+      peer.engine_conf = engine_conf;
+      _bump_config_generation();
+    }
   }
 }
 
@@ -539,6 +573,8 @@ void broker_state::set_poller_engine_conf(uint32_t poller_id,
  */
 void broker_state::set_poller_engine_conf_unknown(uint64_t poller_id,
                                                   bool unknown) {
+  /* No _bump_config_generation(): this does not add work for
+   * broker_stream::read(). */
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _engine_peers.find(poller_id);
   if (found != _engine_peers.end()) {
@@ -574,6 +610,8 @@ void broker_state::remove_peer(uint64_t poller_id,
                                const std::string& poller_name,
                                const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
+  /* No _bump_config_generation(): this does not add work for
+   * broker_stream::read(). */
   absl::WriterMutexLock lck(&_connected_peers_m);
   const peer_key key{poller_id, poller_name, broker_name};
   bool erased = _broker_peers.erase(key) || _unknown_peers.erase(key);
@@ -607,6 +645,8 @@ bool broker_state::has_connection_from_poller(uint64_t poller_id) const {
 
 void broker_state::set_instance_running(uint64_t poller_id,
                                         bool running) noexcept {
+  /* No _bump_config_generation(): this does not add work for
+   * broker_stream::read(). */
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
   if (it != _engine_peers.end())
@@ -701,10 +741,18 @@ bool broker_state::all_engine_peers_acknowledged() {
   if (retval && engine_count > 0) {
     /* Reset all flags so that a concurrent or subsequent call won't
      * trigger a second global diff publication for the same round. */
+    bool new_work = false;
     for (auto& [key, peer] : _engine_peers) {
       peer.conf_acknowledged = false;
       peer.available_conf_sent = false;
+      /* Same condition as engine_peer_needs_update(). */
+      if (!peer.available_conf.empty() &&
+          peer.available_conf != peer.engine_conf)
+        new_work = true;
     }
+    /* available_conf_sent reset: some peers may need an update again. */
+    if (new_work)
+      _bump_config_generation();
   }
   return retval && engine_count > 0;
 }
@@ -1065,6 +1113,7 @@ bool broker_state::_save_diff_prot(
      * into <poller-ID>.prot and the diff file can be removed. */
     peer.available_conf = config_version;
     peer.available_conf_sent = false;
+    _bump_config_generation();
     return true;
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(
@@ -1109,6 +1158,8 @@ bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
  * @param poller_id
  */
 void broker_state::acknowledge_engine_peer(uint64_t poller_id) {
+  /* No _bump_config_generation(): this does not add work for
+   * broker_stream::read(). */
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _engine_peers.find(poller_id);
   if (found != _engine_peers.end())
@@ -1122,6 +1173,8 @@ void broker_state::acknowledge_engine_peer(uint64_t poller_id) {
  * @param poller_id
  */
 void broker_state::set_available_conf_sent_to_engine_peer(uint32_t poller_id) {
+  /* No _bump_config_generation(): this does not add work for
+   * broker_stream::read(). */
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _engine_peers.find(poller_id);
   if (found != _engine_peers.end()) {
@@ -1182,6 +1235,7 @@ broker_state::pop_pending_config_requests() {
 void broker_state::push_pending_diff_state(uint64_t poller_id,
                                            std::shared_ptr<io::data> diff) {
   absl::WriterMutexLock lck(&_connected_peers_m);
+  _bump_config_generation();
   _pending_diff_states[poller_id] = std::move(diff);
 }
 
@@ -1198,6 +1252,7 @@ std::shared_ptr<io::data> broker_state::pop_pending_diff_state_for_engine(
 
 void broker_state::push_pending_diff_state_ack(std::shared_ptr<io::data> ack) {
   absl::WriterMutexLock lck(&_connected_peers_m);
+  _bump_config_generation();
   _pending_diff_state_acks.push_back(std::move(ack));
 }
 
@@ -1230,6 +1285,11 @@ void broker_state::register_engine_peer_via_relay(
   auto it = _engine_peers.find(engine_id);
   if (it != _engine_peers.end()) {
     const uint64_t old_relay = it->second.via_remote;
+    /* Re-registration with the same relay and version: nothing new for
+     * broker_stream::read(). */
+    if (old_relay != relay_poller_id ||
+        (!config_version.empty() && config_version != it->second.engine_conf))
+      _bump_config_generation();
     if (old_relay != 0 && old_relay != relay_poller_id) {
       SPDLOG_LOGGER_INFO(
           _logger,
@@ -1250,6 +1310,7 @@ void broker_state::register_engine_peer_via_relay(
         _logger,
         "Registering engine peer {} via relay {} with config version '{}'",
         engine_id, relay_poller_id, config_version);
+    _bump_config_generation();
     _engine_peers[engine_id] = engine_peer{
         engine_id,      engine_name, time(nullptr), true,  "",
         config_version, false,       true,          false, relay_poller_id};
@@ -1360,6 +1421,7 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
         absl::WriterMutexLock lck(&_connected_peers_m);
         auto it = _engine_peers.find(engine_id);
         if (it != _engine_peers.end()) {
+          _bump_config_generation();
           it->second.available_conf = version;
           it->second.available_conf_sent = false;
         }
@@ -1407,6 +1469,8 @@ std::vector<uint64_t> broker_state::pop_pending_config_revokes(
  * @param poller_id The poller ID to clear.
  */
 void broker_state::clear_pending_for_poller(uint64_t poller_id) {
+  /* No _bump_config_generation(): this does not add work for
+   * broker_stream::read(). */
   absl::WriterMutexLock lck(&_connected_peers_m);
   _pending_diff_states.erase(poller_id);
   _pending_config_requests.erase(poller_id);
