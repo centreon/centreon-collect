@@ -128,6 +128,21 @@ sub register {
     $config->{httpserver}->{check_interval} = defined($config->{httpserver}->{check_interval}) && $config->{httpserver}->{check_interval} =~ /(\d+)/ ? $1 : 30;
     $config->{httpserver}->{check_timeout} = defined($config->{httpserver}->{check_timeout}) && $config->{httpserver}->{check_timeout} =~ /(\d+)/ ? $1 : 60;
     $config->{httpserver}->{token_check_interval} = defined($config->{httpserver}->{token_check_interval}) && $config->{httpserver}->{token_check_interval} =~ /([1-9]\d*)/ ? $1 : 60;
+
+    # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss. Logs the
+    # resolved interval/timeout values once at startup, to compare against the observed ~80s
+    # burst period without guessing at the configuration.
+    if (defined($options{logger})) {
+        $options{logger}->writeLogInfo(
+            "[proxy][diag-ping] resolved config: ping=" . $ping_interval .
+            " synchistory_time=" . $synctime_option . " synchistory_timeout=" . $synctimeout_option .
+            " pong_discard_timeout=" . $config->{pong_discard_timeout} .
+            " pong_max_timeout=" . $config->{pong_max_timeout} .
+            " httpserver.check_interval=" . $config->{httpserver}->{check_interval} .
+            " httpserver.check_timeout=" . $config->{httpserver}->{check_timeout} .
+            " httpserver.token_check_interval=" . $config->{httpserver}->{token_check_interval}
+        );
+    }
     return (1, NAMESPACE, NAME, EVENTS);
 }
 
@@ -674,10 +689,15 @@ sub check {
     # We check if we need synclogs
     if ($stop == 0 &&
         time() - $synctime_lasttime > $synctime_option) {
+        # DO-NOT-MERGE temporary diagnostic: see ping_send()/full_sync_history().
+        $options{logger}->writeLogInfo(
+            "[proxy][diag-ping] full_sync_history triggered at " . Time::HiRes::time() .
+            " (last=" . $synctime_lasttime . " now=" . time() . " synchistory_time=" . $synctime_option . ")"
+        );
         $synctime_lasttime = time();
         full_sync_history(gorgone => $options{gorgone}, dbh => $options{dbh}, logger => $options{logger});
     }
-    
+
     if ($stop == 0) {
         ping_send(gorgone => $options{gorgone}, dbh => $options{dbh}, logger => $options{logger});
     }
@@ -931,7 +951,9 @@ sub ping_send {
             my $diag_decision = $constatus_ping->{$id}->{in_progress_ping} == 1 ? 'SKIP (already in progress)'
                 : ($current_time < $constatus_ping->{$id}->{next_ping} ? 'SKIP (not due)' : 'SEND');
             $options{logger}->writeLogInfo(
-                "[proxy][diag-ping] node '" . $id . "' at " . Time::HiRes::time() .
+                "[proxy][diag-ping] node id='" . $id . "' uid='" .
+                (defined($register_nodes->{$id}->{uid}) ? $register_nodes->{$id}->{uid} : 'undef') .
+                "' at " . Time::HiRes::time() .
                 ": in_progress_ping=" . $constatus_ping->{$id}->{in_progress_ping} .
                 " next_ping=" . $constatus_ping->{$id}->{next_ping} .
                 " current_time=" . $current_time .
@@ -967,9 +989,20 @@ sub synclog {
 
 sub full_sync_history {
     my (%options) = @_;
-    
+
     foreach my $id (keys %{$register_nodes}) {
         next if ($id ne $register_nodes->{$id}->{id}); # register_node contain one key per id and one per uid for each poller.
+        # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
+        # Logs this node's id/uid and GETLOG lock state right before (re)dispatching, to see
+        # whether a stale lock (total_msg still set from a previous round) silently skips it in
+        # routing() rather than actually sending a fresh GETLOG.
+        $options{logger}->writeLogInfo(
+            "[proxy][diag-ping] full_sync_history dispatching GETLOG for id='" . $id .
+            "' uid='" . (defined($register_nodes->{$id}->{uid}) ? $register_nodes->{$id}->{uid} : 'undef') .
+            "' at " . Time::HiRes::time() .
+            " total_msg=" . (defined($synctime_nodes->{$id}->{total_msg}) ? $synctime_nodes->{$id}->{total_msg} : 'undef') .
+            " channel_ready=" . (defined($synctime_nodes->{$id}->{channel_ready}) ? $synctime_nodes->{$id}->{channel_ready} : 'undef')
+        );
         if ($register_nodes->{$id}->{type} eq 'push_zmq') {
             routing(action => 'GETLOG', target => $id, frame => gorgone::class::frame->new(data => {}), gorgone => $options{gorgone}, dbh => $options{dbh}, logger => $options{logger});
         } elsif ($register_nodes->{$id}->{type} =~ /^(?:pull|wss|pullwss)$/) {
@@ -1333,8 +1366,21 @@ sub register_nodes_from_db {
         data        => $options{data}->{nodes},
         token       => $options{token},
     );
+    my $diag_registration_order = 0;
     foreach my $node (@{$options{data}->{nodes}}) {
         my ($new_node, $prevail) = (1, 0);
+
+        # DO-NOT-MERGE temporary diagnostic: localize the at-rest pullwss ping/getlog loss.
+        # Logs this batch's registration order, to check whether the affected nodes share a
+        # position (e.g. always last, always a specific index) rather than being arbitrary.
+        $diag_registration_order++;
+        $options{logger}->writeLogInfo(
+            "[proxy][diag-ping] register_nodes_from_db processing id='" . $node->{id} .
+            "' uid='" . (defined($node->{uid}) ? $node->{uid} : 'undef') .
+            "' type='" . (defined($node->{type}) ? $node->{type} : 'undef') .
+            "' order=" . $diag_registration_order . "/" . scalar(@{$options{data}->{nodes}}) .
+            " at " . Time::HiRes::time()
+        );
 
         # prevail = 1 means: we cannot override the old one (if it exists)
         if (defined($prevails_subnodes->{ $node->{id} })) {
