@@ -21,6 +21,10 @@ Test Teardown       Ctn Save Logs If Failed
 BECT1
     [Documentation]    Broker/Engine communication with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests: TLS is not a BBDO extension there
+    END
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
@@ -245,6 +249,10 @@ BECT4
 BECT_GRPC1
     [Documentation]    Broker/Engine communication with GRPC and with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests: TLS is not a BBDO extension there
+    END
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
