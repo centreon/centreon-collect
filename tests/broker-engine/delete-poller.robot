@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Creation of 4 pollers and then deletion of Poller3.
+Documentation     Creation of 4 pollers and then deletion of Poller3.
 
-Resource    ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup    Ctn Clean Before Suite
+Suite Setup       Ctn Clean Before Suite
 Suite Teardown    Ctn Clean After Suite
-Test Setup    Ctn Stop Processes
-Test Teardown    Ctn Save Logs If Failed
+Test Setup        Ctn Stop Processes
+Test Teardown     Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -691,4 +691,106 @@ EBDP_CENTRALIZED_PROT
     ${content}    Create List    stored configurations of poller(s) 1, 2
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
     Should Be True    ${result}    The cache was not filled from the two remaining pollers only
+    Ctn Kindly Stop Broker
+
+EBDP_CENTRALIZED_NO_SQL
+    [Documentation]    Scenario: removing a poller does not depend on an unified_sql output
+    ...    Given three pollers in centralized mode, each with its configuration acknowledged
+    ...    And a central Broker without any unified_sql output
+    ...    When every Engine is stopped and Poller2, the poller 3, is removed by its name
+    ...    Then Broker finds its id in its cache and accepts the removal
+    ...    And 3.prot is gone while the configurations of the two other pollers are untouched
+    ...    And a later start only loads the two remaining pollers
+    [Tags]    broker    engine    grpc    config    centralized
+    Ctn Clear Prot Files
+    Ctn Clear Broker Cache
+    Ctn Config Centralized Engine    ${3}    ${10}    ${2}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
+    Ctn Broker Config Remove Output    central    central-broker-unified-sql
+    Ctn Broker Config Log    central    config    debug
+
+    ${prot_dir}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    ${content}    Create List    All engine peers acknowledged? 3/3 acknowledged
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The three pollers did not acknowledge their configuration
+    Wait Until Created    ${prot_dir}/3.prot    30s
+
+    # Broker refuses a connected poller, so the disconnection must be seen first.
+    Ctn Stop Engine
+    ${content}    Create List    with id 3 disconnected
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not see the poller 3 disconnect
+
+    ${code}    Ctn Remove Poller    51001    Poller2
+    Should Be Equal    ${code}    OK    RemovePoller should accept a stopped poller
+
+    Wait Until Removed    ${prot_dir}/3.prot    30s
+    File Should Exist    ${prot_dir}/1.prot
+    ...    the configuration of poller 1 must not be touched
+    File Should Exist    ${prot_dir}/2.prot
+    ...    the configuration of poller 2 must not be touched
+    ${content}    Create List    Poller 3 removed from Broker
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not report removing poller 3
+
+    ${restart}    Ctn Get Round Current Date
+    Ctn Kindly Stop Broker
+    Ctn Start Broker    newGeneration=True
+    ${content}    Create List    stored configurations of poller(s) 1, 2
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    The cache was not filled from the two remaining pollers only
+    Ctn Kindly Stop Broker
+
+EBDP_CENTRALIZED_CONNECTED
+    [Documentation]    Scenario: a connected poller cannot be removed
+    ...    Given three pollers in centralized mode, each with its configuration acknowledged
+    ...    When the poller 3 is removed while its Engine is still connected
+    ...    Then RemovePoller answers FAILED_PRECONDITION
+    ...    And 3.prot is kept, as is the poller in the database
+    [Tags]    broker    engine    grpc    config    centralized
+    Ctn Clear Prot Files
+    Ctn Clear Broker Cache
+    Ctn Config Centralized Engine    ${3}    ${10}    ${2}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    sql    debug
+
+    ${prot_dir}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    ${content}    Create List    All engine peers acknowledged? 3/3 acknowledged
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The three pollers did not acknowledge their configuration
+    Wait Until Created    ${prot_dir}/3.prot    30s
+
+    ${code}    Ctn Remove Poller By Id    51001    ${3}
+    Should Be Equal    ${code}    FAILED_PRECONDITION    RemovePoller should refuse a connected poller
+
+    ${content}    Create List    Poller 3 is not removed: it is connected
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not report refusing the removal
+    File Should Exist    ${prot_dir}/3.prot    the configuration of poller 3 must be kept
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query    SELECT instance_id FROM instances WHERE instance_id=3
+        IF    "${output}" != "()"    BREAK
+        Sleep    1s
+    END
+    Disconnect From Database
+    Should Be Equal As Strings    ${output}    ((3,),)    poller 3 must stay in the database
+
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

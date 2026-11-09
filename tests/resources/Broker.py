@@ -2702,6 +2702,37 @@ def ctn_add_bam_config_to_broker(name):
     })
 
 
+def _ctn_call_remove_poller(port, ref, timeout):
+    """
+    Call the RemovePoller RPC, retrying while the gRPC server is not reachable.
+
+    Args:
+        port (int): the gRPC port to use
+        ref (broker_pb2.GenericNameOrIndex): the poller to remove
+        timeout (int): how long to retry
+
+    Returns:
+        str: the name of the gRPC status code, "OK" when the poller is removed,
+        "FAILED_PRECONDITION" when Broker refuses it because it is connected.
+    """
+    limit = time.time() + timeout
+    code = "UNAVAILABLE"
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                stub.RemovePoller(ref, timeout=max(1, limit - time.time()))
+                return "OK"
+            except grpc.RpcError as e:
+                code = e.code().name
+                if e.code() != grpc.StatusCode.UNAVAILABLE:
+                    logger.console(f"RemovePoller refused: {e.details()}")
+                    return code
+                logger.console("gRPC server not ready")
+    return code
+
+
 def ctn_remove_poller(port, name, timeout=TIMEOUT):
     """
     Send a gRPC command to remove by name a poller.
@@ -2711,20 +2742,13 @@ def ctn_remove_poller(port, name, timeout=TIMEOUT):
         name (str): the poller name
         timeout (int, optional): Defaults to TIMEOUT.
 
+    Returns:
+        str: the name of the gRPC status code, "OK" on success.
     """
-    limit = time.time() + timeout
-    while time.time() < limit:
-        logger.console(f"Try to call removePoller by name on port {port}")
-        time.sleep(1)
-        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-            stub = broker_pb2_grpc.BrokerStub(channel)
-            ref = broker_pb2.GenericNameOrIndex()
-            ref.str = name
-            try:
-                stub.RemovePoller(ref, timeout=max(1, limit - time.time()))
-                break
-            except Exception:
-                logger.console("gRPC server not ready")
+    logger.console(f"Try to call removePoller by name on port {port}")
+    ref = broker_pb2.GenericNameOrIndex()
+    ref.str = name
+    return _ctn_call_remove_poller(port, ref, timeout)
 
 
 def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
@@ -2733,23 +2757,17 @@ def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
 
     Args:
         port (int): the gRPC port to use
-        idx (int): the poller name
+        idx (int): the poller id
         timeout (int, optional): Defaults to TIMEOUT.
+
+    Returns:
+        str: the name of the gRPC status code, "OK" on success.
     """
-    limit = time.time() + timeout
-    while time.time() < limit:
-        logger.console(
-            f"Try to call removePoller by id (={idx}) on port {port}")
-        time.sleep(1)
-        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
-            stub = broker_pb2_grpc.BrokerStub(channel)
-            ref = broker_pb2.GenericNameOrIndex()
-            ref.idx = int(idx)
-            try:
-                stub.RemovePoller(ref, timeout=max(1, limit - time.time()))
-                break
-            except Exception:
-                logger.console("gRPC server not ready")
+    logger.console(
+        f"Try to call removePoller by id (={idx}) on port {port}")
+    ref = broker_pb2.GenericNameOrIndex()
+    ref.idx = int(idx)
+    return _ctn_call_remove_poller(port, ref, timeout)
 
 
 def ctn_get_broker_topology(port: int = 51001, timeout: int = TIMEOUT):
