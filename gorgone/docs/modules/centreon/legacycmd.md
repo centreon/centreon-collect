@@ -24,7 +24,7 @@ The module relies on the following modules to process commands:
 | bulk_external_cmd            | Bulk external commands (DOWNTIME, ACK,...)                   | `50`                                      |
 | bulk_external_cmd_sequential | Order bulk external commands and other commands (Eg. RELOAD) | `1`                                       |
 | legacycmd_result_timeout     | Max seconds to wait for a CENTREONCOMMAND batch's result     | `40`                                      |
-| legacycmd_fast_poll_max_targets | Max combined pending targets for the 1s fast poll below (see `check_pending_batches_fast()`); above it, only the 5s sweep runs | `3` |
+| legacycmd_fast_poll_max_targets | Max remote nudges per 1s tick in the fast poll below (see `check_pending_batches_fast()`), rotating through every pending target | `3` |
 
 A CENTREONCOMMAND batch (SENDCFGFILE, SYNCTRAP, ENGINERESTART, RESTART, ENGINERELOAD,
 RELOAD, START, STOP, RELOADBROKER, RESTARTCENTREONTRAPD, RELOADCENTREONTRAPD,
@@ -40,14 +40,15 @@ instead of waiting for its own ~20s `full_sync_history()` cycle, see
 [proxy.md](../core/proxy.md)) and polls this central's own history for the batch's token.
 That alone gave a `legacycmd_result_timeout`-bound latency of several multiples of 5s per
 step even though the actual work is 1-2.5s (MON-214478). `check_pending_batches_fast()`
-adds a 1s sweep on top: the local history poll (no shared resource involved) always runs,
-giving much faster notice once a result lands by any path; the remote nudge only runs
-there too while every pending batch's targets combined are at or under
-`legacycmd_fast_poll_max_targets` - above that (a wide broadcast, e.g. a SENDCFGFILE to
-every poller), the nudge stays on the unchanged 5s sweep, so a wide batch sends no more
-httpserver-child traffic than before this change (see proxy.md's "httpserver child health
-check" for why that traffic is bounded deliberately). The batch's deadline is only checked
-on the 5s sweep, so a timeout can land up to ~4s late.
+adds a 1s sweep on top: the local history poll (no shared resource involved) always runs
+for every pending batch, giving much faster notice once a result lands by any path; the
+remote nudge is capped at `legacycmd_fast_poll_max_targets` per tick, rotating
+(`fast_poll_offset`) through every pending batch's targets combined - a wide broadcast
+(e.g. a SENDCFGFILE to every poller) or several small batches pending at once (e.g.
+parallel delivery from the web) each still gets covered within a few seconds, without ever
+sending more httpserver-child traffic per second than before this change (see proxy.md's
+"httpserver child health check" for why that traffic is bounded deliberately). The batch's
+deadline is only checked on the 5s sweep, so a timeout can land up to ~4s late.
 
 #### Example
 
