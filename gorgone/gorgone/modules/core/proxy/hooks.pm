@@ -127,6 +127,7 @@ sub register {
     $config->{pool} = defined($config->{pool}) && $config->{pool} =~ /(\d+)/ ? $1 : 5;
     $config->{httpserver}->{check_interval} = defined($config->{httpserver}->{check_interval}) && $config->{httpserver}->{check_interval} =~ /(\d+)/ ? $1 : 30;
     $config->{httpserver}->{check_timeout} = defined($config->{httpserver}->{check_timeout}) && $config->{httpserver}->{check_timeout} =~ /(\d+)/ ? $1 : 60;
+    $config->{httpserver}->{token_check_interval} = defined($config->{httpserver}->{token_check_interval}) && $config->{httpserver}->{token_check_interval} =~ /([1-9]\d*)/ ? $1 : 60;
     return (1, NAMESPACE, NAME, EVENTS);
 }
 
