@@ -291,6 +291,36 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
 bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   bool retval = stream::read(d, deadline);
 
+  /* The check is done on every read(), including timeouts, so that pending
+   * configuration messages are sent even on a silent stream. But the locked
+   * scans of broker_state are only done when something changed since the
+   * previous check: the generation is read lock-free. */
+  const uint64_t generation = _state.config_generation();
+  if (generation != _last_config_generation) {
+    /* The generation is read before the scans: a change done during them
+     * makes the next read() scan again, so nothing is missed. The snapshot is
+     * saved after the scans, so if an exception is thrown, the next read()
+     * scans again. Beware: messages already popped from broker_state before
+     * the failing write are lost, a rescan won't find them. */
+    try {
+      _push_pending_config_messages();
+      _last_config_generation = generation;
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger, "Fail to send config messages: {}",
+                          e.what());
+    }
+  }
+
+  return retval;
+}
+
+/**
+ * @brief Sends to the peer the configuration messages waiting for it in
+ * broker_state: DiffState for an Engine (directly or forwarded by a relay),
+ * ConfigRevoke and DiffStates for a relay (from the central), ConfigRequests
+ * and DiffStateAcks for the central (from a relay).
+ */
+void broker_stream::_push_pending_config_messages() {
   if (peer_type() == common::ENGINE &&
       _state.engine_peer_needs_update(poller_id())) {
     SPDLOG_LOGGER_DEBUG(
@@ -359,8 +389,6 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       }
     }
   }
-
-  return retval;
 }
 
 /**
