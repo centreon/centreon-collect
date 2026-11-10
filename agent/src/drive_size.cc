@@ -19,6 +19,8 @@
 #include "drive_size.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 
+#include <absl/strings/str_replace.h>
+
 using namespace com::centreon::agent;
 
 static std::shared_ptr<
@@ -142,6 +144,38 @@ static std::unique_ptr<re2::RE2> make_case_insensitive_regex(
 }
 
 /**
+ * @brief build a case insensitive regex applied on file system names
+ * In the json command line, a backslash is escaped once for json and once
+ * more for the regex, so users had to write C:\\\\ in FILTERFS macro to match
+ * C:\. In order to also accept C:\\, the regex given by user is or-ed with
+ * the same regex where each backslash is a literal backslash. So C:\\ and
+ * C:\\\\ give the same result and regex escapes (\D, \p{Greek}...) remain
+ * usable. Each form is used only if it's a valid regex (C:\ alone is not).
+ *
+ * @param re regex given by user (json decoded)
+ * @return std::unique_ptr<re2::RE2> not ok() if no form is valid
+ */
+static std::unique_ptr<re2::RE2> make_fs_regex(const std::string_view& re) {
+  std::unique_ptr<re2::RE2> user_regex = make_case_insensitive_regex(re);
+  if (re.find('\\') == std::string_view::npos) {
+    return user_regex;
+  }
+  std::string literal_backslashes = absl::StrReplaceAll(re, {{"\\", "\\\\"}});
+  std::unique_ptr<re2::RE2> literal_regex =
+      make_case_insensitive_regex(literal_backslashes);
+  if (!literal_regex->ok()) {
+    return user_regex;
+  }
+  if (!user_regex->ok()) {
+    return literal_regex;
+  }
+  std::unique_ptr<re2::RE2> both_regex = make_case_insensitive_regex(
+      absl::StrCat("(?:", re, ")|(?:", literal_backslashes, ")"));
+  // a \Q without \E in user regex swallows the end of both_regex
+  return both_regex->ok() ? std::move(both_regex) : std::move(user_regex);
+}
+
+/**
  * @brief Construct a new filter::filter object
  *
  *
@@ -157,6 +191,8 @@ static std::unique_ptr<re2::RE2> make_case_insensitive_regex(
  *    filter-mountpoint
  *    exclude-mountpoint
  * All these regexes are case insensitive.
+ * filter-fs and exclude-fs accept backslashes escaped once or twice (see
+ * make_fs_regex).
  * @throw exceptions::msg_fmt if a regex is invalid
  */
 filter::filter(const rapidjson::Value& args)
@@ -201,8 +237,7 @@ filter::filter(const rapidjson::Value& args)
       } else if (member_iter->name == "filter-fs" &&
                  member_iter->value.IsString() &&
                  member_iter->value.GetStringLength() > 0) {
-        _filter_fs =
-            make_case_insensitive_regex(member_iter->value.GetString());
+        _filter_fs = make_fs_regex(member_iter->value.GetString());
         if (!_filter_fs->ok()) {
           throw exceptions::msg_fmt("invalid regex for filter-fs: {}",
                                     member_iter->value.GetString());
@@ -210,8 +245,7 @@ filter::filter(const rapidjson::Value& args)
       } else if (member_iter->name == "exclude-fs" &&
                  member_iter->value.IsString() &&
                  member_iter->value.GetStringLength() > 0) {
-        _filter_exclude_fs =
-            make_case_insensitive_regex(member_iter->value.GetString());
+        _filter_exclude_fs = make_fs_regex(member_iter->value.GetString());
         if (!_filter_exclude_fs->ok()) {  // NOLINT
           throw exceptions::msg_fmt("invalid regex for filter-exclude-fs: {}",
                                     member_iter->value.GetString());
@@ -717,7 +751,8 @@ void check_drive_size::help(std::ostream& help_stream) {
         For other types, you can use this regular expression: other|<custom file system>
       filter-fs: regex to filter filesystem
         Example: [C-D]:\\.*
-      exclude-fs: regex to exclude filesystem
+        A backslash can be written \\ or \\\\ (C:\\ and C:\\\\ both match C:\)
+      exclude-fs: regex to exclude filesystem, backslashes as in filter-fs
   An example of configuration:
   { 
     "check": "storage",

@@ -844,6 +844,94 @@ TEST_F(drive_size_test, fs_filters_are_case_insensitive_and_keep_escapes) {
   ASSERT_NO_THROW(filter{args});
 }
 
+TEST_F(drive_size_test, fs_filters_accept_backslash_escaped_once_or_twice) {
+  using namespace check_drive_size_detail;
+  // FILTERFS macro is copied as is in json command line, so these json strings
+  // are FILTERFS escaped once (C:\\) and twice (C:\\\\, legacy form)
+  for (const char* json_filter :
+       {R"({"filter-fs": "C:\\"})", R"({"filter-fs": "C:\\\\"})",
+        R"({"filter-fs": "[C-D]:\\.*"})", R"({"filter-fs": "[C-D]:\\\\.*"})"}) {
+    rapidjson::Document args;
+    args.Parse(json_filter);
+    filter filt(args);
+    ASSERT_TRUE(filt.is_fs_allowed("c:\\", "", spdlog::default_logger()))
+        << json_filter;
+    ASSERT_FALSE(filt.is_fs_allowed("E:\\", "", spdlog::default_logger()))
+        << json_filter;
+  }
+
+  for (const char* json_filter :
+       {R"({"exclude-fs": "C:\\"})", R"({"exclude-fs": "C:\\\\"})"}) {
+    rapidjson::Document args;
+    args.Parse(json_filter);
+    filter filt(args);
+    ASSERT_FALSE(filt.is_fs_allowed("C:\\", "", spdlog::default_logger()))
+        << json_filter;
+    ASSERT_TRUE(filt.is_fs_allowed("D:\\", "", spdlog::default_logger()))
+        << json_filter;
+  }
+
+  // \b and \d are path separators, not regex escapes
+  for (const char* json_filter : {R"({"filter-fs": "\\boot\\data"})",
+                                  R"({"filter-fs": "\\\\boot\\\\data"})"}) {
+    rapidjson::Document args;
+    args.Parse(json_filter);
+    filter filt(args);
+    ASSERT_TRUE(
+        filt.is_fs_allowed("\\boot\\data", "", spdlog::default_logger()))
+        << json_filter;
+    ASSERT_FALSE(
+        filt.is_fs_allowed("\\boot\\other", "", spdlog::default_logger()))
+        << json_filter;
+  }
+
+  rapidjson::Document args;
+  // no form matches
+  args.Parse(R"({"filter-fs": "D:\\"})");
+  filter no_match_filt(args);
+  ASSERT_FALSE(
+      no_match_filt.is_fs_allowed("C:\\", "", spdlog::default_logger()));
+
+  // no form is a valid regex
+  args.Parse(R"({"filter-fs": "C:(\\"})");
+  ASSERT_THROW(filter{args}, std::exception);
+}
+
+TEST_F(drive_size_test, fs_filters_legacy_double_escaped_backslash) {
+  using namespace check_drive_size_detail;
+  re2::RE2::Options options;
+  options.set_case_sensitive(false);
+  // legacy filters only gain names with doubled backslashes, that no file
+  // system has
+  constexpr std::string_view fs_names[] = {"C:\\",   "c:\\",     "D:\\",
+                                           "Z:\\",   "C:",       "C:\\Windows",
+                                           "\\boot", "/dev/sda1"};
+
+  // FILTERFS and EXCLUDEFS macros where backslashes are escaped for json and
+  // for regex (legacy form), \\w is a regex escape
+  for (std::string_view macro :
+       {R"(C:\\\\)", R"([C-D]:\\\\)", R"([C-D]:\\\\.*)", R"(C:\\\\|Z:\\\\)",
+        R"([^C]:\\\\)", R"(\\w:\\\\)", R"(\\\\boot)"}) {
+    for (std::string_view key : {"filter-fs", "exclude-fs"}) {
+      // engine copies the macro as is in the json command line
+      rapidjson::Document args;
+      args.Parse(absl::StrCat(R"({")", key, R"(": ")", macro, R"("})").c_str());
+      ASSERT_FALSE(args.HasParseError()) << macro;
+      // before MON-207863, json decoded regex was used as is
+      re2::RE2 before(args.MemberBegin()->value.GetString(), options);
+      ASSERT_TRUE(before.ok()) << macro;
+
+      filter filt(args);
+      for (std::string_view fs : fs_names) {
+        bool matched_before = RE2::FullMatch(fs, before);
+        ASSERT_EQ(filt.is_fs_allowed(fs, "", spdlog::default_logger()),
+                  key == "filter-fs" ? matched_before : !matched_before)
+            << key << ": " << macro << ", fs: " << fs;
+      }
+    }
+  }
+}
+
 TEST_F(drive_size_test, drive_type_to_string_64_bits) {
   using namespace check_drive_size_detail;
   ASSERT_EQ(drive_type_to_string(hr_fs_exfat), "hrfsexfat");

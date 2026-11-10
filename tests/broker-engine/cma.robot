@@ -922,6 +922,54 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS
     ${lines}    Get Lines Matching Regexp    ${content}    \\[error\\].*(unable to get file system type|unable to get free space)    partial_match=True
     Should Be Empty    ${lines}    errors logged for drives that should be ignored
 
+BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO
+    [Documentation]    Given a windows agent with native check storage whose filter-fs and exclude-fs
+    ...    come from FILTERFS and EXCLUDEFS service macros,
+    ...    when backslashes are escaped once or twice (legacy form) in these macros,
+    ...    then both forms give the same result: C: is checked with FILTERFS and refused with EXCLUDEFS.
+    ...    A FILTERFS that matches no drive still refuses every drive.
+    [Tags]    broker    engine    opentelemetry    MON-207863
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Start Native Storage Check Test    {"free": true, "unit": "%", "filter-fs": "no_drive_match"}
+
+    ${drive_c}    Create List    C
+    ${expected_perfdata}    Ctn Get Drive Statistics    free_{}:\\    ${drive_c}
+    ${idx}    Set Variable    ${0}
+    # robot unescapes backslashes, so macros are C:\\.* and C:\\\\.*
+    # they don't end with a backslash because engine cfg parser reads it as a line continuation
+    FOR    ${filter_fs}    IN    C:\\\\.*    C:\\\\\\\\.*
+        ${idx}    Evaluate    ${idx} + 1
+        Log To Console    FILTERFS: ${filter_fs}
+        Ctn Set Native Storage Check Args    storage_none_${idx}    {"free": true, "unit": "%", "filter-fs": "no_drive_match"}
+        Ctn Native Storage Check Should Be Critical No Storage
+        Ctn Set Service Macro    service_1    _FILTERFS    ${filter_fs}
+        Ctn Set Native Storage Check Args    storage_filter_${idx}    {"free": true, "unit": "%", "filter-fs": "$_SERVICEFILTERFS$"}
+        ${result}    ${output}    Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    0    60    ANY
+        Should Be True    ${result}    FILTERFS ${filter_fs}: service_1 should be OK
+        Should Contain    ${output}    OK: All storages are ok    FILTERFS ${filter_fs}: unexpected output
+        ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
+        Should Be True    ${result}    FILTERFS ${filter_fs}: C: perfdata not found
+    END
+
+    # FILTERFS that matches no drive
+    Ctn Set Service Macro    service_1    _FILTERFS    C:\\\\Windows
+    Ctn Set Native Storage Check Args    storage_filter_no_match    {"free": true, "unit": "%", "filter-fs": "$_SERVICEFILTERFS$"}
+    Ctn Native Storage Check Should Be Critical No Storage
+
+    FOR    ${exclude_fs}    IN    C:\\\\.*    C:\\\\\\\\.*
+        ${idx}    Evaluate    ${idx} + 1
+        Log To Console    EXCLUDEFS: ${exclude_fs}
+        Ctn Set Native Storage Check Args    storage_c_${idx}    {"free": true, "unit": "%", "filter-fs": "c:.*"}
+        ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    0    60    ANY
+        Should Be True    ${result}    service_1 should be OK with filter-fs c:.*
+        Ctn Set Service Macro    service_1    _EXCLUDEFS    ${exclude_fs}
+        Ctn Set Native Storage Check Args    storage_exclude_${idx}    {"free": true, "unit": "%", "filter-fs": "c:.*", "exclude-fs": "$_SERVICEEXCLUDEFS$"}
+        Ctn Native Storage Check Should Be Critical No Storage
+    END
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     [Documentation]    agent check service with native check uptime and we expect to get it in check result
@@ -1795,6 +1843,12 @@ Ctn Native Storage Check Should Be Critical No Storage
     ${result}    ${output}    Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    60    ANY
     Should Be True    ${result}    service_1 should be critical
     Should Contain    ${output}    No storage found (filters issue)
+
+Ctn Set Service Macro
+    [Documentation]    set the custom macro ${macro} of ${service} to ${value}, previous value is removed
+    [Arguments]    ${service}    ${macro}    ${value}
+    Ctn Engine Config Delete Value In Service    ${0}    ${service}    ${macro}
+    Ctn Engine Config Set Value In Services    ${0}    ${service}    ${macro}    ${value}
 
 Ctn Agent Log Should Contain
     [Documentation]    fail if agent log doesn't contain the given string
