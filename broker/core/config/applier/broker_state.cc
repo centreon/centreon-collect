@@ -1196,18 +1196,6 @@ absl::flat_hash_set<uint32_t> broker_state::_read_poller_batch() {
 }
 
 /**
- * @brief Called from a Broker. Set the engine configuration of a poller
- * among the list of connected peers.
- *
- * @param poller_id The poller ID.
- * @param engine_conf The new Engine configuration version.
- */
-void broker_state::set_poller_engine_conf(uint32_t poller_id,
-                                          const std::string& engine_conf) {
-  _peers.set_poller_engine_conf(poller_id, engine_conf);
-}
-
-/**
  * @brief Record whether Broker holds the content of this poller's
  * configuration. When set to false, Broker sends a DiffState{unknown=true} to
  * Engine at the next negotiation, asking it to send its full configuration
@@ -1323,8 +1311,8 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
  * can prepare the database for them.
  *
  * This function is a "test-and-reset": if all ENGINE peers have
- * acknowledged, it takes them all out of the round (conf_round::out) before
- * returning true. This prevents two concurrent ack handlers from both
+ * acknowledged, it takes them all out of the round (poller_conf::leave_round())
+ * before returning true. This prevents two concurrent ack handlers from both
  * entering the global diff block when they check simultaneously under the
  * same write lock.
  *
@@ -1930,12 +1918,12 @@ bool broker_state::_prepare_diff_for_poller(
      * connection broke, in between. Its announcement is that acknowledgement.
      * Stopping here would leave `new-<ID>.prot` unrenamed, and the cache and
      * the database on the previous version until the next export. */
-    const bool already_runs = conf.engine_conf == state->config_version();
+    const bool already_runs = conf.engine_conf() == state->config_version();
     if (!already_runs)
       _logger->debug(
           "Poller '{}' with id {} has a new configuration available "
           "(old: '{}', new: '{}')",
-          peer->poller_name, poller_id, conf.engine_conf,
+          peer->poller_name, poller_id, conf.engine_conf(),
           state->config_version());
     const poller_conf_files files = poller_files(poller_id);
     const std::filesystem::path previous_prot_conf = files.stored_path();
@@ -1954,7 +1942,7 @@ bool broker_state::_prepare_diff_for_poller(
         _logger->info(
             "Poller '{}' with id {} already has the latest configuration "
             "(conf: '{}')",
-            peer->poller_name, poller_id, conf.engine_conf);
+            peer->poller_name, poller_id, conf.engine_conf());
         std::error_code rm_ec;
         const auto new_prot_conf = files.new_path();
         if (!std::filesystem::remove(new_prot_conf, rm_ec) && rm_ec)
@@ -1997,32 +1985,15 @@ bool broker_state::_prepare_diff_for_poller(
     if (!already_runs) {
       /* The new configuration to send to the poller is
        * new-<poller-ID>.prot. Once sent to it, this file must be renamed
-       * into <poller-ID>.prot and the diff file can be removed.
-       *
-       * The "not sent yet" flag is armed only when the version actually
-       * changes. Re-preparing a version already in flight -- two announcements
-       * for one export, which PHP is free to make -- would otherwise orphan its
-       * acknowledgement: the ack closes the round by looking for a peer marked
-       * as served, finds none, and the round never completes. No global diff
-       * is then published and nothing reaches the database, even though the
-       * poller did answer. */
-      if (conf.available_conf != new_version) {
-        conf.available_conf = new_version;
-        conf.round = poller_conf::conf_round::out;
-      }
+       * into <poller-ID>.prot and the diff file can be removed. */
+      conf.prepare(new_version);
       return true;
     }
     _logger->info(
         "Poller '{}' with id {} already runs '{}', the configuration prepared "
         "for it: its announcement counts as the acknowledgement",
         peer->poller_name, poller_id, new_version);
-    /* What acknowledge_poller_conf() records, without the "sent" step that
-     * never took place in this session. */
-    conf.available_conf = std::move(new_version);
-    conf.conf_in_flight.clear();
-    conf.rejected_conf.clear();
-    conf.rejection_error.clear();
-    conf.round = poller_conf::conf_round::acknowledged;
+    conf.on_announced(new_version);
   }
   _install_acknowledged_conf(poller_id);
   _close_conf_round_if_over();
@@ -2576,12 +2547,8 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
       }
       {
         auto peer = _peers.lock_engine_peer(engine_id);
-        /* Same rule as in _prepare_diff_for_poller: arming the "not sent yet"
-         * flag for a version already in flight orphans its acknowledgement. */
-        if (peer && peer.conf().available_conf != version) {
-          peer.conf().available_conf = version;
-          peer.conf().round = poller_conf::conf_round::out;
-        }
+        if (peer)
+          peer.conf().prepare(version);
       }
       return relay_config_response::diff_ready;
     }

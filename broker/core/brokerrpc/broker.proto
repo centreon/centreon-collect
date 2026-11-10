@@ -510,10 +510,13 @@ message Peer {
    */
   string timezone = 8;
   /* The last configuration version the poller could not apply, and why. Only
-   * meaningful for ENGINE peers; empty when nothing failed since the poller
+   * meaningful for ENGINE peers; absent when nothing failed since the poller
    * connected or since it applied a configuration. */
-  string rejected_conf = 9;
-  string rejection_error = 10;
+  message Rejection {
+    string version = 1;
+    string error = 2;
+  }
+  Rejection rejection = 9;
 }
 
 message AesMessage {

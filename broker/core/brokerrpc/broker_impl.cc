@@ -881,12 +881,15 @@ grpc::Status broker_impl::GetPollers(grpc::ServerContext* context
     peer->set_id(p.poller_id);
     peer->set_poller_name(p.poller_name);
     peer->mutable_connected_since()->set_seconds(p.connected_since);
-    peer->set_engine_conf(conf.engine_conf);
-    peer->set_available_conf(conf.available_conf);
+    peer->set_engine_conf(conf.engine_conf());
+    peer->set_available_conf(conf.available_conf());
     peer->set_type(common::ENGINE);
     peer->set_timezone(p.timezone);
-    peer->set_rejected_conf(conf.rejected_conf);
-    peer->set_rejection_error(conf.rejection_error);
+    if (const auto& r = conf.last_rejection()) {
+      auto* rejection = peer->mutable_rejection();
+      rejection->set_version(r->version);
+      rejection->set_error(r->error);
+    }
   }
   return grpc::Status::OK;
 }

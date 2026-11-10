@@ -143,7 +143,7 @@ TEST_F(BrokerStateRound, NotOverWhilePeersAreStillOwedTheirConfiguration) {
 
   deliver_and_acknowledge(1, "v1");
 
-  /* Pollers 2 and 3 have available_conf set, conf_round::out: their
+  /* Pollers 2 and 3 are owed their configuration: their
    * diff-<N>.prot is on disk waiting for their stream to emit. */
   ASSERT_TRUE(_state->poller_needs_update(2));
   ASSERT_TRUE(_state->poller_needs_update(3));
@@ -352,8 +352,9 @@ TEST_F(BrokerStateRound, RejectedConfigurationLeavesTheRound) {
   auto p1 = absl::c_find_if(
       pollers, [](const auto& p) { return p.peer.poller_id == 1; });
   ASSERT_NE(p1, pollers.end());
-  EXPECT_EQ(p1->conf.rejected_conf, "v1");
-  EXPECT_EQ(p1->conf.rejection_error, "boom");
+  ASSERT_TRUE(p1->conf.last_rejection());
+  EXPECT_EQ(p1->conf.last_rejection()->version, "v1");
+  EXPECT_EQ(p1->conf.last_rejection()->error, "boom");
 
   EXPECT_TRUE(_state->acknowledge_poller_conf(2, "v1"));
   EXPECT_TRUE(_state->try_close_conf_round());
@@ -380,8 +381,7 @@ TEST_F(BrokerStateRound, NewExportIsSentAfterARejection) {
   EXPECT_TRUE(_state->acknowledge_poller_conf(1, "v2"));
   auto pollers = _state->connected_pollers();
   ASSERT_EQ(pollers.size(), 1u);
-  EXPECT_TRUE(pollers[0].conf.rejected_conf.empty());
-  EXPECT_TRUE(pollers[0].conf.rejection_error.empty());
+  EXPECT_FALSE(pollers[0].conf.last_rejection());
 }
 
 /**
@@ -526,7 +526,7 @@ TEST_F(BrokerStateRound, DisconnectionResetsThePollerConfiguration) {
   auto p1 = absl::c_find_if(
       pollers, [](const auto& p) { return p.peer.poller_id == 1; });
   ASSERT_NE(p1, pollers.end());
-  EXPECT_TRUE(p1->conf.rejected_conf.empty());
-  EXPECT_TRUE(p1->conf.conf_in_flight.empty());
-  EXPECT_TRUE(p1->conf.available_conf.empty());
+  EXPECT_FALSE(p1->conf.last_rejection());
+  EXPECT_TRUE(p1->conf.conf_in_flight().empty());
+  EXPECT_TRUE(p1->conf.available_conf().empty());
 }

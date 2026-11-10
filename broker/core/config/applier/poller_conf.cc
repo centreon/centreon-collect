@@ -44,6 +44,23 @@ uint64_t poller_id_after_prefix(const std::filesystem::path& p,
     return 0;
   return retval;
 }
+
+/**
+ * @brief Whether the version prepared for a poller is one to send: there is
+ * one, the poller does not run it, and it did not fail to apply it -- it would
+ * fail the same way.
+ *
+ * @param available_version The version prepared.
+ * @param engine_version The version the poller runs.
+ * @param last_rejection The last version it could not apply, if any.
+ */
+bool owes(
+    const std::string& available_version,
+    const std::string& engine_version,
+    const std::optional<poller_conf::rejection>& last_rejection) noexcept {
+  return !available_version.empty() && available_version != engine_version &&
+         !(last_rejection && available_version == last_rejection->version);
+}
 }  // namespace
 
 /**
@@ -131,7 +148,43 @@ poller_conf::poller_conf(uint64_t poller_id,
                          std::string engine_conf)
     : _poller_id{poller_id},
       _logger{logger},
-      engine_conf{std::move(engine_conf)} {}
+      _engine_conf{std::move(engine_conf)} {}
+
+/**
+ * @brief Whether the configuration prepared for this poller is the one in
+ * flight, its acknowledgement awaited.
+ *
+ * In in_flight, the version sent may be an older one, overtaken by a newer
+ * export (transition 11): the poller is then still owed the newer one.
+ */
+bool poller_conf::awaits_acknowledgement() const noexcept {
+  return _delivery == delivery_state::in_flight && !_available_conf.empty() &&
+         _conf_in_flight == _available_conf;
+}
+
+/**
+ * @brief Work out the delivery state from the versions, after a transition
+ * changed them.
+ *
+ * Something in flight wins: nothing else is sent before the poller answers.
+ * Then a version to send. unknown only lasts while there is nothing of the
+ * kind: an export prepared while Broker does not know what the poller runs is
+ * sent at once (transition 4, which step 4 of the plan makes wait).
+ */
+void poller_conf::_settle() {
+  if (!_conf_in_flight.empty())
+    _delivery = delivery_state::in_flight;
+  else if (owes(_available_conf, _engine_conf, _rejection))
+    _delivery = delivery_state::owed;
+  else if (_delivery == delivery_state::unknown)
+    return;
+  else if (!_available_conf.empty() && _rejection &&
+           _available_conf == _rejection->version &&
+           _available_conf != _engine_conf)
+    _delivery = delivery_state::rejected;
+  else
+    _delivery = delivery_state::up_to_date;
+}
 
 /**
  * @brief The poller just connected: everything Broker knew of its
@@ -140,7 +193,8 @@ poller_conf::poller_conf(uint64_t poller_id,
  * This is what a new poller_conf was when its lifetime was the connection's,
  * and it is kept as such for now: what was owed, in flight or rejected is
  * worked out again from the files (see broker_state::add_peer()). A rejected
- * version, in particular, is tried again.
+ * version, in particular, is tried again (transition 19), and a version in
+ * flight is acknowledged by the announcement or owed again (13, 15).
  *
  * @param engine_conf The configuration version the poller runs, if known.
  */
@@ -151,9 +205,199 @@ void poller_conf::on_connected(std::string engine_conf) {
 /**
  * @brief The poller is gone: it owes nothing and takes no part in the
  * configuration round any more, as if its poller_conf did not exist.
+ *
+ * The plan keeps in_flight across a disconnection (transition 12); for now the
+ * reconnection decides from the files, which gives the same outcome.
  */
 void poller_conf::on_disconnected() {
   on_connected({});
+}
+
+/**
+ * @brief A relay asks for the configuration of this poller, telling the
+ * version it knows.
+ *
+ * The request opens a new exchange: a version handed over before will not be
+ * acknowledged through it, so what was in flight is dropped -- unless it is
+ * the version prepared for the poller, which the answer to the request sends
+ * again, and whose acknowledgement still counts for the round.
+ *
+ * @param engine_conf The version the relay knows, empty if none.
+ */
+void poller_conf::on_relay_request(const std::string& engine_conf) {
+  if (!engine_conf.empty())
+    _engine_conf = engine_conf;
+  if (!awaits_acknowledgement())
+    _conf_in_flight.clear();
+  _settle();
+}
+
+/**
+ * @brief Broker has no configuration stored for this poller and no
+ * announcement of one: it asks the poller for its own (transition 2).
+ */
+void poller_conf::on_conf_unknown() {
+  _delivery = delivery_state::unknown;
+  _settle();
+}
+
+/**
+ * @brief Broker holds the configuration of the poller again: the poller sent
+ * it back, or another one is stored or announced (transitions 5 and 6).
+ */
+void poller_conf::on_conf_recovered() {
+  if (_delivery == delivery_state::unknown)
+    _delivery = delivery_state::up_to_date;
+  _settle();
+}
+
+/**
+ * @brief A configuration was prepared for the poller (transitions 4, 7, 8, 11
+ * and 18).
+ *
+ * Preparing again the version already prepared changes nothing: two
+ * announcements for one export, which PHP is free to make, would otherwise
+ * orphan the acknowledgement of the version in flight, and the round would
+ * never close.
+ *
+ * A new version takes the poller out of the database automaton's pending
+ * state, as it took it out of the round until now: its acknowledged diff has
+ * been carried to the database just before (see
+ * broker_state::_integrate_acknowledged_diffs()).
+ *
+ * @param version The version prepared.
+ */
+void poller_conf::prepare(const std::string& version) {
+  if (_available_conf == version)
+    return;
+  _available_conf = version;
+  _db = db_state::up_to_date;
+  _settle();
+}
+
+/**
+ * @brief The poller announced at its connection the version prepared for it:
+ * it applied it, and its acknowledgement never reached Broker. The
+ * announcement is that acknowledgement (transitions 10 and 13), without the
+ * sending that never took place in this session.
+ *
+ * @param version The version prepared, which the poller runs.
+ */
+void poller_conf::on_announced(const std::string& version) {
+  _available_conf = version;
+  _conf_in_flight.clear();
+  _rejection.reset();
+  _db = db_state::pending;
+  _settle();
+}
+
+/**
+ * @brief Record that a configuration has been handed over to this poller
+ * (transition 9).
+ *
+ * What is sent is decided without the registry lock (the diff file is read, or
+ * the relay is found up to date, before this call). A newer configuration can
+ * therefore be prepared in between: the poller is then in flight with an older
+ * version, and the newer one stays owed, sent once the poller answers.
+ *
+ * With no configuration prepared at all, the version still left: nothing else
+ * is sent until the poller says which version it runs.
+ *
+ * @param version The version of the configuration actually sent.
+ *
+ * @return true if it is the version prepared for the poller, whose
+ * acknowledgement the round now waits for.
+ */
+bool poller_conf::on_sent(std::string_view version) {
+  _conf_in_flight = version;
+  _settle();
+  if (_available_conf.empty()) {
+    _logger->debug(
+        "Configuration '{}' sent to poller {}, which has none prepared: "
+        "nothing to mark",
+        version, _poller_id);
+    return false;
+  }
+  if (_available_conf != version) {
+    _logger->info(
+        "Configuration '{}' sent to poller {} is no longer the latest one "
+        "('{}'): the latest stays owed",
+        version, _poller_id, _available_conf);
+    return false;
+  }
+  _logger->debug("New configuration sent to poller {}", _poller_id);
+  return true;
+}
+
+/**
+ * @brief Record what the poller acknowledged, and tell whether it is the
+ * configuration prepared for it (transitions 13 and 14).
+ *
+ * Whatever the version, the poller runs it now, and it no longer has anything
+ * in flight: the next delivery can be made.
+ *
+ * Only the prepared version counts as this poller's part of the round, though.
+ * An older one -- sent before a newer export replaced it -- is not what
+ * `new-<ID>.prot` and `diff-<ID>.prot` hold any more: renaming the first or
+ * feeding the cache with the second would claim the poller runs a
+ * configuration it never received. The newer one stays owed (14), and is sent
+ * once this acknowledgement has said which version the poller runs.
+ *
+ * @param version The version the poller acknowledged.
+ *
+ * @return true if @p version is the configuration prepared and sent for this
+ * poller.
+ */
+bool poller_conf::on_acknowledged(const std::string& version) {
+  _logger->info(
+      "Poller {} acknowledged '{}' (it ran '{}', '{}' is the latest prepared)",
+      _poller_id, version, _engine_conf, _available_conf);
+  const bool awaited = awaits_acknowledgement() && _available_conf == version;
+  _engine_conf = version;
+  _conf_in_flight.clear();
+  if (awaited) {
+    _db = db_state::pending;
+    _rejection.reset();
+  }
+  _settle();
+  return awaited;
+}
+
+/**
+ * @brief Record that the poller could not apply a configuration it was sent
+ * (transitions 16 and 17).
+ *
+ * The poller still runs @p running_version, and nothing is in flight any more.
+ * When @p failed_version is the configuration prepared for it, the poller
+ * becomes rejected and leaves the round, since it will not acknowledge it:
+ * sending it again would fail the same way. A new export (18), or a
+ * reconnection of the poller (19), tries again. An older version only says
+ * what the poller runs, as with on_acknowledged(): the newer one stays owed and
+ * is sent now (17).
+ *
+ * @param running_version The version the poller still runs.
+ * @param failed_version The version it could not apply.
+ * @param error Why it could not.
+ *
+ * @return true if @p failed_version is the configuration prepared for it, so
+ * that its files are left to remove.
+ */
+bool poller_conf::on_rejected(const std::string& running_version,
+                              const std::string& failed_version,
+                              const std::string& error) {
+  _logger->error(
+      "Poller {} could not apply the configuration '{}', it still runs '{}': "
+      "{}",
+      _poller_id, failed_version, running_version, error);
+  _engine_conf = running_version;
+  _conf_in_flight.clear();
+  const bool prepared = _available_conf == failed_version;
+  if (prepared) {
+    _rejection = rejection{failed_version, error};
+    _db = db_state::up_to_date;
+  }
+  _settle();
+  return prepared;
 }
 
 /**
@@ -161,15 +405,14 @@ void poller_conf::on_disconnected() {
  * a delivery.
  *
  * This is what keeps a configuration round open, whether or not the delivery
- * can be made right now: see peer_registry::try_close_conf_round().
- *
- * A version the poller could not apply is not owed any more: it would fail the
- * same way, and keeping it owed would hold the round open for every other
- * poller.
+ * can be made right now: see peer_registry::try_close_conf_round(). A poller in
+ * flight with an older version than the one prepared still owes it.
  */
 bool poller_conf::owes_conf() const noexcept {
-  return round == conf_round::out && !available_conf.empty() &&
-         available_conf != engine_conf && available_conf != rejected_conf;
+  if (_delivery == delivery_state::owed)
+    return true;
+  return _delivery == delivery_state::in_flight && !awaits_acknowledgement() &&
+         owes(_available_conf, _engine_conf, _rejection);
 }
 
 /**
@@ -180,120 +423,19 @@ bool poller_conf::owes_conf() const noexcept {
  * difference computed from the version Broker believed the poller ran, applied
  * on top of the one it actually runs. The acknowledgement says which version
  * that is, and the delivery waits for it. It always comes: Engine acknowledges
- * a configuration it could not apply too (see reject()), and a poller that dies
- * on the way disconnects, which resets it (see on_disconnected()).
+ * a configuration it could not apply too (see on_rejected()), and a poller that
+ * dies on the way disconnects, which resets it (see on_disconnected()).
  */
 bool poller_conf::needs_update() const noexcept {
-  return owes_conf() && conf_in_flight.empty();
+  return _delivery == delivery_state::owed;
 }
 
 /**
- * @brief Record that the prepared configuration has been handed over to this
- * poller, if the configuration sent is still the one prepared for it. This
- * opens a round for it: the acknowledgement it owed for the previous one no
- * longer counts.
- *
- * What is sent is decided without the registry lock (the diff file is read, or
- * the relay is found up to date, before this call). A newer configuration can
- * therefore be prepared in between: marking it as sent would claim the poller
- * received a version it never saw, and nothing would send it any more. Left
- * unmarked, it is still owed and the next read of the stream sends it.
- *
- * With no configuration prepared at all, there is nothing to mark either.
- *
- * @param version The version of the configuration actually sent.
- *
- * @return true if the poller is now marked as served.
+ * @brief The acknowledged difference of this poller was carried to the
+ * database: the database automaton goes back to up_to_date.
  */
-bool poller_conf::mark_sent(std::string_view version) {
-  /* Whatever is decided below, this version did leave: nothing else is sent
-   * to the poller until it says which version it runs. */
-  conf_in_flight = version;
-  if (available_conf.empty()) {
-    _logger->debug(
-        "Configuration '{}' sent to poller {}, which has none prepared: "
-        "nothing to mark",
-        version, _poller_id);
-    return false;
-  }
-  if (available_conf != version) {
-    _logger->info(
-        "Configuration '{}' sent to poller {} is no longer the latest one "
-        "('{}'): the latest stays owed",
-        version, _poller_id, available_conf);
-    return false;
-  }
-  round = conf_round::sent;
-  _logger->debug("New configuration sent to poller {}", _poller_id);
-  return true;
-}
-
-/**
- * @brief Record what the poller acknowledged, and tell whether it is the
- * configuration prepared for it.
- *
- * Whatever the version, the poller runs it now, and it no longer has anything
- * in flight: the next delivery can be made.
- *
- * Only the prepared version counts as this poller's part of the round, though.
- * An older one -- sent before a newer export replaced it -- is not what
- * `new-<ID>.prot` and `diff-<ID>.prot` hold any more: renaming the first or
- * feeding the cache with the second would claim the poller runs a
- * configuration it never received. The newer one stays owed, and is sent once
- * this acknowledgement has said which version the poller runs.
- *
- * @param version The version the poller acknowledged.
- *
- * @return true if @p version is the configuration prepared and sent for this
- * poller.
- */
-bool poller_conf::acknowledge(const std::string& version) {
-  _logger->info(
-      "Poller {} acknowledged '{}' (it ran '{}', '{}' is the latest prepared)",
-      _poller_id, version, engine_conf, available_conf);
-  engine_conf = version;
-  conf_in_flight.clear();
-  if (round != conf_round::sent || available_conf != version)
-    return false;
-  round = conf_round::acknowledged;
-  rejected_conf.clear();
-  rejection_error.clear();
-  return true;
-}
-
-/**
- * @brief Record that the poller could not apply a configuration it was sent.
- *
- * The poller still runs @p running_version, and nothing is in flight any more.
- * When @p failed_version is the configuration prepared for it, the poller
- * leaves the round, since it will not acknowledge it, and that version is no
- * longer owed: sending it again would fail the same way. A new export, or a
- * reconnection of the poller -- which resets it -- tries again. An
- * older version only says what the poller runs, as with acknowledge(): the
- * newer one stays owed and is sent now.
- *
- * @param running_version The version the poller still runs.
- * @param failed_version The version it could not apply.
- * @param error Why it could not.
- *
- * @return true if @p failed_version is the configuration prepared for it, so
- * that its files are left to remove.
- */
-bool poller_conf::reject(const std::string& running_version,
-                         const std::string& failed_version,
-                         const std::string& error) {
-  _logger->error(
-      "Poller {} could not apply the configuration '{}', it still runs '{}': "
-      "{}",
-      _poller_id, failed_version, running_version, error);
-  engine_conf = running_version;
-  conf_in_flight.clear();
-  if (available_conf != failed_version)
-    return false;
-  rejected_conf = failed_version;
-  rejection_error = error;
-  round = conf_round::out;
-  return true;
+void poller_conf::leave_round() noexcept {
+  _db = db_state::up_to_date;
 }
 
 }  // namespace com::centreon::broker::config::applier

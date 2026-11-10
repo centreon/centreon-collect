@@ -67,8 +67,8 @@ std::vector<peer_registry::peer> peer_registry::connected_peers() const {
                       .connected_since = ep.connected_since,
                       .extended_negotiation = ep.extended_negotiation,
                       .peer_type = common::ENGINE,
-                      .available_conf = conf.available_conf,
-                      .engine_conf = conf.engine_conf,
+                      .available_conf = conf.available_conf(),
+                      .engine_conf = conf.engine_conf(),
                       .via_remote = ep.via_remote,
                       .timezone = ep.timezone});
   }
@@ -204,7 +204,7 @@ std::string peer_registry::add_peer(uint64_t poller_id,
   std::string effective_engine_conf = engine_conf;
   if (effective_engine_conf.empty() && peer_type == common::ENGINE &&
       found_engine != _engine_peers.end())
-    effective_engine_conf = _poller_confs.at(poller_id).engine_conf;
+    effective_engine_conf = _poller_confs.at(poller_id).engine_conf();
 
   /* Remove from all maps in case the peer type changed.
    * For BROKER peers, do NOT erase _engine_peers: a relay-registered engine
@@ -300,13 +300,8 @@ uint64_t peer_registry::register_poller_via_relay(
     }
     if (!poller_name.empty())
       it->second.poller_name = poller_name;
-    poller_conf& conf = _poller_confs.at(poller_id);
-    if (!config_version.empty())
-      conf.engine_conf = config_version;
-    /* A ConfigRequest opens a new exchange: whatever was handed over before
-     * will not be acknowledged through it, and the version the relay knows is
-     * what the poller runs. */
-    conf.conf_in_flight.clear();
+    /* The version the relay knows is what the poller runs. */
+    _poller_confs.at(poller_id).on_relay_request(config_version);
   } else {
     _engine_peers[poller_id] = engine_peer{.poller_id = poller_id,
                                            .poller_name = poller_name,
@@ -419,7 +414,7 @@ std::string peer_registry::poller_engine_conf(uint64_t poller_id) const {
   auto* found = _peer_conf(poller_id);
   if (!found)
     return {};
-  return found->engine_conf;
+  return found->engine_conf();
 }
 
 std::string peer_registry::poller_timezone(uint64_t poller_id) const {
@@ -446,7 +441,7 @@ bool peer_registry::broker_knows_poller_conf(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   auto* found = _peer_conf(poller_id);
   if (found)
-    return found->broker_knows_poller_conf;
+    return found->broker_knows_conf();
   return true;
 }
 
@@ -481,7 +476,7 @@ bool peer_registry::broker_peer_supports_extended_negotiation() const {
 bool peer_registry::runtime_state_owed(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   auto* found = _peer_conf(poller_id);
-  return found && found->runtime_state_owed;
+  return found && found->runtime_state_owed();
 }
 
 /**
@@ -495,7 +490,7 @@ void peer_registry::set_runtime_state_owed(uint64_t poller_id, bool owed) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto* found = _peer_conf(poller_id);
   if (found)
-    found->runtime_state_owed = owed;
+    found->set_runtime_state_owed(owed);
 }
 
 bool peer_registry::poller_needs_update(uint64_t poller_id) const {
@@ -507,32 +502,10 @@ bool peer_registry::poller_needs_update(uint64_t poller_id) const {
   const poller_conf& conf = *found;
   if (conf.needs_update()) {
     _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
-                   conf.available_conf, conf.engine_conf, poller_id);
+                   conf.available_conf(), conf.engine_conf(), poller_id);
     return true;
   }
   return false;
-}
-
-/**
- * @brief Set the configuration version a poller says it runs.
- *
- * @param poller_id The poller ID.
- * @param engine_conf The new Engine configuration version.
- */
-void peer_registry::set_poller_engine_conf(uint64_t poller_id,
-                                           const std::string& engine_conf) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto* found = _peer_conf(poller_id);
-  if (!found) {
-    _logger->info("Poller with id {} not found in connected peers", poller_id);
-  } else {
-    poller_conf& conf = *found;
-    _logger->info(
-        "Poller with id {} available conf '{}' and current version changed "
-        "from '{}' to '{}'",
-        poller_id, conf.available_conf, conf.engine_conf, engine_conf);
-    conf.engine_conf = engine_conf;
-  }
 }
 
 /**
@@ -551,13 +524,16 @@ void peer_registry::set_broker_knows_poller_conf(uint64_t poller_id,
   if (found) {
     _logger->info("Broker {} the configuration of poller {}",
                   known ? "knows" : "does not know", poller_id);
-    found->broker_knows_poller_conf = known;
+    if (known)
+      found->on_conf_recovered();
+    else
+      found->on_conf_unknown();
   }
 }
 
 /**
  * @brief Record that the prepared configuration has been handed over to this
- * poller. See poller_conf::mark_sent().
+ * poller. See poller_conf::on_sent().
  *
  * @param poller_id The poller ID.
  * @param version The version of the configuration actually sent.
@@ -573,12 +549,12 @@ bool peer_registry::set_poller_conf_sent(uint64_t poller_id,
                   poller_id);
     return false;
   }
-  return found->mark_sent(version);
+  return found->on_sent(version);
 }
 
 /**
  * @brief Record what a poller acknowledged, and tell whether it is the
- * configuration prepared for it. See poller_conf::acknowledge().
+ * configuration prepared for it. See poller_conf::on_acknowledged().
  *
  * @param poller_id The poller ID.
  * @param version The version the poller acknowledged.
@@ -595,12 +571,12 @@ bool peer_registry::acknowledge_poller_conf(uint64_t poller_id,
                   version, poller_id);
     return false;
   }
-  return found->acknowledge(version);
+  return found->on_acknowledged(version);
 }
 
 /**
  * @brief Record that a poller could not apply a configuration it was sent.
- * See poller_conf::reject().
+ * See poller_conf::on_rejected().
  *
  * @param poller_id The poller ID.
  * @param running_version The version the poller still runs.
@@ -621,7 +597,7 @@ bool peer_registry::reject_poller_conf(uint64_t poller_id,
                   failed_version, poller_id);
     return false;
   }
-  return found->reject(running_version, failed_version, error);
+  return found->on_rejected(running_version, failed_version, error);
 }
 
 /**
@@ -639,7 +615,7 @@ void peer_registry::leave_conf_round(const std::vector<uint64_t>& poller_ids) {
   for (uint64_t poller_id : poller_ids) {
     auto* found = _peer_conf(poller_id);
     if (found)
-      found->round = poller_conf::conf_round::out;
+      found->leave_round();
   }
 }
 
@@ -650,9 +626,10 @@ void peer_registry::leave_conf_round(const std::vector<uint64_t>& poller_ids) {
  * them.
  *
  * Closing is not free of consequence, hence the try_: on success the round is
- * *consumed*, every peer going back to conf_round::out. Two acknowledgement
- * handlers checking at the same time would otherwise both enter the global diff
- * block, and the second one would publish a round that no longer exists.
+ * *consumed*, every peer's database automaton going back to up_to_date. Two
+ * acknowledgement handlers checking at the same time would otherwise both enter
+ * the global diff block, and the second one would publish a round that no
+ * longer exists.
  *
  * @return True when the round was closed -- and only then.
  */
@@ -677,11 +654,11 @@ bool peer_registry::try_close_conf_round() {
       retval = false;
       continue;
     }
-    if (conf.round != poller_conf::conf_round::out) {
-      if (conf.round == poller_conf::conf_round::sent)
-        retval = false;
-      else
-        ++engine_good;
+    if (conf.awaits_acknowledgement()) {
+      retval = false;
+      ++engine_count;
+    } else if (conf.db() == poller_conf::db_state::pending) {
+      ++engine_good;
       ++engine_count;
     }
   }
@@ -693,7 +670,7 @@ bool peer_registry::try_close_conf_round() {
     /* Reset all flags so that a concurrent or subsequent call won't trigger a
      * second global diff publication for the same round. */
     for (auto& [key, conf] : _poller_confs)
-      conf.round = poller_conf::conf_round::out;
+      conf.leave_round();
   }
   return retval && engine_count > 0;
 }

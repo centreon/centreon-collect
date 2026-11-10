@@ -255,8 +255,6 @@ class broker_state : public state {
   std::vector<connected_poller> connected_pollers() const;
   std::vector<peer> connected_peers() const;
   bool poller_needs_update(uint64_t poller_id) const;
-  void set_poller_engine_conf(uint32_t poller_id,
-                              const std::string& engine_conf);
   void set_broker_knows_poller_conf(uint64_t poller_id, bool known);
   bool try_close_conf_round();
   bool set_poller_conf_sent(uint32_t poller_id, std::string_view version);

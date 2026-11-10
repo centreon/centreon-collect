@@ -255,9 +255,6 @@ class peer_registry {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool poller_needs_update(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void set_poller_engine_conf(uint64_t poller_id,
-                              const std::string& engine_conf)
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_broker_knows_poller_conf(uint64_t poller_id, bool known)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool set_poller_conf_sent(uint64_t poller_id, std::string_view version)
