@@ -162,6 +162,8 @@ overrides:
 
 rpm:
   summary: Centreon Engine Daemon is the daemon to schedule checks.
+  scripts:
+    posttrans: ./scripts/centreon-engine-daemon-posttrans.sh
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}

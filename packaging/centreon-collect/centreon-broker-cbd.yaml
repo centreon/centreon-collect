@@ -71,6 +71,8 @@ overrides:
 
 rpm:
   summary: Centreon Broker daemon.
+  scripts:
+    posttrans: ./scripts/centreon-broker-cbd-posttrans.sh
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
