@@ -95,8 +95,8 @@ void broker_stream::_add_runtime_state(
 void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   auto pb_conf = std::make_shared<pb_diff_state>();
   auto& obj = pb_conf->mut_obj();
-  std::filesystem::path diff_name(_state.pollers_config_dir() /
-                                  fmt::format("diff-{}.prot", poller_id));
+  const std::filesystem::path diff_name =
+      _state.poller_files(poller_id).diff_path();
   std::error_code ec;
   common::read_proto_file(diff_name, obj, ec);
   if (ec == std::errc::no_such_file_or_directory) {
@@ -114,8 +114,8 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   if (!obj.has_state() && obj.has_from_version()) {
     const std::string engine_conf = _state.poller_engine_conf(poller_id);
     if (engine_conf != obj.from_version()) {
-      std::filesystem::path new_name(_state.pollers_config_dir() /
-                                     fmt::format("new-{}.prot", poller_id));
+      const std::filesystem::path new_name =
+          _state.poller_files(poller_id).new_path();
       auto full =
           std::make_unique<com::centreon::engine::configuration::State>();
       common::read_proto_file(new_name, *full, ec);
@@ -276,8 +276,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           _logger,
           "BBDO: received diff state ack from poller {} with version '{}'",
           obj.poller_id(), obj.config_version());
-      _state.on_poller_conf_acknowledged(obj.poller_id(),
-                                         obj.config_version());
+      _state.on_poller_conf_acknowledged(obj.poller_id(), obj.config_version());
     } break;
     case pb_diff_state::static_type(): {
       auto diff = std::static_pointer_cast<bbdo::pb_diff_state>(d);
@@ -398,8 +397,8 @@ void broker_stream::_serve_engine_peer() {
         poller_id());
     _send_diff_state_for_poller(poller_id());
     _state.set_runtime_state_owed(poller_id(), false);
-  } else if (_state.runtime_state_owed(poller_id()) &&
-             extended_negotiation() && _state.supports_centralized_conf() &&
+  } else if (_state.runtime_state_owed(poller_id()) && extended_negotiation() &&
+             _state.supports_centralized_conf() &&
              _state.broker_knows_poller_conf(poller_id()) &&
              _state.cache().has_instance(poller_id())) {
     /* has_instance: a configuration just rebuilt from the poller reaches the

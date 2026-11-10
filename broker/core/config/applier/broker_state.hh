@@ -272,6 +272,7 @@ class broker_state : public state {
   void apply(const com::centreon::broker::config::state& s,
              bool run_mux = true) override;
   const std::filesystem::path& pollers_config_dir() const noexcept;
+  poller_conf_files poller_files(uint64_t poller_id) const;
   void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   void set_cache_config_dir(const std::filesystem::path& engine_conf_dir);
   const std::filesystem::path& cache_config_dir() const noexcept;

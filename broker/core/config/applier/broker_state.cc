@@ -307,6 +307,16 @@ const std::filesystem::path& broker_state::pollers_config_dir() const noexcept {
 }
 
 /**
+ * @brief The configuration files of a poller, in the pollers configuration
+ * directory.
+ *
+ * @param poller_id The poller ID.
+ */
+poller_conf_files broker_state::poller_files(uint64_t poller_id) const {
+  return {_pollers_config_dir, poller_id};
+}
+
+/**
  * @brief Set the pollers configurations directory.
  *
  * @param pollers_config_dir The pollers configurations directory.
@@ -442,43 +452,6 @@ constexpr std::chrono::seconds watch_retry_period{5};
  * doc/php-evolutions. The individual <id>.lck files remain supported. */
 constexpr std::string_view poller_batch_file{"pollers.lck"};
 
-/**
- * @brief The poller id a stored configuration file name carries.
- *
- * Only `<id>.prot` is a stored configuration. `new-<id>.prot` and
- * `diff-<id>.prot` are work files of the push in progress and must not be read
- * as the configuration of a poller.
- *
- * @param p The path of a file of the pollers configuration directory.
- *
- * @return The poller id, or 0 for anything that is not a stored configuration.
- */
-uint64_t stored_poller_config_id(const std::filesystem::path& p) {
-  if (p.extension() != ".prot")
-    return 0;
-  uint64_t retval = 0;
-  return absl::SimpleAtoi(p.stem().string(), &retval) ? retval : 0;
-}
-
-/**
- * @brief The poller a configuration prepared and not acknowledged yet belongs
- * to, from its file name.
- *
- * @param p A path in the pollers configuration directory.
- *
- * @return The poller ID if @p p is a `new-<ID>.prot`, 0 otherwise.
- */
-uint64_t new_poller_config_id(const std::filesystem::path& p) {
-  if (p.extension() != ".prot")
-    return 0;
-  const std::string stem = p.stem().string();
-  std::string_view id = stem;
-  uint64_t retval = 0;
-  if (!absl::ConsumePrefix(&id, "new-") || !absl::SimpleAtoi(id, &retval))
-    return 0;
-  return retval;
-}
-
 }  // namespace
 
 /**
@@ -569,8 +542,7 @@ void broker_state::on_cache_sections_declared() {
 void broker_state::apply_poller_diff_in_cache(uint64_t poller_id) {
   if (!pollers_config_dir_usable())
     return;
-  const auto path =
-      pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
+  const auto path = poller_files(poller_id).diff_path();
   engine::configuration::DiffState diff;
   std::error_code ec;
   common::read_proto_file(path, diff, ec);
@@ -654,9 +626,9 @@ bool broker_state::remove_poller(uint64_t poller_id) {
   }
 
   if (pollers_config_dir_usable()) {
-    for (const char* pattern : {"{}.prot", "new-{}.prot", "diff-{}.prot"}) {
-      const auto path =
-          pollers_config_dir() / fmt::format(fmt::runtime(pattern), poller_id);
+    const poller_conf_files files = poller_files(poller_id);
+    for (const auto& path :
+         {files.stored_path(), files.new_path(), files.diff_path()}) {
       std::error_code ec;
       if (std::filesystem::remove(path, ec))
         _logger->info("Removed '{}': poller {} is no longer on the platform",
@@ -693,12 +665,12 @@ void broker_state::load_pollers_config_in_cache() {
        std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
     /* A poller with a file is known to Broker, whether it connects or not:
      * acknowledged or prepared, its configuration lives here. */
-    if (const uint64_t id = new_poller_config_id(entry.path())) {
+    if (const uint64_t id = poller_conf_files::new_id(entry.path())) {
       /* A new-<ID>.prot file is available */
       _peers.declare_poller_conf(id);
       continue;
     }
-    const uint64_t id = stored_poller_config_id(entry.path());
+    const uint64_t id = poller_conf_files::stored_id(entry.path());
     if (id == 0)
       continue;
 
@@ -758,7 +730,7 @@ engine::configuration::foreign_objects broker_state::load_foreign_objects()
   std::error_code ec;
   for (const auto& entry :
        std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
-    uint64_t id = stored_poller_config_id(entry.path());
+    uint64_t id = poller_conf_files::stored_id(entry.path());
     if (id == 0)
       continue;
 
@@ -847,10 +819,9 @@ void broker_state::create_prot_file(
 
   // If the normal flow is already preparing a new-<ID>.prot or has already
   // installed a <ID>.prot, do not overwrite it.
-  std::filesystem::path prot_file =
-      pollers_config_dir() / fmt::format("{}.prot", poller_id);
-  std::filesystem::path new_prot_file =
-      pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+  const poller_conf_files files = poller_files(poller_id);
+  const std::filesystem::path prot_file = files.stored_path();
+  const std::filesystem::path new_prot_file = files.new_path();
   if (std::filesystem::is_regular_file(new_prot_file)) {
     skip(fmt::format(
         "'{}' already exists, the normal configuration flow will handle it",
@@ -942,8 +913,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
         poller_id);
     return retval;
   }
-  std::filesystem::path prot_file =
-      pollers_config_dir() / fmt::format("{}.prot", poller_id);
+  const std::filesystem::path prot_file = poller_files(poller_id).stored_path();
   multiplexing::publisher pblshr;
   bool poller_conf_lost = false;
   auto engine_state = std::make_shared<neb::pb_engine_state>();
@@ -1607,7 +1577,7 @@ bool broker_state::_store_poller_conf(uint32_t poller_id,
     }
   }
   const std::filesystem::path last_prot_conf =
-      pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+      poller_files(poller_id).new_path();
   /* Whole or not at all: the stream may read it to send the full configuration
    * while a newer one replaces it. */
   common::write_proto_file(last_prot_conf, state, false, ec);
@@ -1967,8 +1937,8 @@ bool broker_state::_prepare_diff_for_poller(
           "(old: '{}', new: '{}')",
           peer->poller_name, poller_id, conf.engine_conf,
           state->config_version());
-    std::filesystem::path previous_prot_conf =
-        pollers_config_dir() / fmt::format("{}.prot", poller_id);
+    const poller_conf_files files = poller_files(poller_id);
+    const std::filesystem::path previous_prot_conf = files.stored_path();
     auto diff_state = std::make_unique<engine::configuration::DiffState>();
     std::string new_version = state->config_version();
     auto previous_state = std::make_unique<engine::configuration::State>();
@@ -1986,8 +1956,7 @@ bool broker_state::_prepare_diff_for_poller(
             "(conf: '{}')",
             peer->poller_name, poller_id, conf.engine_conf);
         std::error_code rm_ec;
-        const auto new_prot_conf =
-            pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+        const auto new_prot_conf = files.new_path();
         if (!std::filesystem::remove(new_prot_conf, rm_ec) && rm_ec)
           _logger->error("Cannot remove '{}': {}", new_prot_conf.string(),
                          rm_ec.message());
@@ -2016,8 +1985,7 @@ bool broker_state::_prepare_diff_for_poller(
     /* The diff names the poller it is for: whoever sends it reads it there,
      * and the embedded full state is not always present to say so. */
     diff_state->set_poller_id(static_cast<uint32_t>(poller_id));
-    std::filesystem::path diff_prot_conf =
-        pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
+    const std::filesystem::path diff_prot_conf = files.diff_path();
     std::error_code ec;
     common::write_proto_file(diff_prot_conf, *diff_state, false, ec);
     if (ec) {
@@ -2142,10 +2110,9 @@ void broker_state::on_poller_conf_acknowledged(uint64_t poller_id,
  * @param poller_id The poller ID.
  */
 void broker_state::_install_acknowledged_conf(uint64_t poller_id) {
-  const std::filesystem::path new_name(pollers_config_dir() /
-                                       fmt::format("new-{}.prot", poller_id));
-  const std::filesystem::path name(pollers_config_dir() /
-                                   fmt::format("{}.prot", poller_id));
+  const poller_conf_files files = poller_files(poller_id);
+  const std::filesystem::path new_name = files.new_path();
+  const std::filesystem::path name = files.stored_path();
   _logger->debug("Renaming '{}' to '{}'", new_name.string(), name.string());
   std::error_code ec;
   std::filesystem::rename(new_name, name, ec);
@@ -2204,9 +2171,8 @@ void broker_state::on_poller_conf_rejected(uint64_t poller_id,
   if (_peers.reject_poller_conf(poller_id, running_version, failed_version,
                                 error) &&
       pollers_config_dir_usable()) {
-    for (const char* pattern : {"new-{}.prot", "diff-{}.prot"}) {
-      const std::filesystem::path path(
-          pollers_config_dir() / fmt::format(fmt::runtime(pattern), poller_id));
+    const poller_conf_files files = poller_files(poller_id);
+    for (const auto& path : {files.new_path(), files.diff_path()}) {
       std::error_code ec;
       std::filesystem::remove(path, ec);
       if (ec)
@@ -2231,12 +2197,10 @@ void broker_state::on_poller_conf_rejected(uint64_t poller_id,
 bool broker_state::_diff_waits_for_integration(uint64_t poller_id) const {
   if (!pollers_config_dir_usable())
     return false;
+  const poller_conf_files files = poller_files(poller_id);
   std::error_code ec;
-  return std::filesystem::exists(
-             pollers_config_dir() / fmt::format("diff-{}.prot", poller_id),
-             ec) &&
-         !std::filesystem::exists(
-             pollers_config_dir() / fmt::format("new-{}.prot", poller_id), ec);
+  return std::filesystem::exists(files.diff_path(), ec) &&
+         !std::filesystem::exists(files.new_path(), ec);
 }
 
 /**
@@ -2254,15 +2218,10 @@ void broker_state::_integrate_acknowledged_diffs() {
   std::error_code ec;
   for (const auto& entry :
        std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
-    const std::string name = entry.path().filename().string();
-    std::string_view id_view(name);
-    if (!entry.is_regular_file() || entry.path().extension() != ".prot" ||
-        !absl::ConsumePrefix(&id_view, "diff-") ||
-        !absl::ConsumeSuffix(&id_view, ".prot"))
+    if (!entry.is_regular_file())
       continue;
-    uint64_t poller_id;
-    if (absl::SimpleAtoi(id_view, &poller_id) &&
-        _diff_waits_for_integration(poller_id))
+    const uint64_t poller_id = poller_conf_files::diff_id(entry.path());
+    if (poller_id != 0 && _diff_waits_for_integration(poller_id))
       pollers.push_back(poller_id);
   }
   if (pollers.empty())
@@ -2289,18 +2248,11 @@ void broker_state::_publish_global_diff(
   std::error_code ec;
   for (const auto& entry :
        std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
-    const std::string name = entry.path().filename().string();
-    std::string_view id_view(name);
-    if (!entry.is_regular_file() || entry.path().extension() != ".prot" ||
-        !absl::ConsumePrefix(&id_view, "diff-"))
+    if (!entry.is_regular_file())
       continue;
-    id_view.remove_suffix(5);
-    uint64_t poller_id;
-    if (!absl::SimpleAtoi(id_view, &poller_id)) {
-      _logger->error("BBDO: The file '{}' seems not to be a diff state file.",
-                     name);
+    const uint64_t poller_id = poller_conf_files::diff_id(entry.path());
+    if (poller_id == 0)
       continue;
-    }
     if (poller_ids && !absl::c_linear_search(*poller_ids, poller_id))
       continue;
     _logger->debug("BBDO: Merging diff file '{}' into the global one",
@@ -2512,8 +2464,7 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
         poller_id);
     return std::nullopt;
   }
-  const auto new_file =
-      pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+  const auto new_file = poller_files(poller_id).new_path();
   auto state = std::make_unique<engine::configuration::State>();
   std::error_code ec;
   common::read_proto_file(new_file, *state, ec);
@@ -2567,10 +2518,9 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
         engine_id);
     return relay_config_response::unknown;
   }
-  const auto diff_file =
-      pollers_config_dir() / fmt::format("diff-{}.prot", engine_id);
-  const auto prev_file =
-      pollers_config_dir() / fmt::format("{}.prot", engine_id);
+  const poller_conf_files files = poller_files(engine_id);
+  const auto diff_file = files.diff_path();
+  const auto prev_file = files.stored_path();
 
   /* 0. */
   if (uint32_t existing_lck = _lck_file_for_poller(engine_id)) {

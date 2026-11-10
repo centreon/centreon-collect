@@ -17,7 +17,105 @@
  */
 #include "broker/core/config/applier/poller_conf.hh"
 
+#include <absl/strings/numbers.h>
+#include <absl/strings/strip.h>
+#include <fmt/format.h>
+
 namespace com::centreon::broker::config::applier {
+
+namespace {
+/**
+ * @brief The poller ID a file name of the pollers configuration directory
+ * carries after @p prefix.
+ *
+ * @param p The path of the file.
+ * @param prefix What comes before the ID: empty, "new-" or "diff-".
+ *
+ * @return The poller ID, or 0 if @p p is not `<prefix><ID>.prot`.
+ */
+uint64_t poller_id_after_prefix(const std::filesystem::path& p,
+                                std::string_view prefix) {
+  if (p.extension() != ".prot")
+    return 0;
+  const std::string stem = p.stem().string();
+  std::string_view id = stem;
+  uint64_t retval = 0;
+  if (!absl::ConsumePrefix(&id, prefix) || !absl::SimpleAtoi(id, &retval))
+    return 0;
+  return retval;
+}
+}  // namespace
+
+/**
+ * @brief Name the files of one poller.
+ *
+ * @param dir The pollers configuration directory.
+ * @param poller_id The poller ID.
+ */
+poller_conf_files::poller_conf_files(const std::filesystem::path& dir,
+                                     uint64_t poller_id)
+    : _dir{dir}, _poller_id{poller_id} {}
+
+/**
+ * @brief The configuration the poller acknowledged: `<ID>.prot`.
+ */
+std::filesystem::path poller_conf_files::stored_path() const {
+  return _dir / fmt::format("{}.prot", _poller_id);
+}
+
+/**
+ * @brief The configuration prepared for the poller and not acknowledged yet:
+ * `new-<ID>.prot`.
+ */
+std::filesystem::path poller_conf_files::new_path() const {
+  return _dir / fmt::format("new-{}.prot", _poller_id);
+}
+
+/**
+ * @brief The difference from `<ID>.prot` to `new-<ID>.prot`: `diff-<ID>.prot`.
+ */
+std::filesystem::path poller_conf_files::diff_path() const {
+  return _dir / fmt::format("diff-{}.prot", _poller_id);
+}
+
+/**
+ * @brief The poller ID a stored configuration file name carries.
+ *
+ * Only `<ID>.prot` is a stored configuration. `new-<ID>.prot` and
+ * `diff-<ID>.prot` are work files of the push in progress and must not be read
+ * as the configuration of a poller.
+ *
+ * @param p The path of a file of the pollers configuration directory.
+ *
+ * @return The poller ID, or 0 for anything that is not `<ID>.prot`.
+ */
+uint64_t poller_conf_files::stored_id(const std::filesystem::path& p) {
+  return poller_id_after_prefix(p, "");
+}
+
+/**
+ * @brief The poller a configuration prepared and not acknowledged yet belongs
+ * to, from its file name.
+ *
+ * @param p The path of a file of the pollers configuration directory.
+ *
+ * @return The poller ID if @p p is a `new-<ID>.prot`, 0 otherwise.
+ */
+uint64_t poller_conf_files::new_id(const std::filesystem::path& p) {
+  return poller_id_after_prefix(p, "new-");
+}
+
+/**
+ * @brief The poller a difference waiting for the database belongs to, from its
+ * file name.
+ *
+ * @param p The path of a file of the pollers configuration directory.
+ *
+ * @return The poller ID if @p p is a `diff-<ID>.prot`, 0 otherwise.
+ */
+uint64_t poller_conf_files::diff_id(const std::filesystem::path& p) {
+  return poller_id_after_prefix(p, "diff-");
+}
 
 /**
  * @brief Create the configuration state of a poller Broker just learned about:

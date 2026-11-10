@@ -19,11 +19,45 @@
 #define CCB_CONFIG_APPLIER_POLLER_CONF_HH
 #include <spdlog/spdlog.h>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
 
 namespace com::centreon::broker::config::applier {
+/**
+ * @brief The names of the configuration files of one poller, in the pollers
+ * configuration directory. Nothing else builds them.
+ *
+ *  - `<ID>.prot`: the configuration the poller acknowledged, the reference of
+ *    the cache and of the database;
+ *  - `new-<ID>.prot`: a configuration prepared for it, not acknowledged yet;
+ *  - `diff-<ID>.prot`: the difference from `<ID>.prot` to `new-<ID>.prot`,
+ *    until the global diff carries it to the database.
+ *
+ * It only names them: reading and writing go through common/proto_file.
+ *
+ * It refers to the directory without copying it: the directory must outlive
+ * it, hence no temporary is accepted.
+ */
+class poller_conf_files {
+  const std::filesystem::path& _dir;
+  uint64_t _poller_id;
+
+ public:
+  poller_conf_files(const std::filesystem::path& dir, uint64_t poller_id);
+  poller_conf_files(std::filesystem::path&& dir, uint64_t poller_id) = delete;
+
+  uint64_t poller_id() const noexcept { return _poller_id; }
+  std::filesystem::path stored_path() const;
+  std::filesystem::path new_path() const;
+  std::filesystem::path diff_path() const;
+
+  static uint64_t stored_id(const std::filesystem::path& p);
+  static uint64_t new_id(const std::filesystem::path& p);
+  static uint64_t diff_id(const std::filesystem::path& p);
+};
+
 /**
  * @brief What Broker knows of the configuration of one poller: the version it
  * runs, the one prepared for it, the one in flight, the one it rejected, and
