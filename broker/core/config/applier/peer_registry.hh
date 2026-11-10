@@ -127,7 +127,7 @@ class peer_registry {
    * else uses the plain accessors below.
    *
    * It gives access to the peer, for its connection, and to its poller_conf.
-   * Both exist together or not at all.
+   * A peer entry always has its poller_conf.
    */
   class locked_engine_peer {
     absl::Mutex* _m;
@@ -173,14 +173,21 @@ class peer_registry {
    * peers and peers merely known to exist -- see engine_peer::connected(). */
   absl::flat_hash_map<uint64_t, engine_peer> _engine_peers
       ABSL_GUARDED_BY(_connected_peers_m);
-  /* What Broker knows of the configuration of each Engine peer, indexed by the
-   * poller ID. An entry exists exactly when _engine_peers holds one. */
+  /* What Broker knows of the configuration of each poller, indexed by the
+   * poller ID. Every entry of _engine_peers has one; the reverse does not hold:
+   * a poller known from its files or from an export has one while away, in its
+   * initial state, until RemovePoller destroys it. */
   absl::flat_hash_map<uint64_t, poller_conf> _poller_confs
       ABSL_GUARDED_BY(_connected_peers_m);
   absl::flat_hash_map<peer_key, broker_peer> _broker_peers
       ABSL_GUARDED_BY(_connected_peers_m);
   absl::flat_hash_map<peer_key, unknown_peer> _unknown_peers
       ABSL_GUARDED_BY(_connected_peers_m);
+
+  poller_conf* _peer_conf(uint64_t poller_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_connected_peers_m);
+  const poller_conf* _peer_conf(uint64_t poller_id) const
+      ABSL_SHARED_LOCKS_REQUIRED(_connected_peers_m);
 
  public:
   peer_registry(const std::shared_ptr<spdlog::logger>& logger)
@@ -208,6 +215,13 @@ class peer_registry {
                                      const std::string& poller_name,
                                      uint64_t relay_poller_id,
                                      const std::string& config_version)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  /* Creates the poller_conf of a poller known otherwise than by a connection:
+   * its files at startup, or an export. */
+  void declare_poller_conf(uint64_t poller_id)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  /* Destroys it, when the poller is removed from the platform. */
+  void forget_poller_conf(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
   /* --- Snapshots ------------------------------------------------------- */

@@ -493,3 +493,40 @@ TEST_F(BrokerStateRound, UnreadableStoredConfigurationIsNotPublished) {
   EXPECT_TRUE(std::filesystem::exists(_dir / "1.prot"));
   EXPECT_FALSE(_state->broker_knows_poller_conf(2));
 }
+
+/**
+ * Scenario: a poller that disconnects during a round leaves it, and comes back
+ * with a clean slate.
+ * Given two pollers behind a relay, each sent v1
+ * And the first one could not apply it
+ * When the first one disconnects
+ * Then it no longer holds the round open
+ * And the round is over once the second one acknowledges v1
+ * When the first one connects again
+ * Then nothing is in flight for it, and its failure is forgotten: v1 is tried
+ * again.
+ */
+TEST_F(BrokerStateRound, DisconnectionResetsThePollerConfiguration) {
+  for (uint64_t id = 1; id <= 2; ++id) {
+    _state->register_poller_via_relay(id, fmt::format("Poller{}", id), 10, "");
+    prepare_via_relay(id, "v1");
+    ASSERT_TRUE(_state->set_poller_conf_sent(id, "v1"));
+  }
+  _state->on_poller_conf_rejected(1, "", "v1", "boom");
+
+  _state->remove_peer(1, "Poller1", "central");
+  EXPECT_FALSE(_state->is_poller_connected(1));
+  EXPECT_EQ(_state->poller_engine_conf(1), "");
+
+  EXPECT_TRUE(_state->acknowledge_poller_conf(2, "v1"));
+  EXPECT_TRUE(_state->try_close_conf_round());
+
+  _state->register_poller_via_relay(1, "Poller1", 10, "");
+  auto pollers = _state->connected_pollers();
+  auto p1 = absl::c_find_if(
+      pollers, [](const auto& p) { return p.peer.poller_id == 1; });
+  ASSERT_NE(p1, pollers.end());
+  EXPECT_TRUE(p1->conf.rejected_conf.empty());
+  EXPECT_TRUE(p1->conf.conf_in_flight.empty());
+  EXPECT_TRUE(p1->conf.available_conf.empty());
+}

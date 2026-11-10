@@ -460,6 +460,25 @@ uint64_t stored_poller_config_id(const std::filesystem::path& p) {
   return absl::SimpleAtoi(p.stem().string(), &retval) ? retval : 0;
 }
 
+/**
+ * @brief The poller a configuration prepared and not acknowledged yet belongs
+ * to, from its file name.
+ *
+ * @param p A path in the pollers configuration directory.
+ *
+ * @return The poller ID if @p p is a `new-<ID>.prot`, 0 otherwise.
+ */
+uint64_t new_poller_config_id(const std::filesystem::path& p) {
+  if (p.extension() != ".prot")
+    return 0;
+  const std::string stem = p.stem().string();
+  std::string_view id = stem;
+  uint64_t retval = 0;
+  if (!absl::ConsumePrefix(&id, "new-") || !absl::SimpleAtoi(id, &retval))
+    return 0;
+  return retval;
+}
+
 }  // namespace
 
 /**
@@ -647,6 +666,7 @@ bool broker_state::remove_poller(uint64_t poller_id) {
                       path.string(), poller_id, ec.message());
     }
   }
+  _peers.forget_poller_conf(poller_id);
   cache().remove_instance(poller_id);
   _logger->info("Poller {} removed from Broker", poller_id);
   return true;
@@ -671,9 +691,19 @@ void broker_state::load_pollers_config_in_cache() {
   std::error_code ec;
   for (const auto& entry :
        std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
+    /* A poller with a file is known to Broker, whether it connects or not:
+     * acknowledged or prepared, its configuration lives here. */
+    if (const uint64_t id = new_poller_config_id(entry.path())) {
+      /* A new-<ID>.prot file is available */
+      _peers.declare_poller_conf(id);
+      continue;
+    }
     const uint64_t id = stored_poller_config_id(entry.path());
     if (id == 0)
       continue;
+
+    /* An <ID>.prot file is available */
+    _peers.declare_poller_conf(id);
     if (_merge_stored_config_in_cache(entry.path(), id))
       pollers.push_back(id);
   }
@@ -1906,6 +1936,8 @@ bool broker_state::_prepare_diff_for_poller(
         poller_id);
     return false;
   }
+  /* An export makes the poller known to Broker, connected or not. */
+  _peers.declare_poller_conf(poller_id);
   {
     /* Held from the version read below to the arming at the end: two
      * preparations of the same poller must not interleave. Released before
@@ -1914,7 +1946,7 @@ bool broker_state::_prepare_diff_for_poller(
     auto peer = _peers.lock_engine_peer(poller_id);
     /* A poller that is not there gets nothing prepared, and that has to hold
      * for a poller behind a relay exactly as it holds for a direct one. A
-     * directly connected poller that is away has no entry at all, so this
+     * directly connected poller that is away has no peer entry, so this
      * returns here and its `new-<ID>.prot` simply waits for it. An entry
      * restored from topology.cache would otherwise pass: a diff would be
      * written and `available_conf` armed for a peer nobody can reach, which

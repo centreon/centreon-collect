@@ -113,8 +113,7 @@ bool peer_registry::is_poller_connected(uint64_t poller_id) const {
 bool peer_registry::is_poller_running(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
-  return it != _engine_peers.end() &&
-         it->second.state == peer_state::running;
+  return it != _engine_peers.end() && it->second.state == peer_state::running;
 }
 
 /**
@@ -159,8 +158,7 @@ void peer_registry::restore_pollers_from_cache(const TopologyCache& cache) {
                                                  .state = peer_state::expected,
                                                  .extended_negotiation = false,
                                                  .via_remote = e.relay_id()};
-      _poller_confs.insert_or_assign(e.poller_id(),
-                                     poller_conf{e.poller_id(), _logger});
+      _poller_confs.try_emplace(e.poller_id(), e.poller_id(), _logger);
     }
   }
 }
@@ -214,10 +212,8 @@ std::string peer_registry::add_peer(uint64_t poller_id,
    * poller_id (e.g. rrd and Engine both on poller 1) and must not interfere.
    * The engine_peer entry was created by register_poller_via_relay and
    * must survive until the diff is prepared for it. */
-  if (peer_type != common::BROKER) {
-    _engine_peers.erase(poller_id);
-    _poller_confs.erase(poller_id);
-  }
+  if (peer_type != common::BROKER && _engine_peers.erase(poller_id))
+    _poller_confs.at(poller_id).on_disconnected();
   _broker_peers.erase(key);
   _unknown_peers.erase(key);
 
@@ -235,8 +231,8 @@ std::string peer_registry::add_peer(uint64_t poller_id,
                       .extended_negotiation = extended_negotiation,
                       .via_remote = 0,
                       .timezone = timezone};
-      _poller_confs.insert_or_assign(
-          poller_id, poller_conf{poller_id, _logger, effective_engine_conf});
+      _poller_confs.try_emplace(poller_id, poller_id, _logger)
+          .first->second.on_connected(effective_engine_conf);
       break;
     default:
       _unknown_peers[key] =
@@ -262,7 +258,7 @@ bool peer_registry::remove_peer(uint64_t poller_id,
   absl::WriterMutexLock lck(&_connected_peers_m);
   const peer_key key{poller_id, poller_name, broker_name};
   if (_engine_peers.erase(poller_id)) {
-    _poller_confs.erase(poller_id);
+    _poller_confs.at(poller_id).on_disconnected();
     return true;
   }
   return _broker_peers.erase(key) || _unknown_peers.erase(key);
@@ -318,8 +314,8 @@ uint64_t peer_registry::register_poller_via_relay(
                                            .connected_since = time(nullptr),
                                            .extended_negotiation = true,
                                            .via_remote = relay_poller_id};
-    _poller_confs.insert_or_assign(
-        poller_id, poller_conf{poller_id, _logger, config_version});
+    _poller_confs.try_emplace(poller_id, poller_id, _logger)
+        .first->second.on_connected(config_version);
   }
   _poller_to_relay[poller_id] = relay_poller_id;
   return migrated_from;
@@ -347,6 +343,62 @@ peer_registry::locked_engine_peer peer_registry::lock_engine_peer(
 }
 
 /**
+ * @brief The configuration state of a poller that has a peer entry, connected
+ * or restored from topology.cache.
+ *
+ * A poller_conf with no peer entry belongs to a poller that is away: it is in
+ * its initial state, and the accessors behave as if it did not exist, as they
+ * did when its lifetime was the connection's.
+ *
+ * @param poller_id The poller ID.
+ *
+ * @return Its poller_conf, or nullptr when the poller has no peer entry.
+ */
+poller_conf* peer_registry::_peer_conf(uint64_t poller_id) {
+  if (!_engine_peers.contains(poller_id))
+    return nullptr;
+  return &_poller_confs.at(poller_id);
+}
+
+/**
+ * @brief Const version of _peer_conf().
+ */
+const poller_conf* peer_registry::_peer_conf(uint64_t poller_id) const {
+  if (!_engine_peers.contains(poller_id))
+    return nullptr;
+  return &_poller_confs.at(poller_id);
+}
+
+/**
+ * @brief Make sure Broker has a poller_conf for this poller, whether it is
+ * connected or not. Called by the two sources that do not come from a
+ * connection: the configuration files found at startup, and an export.
+ *
+ * An existing poller_conf is left untouched.
+ *
+ * @param poller_id The poller ID.
+ */
+void peer_registry::declare_poller_conf(uint64_t poller_id) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  _poller_confs.try_emplace(poller_id, poller_id, _logger);
+}
+
+/**
+ * @brief Destroy the poller_conf of a poller removed from the platform.
+ *
+ * A peer entry restored from topology.cache keeps its poller_conf, still in
+ * its initial state since such a poller is not connected: every peer entry has
+ * one.
+ *
+ * @param poller_id The poller ID.
+ */
+void peer_registry::forget_poller_conf(uint64_t poller_id) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  if (!_engine_peers.contains(poller_id))
+    _poller_confs.erase(poller_id);
+}
+
+/**
  * @brief Get the local timezone advertised by an Engine peer at negotiation
  * time.
  *
@@ -364,10 +416,10 @@ peer_registry::locked_engine_peer peer_registry::lock_engine_peer(
  */
 std::string peer_registry::poller_engine_conf(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found == _poller_confs.end())
+  auto* found = _peer_conf(poller_id);
+  if (!found)
     return {};
-  return found->second.engine_conf;
+  return found->engine_conf;
 }
 
 std::string peer_registry::poller_timezone(uint64_t poller_id) const {
@@ -392,9 +444,9 @@ std::string peer_registry::poller_timezone(uint64_t poller_id) const {
  */
 bool peer_registry::broker_knows_poller_conf(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found != _poller_confs.end())
-    return found->second.broker_knows_poller_conf;
+  auto* found = _peer_conf(poller_id);
+  if (found)
+    return found->broker_knows_poller_conf;
   return true;
 }
 
@@ -428,8 +480,8 @@ bool peer_registry::broker_peer_supports_extended_negotiation() const {
  */
 bool peer_registry::runtime_state_owed(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  return found != _poller_confs.end() && found->second.runtime_state_owed;
+  auto* found = _peer_conf(poller_id);
+  return found && found->runtime_state_owed;
 }
 
 /**
@@ -441,18 +493,18 @@ bool peer_registry::runtime_state_owed(uint64_t poller_id) const {
  */
 void peer_registry::set_runtime_state_owed(uint64_t poller_id, bool owed) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found != _poller_confs.end())
-    found->second.runtime_state_owed = owed;
+  auto* found = _peer_conf(poller_id);
+  if (found)
+    found->runtime_state_owed = owed;
 }
 
 bool peer_registry::poller_needs_update(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   _logger->trace("poller_needs_update called for poller id {}", poller_id);
-  auto found = _poller_confs.find(poller_id);
-  if (found == _poller_confs.end())
+  auto* found = _peer_conf(poller_id);
+  if (!found)
     return false;
-  const poller_conf& conf = found->second;
+  const poller_conf& conf = *found;
   if (conf.needs_update()) {
     _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
                    conf.available_conf, conf.engine_conf, poller_id);
@@ -470,11 +522,11 @@ bool peer_registry::poller_needs_update(uint64_t poller_id) const {
 void peer_registry::set_poller_engine_conf(uint64_t poller_id,
                                            const std::string& engine_conf) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found == _poller_confs.end()) {
+  auto* found = _peer_conf(poller_id);
+  if (!found) {
     _logger->info("Poller with id {} not found in connected peers", poller_id);
   } else {
-    poller_conf& conf = found->second;
+    poller_conf& conf = *found;
     _logger->info(
         "Poller with id {} available conf '{}' and current version changed "
         "from '{}' to '{}'",
@@ -495,11 +547,11 @@ void peer_registry::set_poller_engine_conf(uint64_t poller_id,
 void peer_registry::set_broker_knows_poller_conf(uint64_t poller_id,
                                                  bool known) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found != _poller_confs.end()) {
+  auto* found = _peer_conf(poller_id);
+  if (found) {
     _logger->info("Broker {} the configuration of poller {}",
                   known ? "knows" : "does not know", poller_id);
-    found->second.broker_knows_poller_conf = known;
+    found->broker_knows_poller_conf = known;
   }
 }
 
@@ -515,13 +567,13 @@ void peer_registry::set_broker_knows_poller_conf(uint64_t poller_id,
 bool peer_registry::set_poller_conf_sent(uint64_t poller_id,
                                          std::string_view version) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found == _poller_confs.end()) {
+  auto* found = _peer_conf(poller_id);
+  if (!found) {
     _logger->info("Unable to send configuration to poller {}: it doesn't exist",
                   poller_id);
     return false;
   }
-  return found->second.mark_sent(version);
+  return found->mark_sent(version);
 }
 
 /**
@@ -537,13 +589,13 @@ bool peer_registry::set_poller_conf_sent(uint64_t poller_id,
 bool peer_registry::acknowledge_poller_conf(uint64_t poller_id,
                                             const std::string& version) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found == _poller_confs.end()) {
+  auto* found = _peer_conf(poller_id);
+  if (!found) {
     _logger->info("Acknowledgement of '{}' from unknown poller {}: ignored",
                   version, poller_id);
     return false;
   }
-  return found->second.acknowledge(version);
+  return found->acknowledge(version);
 }
 
 /**
@@ -563,13 +615,13 @@ bool peer_registry::reject_poller_conf(uint64_t poller_id,
                                        const std::string& failed_version,
                                        const std::string& error) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _poller_confs.find(poller_id);
-  if (found == _poller_confs.end()) {
+  auto* found = _peer_conf(poller_id);
+  if (!found) {
     _logger->info("Failure of '{}' from unknown poller {}: ignored",
                   failed_version, poller_id);
     return false;
   }
-  return found->second.reject(running_version, failed_version, error);
+  return found->reject(running_version, failed_version, error);
 }
 
 /**
@@ -585,9 +637,9 @@ bool peer_registry::reject_poller_conf(uint64_t poller_id,
 void peer_registry::leave_conf_round(const std::vector<uint64_t>& poller_ids) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   for (uint64_t poller_id : poller_ids) {
-    auto found = _poller_confs.find(poller_id);
-    if (found != _poller_confs.end())
-      found->second.round = poller_conf::conf_round::out;
+    auto* found = _peer_conf(poller_id);
+    if (found)
+      found->round = poller_conf::conf_round::out;
   }
 }
 
@@ -598,9 +650,9 @@ void peer_registry::leave_conf_round(const std::vector<uint64_t>& poller_ids) {
  * them.
  *
  * Closing is not free of consequence, hence the try_: on success the round is
- * *consumed*, every peer going back to conf_round::out. Two acknowledgement handlers checking at the same time would
- * otherwise both enter the global diff block, and the second one would publish
- * a round that no longer exists.
+ * *consumed*, every peer going back to conf_round::out. Two acknowledgement
+ * handlers checking at the same time would otherwise both enter the global diff
+ * block, and the second one would publish a round that no longer exists.
  *
  * @return True when the round was closed -- and only then.
  */
@@ -650,10 +702,10 @@ bool peer_registry::try_close_conf_round() {
  * @brief Returns the poller IDs reachable through the given relay that are
  * still owed a configuration.
  *
- * The test is poller_conf::needs_update() and nothing else, as for a direct poller in
- * poller_needs_update(): writing the same conditions a second time here is
- * what let the two drift apart once, and a poller left out of one of them
- * loses its configuration.
+ * The test is poller_conf::needs_update() and nothing else, as for a direct
+ * poller in poller_needs_update(): writing the same conditions a second time
+ * here is what let the two drift apart once, and a poller left out of one of
+ * them loses its configuration.
  *
  * @param relay_id The poller ID of the relay.
  *

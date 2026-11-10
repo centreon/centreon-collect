@@ -36,6 +36,29 @@ poller_conf::poller_conf(uint64_t poller_id,
       engine_conf{std::move(engine_conf)} {}
 
 /**
+ * @brief The poller just connected: everything Broker knew of its
+ * configuration is forgotten, except the version it announces.
+ *
+ * This is what a new poller_conf was when its lifetime was the connection's,
+ * and it is kept as such for now: what was owed, in flight or rejected is
+ * worked out again from the files (see broker_state::add_peer()). A rejected
+ * version, in particular, is tried again.
+ *
+ * @param engine_conf The configuration version the poller runs, if known.
+ */
+void poller_conf::on_connected(std::string engine_conf) {
+  *this = poller_conf{_poller_id, _logger, std::move(engine_conf)};
+}
+
+/**
+ * @brief The poller is gone: it owes nothing and takes no part in the
+ * configuration round any more, as if its poller_conf did not exist.
+ */
+void poller_conf::on_disconnected() {
+  on_connected({});
+}
+
+/**
  * @brief Whether a configuration is prepared for this poller and still owes it
  * a delivery.
  *
@@ -60,7 +83,7 @@ bool poller_conf::owes_conf() const noexcept {
  * on top of the one it actually runs. The acknowledgement says which version
  * that is, and the delivery waits for it. It always comes: Engine acknowledges
  * a configuration it could not apply too (see reject()), and a poller that dies
- * on the way disconnects, which drops its entry.
+ * on the way disconnects, which resets it (see on_disconnected()).
  */
 bool poller_conf::needs_update() const noexcept {
   return owes_conf() && conf_in_flight.empty();
@@ -147,7 +170,7 @@ bool poller_conf::acknowledge(const std::string& version) {
  * When @p failed_version is the configuration prepared for it, the poller
  * leaves the round, since it will not acknowledge it, and that version is no
  * longer owed: sending it again would fail the same way. A new export, or a
- * reconnection of the poller -- which recreates its entry -- tries again. An
+ * reconnection of the poller -- which resets it -- tries again. An
  * older version only says what the poller runs, as with acknowledge(): the
  * newer one stays owed and is sent now.
  *

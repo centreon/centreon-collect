@@ -29,8 +29,11 @@ namespace com::centreon::broker::config::applier {
  * runs, the one prepared for it, the one in flight, the one it rejected, and
  * where it stands in the configuration round.
  *
- * The connection itself is not here, it belongs to peer_registry. For now a
- * poller_conf lives exactly as long as the peer_registry entry of its poller.
+ * The connection itself is not here, it belongs to peer_registry. A
+ * poller_conf lives as long as Broker knows the poller, connected or not: it is
+ * created by the first of its files at startup, its connection or an export,
+ * and destroyed by RemovePoller. For now, a connection and a disconnection
+ * both bring it back to its initial state (see on_connected()).
  */
 class poller_conf {
  public:
@@ -87,6 +90,8 @@ class poller_conf {
               std::string engine_conf = {});
 
   uint64_t poller_id() const noexcept { return _poller_id; }
+  void on_connected(std::string engine_conf);
+  void on_disconnected();
   bool owes_conf() const noexcept;
   bool needs_update() const noexcept;
   bool mark_sent(std::string_view version);
