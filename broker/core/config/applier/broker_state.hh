@@ -21,6 +21,7 @@
 #include <absl/base/call_once.h>
 
 #include "broker/core/config/applier/peer_registry.hh"
+#include "broker/core/config/applier/poller_conf.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/broker_notification_dispatcher.hh"
 
@@ -30,10 +31,14 @@ class broker_state : public state {
   /* The peers live in the registry now; the names stay so that callers and
    * the gRPC service are unaffected. */
   using engine_peer = peer_registry::engine_peer;
-  using connected_poller = peer_registry::connected_poller;
   using peer = peer_registry::peer;
   using broker_peer = peer_registry::broker_peer;
   using unknown_peer = peer_registry::unknown_peer;
+  /* A connected Engine peer, with what Broker knows of its configuration. */
+  struct connected_poller {
+    engine_peer peer;
+    poller_conf conf;
+  };
 
  public:
   enum notification_mode { notification_mode_engine, notification_mode_broker };
@@ -72,6 +77,18 @@ class broker_state : public state {
    * Owns its own lock: _connected_peers_m below guards only the forwarding
    * queues. */
   peer_registry _peers;
+  /* What Broker knows of the configuration of each poller, indexed by the
+   * poller ID. Every Engine entry of _peers has one; the reverse does not hold:
+   * a poller known from its files or from an export has one while away, in its
+   * initial state, until RemovePoller destroys it.
+   *
+   * Its lock only covers short sections -- one transition, or one read --
+   * never a file read or written: the streams ask it whether their poller is
+   * owed something at each of their reads. Lock order: _conf_handover_m, then
+   * _poller_confs_m, then the lock of _peers. */
+  mutable absl::Mutex _poller_confs_m;
+  absl::flat_hash_map<uint64_t, poller_conf> _poller_confs
+      ABSL_GUARDED_BY(_poller_confs_m);
   /* When this instance is a relay (no pollers_config_dir), Engine peers that
    * need a ConfigRequest sent to the upstream Broker are queued here.  The map
    * value is the config version currently known by the Engine peer. */
@@ -179,6 +196,14 @@ class broker_state : public state {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _close_conf_round_if_over()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  poller_conf* _known_poller_conf(uint64_t poller_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_poller_confs_m);
+  const poller_conf* _known_poller_conf(uint64_t poller_id) const
+      ABSL_SHARED_LOCKS_REQUIRED(_poller_confs_m);
+  void _declare_poller_conf(uint64_t poller_id)
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  void _leave_conf_round(const std::vector<uint64_t>& poller_ids)
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   void _start_watching();
   void _arm_inotify_wait();
   void _arm_debounce();
@@ -239,10 +264,14 @@ class broker_state : public state {
                 const std::string& timezone) override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::string poller_timezone(uint64_t poller_id) const override;
-  std::string poller_engine_conf(uint64_t poller_id) const;
-  bool runtime_state_owed(uint64_t poller_id) const;
-  void set_runtime_state_owed(uint64_t poller_id, bool owed);
-  bool broker_knows_poller_conf(uint64_t poller_id) const override;
+  std::string poller_engine_conf(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  bool runtime_state_owed(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  void set_runtime_state_owed(uint64_t poller_id, bool owed)
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  bool broker_knows_poller_conf(uint64_t poller_id) const override
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,
                    const std::string& broker_name) override;
@@ -252,13 +281,19 @@ class broker_state : public state {
    * cbmod also implements, where they would mean nothing. */
   bool is_poller_running(uint64_t poller_id) const;
   void set_instance_running(uint64_t poller_id, bool running) noexcept;
-  std::vector<connected_poller> connected_pollers() const;
-  std::vector<peer> connected_peers() const;
-  bool poller_needs_update(uint64_t poller_id) const;
-  void set_broker_knows_poller_conf(uint64_t poller_id, bool known);
-  bool try_close_conf_round();
-  bool set_poller_conf_sent(uint32_t poller_id, std::string_view version);
-  bool acknowledge_poller_conf(uint64_t poller_id, const std::string& version);
+  std::vector<connected_poller> connected_pollers() const
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  std::vector<peer> connected_peers() const
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  bool poller_needs_update(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  void set_broker_knows_poller_conf(uint64_t poller_id, bool known)
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  bool try_close_conf_round() ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  bool set_poller_conf_sent(uint32_t poller_id, std::string_view version)
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  bool acknowledge_poller_conf(uint64_t poller_id, const std::string& version)
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   void on_poller_conf_acknowledged(uint64_t poller_id,
                                    const std::string& version)
       ABSL_LOCKS_EXCLUDED(_conf_handover_m);
@@ -353,7 +388,7 @@ class broker_state : public state {
   /* Central: returns the poller IDs of engine peers reachable via relay_id
    * that have a pending configuration update not yet sent. */
   std::vector<uint64_t> pollers_via_relay_needing_update(
-      uint64_t relay_id) const;
+      uint64_t relay_id) const ABSL_LOCKS_EXCLUDED(_poller_confs_m);
 
   /* Central: drain and return all ConfigRevoke poller IDs destined for
    * relay_id.  Called from the BROKER-connected stream's read(). */

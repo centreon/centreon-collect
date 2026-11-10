@@ -295,10 +295,11 @@ void poller_conf::on_announced(const std::string& version) {
  * @brief Record that a configuration has been handed over to this poller
  * (transition 9).
  *
- * What is sent is decided without the registry lock (the diff file is read, or
- * the relay is found up to date, before this call). A newer configuration can
- * therefore be prepared in between: the poller is then in flight with an older
- * version, and the newer one stays owed, sent once the poller answers.
+ * What is sent is decided without the lock of the poller configurations (the
+ * diff file is read, or the relay is found up to date, before this call). A
+ * newer configuration can therefore be prepared in between: the poller is then
+ * in flight with an older version, and the newer one stays owed, sent once the
+ * poller answers.
  *
  * With no configuration prepared at all, the version still left: nothing else
  * is sent until the poller says which version it runs.
@@ -405,7 +406,7 @@ bool poller_conf::on_rejected(const std::string& running_version,
  * a delivery.
  *
  * This is what keeps a configuration round open, whether or not the delivery
- * can be made right now: see peer_registry::try_close_conf_round(). A poller in
+ * can be made right now: see broker_state::try_close_conf_round(). A poller in
  * flight with an older version than the one prepared still owes it.
  */
 bool poller_conf::owes_conf() const noexcept {
