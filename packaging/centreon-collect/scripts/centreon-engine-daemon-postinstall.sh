@@ -243,7 +243,11 @@ startCentengine() {
   systemctl unmask centengine.service ||:
   systemctl preset centengine.service ||:
   systemctl enable centengine.service ||:
-  systemctl restart centengine.service ||:
+  # rpm passes a number as $1: the restart is done by %posttrans, once the
+  # whole transaction is applied (see centreon-engine-daemon-posttrans.sh).
+  case "$1" in
+    '' | *[!0-9]*) systemctl restart centengine.service ||: ;;
+  esac
 }
 
 debianLinkNagios() {
@@ -327,17 +331,17 @@ case "$action" in
   "1" | "install")
     createEngineContextFile
     createDefaultCmaCaCrtKeyFiles
-    startCentengine
+    startCentengine "$1"
     ;;
   "2" | "upgrade")
     createEngineContextFile
     createDefaultCmaCaCrtKeyFiles
     patch_folder_whitelist
-    startCentengine
+    startCentengine "$1"
     ;;
   *)
     # $1 == version being installed
-    startCentengine
+    startCentengine "$1"
     ;;
 esac
 

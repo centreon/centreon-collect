@@ -153,6 +153,8 @@ overrides:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
+      # cbmod.so (shipped here) refuses broker modules of another version.
+      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
       - logrotate
     conflicts:
       - centreon-engine-extcommands
@@ -172,6 +174,8 @@ overrides:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
+      # cbmod.so (shipped here) refuses broker modules of another version.
+      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
       - logrotate
     conflicts:
       - centreon-engine-extcommands
@@ -191,6 +195,8 @@ overrides:
 
 rpm:
   summary: Centreon Engine Daemon is the daemon to schedule checks.
+  scripts:
+    posttrans: ./scripts/centreon-engine-daemon-posttrans.sh
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
