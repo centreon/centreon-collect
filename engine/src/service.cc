@@ -33,7 +33,6 @@
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timezone.hh"
 #include "engine/macros/process.hh"
 

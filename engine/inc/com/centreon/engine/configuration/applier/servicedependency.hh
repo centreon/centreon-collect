@@ -20,7 +20,6 @@
 #define CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
 
 namespace com::centreon::engine::configuration::applier {
