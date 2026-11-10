@@ -27,11 +27,11 @@
 namespace com::centreon::broker::grpc {
 
 /**
- * @brief grpc service implementation
- * ::grpc::Server::Shutdown doesn't return until all BiReactor has been stopped,
- * so we must store a reference on each in order to shutdown them first
- * This is the reason of _accepted member
+ * @brief grpc service implementation.
  *
+ * `grpc::Server::Shutdown()` doesn't return until all the BiReactors have
+ * been stopped, so we must keep a reference on each of them in order to shut
+ * them down first. This is the reason of the _accepted member.
  */
 class service_impl
     : public com::centreon::broker::stream::centreon_bbdo::Service,

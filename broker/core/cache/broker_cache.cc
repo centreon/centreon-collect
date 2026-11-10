@@ -4885,10 +4885,11 @@ absl::flat_hash_set<std::string> broker_cache::notification_contact_names(
 /**
  * @brief Evaluate the notification dependencies of a resource.
  *
- * Broker counterpart of Engine's host/service::authorized_by_dependencies for
- * dependency::notification. Takes the read lock once and dispatches to the
- * recursive per-type helpers (which require the lock held: absl reader locks
- * are not reentrant, so the inherits_parent recursion must not re-lock).
+ * Broker counterpart of Engine's `authorized_by_dependencies()` of hosts and
+ * services, for notification dependencies. Takes the read lock once and
+ * dispatches to the recursive per-type helpers (which require the lock held:
+ * absl reader locks are not reentrant, so the inherits_parent recursion must
+ * not re-lock).
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.

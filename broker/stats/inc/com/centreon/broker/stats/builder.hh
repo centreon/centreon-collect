@@ -30,7 +30,7 @@ class bthread;
 namespace stats {
 /**
  *  @class builder builder.hh "com/centreon/broker/stats/builder.hh"
- *  @brief Parse a <stats> node.
+ *  @brief Parse a "stats" entry of the Broker configuration.
  */
 class builder {
  public:

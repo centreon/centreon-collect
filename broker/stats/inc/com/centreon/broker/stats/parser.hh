@@ -28,14 +28,15 @@ class config;
 
 /**
  *  @class parser parser.hh "com/centreon/broker/stats/parser.hh"
- *  @brief Parse a <stats> node.
+ *  @brief Parse the "stats" entry of the Broker configuration.
  *
- *  Parse the <stats> node.
+ *  The entry is JSON: an object, or an array of objects, whose "json_fifo"
+ *  fields name the FIFOs where Broker writes its statistics.
  */
 class parser {
  public:
   parser();
-  ~parser() throw();
+  ~parser() noexcept;
 
   parser(parser const& right) = delete;
   parser& operator=(parser const& right) = delete;

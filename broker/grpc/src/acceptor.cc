@@ -114,10 +114,8 @@ void service_impl::init() {
  * @brief called on every stream creation
  * every accepted stream is pushed in _wait_to_open queue
  *
- * @param context
- * @return
- * ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
- * ::com::centreon::broker::stream::CentreonEvent>*
+ * @param context The gRPC context of the call.
+ * @return The reactor serving the new stream.
  */
 ::grpc::ServerBidiReactor<::com::centreon::broker::stream::CentreonEvent,
                           ::com::centreon::broker::stream::CentreonEvent>*

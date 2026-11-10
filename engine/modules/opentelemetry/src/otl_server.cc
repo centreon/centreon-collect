@@ -118,8 +118,7 @@ void request_response_allocator::release_request(
  * @brief allocate a request response pair and store relationship between raw
  * request pointer and shared_ptr
  *
- * @return ::grpc::MessageHolder<otl_col_metrics::ExportMetricsServiceRequest,
- * otl_col_metrics::ExportMetricsServiceResponse>*
+ * @return The request/response pair allocated.
  */
 ::grpc::MessageHolder<otl_col_metrics::ExportMetricsServiceRequest,
                       otl_col_metrics::ExportMetricsServiceResponse>*

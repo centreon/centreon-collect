@@ -233,8 +233,7 @@ class node_allocator {
 };
 
 /**
- * @brief Construct a new node allocator<T, byte allocator type, block
- * size>::node allocator object
+ * @brief Construct a node allocator, with a first chunk ready.
  *
  * @tparam T
  * @tparam byte_allocator_type
