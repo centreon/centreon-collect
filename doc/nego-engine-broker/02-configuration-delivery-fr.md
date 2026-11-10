@@ -171,7 +171,7 @@ Si c'est une version dépassée, parce qu'une configuration plus récente a ét�
 
 1. `new-X.prot` et `diff-X.prot` sont supprimés : ils décrivent une configuration que le poller ne fera pas tourner, et la fermeture du tour porterait sinon ce diff en base ;
 2. le poller sort du tour, qui peut alors se fermer pour les autres ;
-3. la version refusée et la raison sont gardées (`rejected_conf`, `rejection_error`), journalisées en erreur et visibles par la RPC `GetPollers`. Cette version n'est plus renvoyée, elle échouerait de la même façon.
+3. la version refusée et la raison sont gardées (`poller_conf::last_rejection()`, champ `rejection` de `Peer`), journalisées en erreur et visibles par la RPC `GetPollers`. Cette version n'est plus renvoyée, elle échouerait de la même façon.
 
 Le prochain export repart de `X.prot`, que le poller fait bien tourner. Une reconnexion du poller, qui recrée son entrée, retente aussi la version refusée : l'erreur pouvait venir de la machine plutôt que de la configuration.
 

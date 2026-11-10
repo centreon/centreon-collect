@@ -1,4 +1,4 @@
-# Engine documentation {#mainpage}
+# Engine documentation {#engine_doc}
 
 ## Whitelist (since 23.10)
 

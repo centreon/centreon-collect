@@ -155,7 +155,7 @@ If it is an outdated version, because a newer configuration was prepared meanwhi
 
 1. `new-X.prot` and `diff-X.prot` are removed: they describe a configuration the poller will not run, and the closing of the round would otherwise carry that diff to the database;
 2. the poller leaves the round, which can then close for the others;
-3. the rejected version and the reason are kept (`rejected_conf`, `rejection_error`), logged as an error and visible through the `GetPollers` RPC. That version is not sent again, it would fail the same way.
+3. the rejected version and the reason are kept (`poller_conf::last_rejection()`, `rejection` field of `Peer`), logged as an error and visible through the `GetPollers` RPC. That version is not sent again, it would fail the same way.
 
 The next export starts from `X.prot` again, which the poller does run. A reconnection of the poller, which recreates its entry, also tries the rejected version again: the error may have come from the machine rather than from the configuration.
 
