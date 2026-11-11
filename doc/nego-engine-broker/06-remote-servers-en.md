@@ -636,7 +636,7 @@ sequenceDiagram
     opt Broker had lost the poller's .prot
         S->>E: DiffState(unknown=true)
         E->>S: its full configuration
-        S->>C: create_prot_file(), pb_engine_state to unified_sql
+        S->>C: recover_stored_conf(), pb_engine_state to unified_sql
         U->>R: set_runtime_state_owed(poller, false)
         U->>C: merge() then runtime restored from the database
         U->>R: set_runtime_state_owed(poller, true)

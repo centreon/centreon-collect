@@ -122,7 +122,7 @@ Le cycle, `_run_config_cycle()`, reçoit son lot en paramètre et traite chaque 
 
 **Lire et valider** (`_read_poller_conf()`) : `hash_directory` calcule la version de la configuration, puis `parse`, `expand` et `resolve` la chargent avec la librairie `engine_conf`, et la [validation inter-pollers](03-configuration-validation-fr.md#la-validation-inter-pollers--load_foreign_objects) la vérifie. Un échec de validation est une propriété du contenu poussé, qui ne redeviendra pas valide seul : la configuration est refusée et l'annonce consommée. PHP en créera une nouvelle avec la configuration corrigée.
 
-**Stocker** (`_store_poller_conf()`, puis `_prepare_diff_for_poller()`) : écriture de `new-X.prot`, puis de `diff-X.prot`. Un échec ici est affaire de disque et ne dit rien de la configuration : l'annonce est gardée, et le cycle suivant relit les sources.
+**Stocker** (`_write_new_conf()`, puis `_prepare_diff_for_poller()`) : écriture de `new-X.prot`, puis de `diff-X.prot`. Un échec ici est affaire de disque et ne dit rien de la configuration : l'annonce est gardée, et le cycle suivant relit les sources.
 
 | Sortie | Annonce | Compté |
 |---|---|---|

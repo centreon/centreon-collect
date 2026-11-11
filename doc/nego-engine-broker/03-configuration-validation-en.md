@@ -507,7 +507,7 @@ and sends nothing — the normal configuration flow (via `.lck` files) will take
 In both cases, Engine immediately resets the `reloading` flag to `false` so that
 subsequent diffs can be processed.
 
-Broker receives the current `State`, then calls `create_prot_file()`. Before writing
+Broker receives the current `State`, then calls `recover_stored_conf()`. Before writing
 `<ID>.prot`, Broker checks that no more recent configuration is already being
 processed:
 
@@ -555,7 +555,7 @@ sequenceDiagram
     alt state.prot exists (poller_id != 0)
         E ->> B: pb_diff_state containing the current State
         note right of E: Engine sends its configuration<br/>on the next write().
-        B ->> B: create_prot_file()
+        B ->> B: recover_stored_conf()
         note right of B: If no more recent file (.lck,<br/>new-<ID>.prot or <ID>.prot) exists,<br/>Broker writes <ID>.prot, records that it<br/>knows the conf again and feeds the cache.
     else state.prot absent (first start)
         note right of E: Engine sends nothing.<br/>The .lck flow will take over.

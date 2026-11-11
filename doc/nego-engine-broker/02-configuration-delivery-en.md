@@ -106,7 +106,7 @@ The cycle, `_run_config_cycle()`, receives its batch as a parameter and handles 
 
 **Read and validate** (`_read_poller_conf()`): `hash_directory` computes the configuration version, then `parse`, `expand` and `resolve` load it with the `engine_conf` library, and the [cross-poller validation](03-configuration-validation-en.md#cross-poller-validation-load_foreign_objects) checks it. A validation failure is a property of the content pushed, which will not become valid on its own: the configuration is refused and the announcement consumed. PHP will create a new one with the fixed configuration.
 
-**Store** (`_store_poller_conf()`, then `_prepare_diff_for_poller()`): `new-X.prot` is written, then `diff-X.prot`. A failure here is a disk matter and says nothing about the configuration: the announcement is kept, and the next cycle reads the sources again.
+**Store** (`_write_new_conf()`, then `_prepare_diff_for_poller()`): `new-X.prot` is written, then `diff-X.prot`. A failure here is a disk matter and says nothing about the configuration: the announcement is kept, and the next cycle reads the sources again.
 
 | Exit | Announcement | Counted |
 |---|---|---|

@@ -566,7 +566,7 @@ avertissement et n'envoie rien — le flux normal de configuration (via les fich
 `.lck`) prendra le relais. Dans les deux cas, Engine remet immédiatement le flag
 `reloading` à `false` afin de pouvoir traiter les diffs suivants.
 
-Broker reçoit le `State` courant, puis appelle `create_prot_file()`. Avant d'écrire
+Broker reçoit le `State` courant, puis appelle `recover_stored_conf()`. Avant d'écrire
 `<ID>.prot`, Broker vérifie qu'aucune configuration plus récente n'est déjà en cours
 de traitement :
 
@@ -605,7 +605,7 @@ sequenceDiagram
     alt state.prot existe (poller_id != 0)
         E ->> B: pb_diff_state contenant le State courant
         note right of E: Engine envoie sa configuration<br/>dans le prochain write().
-        B ->> B: create_prot_file()
+        B ->> B: recover_stored_conf()
         note right of B: Si aucun fichier plus récent (.lck,<br/>new-<ID>.prot ou <ID>.prot) n'existe,<br/>Broker écrit <ID>.prot, note qu'il connaît<br/>de nouveau la conf et alimente le cache.
     else state.prot absent (premier démarrage)
         note right of E: Engine n'envoie rien.<br/>Le flux .lck prendra le relais.
