@@ -247,8 +247,6 @@ class broker_state : public state {
   void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set)
       ABSL_LOCKS_EXCLUDED(_conf_handover_m);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
-  void save_topology_cache() const;
-  void load_topology_cache();
 
  public:
   broker_state(const std::shared_ptr<spdlog::logger>& logger)
@@ -347,6 +345,8 @@ class broker_state : public state {
   void apply_poller_diff_in_cache(uint64_t poller_id);
   std::optional<uint64_t> poller_id_by_name(const std::string& name);
   bool remove_poller(uint64_t poller_id) ABSL_LOCKS_EXCLUDED(_conf_handover_m);
+  void load_topology_cache();
+  void save_topology_cache() const;
   com::centreon::engine::configuration::foreign_objects load_foreign_objects()
       const;
 

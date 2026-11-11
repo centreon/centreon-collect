@@ -103,6 +103,16 @@ class poller_conf {
     pending,
   };
 
+  /* How the poller is registered in peer_registry, as an Engine entry. */
+  enum class registration : uint8_t {
+    /* No entry: the poller is away. */
+    none,
+    /* An entry restored from topology.cache, the poller not connected yet. */
+    expected,
+    /* Connected, directly or through a relay. */
+    connected,
+  };
+
  private:
   uint64_t _poller_id;
   std::shared_ptr<spdlog::logger> _logger;
@@ -128,12 +138,11 @@ class poller_conf {
    * false once the stream serving the poller sent the snapshot, with a
    * configuration diff or alone. It belongs to neither automaton. */
   bool _runtime_state_owed = true;
-  /* Whether this poller is registered in peer_registry, as an Engine entry:
-   * connected, directly or through a relay, or expected from topology.cache.
-   * The accessors of broker_state ignore a poller_conf not registered; keeping
-   * it here spares them taking the lock of the registry under the lock of the
-   * poller configurations. */
-  bool _registered = false;
+  /* How this poller is registered in peer_registry. The accessors of
+   * broker_state ignore a poller_conf not registered; keeping it here spares
+   * them taking the lock of the registry under the lock of the poller
+   * configurations. */
+  registration _registration = registration::none;
 
   void _settle();
 
@@ -155,7 +164,10 @@ class poller_conf {
     return _delivery != delivery_state::unknown;
   }
   bool runtime_state_owed() const noexcept { return _runtime_state_owed; }
-  bool is_registered() const noexcept { return _registered; }
+  registration registration_status() const noexcept { return _registration; }
+  bool is_registered() const noexcept {
+    return _registration != registration::none;
+  }
   void set_runtime_state_owed(bool owed) noexcept {
     _runtime_state_owed = owed;
   }

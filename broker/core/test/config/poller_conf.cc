@@ -22,6 +22,7 @@
 using com::centreon::broker::config::applier::poller_conf;
 using delivery = poller_conf::delivery_state;
 using db = poller_conf::db_state;
+using registration = poller_conf::registration;
 
 /**
  * @brief The transitions of the two automata of poller_conf, numbered as in
@@ -344,6 +345,7 @@ TEST_F(PollerConfDelivery, RelayRequestDropsAnOvertakenVersion) {
  */
 TEST_F(PollerConfDelivery, CreatedUnregistered) {
   EXPECT_FALSE(up_to_date().is_registered());
+  EXPECT_EQ(up_to_date().registration_status(), registration::none);
 }
 
 /**
@@ -357,8 +359,10 @@ TEST_F(PollerConfDelivery, ConnectionRegisters) {
   poller_conf conf = up_to_date();
   conf.on_connected("v0");
   EXPECT_TRUE(conf.is_registered());
+  EXPECT_EQ(conf.registration_status(), registration::connected);
   conf.on_disconnected();
   EXPECT_FALSE(conf.is_registered());
+  EXPECT_EQ(conf.registration_status(), registration::none);
 }
 
 /**
@@ -371,6 +375,27 @@ TEST_F(PollerConfDelivery, ExpectedRegistersAndKeepsTheState) {
   poller_conf conf = owed();
   conf.on_expected();
   EXPECT_TRUE(conf.is_registered());
+  EXPECT_EQ(conf.registration_status(), registration::expected);
   EXPECT_EQ(conf.delivery_status(), delivery::owed);
   EXPECT_EQ(conf.available_conf(), "v1");
+}
+
+/**
+ * Scenario: an expected poller comes back through a relay.
+ * Given a poller_conf expected from topology.cache
+ * When a relay asks for its configuration
+ * Then it is connected
+ * And topology.cache read again does not make it expected
+ * When it disconnects
+ * Then it is not registered any more.
+ */
+TEST_F(PollerConfDelivery, RelayRequestConnectsAnExpectedPoller) {
+  poller_conf conf = up_to_date();
+  conf.on_expected();
+  conf.on_relay_request("v0");
+  EXPECT_EQ(conf.registration_status(), registration::connected);
+  conf.on_expected();
+  EXPECT_EQ(conf.registration_status(), registration::connected);
+  conf.on_disconnected();
+  EXPECT_EQ(conf.registration_status(), registration::none);
 }

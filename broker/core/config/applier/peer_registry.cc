@@ -316,6 +316,31 @@ peer_registry::relay_registration peer_registry::register_poller_via_relay(
 }
 
 /**
+ * @brief Forget a poller removed from the platform: its Engine entry, expected
+ * from topology.cache, and the relay it was last reached through.
+ *
+ * The check and the removal go together under the registry lock: a poller
+ * connecting meanwhile, directly or through a relay, is either refused here or
+ * comes after, and is then registered again.
+ *
+ * @param poller_id The poller removed.
+ *
+ * @return false if the poller is connected, and nothing was forgotten; true
+ * otherwise, the registry knowing nothing of it, whether it did before or not.
+ */
+bool peer_registry::forget_poller(uint64_t poller_id) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto it = _engine_peers.find(poller_id);
+  if (it != _engine_peers.end()) {
+    if (it->second.connected())
+      return false;
+    _engine_peers.erase(it);
+  }
+  _poller_to_relay.erase(poller_id);
+  return true;
+}
+
+/**
  * @brief Get the local timezone advertised by an Engine peer at negotiation
  * time.
  *

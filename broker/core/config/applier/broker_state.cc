@@ -616,6 +616,10 @@ std::optional<uint64_t> broker_state::poller_id_by_name(
  * worse, since the global diff is built by merging whatever `diff-*.prot` the
  * directory holds.
  *
+ * The registry forgets it too, with the relay it was last reached through: the
+ * topology.cache written at shutdown no longer names it, so the next start does
+ * not restore it as expected, nor a poller_conf with it.
+ *
  * Removing a poller Broker does not know is not an error: there is just
  * nothing to remove.
  *
@@ -626,7 +630,7 @@ std::optional<uint64_t> broker_state::poller_id_by_name(
  */
 bool broker_state::remove_poller(uint64_t poller_id) {
   absl::MutexLock lck(&_conf_handover_m);
-  if (is_poller_connected(poller_id)) {
+  if (!_peers.forget_poller(poller_id)) {
     _logger->warn("Poller {} is not removed: it is connected", poller_id);
     return false;
   }
@@ -645,12 +649,14 @@ bool broker_state::remove_poller(uint64_t poller_id) {
     }
   }
   {
-    /* A peer entry restored from topology.cache keeps its poller_conf, still in
-     * its initial state since such a poller is not connected: every Engine
-     * entry of the registry has one. */
+    /* An expected poller_conf goes with the registry entry just forgotten. A
+     * connected one stays: the poller came back through a relay since, and
+     * every Engine entry of the registry has its poller_conf. */
     absl::MutexLock lck(&_poller_confs_m);
     auto it = _poller_confs.find(poller_id);
-    if (it != _poller_confs.end() && !it->second.is_registered())
+    if (it != _poller_confs.end() &&
+        it->second.registration_status() !=
+            poller_conf::registration::connected)
       _poller_confs.erase(it);
   }
   cache().remove_instance(poller_id);

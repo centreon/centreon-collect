@@ -530,3 +530,89 @@ TEST_F(BrokerStateRound, DisconnectionResetsThePollerConfiguration) {
   EXPECT_TRUE(p1->conf.conf_in_flight().empty());
   EXPECT_TRUE(p1->conf.available_conf().empty());
 }
+
+/**
+ * @brief RemovePoller on the pollers Broker knows without them being
+ * connected: those topology.cache restores behind a relay.
+ */
+class BrokerStateRemovePoller : public BrokerStateRound {
+ public:
+  /* RemovePoller empties the global cache, which only apply() creates. */
+  void SetUp() override {
+    BrokerStateRound::SetUp();
+    _state->initialize_cache();
+  }
+
+ protected:
+  /** @brief Restore poller 5 behind relay 10, as a start would. */
+  void restore_poller_behind_relay() {
+    TopologyCache cache;
+    auto* e = cache.add_entries();
+    e->set_poller_id(5);
+    e->set_relay_id(10);
+    {
+      std::ofstream f(_dir / "topology.cache", std::ios::binary);
+      ASSERT_TRUE(cache.SerializeToOstream(&f));
+    }
+    _state->load_topology_cache();
+  }
+
+  /** @brief The topology.cache Broker writes when it stops. */
+  TopologyCache written_topology() {
+    _state->save_topology_cache();
+    TopologyCache cache;
+    std::ifstream f(_dir / "topology.cache", std::ios::binary);
+    EXPECT_TRUE(cache.ParseFromIstream(&f));
+    return cache;
+  }
+};
+
+/**
+ * Scenario: a poller restored from topology.cache is removed.
+ * Given poller 5 restored from topology.cache behind relay 10
+ * And a configuration prepared for it
+ * When it is removed
+ * Then its configuration files are gone
+ * And the topology.cache written when Broker stops no longer leads to it, so
+ * the next start forgets it too.
+ */
+TEST_F(BrokerStateRemovePoller, ExpectedPollerIsForgottenWithItsRelay) {
+  restore_poller_behind_relay();
+  leave_prepared_conf(5, "v1");
+
+  EXPECT_TRUE(_state->remove_poller(5));
+  EXPECT_FALSE(std::filesystem::exists(_dir / "new-5.prot"));
+  EXPECT_EQ(written_topology().entries_size(), 0);
+}
+
+/**
+ * Scenario: a poller restored from topology.cache came back through its relay.
+ * Given poller 5 restored from topology.cache behind relay 10
+ * And a configuration prepared for it
+ * When relay 10 asks for its configuration
+ * Then removing it is refused, and its files are kept.
+ */
+TEST_F(BrokerStateRemovePoller, ExpectedPollerBackThroughARelayIsKept) {
+  restore_poller_behind_relay();
+  leave_prepared_conf(5, "v1");
+  _state->register_poller_via_relay(5, "Poller5", 10, "");
+
+  EXPECT_FALSE(_state->remove_poller(5));
+  EXPECT_TRUE(_state->is_poller_connected(5));
+  EXPECT_TRUE(std::filesystem::exists(_dir / "new-5.prot"));
+}
+
+/**
+ * Scenario: a connected poller is not removed.
+ * Given poller 5 connected directly, with a configuration prepared for it
+ * When it is removed
+ * Then the removal is refused, and its files are kept.
+ */
+TEST_F(BrokerStateRemovePoller, ConnectedPollerIsKept) {
+  leave_prepared_conf(5, "v1");
+  connect(5);
+
+  EXPECT_FALSE(_state->remove_poller(5));
+  EXPECT_TRUE(_state->is_poller_connected(5));
+  EXPECT_TRUE(std::filesystem::exists(_dir / "new-5.prot"));
+}

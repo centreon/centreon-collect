@@ -200,7 +200,7 @@ void poller_conf::_settle() {
  */
 void poller_conf::on_connected(std::string engine_conf) {
   *this = poller_conf{_poller_id, _logger, std::move(engine_conf)};
-  _registered = true;
+  _registration = registration::connected;
 }
 
 /**
@@ -225,10 +225,12 @@ void poller_conf::on_disconnected() {
  *
  * Nothing else changes: at startup the poller is in its initial state anyway,
  * and an entry already there is left as it is (see
- * peer_registry::restore_pollers_from_cache()).
+ * peer_registry::restore_pollers_from_cache()) -- a connected poller stays
+ * connected.
  */
 void poller_conf::on_expected() noexcept {
-  _registered = true;
+  if (_registration == registration::none)
+    _registration = registration::expected;
 }
 
 /**
@@ -240,9 +242,13 @@ void poller_conf::on_expected() noexcept {
  * the version prepared for the poller, which the answer to the request sends
  * again, and whose acknowledgement still counts for the round.
  *
+ * Reaching Broker through a relay is a connection: a poller expected from
+ * topology.cache is connected from now on.
+ *
  * @param engine_conf The version the relay knows, empty if none.
  */
 void poller_conf::on_relay_request(const std::string& engine_conf) {
+  _registration = registration::connected;
   if (!engine_conf.empty())
     _engine_conf = engine_conf;
   if (!awaits_acknowledgement())

@@ -171,6 +171,8 @@ class peer_registry {
                                                const std::string& poller_name,
                                                uint64_t relay_poller_id)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool forget_poller(uint64_t poller_id)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
   /* --- Snapshots ------------------------------------------------------- */
   std::vector<engine_peer> connected_pollers() const
