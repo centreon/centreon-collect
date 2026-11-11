@@ -84,9 +84,10 @@ class broker_state : public state {
    *
    * Its lock only covers short sections -- one transition, or one read --
    * never a file read or written: the streams ask it whether their poller is
-   * owed something at each of their reads. Lock order: _conf_handover_m, then
-   * _poller_confs_m, then the lock of _peers. */
-  mutable absl::Mutex _poller_confs_m;
+   * owed something at each of their reads. It is taken after _conf_handover_m,
+   * and alone otherwise: whether a poller has an entry in _peers is kept by
+   * the poller_conf itself (poller_conf::is_registered()). */
+  mutable absl::Mutex _poller_confs_m ABSL_ACQUIRED_AFTER(_conf_handover_m);
   absl::flat_hash_map<uint64_t, poller_conf> _poller_confs
       ABSL_GUARDED_BY(_poller_confs_m);
   /* When this instance is a relay (no pollers_config_dir), Engine peers that
@@ -150,12 +151,14 @@ class broker_state : public state {
       _watch_strand;
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
-  /* Serializes what hands a configuration over between files: the cycle
-   * writing `new-<ID>.prot` and `diff-<ID>.prot`, and an acknowledgement
-   * renaming the first, feeding the cache with the second and merging the
-   * `diff-*.prot` into the global diff. Interleaved, an acknowledgement could
-   * rename a `new-<ID>.prot` written for a newer configuration, or a cycle
-   * compute a diff from a `<ID>.prot` about to be replaced. */
+  /* Serializes every move of a configuration between `new-<ID>.prot`,
+   * `diff-<ID>.prot` and `<ID>.prot` (cycle, acknowledgement, recovery,
+   * removal) and the round built on them, up to the global diff. Otherwise an
+   * acknowledgement could rename a `new-<ID>.prot` written for a newer
+   * configuration.
+   *
+   * Held for long (a diff is computed under it): never taken under another
+   * lock, and streams never wait for it, _poller_confs_m answers them. */
   absl::Mutex _conf_handover_m;
   /* Where the configuration work runs. Reading a poller configuration --
    * hash_directory, parse, expand, resolve, and the reload of the stored
@@ -203,7 +206,8 @@ class broker_state : public state {
   void _declare_poller_conf(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   void _leave_conf_round(const std::vector<uint64_t>& poller_ids)
-      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m)
+          ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   void _start_watching();
   void _arm_inotify_wait();
   void _arm_debounce();
@@ -236,12 +240,12 @@ class broker_state : public state {
   std::unique_ptr<engine::configuration::State> _read_poller_conf(
       uint32_t poller_id,
       const com::centreon::engine::configuration::foreign_objects& foreign,
-      bool& refused);
-  bool _store_poller_conf(uint32_t poller_id,
-                          const engine::configuration::State& state,
-                          const std::string& version)
+      bool& refused) ABSL_LOCKS_EXCLUDED(_conf_handover_m);
+  bool _write_new_conf(uint32_t poller_id,
+                       const engine::configuration::State& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
-  void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set);
+  void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set)
+      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
   void save_topology_cache() const;
   void load_topology_cache();
@@ -325,8 +329,9 @@ class broker_state : public state {
   bool pollers_config_dir_usable() const noexcept {
     return !_pollers_config_dir.empty();
   }
-  void create_prot_file(
-      const com::centreon::engine::configuration::State& conf);
+  void recover_stored_conf(
+      const com::centreon::engine::configuration::State& conf)
+      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
 
   bool _merge_stored_config_in_cache(const std::filesystem::path& path,
                                      uint64_t poller_id);

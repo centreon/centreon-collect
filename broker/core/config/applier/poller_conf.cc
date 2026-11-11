@@ -200,6 +200,7 @@ void poller_conf::_settle() {
  */
 void poller_conf::on_connected(std::string engine_conf) {
   *this = poller_conf{_poller_id, _logger, std::move(engine_conf)};
+  _registered = true;
 }
 
 /**
@@ -210,7 +211,24 @@ void poller_conf::on_connected(std::string engine_conf) {
  * reconnection decides from the files, which gives the same outcome.
  */
 void poller_conf::on_disconnected() {
-  on_connected({});
+  *this = poller_conf{_poller_id, _logger};
+}
+
+/**
+ * @brief topology.cache says this poller was last reached through a relay: the
+ * registry holds an entry for it, expected, not connected.
+ *
+ * Only a poller seen behind a relay can be expected: topology.cache records the
+ * relay of each poller that came through one, and nothing else. Whether it
+ * comes back through the same relay is only known when it does (see
+ * peer_registry::register_poller_via_relay()).
+ *
+ * Nothing else changes: at startup the poller is in its initial state anyway,
+ * and an entry already there is left as it is (see
+ * peer_registry::restore_pollers_from_cache()).
+ */
+void poller_conf::on_expected() noexcept {
+  _registered = true;
 }
 
 /**

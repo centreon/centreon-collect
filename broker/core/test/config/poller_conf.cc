@@ -68,7 +68,7 @@ class PollerConfDelivery : public ::testing::Test {
 TEST_F(PollerConfDelivery, T02_ConfigurationUnknown) {
   poller_conf conf = up_to_date();
   conf.on_conf_unknown();
-  EXPECT_EQ(conf.delivery(), delivery::unknown);
+  EXPECT_EQ(conf.delivery_status(), delivery::unknown);
   EXPECT_FALSE(conf.broker_knows_conf());
   EXPECT_FALSE(conf.owes_conf());
 }
@@ -84,7 +84,7 @@ TEST_F(PollerConfDelivery, T04_ExportWhileUnknownIsOwedForNow) {
   poller_conf conf = up_to_date();
   conf.on_conf_unknown();
   conf.prepare("v1");
-  EXPECT_EQ(conf.delivery(), delivery::owed);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
   EXPECT_TRUE(conf.needs_update());
 }
 
@@ -98,7 +98,7 @@ TEST_F(PollerConfDelivery, T05_ConfigurationRecovered) {
   poller_conf conf = up_to_date();
   conf.on_conf_unknown();
   conf.on_conf_recovered();
-  EXPECT_EQ(conf.delivery(), delivery::up_to_date);
+  EXPECT_EQ(conf.delivery_status(), delivery::up_to_date);
   EXPECT_TRUE(conf.broker_knows_conf());
 }
 
@@ -113,7 +113,7 @@ TEST_F(PollerConfDelivery, T06_RecoveredWithAnExportWaiting) {
   conf.on_conf_unknown();
   conf.prepare("v1");
   conf.on_conf_recovered();
-  EXPECT_EQ(conf.delivery(), delivery::owed);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
 }
 
 /**
@@ -124,7 +124,7 @@ TEST_F(PollerConfDelivery, T06_RecoveredWithAnExportWaiting) {
  */
 TEST_F(PollerConfDelivery, T07_Export) {
   poller_conf conf = owed();
-  EXPECT_EQ(conf.delivery(), delivery::owed);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
   EXPECT_TRUE(conf.owes_conf());
   EXPECT_TRUE(conf.needs_update());
   EXPECT_EQ(conf.available_conf(), "v1");
@@ -139,7 +139,7 @@ TEST_F(PollerConfDelivery, T07_Export) {
 TEST_F(PollerConfDelivery, T08_ExportReplacesOneNotSent) {
   poller_conf conf = owed();
   conf.prepare("v2");
-  EXPECT_EQ(conf.delivery(), delivery::owed);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
   EXPECT_EQ(conf.available_conf(), "v2");
 }
 
@@ -152,7 +152,7 @@ TEST_F(PollerConfDelivery, T08_ExportReplacesOneNotSent) {
 TEST_F(PollerConfDelivery, T09_Sent) {
   poller_conf conf = owed();
   EXPECT_TRUE(conf.on_sent("v1"));
-  EXPECT_EQ(conf.delivery(), delivery::in_flight);
+  EXPECT_EQ(conf.delivery_status(), delivery::in_flight);
   EXPECT_TRUE(conf.awaits_acknowledgement());
   EXPECT_FALSE(conf.owes_conf());
   EXPECT_FALSE(conf.needs_update());
@@ -168,8 +168,8 @@ TEST_F(PollerConfDelivery, T09_Sent) {
 TEST_F(PollerConfDelivery, T10_AnnouncementAcknowledges) {
   poller_conf conf{1, _logger, "v1"};
   conf.on_announced("v1");
-  EXPECT_EQ(conf.delivery(), delivery::up_to_date);
-  EXPECT_EQ(conf.db(), db::pending);
+  EXPECT_EQ(conf.delivery_status(), delivery::up_to_date);
+  EXPECT_EQ(conf.db_status(), db::pending);
   EXPECT_FALSE(conf.owes_conf());
 }
 
@@ -183,7 +183,7 @@ TEST_F(PollerConfDelivery, T10_AnnouncementAcknowledges) {
 TEST_F(PollerConfDelivery, T11_ExportWhileInFlight) {
   poller_conf conf = in_flight();
   conf.prepare("v2");
-  EXPECT_EQ(conf.delivery(), delivery::in_flight);
+  EXPECT_EQ(conf.delivery_status(), delivery::in_flight);
   EXPECT_FALSE(conf.awaits_acknowledgement());
   EXPECT_TRUE(conf.owes_conf());
   EXPECT_FALSE(conf.needs_update());
@@ -211,8 +211,8 @@ TEST_F(PollerConfDelivery, SameExportTwiceKeepsTheAcknowledgement) {
 TEST_F(PollerConfDelivery, T13_Acknowledged) {
   poller_conf conf = in_flight();
   EXPECT_TRUE(conf.on_acknowledged("v1"));
-  EXPECT_EQ(conf.delivery(), delivery::up_to_date);
-  EXPECT_EQ(conf.db(), db::pending);
+  EXPECT_EQ(conf.delivery_status(), delivery::up_to_date);
+  EXPECT_EQ(conf.db_status(), db::pending);
   EXPECT_EQ(conf.engine_conf(), "v1");
   EXPECT_TRUE(conf.conf_in_flight().empty());
 }
@@ -228,8 +228,8 @@ TEST_F(PollerConfDelivery, T14_AcknowledgedWithANewerExport) {
   poller_conf conf = in_flight();
   conf.prepare("v2");
   EXPECT_FALSE(conf.on_acknowledged("v1"));
-  EXPECT_EQ(conf.delivery(), delivery::owed);
-  EXPECT_EQ(conf.db(), db::up_to_date);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
+  EXPECT_EQ(conf.db_status(), db::up_to_date);
   EXPECT_EQ(conf.engine_conf(), "v1");
   EXPECT_TRUE(conf.needs_update());
 }
@@ -242,7 +242,7 @@ TEST_F(PollerConfDelivery, T14_AcknowledgedWithANewerExport) {
  */
 TEST_F(PollerConfDelivery, T16_Rejected) {
   poller_conf conf = rejected();
-  EXPECT_EQ(conf.delivery(), delivery::rejected);
+  EXPECT_EQ(conf.delivery_status(), delivery::rejected);
   EXPECT_FALSE(conf.owes_conf());
   ASSERT_TRUE(conf.last_rejection());
   EXPECT_EQ(conf.last_rejection()->version, "v1");
@@ -259,7 +259,7 @@ TEST_F(PollerConfDelivery, T17_RejectedWithANewerExport) {
   poller_conf conf = in_flight();
   conf.prepare("v2");
   EXPECT_FALSE(conf.on_rejected("v0", "v1", "boom"));
-  EXPECT_EQ(conf.delivery(), delivery::owed);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
   EXPECT_FALSE(conf.last_rejection());
 }
 
@@ -273,7 +273,7 @@ TEST_F(PollerConfDelivery, T17_RejectedWithANewerExport) {
 TEST_F(PollerConfDelivery, T18_ExportAfterARejection) {
   poller_conf conf = rejected();
   conf.prepare("v2");
-  EXPECT_EQ(conf.delivery(), delivery::owed);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
   ASSERT_TRUE(conf.last_rejection());
   EXPECT_EQ(conf.last_rejection()->version, "v1");
   EXPECT_TRUE(conf.on_sent("v2"));
@@ -290,7 +290,7 @@ TEST_F(PollerConfDelivery, T18_ExportAfterARejection) {
 TEST_F(PollerConfDelivery, T19_ReconnectionAfterARejection) {
   poller_conf conf = rejected();
   conf.on_connected("v0");
-  EXPECT_EQ(conf.delivery(), delivery::up_to_date);
+  EXPECT_EQ(conf.delivery_status(), delivery::up_to_date);
   EXPECT_FALSE(conf.last_rejection());
   EXPECT_TRUE(conf.available_conf().empty());
 }
@@ -305,7 +305,7 @@ TEST_F(PollerConfDelivery, RoundClosed) {
   poller_conf conf = in_flight();
   conf.on_acknowledged("v1");
   conf.leave_round();
-  EXPECT_EQ(conf.db(), db::up_to_date);
+  EXPECT_EQ(conf.db_status(), db::up_to_date);
 }
 
 /**
@@ -318,7 +318,7 @@ TEST_F(PollerConfDelivery, RoundClosed) {
 TEST_F(PollerConfDelivery, RelayRequestKeepsThePreparedVersionInFlight) {
   poller_conf conf = in_flight();
   conf.on_relay_request("v0");
-  EXPECT_EQ(conf.delivery(), delivery::in_flight);
+  EXPECT_EQ(conf.delivery_status(), delivery::in_flight);
   EXPECT_TRUE(conf.awaits_acknowledgement());
 }
 
@@ -333,6 +333,44 @@ TEST_F(PollerConfDelivery, RelayRequestDropsAnOvertakenVersion) {
   poller_conf conf = in_flight();
   conf.prepare("v2");
   conf.on_relay_request("v0");
-  EXPECT_EQ(conf.delivery(), delivery::owed);
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
   EXPECT_TRUE(conf.needs_update());
+}
+
+/**
+ * Scenario: a poller_conf created from files or an export is not registered.
+ * Given a poller_conf just created
+ * Then the registry has no Engine entry for it.
+ */
+TEST_F(PollerConfDelivery, CreatedUnregistered) {
+  EXPECT_FALSE(up_to_date().is_registered());
+}
+
+/**
+ * Scenario: the connection registers the poller, the disconnection unregisters
+ * it.
+ * Given a poller_conf not registered
+ * When the poller connects, then disconnects
+ * Then it is registered, then no more.
+ */
+TEST_F(PollerConfDelivery, ConnectionRegisters) {
+  poller_conf conf = up_to_date();
+  conf.on_connected("v0");
+  EXPECT_TRUE(conf.is_registered());
+  conf.on_disconnected();
+  EXPECT_FALSE(conf.is_registered());
+}
+
+/**
+ * Scenario: a poller listed in topology.cache is expected.
+ * Given a poller_conf owed v1
+ * When topology.cache says the poller is expected
+ * Then it is registered, and is still owed v1.
+ */
+TEST_F(PollerConfDelivery, ExpectedRegistersAndKeepsTheState) {
+  poller_conf conf = owed();
+  conf.on_expected();
+  EXPECT_TRUE(conf.is_registered());
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
+  EXPECT_EQ(conf.available_conf(), "v1");
 }

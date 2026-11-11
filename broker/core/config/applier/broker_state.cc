@@ -424,8 +424,12 @@ void broker_state::load_topology_cache() {
     return;
   }
   _peers.restore_pollers_from_cache(cache);
-  for (const auto& e : cache.entries())
-    _declare_poller_conf(e.poller_id());
+  {
+    absl::MutexLock lck(&_poller_confs_m);
+    for (const auto& e : cache.entries())
+      _poller_confs.try_emplace(e.poller_id(), e.poller_id(), _logger)
+          .first->second.on_expected();
+  }
   _logger->info("Topology cache loaded: {} hints", cache.entries_size());
 }
 
@@ -645,8 +649,9 @@ bool broker_state::remove_poller(uint64_t poller_id) {
      * its initial state since such a poller is not connected: every Engine
      * entry of the registry has one. */
     absl::MutexLock lck(&_poller_confs_m);
-    if (!_peers.has_engine_peer(poller_id))
-      _poller_confs.erase(poller_id);
+    auto it = _poller_confs.find(poller_id);
+    if (it != _poller_confs.end() && !it->second.is_registered())
+      _poller_confs.erase(it);
   }
   cache().remove_instance(poller_id);
   _logger->info("Poller {} removed from Broker", poller_id);
@@ -780,9 +785,12 @@ engine::configuration::foreign_objects broker_state::load_foreign_objects()
 }
 
 /**
- * @brief Create the <ID>.prot file for a poller with the given configuration.
- * This file will be used by broker to fill the cache and prepare the storage
- * database. The configuration is sent by the poller when Broker lost it.
+ * @brief Recover the stored configuration of a poller, `<ID>.prot`, from the
+ * one Engine sent back because Broker had lost it.
+ *
+ * This is the only place where `<ID>.prot` is written directly: otherwise it is
+ * `new-<ID>.prot`, written by _write_new_conf(), renamed once acknowledged.
+ * The file is then used to fill the cache and prepare the storage database.
  *
  * Before writing, we check whether a newer configuration is already in place
  * or being processed (a .lck file from PHP, a new-<ID>.prot being prepared, or
@@ -791,7 +799,7 @@ engine::configuration::foreign_objects broker_state::load_foreign_objects()
  *
  * @param conf The configuration of the poller to create the <ID>.prot file for.
  */
-void broker_state::create_prot_file(
+void broker_state::recover_stored_conf(
     const com::centreon::engine::configuration::State& conf) {
   assert(conf.poller_id());
   const uint32_t poller_id = conf.poller_id();
@@ -804,56 +812,67 @@ void broker_state::create_prot_file(
     return;
   }
 
-  // Logs the skip reason, records that Broker knows this poller's
-  // configuration, and signals to the caller that creation should be skipped.
-  auto skip = [&](std::string_view reason) {
-    _logger->info("Skipping prot file creation for poller {}: {}", poller_id,
-                  reason);
-    set_broker_knows_poller_conf(poller_id, true);
-  };
+  {
+    /* The checks and the write go together, under the lock of the handover:
+     * otherwise a cycle could write new-<ID>.prot, or an acknowledgement
+     * install <ID>.prot, between the check that found nothing and the write
+     * that would then overwrite a newer configuration -- or a cycle compute a
+     * diff from a <ID>.prot being replaced. The cache is fed after, out of
+     * it: _feed_cache_and_wake_up_resources() may hand over a prepared
+     * new-<ID>.prot, which takes it. */
+    absl::MutexLock handover_lck(&_conf_handover_m);
 
-  // If PHP has already sent a new configuration for this poller (signalled by
-  // a .lck file), let the normal configuration flow handle it rather than
-  // overwriting with the engine's current (possibly older) state.
-  if (!_cache_config_dir.empty()) {
-    std::filesystem::path lck_file =
-        _cache_config_dir / fmt::format("{}.lck", poller_id);
-    if (std::filesystem::is_regular_file(lck_file)) {
+    // Logs the skip reason, records that Broker knows this poller's
+    // configuration, and signals to the caller that creation should be skipped.
+    auto skip = [&](std::string_view reason) {
+      _logger->info("Skipping prot file creation for poller {}: {}", poller_id,
+                    reason);
+      set_broker_knows_poller_conf(poller_id, true);
+    };
+
+    // If PHP has already sent a new configuration for this poller (signalled by
+    // a .lck file), let the normal configuration flow handle it rather than
+    // overwriting with the engine's current (possibly older) state.
+    if (!_cache_config_dir.empty()) {
+      std::filesystem::path lck_file =
+          _cache_config_dir / fmt::format("{}.lck", poller_id);
+      if (std::filesystem::is_regular_file(lck_file)) {
+        skip(fmt::format(
+            "'{}' exists, the normal configuration flow will handle it",
+            lck_file.string()));
+        return;
+      }
+    }
+
+    // If the normal flow is already preparing a new-<ID>.prot or has already
+    // installed a <ID>.prot, do not overwrite it.
+    const poller_conf_files files = poller_files(poller_id);
+    const std::filesystem::path prot_file = files.stored_path();
+    const std::filesystem::path new_prot_file = files.new_path();
+    if (std::filesystem::is_regular_file(new_prot_file)) {
       skip(fmt::format(
-          "'{}' exists, the normal configuration flow will handle it",
-          lck_file.string()));
+          "'{}' already exists, the normal configuration flow will handle it",
+          new_prot_file.string()));
       return;
     }
-  }
+    if (std::filesystem::is_regular_file(prot_file)) {
+      skip(
+          fmt::format("'{}' already exists, the normal configuration flow has "
+                      "already handled it",
+                      prot_file.string()));
+      return;
+    }
 
-  // If the normal flow is already preparing a new-<ID>.prot or has already
-  // installed a <ID>.prot, do not overwrite it.
-  const poller_conf_files files = poller_files(poller_id);
-  const std::filesystem::path prot_file = files.stored_path();
-  const std::filesystem::path new_prot_file = files.new_path();
-  if (std::filesystem::is_regular_file(new_prot_file)) {
-    skip(fmt::format(
-        "'{}' already exists, the normal configuration flow will handle it",
-        new_prot_file.string()));
-    return;
+    std::error_code ec;
+    common::write_proto_file(prot_file, conf, false, ec);
+    if (ec) {
+      _logger->error("Unable to create '{}': {}", prot_file.string(),
+                     ec.message());
+      return;
+    }
+    _logger->debug("Created prot file '{}' for poller id {}",
+                   prot_file.string(), poller_id);
   }
-  if (std::filesystem::is_regular_file(prot_file)) {
-    skip(
-        fmt::format("'{}' already exists, the normal configuration flow has "
-                    "already handled it",
-                    prot_file.string()));
-    return;
-  }
-
-  std::error_code ec;
-  common::write_proto_file(prot_file, conf, false, ec);
-  if (ec) {
-    _logger->error("Unable to create '{}': {}", prot_file.string(),
-                   ec.message());
-    return;
-  }
-  _logger->debug("Created prot file '{}' for poller id {}", prot_file.string(),
-                 poller_id);
   set_broker_knows_poller_conf(poller_id, true);
   _feed_cache_and_wake_up_resources(poller_id);
 }
@@ -1381,9 +1400,10 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
  *
  * This function is a "test-and-reset": if all ENGINE peers have
  * acknowledged, it takes them all out of the round (poller_conf::leave_round())
- * before returning true. This prevents two concurrent ack handlers from both
- * entering the global diff block when they check simultaneously under the
- * same write lock.
+ * before returning true, under _poller_confs_m. Of two acknowledgements
+ * checking at the same time, only one sees the round over. Publishing the
+ * global diff that follows is serialized by _conf_handover_m, which
+ * _close_conf_round_if_over() holds.
  *
  * @return True if all Engine peers acknowledged their configuration,
  * false otherwise.
@@ -1412,7 +1432,7 @@ bool broker_state::try_close_conf_round() {
     if (conf.awaits_acknowledgement()) {
       retval = false;
       ++engine_count;
-    } else if (conf.db() == poller_conf::db_state::pending) {
+    } else if (conf.db_status() == poller_conf::db_state::pending) {
       ++engine_good;
       ++engine_count;
     }
@@ -1554,7 +1574,7 @@ void broker_state::_post_batch_work() {
  * @brief Read and validate the configuration a poller was pushed.
  *
  * Storing it is left to the caller, under the handover lock (see
- * _store_poller_conf()), and the two are told apart on purpose, because a
+ * _write_new_conf()), and the two are told apart on purpose, because a
  * failure does not mean the same thing in each:
  *
  *  - **reading and validating** work on the pushed content and on nothing else,
@@ -1649,9 +1669,8 @@ std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
  *
  * @return True when the state is on disk and the announcement consumed.
  */
-bool broker_state::_store_poller_conf(uint32_t poller_id,
-                                      const engine::configuration::State& state,
-                                      const std::string& version) {
+bool broker_state::_write_new_conf(uint32_t poller_id,
+                                   const engine::configuration::State& state) {
   if (!pollers_config_dir_usable()) {
     _logger->error(
         "No pollers configuration directory: refusing to write the "
@@ -1684,7 +1703,7 @@ bool broker_state::_store_poller_conf(uint32_t poller_id,
     return false;
   }
   _logger->info("New Engine configuration for poller {} stored, version '{}'",
-                poller_id, version);
+                poller_id, state.config_version());
   /* The announcement has been read and what it announced is now on disk, so it
    * has nothing left to say: from here on it is `new-<ID>.prot` that says a
    * delivery is pending, whether the poller is connected or not. Removed only
@@ -1747,7 +1766,7 @@ void broker_state::_run_config_cycle(
      * would be lost for them. */
     if (_diff_waits_for_integration(poller_id))
       _integrate_acknowledged_diffs();
-    if (!_store_poller_conf(poller_id, *state, state->config_version()))
+    if (!_write_new_conf(poller_id, *state))
       continue;
 
     ++conf_ready;
@@ -2771,40 +2790,40 @@ std::vector<uint64_t> broker_state::pollers_via_relay_needing_update(
 }
 
 /**
- * @brief The configuration state of a poller that has an Engine entry in the
- * registry, connected or restored from topology.cache.
+ * @brief The configuration state of a poller registered in peer_registry,
+ * connected or restored from topology.cache (poller_conf::is_registered()).
  *
- * A poller_conf with no such entry belongs to a poller that is away: it is in
- * its initial state, and the accessors behave as if it did not exist, as they
- * did when its lifetime was the connection's.
+ * A poller_conf not registered belongs to a poller that is away: it is in its
+ * initial state, and the accessors behave as if it did not exist, as they did
+ * when its lifetime was the connection's.
  *
- * Takes the registry lock under _poller_confs_m, which is the lock order.
+ * The transitions of the connection keep is_registered() up to date: the
+ * registry lock is not taken under _poller_confs_m.
  *
  * @param poller_id The poller ID.
  *
  * @return Its poller_conf, or nullptr when the poller has no Engine entry.
  */
 poller_conf* broker_state::_known_poller_conf(uint64_t poller_id) {
-  if (!_peers.has_engine_peer(poller_id))
-    return nullptr;
   auto it = _poller_confs.find(poller_id);
-  return it == _poller_confs.end() ? nullptr : &it->second;
+  return it == _poller_confs.end() || !it->second.is_registered() ? nullptr
+                                                                  : &it->second;
 }
 
 /**
  * @brief Const version of _known_poller_conf().
  */
 const poller_conf* broker_state::_known_poller_conf(uint64_t poller_id) const {
-  if (!_peers.has_engine_peer(poller_id))
-    return nullptr;
   auto it = _poller_confs.find(poller_id);
-  return it == _poller_confs.end() ? nullptr : &it->second;
+  return it == _poller_confs.end() || !it->second.is_registered() ? nullptr
+                                                                  : &it->second;
 }
 
 /**
  * @brief Make sure Broker has a poller_conf for this poller, whether it is
  * connected or not. Called by the sources that do not come from a connection:
- * the configuration files found at startup, topology.cache, and an export.
+ * the configuration files found at startup and an export; topology.cache
+ * declares its pollers expected (see load_topology_cache()).
  *
  * An existing poller_conf is left untouched.
  *

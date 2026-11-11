@@ -183,8 +183,6 @@ class peer_registry {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
   /* --- Peer state ------------------------------------------------------ */
-  bool has_engine_peer(uint64_t poller_id) const
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool is_poller_connected(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool is_poller_running(uint64_t poller_id) const

@@ -56,17 +56,6 @@ std::optional<peer_registry::engine_peer> peer_registry::engine_peer_of(
 }
 
 /**
- * @brief Whether the registry has an entry for this Engine peer, connected or
- * restored from topology.cache.
- *
- * @param poller_id The poller ID.
- */
-bool peer_registry::has_engine_peer(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
-  return _engine_peers.contains(poller_id);
-}
-
-/**
  * @brief Get the list of connected peers, whatever their type.
  *
  * @return A vector of peers.

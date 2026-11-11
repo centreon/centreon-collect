@@ -128,6 +128,12 @@ class poller_conf {
    * false once the stream serving the poller sent the snapshot, with a
    * configuration diff or alone. It belongs to neither automaton. */
   bool _runtime_state_owed = true;
+  /* Whether this poller is registered in peer_registry, as an Engine entry:
+   * connected, directly or through a relay, or expected from topology.cache.
+   * The accessors of broker_state ignore a poller_conf not registered; keeping
+   * it here spares them taking the lock of the registry under the lock of the
+   * poller configurations. */
+  bool _registered = false;
 
   void _settle();
 
@@ -137,8 +143,8 @@ class poller_conf {
               std::string engine_conf = {});
 
   uint64_t poller_id() const noexcept { return _poller_id; }
-  delivery_state delivery() const noexcept { return _delivery; }
-  db_state db() const noexcept { return _db; }
+  delivery_state delivery_status() const noexcept { return _delivery; }
+  db_state db_status() const noexcept { return _db; }
   const std::string& available_conf() const noexcept { return _available_conf; }
   const std::string& engine_conf() const noexcept { return _engine_conf; }
   const std::string& conf_in_flight() const noexcept { return _conf_in_flight; }
@@ -149,6 +155,7 @@ class poller_conf {
     return _delivery != delivery_state::unknown;
   }
   bool runtime_state_owed() const noexcept { return _runtime_state_owed; }
+  bool is_registered() const noexcept { return _registered; }
   void set_runtime_state_owed(bool owed) noexcept {
     _runtime_state_owed = owed;
   }
@@ -159,6 +166,7 @@ class poller_conf {
 
   void on_connected(std::string engine_conf);
   void on_disconnected();
+  void on_expected() noexcept;
   void on_relay_request(const std::string& engine_conf);
   void on_conf_unknown();
   void on_conf_recovered();
