@@ -214,11 +214,12 @@ It ships with Engine. Without it the CPU totals stay comparable, but there is no
 | `alloc` | heap allocations of centengine on the check path | ~5 min (EALLOC2/3), ~20 min (EALLOC1) | container |
 | `rrd-retention` | throughput and merge latency of the RRD retention buffer | ~5 min | container |
 | `bam-startup` | how long cbd takes to load a BAM configuration, step by step | ~1 min per point, plus the populating | container |
+| `conf-export` | duration of a configuration export, cbd CPU, real-time latency meanwhile | ~10 min at the defaults | container |
 
 Those are the names in both senses: what `./bench.py run <name>` takes, and what the `bench`
-column of the store holds. **All six go through the same entry point and land in the same
-store**, so `./bench.py compare` works the same way for all of them. Four of them are robot
-tests underneath — `engine-startup`, `load`, `rrd-retention` and `bam-startup` — and `bench.py run` simply
+column of the store holds. **All seven go through the same entry point and land in the same
+store**, so `./bench.py compare` works the same way for all of them. Five of them are robot
+tests underneath — `engine-startup`, `load`, `rrd-retention`, `bam-startup` and `conf-export` — and `bench.py run` simply
 launches robot for those, forwarding `--var` and `--test`. Running robot directly works just as
 well; going through `bench.py` only adds the campaign name and the refusal to measure a modified
 working tree.
@@ -738,6 +739,36 @@ between the two variants, and it is that difference the campaigns should compare
 count rather than a CPU figure, on purpose: the CPU of one `UPDATE` per result is lost in the
 noise of the whole chain, the count is not.
 
+### `conf-export` — what a configuration export costs a running platform
+
+Pick **one**:
+
+```bash
+./bench.py run conf-export                                     # 4 pollers × 20000 services, 3 exports
+./bench.py run conf-export --var nb_pollers:2 --var exports:5
+robot benchmarks/conf_export_bench.robot                       # straight through robot
+```
+
+A whole export is announced at once with `pollers.lck`: the central cbd reads the configuration of every poller, computes and writes a diff for each, sends them, waits for the acknowledgements, then publishes the global diff. The pollers keep monitoring meanwhile, and their events go through the same streams. Up to `91385d6624`, a diff was computed under the lock every stream takes at each of its reads (`poller_needs_update()`): the whole real-time flow waited for it. This benchmark is there to see that, and to keep seeing it as the concurrency model changes.
+
+The platform is `nb_pollers` pollers sharing `nb_hosts` hosts of `svc_by_host` services, all passive. `conf_export_probe.py` runs beside it, as a separate process, and does two things: a passive load of `passive_rate` results per second spread over the pollers, so that every stream reads all the time; and a probe, which flips the notifications of a service of each poller every `probe_period` seconds — nine services in turn, so that several flips are in flight at once — and times each change until it shows in the `services` table. The adaptive path takes about a second: a probe waiting for each flip before sending the next would sample once a second, and miss an export shorter than that.
+
+The probe goes through the **adaptive** path on purpose. A full status reaches the database through the bulk binds of `unified_sql`, some thirty seconds later: a stall of a few seconds would vanish in that delay. An adaptive service is written by a direct query as soon as `unified_sql` reads it, so its latency is that of the chain itself, and a stalled stream shows up in it whole.
+
+After `baseline` seconds of probing, `exports` exports follow, `settle` seconds apart. Each one changes the `retry_interval` of the services whose number ends with 0 — a tenth of them, never the probed ones — alternating between two values, so that every export carries a real diff. It starts when `pollers.lck` is written and ends at the `Publishing global diff state` line of the central log, whose own timestamp is taken. Filed under the variant `batch`:
+
+| metric | what it is |
+|---|---|
+| `export_s_mean`, `export_s_max` | duration of an export, announcement to global diff |
+| `cbd_cpu_s_per_export` | CPU of the central cbd over an export |
+| `probe_baseline_p50_ms`, `probe_baseline_max_ms` | latency of the probe before the first export |
+| `probe_export_p50_ms`, `probe_export_p99_ms`, `probe_export_max_ms` | latency of the probe for the flips whose way to the database overlaps an export |
+| `probe_lost`, `probe_lost_baseline`, `probe_lost_export` | flips that never reached the database within `probe_timeout`, kept out of the latencies |
+
+The latency that tells is `probe_export_max_ms` against `probe_baseline_max_ms`. A run is rejected when the probe measured nothing, before or during the exports.
+
+A lost flip is not a slow one. Every DiffState carries the runtime snapshot of the poller, built from the cache of Broker, and Engine applies it even while it runs: a change Engine made but Broker had not received yet is reverted in Engine and stays in the database. The next flip of that service is then a no-op for Engine and never shows. As of 2026-11-11 a few flips are lost that way just after each export — sent after the global diff, so outside the export window: `probe_lost` counts them, not `probe_lost_export`. It should drop to zero once the snapshot is only sent when the poller connects.
+
 ## State of play: the reference figures
 
 Every benchmark here exists because something was measured, changed, and measured again. This
@@ -1029,7 +1060,9 @@ trusting it.
 | `bam_startup_bench.robot` | the BAM configuration load of cbd, step by step |
 | `bam_rebuild_bench.robot` | the BI rebuild of the event durations of a BA history |
 | `bam_steady_bench.robot` | the UPDATE statements a check result costs, with and without BAM |
+| `conf_export_bench.robot` | a configuration export on a platform under load |
+| `conf_export_probe.py` | the passive load and the latency probe of `conf-export`, as a separate process |
 | `bench-bam.sh` | the two axes of the BAM startup campaign, services then BAs |
 | `results/` | the store and the per-run files, git-ignored |
 
-Python here is stdlib only — except `bam_config_gen.py`, which needs `pymysql` to reach the configuration database — and formatted with `autopep8`, like the rest of `tests/`.
+Python here is stdlib only — except `bam_config_gen.py` and `conf_export_probe.py`, which need `pymysql` to reach the configuration database — and formatted with `autopep8`, like the rest of `tests/`.
