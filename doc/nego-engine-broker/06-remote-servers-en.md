@@ -496,9 +496,11 @@ struct engine_peer {
      * poller -- the two are routinely true together. */
     bool        broker_knows_poller_conf;
     uint64_t    via_remote;          // relay in front of this peer, or 0
-    /* Whether the poller is still owed the runtime snapshot of its resources
-     * (RuntimeState). True by construction, true again when Broker rebuilds
-     * a lost configuration, false once the snapshot was sent. */
+    /* Whether the poller is still owed the full runtime snapshot of its
+     * resources (RuntimeState). True by construction, true again when a relay
+     * asks for its configuration and when Broker rebuilds a lost
+     * configuration, false once the full snapshot was sent. Held by
+     * poller_conf, under the lock of broker_state. */
     bool        runtime_state_owed = true;
     std::string timezone;            // IANA name advertised at negotiation
     /* The version last handed over, until the poller acknowledges one,
@@ -607,29 +609,35 @@ rather than asserted in a comment, because a module is loaded by configuration
 and a configuration that loaded this one outside cbd should lose the downtime
 reset, not the process.
 
-**Owed its snapshot** — `engine_peer::runtime_state_owed` says whether the
-poller is still owed the `RuntimeState` that replaces `retention.dat`. True by
-construction, false once the snapshot left, true again once a lost
-configuration was rebuilt. The registry is the single source of truth, the
-stream keeps nothing of its own.
+**Owed its snapshot** — `runtime_state_owed` says whether the poller is still owed the full `RuntimeState` that replaces `retention.dat`. The flag is held by the `poller_conf` of the poller and read through `broker_state::runtime_state_owed()`. It is true by construction, true again when a relay asks for the poller's configuration (`on_relay_request()`: the `Engine` just connected to the relay, it starts) and once a lost configuration was rebuilt. It goes back to false in `broker_stream::_add_runtime_state()`, when a `DiffState` leaves with the full snapshot.
+
+While the flag is false, the poller runs and knows its resources better than the cache, which always lags behind the events still on their way. A full snapshot attached to every diff would undo in `Engine` what it just did (an external command executed but not yet in the cache), while the database would not go back. A `DiffState` then only describes the resources its diff **adds** to the poller, looked up by id in the cache (`broker_cache::fill_added_runtime_state()`): that is the case of a host moved from one poller to another, which arrives with its state, its output and its overrides. The `runtime_state` is dropped when empty, and a full configuration (`DiffState.state`) carries none. The robot test `CERS10` covers the move.
+
+The three send paths go through `_add_runtime_state()`: serving an `Engine` connected directly (`_serve_engine_peer`), the exports pushed to a relay (`_serve_broker_peer`) and the answer to a relay's `ConfigRequest`.
 
 ```mermaid
 sequenceDiagram
     participant E as Engine
     participant S as broker_stream
-    participant R as peer_registry
+    participant P as broker_state (poller_conf)
     participant C as global cache
     participant U as unified_sql (reference)
     E->>S: Welcome
-    S->>R: add_peer() → runtime_state_owed = true
+    S->>P: registration → runtime_state_owed = true
     loop on every read()
-        alt a configuration is owed (poller_needs_update)
-            S->>E: DiffState(diff + runtime_state)
-            S->>R: runtime_state_owed = false
-        else up to date, configuration known and cache.has_instance(poller)
-            S->>E: DiffState(runtime_only, known config_version, runtime_state)
-            S->>R: runtime_state_owed = false
-        else configuration unknown to Broker
+        alt a configuration is due (poller_needs_update)
+            alt runtime_state_owed
+                S->>C: fill_runtime_state(poller)
+                S->>E: DiffState(diff + full runtime_state)
+                S->>P: runtime_state_owed = false
+            else
+                S->>C: fill_added_runtime_state(diff)
+                S->>E: DiffState(diff + runtime_state of the added resources, if any)
+            end
+        else up to date, owed its snapshot, conf known and cache.has_instance(poller)
+            S->>E: DiffState(runtime_only, known config_version, full runtime_state)
+            S->>P: runtime_state_owed = false
+        else conf unknown to Broker
             Note over S,C: nothing to describe: the cache does not know the poller
         end
     end
@@ -637,13 +645,13 @@ sequenceDiagram
         S->>E: DiffState(unknown=true)
         E->>S: its full configuration
         S->>C: recover_stored_conf(), pb_engine_state to unified_sql
-        U->>R: set_runtime_state_owed(poller, false)
-        U->>C: merge() then runtime restored from the database
-        U->>R: set_runtime_state_owed(poller, true)
-        S->>E: at the next read(): DiffState(runtime_only, runtime_state)
-        S->>R: runtime_state_owed = false
+        U->>P: set_runtime_state_owed(poller, false)
+        U->>C: merge() then restore the runtime from the database
+        U->>P: set_runtime_state_owed(poller, true)
+        S->>E: on the next read(): DiffState(runtime_only, full runtime_state)
+        S->>P: runtime_state_owed = false
     end
-    E-->>S: DiffStateAck (unchanged version for a runtime_only)
+    E-->>S: DiffStateAck (version unchanged for a runtime_only)
 ```
 
 > **Why the split matters.** These three used to be a single method,

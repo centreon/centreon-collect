@@ -689,7 +689,7 @@ message RuntimeState {
 
 message DiffState {
   // ... champs existants ...
-  RuntimeState runtime_state = 148;  // présent sur tout DiffState envoyé à un poller qui se connecte
+  RuntimeState runtime_state = 148;  // complet pour un poller qui se connecte, sinon les seules ressources que le diff ajoute
   bool runtime_only = 149;           // rien d'autre à appliquer : poller à jour, Engine n'applique que le snapshot
 }
 ```

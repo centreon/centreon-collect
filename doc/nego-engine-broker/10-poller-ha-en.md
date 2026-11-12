@@ -671,7 +671,7 @@ message RuntimeState {
 
 message DiffState {
   // ... existing fields ...
-  RuntimeState runtime_state = 148;  // set on every DiffState sent to a connecting poller
+  RuntimeState runtime_state = 148;  // full for a connecting poller, else only the resources the diff adds
   bool runtime_only = 149;           // nothing else to apply: poller up to date, Engine applies the snapshot only
 }
 ```
