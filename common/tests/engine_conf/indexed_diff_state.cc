@@ -257,3 +257,115 @@ TEST_F(IndexedDiffState, AddHosts) {
 
   ASSERT_EQ(global_diff.added_hosts().size(), 20);
 }
+
+/**
+ * @brief Two differences of the same poller, one after the other: the second
+ * one was computed from the configuration the first one led to.
+ *
+ * Unlike the differences of two pollers, which are merged as a union, here a
+ * message added then removed never existed for whoever reads the result.
+ */
+class IndexedDiffStateSamePoller : public IndexedDiffState {
+ protected:
+  configuration::indexed_diff_state _diff;
+
+  static configuration::Host* host(uint64_t id, const std::string& name) {
+    auto* h = new configuration::Host();
+    configuration::host_helper hlp(h);
+    h->set_host_id(id);
+    h->set_host_name(name);
+    h->set_poller_id(1);
+    return h;
+  }
+  void first(configuration::DiffState& d) { _diff.add_diff_state(d, _logger); }
+  void next(configuration::DiffState& d) {
+    _diff.add_diff_state_from_same_poller(d, _logger);
+  }
+};
+
+/**
+ * Scenario: a host added by the first difference is modified by the next one.
+ * Then the host is added, with its latest definition.
+ */
+TEST_F(IndexedDiffStateSamePoller, AddedThenModifiedIsAddedWithTheLatest) {
+  configuration::DiffState d1;
+  d1.mutable_hosts()->mutable_added()->AddAllocated(host(1, "h1"));
+  first(d1);
+  configuration::DiffState d2;
+  d2.mutable_hosts()->mutable_modified()->AddAllocated(host(1, "h1-renamed"));
+  next(d2);
+
+  ASSERT_EQ(_diff.added_hosts().size(), 1u);
+  EXPECT_EQ(_diff.added_hosts().at(1)->host_name(), "h1-renamed");
+  EXPECT_TRUE(_diff.modified_hosts().empty());
+  EXPECT_TRUE(_diff.removed_hosts().empty());
+}
+
+/**
+ * Scenario: a host added by the first difference is removed by the next one.
+ * Then nothing is left of it: it was never seen.
+ */
+TEST_F(IndexedDiffStateSamePoller, AddedThenRemovedVanishes) {
+  configuration::DiffState d1;
+  d1.mutable_hosts()->mutable_added()->AddAllocated(host(1, "h1"));
+  first(d1);
+  configuration::DiffState d2;
+  d2.mutable_hosts()->add_removed(1);
+  next(d2);
+
+  EXPECT_TRUE(_diff.added_hosts().empty());
+  EXPECT_TRUE(_diff.modified_hosts().empty());
+  EXPECT_TRUE(_diff.removed_hosts().empty());
+}
+
+/**
+ * Scenario: a host modified by the first difference is removed by the next one.
+ * Then the host is removed, and no modification is kept.
+ */
+TEST_F(IndexedDiffStateSamePoller, ModifiedThenRemovedIsRemoved) {
+  configuration::DiffState d1;
+  d1.mutable_hosts()->mutable_modified()->AddAllocated(host(1, "h1"));
+  first(d1);
+  configuration::DiffState d2;
+  d2.mutable_hosts()->add_removed(1);
+  next(d2);
+
+  EXPECT_TRUE(_diff.added_hosts().empty());
+  EXPECT_TRUE(_diff.modified_hosts().empty());
+  EXPECT_EQ(_diff.removed_hosts().size(), 1u);
+}
+
+/**
+ * Scenario: a host modified twice.
+ * Then it is modified once, with its latest definition.
+ */
+TEST_F(IndexedDiffStateSamePoller, ModifiedTwiceKeepsTheLatest) {
+  configuration::DiffState d1;
+  d1.mutable_hosts()->mutable_modified()->AddAllocated(host(1, "h1"));
+  first(d1);
+  configuration::DiffState d2;
+  d2.mutable_hosts()->mutable_modified()->AddAllocated(host(1, "h1-renamed"));
+  next(d2);
+
+  ASSERT_EQ(_diff.modified_hosts().size(), 1u);
+  EXPECT_EQ(_diff.modified_hosts().at(1)->host_name(), "h1-renamed");
+}
+
+/**
+ * Scenario: a host removed by the first difference is added again by the next
+ * one.
+ * Then the host is modified: whoever applied neither still has it.
+ */
+TEST_F(IndexedDiffStateSamePoller, RemovedThenAddedIsModified) {
+  configuration::DiffState d1;
+  d1.mutable_hosts()->add_removed(1);
+  first(d1);
+  configuration::DiffState d2;
+  d2.mutable_hosts()->mutable_added()->AddAllocated(host(1, "h1-back"));
+  next(d2);
+
+  EXPECT_TRUE(_diff.added_hosts().empty());
+  ASSERT_EQ(_diff.modified_hosts().size(), 1u);
+  EXPECT_EQ(_diff.modified_hosts().at(1)->host_name(), "h1-back");
+  EXPECT_TRUE(_diff.removed_hosts().empty());
+}

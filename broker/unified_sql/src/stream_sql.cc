@@ -70,7 +70,7 @@ std::filesystem::path stored_poller_config_path(uint32_t poller_id) {
       static_cast<const config::applier::broker_state&>(applier_state);
   if (!bs.pollers_config_dir_usable())
     return {};
-  return bs.poller_files(poller_id).stored_path();
+  return bs.poller_paths(poller_id).stored_path();
 }
 
 /**

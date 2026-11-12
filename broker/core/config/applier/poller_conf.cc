@@ -29,7 +29,8 @@ namespace {
  * carries after @p prefix.
  *
  * @param p The path of the file.
- * @param prefix What comes before the ID: empty, "new-" or "diff-".
+ * @param prefix What comes before the ID: empty, "new-", "new-diff-" or
+ * "diff-".
  *
  * @return The poller ID, or 0 if @p p is not `<prefix><ID>.prot`.
  */
@@ -69,14 +70,14 @@ bool owes(
  * @param dir The pollers configuration directory.
  * @param poller_id The poller ID.
  */
-poller_conf_files::poller_conf_files(const std::filesystem::path& dir,
+poller_conf_paths::poller_conf_paths(const std::filesystem::path& dir,
                                      uint64_t poller_id)
     : _dir{dir}, _poller_id{poller_id} {}
 
 /**
  * @brief The configuration the poller acknowledged: `<ID>.prot`.
  */
-std::filesystem::path poller_conf_files::stored_path() const {
+std::filesystem::path poller_conf_paths::stored_path() const {
   return _dir / fmt::format("{}.prot", _poller_id);
 }
 
@@ -84,29 +85,38 @@ std::filesystem::path poller_conf_files::stored_path() const {
  * @brief The configuration prepared for the poller and not acknowledged yet:
  * `new-<ID>.prot`.
  */
-std::filesystem::path poller_conf_files::new_path() const {
+std::filesystem::path poller_conf_paths::new_path() const {
   return _dir / fmt::format("new-{}.prot", _poller_id);
 }
 
 /**
- * @brief The difference from `<ID>.prot` to `new-<ID>.prot`: `diff-<ID>.prot`.
+ * @brief The difference from `<ID>.prot` to `new-<ID>.prot`, to send:
+ * `new-diff-<ID>.prot`.
  */
-std::filesystem::path poller_conf_files::diff_path() const {
+std::filesystem::path poller_conf_paths::new_diff_path() const {
+  return _dir / fmt::format("new-diff-{}.prot", _poller_id);
+}
+
+/**
+ * @brief The difference the poller acknowledged, waiting for the database:
+ * `diff-<ID>.prot`.
+ */
+std::filesystem::path poller_conf_paths::diff_path() const {
   return _dir / fmt::format("diff-{}.prot", _poller_id);
 }
 
 /**
  * @brief The poller ID a stored configuration file name carries.
  *
- * Only `<ID>.prot` is a stored configuration. `new-<ID>.prot` and
- * `diff-<ID>.prot` are work files of the push in progress and must not be read
- * as the configuration of a poller.
+ * Only `<ID>.prot` is a stored configuration. `new-<ID>.prot`,
+ * `new-diff-<ID>.prot` and `diff-<ID>.prot` are work files of the push in
+ * progress and must not be read as the configuration of a poller.
  *
  * @param p The path of a file of the pollers configuration directory.
  *
  * @return The poller ID, or 0 for anything that is not `<ID>.prot`.
  */
-uint64_t poller_conf_files::stored_id(const std::filesystem::path& p) {
+uint64_t poller_conf_paths::stored_id(const std::filesystem::path& p) {
   return poller_id_after_prefix(p, "");
 }
 
@@ -118,8 +128,19 @@ uint64_t poller_conf_files::stored_id(const std::filesystem::path& p) {
  *
  * @return The poller ID if @p p is a `new-<ID>.prot`, 0 otherwise.
  */
-uint64_t poller_conf_files::new_id(const std::filesystem::path& p) {
+uint64_t poller_conf_paths::new_id(const std::filesystem::path& p) {
   return poller_id_after_prefix(p, "new-");
+}
+
+/**
+ * @brief The poller a difference to send belongs to, from its file name.
+ *
+ * @param p The path of a file of the pollers configuration directory.
+ *
+ * @return The poller ID if @p p is a `new-diff-<ID>.prot`, 0 otherwise.
+ */
+uint64_t poller_conf_paths::new_diff_id(const std::filesystem::path& p) {
+  return poller_id_after_prefix(p, "new-diff-");
 }
 
 /**
@@ -130,7 +151,7 @@ uint64_t poller_conf_files::new_id(const std::filesystem::path& p) {
  *
  * @return The poller ID if @p p is a `diff-<ID>.prot`, 0 otherwise.
  */
-uint64_t poller_conf_files::diff_id(const std::filesystem::path& p) {
+uint64_t poller_conf_paths::diff_id(const std::filesystem::path& p) {
   return poller_id_after_prefix(p, "diff-");
 }
 
@@ -287,10 +308,9 @@ void poller_conf::on_conf_recovered() {
  * orphan the acknowledgement of the version in flight, and the round would
  * never close.
  *
- * A new version takes the poller out of the database automaton's pending
- * state, as it took it out of the round until now: its acknowledged diff has
- * been carried to the database just before (see
- * broker_state::_integrate_acknowledged_diffs()).
+ * The database automaton is not touched: a difference the poller acknowledged
+ * before goes on waiting for its round, and the one of this version joins it
+ * at the next acknowledgement.
  *
  * @param version The version prepared.
  */
@@ -298,7 +318,6 @@ void poller_conf::prepare(const std::string& version) {
   if (_available_conf == version)
     return;
   _available_conf = version;
-  _db = db_state::up_to_date;
   _settle();
 }
 
@@ -366,7 +385,7 @@ bool poller_conf::on_sent(std::string_view version) {
  *
  * Only the prepared version counts as this poller's part of the round, though.
  * An older one -- sent before a newer export replaced it -- is not what
- * `new-<ID>.prot` and `diff-<ID>.prot` hold any more: renaming the first or
+ * `new-<ID>.prot` and `new-diff-<ID>.prot` hold any more: renaming the first or
  * feeding the cache with the second would claim the poller runs a
  * configuration it never received. The newer one stays owed (14), and is sent
  * once this acknowledgement has said which version the poller runs.

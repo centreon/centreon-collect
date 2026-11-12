@@ -124,7 +124,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   auto pb_conf = std::make_shared<pb_diff_state>();
   auto& obj = pb_conf->mut_obj();
   const std::filesystem::path diff_name =
-      _state.poller_files(poller_id).diff_path();
+      _state.poller_paths(poller_id).new_diff_path();
   std::error_code ec;
   common::read_proto_file(diff_name, obj, ec);
   if (ec == std::errc::no_such_file_or_directory) {
@@ -143,7 +143,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
     const std::string engine_conf = _state.poller_engine_conf(poller_id);
     if (engine_conf != obj.from_version()) {
       const std::filesystem::path new_name =
-          _state.poller_files(poller_id).new_path();
+          _state.poller_paths(poller_id).new_path();
       auto full =
           std::make_unique<com::centreon::engine::configuration::State>();
       common::read_proto_file(new_name, *full, ec);

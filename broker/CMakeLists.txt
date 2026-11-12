@@ -538,7 +538,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
       ${TEST_DIR}/config/init.cc
       ${TEST_DIR}/config/parser.cc
       ${TEST_DIR}/config/poller_conf.cc
-      ${TEST_DIR}/config/poller_conf_files.cc
+      ${TEST_DIR}/config/poller_conf_paths.cc
       ${TEST_DIR}/mysql/database_config.cc
       ${TEST_DIR}/file/disk_accessor.cc
       ${TEST_DIR}/file/directory_watcher.cc

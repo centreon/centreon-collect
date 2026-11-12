@@ -152,7 +152,8 @@ class broker_state : public state {
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
   /* Serializes every move of a configuration between `new-<ID>.prot`,
-   * `diff-<ID>.prot` and `<ID>.prot` (cycle, acknowledgement, recovery,
+   * `new-diff-<ID>.prot`, `diff-<ID>.prot` and `<ID>.prot` (cycle,
+   * acknowledgement, recovery,
    * removal) and the round built on them, up to the global diff. Otherwise an
    * acknowledgement could rename a `new-<ID>.prot` written for a newer
    * configuration.
@@ -189,14 +190,12 @@ class broker_state : public state {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_conf_handover_m);
-  bool _diff_waits_for_integration(uint64_t poller_id) const
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
-  void _integrate_acknowledged_diffs()
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
-  void _publish_global_diff(const std::vector<uint64_t>* poller_ids)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  void _publish_global_diff() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _install_acknowledged_conf(uint64_t poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  void _settle_acknowledged_diff(const poller_conf_paths& paths)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  void _migrate_diff_to_send(uint64_t poller_id);
   void _close_conf_round_if_over()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   poller_conf* _known_poller_conf(uint64_t poller_id)
@@ -205,9 +204,6 @@ class broker_state : public state {
       ABSL_SHARED_LOCKS_REQUIRED(_poller_confs_m);
   void _declare_poller_conf(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_poller_confs_m);
-  void _leave_conf_round(const std::vector<uint64_t>& poller_ids)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m)
-          ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   void _start_watching();
   void _arm_inotify_wait();
   void _arm_debounce();
@@ -307,7 +303,7 @@ class broker_state : public state {
   void apply(const com::centreon::broker::config::state& s,
              bool run_mux = true) override;
   const std::filesystem::path& pollers_config_dir() const noexcept;
-  poller_conf_files poller_files(uint64_t poller_id) const;
+  poller_conf_paths poller_paths(uint64_t poller_id) const;
   void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   void set_cache_config_dir(const std::filesystem::path& engine_conf_dir);
   const std::filesystem::path& cache_config_dir() const noexcept;

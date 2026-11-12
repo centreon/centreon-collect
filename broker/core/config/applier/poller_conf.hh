@@ -33,29 +33,33 @@ namespace com::centreon::broker::config::applier {
  *  - `<ID>.prot`: the configuration the poller acknowledged, the reference of
  *    the cache and of the database;
  *  - `new-<ID>.prot`: a configuration prepared for it, not acknowledged yet;
- *  - `diff-<ID>.prot`: the difference from `<ID>.prot` to `new-<ID>.prot`,
- *    until the global diff carries it to the database.
+ *  - `new-diff-<ID>.prot`: the difference from `<ID>.prot` to `new-<ID>.prot`,
+ *    the one to send; it goes with `new-<ID>.prot`;
+ *  - `diff-<ID>.prot`: the difference the poller acknowledged, already in the
+ *    cache, until the global diff carries it to the database.
  *
  * It only names them: reading and writing go through common/proto_file.
  *
  * It refers to the directory without copying it: the directory must outlive
  * it, hence no temporary is accepted.
  */
-class poller_conf_files {
+class poller_conf_paths {
   const std::filesystem::path& _dir;
   uint64_t _poller_id;
 
  public:
-  poller_conf_files(const std::filesystem::path& dir, uint64_t poller_id);
-  poller_conf_files(std::filesystem::path&& dir, uint64_t poller_id) = delete;
+  poller_conf_paths(const std::filesystem::path& dir, uint64_t poller_id);
+  poller_conf_paths(std::filesystem::path&& dir, uint64_t poller_id) = delete;
 
   uint64_t poller_id() const noexcept { return _poller_id; }
   std::filesystem::path stored_path() const;
   std::filesystem::path new_path() const;
+  std::filesystem::path new_diff_path() const;
   std::filesystem::path diff_path() const;
 
   static uint64_t stored_id(const std::filesystem::path& p);
   static uint64_t new_id(const std::filesystem::path& p);
+  static uint64_t new_diff_id(const std::filesystem::path& p);
   static uint64_t diff_id(const std::filesystem::path& p);
 };
 
@@ -99,7 +103,9 @@ class poller_conf {
   enum class db_state : uint8_t {
     /* The database holds what <ID>.prot describes. */
     up_to_date,
-    /* An acknowledged diff-<ID>.prot waits for the round to close. */
+    /* An acknowledged diff-<ID>.prot waits for the round to close. A newer
+     * export does not take the poller out of it: its difference goes with
+     * the next acknowledgement, merged into diff-<ID>.prot. */
     pending,
   };
 
