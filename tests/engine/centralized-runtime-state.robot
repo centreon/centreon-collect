@@ -644,7 +644,7 @@ CERS10
     ...    When host_1 and its services are moved to poller 2, both Engines still running
     ...    Then poller 1 removes host_1 and poller 2 creates it
     ...    And poller 2 gets from Broker the state of service_1 and the disabled notifications of service_2
-    ...    And the database still shows service_1 CRITICAL HARD
+    ...    And the database still shows service_1 CRITICAL HARD and service_2 without notifications
     [Tags]    engine    broker    centralized    retention    MON-187019
     Ctn Config Centralized Engine    ${2}    ${4}    ${3}
     Ctn Config Broker    central
@@ -720,9 +720,81 @@ CERS10
     Sleep    40s
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    5    HARD
     Should Be True    ${result}    The database should still show service_1 CRITICAL HARD
-    # Not services.notify of service_2: database_configurator writes the
-    # configuration value of an added service over its override (known bug,
-    # whether an override survives a configuration change is still open).
+    Service Notify In Db Should Be    host_1    service_2    ${0}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS11
+    [Documentation]    Scenario: the attributes overridden by external commands survive a change of the configuration
+    ...    Given Broker and one Engine are started in centralized configuration, with passive services
+    ...    And the notifications of service_1 of host_1 are disabled and its check interval changed to 10
+    ...    And the active checks of host_1 are disabled
+    ...    When the configuration changes the check interval of service_1 to 7, its max_check_attempts to 4, and the alias of host_1
+    ...    Then Engine applies the new max_check_attempts and alias, and keeps the overridden notifications, check interval and active checks
+    ...    And the hosts, services and resources tables do the same, with the modified_attributes bits
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${4}    ${3}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    debug
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+    Ctn Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    sql    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Send External Command
+    ...    DISABLE_SVC_NOTIFICATIONS;host_1;service_1
+    ...    CHANGE_NORMAL_SVC_CHECK_INTERVAL;host_1;service_1;10
+    ...    DISABLE_HOST_CHECK;host_1
+    # service_1: MOD_NOTIFICATIONS_ENABLED (1) | MOD_NORMAL_CHECK_INTERVAL (1024);
+    # host_1: MOD_ACTIVE_CHECKS_ENABLED (2).
+    Wait Until Keyword Succeeds    60s    2s    Service Overrides In Db Should Be    host_1    service_1
+    ...    ((0, 10.0, 3, 1025, 0, 3),)
+    Wait Until Keyword Succeeds    60s    2s    Host Overrides In Db Should Be    host_1    ((0, 'host_1', 2, 0),)
+
+    # The user changes service_1 and host_1: one attribute an override holds,
+    # two it does not.
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    7
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    4
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    alias    host_1_renamed
+    ${change}    Ctn Get Round Current Date
+    Ctn Notify Broker Of Engine Config Change    ${0}
+    ${content}    Create List    Modifying service 'service_1' of host 'host_1'.    Modifying host 'host_1' (id 1).
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${change}    ${content}    60
+    Should Be True    ${result}    Engine should modify service_1 and host_1
+
+    ${info}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Integers    ${info}[maxCheckAttempts]    4
+    ...    Engine should apply the new max_check_attempts of service_1
+    Should Be Equal As Integers    ${info}[checkInterval]    10
+    ...    Engine should keep the overridden check interval of service_1
+    Should Not Be True    ${info}[notificationsEnabled]
+    ...    Engine should keep the disabled notifications of service_1
+    Should Be Equal As Integers    ${info}[modifiedAttributes]    1025
+    ...    service_1 should keep its modified_attributes bits
+    ${info}    Ctn Get Host Info Grpc    ${1}
+    Should Be Equal As Strings    ${info}[alias]    host_1_renamed    Engine should apply the new alias of host_1
+    Should Not Be True    ${info}[checksEnabled]    Engine should keep the disabled active checks of host_1
+    Should Be Equal As Integers    ${info}[modifiedAttributes]    2    host_1 should keep its modified_attributes bit
+
+    Wait Until Keyword Succeeds    60s    2s    Service Overrides In Db Should Be    host_1    service_1
+    ...    ((0, 10.0, 4, 1025, 0, 4),)
+    Wait Until Keyword Succeeds    60s    2s    Host Overrides In Db Should Be    host_1
+    ...    ((0, 'host_1_renamed', 2, 0),)
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
@@ -737,6 +809,27 @@ Service Notify In Db Should Be
     Disconnect From Database
     Should Not Be Empty    ${output}    The service ${svc} of ${host} should be in the database
     Should Be Equal As Integers    ${output}[0][0]    ${expected}
+
+Service Overrides In Db Should Be
+    [Documentation]    Fails unless the rows of the service ${svc} of ${host} read ${expected}, as Python prints them:
+    ...    services.notify, check_interval, max_check_attempts, modified_attributes, then
+    ...    resources.notifications_enabled, max_check_attempts.
+    [Arguments]    ${host}    ${svc}    ${expected}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query
+    ...    SELECT s.notify, s.check_interval, s.max_check_attempts, s.modified_attributes, r.notifications_enabled, r.max_check_attempts FROM services s JOIN hosts h ON h.host_id = s.host_id JOIN resources r ON r.id = s.service_id AND r.parent_id = s.host_id WHERE h.name = '${host}' AND s.description = '${svc}'
+    Disconnect From Database
+    Should Be Equal As Strings    ${output}    ${expected}
+
+Host Overrides In Db Should Be
+    [Documentation]    Fails unless the rows of the host ${host} read ${expected}, as Python prints them:
+    ...    hosts.active_checks, alias, modified_attributes, then resources.active_checks_enabled.
+    [Arguments]    ${host}    ${expected}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query
+    ...    SELECT h.active_checks, h.alias, h.modified_attributes, r.active_checks_enabled FROM hosts h JOIN resources r ON r.id = h.host_id AND r.parent_id = 0 WHERE h.name = '${host}'
+    Disconnect From Database
+    Should Be Equal As Strings    ${output}    ${expected}
 
 Host Instance In Db Should Be
     [Documentation]    Fails unless the host ${host} belongs to the instance ${expected} in the hosts table.

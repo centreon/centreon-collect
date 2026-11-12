@@ -33,6 +33,7 @@ BEEXTBRK1
     Ctn Config BBDO3    2
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    config    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
 
@@ -88,6 +89,7 @@ BEEXTBRK2
     Ctn Broker Config Add Item    central    notification_mode    broker
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    config    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
 
@@ -159,6 +161,7 @@ BEEXTBRK3
     Ctn Config BBDO3    2
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    config    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
 
@@ -217,6 +220,7 @@ BEEXTBRK4
     Ctn Broker Config Add Item    central    notification_mode    broker
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    config    info
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
@@ -292,6 +296,7 @@ BEEXTBRK_ADAPTIVE
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    config    info
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
     Ctn Config Broker Sql Output    central    unified_sql
@@ -358,6 +363,7 @@ BEEXTBRK_ADAPTIVE_RESTART
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    config    info
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    central    cache    info
     Ctn Config Broker Sql Output    central    unified_sql
