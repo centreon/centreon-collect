@@ -345,7 +345,12 @@ impl Store {
     /// [`Self::connect_with`] and the default options.
     #[cfg(test)]
     pub(crate) async fn connect(url: &str) -> Result<Self, Error> {
-        Self::connect_with(url, StoreOptions::default()).await
+        // Small pool: many test stores share one database server.
+        let settings = StoreOptions {
+            max_connections: Some(4),
+            ..StoreOptions::default()
+        };
+        Self::connect_with(url, settings).await
     }
 
     /// Connects to `url` (`sqlite:` or `mysql:`/`mariadb:`) and creates the schema.
@@ -387,7 +392,7 @@ impl Store {
                         })
                     })
             }
-            Dialect::MySql => options.max_connections(settings.max_connections.unwrap_or(32)),
+            Dialect::MySql => options.max_connections(settings.max_connections.unwrap_or(16)),
         };
         let mut store = Self {
             pool: options.connect(url).await?,
@@ -1452,12 +1457,18 @@ impl Store {
             "SELECT j.id, j.session_id FROM jobs j
              WHERE j.node_id = ? AND j.state = ? AND j.session_id <> ?
                AND NOT EXISTS (SELECT 1 FROM job_events e
-                               WHERE e.job_id = j.id AND e.seq > 0 AND e.seq < ?)",
+                               WHERE e.job_id = j.id AND e.seq > 0 AND e.seq < ?)
+               AND EXISTS (SELECT 1 FROM sessions s
+                           WHERE s.node_id = ? AND s.session_id = ?)",
         )
         .bind(node_id)
         .bind(state::DISPATCHED)
         .bind(current_session)
         .bind(SERVER_SEQ_FLOOR)
+        // Only the current session may take over: a pass still running for
+        // a replaced one must not requeue what its successor was given.
+        .bind(node_id)
+        .bind(current_session)
         .fetch_all(&self.pool)
         .await?;
         self.requeue(&rows).await
@@ -2239,6 +2250,16 @@ mod tests {
 
         // At most one: on a shared test database the sweep of another test
         // may have requeued it first, its former session being gone.
+        // A pass still running for the replaced session requeues nothing,
+        // in particular not what the new session was given.
+        assert_eq!(
+            store.requeue_stale_dispatched(&node, &old).await.unwrap(),
+            0
+        );
+        assert_eq!(
+            store.job(&kept).await.unwrap().unwrap().state,
+            state::DISPATCHED
+        );
         assert!(store.requeue_stale_dispatched(&node, &new).await.unwrap() <= 1);
         let queued = store.queued_jobs(&node, 10).await.unwrap();
         assert_eq!(queued.len(), 1);

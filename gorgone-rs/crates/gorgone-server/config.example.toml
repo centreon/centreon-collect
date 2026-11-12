@@ -29,9 +29,10 @@ allow_plaintext = false
 # a URL holding a password. Never logged.
 database_url = "sqlite:///var/lib/centreon-gorgone/gorgone.db?mode=rwc"
 # Size of the connection pool. Default: 4 with SQLite (it has one writer
-# anyway), 32 with MariaDB; count 32 connections per replica when sizing
-# the MariaDB max_connections.
-# db_max_connections = 32
+# anyway), 16 with MariaDB. Every replica may open that many: keep the sum
+# under the MariaDB max_connections (151 by default), or the store calls
+# fail with "Too many connections". 32 gives more throughput with many nodes.
+# db_max_connections = 16
 # SQLite only (the journal is always WAL). "full" syncs the log to disk at
 # every commit: a job or an event that was acknowledged survives a power
 # loss. "normal" syncs at checkpoints only: several times more jobs per

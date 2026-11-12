@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures_util::FutureExt;
+use futures_util::{FutureExt, StreamExt};
 use gorgone_core::legacy;
 use gorgone_proto::NODE_ID_METADATA;
 use gorgone_proto::agent::agent_frame::Frame as AgentFrameKind;
@@ -16,6 +16,7 @@ use gorgone_proto::agent::{
 use prost::Message;
 use tokio::sync::{Semaphore, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
+use tokio_util::sync::WaitForCancellationFutureOwned;
 use tonic::{Request, Response, Status, Streaming};
 use tracing::{debug, info, warn};
 use uuid::Uuid;
@@ -42,6 +43,17 @@ pub(crate) const MAX_EVENT_BYTES: usize = 1 << 20;
 /// Events committed together, and their cumulated encoded size.
 const MAX_BATCH_EVENTS: usize = 256;
 const MAX_BATCH_BYTES: usize = 4 << 20;
+
+/// Why a session ended when the server closed it.
+const CLOSED_BY_SERVER: &str = "closed by the server";
+
+/// Frames towards an agent. The stream ends as soon as the session is
+/// closed (replaced, kicked, shutdown), whoever still holds a sender and
+/// whatever the store is doing: nothing is delivered after that point.
+type SessionFrames = futures_util::stream::TakeUntil<
+    ReceiverStream<Result<ServerFrame, Status>>,
+    WaitForCancellationFutureOwned,
+>;
 
 /// Shared state of the gateway.
 pub(crate) struct Gateway {
@@ -346,7 +358,7 @@ impl Gateway {
         let idle = self.heartbeat_interval * 3;
         let reason = 'session: loop {
             let received = tokio::select! {
-                () = handle.closed.cancelled() => break "closed by the server",
+                () = handle.closed.cancelled() => break CLOSED_BY_SERVER,
                 received = tokio::time::timeout(idle, inbound.message()) => received,
             };
             let mut frame = match received {
@@ -363,7 +375,14 @@ impl Gateway {
                 let event = match current {
                     AgentFrameKind::Event(event) => event,
                     AgentFrameKind::Heartbeat(_) => {
-                        if let Err(reason) = self.heartbeat(&node_id, &handle).await {
+                        // Raced against the closing of the session, like every
+                        // store call below: a slow store must not keep a
+                        // replaced session alive.
+                        let recorded = tokio::select! {
+                            () = handle.closed.cancelled() => Err(CLOSED_BY_SERVER),
+                            recorded = self.heartbeat(&node_id, &handle) => recorded,
+                        };
+                        if let Err(reason) = recorded {
                             break 'session reason;
                         }
                         continue;
@@ -396,7 +415,13 @@ impl Gateway {
                         None => break,
                     }
                 }
-                if let Err(reason) = self.commit_and_ack(&node_id, &handle, batch).await {
+                // Dropping the commit mid-way is safe: what is not
+                // acknowledged is sent again, and events are idempotent.
+                let committed = tokio::select! {
+                    () = handle.closed.cancelled() => Err(CLOSED_BY_SERVER),
+                    committed = self.commit_and_ack(&node_id, &handle, batch) => committed,
+                };
+                if let Err(reason) = committed {
                     break 'session reason;
                 }
             }
@@ -419,7 +444,7 @@ impl Gateway {
 
 #[tonic::async_trait]
 impl AgentGateway for GatewayService {
-    type SessionStream = ReceiverStream<Result<ServerFrame, Status>>;
+    type SessionStream = SessionFrames;
     type FetchBlobStream = ReceiverStream<Result<BlobChunk, Status>>;
 
     async fn session(
@@ -485,8 +510,9 @@ impl AgentGateway for GatewayService {
             agent_version = %hello.agent_version,
             "agent session opened"
         );
+        let frames = ReceiverStream::new(rx).take_until(handle.closed.clone().cancelled_owned());
         tokio::spawn(Arc::clone(gateway).run_session(node_id, handle, inbound));
-        Ok(Response::new(ReceiverStream::new(rx)))
+        Ok(Response::new(frames))
     }
 
     async fn fetch_blob(

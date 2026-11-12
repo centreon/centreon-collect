@@ -178,7 +178,7 @@ pub struct Config {
     /// How long a frame may wait for an agent that does not read its
     /// session before the session is closed, in milliseconds.
     pub session_send_timeout_ms: u64,
-    /// Size of the database connection pool; 4 for SQLite and 32 for
+    /// Size of the database connection pool; 4 for SQLite and 16 for
     /// MariaDB when unset.
     pub db_max_connections: Option<u32>,
     /// SQLite durability; ignored with MariaDB.

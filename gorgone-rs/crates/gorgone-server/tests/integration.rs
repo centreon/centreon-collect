@@ -63,6 +63,9 @@ async fn start(db: &TestDb, tweak: impl FnOnce(&mut Config)) -> ServerHandle {
         sweep_interval_ms: 200,
         heartbeat_interval_s: 5,
         auto_enroll: true,
+        // Some thirty test replicas run at once on one database server:
+        // small pools keep them under its limit of 151 connections.
+        db_max_connections: Some(3),
         // Tests exercise the API without credentials unless they say so.
         insecure_no_auth: true,
         ..Config::default()
@@ -158,6 +161,35 @@ impl FakeAgent {
             Ok(Ok(Some(frame))) => frame.frame,
             _ => None,
         }
+    }
+
+    /// Reads the session until the server ends it, and returns the frames
+    /// received meanwhile. Panics, telling which case it is, when the
+    /// stream is still open after `wait` or when a job was dispatched to it.
+    async fn expect_closed(&mut self, wait: Duration) -> Vec<Frame> {
+        let mut frames = Vec::new();
+        let deadline = tokio::time::Instant::now() + wait;
+        loop {
+            match tokio::time::timeout_at(deadline, self.inbound.message()).await {
+                // End of stream, cleanly or with a status.
+                Ok(Ok(None) | Err(_)) => break,
+                Ok(Ok(Some(frame))) => frames.extend(frame.frame),
+                Err(_) => panic!(
+                    "session of {} still open after {wait:?}; frames received meanwhile: {frames:?}",
+                    self.node_id
+                ),
+            }
+        }
+        let dispatched: Vec<&Frame> = frames
+            .iter()
+            .filter(|frame| matches!(frame, Frame::Dispatch(_)))
+            .collect();
+        assert!(
+            dispatched.is_empty(),
+            "a closing session of {} was given jobs: {dispatched:?}",
+            self.node_id
+        );
+        frames
     }
 
     async fn next_dispatch(&mut self) -> Job {
@@ -796,7 +828,7 @@ async fn agent_token_and_rest_bearer_are_enforced() {
     let (status, _) =
         Rest::json(rest.request(reqwest::Method::DELETE, &format!("/v1/nodes/{node}"))).await;
     assert_eq!(status, 204);
-    assert!(agent.next_frame(STEP).await.is_none());
+    agent.expect_closed(STEP).await;
     let refused = FakeAgent::connect(server.agent_addr, &node, agent.token.as_deref()).await;
     assert_eq!(refused.err().unwrap().code(), Code::Unauthenticated);
 
@@ -826,9 +858,11 @@ async fn newer_session_replaces_the_older_one_and_lost_dispatch_is_requeued() {
         .await
         .unwrap();
     assert_ne!(first.welcome.session_id, second.welcome.session_id);
+    // The replaced session ends, and gets nothing once the new one is welcomed.
+    let stray = first.expect_closed(STEP).await;
     assert!(
-        first.next_frame(STEP).await.is_none(),
-        "old session must close"
+        stray.is_empty(),
+        "frames sent to the replaced session: {stray:?}"
     );
     let again = second.next_dispatch().await;
     assert_eq!(again.id, id);
@@ -1391,17 +1425,28 @@ async fn stalled_agent_blocks_neither_submits_nor_other_nodes() {
     let server = start(&db, |c| c.session_send_timeout_ms = 500).await;
     let rest = Rest::new(&server);
     let (stalled_node, healthy_node) = (unique_node(), unique_node());
-    // Connected, then never reads its session again.
-    let stalled = FakeAgent::connect(server.agent_addr, &stalled_node, None)
+    // Connected, then never reads its session again. Small flow-control
+    // windows: the stall shows after little data, which keeps the test light
+    // for the database.
+    let narrow = Channel::from_shared(format!("http://{}", server.agent_addr))
+        .unwrap()
+        .initial_stream_window_size(65_535)
+        .initial_connection_window_size(65_535)
+        .connect()
+        .await
+        .unwrap();
+    let stalled = FakeAgent::connect_channel(narrow, &stalled_node, None)
         .await
         .unwrap();
     let mut healthy = FakeAgent::connect(server.agent_addr, &healthy_node, None)
         .await
         .unwrap();
 
-    // More than the flow-control windows and the session buffer can hold.
-    let big = run_commands(&"x".repeat(192 << 10));
-    for _ in 0..300 {
+    // More than the windows, the HTTP/2 send buffer and the session buffer
+    // (256 frames) can hold.
+    const JOBS: usize = 600;
+    let big = run_commands(&"x".repeat(8 << 10));
+    for _ in 0..JOBS {
         let asked = Instant::now();
         submit(&rest, &stalled_node, &big).await;
         assert!(asked.elapsed() < Duration::from_secs(2), "submit blocked");
@@ -1424,7 +1469,7 @@ async fn stalled_agent_blocks_neither_submits_nor_other_nodes() {
         .await
         .unwrap();
     let mut received = 0;
-    while received < 300 {
+    while received < JOBS {
         back.next_dispatch().await;
         received += 1;
     }
