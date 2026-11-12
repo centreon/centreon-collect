@@ -53,7 +53,8 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new("dashboardBuilder",
         centreon_db_conn => 1,
-        centstorage_db_conn => 1
+        centstorage_db_conn => 1,
+        requireconfig => 1
     );
 
     bless $self, $class;
