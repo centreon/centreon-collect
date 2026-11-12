@@ -21,6 +21,9 @@ pub(crate) struct CommandSpec<'a> {
     pub line: &'a str,
     /// Give the line to `sh -c` instead of splitting it into arguments.
     pub shell: bool,
+    /// Argument vector already derived from `line` by the policy check;
+    /// executed as is, so that what was authorised is what runs.
+    pub argv: Option<&'a [String]>,
     /// Time after which the process group is stopped.
     pub timeout: Duration,
     /// Time between SIGTERM and SIGKILL when the group is stopped.
@@ -71,13 +74,14 @@ pub(crate) async fn run(
     spec: &CommandSpec<'_>,
     cancel: &CancellationToken,
 ) -> Result<ProcessOutput, ProcessError> {
-    let (program, args) = if spec.shell {
-        ("sh".to_owned(), vec!["-c".to_owned(), spec.line.to_owned()])
-    } else {
-        let mut argv = shell_words::split(spec.line)?.into_iter();
-        let program = argv.next().ok_or(ProcessError::Empty)?;
-        (program, argv.collect())
+    let argv = match spec.argv {
+        Some(argv) => argv.to_vec(),
+        None if spec.shell => ["sh", "-c", spec.line].map(str::to_owned).to_vec(),
+        None => shell_words::split(spec.line)?,
     };
+    let mut argv = argv.into_iter();
+    let program = argv.next().ok_or(ProcessError::Empty)?;
+    let args: Vec<String> = argv.collect();
 
     let started = Instant::now();
     let mut child = Command::new(&program)
@@ -224,6 +228,7 @@ mod tests {
         CommandSpec {
             line,
             shell,
+            argv: None,
             timeout: Duration::from_millis(timeout_ms),
             kill_grace: Duration::from_secs(5),
             max_output: 1024,

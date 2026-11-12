@@ -1,5 +1,6 @@
 //! Server configuration: one TOML file, every key overridable by environment.
 
+use std::fmt;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -25,8 +26,13 @@ pub struct TlsConfig {
     pub client_ca: Option<PathBuf>,
 }
 
-/// REST API access control.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// What `Debug` shows in place of a secret.
+fn redacted<T>(secret: &Option<T>) -> &'static str {
+    if secret.is_some() { "***" } else { "None" }
+}
+
+/// REST API access control. `Debug` never shows the secrets.
+#[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RestAuthConfig {
     /// Bearer token; also accepted as the basic-auth password of any user
@@ -38,6 +44,17 @@ pub struct RestAuthConfig {
     pub basic_password: Option<String>,
     /// Client networks allowed to call the API; empty allows every address.
     pub allowed_cidrs: Vec<ipnet::IpNet>,
+}
+
+impl fmt::Debug for RestAuthConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RestAuthConfig")
+            .field("token", &redacted(&self.token))
+            .field("basic_username", &self.basic_username)
+            .field("basic_password", &redacted(&self.basic_password))
+            .field("allowed_cidrs", &self.allowed_cidrs)
+            .finish()
+    }
 }
 
 impl RestAuthConfig {
@@ -66,6 +83,9 @@ pub struct CentcoreConfig {
     pub illegal_characters: String,
     /// External commands sent per `EngineCommands` job.
     pub bulk_external_cmd: usize,
+    /// Owners a command file must have to be read; empty means the user
+    /// running the server, or root.
+    pub allowed_uids: Vec<u32>,
 }
 
 impl Default for CentcoreConfig {
@@ -79,12 +99,28 @@ impl Default for CentcoreConfig {
             poll_interval_ms: 5000,
             illegal_characters: String::new(),
             bulk_external_cmd: 50,
+            allowed_uids: Vec::new(),
         }
     }
 }
 
-/// Settings of one `gorgone-server` replica.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// SQLite `synchronous` setting (the journal is always WAL).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SqliteSynchronous {
+    /// The log is synced at every commit: an acknowledged job or event
+    /// survives a power loss.
+    #[default]
+    Full,
+    /// The log is synced at checkpoints only: several times faster, but the
+    /// last commits can be lost on a power loss or an OS crash (not on a
+    /// crash of the server alone).
+    Normal,
+}
+
+/// Settings of one `gorgone-server` replica. `Debug` never shows the secrets
+/// (`database_url`, `peer_token`, REST credentials).
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     /// REST listener.
@@ -133,14 +169,63 @@ pub struct Config {
     pub peer_ca: Option<PathBuf>,
     /// Legacy `centcore.cmd` intake.
     pub centcore: CentcoreConfig,
+    /// Accept running the REST API without any credential.
+    pub insecure_no_auth: bool,
+    /// Accept a listener without TLS on a non-loopback address.
+    pub allow_plaintext: bool,
+    /// Serve `/metrics` without credentials.
+    pub metrics_public: bool,
+    /// How long a frame may wait for an agent that does not read its
+    /// session before the session is closed, in milliseconds.
+    pub session_send_timeout_ms: u64,
+    /// Size of the database connection pool; 4 for SQLite and 32 for
+    /// MariaDB when unset.
+    pub db_max_connections: Option<u32>,
+    /// SQLite durability; ignored with MariaDB.
+    pub sqlite_synchronous: SqliteSynchronous,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("rest_listen", &self.rest_listen)
+            .field("agent_listen", &self.agent_listen)
+            .field("peer_listen", &self.peer_listen)
+            .field("database_url", &"***")
+            .field("replica_id", &self.replica_id)
+            .field("peer_advertise_addr", &self.peer_advertise_addr)
+            .field("heartbeat_interval_s", &self.heartbeat_interval_s)
+            .field("job_default_deadline_s", &self.job_default_deadline_s)
+            .field("retention_s", &self.retention_s)
+            .field("sweep_interval_ms", &self.sweep_interval_ms)
+            .field("body_limit_bytes", &self.body_limit_bytes)
+            .field("auto_enroll", &self.auto_enroll)
+            .field("thumbprint", &self.thumbprint)
+            .field("rest", &self.rest)
+            .field("rest_tls", &self.rest_tls)
+            .field("agent_tls", &self.agent_tls)
+            .field("log_json", &self.log_json)
+            .field("peer_token", &redacted(&self.peer_token))
+            .field("peer_tls", &self.peer_tls)
+            .field("peer_ca", &self.peer_ca)
+            .field("centcore", &self.centcore)
+            .field("insecure_no_auth", &self.insecure_no_auth)
+            .field("allow_plaintext", &self.allow_plaintext)
+            .field("metrics_public", &self.metrics_public)
+            .field("session_send_timeout_ms", &self.session_send_timeout_ms)
+            .field("db_max_connections", &self.db_max_connections)
+            .field("sqlite_synchronous", &self.sqlite_synchronous)
+            .finish()
+    }
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            rest_listen: SocketAddr::from(([0, 0, 0, 0], 8085)),
-            agent_listen: SocketAddr::from(([0, 0, 0, 0], 5556)),
-            peer_listen: SocketAddr::from(([0, 0, 0, 0], 5557)),
+            // Loopback by default: exposing a listener is a decision.
+            rest_listen: SocketAddr::from(([127, 0, 0, 1], 8085)),
+            agent_listen: SocketAddr::from(([127, 0, 0, 1], 5556)),
+            peer_listen: SocketAddr::from(([127, 0, 0, 1], 5557)),
             database_url: "sqlite:///var/lib/centreon-gorgone/gorgone.db?mode=rwc".to_owned(),
             replica_id: None,
             peer_advertise_addr: None,
@@ -159,6 +244,12 @@ impl Default for Config {
             peer_tls: None,
             peer_ca: None,
             centcore: CentcoreConfig::default(),
+            insecure_no_auth: false,
+            allow_plaintext: false,
+            metrics_public: false,
+            session_send_timeout_ms: 5000,
+            db_max_connections: None,
+            sqlite_synchronous: SqliteSynchronous::Full,
         }
     }
 }
@@ -175,16 +266,58 @@ impl Config {
             .merge(Env::prefixed(ENV_PREFIX).split("__"))
             .extract()
             .map_err(Box::new)?;
-        config.validate()?;
+        config.validate_deployment()?;
         Ok(config)
     }
 
-    /// Checks the constraints the type system does not express.
-    pub fn validate(&self) -> Result<(), Error> {
-        if self.heartbeat_interval_s == 0 || self.sweep_interval_ms == 0 {
+    /// [`Self::validate`], plus the rule applied to a configuration loaded
+    /// from a file or the environment: the REST API needs a credential,
+    /// unless `insecure_no_auth` says otherwise.
+    pub fn validate_deployment(&self) -> Result<(), Error> {
+        self.validate()?;
+        if !self.rest.requires_credentials() && !self.insecure_no_auth {
             return Err(Error::Invalid(
-                "heartbeat_interval_s and sweep_interval_ms must be positive".into(),
+                "no REST credential: set rest.token (or rest.basic_username and \
+                 rest.basic_password), or insecure_no_auth = true to run without"
+                    .into(),
             ));
+        }
+        Ok(())
+    }
+
+    /// Checks the constraints the type system does not express, and that no
+    /// listener is exposed without protection.
+    pub fn validate(&self) -> Result<(), Error> {
+        if self.heartbeat_interval_s == 0
+            || self.sweep_interval_ms == 0
+            || self.session_send_timeout_ms == 0
+        {
+            return Err(Error::Invalid(
+                "heartbeat_interval_s, sweep_interval_ms and session_send_timeout_ms must be \
+                 positive"
+                    .into(),
+            ));
+        }
+        for (name, listen, tls) in [
+            ("rest", self.rest_listen, &self.rest_tls),
+            ("agent", self.agent_listen, &self.agent_tls),
+            ("peer", self.peer_listen, &self.peer_tls),
+        ] {
+            if !listen.ip().is_loopback() && tls.is_none() && !self.allow_plaintext {
+                return Err(Error::Invalid(format!(
+                    "{name}_listen {listen} is not a loopback address: configure {name}_tls, \
+                     or allow_plaintext = true"
+                )));
+            }
+        }
+        if self.db_max_connections == Some(0) {
+            return Err(Error::Invalid("db_max_connections must be positive".into()));
+        }
+        if !self.peer_listen.ip().is_loopback() && self.peer_token.is_none() {
+            return Err(Error::Invalid(format!(
+                "peer_listen {} is not a loopback address: peer_token is required",
+                self.peer_listen
+            )));
         }
         if self.centcore.enabled
             && (self.centcore.poll_interval_ms == 0 || self.centcore.bulk_external_cmd == 0)
@@ -269,5 +402,96 @@ mod tests {
         config.centcore.enabled = true;
         config.centcore.bulk_external_cmd = 0;
         assert!(config.validate().is_err());
+    }
+
+    fn tls() -> Option<TlsConfig> {
+        Some(TlsConfig {
+            cert: "c".into(),
+            key: "k".into(),
+            client_ca: None,
+        })
+    }
+
+    #[test]
+    fn deployment_without_rest_credential_is_refused() {
+        let config = Config::default();
+        // Usable in process (loopback), but not as a deployed configuration.
+        config.validate().unwrap();
+        let refused = config.validate_deployment().unwrap_err().to_string();
+        assert!(refused.contains("insecure_no_auth"), "{refused}");
+
+        let explicit = Config {
+            insecure_no_auth: true,
+            ..Config::default()
+        };
+        explicit.validate_deployment().unwrap();
+        let mut with_token = Config::default();
+        with_token.rest.token = Some("t".into());
+        with_token.validate_deployment().unwrap();
+
+        // Same rule through the loader: file only, then file plus a token.
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("gorgone.toml");
+        std::fs::write(&file, "sweep_interval_ms = 1000\n").unwrap();
+        assert!(Config::load(Some(&file)).is_err());
+        std::fs::write(&file, "sweep_interval_ms = 1000\n[rest]\ntoken = \"t\"\n").unwrap();
+        assert_eq!(Config::load(Some(&file)).unwrap().sweep_interval_ms, 1000);
+    }
+
+    #[test]
+    fn exposed_listeners_need_tls_and_the_peer_a_token() {
+        let exposed: SocketAddr = "0.0.0.0:0".parse().unwrap();
+        for listener in ["rest", "agent", "peer"] {
+            let mut config = Config {
+                peer_token: Some("p".into()),
+                peer_ca: Some("ca".into()),
+                ..Config::default()
+            };
+            match listener {
+                "rest" => config.rest_listen = exposed,
+                "agent" => config.agent_listen = exposed,
+                _ => config.peer_listen = exposed,
+            }
+            let refused = config.validate().unwrap_err().to_string();
+            assert!(refused.contains(&format!("{listener}_tls")), "{refused}");
+
+            let mut plaintext = config.clone();
+            plaintext.allow_plaintext = true;
+            plaintext.validate().unwrap();
+
+            match listener {
+                "rest" => config.rest_tls = tls(),
+                "agent" => config.agent_tls = tls(),
+                _ => config.peer_tls = tls(),
+            }
+            config.validate().unwrap();
+        }
+
+        // TLS or not, an exposed peer listener needs the shared secret.
+        let config = Config {
+            peer_listen: exposed,
+            allow_plaintext: true,
+            ..Config::default()
+        };
+        let refused = config.validate().unwrap_err().to_string();
+        assert!(refused.contains("peer_token"), "{refused}");
+    }
+
+    #[test]
+    fn debug_never_shows_secrets() {
+        let mut config = Config {
+            database_url: "mysql://gorgone:db-secret@db/gorgone".into(),
+            peer_token: Some("peer-secret".into()),
+            ..Config::default()
+        };
+        config.rest.token = Some("rest-secret".into());
+        config.rest.basic_username = Some("web".into());
+        config.rest.basic_password = Some("basic-secret".into());
+        let shown = format!("{config:?} {:?} {:#?}", config.rest, config);
+        for secret in ["db-secret", "peer-secret", "rest-secret", "basic-secret"] {
+            assert!(!shown.contains(secret), "{secret} leaked in {shown}");
+        }
+        assert!(shown.contains("***"));
+        assert!(shown.contains("web"));
     }
 }

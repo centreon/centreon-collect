@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use gorgone_core::allowlist::Allowlist;
+use gorgone_core::allowlist::{Allowlist, Denied};
 use gorgone_proto::agent::job_event::Body;
 use gorgone_proto::agent::job_finished::Outcome;
 use gorgone_proto::agent::{JobFinished, RunCommands};
@@ -18,27 +18,44 @@ pub(crate) struct RunCommandsExecutor {
     pub max_output: usize,
 }
 
+impl RunCommandsExecutor {
+    /// Applies the local policy to one command. Without a shell, returns the
+    /// exact argument vector to execute.
+    fn authorize(&self, command: &str) -> Result<Option<Vec<String>>, Denied> {
+        if !self.shell {
+            return self.allowlist.authorize(command).map(Some);
+        }
+        // A newline would start a second shell command behind a matching first line.
+        if command.chars().any(char::is_control) {
+            return Err(Denied::ControlCharacter);
+        }
+        if !self.allowlist.is_allowed(command) {
+            return Err(Denied::NotListed);
+        }
+        Ok(None)
+    }
+}
+
 impl Executor for RunCommandsExecutor {
     type Action = RunCommands;
 
     async fn execute(&self, action: RunCommands, ctx: &JobContext<'_>) -> JobFinished {
         // The whole job is checked first: nothing runs when one command is refused.
-        if let Some(index) = action
-            .commands
-            .iter()
-            .position(|c| !self.allowlist.is_allowed(&c.command))
-        {
-            return finished(
-                Outcome::Rejected,
-                format!("command {index} is not in the agent allowlist"),
-            );
+        let mut authorised = Vec::with_capacity(action.commands.len());
+        for (index, command) in action.commands.iter().enumerate() {
+            match self.authorize(&command.command) {
+                Ok(argv) => authorised.push(argv),
+                Err(reason) => {
+                    return finished(Outcome::Rejected, format!("command {index}: {reason}"));
+                }
+            }
         }
 
         let total = action.commands.len();
         let mut failed = 0_usize;
         let mut timed_out = false;
         let mut executed = 0_usize;
-        for (index, command) in action.commands.iter().enumerate() {
+        for (index, (command, argv)) in action.commands.iter().zip(&authorised).enumerate() {
             if ctx.cancel.is_cancelled() {
                 return finished(
                     Outcome::Cancelled,
@@ -48,6 +65,7 @@ impl Executor for RunCommandsExecutor {
             let spec = CommandSpec {
                 line: &command.command,
                 shell: self.shell,
+                argv: argv.as_deref(),
                 timeout: match command.timeout_s {
                     0 => self.default_timeout,
                     seconds => Duration::from_secs(u64::from(seconds)),
@@ -150,6 +168,60 @@ mod tests {
         )
         .await;
         assert_eq!(done.outcome(), Outcome::Rejected);
+        assert!(sink.command_results().is_empty());
+        assert!(!marker.exists());
+    }
+
+    #[tokio::test]
+    async fn path_escape_and_control_characters_are_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let marker = dir.path().join("marker");
+        let exec = executor(&[r"/usr/lib/centreon/plugins/\S+( .*)?", "echo .*"]);
+        let escape = format!(
+            "/usr/lib/centreon/plugins/../../../bin/sh -c 'touch {}'",
+            marker.display()
+        );
+        let second_line = format!("echo ok\ntouch {}", marker.display());
+        for (line, needle) in [
+            (escape.as_str(), "program path"),
+            ("/usr/lib/centreon/plugins/./check_x", "program path"),
+            (second_line.as_str(), "control character"),
+            ("echo a\0b", "control character"),
+            ("echo 'unbalanced", "cannot be parsed"),
+            ("rm -rf /", "does not match"),
+        ] {
+            let (done, sink) = run(
+                &exec,
+                action(vec![command("echo first", false), command(line, false)]),
+            )
+            .await;
+            assert_eq!(done.outcome(), Outcome::Rejected, "{line:?}");
+            assert!(done.message.starts_with("command 1: "), "{}", done.message);
+            assert!(done.message.contains(needle), "{}", done.message);
+            assert!(sink.command_results().is_empty());
+        }
+        assert!(!marker.exists());
+    }
+
+    #[tokio::test]
+    async fn shell_mode_still_refuses_control_characters() {
+        let dir = tempfile::tempdir().unwrap();
+        let marker = dir.path().join("marker");
+        let mut exec = executor(&["(?s)echo .*"]);
+        exec.shell = true;
+        let (done, sink) = run(&exec, action(vec![command("echo a; echo b", false)])).await;
+        assert_eq!(done.outcome(), Outcome::Ok);
+        assert_eq!(sink.command_results()[0].stdout, "a\nb\n");
+
+        // The pattern matches across lines; the newline is refused anyway.
+        let injected = format!("echo ok\ntouch {}", marker.display());
+        let (done, sink) = run(&exec, action(vec![command(&injected, false)])).await;
+        assert_eq!(done.outcome(), Outcome::Rejected);
+        assert!(
+            done.message.contains("control character"),
+            "{}",
+            done.message
+        );
         assert!(sink.command_results().is_empty());
         assert!(!marker.exists());
     }

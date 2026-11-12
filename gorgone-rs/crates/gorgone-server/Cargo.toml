@@ -17,6 +17,7 @@ gorgone-core = { version = "0.1.0", path = "../gorgone-core" }
 gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
 hex = "0.4.3"
 ipnet = { version = "2.12.2", features = ["serde"] }
+libc = "0.2.191"
 metrics = "0.24.6"
 metrics-exporter-prometheus = { version = "0.18.3", default-features = false }
 prost = "0.14"

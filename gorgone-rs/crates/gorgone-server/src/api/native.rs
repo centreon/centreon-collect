@@ -30,8 +30,8 @@ use crate::store::{EventRow, JobRow, state};
 
 /// Longest long-poll accepted by `GET /v1/jobs/{id}?wait=`.
 const MAX_WAIT: Duration = Duration::from_secs(60);
-/// Store poll period of an event stream without local notification.
-const SSE_POLL: Duration = Duration::from_millis(250);
+/// Longest an event stream sleeps without re-reading the store.
+const SSE_RECHECK: Duration = Duration::from_secs(30);
 
 /// JSON form of an action, e.g. `{"run_commands": {"commands": [...]}}`.
 #[derive(Debug, Serialize, Deserialize)]
@@ -168,6 +168,8 @@ fn job_json(job: &JobRow, events: &[EventRow]) -> Value {
         "updated_at": job.updated_at,
         "deadline_at": job.deadline_at,
         "cancel_requested": job.cancel_requested,
+        // Rank in the node's submission order, which is the dispatch order.
+        "seq": job.seq,
         "action": action_json(&job.action),
         "events": events.iter().map(event_json).collect::<Vec<_>>(),
     })
@@ -263,6 +265,8 @@ pub(super) async fn job_events(
     let (tx, rx) = mpsc::channel::<Result<Event, Infallible>>(16);
     tokio::spawn(async move {
         let mut updates = state.hub.subscribe();
+        // Woken by local commits and by the shared poller of the replica.
+        let _watch = state.hub.watch(&id);
         let mut last_seq = -1;
         loop {
             // State first: events committed before a terminal state are then
@@ -289,7 +293,11 @@ pub(super) async fn job_events(
             if state::is_terminal(&job.state) {
                 return;
             }
-            let _ = tokio::time::timeout(SSE_POLL, job_notified(&mut updates, &id)).await;
+            tokio::select! {
+                // The client went away: nothing left to stream to.
+                () = tx.closed() => return,
+                _ = tokio::time::timeout(SSE_RECHECK, job_notified(&mut updates, &id, false)) => {}
+            }
         }
     });
     Ok(Sse::new(ReceiverStream::new(rx))
@@ -385,7 +393,8 @@ pub(super) async fn enrol_node(
     };
     let name = body.name.unwrap_or_else(|| node.clone());
     let token = state.store.enrol_node(&node, &name).await?;
-    // A session opened with the former token must not survive.
+    // A session opened with the former token must not survive: the store
+    // dropped its row (seen by the replica holding it), this closes ours.
     state.hub.kick(&node);
     Ok(Json(json!({ "id": node, "name": name, "token": token })))
 }
@@ -396,6 +405,7 @@ pub(super) async fn delete_node(
     Path(node): Path<String>,
 ) -> Result<StatusCode, ApiError> {
     let existed = state.store.delete_node(&node).await?;
+    state.dispatcher.forget_node(&node);
     state.hub.kick(&node);
     if existed {
         Ok(StatusCode::NO_CONTENT)

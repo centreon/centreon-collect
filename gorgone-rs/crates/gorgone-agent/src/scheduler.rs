@@ -2,7 +2,7 @@
 //! go through one queue so that they run in dispatch order.
 
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use gorgone_proto::agent::action::Kind;
 use gorgone_proto::agent::job_event::Body;
@@ -47,6 +47,8 @@ struct Shared {
 struct Admitted {
     job: Job,
     cancel: CancellationToken,
+    /// When the dispatch was received: the origin of the job time to live.
+    received: Instant,
 }
 
 /// Entry point of dispatched jobs.
@@ -56,21 +58,20 @@ pub(crate) struct Scheduler {
     ordered: mpsc::UnboundedSender<Admitted>,
 }
 
-/// Time left before the deadline of `job`: `None` without deadline, zero
-/// once it has passed.
-fn time_left(job: &Job) -> Option<Duration> {
-    let deadline = u64::try_from(job.deadline_unix_ms)
-        .ok()
-        .filter(|ms| *ms > 0)?;
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    Some(Duration::from_millis(deadline).saturating_sub(now))
+/// Time left before the deadline of a job: `None` without deadline, zero
+/// once it has passed. Counted from reception on the monotonic clock, so the
+/// wall clocks of the poller and of the central need not agree.
+fn time_left(ttl_ms: u64, received: Instant) -> Option<Duration> {
+    (ttl_ms > 0).then(|| Duration::from_millis(ttl_ms).saturating_sub(received.elapsed()))
 }
 
 impl Shared {
     async fn run(&self, admitted: Admitted) {
-        let Admitted { job, cancel } = admitted;
+        let Admitted {
+            job,
+            cancel,
+            received,
+        } = admitted;
         if self.draining.is_cancelled() {
             // Never started: without event the server queues it again.
             self.journal.forget(&job.id);
@@ -81,7 +82,7 @@ impl Shared {
             job_id: &job.id,
         };
         sink.emit(Body::Started(JobStarted {}));
-        let left = time_left(&job);
+        let left = time_left(job.ttl_ms, received);
         let done = if left.is_some_and(|left| left.is_zero()) {
             finished(Outcome::Timeout, "deadline passed before the job started")
         } else if cancel.is_cancelled() {
@@ -165,6 +166,7 @@ impl Scheduler {
 
     /// Takes a dispatched job, unless it is a duplicate or the agent stops.
     pub(crate) fn submit(&self, job: Job) {
+        let received = Instant::now();
         if job.id.is_empty() {
             tracing::warn!("ignoring a job without id");
             return;
@@ -190,7 +192,11 @@ impl Scheduler {
             job.action.as_ref().and_then(|action| action.kind.as_ref()),
             Some(Kind::RunCommands(_))
         );
-        let admitted = Admitted { job, cancel };
+        let admitted = Admitted {
+            job,
+            cancel,
+            received,
+        };
         if !pooled {
             if let Err(rejected) = self.ordered.send(admitted) {
                 // Only possible if the worker died; do not leave the job open.

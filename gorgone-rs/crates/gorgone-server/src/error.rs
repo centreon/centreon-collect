@@ -26,6 +26,9 @@ pub enum Error {
     /// Request or setting refused.
     #[error("invalid: {0}")]
     Invalid(String),
+    /// The node is not enrolled.
+    #[error("unknown node: {0}")]
+    UnknownNode(String),
     /// A stored action could not be decoded.
     #[error("corrupt stored action: {0}")]
     Decode(#[from] prost::DecodeError),

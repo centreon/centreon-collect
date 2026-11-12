@@ -63,6 +63,8 @@ async fn start(db: &TestDb, tweak: impl FnOnce(&mut Config)) -> ServerHandle {
         sweep_interval_ms: 200,
         heartbeat_interval_s: 5,
         auto_enroll: true,
+        // Tests exercise the API without credentials unless they say so.
+        insecure_no_auth: true,
         ..Config::default()
     };
     tweak(&mut config);
@@ -101,6 +103,17 @@ impl FakeAgent {
         node_id: &str,
         token: Option<&str>,
     ) -> Result<Self, Status> {
+        Self::open(channel, Some(node_id), node_id, token).await
+    }
+
+    /// Opens a session announcing `metadata_node` in the request metadata
+    /// and `node_id` in the `Hello` frame.
+    async fn open(
+        channel: Channel,
+        metadata_node: Option<&str>,
+        node_id: &str,
+        token: Option<&str>,
+    ) -> Result<Self, Status> {
         let mut client = AgentGatewayClient::new(channel);
         let (tx, rx) = mpsc::channel(64);
         let hello = Hello {
@@ -115,6 +128,11 @@ impl FakeAgent {
         .unwrap();
         let mut request = Request::new(ReceiverStream::new(rx));
         authorize(&mut request, token);
+        if let Some(metadata_node) = metadata_node {
+            request
+                .metadata_mut()
+                .insert(NODE_ID_METADATA, metadata_node.parse().unwrap());
+        }
         let mut inbound = client.session(request).await?.into_inner();
         let first = tokio::time::timeout(STEP, inbound.message())
             .await
@@ -733,7 +751,8 @@ async fn agent_token_and_rest_bearer_are_enforced() {
     // REST: probes are open, the API is not.
     let mut rest = Rest::new(&server);
     assert_eq!(rest.get("/healthz").await.0, 200);
-    assert_eq!(rest.get("/metrics").await.0, 200);
+    assert_eq!(rest.get("/readyz").await.0, 200);
+    assert_eq!(rest.get("/metrics").await.0, 401);
     assert_eq!(rest.get("/v1/nodes").await.0, 401);
     assert_eq!(rest.get("/api/internal/thumbprint").await.0, 401);
     rest.bearer = Some("wrong".into());
@@ -745,6 +764,7 @@ async fn agent_token_and_rest_bearer_are_enforced() {
     assert_eq!(Rest::json(basic).await.0, 200);
     rest.bearer = Some("rest-test-token".into());
     assert_eq!(rest.get("/v1/nodes").await.0, 200);
+    assert_eq!(rest.get("/metrics").await.0, 200);
 
     // Agent: unknown node, then missing and wrong token.
     let refused = FakeAgent::connect(server.agent_addr, &node, None).await;
@@ -1162,6 +1182,17 @@ async fn mtls_certificate_common_name_identifies_the_node() {
     let rest = Rest::new(&server);
     let node = unique_node();
 
+    // A certificate never creates a node: it must be enrolled first.
+    let refused = pki
+        .session(server.agent_addr, Some(&node), &node)
+        .await
+        .err()
+        .unwrap();
+    assert_eq!(refused, "Unauthenticated");
+    let (status, _) =
+        Rest::json(rest.request(reqwest::Method::PUT, &format!("/v1/nodes/{node}"))).await;
+    assert_eq!(status, 200);
+
     // CN = node id: accepted without any token.
     let mut agent = pki
         .session(server.agent_addr, Some(&node), &node)
@@ -1251,4 +1282,492 @@ async fn peer_wake_up_over_tls() {
 
     owner.shutdown().await;
     other.shutdown().await;
+}
+
+fn run_commands(command: &str) -> Value {
+    json!({ "run_commands": { "commands": [{ "command": command }] } })
+}
+
+async fn submit(rest: &Rest, node: &str, action: &Value) -> String {
+    let (status, body) = rest.post(&format!("/v1/nodes/{node}/jobs"), action).await;
+    assert_eq!(status, 202, "{body}");
+    body["id"].as_str().unwrap().to_owned()
+}
+
+async fn plain_channel(addr: SocketAddr) -> Channel {
+    Channel::from_shared(format!("http://{addr}"))
+        .unwrap()
+        .connect()
+        .await
+        .unwrap()
+}
+
+async fn connected(rest: &Rest, node: &str) -> bool {
+    let (_, nodes) = rest.get("/v1/nodes").await;
+    nodes["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|n| n["id"] == node && n["connected"] == true)
+}
+
+#[tokio::test]
+async fn job_lost_with_its_session_is_delivered_before_later_jobs() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut first = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+
+    // An ApplyConfig is claimed into a session that dies without a word.
+    let src = tempfile::tempdir().unwrap();
+    std::fs::write(src.path().join("centengine.cfg"), "a=1\n").unwrap();
+    let bundle = gorgone_core::bundle::pack(src.path()).unwrap();
+    let (status, body) = Rest::json(
+        rest.request(
+            reqwest::Method::PUT,
+            &format!("/v1/nodes/{node}/config/engine"),
+        )
+        .body(bundle),
+    )
+    .await;
+    assert_eq!(status, 202, "{body}");
+    let apply = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(first.next_dispatch().await.id, apply);
+
+    // The agent reconnects and a reload is submitted right after: the
+    // configuration must still arrive first.
+    let mut second = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let reload = submit(
+        &rest,
+        &node,
+        &json!({ "service_control": { "service": "engine", "operation": "reload" } }),
+    )
+    .await;
+    assert_eq!(second.next_dispatch().await.id, apply);
+    assert_eq!(second.next_dispatch().await.id, reload);
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn dispatch_follows_the_submission_order_of_the_store() {
+    let db = TestDb::new();
+    let (a, b) = (start(&db, |_| {}).await, start(&db, |_| {}).await);
+    let node = unique_node();
+    let (rest_a, rest_b) = (Rest::new(&a), Rest::new(&b));
+
+    // Submits interleaved on two replicas while the node is away.
+    let submits = (0..30).map(|i| {
+        let rest = if i % 2 == 0 { &rest_a } else { &rest_b };
+        let node = &node;
+        async move { submit(rest, node, &run_commands(&format!("echo {i}"))).await }
+    });
+    let ids = futures_util::future::join_all(submits).await;
+    assert_eq!(ids.len(), 30);
+
+    let mut agent = FakeAgent::connect(a.agent_addr, &node, None).await.unwrap();
+    let mut ranks = Vec::new();
+    for _ in 0..30 {
+        let job = agent.next_dispatch().await;
+        let (_, stored) = rest_b.get(&format!("/v1/jobs/{}", job.id)).await;
+        ranks.push(stored["seq"].as_i64().unwrap());
+        assert!(job.ttl_ms > 0 && job.ttl_ms <= 300_000, "{}", job.ttl_ms);
+    }
+    // Received in the order the store committed them, without gap.
+    assert_eq!(ranks, (1..=30).collect::<Vec<i64>>());
+
+    a.shutdown().await;
+    b.shutdown().await;
+}
+
+#[tokio::test]
+async fn stalled_agent_blocks_neither_submits_nor_other_nodes() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.session_send_timeout_ms = 500).await;
+    let rest = Rest::new(&server);
+    let (stalled_node, healthy_node) = (unique_node(), unique_node());
+    // Connected, then never reads its session again.
+    let stalled = FakeAgent::connect(server.agent_addr, &stalled_node, None)
+        .await
+        .unwrap();
+    let mut healthy = FakeAgent::connect(server.agent_addr, &healthy_node, None)
+        .await
+        .unwrap();
+
+    // More than the flow-control windows and the session buffer can hold.
+    let big = run_commands(&"x".repeat(192 << 10));
+    for _ in 0..300 {
+        let asked = Instant::now();
+        submit(&rest, &stalled_node, &big).await;
+        assert!(asked.elapsed() < Duration::from_secs(2), "submit blocked");
+    }
+    // Another node is served meanwhile.
+    let id = submit(&rest, &healthy_node, &run_commands("echo ok")).await;
+    assert_eq!(healthy.next_dispatch().await.id, id);
+
+    // The stalled session ends up closed, and its jobs are not lost.
+    let closed = async {
+        while connected(&rest, &stalled_node).await {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(15), closed)
+        .await
+        .expect("stalled session closed");
+    drop(stalled);
+    let mut back = FakeAgent::connect(server.agent_addr, &stalled_node, None)
+        .await
+        .unwrap();
+    let mut received = 0;
+    while received < 300 {
+        back.next_dispatch().await;
+        received += 1;
+    }
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn cancel_is_sent_again_to_a_new_session() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut first = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let id = submit(&rest, &node, &run_commands("sleep 60")).await;
+    assert_eq!(first.next_dispatch().await.id, id);
+    first.event(&id, 1, Body::Started(JobStarted {})).await;
+    assert_eq!(delete(&rest, &format!("/v1/jobs/{id}")).await.0, 202);
+    assert_eq!(first.next_cancel().await, id);
+
+    // The agent reconnects with the job still running: it is told again.
+    let mut second = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    assert_eq!(second.next_cancel().await, id);
+    second.event(&id, 2, finished(Outcome::Cancelled, "")).await;
+    let (_, job) = rest.get(&format!("/v1/jobs/{id}?wait=5")).await;
+    assert_eq!(job["state"], "failed");
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn re_enrolment_ends_the_session_held_by_another_replica() {
+    let db = TestDb::new();
+    let strict = |c: &mut Config| c.auto_enroll = false;
+    let (holder, other) = (start(&db, strict).await, start(&db, strict).await);
+    let node = unique_node();
+    let enrol = |server: &ServerHandle| {
+        let rest = Rest::new(server);
+        let path = format!("/v1/nodes/{node}");
+        async move { Rest::json(rest.request(reqwest::Method::PUT, &path)).await }
+    };
+    let (_, enrolled) = enrol(&holder).await;
+    let token = enrolled["token"].as_str().unwrap().to_owned();
+    let mut agent = FakeAgent::connect(holder.agent_addr, &node, Some(&token))
+        .await
+        .unwrap();
+    assert!(connected(&Rest::new(&other), &node).await);
+
+    // Rotated on the other replica: the session row goes away, and the
+    // holder closes the session at the next sign of life.
+    let (status, rotated) = enrol(&other).await;
+    assert_eq!(status, 200);
+    assert_ne!(rotated["token"], token.as_str());
+    assert!(!connected(&Rest::new(&other), &node).await);
+    agent
+        .send(AgentFrameKind::Heartbeat(Heartbeat { running_jobs: 0 }))
+        .await;
+    let ended = async { while agent.inbound.message().await.is_ok_and(|f| f.is_some()) {} };
+    tokio::time::timeout(STEP, ended)
+        .await
+        .expect("session closed");
+    let refused = FakeAgent::connect(holder.agent_addr, &node, Some(&token)).await;
+    assert_eq!(refused.err().unwrap().code(), Code::Unauthenticated);
+
+    holder.shutdown().await;
+    other.shutdown().await;
+}
+
+#[tokio::test]
+async fn session_is_authenticated_from_metadata_before_any_frame() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let node = unique_node();
+
+    // No node id in the metadata: refused whatever the Hello says.
+    let channel = plain_channel(server.agent_addr).await;
+    let refused = FakeAgent::open(channel, None, &node, None).await;
+    assert_eq!(refused.err().unwrap().code(), Code::Unauthenticated);
+
+    // A Hello naming another node than the authenticated one.
+    let channel = plain_channel(server.agent_addr).await;
+    let refused = FakeAgent::open(channel, Some(&node), &unique_node(), None).await;
+    assert_eq!(refused.err().unwrap().code(), Code::PermissionDenied);
+
+    // FetchBlob without node id.
+    let mut client = AgentGatewayClient::new(plain_channel(server.agent_addr).await);
+    let refused = client
+        .fetch_blob(Request::new(FetchBlobRequest {
+            digest: "0".repeat(64),
+        }))
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code(), Code::Unauthenticated);
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn agent_events_are_bound_to_the_jobs_of_their_node() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let (node, intruder_node) = (unique_node(), unique_node());
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let mut intruder = FakeAgent::connect(server.agent_addr, &intruder_node, None)
+        .await
+        .unwrap();
+    let events = |id: &str| {
+        let path = format!("/v1/jobs/{id}");
+        let rest = &rest;
+        async move { rest.get(&path).await.1 }
+    };
+
+    let id = submit(&rest, &node, &run_commands("echo ok")).await;
+    assert_eq!(agent.next_dispatch().await.id, id);
+    // Another node cannot write into the job (acknowledged, not stored).
+    intruder
+        .event(&id, 1, finished(Outcome::Ok, "forged"))
+        .await;
+    let job = events(&id).await;
+    assert_eq!(job["state"], "dispatched");
+    assert_eq!(job["events"].as_array().unwrap().len(), 1);
+
+    // Nothing is accepted after the terminal event.
+    agent.event(&id, 1, finished(Outcome::Failed, "real")).await;
+    agent.event(&id, 2, command_result(0, "late")).await;
+    agent.event(&id, 3, finished(Outcome::Ok, "late")).await;
+    let job = events(&id).await;
+    assert_eq!(job["state"], "failed");
+    assert_eq!(job["events"].as_array().unwrap().len(), 2);
+
+    // A job that was never dispatched takes no event either.
+    let offline = unique_node();
+    let queued = submit(&rest, &offline, &run_commands("echo ok")).await;
+    let mut late = FakeAgent::connect(server.agent_addr, &offline, None)
+        .await
+        .unwrap();
+    assert_eq!(late.next_dispatch().await.id, queued);
+    late.event(&queued, 1, finished(Outcome::Ok, "")).await;
+    assert_eq!(events(&queued).await["state"], "succeeded");
+
+    // Oversized output is truncated, not stored whole.
+    let noisy = submit(&rest, &node, &run_commands("yes")).await;
+    assert_eq!(agent.next_dispatch().await.id, noisy);
+    agent
+        .event(&noisy, 1, command_result(0, &"y".repeat(3 << 20)))
+        .await;
+    let job = events(&noisy).await;
+    let stored = &job["events"][1]["data"];
+    assert_eq!(stored["truncated"], true);
+    assert!(stored["stdout"].as_str().unwrap().len() < 300 << 10);
+
+    // Past the event cap the job is failed by the server.
+    agent.event(&noisy, 10_001, command_result(0, "x")).await;
+    let job = events(&noisy).await;
+    assert_eq!(job["state"], "failed");
+    let last = job["events"].as_array().unwrap().last().unwrap().clone();
+    assert_eq!(last["code"], 1);
+    assert!(
+        last["data"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("more than 10000 events")
+    );
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn blob_is_served_only_to_the_node_whose_pending_job_needs_it() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let (node, other_node) = (unique_node(), unique_node());
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let mut other = FakeAgent::connect(server.agent_addr, &other_node, None)
+        .await
+        .unwrap();
+
+    let src = tempfile::tempdir().unwrap();
+    std::fs::write(src.path().join("secret.cfg"), unique_node()).unwrap();
+    let bundle = gorgone_core::bundle::pack(src.path()).unwrap();
+    let (status, body) = Rest::json(
+        rest.request(
+            reqwest::Method::PUT,
+            &format!("/v1/nodes/{node}/config/engine"),
+        )
+        .body(bundle.clone()),
+    )
+    .await;
+    assert_eq!(status, 202, "{body}");
+    let digest = body["digest"].as_str().unwrap().to_owned();
+    let id = agent.next_dispatch().await.id;
+
+    // Another node gets the same answer as for a blob that does not exist.
+    let refused = other.fetch_blob(&digest).await.unwrap_err();
+    assert_eq!(refused.code(), Code::NotFound);
+    assert_eq!(agent.fetch_blob(&digest).await.unwrap().concat(), bundle);
+
+    // Once the job is finished the blob is no longer handed out.
+    agent.event(&id, 1, finished(Outcome::Ok, "")).await;
+    let refused = agent.fetch_blob(&digest).await.unwrap_err();
+    assert_eq!(refused.code(), Code::NotFound);
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn unknown_node_and_large_bodies_are_refused_on_rest() {
+    let db = TestDb::new();
+    let server = start(&db, |c| {
+        c.auto_enroll = false;
+        c.rest.token = Some("rest-test-token".into());
+        c.metrics_public = true;
+    })
+    .await;
+    let mut rest = Rest::new(&server);
+    // Metrics were explicitly made public; the API was not.
+    assert_eq!(rest.get("/metrics").await.0, 200);
+    assert_eq!(rest.get("/v1/nodes").await.0, 401);
+    rest.bearer = Some("rest-test-token".into());
+
+    // Nodes must be enrolled to get jobs.
+    let ghost = unique_node();
+    let (status, body) = rest
+        .post(&format!("/v1/nodes/{ghost}/jobs"), &run_commands("echo ok"))
+        .await;
+    assert_eq!(status, 404, "{body}");
+    let (status, _) = rest
+        .post(
+            &format!("/api/nodes/{ghost}/core/action/command"),
+            &json!([{ "command": "echo ok" }]),
+        )
+        .await;
+    assert_eq!(status, 404);
+    let (status, _) =
+        Rest::json(rest.request(reqwest::Method::PUT, &format!("/v1/nodes/{ghost}"))).await;
+    assert_eq!(status, 200);
+    submit(&rest, &ghost, &run_commands("echo ok")).await;
+
+    // Only the bundle upload accepts a large body. The server answers 413
+    // without reading it and closes: the client sees the status, or its
+    // write cut short.
+    let oversized = rest
+        .request(reqwest::Method::POST, &format!("/v1/nodes/{ghost}/jobs"))
+        .json(&run_commands(&"x".repeat(2 << 20)))
+        .send()
+        .await;
+    match oversized {
+        Ok(response) => assert_eq!(response.status(), 413),
+        Err(err) => assert!(err.is_request() || err.is_body(), "{err:?}"),
+    }
+    // A new client: the connection above is being closed by the server.
+    let mut rest = Rest::new(&server);
+    rest.bearer = Some("rest-test-token".into());
+    let (status, _) = Rest::json(
+        rest.request(
+            reqwest::Method::PUT,
+            &format!("/v1/nodes/{ghost}/config/engine"),
+        )
+        .body(vec![0u8; 2 << 20]),
+    )
+    .await;
+    // Read in full, then refused for what it is: not a bundle.
+    assert_eq!(status, 400);
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn pipelined_events_are_acknowledged_in_order_after_their_commit() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let jobs = [
+        submit(&rest, &node, &run_commands("echo a")).await,
+        submit(&rest, &node, &run_commands("echo b")).await,
+    ];
+    for id in &jobs {
+        assert_eq!(&agent.next_dispatch().await.id, id);
+    }
+
+    // Sent without waiting for any acknowledgement: the server commits them
+    // in batches. A duplicate and an event of an unknown job are in the flow.
+    let mut sent = Vec::new();
+    for seq in 1..=40u64 {
+        for id in &jobs {
+            sent.push((
+                id.clone(),
+                seq,
+                command_result(seq as u32, &format!("line {seq}")),
+            ));
+        }
+        if seq == 20 {
+            sent.push((jobs[0].clone(), 20, command_result(20, "duplicate")));
+            sent.push(("no-such-job".to_owned(), 1, command_result(0, "stray")));
+        }
+    }
+    for id in &jobs {
+        sent.push((id.clone(), 41, finished(Outcome::Ok, "")));
+    }
+    for (job_id, seq, body) in &sent {
+        agent
+            .send(AgentFrameKind::Event(JobEvent {
+                job_id: job_id.clone(),
+                seq: *seq,
+                time_unix_ms: 1_700_000_000_000,
+                body: Some(body.clone()),
+            }))
+            .await;
+    }
+
+    // One acknowledgement per event sent, in the same order.
+    for (job_id, seq, _) in &sent {
+        let ack = agent.next_ack().await;
+        assert_eq!((&ack.job_id, ack.seq), (job_id, *seq));
+        // Acknowledged means committed: the event is readable right away.
+        if *seq == 41 {
+            let (_, job) = rest.get(&format!("/v1/jobs/{job_id}")).await;
+            assert_eq!(job["state"], "succeeded");
+        }
+    }
+    for id in &jobs {
+        let (_, job) = rest.get(&format!("/v1/jobs/{id}")).await;
+        let events = job["events"].as_array().unwrap();
+        // Accepted + 40 results + finished, each once and in order.
+        assert_eq!(events.len(), 42);
+        let seqs: Vec<i64> = events.iter().map(|e| e["seq"].as_i64().unwrap()).collect();
+        assert_eq!(seqs, (0..=41).collect::<Vec<i64>>());
+        assert_eq!(events[20]["data"]["stdout"], "line 20");
+    }
+
+    server.shutdown().await;
 }

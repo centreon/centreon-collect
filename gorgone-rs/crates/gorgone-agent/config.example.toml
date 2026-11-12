@@ -96,27 +96,97 @@ max_ms = 30000
 
 [commands]
 # A RunCommands command runs only when one of these regular expressions
-# matches it entirely. Empty by default: every command is refused. The two
-# expressions below are examples.
+# matches it entirely. Empty by default: every command is refused.
+#
+# On top of the match, with `shell = false`: a command holding a control
+# character (newline, NUL...) is refused, and a program given with a path must
+# be absolute, without `.` or `..` components, so `/dir/../../bin/sh` cannot
+# pass a `/dir/\S+` expression.
+#
+# Write expressions as narrow as the need:
+# - pin the program: full path, and a file name limited to plain characters
+#   (`[A-Za-z0-9_.-]+`) rather than `\S+`;
+# - spell out the arguments the central may choose. A trailing `( .*)?` hands
+#   EVERY option of that program to the central, including options that make
+#   the program itself execute commands or read and write arbitrary files.
+#   centreon_plugins.pl has such options: giving it `( .*)?` is giving a
+#   shell. The same goes for interpreters and for tools such as `find`,
+#   `tar`, `ssh`, `sudo`, `env` or `xargs`.
+# The expressions below are examples of the narrow form.
 allowlist = [
-  '/usr/lib/centreon/plugins/\S+( .*)?',
-  '/usr/lib64/nagios/plugins/\S+( .*)?',
+  # One plugin, one mode, three thresholds chosen by the central.
+  '/usr/lib/centreon/plugins/centreon_linux_local\.pl --plugin=os::linux::local::plugin --mode=(cpu|memory|load) --warning=[0-9:.,@~]* --critical=[0-9:.,@~]*',
+  # Any plugin of the directory, without argument.
+  '/usr/lib64/nagios/plugins/[A-Za-z0-9_.-]+',
+  # The engine configuration check, on the file the agent itself deployed.
+  '/usr/sbin/centengine -v /etc/centreon-engine/centengine\.cfg',
 ]
 # false: the command is split into arguments and executed directly, so shell
 # syntax (pipes, redirections, `;`, `$(...)`) has no effect.
-# true: the command is given to `sh -c`; the allowlist is then the only guard.
+# true: the command is given to `sh -c`. This weakens the policy: the
+# allowlist only sees text, and an expression that pins the beginning of a
+# command cannot constrain what the shell does with the rest (`;`, `&&`,
+# `$(...)`, backquotes, redirections all run). The program path checks above
+# do not apply either; only control characters are still refused. Keep it
+# false unless every expression is a complete, literal command.
 shell = false
 
 [engine]
 # External command pipe of centengine (EngineCommands jobs). Must be a FIFO
 # with a reader, that is a running engine.
 command_file = "/var/lib/centreon-engine/rw/centengine.cmd"
+# An external command is written to the pipe only when one of these regular
+# expressions matches its NAME entirely: the word between the optional
+# `[timestamp] ` prefix and the first `;`. Empty by default: every command is
+# refused. A job is refused as a whole, and nothing is written, when one of
+# its lines is not allowed, has no recognisable name, or holds a line break
+# or a NUL character.
+# The list below covers what the Centreon web interface sends: checks,
+# acknowledgements, downtimes, comments, passive results, notifications and
+# check toggles. Keep out the commands that change what the engine executes
+# or make it read files: PROCESS_FILE, CHANGE_*_CHECK_COMMAND,
+# CHANGE_*_EVENT_HANDLER, CHANGE_GLOBAL_*_EVENT_HANDLER, CHANGE_CUSTOM_*_VAR.
+allowed_commands = [
+  'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
+  'SCHEDULE_(FORCED_)?HOST_SVC_CHECKS',
+  'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
+  'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
+  'SCHEDULE_(HOST|SVC)_DOWNTIME',
+  'SCHEDULE_HOST_SVC_DOWNTIME',
+  'DEL_(HOST|SVC)_DOWNTIME',
+  'ADD_(HOST|SVC)_COMMENT',
+  'DEL_(HOST|SVC)_COMMENT',
+  'DEL_ALL_(HOST|SVC)_COMMENTS',
+  'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+  'SEND_CUSTOM_(HOST|SVC)_NOTIFICATION',
+  '(ENABLE|DISABLE)_(HOST|SVC)_NOTIFICATIONS',
+  '(ENABLE|DISABLE)_HOST_SVC_NOTIFICATIONS',
+  '(ENABLE|DISABLE)_(HOST|SVC)_CHECK',
+  '(ENABLE|DISABLE)_HOST_SVC_CHECKS',
+  '(ENABLE|DISABLE)_PASSIVE_(HOST|SVC)_CHECKS',
+  '(ENABLE|DISABLE)_(HOST|SVC)_EVENT_HANDLER',
+  '(ENABLE|DISABLE)_(HOST|SVC)_FLAP_DETECTION',
+  '(ENABLE|DISABLE)_ALL_NOTIFICATIONS_BEYOND_HOST',
+  # Poller-wide switches of the centreon-web "Pollers" pages.
+  '(ENABLE|DISABLE)_(NOTIFICATIONS|FLAP_DETECTION|EVENT_HANDLERS|PERFORMANCE_DATA)',
+  '(START|STOP)_(EXECUTING|ACCEPTING_PASSIVE)_(HOST|SVC)_CHECKS',
+  '(START|STOP)_OBSESSING_OVER_(HOST|SVC)(_CHECKS)?',
+  '(SAVE|READ)_STATE_INFORMATION',
+  '(RESTART|SHUTDOWN)_PROGRAM',
+]
 
 # Destinations of the configuration bundles (ApplyConfig jobs), one table per
 # target. None by default: the central only names a target, and a target
 # missing here is refused.
 #   path:  required, directory the bundle is synchronised into.
 #   prune: remove the files of `path` that are not in the bundle (default false).
+#
+# Declaring the `engine` target lets the central define the commands the
+# engine runs: check commands, event handlers and notification commands are
+# part of the engine configuration. This is inherent to configuration push
+# and no allowlist above limits it. Declare it only on nodes the central is
+# meant to configure. The same reasoning applies to any target whose files
+# are executed or interpreted by a local service.
 [targets.engine]
 path = "/etc/centreon-engine"
 prune = true

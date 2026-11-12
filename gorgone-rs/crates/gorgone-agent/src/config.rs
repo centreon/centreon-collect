@@ -262,12 +262,17 @@ pub struct EngineConfig {
     /// Path of the external command FIFO of centengine.
     #[serde(default = "default_command_file", deserialize_with = "lenient::path")]
     pub command_file: PathBuf,
+    /// Regular expressions; an external command is written only when one
+    /// matches its name entirely. Empty: every command is refused.
+    #[serde(default, deserialize_with = "lenient::list")]
+    pub allowed_commands: Vec<String>,
 }
 
 impl Default for EngineConfig {
     fn default() -> Self {
         Self {
             command_file: default_command_file(),
+            allowed_commands: Vec::new(),
         }
     }
 }
@@ -482,6 +487,45 @@ mod tests {
             config.services["broker"].command(Operation::Unspecified),
             None
         );
+
+        // The example policies say what their comments promise.
+        use gorgone_core::allowlist::Allowlist;
+        let commands = Allowlist::new(&config.commands.allowlist).unwrap();
+        for allowed in [
+            "/usr/lib/centreon/plugins/centreon_linux_local.pl --plugin=os::linux::local::plugin --mode=cpu --warning=80 --critical=90",
+            "/usr/lib64/nagios/plugins/check_ping",
+            "/usr/sbin/centengine -v /etc/centreon-engine/centengine.cfg",
+        ] {
+            assert!(commands.authorize(allowed).is_ok(), "{allowed}");
+        }
+        for refused in [
+            "/usr/lib/centreon/plugins/centreon_linux_local.pl --plugin=os::linux::local::plugin --mode=cpu --warning=80 --critical=90 --extra",
+            "/usr/lib64/nagios/plugins/check_ping -H host",
+            "/usr/lib64/nagios/plugins/../../../bin/sh",
+            "/usr/sbin/centengine -v /tmp/other.cfg",
+        ] {
+            assert!(commands.authorize(refused).is_err(), "{refused}");
+        }
+        let engine = Allowlist::new(&config.engine.allowed_commands).unwrap();
+        for allowed in [
+            "ACKNOWLEDGE_SVC_PROBLEM",
+            "SCHEDULE_HOST_DOWNTIME",
+            "SCHEDULE_FORCED_SVC_CHECK",
+            "PROCESS_SERVICE_CHECK_RESULT",
+            "DISABLE_HOST_NOTIFICATIONS",
+            "ADD_SVC_COMMENT",
+        ] {
+            assert!(engine.is_allowed(allowed), "{allowed}");
+        }
+        for refused in [
+            "PROCESS_FILE",
+            "CHANGE_HOST_CHECK_COMMAND",
+            "CHANGE_SVC_EVENT_HANDLER",
+            "CHANGE_GLOBAL_HOST_EVENT_HANDLER",
+            "CHANGE_CUSTOM_HOST_VAR",
+        ] {
+            assert!(!engine.is_allowed(refused), "{refused}");
+        }
     }
 
     #[test]

@@ -60,7 +60,11 @@ pub fn digest(bytes: &[u8]) -> String {
 /// an unchanged tree always gives the same digest.
 pub fn pack(src: &Path) -> Result<Vec<u8>, BundleError> {
     let mut files = Vec::new();
-    let meta = fs::metadata(src).map_err(io_err(src))?;
+    // Never follow a link planted in place of the source.
+    let meta = fs::symlink_metadata(src).map_err(io_err(src))?;
+    if meta.file_type().is_symlink() {
+        return Err(BundleError::UnsafeEntry(src.display().to_string()));
+    }
     if meta.is_file() {
         let name = src
             .file_name()
@@ -202,7 +206,7 @@ pub fn apply(
         let mut entry = entry.map_err(BundleError::Invalid)?;
         let rel = entry.path().map_err(BundleError::Invalid)?.into_owned();
         let kind = entry.header().entry_type();
-        if !is_safe(&rel) {
+        if !is_safe(&rel) || is_marker(&rel) || crosses_link(dest, &rel) {
             return Err(BundleError::UnsafeEntry(rel.display().to_string()));
         }
         if kind.is_dir() {
@@ -224,7 +228,9 @@ pub fn apply(
             return Err(BundleError::TooLarge(options.max_unpacked));
         }
         budget -= copied;
-        let mode = entry.header().mode().unwrap_or(0o644) & 0o777;
+        // Only the executable bit is taken from the bundle.
+        let executable = entry.header().mode().unwrap_or(0) & 0o111 != 0;
+        let mode = if executable { 0o755 } else { 0o644 };
         tmp.as_file()
             .set_permissions(fs::Permissions::from_mode(mode))
             .map_err(io_err(&target))?;
@@ -268,6 +274,27 @@ fn is_safe(rel: &Path) -> bool {
         }
     }
     any
+}
+
+/// True for names reserved to the applied-digest markers.
+fn is_marker(rel: &Path) -> bool {
+    rel.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.starts_with(".gorgone-") && name.ends_with(".digest"))
+}
+
+/// True when an existing parent directory of `dest/rel` is a symbolic link,
+/// which would make the entry land outside `dest`.
+fn crosses_link(dest: &Path, rel: &Path) -> bool {
+    // The last component is replaced by a rename, never followed.
+    let Some(parent) = rel.parent() else {
+        return false;
+    };
+    let mut current = dest.to_path_buf();
+    parent.components().any(|component| {
+        current.push(component);
+        fs::symlink_metadata(&current).is_ok_and(|m| m.file_type().is_symlink())
+    })
 }
 
 fn prune(
@@ -356,6 +383,52 @@ mod tests {
         let report = apply(&bundle, &digest(&bundle), dest.path(), &options).unwrap();
         assert_eq!((report.written, report.pruned), (1, 0));
         assert!(dest.path().join("other.json").exists());
+    }
+
+    #[test]
+    fn refuses_linked_directories_markers_and_linked_sources() {
+        let src = tree();
+        let bundle = pack(src.path()).unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let dest = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(outside.path(), dest.path().join("objects")).unwrap();
+        let err = apply(&bundle, &digest(&bundle), dest.path(), &OPTIONS).unwrap_err();
+        assert!(matches!(err, BundleError::UnsafeEntry(_)));
+        assert!(!outside.path().join("hosts.cfg").exists());
+
+        fs::write(src.path().join(".gorgone-engine.digest"), "x").unwrap();
+        let bundle = pack(src.path()).unwrap();
+        let dest = tempfile::tempdir().unwrap();
+        let err = apply(&bundle, &digest(&bundle), dest.path(), &OPTIONS).unwrap_err();
+        assert!(matches!(err, BundleError::UnsafeEntry(_)));
+
+        let link = outside.path().join("link");
+        std::os::unix::fs::symlink(src.path(), &link).unwrap();
+        assert!(matches!(pack(&link), Err(BundleError::UnsafeEntry(_))));
+    }
+
+    #[test]
+    fn file_modes_are_normalised() {
+        let src = tree();
+        let script = src.path().join("hook.sh");
+        fs::write(&script, "#!/bin/sh\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o777)).unwrap();
+        fs::set_permissions(
+            src.path().join("centengine.cfg"),
+            fs::Permissions::from_mode(0o666),
+        )
+        .unwrap();
+        let bundle = pack(src.path()).unwrap();
+        let dest = tempfile::tempdir().unwrap();
+        apply(&bundle, &digest(&bundle), dest.path(), &OPTIONS).unwrap();
+        let mode = |name: &str| {
+            fs::metadata(dest.path().join(name))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777
+        };
+        assert_eq!((mode("hook.sh"), mode("centengine.cfg")), (0o755, 0o644));
     }
 
     #[test]

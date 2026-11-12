@@ -60,6 +60,7 @@ impl Executor for ServiceControlExecutor {
         let spec = CommandSpec {
             line,
             shell: false,
+            argv: None,
             timeout: self.timeout,
             kill_grace: self.kill_grace,
             max_output: self.max_output,

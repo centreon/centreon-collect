@@ -422,6 +422,7 @@ pub fn job(id: &str, kind: action::Kind) -> Job {
     Job {
         id: id.to_owned(),
         deadline_unix_ms: 0,
+        ttl_ms: 0,
         action: Some(Action { kind: Some(kind) }),
     }
 }

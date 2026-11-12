@@ -237,8 +237,11 @@ impl Journal {
             body: Some(body),
         };
         let size = event.encoded_len();
-        // On disk before it can be sent: an acknowledged event is never lost.
-        self.persist(job_id, |store| store.append_event(&event, terminal));
+        // Written before it can be sent: an acknowledged event is never lost.
+        // The first and the last event are also flushed: they decide whether
+        // a restart sees the job as never started, interrupted or done.
+        let flush = terminal || index == 0;
+        self.persist(job_id, |store| store.append_event(&event, flush));
         record.events.push(StoredEvent {
             event,
             acked: false,
@@ -269,6 +272,8 @@ impl Journal {
         };
         event.acked = true;
         self.persist(job_id, |store| store.append_ack(job_id, seq));
+        // The job may have just become droppable.
+        self.evict(&mut inner);
         drop(inner);
         self.progress.notify_waiters();
     }
@@ -394,24 +399,25 @@ impl Journal {
         }
     }
 
-    /// Enforces the bounds by forgetting finished jobs, oldest first and
-    /// acknowledged ones before the others. Unfinished jobs are never dropped.
+    /// Enforces the bounds by forgetting the oldest jobs that are finished
+    /// and fully acknowledged. Anything else is kept, bounds or not: dropping
+    /// it would lose events the server never got.
     fn evict(&self, inner: &mut Inner) {
         while inner.jobs.len() > self.max_jobs || inner.bytes > self.max_bytes {
-            let finished = |id: &&String| inner.jobs.get(*id).is_some_and(|r| r.finished);
-            let victim = inner
-                .order
-                .iter()
-                .filter(finished)
-                .find(|id| inner.jobs.get(*id).is_some_and(JobRecord::fully_acked))
-                .or_else(|| inner.order.iter().find(finished))
-                .cloned();
-            let Some(victim) = victim else {
+            let droppable = |id: &&String| {
+                inner
+                    .jobs
+                    .get(*id)
+                    .is_some_and(|record| record.finished && record.fully_acked())
+            };
+            let Some(victim) = inner.order.iter().find(droppable).cloned() else {
+                tracing::warn!(
+                    jobs = inner.jobs.len(),
+                    bytes = inner.bytes,
+                    "journal over its bounds: every job is running or waits for acknowledgements"
+                );
                 return;
             };
-            if inner.jobs.get(&victim).is_some_and(|r| !r.fully_acked()) {
-                tracing::warn!(job_id = %victim, "journal full: dropping unacknowledged events");
-            }
             self.remove(inner, &victim);
         }
     }
@@ -550,10 +556,17 @@ mod tests {
             run_job(&journal, "d");
             assert_eq!(files(dir.path()).len(), 3);
             assert!(matches!(journal.admit("b"), Admission::New(_)));
+            // Over the bound with nothing acknowledged: everything is kept.
+            assert_eq!(files(dir.path()).len(), 4);
             journal.forget("b");
-            assert_eq!(files(dir.path()).len(), 2);
+            assert_eq!(files(dir.path()).len(), 3);
+            for id in ["a", "c"] {
+                journal.ack(id, 1);
+                journal.ack(id, 2);
+            }
+            assert_eq!(files(dir.path()).len(), 3);
         }
-        // A smaller bound at restart trims the oldest jobs.
+        // A smaller bound at restart trims the acknowledged jobs.
         let journal = durable(dir.path(), 1);
         assert_eq!(files(dir.path()).len(), 1);
         assert!(matches!(journal.admit("d"), Admission::Replayed));
@@ -605,9 +618,14 @@ mod tests {
         assert!(matches!(journal.admit("running"), Admission::New(_)));
         run_job(&journal, "old");
         run_job(&journal, "new");
+        // Over the bound, but nothing is acknowledged: nothing is dropped.
+        journal.begin_session();
+        assert_eq!(drain(&journal).len(), 4);
+        journal.ack("old", 1);
+        journal.ack("old", 2);
         assert!(matches!(journal.admit("running"), Admission::Running));
         assert!(matches!(journal.admit("new"), Admission::Replayed));
-        // "old" was forgotten: it would run again.
+        // "old" was forgotten once acknowledged: it would run again.
         assert!(matches!(journal.admit("old"), Admission::New(_)));
     }
 

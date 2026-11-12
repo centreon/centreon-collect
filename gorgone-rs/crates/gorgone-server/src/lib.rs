@@ -19,6 +19,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::time::Duration;
 
+use axum::serve::ListenerExt;
 use gorgone_proto::agent::agent_gateway_server::AgentGatewayServer;
 use gorgone_proto::peer::peer_server::PeerServer;
 use sha2::{Digest, Sha256};
@@ -36,8 +37,8 @@ use crate::dispatcher::{Dispatcher, DispatcherConfig};
 use crate::hub::Hub;
 use crate::store::Store;
 
-/// Largest gRPC message accepted from an agent (command output included).
-const MAX_AGENT_MESSAGE: usize = 64 << 20;
+/// Largest gRPC message accepted from an agent.
+const MAX_AGENT_MESSAGE: usize = 4 << 20;
 /// Time left to the listeners to finish in-flight work on shutdown.
 const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
 
@@ -105,6 +106,13 @@ where
     })
 }
 
+/// Small frames (acknowledgements, dispatches) must leave at once: with
+/// Nagle's algorithm they wait for the peer's delayed ACK, tens of
+/// milliseconds per exchange.
+fn no_delay(listener: TcpListener) -> TcpIncoming {
+    TcpIncoming::from(listener).with_nodelay(Some(true))
+}
+
 async fn serve_rest(
     listener: TcpListener,
     app: axum::Router,
@@ -113,6 +121,11 @@ async fn serve_rest(
 ) -> Result<(), Error> {
     let service = app.into_make_service_with_connect_info::<SocketAddr>();
     let Some(tls) = tls else {
+        let listener = listener.tap_io(|stream| {
+            if let Err(err) = stream.set_nodelay(true) {
+                warn!(error = %err, "cannot disable Nagle's algorithm on a REST connection");
+            }
+        });
         return axum::serve(listener, service)
             .with_graceful_shutdown(shutdown.cancelled_owned())
             .await
@@ -139,12 +152,24 @@ impl Server {
     /// (port 0 is allowed) and spawns the background work.
     pub async fn start(config: Config) -> Result<ServerHandle, Error> {
         config.validate()?;
+        if !config.rest.requires_credentials() {
+            // `Config::load` refuses this unless `insecure_no_auth` is set;
+            // an embedder building the configuration itself is warned.
+            warn!("the REST API runs without credentials");
+        }
         // Several TLS backends are linked in: pick one explicitly. An error
         // only means it is already installed.
         let _ = rustls::crypto::ring::default_provider().install_default();
         api::init_metrics();
 
-        let store = Store::connect(&config.database_url).await?;
+        let store = Store::connect_with(
+            &config.database_url,
+            store::StoreOptions {
+                max_connections: config.db_max_connections,
+                sqlite_relaxed_sync: config.sqlite_synchronous == config::SqliteSynchronous::Normal,
+            },
+        )
+        .await?;
         let replica_id = config
             .replica_id
             .clone()
@@ -177,7 +202,9 @@ impl Server {
             .transpose()?;
         let peers = peer::PeerClients::new(config.peer_token.as_deref(), peer_client_tls)?;
 
-        let hub = Arc::new(Hub::new());
+        let hub = Arc::new(Hub::new(Duration::from_millis(
+            config.session_send_timeout_ms,
+        )));
         let dispatcher = Arc::new(Dispatcher::new(
             store.clone(),
             Arc::clone(&hub),
@@ -188,8 +215,18 @@ impl Server {
                 default_deadline: Duration::from_secs(config.job_default_deadline_s),
                 sweep_interval: config.sweep_interval(),
                 retention: Duration::from_secs(config.retention_s),
+                auto_enroll: config.auto_enroll,
             },
         ));
+        // Sessions recorded for this replica id belong to a former
+        // incarnation: this process holds none yet.
+        let stale = store.remove_replica_sessions(&replica_id).await?;
+        if stale > 0 {
+            info!(
+                stale,
+                "removed sessions left by a former run of this replica"
+            );
+        }
         // Known to the peers before the first session can be registered.
         store
             .heartbeat_replica(&replica_id, &peer_advertise)
@@ -198,7 +235,7 @@ impl Server {
         let shutdown = CancellationToken::new();
         let mut tasks = Vec::new();
 
-        tasks.push(tokio::spawn(Arc::clone(&dispatcher).run(shutdown.clone())));
+        tasks.extend(dispatcher.spawn_background(&shutdown));
 
         let gateway = gateway::GatewayService(Arc::new(gateway::Gateway {
             store: store.clone(),
@@ -207,6 +244,7 @@ impl Server {
             replica_id: replica_id.clone(),
             heartbeat_interval: config.heartbeat_interval(),
             auto_enroll: config.auto_enroll,
+            opening: Arc::new(tokio::sync::Semaphore::new(gateway::MAX_OPENING_SESSIONS)),
         }));
         let mut agent_server = tonic::transport::Server::builder()
             .http2_keepalive_interval(Some(Duration::from_secs(30)));
@@ -219,7 +257,7 @@ impl Server {
         let signal = shutdown.clone().cancelled_owned();
         tasks.push(spawn_listener("agent", async move {
             agent_router
-                .serve_with_incoming_shutdown(TcpIncoming::from(agent), signal)
+                .serve_with_incoming_shutdown(no_delay(agent), signal)
                 .await
                 .map_err(Error::from)
         }));
@@ -235,7 +273,7 @@ impl Server {
         let signal = shutdown.clone().cancelled_owned();
         tasks.push(spawn_listener("peer", async move {
             peer_router
-                .serve_with_incoming_shutdown(TcpIncoming::from(peer), signal)
+                .serve_with_incoming_shutdown(no_delay(peer), signal)
                 .await
                 .map_err(Error::from)
         }));
@@ -261,6 +299,7 @@ impl Server {
             auth: config.rest.clone(),
             thumbprint,
             body_limit: config.body_limit_bytes,
+            metrics_public: config.metrics_public,
             legacy_requests: AtomicU64::new(0),
         }));
         let rest_tls = config.rest_tls.as_ref().map(tls::rest).transpose()?;

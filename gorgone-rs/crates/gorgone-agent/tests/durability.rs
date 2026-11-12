@@ -143,3 +143,26 @@ async fn unusable_state_directory_is_fatal() {
         "{error}"
     );
 }
+
+#[tokio::test]
+async fn second_agent_on_the_same_state_directory_is_refused() {
+    let state = tempfile::tempdir().unwrap();
+    let mut server = FakeServer::start().await;
+    let config = durable_config(&server, state.path());
+    let first = Agent::start(&config);
+    server.next_session().await;
+
+    let second = gorgone_agent::AgentConfig::from_toml(&config).unwrap();
+    let error = gorgone_agent::run(second, std::future::pending())
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(error, gorgone_agent::AgentError::StateDirLocked(_)),
+        "{error}"
+    );
+    assert!(error.to_string().contains("locked by another"), "{error}");
+
+    // The lock goes away with its owner.
+    first.stop().await.unwrap();
+    Agent::start(&config).stop().await.unwrap();
+}

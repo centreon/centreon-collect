@@ -7,29 +7,46 @@
 #   GORGONE_SERVER__REST__TOKEN=...
 #   GORGONE_SERVER__CENTCORE__ENABLED=true
 # Check a file without starting the server: gorgone-server --config FILE --check
+#
+# The defaults fail closed: as is, this file is refused until a REST
+# credential is set ([rest] below), and every listener is on the loopback.
 
 # ---- Listeners ----
 # REST API (legacy /api and native /v1, probes, metrics).
-rest_listen = "0.0.0.0:8085"
+rest_listen = "127.0.0.1:8085"
 # Agent gateway (gRPC): the pollers connect here.
-agent_listen = "0.0.0.0:5556"
+agent_listen = "127.0.0.1:5556"
 # Peer service (gRPC): wake-up hints between replicas.
-peer_listen = "0.0.0.0:5557"
+peer_listen = "127.0.0.1:5557"
+# A listener on a non-loopback address needs its TLS section (see below).
+# Set this to accept plaintext there, for instance behind a TLS-terminating
+# proxy or a service mesh.
+allow_plaintext = false
 
 # ---- Store ----
 # sqlite://PATH?mode=rwc for a single replica, mysql://USER:PASSWORD@HOST/DB
 # (MariaDB) as soon as there are several. Prefer the environment variable for
-# a URL holding a password.
+# a URL holding a password. Never logged.
 database_url = "sqlite:///var/lib/centreon-gorgone/gorgone.db?mode=rwc"
+# Size of the connection pool. Default: 4 with SQLite (it has one writer
+# anyway), 32 with MariaDB; count 32 connections per replica when sizing
+# the MariaDB max_connections.
+# db_max_connections = 32
+# SQLite only (the journal is always WAL). "full" syncs the log to disk at
+# every commit: a job or an event that was acknowledged survives a power
+# loss. "normal" syncs at checkpoints only: several times more jobs per
+# second on a single node, but the last commits can be lost if the machine
+# (not just gorgone-server) stops abruptly; the database stays consistent.
+sqlite_synchronous = "full"
 
 # ---- Replica ----
 # Identifier of this replica in the store. Default: random at each start.
 # replica_id = "central-1"
 # URL the other replicas use to reach peer_listen. Default: the bound address
 # (127.0.0.1 for a wildcard bind), so it must be set with several hosts.
-# peer_advertise_addr = "http://central-1.example.org:5557"
-# Shared secret the replicas present to each other. Default: none (the peer
-# service is then open: trusted network only).
+# peer_advertise_addr = "https://central-1.example.org:5557"
+# Shared secret the replicas present to each other. Required when peer_listen
+# is not a loopback address. Default: none.
 # peer_token = "..."
 # CA bundle used to verify the peer certificate of the other replicas;
 # required with [peer_tls].
@@ -43,14 +60,19 @@ heartbeat_interval_s = 10
 job_default_deadline_s = 300
 # How long finished jobs and configuration blobs are kept, in seconds.
 retention_s = 604800
-# Period of the background sweep (dispatch retry, expiry, dead replicas), in
-# milliseconds. Use the same value on every replica.
+# Period of the background sweep (dispatch retry, expiry, lost sessions), in
+# milliseconds.
 sweep_interval_ms = 2000
-# Largest accepted REST body, in bytes (configuration bundles).
+# Largest configuration bundle accepted by PUT /v1/nodes/{node}/config/{target},
+# in bytes. Every other route is limited to 1 MiB.
 body_limit_bytes = 268435456
+# How long a frame may wait for an agent that does not read its session
+# before the session is closed, in milliseconds.
+session_send_timeout_ms = 5000
 
 # ---- Agents ----
-# Development only: accept unknown nodes without an enrolment token.
+# Development only: accept unknown nodes without an enrolment token, and
+# jobs for nodes that are not enrolled.
 auto_enroll = false
 
 # ---- Legacy ----
@@ -58,21 +80,26 @@ auto_enroll = false
 # once in the store and shared by all replicas.
 # thumbprint = "..."
 
-# ---- Logs ----
+# ---- Logs and metrics ----
 # JSON lines instead of text. The level comes from RUST_LOG (default: info).
 log_json = false
+# Serve /metrics without credentials (it is behind [rest] otherwise).
+metrics_public = false
 
 # ---- REST access control ----
+# Run the REST API without any credential. Without this, a token or basic
+# credentials are required to start.
+insecure_no_auth = false
+
 [rest]
-# Bearer token. Default: none. Without token nor basic credentials the API is
-# open to the allowed networks.
+# Bearer token. Default: none.
 # token = "..."
 # Basic authentication; both keys go together. Without them, the token is
 # accepted as the password of any user.
 # basic_username = "centreon"
 # basic_password = "..."
 # Client networks allowed to call /api and /v1; empty allows every address.
-# Probes and /metrics are always reachable.
+# The probes (/healthz, /readyz) are always reachable.
 allowed_cidrs = []
 # allowed_cidrs = ["127.0.0.0/8", "::1/128", "10.0.0.0/8"]
 
@@ -85,7 +112,8 @@ allowed_cidrs = []
 # client_ca = "/etc/centreon-gorgone/tls/ca.pem"
 
 # Agent gateway. With client_ca, agents must present a certificate whose
-# common name is their node id; the enrolment token is then optional.
+# common name is their node id; the enrolment token is then optional, but the
+# node must be enrolled.
 # [agent_tls]
 # cert = "/etc/centreon-gorgone/tls/server.pem"
 # key = "/etc/centreon-gorgone/tls/server.key"
@@ -116,3 +144,7 @@ poll_interval_ms = 5000
 illegal_characters = ""
 # External commands sent per job for one node.
 bulk_external_cmd = 50
+# Users whose command files are read (numeric ids); links and files of other
+# owners are refused. Empty: the user running gorgone-server, and root.
+allowed_uids = []
+# allowed_uids = [48, 997]

@@ -25,6 +25,7 @@ A test is added in the same pull request as the change. A test is never deleted 
 | Windows agent end to end | `tests/broker-engine/cma*.robot` against a Windows agent | `windows-agent-robot-test.yml` |
 | Installers | `agent/installer/scripts_linux/tests/`, `.github/scripts/agent_installer_test.ps1` | `monitoring-agent.yml` |
 | Gorgone | `gorgone/tests/unit/` (Perl), `gorgone/tests/robot/` | `gorgone.yml`, `robot-test-gorgone.yml` |
+| Gorgone in Rust (proof of concept) | `gorgone-rs/crates/*/src` (unit), `gorgone-rs/crates/*/tests/` (integration, end to end) | `gorgone-rs.yml` (`cargo test`, on SQLite and MariaDB) |
 
 Prefer the unit level: it runs in minutes and pinpoints the failure. Robot tests start real Engine, Broker, agent and database processes; they are the only check of what crosses a process boundary (protocols, database content, files written, reloads, restarts).
 

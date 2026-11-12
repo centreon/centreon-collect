@@ -53,6 +53,9 @@ pub enum AgentError {
         /// Underlying error.
         source: std::io::Error,
     },
+    /// Another agent already runs with the same `state_dir`.
+    #[error("{0} is locked by another gorgone-agent: one state_dir per agent")]
+    StateDirLocked(PathBuf),
     /// The session task stopped on its own, which is a bug.
     #[error("session task stopped unexpectedly: {0}")]
     SessionTask(#[from] tokio::task::JoinError),
@@ -78,6 +81,7 @@ pub async fn run(
         },
         engine_commands: EngineCommandsExecutor {
             command_file: config.engine.command_file.clone(),
+            allowed: Allowlist::new(&config.engine.allowed_commands)?,
         },
         apply_config: ApplyConfigExecutor {
             targets: config.targets.clone(),
@@ -93,6 +97,17 @@ pub async fn run(
             kill_grace: config.kill_grace(),
             max_output: config.max_output_bytes,
         },
+    };
+    // Held until this function returns: two agents must not share a journal.
+    let _state_lock = match &config.state_dir {
+        Some(dir) => {
+            let lock = store::lock_state_dir(dir).map_err(|source| AgentError::Io {
+                path: dir.clone(),
+                source,
+            })?;
+            Some(lock.ok_or_else(|| AgentError::StateDirLocked(dir.clone()))?)
+        }
+        None => None,
     };
     let journal_dir = config.state_dir.as_ref().map(|dir| dir.join("journal"));
     let journal = Journal::open(

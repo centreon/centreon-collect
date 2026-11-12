@@ -9,11 +9,15 @@ use std::fs::{self, DirBuilder, File, OpenOptions};
 use std::io::{self, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
 
 use gorgone_proto::agent::JobEvent;
 use gorgone_proto::agent::job_event::Body;
+use nix::errno::Errno;
+use nix::fcntl::{Flock, FlockArg};
 use prost::Message;
 
+const LOCK_FILE: &str = "agent.lock";
 const EXTENSION: &str = "job";
 const HEADER_LEN: usize = 9;
 /// First record: admission time (8, LE) then the job id.
@@ -35,6 +39,26 @@ pub(crate) struct LoadedJob {
 /// Directory holding the job files.
 pub(crate) struct Store {
     dir: PathBuf,
+    /// Files waiting for an `fsync`, done on a thread of its own.
+    syncer: mpsc::Sender<File>,
+}
+
+/// Takes the exclusive lock of a state directory, creating the directory if
+/// needed. `None` when another process holds it. Dropping the result, or
+/// dying, releases the lock.
+pub(crate) fn lock_state_dir(dir: &Path) -> io::Result<Option<Flock<File>>> {
+    DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .open(dir.join(LOCK_FILE))?;
+    match Flock::lock(file, FlockArg::LockExclusiveNonblock) {
+        Ok(lock) => Ok(Some(lock)),
+        Err((_, Errno::EWOULDBLOCK)) => Ok(None),
+        Err((_, errno)) => Err(errno.into()),
+    }
 }
 
 // FNV-1a: enough to tell a torn or overwritten record from a whole one.
@@ -138,8 +162,20 @@ impl Store {
     /// oldest first. Unusable files are removed, torn tails cut off.
     pub(crate) fn open(dir: &Path) -> io::Result<(Self, Vec<LoadedJob>)> {
         DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
+        let (syncer, files) = mpsc::channel::<File>();
+        // Ends by itself when the store, and so the sender, is dropped.
+        std::thread::Builder::new()
+            .name("journal-sync".to_owned())
+            .spawn(move || {
+                for file in files {
+                    if let Err(error) = file.sync_all() {
+                        tracing::warn!(%error, "cannot flush the job state to disk");
+                    }
+                }
+            })?;
         let store = Self {
             dir: dir.to_path_buf(),
+            syncer,
         };
         let mut jobs = Vec::new();
         for entry in fs::read_dir(dir)? {
@@ -188,20 +224,30 @@ impl Store {
         Ok(file)
     }
 
+    /// Hands `file` to the sync thread. The write itself is already done, so
+    /// the record survives a crash of the agent; the sync covers a crash of
+    /// the host, without making the caller wait for the disk.
+    fn sync_later(&self, file: File) {
+        // The thread only stops with the store: a failure here loses nothing.
+        let _ = self.syncer.send(file);
+    }
+
     /// Starts the file of a newly admitted job.
     pub(crate) fn create(&self, job_id: &str, admitted_ms: i64) -> io::Result<()> {
         let mut payload = admitted_ms.to_le_bytes().to_vec();
         payload.extend_from_slice(job_id.as_bytes());
-        self.append(job_id, TAG_JOB, &payload, true)?.sync_all()?;
+        let file = self.append(job_id, TAG_JOB, &payload, true)?;
+        self.sync_later(file);
         // Makes the new name itself durable.
-        File::open(&self.dir)?.sync_all()
+        self.sync_later(File::open(&self.dir)?);
+        Ok(())
     }
 
-    /// Appends an event; `sync` forces it to disk before returning.
+    /// Appends an event; `sync` also schedules its flush to disk.
     pub(crate) fn append_event(&self, event: &JobEvent, sync: bool) -> io::Result<()> {
         let file = self.append(&event.job_id, TAG_EVENT, &event.encode_to_vec(), false)?;
         if sync {
-            file.sync_all()?;
+            self.sync_later(file);
         }
         Ok(())
     }
@@ -246,6 +292,16 @@ mod tests {
 
     fn reopen(dir: &Path) -> Vec<LoadedJob> {
         Store::open(dir).unwrap().1
+    }
+
+    #[test]
+    fn state_directory_lock_is_exclusive_until_dropped() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = dir.path().join("state");
+        let first = lock_state_dir(&state).unwrap().expect("free directory");
+        assert!(lock_state_dir(&state).unwrap().is_none());
+        drop(first);
+        assert!(lock_state_dir(&state).unwrap().is_some());
     }
 
     #[test]

@@ -31,7 +31,12 @@ impl Peer for PeerService {
                 return Err(Status::unauthenticated("invalid peer token"));
             }
         }
-        let held = self.dispatcher.drain(&request.get_ref().node_id).await;
+        let node_id = &request.get_ref().node_id;
+        let held = self.dispatcher.holds(node_id);
+        if held {
+            // Answer now: the drain may wait for a slow agent.
+            self.dispatcher.trigger(node_id, true);
+        }
         Ok(Response::new(WakeReply { held }))
     }
 }
@@ -99,11 +104,40 @@ impl PeerClients {
         Ok(reply.into_inner().held)
     }
 
-    /// Drops every cached channel; they are rebuilt lazily.
-    pub(crate) fn clear(&self) {
+    /// Forgets the channels to addresses that are not in `alive`; the
+    /// others are rebuilt lazily when needed again.
+    pub(crate) fn retain(&self, alive: &[String]) {
         self.clients
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .clear();
+            .retain(|addr, _| alive.contains(addr));
+    }
+
+    /// Number of cached channels.
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.clients
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn channels_of_replicas_that_left_are_pruned() {
+        let peers = PeerClients::default();
+        peers.client("http://127.0.0.1:1").unwrap();
+        peers.client("http://127.0.0.1:2").unwrap();
+        assert_eq!(peers.len(), 2);
+        peers.retain(&["http://127.0.0.1:2".to_owned()]);
+        assert_eq!(peers.len(), 1);
+        assert!(
+            peers.client("https://127.0.0.1:3").is_err(),
+            "TLS needs peer_ca"
+        );
     }
 }

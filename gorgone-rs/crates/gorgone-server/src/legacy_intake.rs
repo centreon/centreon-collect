@@ -2,21 +2,28 @@
 //! centreon-web (`CMD:target[:param]` lines) and submits the equivalent jobs.
 //!
 //! Singleton work: only the replica holding the lease reads the files. A
-//! file is renamed to `<name>_read` before being read, each handled line is
-//! overwritten with a leading `-`, and the file is removed at the end, so a
-//! restart resumes where the previous run stopped.
+//! file is renamed to `<name>.<nonce>_read` before being read, each handled
+//! line is overwritten with a leading `-`, and the file is removed at the
+//! end, so a restart resumes where the previous run stopped.
+//!
+//! Replays are harmless: every job gets an id derived from the nonce of its
+//! file, the offset of its line and its rank in the line, and submitting an
+//! existing id does nothing. A crash between a submit and its mark, or a
+//! lease lost in the middle of a file, therefore never duplicates a command.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
-use std::os::unix::fs::{FileExt, MetadataExt};
+use std::io::Read;
+use std::os::unix::fs::{FileExt, MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use gorgone_core::bundle;
 use gorgone_proto::agent::action::Kind;
 use gorgone_proto::agent::service_control::Operation;
 use gorgone_proto::agent::{Action, ApplyConfig, EngineCommands, ServiceControl};
+use sha2::{Digest, Sha256};
 use tokio::runtime::Handle;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
@@ -30,15 +37,17 @@ use crate::store::Store;
 const LEASE: &str = "centcore";
 /// Suffix of a file being read.
 const READ_SUFFIX: &str = "_read";
-/// Lines handled between two lease renewals.
-const RENEW_EVERY: usize = 200;
+/// Length of the nonce inserted in the name of a file being read.
+const NONCE_LEN: usize = 32;
+/// Largest command file read; a larger one is set aside.
+const MAX_FILE_BYTES: u64 = 256 << 20;
 
 /// What one pass over the command files did.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct PassStats {
     /// Files read to their end and removed.
     pub(crate) files: usize,
-    /// Jobs submitted.
+    /// Jobs created.
     pub(crate) jobs: usize,
 }
 
@@ -76,7 +85,8 @@ fn is_safe_target(target: &str) -> bool {
         && target.len() <= 191
         && target != "."
         && target != ".."
-        && !target.contains(['/', '\\', '\0'])
+        && !target.contains(['/', '\\'])
+        && !target.chars().any(char::is_control)
 }
 
 fn service_control(command: &str) -> Option<(&'static str, Operation)> {
@@ -93,29 +103,92 @@ fn service_control(command: &str) -> Option<(&'static str, Operation)> {
     })
 }
 
-fn with_suffix(path: &Path) -> PathBuf {
-    let mut name = path.as_os_str().to_owned();
-    name.push(READ_SUFFIX);
-    PathBuf::from(name)
+/// Nonce of a `<base>.<nonce>_read` file name, with its base.
+fn split_nonce(name: &str) -> Option<(&str, &str)> {
+    let stem = name.strip_suffix(READ_SUFFIX)?;
+    let (base, nonce) = stem.rsplit_once('.')?;
+    (nonce.len() == NONCE_LEN && nonce.bytes().all(|b| b.is_ascii_hexdigit()))
+        .then_some((base, nonce))
 }
 
-/// Returns the file to read for `path`: a leftover of a previous run first,
-/// else `path` renamed. `None` when there is nothing to read.
-fn claim(path: &Path) -> Option<PathBuf> {
-    let reading = with_suffix(path);
-    if reading.is_file() {
-        return Some(reading);
+/// Deterministic job id of the `tag` part of the line at `offset`.
+fn job_id(nonce: &str, offset: u64, tag: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(nonce.as_bytes());
+    hasher.update(offset.to_be_bytes());
+    hasher.update(tag.as_bytes());
+    format!("cc-{}", hex::encode(&hasher.finalize()[..16]))
+}
+
+/// A command file ready to be read, and the nonce naming its jobs.
+#[derive(Debug)]
+struct Claimed {
+    path: PathBuf,
+    nonce: String,
+}
+
+/// Gives `path` its "being read" name. A file already named so by a
+/// previous run keeps its nonce: that is what makes its replay idempotent.
+fn claim(path: &Path) -> Option<Claimed> {
+    let name = path.file_name()?.to_str()?;
+    if let Some((_, nonce)) = split_nonce(name) {
+        return Some(Claimed {
+            path: path.to_path_buf(),
+            nonce: nonce.to_owned(),
+        });
     }
-    if !path.is_file() {
-        return None;
-    }
+    // A plain file, or a leftover of the Perl daemon (`<name>_read`).
+    let base = name.strip_suffix(READ_SUFFIX).unwrap_or(name);
+    let nonce = uuid::Uuid::new_v4().simple().to_string();
+    let reading = path.with_file_name(format!("{base}.{nonce}{READ_SUFFIX}"));
+    // `rename` never follows a link: a planted one is moved, not its target.
     match fs::rename(path, &reading) {
-        Ok(()) => Some(reading),
+        Ok(()) => Some(Claimed {
+            path: reading,
+            nonce,
+        }),
         Err(err) => {
             warn!(file = %path.display(), error = %err, "cannot move command file");
             None
         }
     }
+}
+
+/// Entries of `dir` accepted by `wanted`, oldest change first. Links and
+/// special files are reported, never read.
+fn list(dir: &Path, wanted: impl Fn(&str) -> bool) -> Vec<PathBuf> {
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Vec::new(),
+        Err(err) => {
+            warn!(dir = %dir.display(), error = %err, "cannot read the command directory");
+            return Vec::new();
+        }
+    };
+    let mut files = Vec::new();
+    for entry in entries.filter_map(Result::ok) {
+        let name = entry.file_name();
+        let Some(name) = name.to_str().filter(|name| wanted(name)) else {
+            continue;
+        };
+        // Not followed: this describes the entry itself.
+        let Ok(meta) = fs::symlink_metadata(entry.path()) else {
+            continue;
+        };
+        if meta.is_dir() {
+            continue;
+        }
+        if !meta.is_file() {
+            warn!(file = %entry.path().display(), "command file is a link or a special file, ignored");
+            continue;
+        }
+        files.push((
+            (meta.ctime(), meta.ctime_nsec(), name.to_owned()),
+            entry.path(),
+        ));
+    }
+    files.sort();
+    files.into_iter().map(|(_, path)| path).collect()
 }
 
 /// External commands of one node waiting to be sent together.
@@ -129,6 +202,7 @@ struct Pending {
 /// State of the file being read.
 struct Reading {
     file: File,
+    nonce: String,
     pending: BTreeMap<String, Pending>,
 }
 
@@ -136,7 +210,7 @@ impl Reading {
     /// Overwrites the first byte of a handled line, like the Perl daemon.
     fn mark(&self, offset: u64) {
         if let Err(err) = self.file.write_at(b"-", offset) {
-            // Worst case the line is replayed after a restart.
+            // Harmless: the replayed line gives the same job id.
             warn!(error = %err, "cannot mark a command line as handled");
         }
     }
@@ -149,6 +223,14 @@ pub(crate) struct Intake {
     store: Store,
     replica_id: String,
     lease: String,
+    /// Owners a command file may have.
+    allowed_uids: Vec<u32>,
+}
+
+/// Effective user id of the process: the owner of what it creates.
+fn process_uid() -> u32 {
+    // SAFETY: `geteuid` has no precondition and cannot fail.
+    unsafe { libc::geteuid() }
 }
 
 impl Intake {
@@ -158,19 +240,40 @@ impl Intake {
         store: Store,
         replica_id: String,
     ) -> Arc<Self> {
-        Arc::new(Self {
+        Arc::new(Self::with_lease(
             config,
             dispatcher,
             store,
             replica_id,
-            lease: LEASE.to_owned(),
-        })
+            LEASE.to_owned(),
+        ))
     }
 
-    fn lease_ttl_ms(&self) -> i64 {
-        let ttl = Duration::from_millis(self.config.poll_interval_ms.saturating_mul(3))
-            .max(Duration::from_secs(15));
-        i64::try_from(ttl.as_millis()).unwrap_or(i64::MAX)
+    fn with_lease(
+        config: CentcoreConfig,
+        dispatcher: Arc<Dispatcher>,
+        store: Store,
+        replica_id: String,
+        lease: String,
+    ) -> Self {
+        let allowed_uids = if config.allowed_uids.is_empty() {
+            vec![process_uid(), 0]
+        } else {
+            config.allowed_uids.clone()
+        };
+        Self {
+            config,
+            dispatcher,
+            store,
+            replica_id,
+            lease,
+            allowed_uids,
+        }
+    }
+
+    fn lease_ttl(&self) -> Duration {
+        Duration::from_millis(self.config.poll_interval_ms.saturating_mul(3))
+            .max(Duration::from_secs(15))
     }
 
     /// Polls the command files until `shutdown`.
@@ -204,142 +307,128 @@ impl Intake {
         }
     }
 
+    async fn hold_lease(&self) -> Result<bool, Error> {
+        let ttl = i64::try_from(self.lease_ttl().as_millis()).unwrap_or(i64::MAX);
+        self.store
+            .acquire_lease(&self.lease, &self.replica_id, ttl)
+            .await
+    }
+
     /// One poll: `None` when another replica holds the lease.
     pub(crate) async fn tick(
         self: &Arc<Self>,
         shutdown: &CancellationToken,
     ) -> Result<Option<PassStats>, Error> {
-        if !self
-            .store
-            .acquire_lease(&self.lease, &self.replica_id, self.lease_ttl_ms())
-            .await?
-        {
+        if !self.hold_lease().await? {
             return Ok(None);
         }
         let this = Arc::clone(self);
         let runtime = Handle::current();
         let stop = shutdown.clone();
         // File access and packing are blocking: keep them off the workers.
-        tokio::task::spawn_blocking(move || this.pass(&runtime, &stop))
-            .await
-            .map(Some)
-            .map_err(|err| Error::Invalid(format!("centcore pass aborted: {err}")))
+        tokio::task::spawn_blocking(move || {
+            let mut pass = Pass {
+                intake: &this,
+                runtime: &runtime,
+                stop: &stop,
+                stats: PassStats::default(),
+                renewed: Instant::now(),
+            };
+            pass.run();
+            pass.stats
+        })
+        .await
+        .map(Some)
+        .map_err(|err| Error::Invalid(format!("centcore pass aborted: {err}")))
     }
 
-    /// Reads the main command file, then the files of the directory, oldest
-    /// first.
-    fn pass(&self, runtime: &Handle, stop: &CancellationToken) -> PassStats {
-        let mut stats = PassStats::default();
+    /// Files to read: leftovers of the main command file and the file
+    /// itself, then the files of the directory, oldest first.
+    fn candidates(&self) -> Vec<PathBuf> {
         let mut files = Vec::new();
-        if let Some(file) = claim(&self.config.cmd_file) {
-            files.push(file);
+        let main = &self.config.cmd_file;
+        if let (Some(dir), Some(base)) = (main.parent(), main.file_name().and_then(|n| n.to_str()))
+        {
+            let legacy = format!("{base}{READ_SUFFIX}");
+            let mut own = list(dir, |name| {
+                name == legacy || split_nonce(name).is_some_and(|(stem, _)| stem == base)
+            });
+            // What a previous run left goes before what was written since.
+            own.extend(list(dir, |name| name == base));
+            files.extend(own);
         }
-        let mut seen: HashSet<PathBuf> = files.iter().cloned().collect();
-        for path in self.directory_files() {
-            let claimed = if path.to_string_lossy().ends_with(READ_SUFFIX) {
-                Some(path)
-            } else {
-                claim(&path)
+        files.extend(list(&self.config.cmd_dir, |name| !name.starts_with('.')));
+        files
+    }
+
+    /// Opens a claimed file without following links and checks it is a
+    /// regular file owned by an expected user. Returns it with its content.
+    fn open(&self, path: &Path) -> Result<(File, Vec<u8>), String> {
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+            .open(path)
+            .map_err(|err| err.to_string())?;
+        // On the descriptor: what is checked is what is read.
+        let meta = file.metadata().map_err(|err| err.to_string())?;
+        if !meta.is_file() {
+            return Err("not a regular file".into());
+        }
+        if !self.allowed_uids.contains(&meta.uid()) {
+            return Err(format!("owned by uid {}, which is not allowed", meta.uid()));
+        }
+        if meta.len() > MAX_FILE_BYTES {
+            return Err(format!("larger than {MAX_FILE_BYTES} bytes"));
+        }
+        let mut content = Vec::new();
+        file.read_to_end(&mut content)
+            .map_err(|err| err.to_string())?;
+        Ok((file, content))
+    }
+}
+
+/// Moves a refused file out of the way, under a hidden name the intake
+/// never lists, so that it is reported once and kept for inspection.
+fn set_aside(path: &Path) {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return;
+    };
+    let aside = path.with_file_name(format!(".rejected-{name}"));
+    if let Err(err) = fs::rename(path, &aside) {
+        warn!(file = %path.display(), error = %err, "cannot set a refused command file aside");
+    }
+}
+
+/// One pass over the command files, on a blocking thread.
+struct Pass<'a> {
+    intake: &'a Intake,
+    runtime: &'a Handle,
+    stop: &'a CancellationToken,
+    stats: PassStats,
+    /// When the lease was last confirmed.
+    renewed: Instant,
+}
+
+impl Pass<'_> {
+    fn run(&mut self) {
+        for path in self.intake.candidates() {
+            let Some(claimed) = claim(&path) else {
+                continue;
             };
-            if let Some(file) = claimed
-                && seen.insert(file.clone())
-            {
-                files.push(file);
-            }
-        }
-        for file in files {
-            if self.handle_file(&file, runtime, stop, &mut stats).is_err() {
+            if self.handle_file(&claimed).is_err() {
                 break;
             }
         }
-        stats
     }
 
-    /// Regular, non-hidden files of the command directory, oldest first.
-    fn directory_files(&self) -> Vec<PathBuf> {
-        let dir = &self.config.cmd_dir;
-        let entries = match fs::read_dir(dir) {
-            Ok(entries) => entries,
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Vec::new(),
-            Err(err) => {
-                warn!(dir = %dir.display(), error = %err, "cannot read the command directory");
-                return Vec::new();
+    /// Confirms the lease is still ours; renewing it is how it is checked.
+    fn ensure_lease(&mut self) -> Result<(), Abort> {
+        match self.runtime.block_on(self.intake.hold_lease()) {
+            Ok(true) => {
+                self.renewed = Instant::now();
+                Ok(())
             }
-        };
-        let mut files: Vec<_> = entries
-            .filter_map(Result::ok)
-            .filter(|entry| !entry.file_name().to_string_lossy().starts_with('.'))
-            .filter_map(|entry| {
-                let meta = entry.metadata().ok().filter(fs::Metadata::is_file)?;
-                Some((
-                    (meta.ctime(), meta.ctime_nsec(), entry.file_name()),
-                    entry.path(),
-                ))
-            })
-            .collect();
-        files.sort();
-        files.into_iter().map(|(_, path)| path).collect()
-    }
-
-    fn handle_file(
-        &self,
-        path: &Path,
-        runtime: &Handle,
-        stop: &CancellationToken,
-        stats: &mut PassStats,
-    ) -> Result<(), Abort> {
-        let open = || -> std::io::Result<(Vec<u8>, File)> {
-            let content = fs::read(path)?;
-            Ok((content, OpenOptions::new().write(true).open(path)?))
-        };
-        let (content, file) = open().map_err(|err| {
-            warn!(file = %path.display(), error = %err, "cannot read command file");
-            Abort
-        })?;
-        debug!(file = %path.display(), "processing command file");
-        let mut reading = Reading {
-            file,
-            pending: BTreeMap::new(),
-        };
-
-        let mut offset = 0u64;
-        for (index, raw) in content.split(|byte| *byte == b'\n').enumerate() {
-            let line_offset = offset;
-            offset += raw.len() as u64 + 1;
-            if stop.is_cancelled() {
-                return Err(Abort);
-            }
-            if index % RENEW_EVERY == RENEW_EVERY - 1 {
-                self.renew_lease(runtime)?;
-            }
-            let text = String::from_utf8_lossy(raw);
-            let text = text.trim_end_matches('\r');
-            // A leading dash marks a line handled by a previous run.
-            if text.is_empty() || text.starts_with('-') {
-                continue;
-            }
-            self.handle_line(text, line_offset, &mut reading, runtime, stats)?;
-        }
-        let targets: Vec<String> = reading.pending.keys().cloned().collect();
-        for target in targets {
-            self.flush(&target, &mut reading, runtime, stats)?;
-        }
-        drop(reading);
-        if let Err(err) = fs::remove_file(path) {
-            warn!(file = %path.display(), error = %err, "cannot remove command file");
-        }
-        stats.files += 1;
-        Ok(())
-    }
-
-    fn renew_lease(&self, runtime: &Handle) -> Result<(), Abort> {
-        let renewed = runtime.block_on(self.store.acquire_lease(
-            &self.lease,
-            &self.replica_id,
-            self.lease_ttl_ms(),
-        ));
-        match renewed {
-            Ok(true) => Ok(()),
             Ok(false) => {
                 warn!("centcore lease lost, leaving the files to its new holder");
                 Err(Abort)
@@ -351,21 +440,84 @@ impl Intake {
         }
     }
 
-    fn handle_line(
-        &self,
-        text: &str,
-        offset: u64,
-        reading: &mut Reading,
-        runtime: &Handle,
-        stats: &mut PassStats,
-    ) -> Result<(), Abort> {
+    fn handle_file(&mut self, claimed: &Claimed) -> Result<(), Abort> {
+        let path = &claimed.path;
+        let (file, content) = match self.intake.open(path) {
+            Ok(opened) => opened,
+            Err(reason) => {
+                warn!(file = %path.display(), reason, "command file refused, set aside");
+                metrics::counter!("gorgone_centcore_files_refused_total").increment(1);
+                set_aside(path);
+                return Ok(());
+            }
+        };
+        debug!(file = %path.display(), "processing command file");
+        let mut reading = Reading {
+            file,
+            nonce: claimed.nonce.clone(),
+            pending: BTreeMap::new(),
+        };
+
+        let mut offset = 0u64;
+        for raw in content.split(|byte| *byte == b'\n') {
+            let line_offset = offset;
+            offset += raw.len() as u64 + 1;
+            if self.stop.is_cancelled() {
+                return Err(Abort);
+            }
+            // Time based: a long file of dropped lines keeps the lease too.
+            if self.renewed.elapsed() > self.intake.lease_ttl() / 3 {
+                self.ensure_lease()?;
+            }
+            let text = String::from_utf8_lossy(raw);
+            let text = text.trim_end_matches('\r');
+            // A leading dash marks a line handled by a previous run.
+            if text.is_empty() || text.starts_with('-') {
+                continue;
+            }
+            self.handle_line(text, line_offset, &mut reading)?;
+        }
+        let targets: Vec<String> = reading.pending.keys().cloned().collect();
+        for target in targets {
+            self.flush(&target, &mut reading)?;
+        }
+        drop(reading);
+        if let Err(err) = fs::remove_file(path) {
+            warn!(file = %path.display(), error = %err, "cannot remove command file");
+        }
+        self.stats.files += 1;
+        Ok(())
+    }
+
+    fn dropped(text: &str, reason: &'static str) {
+        warn!(line = text, reason, "centcore command dropped");
+        metrics::counter!("gorgone_centcore_dropped_total", "reason" => reason).increment(1);
+    }
+
+    /// False, after logging, when jobs for `node` would be refused.
+    fn node_known(&mut self, node: &str, text: &str) -> Result<bool, Abort> {
+        match self
+            .runtime
+            .block_on(self.intake.dispatcher.accepts_node(node))
+        {
+            Ok(true) => Ok(true),
+            Ok(false) => {
+                Self::dropped(text, "unknown_node");
+                Ok(false)
+            }
+            Err(err) => {
+                warn!(line = text, error = %err, "node lookup failed, will retry");
+                Err(Abort)
+            }
+        }
+    }
+
+    fn handle_line(&mut self, text: &str, offset: u64, reading: &mut Reading) -> Result<(), Abort> {
         let Some(line) = parse_line(text).filter(|line| {
             // STARTWORKER has no target; everything else needs a usable one.
             is_safe_target(line.target) || matches!(line.command, "STARTWORKER")
         }) else {
-            warn!(line = text, "malformed centcore command dropped");
-            metrics::counter!("gorgone_centcore_dropped_total", "reason" => "malformed")
-                .increment(1);
+            Self::dropped(text, "malformed");
             reading.mark(offset);
             return Ok(());
         };
@@ -376,42 +528,54 @@ impl Intake {
         );
 
         if line.command == "EXTERNALCMD" {
+            let illegal = &self.intake.config.illegal_characters;
             let param: String = line
                 .param
                 .unwrap_or_default()
                 .chars()
-                .filter(|c| !self.config.illegal_characters.contains(*c))
+                .filter(|c| !illegal.contains(*c))
                 .collect();
-            if param.is_empty() {
-                warn!(line = text, "external command without content dropped");
-                metrics::counter!("gorgone_centcore_dropped_total", "reason" => "malformed")
-                    .increment(1);
+            // The engine command pipe is line based: no control character
+            // may reach it (tabulations are legitimate in plugin outputs).
+            if param.is_empty() || param.chars().any(|c| c.is_control() && c != '\t') {
+                Self::dropped(text, "malformed");
                 reading.mark(offset);
                 return Ok(());
             }
             let pending = reading.pending.entry(line.target.to_owned()).or_default();
             pending.commands.push(param);
             pending.offsets.push(offset);
-            if pending.commands.len() >= self.config.bulk_external_cmd {
-                self.flush(line.target, reading, runtime, stats)?;
+            if pending.commands.len() >= self.intake.config.bulk_external_cmd {
+                self.flush(line.target, reading)?;
             }
             return Ok(());
         }
 
         // Keep the order: what was written before this command goes first.
-        self.flush(line.target, reading, runtime, stats)?;
+        self.flush(line.target, reading)?;
+        let id = |tag: &str| job_id(&reading.nonce, offset, tag);
         match line.command {
-            "SENDCFGFILE" => self.send_config(&line, text, runtime, stats)?,
+            "SENDCFGFILE" => {
+                if self.node_known(line.target, text)? {
+                    self.send_config(&line, text, &id)?;
+                }
+            }
             "SYNCTRAP" => {
-                let source = self
-                    .config
-                    .cache_dir_trap
-                    .join(line.target)
-                    .join("centreontrapd.sdb");
-                if source.is_file() {
-                    self.apply_config(line.target, "centreontrapd", &source, text, runtime, stats)?;
-                } else {
-                    warn!(line = text, source = %source.display(), "trap database not found, command dropped");
+                if self.node_known(line.target, text)? {
+                    let root = self.intake.config.cache_dir_trap.clone();
+                    let source = root.join(line.target).join("centreontrapd.sdb");
+                    if source.is_file() {
+                        self.apply_config(
+                            line.target,
+                            "centreontrapd",
+                            &root,
+                            &source,
+                            text,
+                            &id("centreontrapd"),
+                        )?;
+                    } else {
+                        warn!(line = text, source = %source.display(), "trap database not found, command dropped");
+                    }
                 }
             }
             // Remote-server export and CLAPI worker are not ported.
@@ -433,13 +597,9 @@ impl Intake {
                         service: service.to_owned(),
                         operation: operation.into(),
                     });
-                    self.submit(line.target, kind, text, runtime, stats)?;
+                    self.submit(&id("control"), line.target, kind, text)?;
                 }
-                None => {
-                    warn!(line = text, "unknown centcore command dropped");
-                    metrics::counter!("gorgone_centcore_dropped_total", "reason" => "unknown")
-                        .increment(1);
-                }
+                None => Self::dropped(text, "unknown"),
             },
         }
         reading.mark(offset);
@@ -447,13 +607,7 @@ impl Intake {
     }
 
     /// Sends the external commands waiting for `target` as one job.
-    fn flush(
-        &self,
-        target: &str,
-        reading: &mut Reading,
-        runtime: &Handle,
-        stats: &mut PassStats,
-    ) -> Result<(), Abort> {
+    fn flush(&mut self, target: &str, reading: &mut Reading) -> Result<(), Abort> {
         let Some(pending) = reading
             .pending
             .remove(target)
@@ -462,10 +616,12 @@ impl Intake {
             return Ok(());
         };
         let description = format!("EXTERNALCMD x{} for {target}", pending.commands.len());
+        // Named after its first line: a replay rebuilds the same batch.
+        let id = job_id(&reading.nonce, pending.offsets[0], "external");
         let kind = Kind::EngineCommands(EngineCommands {
             commands: pending.commands,
         });
-        self.submit(target, kind, &description, runtime, stats)?;
+        self.submit(&id, target, kind, &description)?;
         for offset in pending.offsets {
             reading.mark(offset);
         }
@@ -474,25 +630,25 @@ impl Intake {
 
     /// One `ApplyConfig` per configuration present in the cache for the node.
     fn send_config(
-        &self,
+        &mut self,
         line: &Line<'_>,
         text: &str,
-        runtime: &Handle,
-        stats: &mut PassStats,
+        id: &impl Fn(&str) -> String,
     ) -> Result<(), Abort> {
-        let config = self.config.cache_dir.join("config");
+        let root = self.intake.config.cache_dir.clone();
+        let config = root.join("config");
         // Optional: only nodes running the VMware connector have it.
         let vmware = config
             .join("vmware")
             .join(line.target)
             .join("centreon_vmware.json");
         if vmware.is_file() {
-            self.apply_config(line.target, "vmware", &vmware, text, runtime, stats)?;
+            self.apply_config(line.target, "vmware", &root, &vmware, text, &id("vmware"))?;
         }
         for target in ["engine", "broker"] {
             let source = config.join(target).join(line.target);
             if source.is_dir() {
-                self.apply_config(line.target, target, &source, text, runtime, stats)?;
+                self.apply_config(line.target, target, &root, &source, text, &id(target))?;
             } else {
                 warn!(line = text, source = %source.display(), "configuration not generated, nothing sent");
             }
@@ -501,14 +657,26 @@ impl Intake {
     }
 
     fn apply_config(
-        &self,
+        &mut self,
         node: &str,
         target: &str,
+        root: &Path,
         source: &Path,
         text: &str,
-        runtime: &Handle,
-        stats: &mut PassStats,
+        id: &str,
     ) -> Result<(), Abort> {
+        // The source must really live under its root: no link may lead the
+        // packing elsewhere (the packer itself refuses a linked root).
+        let inside = fs::canonicalize(root)
+            .and_then(|root| Ok(fs::canonicalize(source)?.starts_with(root)))
+            .unwrap_or(false);
+        let linked = fs::symlink_metadata(source).map_or(true, |meta| meta.is_symlink());
+        if !inside || linked {
+            warn!(line = text, source = %source.display(), "configuration source is outside its directory, nothing sent");
+            metrics::counter!("gorgone_centcore_dropped_total", "reason" => "unsafe_source")
+                .increment(1);
+            return Ok(());
+        }
         let bytes = match bundle::pack(source) {
             Ok(bytes) => bytes,
             Err(err) => {
@@ -516,8 +684,9 @@ impl Intake {
                 return Ok(());
             }
         };
-        let (digest, size) = runtime
-            .block_on(self.store.put_blob(&bytes))
+        let (digest, size) = self
+            .runtime
+            .block_on(self.intake.store.put_blob(&bytes))
             .map_err(|err| {
                 warn!(line = text, error = %err, "cannot store the configuration, will retry");
                 Abort
@@ -527,31 +696,42 @@ impl Intake {
             digest,
             size: u64::try_from(size).unwrap_or_default(),
         });
-        self.submit(node, kind, text, runtime, stats)
+        self.submit(id, node, kind, text)
     }
 
-    /// Submits one job. A refused action is logged and dropped; a store
-    /// failure aborts the pass so that the line is read again.
-    fn submit(
-        &self,
-        node: &str,
-        kind: Kind,
-        text: &str,
-        runtime: &Handle,
-        stats: &mut PassStats,
-    ) -> Result<(), Abort> {
+    /// Submits one job under a deterministic id. A refused action or an
+    /// unknown node is logged and dropped; a store failure or a lost lease
+    /// aborts the pass so that the line is read again.
+    fn submit(&mut self, id: &str, node: &str, kind: Kind, text: &str) -> Result<(), Abort> {
+        // Still the holder? Another replica may have taken over meanwhile.
+        self.ensure_lease()?;
         let action = Action { kind: Some(kind) };
-        match runtime.block_on(self.dispatcher.submit(node, action, None)) {
-            Ok(job) => {
-                debug!(job = %job, node, "centcore command submitted");
+        let submitted = self.runtime.block_on(
+            self.intake
+                .dispatcher
+                .submit_with_id(id, node, action, None),
+        );
+        match submitted {
+            Ok(true) => {
+                debug!(job = id, node, "centcore command submitted");
                 metrics::counter!("gorgone_centcore_jobs_total").increment(1);
-                stats.jobs += 1;
+                self.stats.jobs += 1;
+                Ok(())
+            }
+            Ok(false) => {
+                debug!(
+                    job = id,
+                    node, "centcore command already submitted by a previous run"
+                );
+                Ok(())
+            }
+            Err(Error::UnknownNode(_)) => {
+                Self::dropped(text, "unknown_node");
                 Ok(())
             }
             Err(Error::Invalid(reason)) => {
-                warn!(line = text, reason, "centcore command refused and dropped");
-                metrics::counter!("gorgone_centcore_dropped_total", "reason" => "refused")
-                    .increment(1);
+                warn!(line = text, reason, "centcore command refused");
+                Self::dropped(text, "refused");
                 Ok(())
             }
             Err(err) => {
@@ -570,20 +750,19 @@ mod tests {
     use crate::dispatcher::DispatcherConfig;
     use crate::hub::Hub;
     use crate::peer::PeerClients;
+    use crate::store::testing;
 
     struct Fixture {
-        _dir: tempfile::TempDir,
+        dir: tempfile::TempDir,
         store: Store,
         config: CentcoreConfig,
         lease: String,
+        auto_enroll: bool,
     }
 
     impl Fixture {
         async fn new() -> Self {
-            let dir = tempfile::tempdir().unwrap();
-            let url = std::env::var("GORGONE_TEST_DATABASE_URL").unwrap_or_else(|_| {
-                format!("sqlite://{}/gorgone.db?mode=rwc", dir.path().display())
-            });
+            let (store, dir) = testing::store().await;
             let config = CentcoreConfig {
                 enabled: true,
                 cmd_file: dir.path().join("centcore.cmd"),
@@ -594,18 +773,19 @@ mod tests {
             };
             fs::create_dir_all(&config.cmd_dir).unwrap();
             Self {
-                store: Store::connect(&url).await.unwrap(),
+                store,
                 config,
                 // Tests may share one database: one lease each.
-                lease: format!("centcore-{}", uuid::Uuid::now_v7()),
-                _dir: dir,
+                lease: testing::unique("centcore"),
+                auto_enroll: true,
+                dir,
             }
         }
 
         fn intake(&self, replica: &str) -> Arc<Intake> {
             let dispatcher = Arc::new(Dispatcher::new(
                 self.store.clone(),
-                Arc::new(Hub::new()),
+                Arc::new(Hub::new(Duration::from_secs(1))),
                 PeerClients::default(),
                 DispatcherConfig {
                     replica_id: replica.to_owned(),
@@ -613,22 +793,23 @@ mod tests {
                     default_deadline: Duration::from_secs(60),
                     sweep_interval: Duration::from_secs(1),
                     retention: Duration::from_secs(60),
+                    auto_enroll: self.auto_enroll,
                 },
             ));
-            Arc::new(Intake {
-                config: self.config.clone(),
+            Arc::new(Intake::with_lease(
+                self.config.clone(),
                 dispatcher,
-                store: self.store.clone(),
-                replica_id: replica.to_owned(),
-                lease: self.lease.clone(),
-            })
+                self.store.clone(),
+                replica.to_owned(),
+                self.lease.clone(),
+            ))
         }
 
         async fn tick(&self, intake: &Arc<Intake>) -> Option<PassStats> {
             intake.tick(&CancellationToken::new()).await.unwrap()
         }
 
-        /// Kinds of the jobs of a node, oldest first.
+        /// Kinds of the jobs of a node, in submission order.
         async fn jobs(&self, node: &str) -> Vec<Kind> {
             self.store
                 .jobs_of_node(node)
@@ -638,10 +819,21 @@ mod tests {
                 .map(|job| Action::decode(job.action.as_slice()).unwrap().kind.unwrap())
                 .collect()
         }
+
+        /// Names left in the directory of the main command file.
+        fn left(&self) -> Vec<String> {
+            let mut names: Vec<String> = fs::read_dir(self.dir.path())
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+                .filter(|name| name.contains("centcore.cmd"))
+                .collect();
+            names.sort();
+            names
+        }
     }
 
     fn node() -> String {
-        format!("n{}", uuid::Uuid::now_v7().simple())
+        testing::unique("n")
     }
 
     fn engine(commands: &[&str]) -> Kind {
@@ -678,9 +870,28 @@ mod tests {
         assert_eq!(parse_line("no separator"), None);
         assert_eq!(parse_line(":3"), None);
         assert!(is_safe_target("12"));
-        for bad in ["", ".", "..", "../1", "a/b"] {
-            assert!(!is_safe_target(bad), "{bad}");
+        for bad in ["", ".", "..", "../1", "a/b", "a\0b", "a\tb"] {
+            assert!(!is_safe_target(bad), "{bad:?}");
         }
+    }
+
+    #[test]
+    fn read_names_and_job_ids() {
+        let nonce = "0123456789abcdef0123456789abcdef";
+        assert_eq!(
+            split_nonce(&format!("centcore.cmd.{nonce}_read")),
+            Some(("centcore.cmd", nonce))
+        );
+        assert_eq!(split_nonce("centcore.cmd_read"), None);
+        assert_eq!(split_nonce("centcore.cmd.short_read"), None);
+        // Stable for a given place, distinct for anything else.
+        assert_eq!(job_id(nonce, 10, "engine"), job_id(nonce, 10, "engine"));
+        assert_ne!(job_id(nonce, 10, "engine"), job_id(nonce, 10, "broker"));
+        assert_ne!(job_id(nonce, 10, "engine"), job_id(nonce, 11, "engine"));
+        assert_ne!(
+            job_id(nonce, 10, "engine"),
+            job_id(&nonce.replace('0', "f"), 10, "engine")
+        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -735,7 +946,8 @@ mod tests {
              EXTERNALCMD:{first}:[2] B!\n\
              EXTERNALCMD:{first}:[3] C\n\
              RELOAD:{first}\n\
-             EXTERNALCMD:{first}:[4] D:with:colons\n\
+             EXTERNALCMD:{first}:[4] D:with:colons\tand tab\n\
+             EXTERNALCMD:{first}:[5] bad\u{1b}[31m escape\n\
              EXTERNALCMD:{first}:\n"
         );
         fs::write(&fixture.config.cmd_file, lines).unwrap();
@@ -743,14 +955,15 @@ mod tests {
         let stats = fixture.tick(&fixture.intake("a")).await.unwrap();
         assert_eq!(stats, PassStats { files: 1, jobs: 5 });
         // Batch of two, then the rest flushed before the reload, then the
-        // tail flushed at the end of the file.
+        // tail flushed at the end of the file. The control character and
+        // the empty command are dropped.
         assert_eq!(
             fixture.jobs(&first).await,
             [
                 engine(&["[1] A;host", "[2] B"]),
                 engine(&["[3] C"]),
                 control("engine", Operation::Reload),
-                engine(&["[4] D:with:colons"]),
+                engine(&["[4] D:with:colons\tand tab"]),
             ]
         );
         assert_eq!(fixture.jobs(&second).await, [engine(&["[1] OTHER"])]);
@@ -775,10 +988,15 @@ mod tests {
         let traps = fixture.config.cache_dir_trap.join(&full);
         fs::create_dir_all(&traps).unwrap();
         fs::write(traps.join("centreontrapd.sdb"), "sqlite").unwrap();
-        // The second node only has a broker configuration.
+        // The second node has a broker configuration, and an engine
+        // "configuration" that is a link leading out of the cache.
         let broker_only = config.join("broker").join(&partial);
         fs::create_dir_all(&broker_only).unwrap();
         fs::write(broker_only.join("poller-module.json"), "{}").unwrap();
+        let outside = fixture.dir.path().join("outside");
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(outside.join("secret"), "not for pollers").unwrap();
+        std::os::unix::fs::symlink(&outside, config.join("engine").join(&partial)).unwrap();
 
         fs::write(
             &fixture.config.cmd_file,
@@ -813,6 +1031,7 @@ mod tests {
         let chunk = fixture.store.blob_chunk(&engine.digest, 0).await.unwrap();
         assert_eq!(chunk.unwrap(), expected);
 
+        // The linked engine directory was not packed.
         let jobs = fixture.jobs(&partial).await;
         assert_eq!(jobs.len(), 1);
         assert!(matches!(&jobs[0], Kind::ApplyConfig(apply) if apply.target == "broker"));
@@ -824,7 +1043,7 @@ mod tests {
         let node = node();
         let intake = fixture.intake("a");
         fs::write(&fixture.config.cmd_file, format!("RELOAD:{node}\n")).unwrap();
-        // Directory: a hidden file is ignored, a leftover of a previous run
+        // Directory: a hidden file is ignored, a leftover of the Perl daemon
         // resumes after its handled lines.
         let dir = &fixture.config.cmd_dir;
         fs::write(dir.join(".hidden"), format!("STOP:{node}\n")).unwrap();
@@ -847,8 +1066,7 @@ mod tests {
         );
 
         // Everything was removed but the hidden file; nothing is replayed.
-        assert!(!fixture.config.cmd_file.exists());
-        assert!(!with_suffix(&fixture.config.cmd_file).exists());
+        assert!(fixture.left().is_empty());
         let left: Vec<_> = fs::read_dir(dir)
             .unwrap()
             .map(|entry| entry.unwrap().file_name())
@@ -860,6 +1078,43 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    async fn replay_of_a_file_does_not_duplicate_its_commands() {
+        let mut fixture = Fixture::new().await;
+        fixture.config.bulk_external_cmd = 2;
+        let node = node();
+        let config = fixture.config.cache_dir.join("config/broker").join(&node);
+        fs::create_dir_all(&config).unwrap();
+        fs::write(config.join("module.json"), "{}").unwrap();
+        // A file a previous run was reading: it already has its nonce.
+        let nonce = uuid::Uuid::new_v4().simple().to_string();
+        let reading = fixture
+            .dir
+            .path()
+            .join(format!("centcore.cmd.{nonce}_read"));
+        let content = format!(
+            "EXTERNALCMD:{node}:[1] A\nEXTERNALCMD:{node}:[2] B\nEXTERNALCMD:{node}:[3] C\n\
+             SENDCFGFILE:{node}\nRELOAD:{node}\n"
+        );
+        fs::write(&reading, &content).unwrap();
+        let stats = fixture.tick(&fixture.intake("a")).await.unwrap();
+        assert_eq!(stats, PassStats { files: 1, jobs: 4 });
+        assert!(fixture.left().is_empty());
+
+        // The crash case: the jobs were committed but neither the marks nor
+        // the removal reached the disk. Another replica reads it all again.
+        fs::write(&reading, &content).unwrap();
+        fixture
+            .store
+            .release_lease(&fixture.lease, "a")
+            .await
+            .unwrap();
+        let stats = fixture.tick(&fixture.intake("b")).await.unwrap();
+        assert_eq!(stats, PassStats { files: 1, jobs: 0 });
+        assert_eq!(fixture.jobs(&node).await.len(), 4);
+        assert!(fixture.left().is_empty());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
     async fn unusable_lines_are_dropped_without_job() {
         let fixture = Fixture::new().await;
         let node = node();
@@ -867,7 +1122,7 @@ mod tests {
             &fixture.config.cmd_file,
             format!(
                 "SENDEXPORTFILE:{node}:42\nSTARTWORKER:\nNOSUCHCOMMAND:{node}\ngarbage\n\
-                 RELOAD:../{node}\nSENDCFGFILE:{node}\nSYNCTRAP:{node}\n\nSTOP:{node}\n"
+                 RELOAD:../{node}\nSENDCFGFILE:{node}\nSYNCTRAP:{node}\n\nSTOP:{node}\r\n"
             ),
         )
         .unwrap();
@@ -877,7 +1132,68 @@ mod tests {
             fixture.jobs(&node).await,
             [control("engine", Operation::Stop)]
         );
-        assert!(!with_suffix(&fixture.config.cmd_file).exists());
+        assert!(fixture.left().is_empty());
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn commands_for_an_unknown_node_create_no_job() {
+        let mut fixture = Fixture::new().await;
+        fixture.auto_enroll = false;
+        let (unknown, enrolled) = (node(), node());
+        fixture.store.enrol_node(&enrolled, "poller").await.unwrap();
+        let config = fixture
+            .config
+            .cache_dir
+            .join("config/broker")
+            .join(&unknown);
+        fs::create_dir_all(&config).unwrap();
+        fs::write(config.join("module.json"), "{}").unwrap();
+        fs::write(
+            &fixture.config.cmd_file,
+            format!(
+                "RELOAD:{unknown}\nEXTERNALCMD:{unknown}:[1] X\nSENDCFGFILE:{unknown}\n\
+                 RELOAD:{enrolled}\n"
+            ),
+        )
+        .unwrap();
+        let stats = fixture.tick(&fixture.intake("a")).await.unwrap();
+        assert_eq!(stats, PassStats { files: 1, jobs: 1 });
+        assert!(fixture.jobs(&unknown).await.is_empty());
+        assert_eq!(
+            fixture.jobs(&enrolled).await,
+            [control("engine", Operation::Reload)]
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn links_and_foreign_files_are_never_read() {
+        let mut fixture = Fixture::new().await;
+        let node = node();
+        // A link planted as the command file: its target must stay intact.
+        let target = fixture.dir.path().join("target");
+        fs::write(&target, format!("RELOAD:{node}\n")).unwrap();
+        std::os::unix::fs::symlink(&target, &fixture.config.cmd_file).unwrap();
+        std::os::unix::fs::symlink(&target, fixture.config.cmd_dir.join("link.cmd")).unwrap();
+        let stats = fixture.tick(&fixture.intake("a")).await.unwrap();
+        assert_eq!(stats, PassStats::default());
+        assert_eq!(
+            fs::read_to_string(&target).unwrap(),
+            format!("RELOAD:{node}\n")
+        );
+        fs::remove_file(&fixture.config.cmd_file).unwrap();
+
+        // A regular file owned by a user that is not allowed: set aside.
+        fixture.config.allowed_uids = vec![u32::MAX - 7];
+        fs::write(&fixture.config.cmd_file, format!("STOP:{node}\n")).unwrap();
+        let stats = fixture.tick(&fixture.intake("a")).await.unwrap();
+        assert_eq!(stats, PassStats::default());
+        assert!(fixture.jobs(&node).await.is_empty());
+        let left = fixture.left();
+        assert_eq!(left.len(), 1, "{left:?}");
+        assert!(left[0].starts_with(".rejected-centcore.cmd."));
+        // Reported once: the next pass does not see it.
+        let stats = fixture.tick(&fixture.intake("a")).await.unwrap();
+        assert_eq!(stats, PassStats::default());
     }
 
     #[tokio::test(flavor = "multi_thread")]

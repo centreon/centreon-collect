@@ -43,6 +43,7 @@ allowlist = ['echo \w+', 'false']
 
 [engine]
 command_file = "{dir}/centengine.cmd"
+allowed_commands = ['SCHEDULE_FORCED_HOST_CHECK']
 
 [targets.engine]
 path = "{dir}/etc-engine"

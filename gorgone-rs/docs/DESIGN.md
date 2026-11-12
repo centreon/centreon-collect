@@ -28,12 +28,12 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
                        shared SQL store (MariaDB; SQLite for one replica)
 ```
 
-| Crate | Role |
-|---|---|
-| `gorgone-proto` | gRPC contracts (`proto/`): agent gateway and peer service |
-| `gorgone-core` | Shared domain: config bundles, command allowlist, legacy codes |
+| Crate            | Role                                                                  |
+| ---------------- | --------------------------------------------------------------------- |
+| `gorgone-proto`  | gRPC contracts (`proto/`): agent gateway and peer service             |
+| `gorgone-core`   | Shared domain: config bundles, command allowlist, legacy codes        |
 | `gorgone-server` | Central control plane: REST API, agent gateway, job store, dispatcher |
-| `gorgone-agent` | Poller executor: runs jobs received on its session |
+| `gorgone-agent`  | Poller executor: runs jobs received on its session                    |
 
 ## Principles
 
@@ -64,12 +64,12 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
 
 ### Actions
 
-| Action | Payload | Agent behaviour |
-|---|---|---|
-| `RunCommands` | list of `{command, timeout_s, continue_on_error}` | each command must match the agent allowlist; executed without a shell unless the agent is configured otherwise |
-| `EngineCommands` | list of external command lines | written to the engine command pipe configured on the agent |
-| `ApplyConfig` | `target` (e.g. `engine`, `broker`, `vmware`), `digest`, `size` | fetch blob, verify digest, sync into the directory the agent maps to `target`; no-op when the digest is already applied |
-| `ServiceControl` | `service`, `operation` (start, stop, reload, restart) | runs the command the agent maps to `(service, operation)` |
+| Action           | Payload                                                        | Agent behaviour                                                                                                                                                                                                 |
+| ---------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RunCommands`    | list of `{command, timeout_s, continue_on_error}`              | each command must match the agent allowlist entirely, hold no control character, and name its program with an absolute path free of `.`/`..`; executed without a shell unless the agent is configured otherwise |
+| `EngineCommands` | list of external command lines                                 | each command name must match the agent's list of allowed external commands; written to the engine command pipe configured on the agent                                                                          |
+| `ApplyConfig`    | `target` (e.g. `engine`, `broker`, `vmware`), `digest`, `size` | fetch blob, verify digest, sync into the directory the agent maps to `target`; no-op when the digest is already applied                                                                                         |
+| `ServiceControl` | `service`, `operation` (start, stop, reload, restart)          | runs the command the agent maps to `(service, operation)`                                                                                                                                                       |
 
 ### Job state machine
 
@@ -80,10 +80,25 @@ queued ──► dispatched ──► running ──► succeeded | failed
    └─(deadline passed)──► expired
 ```
 
-A job is claimed with a compare-and-set (`queued → dispatched`) so that two
-replicas never dispatch it twice. A terminal event from the agent sets the
-final state. Jobs past their deadline become `expired` (sweeper). A job that is
-`dispatched` to a session that no longer exists goes back to `queued`.
+`cancelled` is a fourth terminal state, reached from `queued` directly or
+from `dispatched`/`running` through a `Cancel` frame.
+
+A job is claimed with a compare-and-set (`queued → dispatched`) that also
+checks the claiming session is still the current one of the node, so that two
+replicas never dispatch it twice and a replaced session claims nothing. A
+terminal event from the agent sets the final state. Jobs past their deadline
+become `expired` (sweeper). A job that is `dispatched` to a session that no
+longer exists goes back to `queued`; this happens before anything else is
+dispatched to the node.
+
+**Order.** The store gives every job a per-node sequence number inside the
+submit transaction. Jobs of a node are claimed and sent in that order, one
+drain at a time per node.
+
+**Time.** Stored timestamps, liveness cut-offs, leases and deadlines use the
+database clock (each replica tracks its offset to it), never a comparison of
+two hosts' clocks. A job carries the time left (`ttl_ms`) when dispatched and
+the agent counts from reception.
 
 ### Legacy log codes
 
@@ -149,8 +164,8 @@ Portable SQL (MariaDB and SQLite), times in Unix milliseconds.
 nodes       (id PK, name, token_hash, created_at)
 replicas    (id PK, peer_addr, last_seen)
 sessions    (node_id PK, session_id, replica_id, agent_version, connected_at, last_seen)
-jobs        (id PK, node_id, kind, action BLOB, state, attempts,
-             session_id NULL, created_at, updated_at, deadline_at)
+jobs        (id PK, node_id, seq, kind, action BLOB, state, attempts,
+             session_id NULL, cancel_requested, created_at, updated_at, deadline_at)
 job_events  (job_id, seq, time_ms, code, data TEXT(JSON), PRIMARY KEY (job_id, seq))
 blobs       (digest PK, size, created_at)
 blob_chunks (digest, idx, data BLOB, PRIMARY KEY (digest, idx))
@@ -162,16 +177,16 @@ meta        (name PK, value)   -- stable server id, shared by all replicas
 
 ### Native (`/v1`)
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/v1/nodes/{node}/jobs` | submit a job (JSON action); returns `{id}` |
-| `GET` | `/v1/jobs/{id}` | job with state and events; `?wait=<seconds>` long-polls until terminal |
-| `GET` | `/v1/jobs/{id}/events` | server-sent events, closes on the terminal event |
-| `DELETE` | `/v1/jobs/{id}` | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise |
-| `PUT` | `/v1/nodes/{node}/config/{target}` | body is a `tar.zst` bundle; stores the blob and submits `ApplyConfig` |
-| `GET` | `/v1/nodes` | nodes with connection status |
-| `PUT` / `DELETE` | `/v1/nodes/{node}` | enrol (returns the token once) / remove a node |
-| `GET` | `/healthz`, `/readyz`, `/metrics` | probes and Prometheus metrics |
+| Method           | Path                               | Purpose                                                                           |
+| ---------------- | ---------------------------------- | --------------------------------------------------------------------------------- |
+| `POST`           | `/v1/nodes/{node}/jobs`            | submit a job (JSON action); returns `{id}`                                        |
+| `GET`            | `/v1/jobs/{id}`                    | job with state and events; `?wait=<seconds>` long-polls until terminal            |
+| `GET`            | `/v1/jobs/{id}/events`             | server-sent events, closes on the terminal event                                  |
+| `DELETE`         | `/v1/jobs/{id}`                    | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise |
+| `PUT`            | `/v1/nodes/{node}/config/{target}` | body is a `tar.zst` bundle; stores the blob and submits `ApplyConfig`             |
+| `GET`            | `/v1/nodes`                        | nodes with connection status                                                      |
+| `PUT` / `DELETE` | `/v1/nodes/{node}`                 | enrol (returns the token once) / remove a node                                    |
+| `GET`            | `/healthz`, `/readyz`, `/metrics`  | probes and Prometheus metrics                                                     |
 
 JSON action shape: `{"run_commands": {"commands": [{"command": "...", "timeout_s": 30}]}}`,
 `{"engine_commands": {"commands": ["..."]}}`,
@@ -182,15 +197,15 @@ JSON action shape: `{"run_commands": {"commands": [{"command": "...", "timeout_s
 
 Kept so that centreon-web and the monitoring plugin work unchanged:
 
-| Legacy route | Mapping |
-|---|---|
-| `POST /api/nodes/{id}/core/action/command` | `RunCommands`; body `[{command, timeout, continue_on_error}]`; answers `{"token": id}` |
-| `POST /api/nodes/{id}/centreon/engine/command` | `EngineCommands`; body `{commands: [...]}` |
+| Legacy route                                              | Mapping                                                                                                                                                                                       |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/nodes/{id}/core/action/command`                | `RunCommands`; body `[{command, timeout, continue_on_error}]`; answers `{"token": id}`                                                                                                        |
+| `POST /api/nodes/{id}/centreon/engine/command`            | `EngineCommands`; body `{commands: [...]}`                                                                                                                                                    |
 | `GET /api/log/{token}`, `GET /api/nodes/{id}/log/{token}` | `{"message":"Logs found","token":…,"data":[{id,token,code,etime,ctime,instant,data}]}`; when empty: `{"error":"no_log","message":"No log found for token","data":[],"token":…}` with HTTP 200 |
-| `GET /api/internal/constatus` | `{"action":"constatus","message":"ok","data":{node: {last_ping_sent, last_ping_recv, nodes:{}, ping_ok, ping_failed}}}` built from sessions |
-| `GET /api/internal/information` | `{"action":"information","message":"ok","data":{…counters, "modules":{…}, "api_endpoints":{…}}}` |
-| `GET /api/[nodes/{id}/]internal/thumbprint` | `{"action":"getthumbprint","message":"ok","data":{"thumbprint": …}}` (stable server identifier; kept for the web popup) |
-| anything else | `{"error":"method_unknown","message":"Method not implemented","http_response_code":"404"}` |
+| `GET /api/internal/constatus`                             | `{"action":"constatus","message":"ok","data":{node: {last_ping_sent, last_ping_recv, nodes:{}, ping_ok, ping_failed}}}` built from sessions                                                   |
+| `GET /api/internal/information`                           | `{"action":"information","message":"ok","data":{…counters, "modules":{…}, "api_endpoints":{…}}}`                                                                                              |
+| `GET /api/[nodes/{id}/]internal/thumbprint`               | `{"action":"getthumbprint","message":"ok","data":{"thumbprint": …}}` (stable server identifier; kept for the web popup)                                                                       |
+| anything else                                             | `{"error":"method_unknown","message":"Method not implemented","http_response_code":"404"}`                                                                                                    |
 
 `log_wait` / `sync_wait` query parameters are accepted and translated to a
 bounded wait on the job.
@@ -203,7 +218,10 @@ equivalent jobs: `EXTERNALCMD` → `EngineCommands` (batched per node),
 `SENDCFGFILE` → one `ApplyConfig` per target built from
 `/var/cache/centreon/config/{engine,broker,vmware}/{id}`,
 `RELOAD`/`RESTART`/`START`/`STOP`/`RELOADBROKER`/`*CENTREONTRAPD`/`VMWARERESTART`
-→ `ServiceControl`. It disappears once the writers call the API.
+→ `ServiceControl`. Job ids are derived from the file and the line, so a
+replay after a crash submits nothing twice. `SENDEXPORTFILE` and `STARTWORKER`
+(remote-server import and export) are not ported. It disappears once the
+writers call the API.
 
 ## Security
 
@@ -216,7 +234,17 @@ equivalent jobs: `EXTERNALCMD` → `EngineCommands` (batched per node),
   its local configuration (for instance `sudo systemctl reload centengine`),
   never text received from the central.
 - Bundles: digest verified before any write, no absolute path, no `..`, no
-  link or device entries.
+  link or device entries, no write through a linked directory, file modes
+  reduced to 0644/0755.
+- The server fails closed: it does not start without REST credentials, binds
+  loopback by default, and refuses a plaintext non-loopback listener unless
+  told so explicitly.
+- An agent is authenticated from the call metadata before its stream is read.
+  It can only post events for its own running jobs and fetch blobs its own
+  jobs reference; events per job are capped.
+- Limit of the model: a node with an `engine` target lets the central define
+  the commands its engine runs. That is what configuration push means; the
+  target should exist only on nodes the central is meant to configure.
 
 ## Configuration
 
@@ -225,13 +253,13 @@ One TOML file per binary, every key overridable by environment
 
 ## Migration away from Perl
 
-| Step | Perl removed |
-|---|---|
+| Step                                                                                                                                  | Perl removed                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | 1. `gorgone-server` + `gorgone-agent`: commands, engine commands, config push, service control, legacy REST and `centcore.cmd` intake | core, proxy, action, engine, legacycmd (minus remote-server export), nodes, register, pull, pullwss, httpserver(ng), dbcleaner |
-| 2. Statistics | better served by the broker/engine gRPC stats and metrics than by a port of `statistics` |
-| 3. Autodiscovery, audit | port as server-side services submitting `RunCommands` jobs |
-| 4. Cron | systemd timers / Kubernetes CronJobs; no scheduler in Gorgone |
-| 5. MBI ETL, anomaly detection, judge, newtest, scom | owned by their products; they only need `gorgone::…` libraries today |
+| 2. Statistics                                                                                                                         | better served by the broker/engine gRPC stats and metrics than by a port of `statistics`                                       |
+| 3. Autodiscovery, audit                                                                                                               | port as server-side services submitting `RunCommands` jobs                                                                     |
+| 4. Cron                                                                                                                               | systemd timers / Kubernetes CronJobs; no scheduler in Gorgone                                                                  |
+| 5. MBI ETL, anomaly detection, judge, newtest, scom                                                                                   | owned by their products; they only need `gorgone::…` libraries today                                                           |
 
 Mixed fleets during an upgrade: the central keeps the Perl daemon only as a
 relay for pollers that still run it, until they get the agent.

@@ -104,6 +104,46 @@ async fn command_outside_allowlist_is_rejected_and_nothing_runs() {
 }
 
 #[tokio::test]
+async fn allowlist_cannot_be_escaped_with_dot_dot_or_a_newline() {
+    let dir = tempfile::tempdir().unwrap();
+    let plugins = dir.path().join("plugins");
+    std::fs::create_dir(&plugins).unwrap();
+    let marker = dir.path().join("marker");
+    let mut server = FakeServer::start().await;
+    // The kind of pattern an administrator writes for a plugin directory.
+    let config = format!(
+        "{}[commands]\nallowlist = ['{}/\\S+( .*)?', 'echo .*']\n",
+        clear_text(&server),
+        path_str(&plugins)
+    );
+    let agent = Agent::start(&config);
+    let mut session = server.next_session().await;
+
+    let depth = plugins.components().count();
+    let escape = format!(
+        "{}/{}bin/sh -c 'touch {}'",
+        path_str(&plugins),
+        "../".repeat(depth),
+        path_str(&marker)
+    );
+    let second_line = format!("echo ok\ntouch {}", path_str(&marker));
+    for (id, line, needle) in [
+        ("escape", escape.as_str(), "program path"),
+        ("newline", second_line.as_str(), "control character"),
+    ] {
+        session
+            .dispatch(run_commands(id, vec![command(line)]))
+            .await;
+        let (results, _, finished) = dissect(&session.job_events(id).await);
+        assert_eq!(outcome(&finished), Outcome::Rejected, "{finished:?}");
+        assert!(finished.message.contains(needle), "{finished:?}");
+        assert!(results.is_empty());
+    }
+    assert!(!marker.exists());
+    agent.stop().await.unwrap();
+}
+
+#[tokio::test]
 async fn timeout_kills_the_process() {
     let dir = tempfile::tempdir().unwrap();
     let pid_file = dir.path().join("pid");
@@ -173,7 +213,7 @@ async fn engine_commands_reach_the_fifo_and_fail_without_reader() {
     nix::unistd::mkfifo(&fifo, Mode::from_bits_truncate(0o600)).unwrap();
     let mut server = FakeServer::start().await;
     let config = format!(
-        "{}[engine]\ncommand_file = \"{}\"\n",
+        "{}[engine]\ncommand_file = \"{}\"\nallowed_commands = ['RESTART_PROGRAM', 'SCHEDULE_FORCED_(HOST|SVC)_CHECK']\n",
         clear_text(&server),
         path_str(&fifo)
     );
@@ -203,7 +243,32 @@ async fn engine_commands_reach_the_fifo_and_fail_without_reader() {
     assert_eq!(outcome(&finished), Outcome::Ok, "{finished:?}");
     assert!(finished.message.starts_with("2 commands"), "{finished:?}");
 
-    let expected = "[1] RESTART_PROGRAM\n[2] SCHEDULE_FORCED_HOST_CHECK;h;2\n";
+    // Refused jobs write nothing, not even their allowed lines.
+    for (id, lines) in [
+        (
+            "not-listed",
+            ["[3] RESTART_PROGRAM", "[3] PROCESS_FILE;/tmp/x;1"],
+        ),
+        (
+            "injected",
+            [
+                "[3] RESTART_PROGRAM",
+                "[3] RESTART_PROGRAM;\n[3] PROCESS_FILE;/tmp/x;1",
+            ],
+        ),
+    ] {
+        session.dispatch(engine_commands(id, &lines)).await;
+        let (_, _, finished) = dissect(&session.job_events(id).await);
+        assert_eq!(outcome(&finished), Outcome::Rejected, "{finished:?}");
+        assert!(finished.message.starts_with("command 1: "), "{finished:?}");
+    }
+    session
+        .dispatch(engine_commands("last", &["[4] RESTART_PROGRAM"]))
+        .await;
+    let (_, _, finished) = dissect(&session.job_events("last").await);
+    assert_eq!(outcome(&finished), Outcome::Ok, "{finished:?}");
+
+    let expected = "[1] RESTART_PROGRAM\n[2] SCHEDULE_FORCED_HOST_CHECK;h;2\n[4] RESTART_PROGRAM\n";
     let mut received = vec![0_u8; expected.len()];
     tokio::task::spawn_blocking(move || {
         engine.read_exact(&mut received).unwrap();
@@ -456,13 +521,9 @@ async fn deadline_passing_during_execution_stops_the_job() {
     let agent = Agent::start(&config);
     let mut session = server.next_session().await;
 
-    let now_ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as i64;
-    // The command timeout (10 s here) is far beyond the job deadline.
+    // The command timeout (10 s here) is far beyond the job time to live.
     let mut job = run_commands("deadline", vec![command("sleep 60"), command("echo never")]);
-    job.deadline_unix_ms = now_ms + 1000;
+    job.ttl_ms = 1000;
     let started = std::time::Instant::now();
     session.dispatch(job).await;
     let (results, _, finished) = dissect(&session.job_events("deadline").await);
@@ -516,29 +577,41 @@ async fn stopped_command_gets_sigterm_then_sigkill_after_the_grace() {
 }
 
 #[tokio::test]
-async fn job_past_its_deadline_is_not_run() {
+async fn job_whose_time_to_live_ran_out_in_the_queue_is_not_run() {
     let dir = tempfile::tempdir().unwrap();
     let marker = dir.path().join("marker");
     let mut server = FakeServer::start().await;
-    let config = clear_text(&server) + "[commands]\nallowlist = ['touch .*']\n";
+    // One job at a time: the second one waits behind the first.
+    let config = clear_text(&server).replace("max_concurrent_jobs = 4", "max_concurrent_jobs = 1")
+        + "[commands]\nallowlist = ['touch .*', 'sleep 1']\n";
     let agent = Agent::start(&config);
     let mut session = server.next_session().await;
 
+    let touch = command(&format!("touch {}", path_str(&marker)));
+    session
+        .dispatch(run_commands("busy", vec![command("sleep 1")]))
+        .await;
+    let mut late = run_commands("late", vec![touch.clone()]);
+    late.ttl_ms = 200;
+    session.dispatch(late).await;
+    let (results, _, finished) = dissect(&session.job_events("late").await);
+    assert_eq!(outcome(&finished), Outcome::Timeout);
+    assert!(
+        finished.message.contains("before the job started"),
+        "{finished:?}"
+    );
+    assert!(results.is_empty());
+    assert!(!marker.exists());
+
+    // The wall-clock deadline is informative: a poller with a wrong clock,
+    // here one that believes the deadline is long gone, still runs the job.
     let now_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis() as i64;
-    let touch = command(&format!("touch {}", path_str(&marker)));
-    let mut late = run_commands("late", vec![touch.clone()]);
-    late.deadline_unix_ms = now_ms - 1000;
-    session.dispatch(late).await;
-    let (results, _, finished) = dissect(&session.job_events("late").await);
-    assert_eq!(outcome(&finished), Outcome::Timeout);
-    assert!(results.is_empty());
-    assert!(!marker.exists());
-
     let mut in_time = run_commands("in-time", vec![touch]);
-    in_time.deadline_unix_ms = now_ms + 60_000;
+    in_time.deadline_unix_ms = now_ms - 3_600_000;
+    in_time.ttl_ms = 60_000;
     session.dispatch(in_time).await;
     let (_, _, finished) = dissect(&session.job_events("in-time").await);
     assert_eq!(outcome(&finished), Outcome::Ok);

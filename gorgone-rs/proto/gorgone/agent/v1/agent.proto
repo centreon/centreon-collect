@@ -59,9 +59,12 @@ message EventAck {
 
 message Job {
   string id = 1;
-  // Unix milliseconds; 0 means no deadline.
+  // Unix milliseconds on the server clock; informative only.
   int64 deadline_unix_ms = 2;
   Action action = 3;
+  // Time left when the job was dispatched; 0 means no deadline. The agent
+  // counts from reception, so clocks need not agree.
+  uint64 ttl_ms = 4;
 }
 
 message Action {
