@@ -411,7 +411,7 @@ BECFGVAL10
     ...    When its hosts are given a tag that is not defined and the configuration is announced
     ...    Then Broker validates and sends the configuration, tags not being its business
     ...    And Engine cannot apply it, restores its previous configuration and tells Broker why
-    ...    And Broker logs the failure and removes new-1.prot and diff-1.prot
+    ...    And Broker logs the failure and removes new-1.prot and new-diff-1.prot
     ...    And the configuration is not sent again
     ...    When the tag is removed and the configuration is announced again
     ...    Then the poller acknowledges the new configuration
@@ -445,7 +445,7 @@ BECFGVAL10
 
     VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
     Wait Until Removed    ${dir}/new-1.prot    10s
-    Wait Until Removed    ${dir}/diff-1.prot    10s
+    Wait Until Removed    ${dir}/new-diff-1.prot    10s
 
     # A configuration that failed would fail again: it must not be resent.
     Sleep    5s
