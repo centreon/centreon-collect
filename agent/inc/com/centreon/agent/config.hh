@@ -32,14 +32,14 @@ class config {
   std::string _endpoint;
   spdlog::level::level_enum _log_level;
   log_type _log_type;
-  std::string _log_file;
+  std::filesystem::path _log_file;
   unsigned _log_max_file_size;
   unsigned _log_max_files;
 
   common::grpc::grpc_config::e_security_mode _security_mode;
-  std::string _public_cert_file;
-  std::string _private_key_file;
-  std::string _ca_certificate_file;
+  std::filesystem::path _public_cert_file;
+  std::filesystem::path _private_key_file;
+  std::filesystem::path _ca_certificate_file;
   std::string _ca_name;
   std::string _host;
   bool _reverse_connection;
@@ -81,7 +81,7 @@ class config {
   const std::string& get_endpoint() const { return _endpoint; }
   spdlog::level::level_enum get_log_level() const { return _log_level; };
   log_type get_log_type() const { return _log_type; }
-  const std::string& get_log_file() const { return _log_file; }
+  const std::filesystem::path& get_log_file() const { return _log_file; }
   unsigned get_log_max_file_size() const { return _log_max_file_size; }
   unsigned get_log_max_files() const { return _log_max_files; }
 
@@ -91,9 +91,13 @@ class config {
   bool use_encryption() const {
     return _security_mode != common::grpc::grpc_config::NONE;
   }
-  const std::string& get_public_cert_file() const { return _public_cert_file; }
-  const std::string& get_private_key_file() const { return _private_key_file; }
-  const std::string& get_ca_certificate_file() const {
+  const std::filesystem::path& get_public_cert_file() const {
+    return _public_cert_file;
+  }
+  const std::filesystem::path& get_private_key_file() const {
+    return _private_key_file;
+  }
+  const std::filesystem::path& get_ca_certificate_file() const {
     return _ca_certificate_file;
   }
   const std::string& get_ca_name() const { return _ca_name; }

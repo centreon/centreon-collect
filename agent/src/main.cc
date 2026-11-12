@@ -77,7 +77,7 @@ static void signal_handler(const boost::system::error_code& error,
   }
 }
 
-static std::string read_file(const std::string& file_path) {
+static std::string read_file(const std::filesystem::path& file_path) {
   if (file_path.empty()) {
     return {};
   }
@@ -144,14 +144,15 @@ int main(int argc, char* argv[]) {
       if (!conf.get_log_file().empty()) {
         if (conf.get_log_max_file_size() > 0 && conf.get_log_max_files() > 0) {
           g_logger = spdlog::rotating_logger_mt(
-              logger_name, conf.get_log_file(),
+              logger_name, conf.get_log_file().string(),
               conf.get_log_max_file_size() * 0x100000,
               conf.get_log_max_files());
         } else {
           SPDLOG_INFO(
               "no log-max-file-size option or no log-max-files option provided "
               "=> logs will not be rotated by centagent");
-          g_logger = spdlog::basic_logger_mt(logger_name, conf.get_log_file());
+          g_logger = spdlog::basic_logger_mt(logger_name,
+                                             conf.get_log_file().string());
         }
       } else {
         SPDLOG_ERROR(

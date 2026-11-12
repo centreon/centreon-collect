@@ -19,6 +19,7 @@
 #include <rapidjson/document.h>
 
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/common/utf8.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
@@ -180,9 +181,10 @@ config::config(const std::string& path) {
   if (_ca_name.empty()) {
     _ca_name = json_config.get_string("ca_name", "");
   }
-  _host = json_config.get_string("host", "");
+  // host is sent in protobuf strings that must be UTF-8
+  _host = common::ensure_utf8(json_config.get_string("host", ""));
   if (_host.empty()) {
-    _host = boost::asio::ip::host_name();
+    _host = common::ensure_utf8(boost::asio::ip::host_name());
   }
   _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
   _second_max_reconnect_backoff =
