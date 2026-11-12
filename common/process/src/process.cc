@@ -32,6 +32,7 @@
 #include "com/centreon/common/process/detail/spawnp_launcher.hh"
 #else
 #include <boost/process/v2/process.hpp>
+#include "com/centreon/common/utf8.hh"
 #endif
 
 #include "com/centreon/common/process/detail/boost_process.hh"
@@ -221,6 +222,19 @@ static const std::vector<std::string> _no_args;
 
 #if defined(BOOST_PROCESS_V2_WINDOWS)
 
+/**
+ * @brief Build the executable path from the command line.
+ * Command lines are UTF-8 (boost.process converts arguments as UTF-8), but a
+ * std::filesystem::path built from a narrow string is decoded with the ANSI
+ * code page, so an accented executable path would not be found.
+ *
+ * @param exe_path executable path (UTF-8, or ANSI as a fallback)
+ * @return std::filesystem::path
+ */
+static std::filesystem::path _exe_path_from_utf8(const std::string& exe_path) {
+  return std::filesystem::path(utf8_to_wstring(ensure_utf8(exe_path)));
+}
+
 template <bool use_mutex>
 void process<use_mutex>::_create_process() {
   boost::process::windows::default_launcher launcher;
@@ -232,13 +246,15 @@ void process<use_mutex>::_create_process() {
 
   if (_env && !_env->env_buffer.empty()) {
     _proc = new detail::boost_process(
-        launcher(*this->_io_context, _args->get_exe_path(), _args->get_args(),
+        launcher(*this->_io_context, _exe_path_from_utf8(_args->get_exe_path()),
+                 _args->get_args(),
                  boost::process::v2::process_stdio{
                      this->_stdin_pipe, this->_stdout_pipe, this->_stderr_pipe},
                  *_env));
   } else {
     _proc = new detail::boost_process(launcher(
-        *this->_io_context, _args->get_exe_path(), _args->get_args(),
+        *this->_io_context, _exe_path_from_utf8(_args->get_exe_path()),
+        _args->get_args(),
         boost::process::v2::process_stdio{this->_stdin_pipe, this->_stdout_pipe,
                                           this->_stderr_pipe}));
   }
