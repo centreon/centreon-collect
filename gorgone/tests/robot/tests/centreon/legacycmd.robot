@@ -178,6 +178,86 @@ Legacycmd reports a final KO when the target poller is not connected
     Should Be Equal As Integers    ${result}[data][tracked]    1    RELOAD must be tracked
     Should Not Be Equal As Strings    ${result}[data][message]    timeout waiting for sub-actions to finish    KO must come from the disconnected node, not the batch timeout
 
+Legacycmd exports recover once a stuck httpserver child is detected and recreated
+    [Documentation]    Given a connected pullwss poller
+    ...    When the central's httpserver child (the single process handling all wss/pullwss
+    ...    traffic) gets wedged - simulated here with SIGSTOP, standing in for the k3d c13 load
+    ...    spike (5k hosts / 10 pollers) where it stayed alive but stopped answering, leaving
+    ...    every export stuck in "timeout waiting for sub-actions to finish" until gorgoned
+    ...    itself was restarted (MON-214475)
+    ...    Then gorgoned confirms it on two consecutive health checks (the first can be gorgoned's
+    ...    own main loop running late, not the child), kills and recreates it, and a
+    ...    CENTREONCOMMAND batch posted after the poller reconnects reports a final result again,
+    ...    without restarting gorgoned
+    [Tags]    gorgone    legacycmd    proxy    pullwss    MON-214475
+    ${central}=    Set Variable    pullwss_gorgone_central_legacycmd_httpserver
+    ${poller}=    Set Variable    pullwss_gorgone_poller2_legacycmd_httpserver
+    [Teardown]    Legacycmd Final Result Teardown    central=${central}    poller=${poller}
+
+    @{central_config}    Create List    ${ROOT_CONFIG}legacycmd.yaml    ${ROOT_CONFIG}engine.yaml    ${ROOT_CONFIG}actions.yaml
+    @{poller_config}    Create List     ${ROOT_CONFIG}actions.yaml    ${ROOT_CONFIG}engine.yaml
+    Setup Two Gorgone Instances
+    ...    central_config=${central_config}
+    ...    communication_mode=pullwss
+    ...    central_name=${central}
+    ...    poller_name=${poller}
+    ...    poller_config=${poller_config}
+    ...    central_replace_from=${{['@HTTPSERVER_CHECK_INTERVAL@', '@HTTPSERVER_CHECK_TIMEOUT@']}}
+    ...    central_replace_to=${{['2', '5']}}
+
+    ${central_log_file}    Set Variable    /var/log/centreon-gorgone/${central}/gorgoned.log
+    ${old_pid}    Run    pgrep -f '^gorgone-proxy-httpserver$'
+    Should Match Regexp    ${old_pid}    ^\\d+$    expected exactly one httpserver child process, got: ${old_pid}
+
+    ${start_date}    Get Current Date
+    Run    kill -STOP ${old_pid}
+
+    ${log_stuck_query}    Create List
+    ...    httpserver child (pid ${old_pid}) did not answer the internal health check within
+    ...    on two consecutive checks: considering it stuck, killing and recreating it
+    ${logs_central}    Ctn Find In Log With Timeout
+    ...    log=${central_log_file}
+    ...    content=${log_stuck_query}
+    ...    date=${start_date}
+    ...    timeout=90
+    Should Be True    ${logs_central}
+    ...    gorgoned never confirmed the stuck httpserver child : ${logs_central}
+
+    ${log_recreate_query}    Create List    Create module 'proxy' httpserver child process
+    ${logs_central}    Ctn Find In Log With Timeout
+    ...    log=${central_log_file}
+    ...    content=${log_recreate_query}
+    ...    date=${start_date}
+    ...    timeout=5
+    Should Be True    ${logs_central}
+    ...    gorgoned never recreated the httpserver child : ${logs_central}
+
+    ${new_pid}    Run    pgrep -f '^gorgone-proxy-httpserver$'
+    Should Match Regexp    ${new_pid}    ^\\d+$    expected exactly one httpserver child process after recreation, got: ${new_pid}
+    Should Not Be Equal As Strings    ${old_pid}    ${new_pid}
+    ...    the httpserver child still has its old pid, it was not actually recreated
+
+    # the stuck process was killed, not just stopped: the poller's websocket drops and it
+    # reconnects on its own backoff, through the newly recreated httpserver child. Waiting on
+    # TCP ESTAB or on ping_ok (cumulative, already non-zero from before the kill) would not
+    # prove the new child actually re-registered the node: wait for its own REGISTERNODES ack
+    # instead, the same signal channel_ready now depends on (see register_nodes()).
+    ${log_relogged_query}    Create List    httpserver client 2 is logged
+    ${logs_central}    Ctn Find In Log With Timeout
+    ...    log=${central_log_file}
+    ...    content=${log_relogged_query}
+    ...    date=${start_date}
+    ...    timeout=30
+    Should Be True    ${logs_central}
+    ...    poller never re-registered with the recreated httpserver child : ${logs_central}
+
+    ${command}    Create Dictionary    command=RELOAD    target=2
+    ${body}    Create List    ${command}
+    ${response}    POST    http://127.0.0.1:8085/api/centreon/legacycmd/command    json=${body}
+    ${status}    ${result}    Ctn Get Legacycmd Final Result    token=${response.json()}[token]    timeout=30
+    Should Be True    ${status}    No final batch result found after the httpserver child was recreated: ${result}
+    Should Be Equal As Integers    ${result}[code]    2    export should succeed again, got: ${result}
+
 *** Keywords ***
 Legacycmd Final Result Teardown
     [Arguments]    ${central}    ${poller}

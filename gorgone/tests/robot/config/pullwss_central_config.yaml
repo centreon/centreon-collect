@@ -22,6 +22,8 @@ gorgone:
         token: "secret_token"
         address: "0.0.0.0"
         port: 8086
+        check_interval: @HTTPSERVER_CHECK_INTERVAL@
+        check_timeout: @HTTPSERVER_CHECK_TIMEOUT@
 
     - name: nodes
       package: "gorgone::modules::centreon::nodes::hooks"
