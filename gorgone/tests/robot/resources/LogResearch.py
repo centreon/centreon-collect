@@ -17,6 +17,7 @@
 #
 
 from robot.api import logger
+import json
 import re
 import time
 from dateutil import parser
@@ -168,6 +169,31 @@ def ctn_get_api_log_count_with_timeout(token: str, count=0, node_path='', host='
             time.sleep(1)
             continue
     return 0
+
+
+def ctn_get_legacycmd_final_result(token: str, host='http://127.0.0.1:8085', timeout=40):
+    """! Poll the gorgone log API for the aggregated CENTREONCOMMAND batch result
+        (data.legacycmd_final == 1 under the given token, MON-214293), skipping the
+        BEGIN entry and any intermediate sub-action entry sharing the same token.
+        @param token: token returned by POSTing to .../centreon/legacycmd/centreoncommand
+        @param host: gorgone API URL with the port
+        @param timeout: timeout in seconds
+        @return True/the decoded final entry ({"code":.., "data":..}), or False/a message
+        """
+    limit_date = time.time() + timeout
+    uri = host + "/api/log/" + token
+    while time.time() < limit_date:
+        response = requests.get(uri)
+        if response.status_code == 200:
+            for log_detail in response.json().get("data", []):
+                try:
+                    data = json.loads(log_detail["data"])
+                except (ValueError, TypeError, KeyError):
+                    continue
+                if data.get("legacycmd_final") == 1:
+                    return True, {"code": log_detail["code"], "data": data}
+        time.sleep(1)
+    return False, f"timeout reached while polling for legacycmd_final on {uri}"
 
 
 def parse_json_response(response):

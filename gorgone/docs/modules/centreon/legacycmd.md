@@ -23,6 +23,15 @@ The module relies on the following modules to process commands:
 | remote_dir                   | Directory where to export Remote Servers configuration       | `/var/cache/centreon/config/remote-data/` |
 | bulk_external_cmd            | Bulk external commands (DOWNTIME, ACK,...)                   | `50`                                      |
 | bulk_external_cmd_sequential | Order bulk external commands and other commands (Eg. RELOAD) | `1`                                       |
+| legacycmd_result_timeout     | Max seconds to wait for a CENTREONCOMMAND batch's result     | `40`                                      |
+
+A CENTREONCOMMAND batch (SENDCFGFILE, SYNCTRAP, ENGINERESTART, RESTART, ENGINERELOAD,
+RELOAD, START, STOP, RELOADBROKER, RESTARTCENTREONTRAPD, RELOADCENTREONTRAPD,
+VMWARERESTART) reports one final log entry for its token once every dispatched
+sub-action is done, or as soon as one fails: `data.legacycmd_final` is `1` and
+`data.tracked` is `1`. Any other command (EXTERNALCMD, SENDEXPORTFILE, STARTWORKER)
+closes its batch right after dispatch instead, with `data.tracked` at `0`: accepted,
+but delivery is not confirmed.
 
 #### Example
 
